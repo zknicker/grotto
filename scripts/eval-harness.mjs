@@ -246,6 +246,21 @@ export function createEvalHarness({ evalName }) {
             .map((row) => row.message?.content ?? '');
     }
 
+    // D8 (specs/tasks.md): a work request may be claimed as a task and worked
+    // in its thread — the thread is the work surface. Thread replies never
+    // surface as parent-channel rows; the anchor row carries the thread
+    // pointer, and threads are chats, so the same timeline read serves them.
+    async function authoredInThreads(log, agentId) {
+        const replies = [];
+        for (const row of log) {
+            if (!row.thread?.threadChatId) {
+                continue;
+            }
+            replies.push(...authoredBy(await readLog(row.thread.threadChatId), agentId));
+        }
+        return replies;
+    }
+
     async function pollLog(chatId, predicate, timeoutMs) {
         const deadline = Date.now() + timeoutMs;
         while (Date.now() < deadline) {
@@ -352,6 +367,7 @@ export function createEvalHarness({ evalName }) {
 
     return {
         authoredBy,
+        authoredInThreads,
         cleanupChatsAndBios,
         createChat,
         createDmChat,

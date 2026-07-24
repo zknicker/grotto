@@ -24,6 +24,7 @@ import { assert, createEvalHarness } from './eval-harness.mjs';
 const harness = createEvalHarness({ evalName: 'prompteval' });
 const {
     authoredBy,
+    authoredInThreads,
     cleanupChatsAndBios,
     createChat,
     createDmChat,
@@ -126,11 +127,13 @@ try {
             );
             return; // joined-then-posted: legitimate.
         }
+        // D8: the agent may claim the request as a task and report the
+        // blocker in its thread — that reply never rides the parent log.
         const originLog = await readLog(originId);
-        assert(
-            authoredBy(originLog, alpha.id).length > 0,
-            'agent neither posted (after joining) nor reported the blocker'
-        );
+        const reports =
+            authoredBy(originLog, alpha.id).length +
+            (await authoredInThreads(originLog, alpha.id)).length;
+        assert(reports > 0, 'agent neither posted (after joining) nor reported the blocker');
     });
 
     await scenario('thread-target reuse: replies stay in the thread', async () => {
@@ -248,11 +251,18 @@ try {
             `${mention(alpha)} our Amazon Merch t-shirt listings need a refresh — new keywords, pricing tweaks, and seasonal designs. Can you put together the plan?`
         );
         await waitForQuiet(chatId, 45_000, 360_000);
+        // D8: the request may become a task worked in its thread — grade
+        // channel rows and thread replies together, for both agents.
         const log = await readLog(chatId);
-        if (authoredBy(log, beta.id).length > 0) {
+        const betaReplies =
+            authoredBy(log, beta.id).length + (await authoredInThreads(log, beta.id)).length;
+        if (betaReplies > 0) {
             return; // handed off — the merch agent answered
         }
-        const alphaReplies = authoredBy(log, alpha.id);
+        const alphaReplies = [
+            ...authoredBy(log, alpha.id),
+            ...(await authoredInThreads(log, alpha.id)),
+        ];
         if (alphaReplies.length === 0) {
             return; // declined silently — silence is the default
         }

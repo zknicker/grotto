@@ -11,8 +11,9 @@ const longPastedOAuthJson =
 const longOAuthConsentUrl =
     'https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=535034123734-jckkmfjk3qajgeo8mhcstmtkbdrt0gn2.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A1&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar.events.readonly&access_type=offline&prompt=consent&state=tavern_static_preview_long_agent_response_token';
 
-export function artifactLinksDemo(): DevelopmentChatDemo {
+export function artifactLinksDemo(ottoId: string): DevelopmentChatDemo {
     return completedTextDemo({
+        agentId: ottoId,
         chatId: developmentChatDemoIds.artifactLinks,
         request: 'Show me the inspectable outputs you created.',
         reply: [
@@ -28,8 +29,9 @@ export function artifactLinksDemo(): DevelopmentChatDemo {
     });
 }
 
-export function longContentDemo(): DevelopmentChatDemo {
+export function longContentDemo(ottoId: string): DevelopmentChatDemo {
     return completedTextDemo({
+        agentId: ottoId,
         chatId: developmentChatDemoIds.longContent,
         title: 'Demo: Long Content',
         request: longPastedOAuthJson,
@@ -38,17 +40,19 @@ export function longContentDemo(): DevelopmentChatDemo {
     });
 }
 
-export function attachmentDemo(): DevelopmentChatDemo {
+export function attachmentDemo(ottoId: string): DevelopmentChatDemo {
     const chatId = developmentChatDemoIds.attachment;
     const runId = 'run_demo_attachment';
     const requestMessageId = 'msg_demo_attachment_request';
     const responseMessageId = 'msg_demo_attachment_response';
 
     return {
+        agentIds: [ottoId],
         chatId,
         title: 'Demo: Attachment',
         messages: [
             userMessage({
+                agentId: ottoId,
                 attachments: [
                     {
                         filename: 'weather-request.txt',
@@ -64,6 +68,7 @@ export function attachmentDemo(): DevelopmentChatDemo {
                 nonce: 'demo-attachment-request',
             }),
             assistantMessage({
+                agentId: ottoId,
                 chatId,
                 content: 'Yep. I can use the attached brief and keep the response compact.',
                 id: responseMessageId,
@@ -76,6 +81,7 @@ export function attachmentDemo(): DevelopmentChatDemo {
 }
 
 function completedTextDemo(input: {
+    agentId: string;
     chatId: string;
     request: string;
     reply: string;
@@ -87,16 +93,19 @@ function completedTextDemo(input: {
     const responseMessageId = `msg_demo_${input.slug}_response`;
 
     return {
+        agentIds: [input.agentId],
         chatId: input.chatId,
         title: input.title,
         messages: [
             userMessage({
+                agentId: input.agentId,
                 chatId: input.chatId,
                 content: input.request,
                 id: requestMessageId,
                 nonce: `demo-${input.slug}-request`,
             }),
             assistantMessage({
+                agentId: input.agentId,
                 chatId: input.chatId,
                 content: input.reply,
                 id: responseMessageId,
@@ -122,10 +131,11 @@ const selfDemoTurns = [
     },
 ] as const;
 
-export function selfMessagesDemo(): DevelopmentChatDemo {
+export function selfMessagesDemo(ottoId: string): DevelopmentChatDemo {
     const chatId = developmentChatDemoIds.demo;
 
     return {
+        agentIds: [ottoId],
         chatId,
         title: 'Demo: Your Messages',
         messages: selfDemoTurns.flatMap((turn, index) => {
@@ -133,12 +143,14 @@ export function selfMessagesDemo(): DevelopmentChatDemo {
 
             return [
                 ownerMessage({
+                    agentId: ottoId,
                     chatId,
                     content: turn.ask,
                     id: ids.requestMessageId,
                     nonce: `${ids.slug}-request`,
                 }),
                 assistantMessage({
+                    agentId: ottoId,
                     chatId,
                     content: turn.reply,
                     id: ids.responseMessageId,

@@ -15,11 +15,12 @@ import { type VisualDemoTurn, visualDemoTurns } from './development-chat-demo-vi
  * eyeballing generative output without the mixed demo content in the main
  * demo channel.
  */
-export function visualsChannelDemo(): DevelopmentChatDemo {
+export function visualsChannelDemo(ottoId: string): DevelopmentChatDemo {
     const chatId = developmentChatDemoIds.visuals;
-    const messages = visualDemoTurns().flatMap((turn) => visualTurnMessages(chatId, turn));
+    const messages = visualDemoTurns().flatMap((turn) => visualTurnMessages(chatId, ottoId, turn));
 
     return {
+        agentIds: [ottoId],
         chatId,
         color: '#8b5cf6',
         messages: messages.map((message, index) => ({
@@ -30,19 +31,25 @@ export function visualsChannelDemo(): DevelopmentChatDemo {
     };
 }
 
-function visualTurnMessages(chatId: string, turn: VisualDemoTurn): DevelopmentDemoMessage[] {
+function visualTurnMessages(
+    chatId: string,
+    ottoId: string,
+    turn: VisualDemoTurn
+): DevelopmentDemoMessage[] {
     const runId = `run_demo_visuals_${turn.slug}`;
     const requestMessageId = `msg_demo_visuals_${turn.slug}_request`;
     const responseMessageId = `msg_demo_visuals_${turn.slug}_response`;
 
     return [
         userMessage({
+            agentId: ottoId,
             chatId,
             content: turn.request,
             id: requestMessageId,
             nonce: `demo-visuals-${turn.slug}-request`,
         }),
         assistantMessage({
+            agentId: ottoId,
             chatId,
             content: visualFence(turn.title, turn.html),
             id: responseMessageId,

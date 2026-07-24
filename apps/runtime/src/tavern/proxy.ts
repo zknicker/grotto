@@ -1,5 +1,3 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import {
     type AgentRuntimeAgent,
     agentRuntimeAgentInboxSchema,
@@ -23,23 +21,14 @@ import {
     agentRuntimeUpdateToolEnabledSchema,
 } from '@tavern/api';
 import { ZodError } from 'zod';
-import { defaultAgentEngineAgentId } from '../agent-engine/constants.ts';
-import {
-    getRuntimeSkill,
-    listRuntimeSkills,
-    tavernAgentSkillId,
-    visualsSkillId,
-} from '../agent-engine/skill-library.ts';
-import { AGENT_HOME } from '../config.ts';
-import { getDb } from '../db/connection.ts';
+import { getRuntimeSkill, listRuntimeSkills } from '../agent-engine/skill-library.ts';
 import { runRuntimeDoctor } from '../doctor/runtime-doctor.ts';
 import { listAgentModels } from '../models/catalog-service.ts';
 import {
     resolveAgentModelSelection,
     saveAgentModelSelectionIntent,
 } from '../models/selection-service.ts';
-import { registerAgentWorkspace } from '../workspace/instructions.ts';
-import { seedAgentWorkspace } from '../workspace/starter-kit.ts';
+import { createRuntimeAgent } from './agent-create.ts';
 import { readAgentInboxVisibility } from './agent-inbox-api.ts';
 import { stopAgentTurn, stopAgentTurns } from './agent-turn-runner.ts';
 import {
@@ -49,11 +38,9 @@ import {
     listStoredAgents,
     setAgentPluginGrant,
     updateStoredAgent,
-    upsertStoredAgent,
 } from './agents-store.ts';
 import { HandleValidationError } from './handles.ts';
 import { badRequest, json } from './http.ts';
-import { primaryManagedAgent } from './managed-agent.ts';
 import { getRuntimeTool, listRuntimeTools } from './tool-catalog.ts';
 
 export async function handleAgentProxyRequest(request: Request): Promise<Response | null> {
@@ -74,36 +61,11 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
     const segments = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
 
     if (method === 'GET' && url.pathname === agentRuntimeRoutes.agents) {
-        ensurePrimaryAgent();
         return withResolvedModelNames(listStoredAgents());
     }
     if (method === 'POST' && url.pathname === agentRuntimeRoutes.agents) {
         const input = agentRuntimeCreateAgentSchema.parse(await readJson(request));
-        const agent = upsertStoredAgent({
-            agent: {
-                webAccessEnabled: input.webAccessEnabled ?? false,
-                bio: input.bio ?? null,
-                enabledSkillIds: input.enabledSkillIds ?? [tavernAgentSkillId, visualsSkillId],
-                enabledPluginIds: input.enabledPluginIds ?? [],
-                id: input.id,
-                isAdmin: input.isAdmin ?? false,
-                name: input.name,
-                primaryColor: input.primaryColor ?? null,
-                workspaceFolder: resolveAgentWorkspaceFolder(input),
-            },
-        });
-        await fs.mkdir(agent.workspaceFolder, { recursive: true });
-        await seedAgentWorkspace({
-            agentName: agent.name,
-            archetype: input.archetype ?? null,
-            bio: agent.bio ?? null,
-            workspaceDir: agent.workspaceFolder,
-        });
-        registerAgentWorkspace(getDb(), {
-            agentId: agent.id,
-            agentName: agent.name,
-            workspaceDir: agent.workspaceFolder,
-        });
+        const agent = await createRuntimeAgent(input);
         await runRuntimeDoctor({
             modules: ['agents'],
             reason: 'agent_changed',
@@ -119,7 +81,6 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
         });
     }
     if (method === 'GET' && segments[0] === 'agents' && segments[1] && segments[2] === 'config') {
-        ensurePrimaryAgent();
         const agent = getStoredAgent(segments[1]);
         return agent ? withResolvedModelName(agent) : undefined;
     }
@@ -145,9 +106,6 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
     ) {
         const input = await readJson(request);
         const agentId = segments[1];
-        if (agentId === defaultAgentEngineAgentId) {
-            ensurePrimaryAgent();
-        }
         let updatedAgent: AgentRuntimeAgent | null = null;
         if (segments[2] === 'model') {
             updatedAgent = await savePatchedModel(agentId, input);
@@ -179,9 +137,6 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
     }
     if (method === 'GET' && segments[0] === 'agents' && segments[1] && segments[2] === 'plugins') {
         const agentId = segments[1];
-        if (agentId === defaultAgentEngineAgentId) {
-            ensurePrimaryAgent();
-        }
         const agent = getStoredAgent(agentId);
         if (!agent) {
             return undefined;
@@ -224,11 +179,7 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
     }
     if (method === 'GET' && url.pathname === agentRuntimeRoutes.skills) {
         const agentId = url.searchParams.get('agentId');
-        const agent = agentId
-            ? agentId === defaultAgentEngineAgentId
-                ? ensurePrimaryAgent()
-                : getStoredAgent(agentId)
-            : null;
+        const agent = agentId ? getStoredAgent(agentId) : null;
         if (agentId && !agent) {
             return agentRuntimeSkillListSchema.parse({ skills: [] });
         }
@@ -321,21 +272,6 @@ async function savePatchedModel(agentId: string, input: unknown) {
     return agent;
 }
 
-function ensurePrimaryAgent() {
-    const existing = getStoredAgent(defaultAgentEngineAgentId);
-    if (existing) {
-        return existing;
-    }
-
-    return upsertStoredAgent({
-        agent: { ...primaryManagedAgent(), enabledPluginIds: [] },
-    });
-}
-
-function resolveAgentWorkspaceFolder(input: { id: string; workspaceFolder?: string }) {
-    return input.workspaceFolder ?? path.join(AGENT_HOME, 'agents', input.id, 'workspace');
-}
-
 function withResolvedModelNames(input: ReturnType<typeof listStoredAgents>) {
     return {
         agents: input.agents.map(withResolvedModelName),
@@ -354,11 +290,7 @@ function withResolvedModelName(agent: NonNullable<ReturnType<typeof getStoredAge
     };
 }
 
-function agentEngineAgent() {
-    return withResolvedModelName(ensurePrimaryAgent());
-}
-
-function agentConfigEntry(agent: ReturnType<typeof agentEngineAgent>) {
+function agentConfigEntry(agent: ReturnType<typeof withResolvedModelName>) {
     return {
         id: agent.id,
         model: agent.modelName,
@@ -367,14 +299,13 @@ function agentConfigEntry(agent: ReturnType<typeof agentEngineAgent>) {
     };
 }
 
-function agentConfigHash(agents: ReturnType<typeof agentEngineAgent>[]) {
+function agentConfigHash(agents: ReturnType<typeof withResolvedModelName>[]) {
     return `agent-engine:${agents
         .map((agent) => `${agent.id}:${agent.modelName.provider}/${agent.modelName.model}`)
         .join(',')}`;
 }
 
 function agentEngineAgentConfigSnapshot() {
-    ensurePrimaryAgent();
     const agents = listStoredAgents().agents.map(withResolvedModelName);
 
     return {

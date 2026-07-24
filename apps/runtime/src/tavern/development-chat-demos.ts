@@ -3,23 +3,20 @@ import {
     developmentChatTeamDemoId,
     obsoleteDevelopmentChatDemoIds,
 } from '@tavern/api/development-chat-demos';
-import { AGENT_WORKSPACE } from '../config';
 import type { Database } from '../db/sqlite';
 import { namedParams } from '../db/sqlite';
-import { registerAgentWorkspace } from '../workspace/instructions';
-import { getStoredAgent, upsertStoredAgent } from './agents-store';
+import { createRuntimeAgent } from './agent-create';
+import { listStoredAgents } from './agents-store';
 import { createChat, createMessage, getMessage, promoteMessageToTask } from './chat-api';
 import { developmentChatDemos } from './development-chat-demo-definitions';
 import {
+    type DemoAgentIds,
     type DevelopmentDemoMessage,
-    demoAgentId,
+    demoAgentNames,
     demoOwnerParticipantId,
-    demoSecondAgentId,
-    demoSecondAgentName,
     demoUserHandle,
     demoUserParticipantId,
 } from './development-chat-demo-types';
-import { ensurePrimaryManagedAgent } from './managed-agent';
 import { createReminder, listReminders } from './reminder-store';
 
 // Seeding is create-only for rows a user or real turn may have touched:
@@ -31,33 +28,32 @@ export function shouldSeedDevelopmentChatDemos() {
     return process.env.TAVERN_DEV_STACK === '1';
 }
 
-export function seedDevelopmentChatDemos({
+export async function seedDevelopmentChatDemos({
     db,
     enabled = shouldSeedDevelopmentChatDemos(),
 }: {
     db: Database;
     enabled?: boolean;
-}) {
+}): Promise<{ agentIds: DemoAgentIds | null; seeded: number }> {
     if (!enabled) {
-        return { seeded: 0 };
+        return { agentIds: null, seeded: 0 };
     }
 
-    const primaryAgent = ensurePrimaryManagedAgent(db);
-    registerAgentWorkspace(db, {
-        agentId: primaryAgent.id,
-        agentName: primaryAgent.name,
-        workspaceDir: primaryAgent.workspaceFolder,
-    });
-    ensureSecondDemoAgent(db);
+    // Demo agents go through the normal creation path — generated ids,
+    // seeded starter kit — and are resolved by name on reseed (ADR 0018).
+    const agentIds: DemoAgentIds = {
+        otto: (await ensureDemoAgent(db, demoAgentNames.otto, { isAdmin: true })).id,
+        wren: (await ensureDemoAgent(db, demoAgentNames.wren)).id,
+    };
     pruneObsoleteDevelopmentDemoChats(db);
 
-    for (const demo of developmentChatDemos) {
-        const agentIds = demo.agentIds ?? [demoAgentId];
+    const demos = developmentChatDemos(agentIds);
+    for (const demo of demos) {
         createChat(
             {
                 id: demo.chatId,
                 metadata: tavernChatMetadata({
-                    agentIds,
+                    agentIds: demo.agentIds,
                     color: demo.color ?? null,
                     displayName: demo.title,
                     id: demo.chatId,
@@ -72,16 +68,24 @@ export function seedDevelopmentChatDemos({
         }
     }
 
-    seedDemoTaskAndReminder(db);
+    seedDemoTaskAndReminder(db, agentIds);
 
-    return { seeded: developmentChatDemos.length };
+    return { agentIds, seeded: demos.length };
+}
+
+async function ensureDemoAgent(db: Database, name: string, options: { isAdmin?: boolean } = {}) {
+    const existing = listStoredAgents(db).agents.find((agent) => agent.name === name);
+    if (existing) {
+        return existing;
+    }
+    return await createRuntimeAgent({ db, isAdmin: options.isAdmin ?? false, name });
 }
 
 // Populate the Tasks and Reminders surfaces on a fresh reseed so both are
 // reviewable in dev. Metadata only: no receipt system message and no wake, so
 // seeding never spends a model turn. Idempotent by construction — the task
 // keys on its anchor message, the reminder on the owner's existing rows.
-function seedDemoTaskAndReminder(db: Database) {
+function seedDemoTaskAndReminder(db: Database, agentIds: DemoAgentIds) {
     const anchorId = 'msg_demo_team_request';
     if (!getMessage(anchorId, db)) {
         return;
@@ -95,51 +99,26 @@ function seedDemoTaskAndReminder(db: Database) {
         promoteMessageToTask(
             {
                 actorId: demoOwnerParticipantId,
-                assigneeId: demoSecondAgentId,
+                assigneeId: agentIds.wren,
                 messageId: anchorId,
                 origin: 'converted',
             },
             db
         );
     }
-    if (listReminders({ ownerAgentId: demoAgentId }, db).length === 0) {
+    if (listReminders({ ownerAgentId: agentIds.otto }, db).length === 0) {
         createReminder(
             {
                 anchorChatId: developmentChatTeamDemoId,
                 anchorMessageId: anchorId,
                 fireAtMs: Date.parse('2026-06-19T16:00:00.000Z'),
-                ownerAgentId: demoAgentId,
+                ownerAgentId: agentIds.otto,
                 repeat: 'weekly:mon@09:00',
                 title: 'Check the release-note draft before the weekly review',
             },
             db
         );
     }
-}
-
-// The second demo seat. A stored agent like any other — the roster, facepile,
-// and mention picker resolve it exactly as they would a user-created agent.
-function ensureSecondDemoAgent(db: Database) {
-    if (getStoredAgent(demoSecondAgentId, db)) {
-        return;
-    }
-
-    const agent = upsertStoredAgent({
-        agent: {
-            enabledSkillIds: [],
-            id: demoSecondAgentId,
-            isAdmin: false,
-            name: demoSecondAgentName,
-            primaryColor: null,
-            workspaceFolder: `${AGENT_WORKSPACE}-${demoSecondAgentName.toLowerCase()}`,
-        },
-        db,
-    });
-    registerAgentWorkspace(db, {
-        agentId: agent.id,
-        agentName: agent.name,
-        workspaceDir: agent.workspaceFolder,
-    });
 }
 
 function pruneObsoleteDevelopmentDemoChats(db: Database) {

@@ -1,9 +1,8 @@
 import type { TavernCreateMessageRequest } from '@tavern/api';
 
 export interface DevelopmentChatDemo {
-    // Agent seats in the chat, primary-first. Defaults to the primary demo
-    // agent when omitted.
-    agentIds?: string[];
+    // Agent seats in the chat, Otto-first.
+    agentIds: string[];
     chatId: string;
     color?: string | null;
     messages: DevelopmentDemoMessage[];
@@ -14,11 +13,16 @@ export type DevelopmentDemoMessage = TavernCreateMessageRequest & {
     createdAt: string;
 };
 
-export const demoAgentId = 'agt_primary';
-// Second demo seat for multi-agent chats. The id hashes to the bird default
-// character, so Wren wears a wren without a stored appearance override.
-export const demoSecondAgentId = 'agt_wren';
-export const demoSecondAgentName = 'Wren';
+// Demo agents are stored agents like any other, created through the normal
+// runtime create path with generated ids (ADR 0018 — no hardcoded seeded
+// ids). Seeding resolves them by these names and threads the resolved ids
+// into the demo definitions.
+export interface DemoAgentIds {
+    otto: string;
+    wren: string;
+}
+
+export const demoAgentNames = { otto: 'Otto', wren: 'Wren' } as const;
 export const demoUserParticipantId = 'usr_demo';
 // The seeded human's handle (D2: names ARE the handles). Distinct from the
 // operator's "You" seat so grotto CLI reads and the server-info roster never
@@ -30,35 +34,36 @@ export const demoUserHandle = 'Sam';
 export const demoOwnerParticipantId = 'usr_tavern';
 export const demoTime = '2026-06-18T15:00:00.000Z';
 
-export function userMessage(input: DemoMessageInput): DevelopmentDemoMessage {
+export function userMessage(input: HumanDemoMessageInput): DevelopmentDemoMessage {
     return humanMessage(input, demoUserParticipantId);
 }
 
-export function ownerMessage(input: DemoMessageInput): DevelopmentDemoMessage {
+export function ownerMessage(input: HumanDemoMessageInput): DevelopmentDemoMessage {
     return humanMessage(input, demoOwnerParticipantId);
 }
 
-function humanMessage(input: DemoMessageInput, authorId: string): DevelopmentDemoMessage {
-    const { chatId, createdAt = demoTime, ...message } = input;
+// Human demo rows ride the receiving agent's session key so session
+// previews group them with the reply.
+type HumanDemoMessageInput = DemoMessageInput & { agentId: string };
+
+function humanMessage(input: HumanDemoMessageInput, authorId: string): DevelopmentDemoMessage {
+    const { agentId, chatId, createdAt = demoTime, ...message } = input;
 
     return {
         ...message,
         author_id: authorId,
         createdAt,
-        metadata: { runtime: { source: 'development-demo', sessionKey: sessionKey(chatId) } },
+        metadata: {
+            runtime: { source: 'development-demo', sessionKey: sessionKey(chatId, agentId) },
+        },
         role: 'user',
     };
 }
 
-export function assistantMessage(input: DemoMessageInput): DevelopmentDemoMessage {
-    const {
-        agentId = demoAgentId,
-        chatId,
-        createdAt = demoTime,
-        requestMessageId,
-        runId,
-        ...message
-    } = input;
+export function assistantMessage(
+    input: DemoMessageInput & { agentId: string }
+): DevelopmentDemoMessage {
+    const { agentId, chatId, createdAt = demoTime, requestMessageId, runId, ...message } = input;
 
     return {
         ...message,
@@ -83,12 +88,12 @@ type DemoMessageInput = Omit<TavernCreateMessageRequest, 'author_id' | 'metadata
 };
 
 export function responseRuntimeMetadata(input: {
-    agentId?: string;
+    agentId: string;
     chatId: string;
     requestMessageId: string;
     runId: string;
 }) {
-    const agentId = input.agentId ?? demoAgentId;
+    const agentId = input.agentId;
 
     return {
         runtime: {
@@ -102,6 +107,6 @@ export function responseRuntimeMetadata(input: {
     };
 }
 
-export function sessionKey(chatId: string, agentId: string = demoAgentId) {
+export function sessionKey(chatId: string, agentId: string) {
     return `agent:${agentId}:tavern:channel:${chatId}`;
 }

@@ -17,9 +17,7 @@ import { materializePluginSkills } from './plugins/materialize-skills.ts';
 import { recordSkillSource, sha256 } from './skills/store.ts';
 import { wakeAgent } from './tavern/agent-turn-runner.ts';
 import { installInboxDelivery } from './tavern/delivery-planner.ts';
-import { demoAgentId } from './tavern/development-chat-demo-types.ts';
 import { seedDevelopmentChatDemos } from './tavern/development-chat-demos.ts';
-import { ensurePrimaryManagedAgent } from './tavern/managed-agent.ts';
 import { installReminderScheduler } from './tavern/reminder-scheduler.ts';
 import { startTavernRuntimeServer } from './tavern/server.ts';
 import { recoverInterruptedAgentTurns } from './tavern/turn-recovery.ts';
@@ -43,7 +41,6 @@ async function main(): Promise<void> {
     const db = initDb(dbPath);
     ensureRuntimeSchema(db);
     ensureRuntimeJobsSchema(db);
-    ensurePrimaryManagedAgent(db);
     // The lazy seed during instruction prep can run before the DB exists and
     // skip source recording; without this the seeded skills read as external.
     for (const [skillId, content] of seededSkillDefaultEntries()) {
@@ -70,11 +67,13 @@ async function main(): Promise<void> {
     if (recovery.recoveredTurnCount > 0) {
         log.info('Recovered interrupted agent turns', { count: recovery.recoveredTurnCount });
     }
-    const demoSeed = seedDevelopmentChatDemos({ db });
+    const demoSeed = await seedDevelopmentChatDemos({ db });
     if (demoSeed.seeded > 0) {
         log.info('Development chat demos ready', { count: demoSeed.seeded });
     }
-    const demoWorkspaceSource = getAgentWorkspaceSource(db, demoAgentId);
+    const demoWorkspaceSource = demoSeed.agentIds
+        ? getAgentWorkspaceSource(db, demoSeed.agentIds.otto)
+        : null;
     const workspaceDemoSeed = demoWorkspaceSource
         ? await seedDevelopmentWorkspaceDemos({ sources: [demoWorkspaceSource] })
         : { seeded: 0 };

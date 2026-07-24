@@ -16,7 +16,6 @@ import {
     upsertResponse,
     upsertResponseActivity,
 } from './chat-api';
-import { demoAgentId } from './development-chat-demo-types';
 import { badRequest, json, notFound, readJson } from './http';
 
 // Dev toolkit: scripted streaming turns for exercising live chat surfaces
@@ -130,7 +129,11 @@ export function simulateDevelopmentTurn(input: {
         };
     }
 
-    const context = buildContext(agentIds[0] ?? demoAgentId);
+    const firstAgentId = agentIds[0];
+    if (!firstAgentId) {
+        throw new Error(`Chat ${input.chatId} has no agent seat to simulate a turn for.`);
+    }
+    const context = buildContext(firstAgentId);
     const run = runScenario(scenario, context);
 
     return { receipt: { response_id: context.responseId, run_id: context.runId }, run };

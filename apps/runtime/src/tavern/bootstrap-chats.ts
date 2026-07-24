@@ -1,25 +1,15 @@
-import { defaultAgentDisplayName, defaultAgentEngineAgentId } from '../agent-engine/constants';
 import type { Database } from '../db/sqlite';
 import { createAgentParticipantId, createChat, getChat, localHumanParticipantId } from './chat-api';
 
-export const defaultAgentDmChatId = 'cht_tavern_agent_dm';
 export { localHumanParticipantId } from './chat-api';
 
 export function seedWorkspaceChats(input: {
-    agents?: Array<{ id: string; name: string }>;
-    agentId?: string;
-    agentName?: string;
+    agents: Array<{ id: string; name: string }>;
     db: Database;
 }) {
-    const agents = input.agents ?? [
-        {
-            id: input.agentId ?? defaultAgentEngineAgentId,
-            name: input.agentName ?? defaultAgentDisplayName,
-        },
-    ];
     let seeded = 0;
 
-    for (const agent of agents) {
+    for (const agent of input.agents) {
         seeded += ensureAgentDmChat({
             agentId: agent.id,
             agentName: agent.name,
@@ -92,9 +82,7 @@ export function archiveAgentDmChat(input: { agentId: string; db: Database }) {
 }
 
 export function agentDmChatId(agentId: string) {
-    return agentId === defaultAgentEngineAgentId
-        ? defaultAgentDmChatId
-        : `cht_${agentId.replace(/[^A-Za-z0-9_-]/g, '_')}_dm`;
+    return `cht_${agentId.replace(/[^A-Za-z0-9_-]/g, '_')}_dm`;
 }
 
 function readRecord(input: unknown) {

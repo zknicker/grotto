@@ -7,20 +7,29 @@ import {
 } from './development-chat-demo-basic-definitions';
 import { teamDemo } from './development-chat-demo-team-definition';
 import {
+    type DemoAgentIds,
     type DevelopmentChatDemo,
     type DevelopmentDemoMessage,
     demoTime,
 } from './development-chat-demo-types';
 import { visualsChannelDemo } from './development-chat-demo-visuals-channel-definition';
 
-export const developmentChatDemos: DevelopmentChatDemo[] = [
-    demoChannel([artifactLinksDemo(), longContentDemo(), attachmentDemo(), selfMessagesDemo()]),
-    teamDemo(),
-    visualsChannelDemo(),
-];
+export function developmentChatDemos(ids: DemoAgentIds): DevelopmentChatDemo[] {
+    return [
+        demoChannel(ids.otto, [
+            artifactLinksDemo(ids.otto),
+            longContentDemo(ids.otto),
+            attachmentDemo(ids.otto),
+            selfMessagesDemo(ids.otto),
+        ]),
+        teamDemo(ids),
+        visualsChannelDemo(ids.otto),
+    ];
+}
 
-function demoChannel(demos: DevelopmentChatDemo[]): DevelopmentChatDemo {
+function demoChannel(ottoId: string, demos: DevelopmentChatDemo[]): DevelopmentChatDemo {
     return {
+        agentIds: [ottoId],
         chatId: developmentChatDemoId,
         color: '#0ea5e9',
         messages: demos.flatMap((demo) => demo.messages).map(sequenceDemoMessage),

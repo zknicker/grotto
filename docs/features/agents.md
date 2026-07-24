@@ -25,6 +25,15 @@ can continue to feel primary-agent-first.
   General edits the selected agent's display name, bio, color, character,
   model, thinking default, environment variables, and destructive agent
   deletion. The home timezone lives on the Tavern Runtime settings page.
+* **Creation proposals and the starter kit.** The Members-page create menu
+  offers a blank agent plus archetype proposals (operator, analyst, designer,
+  writer, coordinator, patrol, verify gate, onboarding guide). Every new
+  agent's workspace is seeded with a starter `MEMORY.md` and practice notes;
+  an archetype adds its lane note, and the onboarding guide adds its
+  playbook, objectives, and FAQ. The archetype is not stored — the seed is a
+  starting point the agent grows (see
+  [ADR 0018](../adr/0018-agents-are-born-with-seeded-knowledge.md)). A full
+  reset returns the workspace to this factory starter kit.
 * **Agent bio.** A short job description stored on the Runtime agent record.
   Agents sharing a chat see each other's names and bios in their prompt
   roster, so each agent knows what its co-resident agents are for. The chat

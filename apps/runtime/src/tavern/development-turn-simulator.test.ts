@@ -8,7 +8,16 @@ describe('development turn simulator', () => {
     beforeEach(() => {
         process.env.TAVERN_DEV_STACK = '1';
         ensureRuntimeSchema(initTestDb());
-        createChat({ id: 'cht_devsim', title: 'devsim' });
+        // The simulator drives the chat's first agent seat; there is no
+        // fallback agent id anymore (ADR 0018).
+        createChat({
+            id: 'cht_devsim',
+            participants: [
+                { id: 'agt_devsim', kind: 'agent', label: 'Devsim', metadata: {} },
+                { id: 'usr_1', kind: 'user', label: 'You', metadata: {} },
+            ],
+            title: 'devsim',
+        });
         createMessage('cht_devsim', {
             author_id: 'usr_1',
             content: 'run something',

@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { tavernAgentDmRoute } from '../support/agent-dm.ts';
 import { expect, test } from '../support/test.ts';
 
 test.describe.configure({ timeout: 120_000 });
@@ -36,7 +37,7 @@ test('routes the Tavern agent DM through its current session', async ({ page }) 
 
     const expectedReply = `QA-AGENT-DM-${Date.now()}`;
 
-    await page.goto('/chats/cht_tavern_agent_dm');
+    await page.goto(tavernAgentDmRoute);
     await fillChatComposer(page, `DM smoke. Reply exactly \`${expectedReply}\`.`);
     await page.getByRole('textbox', { name: 'Chat message' }).press('Enter');
 

@@ -3,6 +3,7 @@ import { closeDb, initTestDb } from '../db/connection';
 import { ensureRuntimeSchema } from '../db/schema';
 import { ensureCurrentAgentSession, startNewAgentSession } from './agent-session-store';
 import { claimNextAgentTurnForAgent, createAgentTurn, getAgentTurn } from './agent-turn-store';
+import { upsertStoredAgent } from './agents-store';
 import { agentDmChatId } from './bootstrap-chats';
 import {
     advanceDeliveredCursor,
@@ -10,7 +11,6 @@ import {
     markInboxPiercesServed,
     recordInboxPierce,
 } from './inbox-cursors';
-import { ensurePrimaryManagedAgent } from './managed-agent';
 import { recoverInterruptedAgentTurns } from './turn-recovery';
 
 describe('turn recovery', () => {
@@ -23,7 +23,7 @@ describe('turn recovery', () => {
     });
 
     test('finalizes orphaned non-terminal agent turns', () => {
-        const agent = ensurePrimaryManagedAgent();
+        const agent = storeRecoveryAgent();
         const session = ensureCurrentAgentSession({ agentId: agent.id });
         createAgentTurn({
             agentId: agent.id,
@@ -61,7 +61,7 @@ describe('turn recovery', () => {
     });
 
     test('requests a wake for queued turns and current-session pending targets', () => {
-        const agent = ensurePrimaryManagedAgent();
+        const agent = storeRecoveryAgent();
         const session = ensureCurrentAgentSession({ agentId: agent.id });
         createAgentTurn({
             agentId: agent.id,
@@ -77,3 +77,16 @@ describe('turn recovery', () => {
         expect(getAgentTurn('run_queued')).toMatchObject({ status: 'queued' });
     });
 });
+
+function storeRecoveryAgent() {
+    return upsertStoredAgent({
+        agent: {
+            enabledSkillIds: [],
+            id: 'agt_otto_recovery',
+            isAdmin: false,
+            name: 'Otto',
+            primaryColor: null,
+            workspaceFolder: '/tmp/tavern-recovery-workspace',
+        },
+    });
+}

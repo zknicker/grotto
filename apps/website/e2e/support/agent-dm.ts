@@ -6,7 +6,8 @@ import { expect } from './test.ts';
  * seeded Tavern agent DM is the canonical surface for driving agent turns;
  * tests share it (workers: 1) and assert on per-test unique markers.
  */
-export const tavernAgentDmChatId = 'cht_tavern_agent_dm';
+// Matches the fixture agent created in start-tavern-runtime.ts.
+export const tavernAgentDmChatId = 'cht_agt_otto_e2e_dm';
 export const tavernAgentDmRoute = `/chats/${tavernAgentDmChatId}`;
 
 export function chatComposer(page: Page) {

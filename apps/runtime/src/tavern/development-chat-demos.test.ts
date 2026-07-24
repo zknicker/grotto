@@ -8,10 +8,10 @@ import { closeDb, getDb, initTestDb } from '../db/connection';
 import { ensureRuntimeSchema } from '../db/schema';
 import { namedParams } from '../db/sqlite';
 import { toAgentMessage } from './agent-messages';
-import { getStoredAgent } from './agents-store';
+import { getStoredAgent, listStoredAgents } from './agents-store';
 import { getChat, getMessage } from './chat-api';
 import { developmentChatDemos } from './development-chat-demo-definitions';
-import { demoAgentId, demoSecondAgentId, demoUserHandle } from './development-chat-demo-types';
+import { demoUserHandle } from './development-chat-demo-types';
 import { seedDevelopmentChatDemos } from './development-chat-demos';
 import { assertValidHandle } from './handles';
 
@@ -24,17 +24,29 @@ describe('development chat demo sessions', () => {
         closeDb();
     });
 
-    it('seeds the team demo with two named agent seats and per-seat messages', () => {
-        seedDevelopmentChatDemos({ db: getDb(), enabled: true });
+    it('seeds the team demo with two named agent seats and per-seat messages', async () => {
+        const { agentIds } = await seedDevelopmentChatDemos({ db: getDb(), enabled: true });
 
-        // Both seats are real stored agents with the current default names.
-        expect(getStoredAgent(demoAgentId)?.name).toBe('Otto');
-        expect(getStoredAgent(demoSecondAgentId)?.name).toBe('Wren');
+        // Both seats are real stored agents created through the normal
+        // create path: generated prod-shape ids, never hardcoded seeds.
+        expect(agentIds).not.toBeNull();
+        if (!agentIds) {
+            return;
+        }
+        expect(agentIds.otto).toMatch(/^agt_otto_[0-9a-f]{8}$/u);
+        expect(agentIds.wren).toMatch(/^agt_wren_[0-9a-f]{8}$/u);
+        expect(getStoredAgent(agentIds.otto)?.name).toBe('Otto');
+        expect(getStoredAgent(agentIds.wren)?.name).toBe('Wren');
+
+        // Reseeding resolves the same agents by name instead of minting more.
+        const again = await seedDevelopmentChatDemos({ db: getDb(), enabled: true });
+        expect(again.agentIds).toEqual(agentIds);
+        expect(listStoredAgents(getDb()).agents).toHaveLength(2);
 
         const chat = getChat(developmentChatTeamDemoId);
         const agentSeats = chat?.participants.filter((participant) => participant.kind === 'agent');
         expect(new Set(agentSeats?.map((participant) => participant.id))).toEqual(
-            new Set([demoAgentId, demoSecondAgentId])
+            new Set([agentIds.otto, agentIds.wren])
         );
 
         // One assistant message per seat.
@@ -44,20 +56,23 @@ describe('development chat demo sessions', () => {
             author_id: string;
         }[];
         expect(new Set(messages.map((row) => row.author_id))).toEqual(
-            new Set([demoAgentId, demoSecondAgentId])
+            new Set([agentIds.otto, agentIds.wren])
         );
     });
 
     // Seed lint: seeds bypass write-time handle validation (direct inserts),
     // so drift in the definitions must fail here instead of surfacing as
     // '@unknown' envelopes or an unresolvable target in grotto CLI smokes.
-    it('seeds only handle-valid chat titles, agent names, and sender handles', () => {
-        seedDevelopmentChatDemos({ db: getDb(), enabled: true });
+    it('seeds only handle-valid chat titles, agent names, and sender handles', async () => {
+        const { agentIds } = await seedDevelopmentChatDemos({ db: getDb(), enabled: true });
+        if (!agentIds) {
+            throw new Error('expected demo agents');
+        }
 
-        for (const demo of developmentChatDemos) {
+        for (const demo of developmentChatDemos(agentIds)) {
             // Channel titles ARE channel handles (D2).
             assertValidHandle(demo.title, `Chat title for ${demo.chatId}`);
-            for (const agentId of demo.agentIds ?? [demoAgentId]) {
+            for (const agentId of demo.agentIds) {
                 const name = getStoredAgent(agentId)?.name;
                 expect(name, `stored agent ${agentId}`).toBeTruthy();
                 assertValidHandle(name ?? '', `Agent name for ${agentId}`);
@@ -75,8 +90,8 @@ describe('development chat demo sessions', () => {
         }
     });
 
-    it('stamps the demo user handle without clobbering observed labels', () => {
-        seedDevelopmentChatDemos({ db: getDb(), enabled: true });
+    it('stamps the demo user handle without clobbering observed labels', async () => {
+        await seedDevelopmentChatDemos({ db: getDb(), enabled: true });
 
         const labelFor = (chatId: string, id: string) =>
             (
@@ -97,14 +112,14 @@ describe('development chat demo sessions', () => {
                  WHERE chat_id = $chatId AND id = 'usr_demo'`
             )
             .run(namedParams({ chatId: developmentChatDemoId }));
-        seedDevelopmentChatDemos({ db: getDb(), enabled: true });
+        await seedDevelopmentChatDemos({ db: getDb(), enabled: true });
         expect(labelFor(developmentChatDemoId, 'usr_demo')).toBe('Observed');
     });
 
-    it('seeds the visuals gallery channel with assistant messages carrying visual fences', () => {
-        seedDevelopmentChatDemos({ db: getDb(), enabled: true });
+    it('seeds the visuals gallery channel with assistant messages carrying visual fences', async () => {
+        await seedDevelopmentChatDemos({ db: getDb(), enabled: true });
         // Idempotent across restarts: reseeding leaves the same stable rows.
-        seedDevelopmentChatDemos({ db: getDb(), enabled: true });
+        await seedDevelopmentChatDemos({ db: getDb(), enabled: true });
 
         expect(getChat(developmentChatVisualsDemoId)?.title).toBe('visuals');
 

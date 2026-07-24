@@ -2,7 +2,6 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AGENT_WORKSPACE } from '../config.ts';
 import { closeDb, initTestDb } from '../db/connection.ts';
 import { ensureRuntimeSchema } from '../db/schema.ts';
 import {
@@ -36,32 +35,45 @@ describe('Runtime agent and agent engine reads', () => {
         closeDb();
     });
 
-    it('serves agent engine agent list reads through the runtime adapter', async () => {
+    it('lists no agents on a fresh runtime — nothing is lazily bootstrapped', async () => {
+        // ADR 0018: agents exist only when created through the create path
+        // (app, demo seeding, or the server's shipped-default bootstrap).
         const response = await handleTavernRuntimeRequest(
             new Request('http://runtime.test/agents')
         );
 
         expect(response.status).toBe(200);
-        await expect(response.json()).resolves.toEqual({
-            agents: [
-                {
-                    webAccessEnabled: false,
-                    enabledPluginIds: [],
-                    // The pre-flip `tasks` skill left the seeded defaults (WS8):
-                    // its content teaches the retired tasks_* tool surface.
-                    enabledSkillIds: ['tavern-agent', 'visuals'],
-                    modelName: {
-                        model: 'gpt-4.1-mini',
-                        provider: 'openai',
-                    },
-                    id: 'agt_primary',
+        await expect(response.json()).resolves.toEqual({ agents: [] });
+    });
+
+    it('creates agents with the default seeded skills through the create path', async () => {
+        const createResponse = await handleTavernRuntimeRequest(
+            new Request('http://runtime.test/agents', {
+                body: JSON.stringify({
+                    id: 'agt_otto_00000001',
                     isAdmin: true,
                     name: 'Otto',
-                    primaryColor: null,
-                    thinkingDefault: null,
-                    workspaceFolder: AGENT_WORKSPACE,
-                },
-            ],
+                    workspaceFolder: '/tmp/tavern-otto-workspace',
+                }),
+                headers: { 'content-type': 'application/json' },
+                method: 'POST',
+            })
+        );
+
+        expect(createResponse.status).toBe(200);
+        await expect(createResponse.json()).resolves.toMatchObject({
+            webAccessEnabled: false,
+            enabledPluginIds: [],
+            // The pre-flip `tasks` skill left the seeded defaults (WS8): its
+            // content teaches the retired tasks_* tool surface.
+            enabledSkillIds: ['tavern-agent', 'visuals'],
+            id: 'agt_otto_00000001',
+            isAdmin: true,
+            modelName: {
+                model: 'gpt-4.1-mini',
+                provider: 'openai',
+            },
+            name: 'Otto',
         });
     });
 
@@ -98,7 +110,6 @@ describe('Runtime agent and agent engine reads', () => {
         expect(listResponse.status).toBe(200);
         await expect(listResponse.json()).resolves.toMatchObject({
             agents: expect.arrayContaining([
-                expect.objectContaining({ id: 'agt_primary', name: 'Otto' }),
                 expect.objectContaining({
                     enabledSkillIds: ['research'],
                     id: 'agt_research',
@@ -359,8 +370,19 @@ describe('Runtime agent and agent engine reads', () => {
             })
         );
 
+        await handleTavernRuntimeRequest(
+            new Request('http://runtime.test/agents', {
+                body: JSON.stringify({
+                    id: 'agt_skilled',
+                    name: 'Skilled',
+                    workspaceFolder: '/tmp/tavern-skilled-workspace',
+                }),
+                headers: { 'content-type': 'application/json' },
+                method: 'POST',
+            })
+        );
         const primaryResponse = await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/skills?agentId=agt_primary')
+            new Request('http://runtime.test/skills?agentId=agt_skilled')
         );
         const unskilledResponse = await handleTavernRuntimeRequest(
             new Request('http://runtime.test/skills?agentId=agt_unskilled')
@@ -477,17 +499,22 @@ describe('Runtime agent and agent engine reads', () => {
             enabled: true,
         });
         await materializePluginSkills();
-        await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/agents', {
-                body: JSON.stringify({
-                    id: 'agt_research',
-                    name: 'Research',
-                    workspaceFolder: '/tmp/tavern-research-workspace',
-                }),
-                headers: { 'content-type': 'application/json' },
-                method: 'POST',
-            })
-        );
+        for (const [id, name] of [
+            ['agt_research', 'Research'],
+            ['agt_other', 'Other'],
+        ]) {
+            await handleTavernRuntimeRequest(
+                new Request('http://runtime.test/agents', {
+                    body: JSON.stringify({
+                        id,
+                        name,
+                        workspaceFolder: `/tmp/tavern-${name?.toLowerCase()}-workspace`,
+                    }),
+                    headers: { 'content-type': 'application/json' },
+                    method: 'POST',
+                })
+            );
+        }
         await handleTavernRuntimeRequest(
             new Request('http://runtime.test/agents/agt_research/plugins/merchbase/enabled', {
                 body: JSON.stringify({ enabled: true }),
@@ -503,7 +530,7 @@ describe('Runtime agent and agent engine reads', () => {
             new Request('http://runtime.test/skills/merchbase')
         );
         const ungrantedResponse = await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/skills?agentId=agt_primary')
+            new Request('http://runtime.test/skills?agentId=agt_other')
         );
 
         expect(grantedResponse.status).toBe(200);
@@ -613,8 +640,19 @@ describe('Runtime agent and agent engine reads', () => {
 
     it('applies agent model updates through the dashboard model API', async () => {
         await enableClaudeModels();
+        await handleTavernRuntimeRequest(
+            new Request('http://runtime.test/agents', {
+                body: JSON.stringify({
+                    id: 'agt_modeler',
+                    name: 'Modeler',
+                    workspaceFolder: '/tmp/tavern-modeler-workspace',
+                }),
+                headers: { 'content-type': 'application/json' },
+                method: 'POST',
+            })
+        );
         const response = await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/agents/agt_primary/model', {
+            new Request('http://runtime.test/agents/agt_modeler/model', {
                 body: JSON.stringify({
                     model: { model: 'claude-sonnet-4-6', provider: 'claude' },
                 }),
@@ -629,7 +667,7 @@ describe('Runtime agent and agent engine reads', () => {
                 agents: {
                     list: [
                         {
-                            id: 'agt_primary',
+                            id: 'agt_modeler',
                             model: {
                                 model: 'claude-sonnet-4-6',
                                 provider: 'claude',

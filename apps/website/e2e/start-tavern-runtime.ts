@@ -49,6 +49,17 @@ process.argv = [process.argv[0] ?? 'bun', process.argv[1] ?? 'start-tavern-runti
 
 await import('../../runtime/src/index.ts');
 
+// Nothing bootstraps agents lazily anymore (ADR 0018): the e2e stack owns
+// its fixture agent, created through the normal runtime create path with a
+// fixed id so specs can address its DM deterministically.
+const { createRuntimeAgent } = await import('../../runtime/src/tavern/agent-create.ts');
+await createRuntimeAgent({
+    id: 'agt_otto_e2e',
+    isAdmin: true,
+    name: 'Otto',
+    workspaceFolder: process.env.TAVERN_AGENT_WORKSPACE,
+});
+
 function createFakeHarnessAgentFactory() {
     return ((input: AgentExecutorInput) => ({
         createSession: () =>

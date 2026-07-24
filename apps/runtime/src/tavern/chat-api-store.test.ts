@@ -3,11 +3,7 @@ import { developmentChatDemoIds } from '@tavern/api/development-chat-demos';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { closeDb, getDb, initTestDb } from '../db/connection';
 import { ensureRuntimeSchema } from '../db/schema';
-import {
-    defaultAgentDmChatId,
-    localHumanParticipantId,
-    seedWorkspaceChats,
-} from './bootstrap-chats';
+import { localHumanParticipantId, seedWorkspaceChats } from './bootstrap-chats';
 import {
     clearChat,
     createDelivery,
@@ -42,25 +38,32 @@ describe('Tavern Runtime Chat API store', () => {
         closeDb();
     });
 
-    it('seeds development chat demos as durable Runtime chats', () => {
-        const first = seedDevelopmentChatDemos({ db: getDb(), enabled: true });
-        const second = seedDevelopmentChatDemos({ db: getDb(), enabled: true });
+    it('seeds development chat demos as durable Runtime chats', async () => {
+        const first = await seedDevelopmentChatDemos({ db: getDb(), enabled: true });
+        const second = await seedDevelopmentChatDemos({ db: getDb(), enabled: true });
 
         expect(first.seeded).toBe(3);
         expect(second.seeded).toBe(3);
+        expect(second.agentIds).toEqual(first.agentIds);
+        const agentIds = first.agentIds;
+        if (!agentIds) {
+            throw new Error('expected demo agents');
+        }
         // Seeding ensures both demo agents, which carry their built-in DMs —
         // the same invariant every real boot has.
         expect(
             listChats()
                 .chats.map((chat) => chat.id)
                 .sort()
-        ).toEqual([
-            'cht_agt_wren_dm',
-            developmentChatDemoIds.demo,
-            developmentChatDemoIds.team,
-            developmentChatDemoIds.visuals,
-            'cht_tavern_agent_dm',
-        ]);
+        ).toEqual(
+            [
+                `cht_${agentIds.otto}_dm`,
+                `cht_${agentIds.wren}_dm`,
+                developmentChatDemoIds.demo,
+                developmentChatDemoIds.team,
+                developmentChatDemoIds.visuals,
+            ].sort()
+        );
         expect(getChat(developmentChatDemoIds.demo)).toMatchObject({
             id: developmentChatDemoIds.demo,
             metadata: {
@@ -90,7 +93,7 @@ describe('Tavern Runtime Chat API store', () => {
         ).toEqual([expect.objectContaining({ filename: 'weather-request.txt', type: 'file' })]);
     });
 
-    it('removes obsolete per-feature development demo chats', () => {
+    it('removes obsolete per-feature development demo chats', async () => {
         createChat({
             id: 'cht_demo_artifact_links',
             metadata: {
@@ -110,7 +113,9 @@ describe('Tavern Runtime Chat API store', () => {
             messageInput('msg_demo_artifact_links_response', 'old-agent', 'old response')
         );
 
-        expect(() => seedDevelopmentChatDemos({ db: getDb(), enabled: true })).not.toThrow();
+        await expect(
+            seedDevelopmentChatDemos({ db: getDb(), enabled: true })
+        ).resolves.toBeTruthy();
 
         expect(getChat('cht_demo_artifact_links')).toBeNull();
         expect(
@@ -438,26 +443,24 @@ describe('Tavern Runtime Chat API store', () => {
         ]);
     });
 
-    it('bootstraps the default agent DM without a default channel', () => {
+    it('bootstraps the agent DM without a default channel', () => {
         const first = seedWorkspaceChats({
-            agentId: 'agt_primary',
-            agentName: 'Tavern',
+            agents: [{ id: 'agt_tavern_12345678', name: 'Tavern' }],
             db: getDb(),
         });
         const second = seedWorkspaceChats({
-            agentId: 'agt_primary',
-            agentName: 'Tavern',
+            agents: [{ id: 'agt_tavern_12345678', name: 'Tavern' }],
             db: getDb(),
         });
 
         expect(first.seeded).toBe(1);
         expect(second.seeded).toBe(0);
         expect(getChat('cht_general')).toBeNull();
-        expect(getChat(defaultAgentDmChatId)).toMatchObject({
-            id: defaultAgentDmChatId,
+        expect(getChat('cht_agt_tavern_12345678_dm')).toMatchObject({
+            id: 'cht_agt_tavern_12345678_dm',
             kind: 'dm',
             participants: [
-                { id: 'agt_primary', kind: 'agent', label: 'Tavern' },
+                { id: 'agt_tavern_12345678', kind: 'agent', label: 'Tavern' },
                 { id: localHumanParticipantId, kind: 'user', label: 'You' },
             ],
             title: 'Tavern',
@@ -467,14 +470,14 @@ describe('Tavern Runtime Chat API store', () => {
     it('bootstraps one agent DM for each managed agent', () => {
         const first = seedWorkspaceChats({
             agents: [
-                { id: 'agt_primary', name: 'Tavern' },
+                { id: 'agt_tavern_12345678', name: 'Tavern' },
                 { id: 'agt_research', name: 'Research' },
             ],
             db: getDb(),
         });
         const second = seedWorkspaceChats({
             agents: [
-                { id: 'agt_primary', name: 'Tavern' },
+                { id: 'agt_tavern_12345678', name: 'Tavern' },
                 { id: 'agt_research', name: 'Research' },
             ],
             db: getDb(),
@@ -488,7 +491,7 @@ describe('Tavern Runtime Chat API store', () => {
                 .sort((left, right) => left.id.localeCompare(right.id))
         ).toEqual([
             { id: 'cht_agt_research_dm', kind: 'dm', title: 'Research' },
-            { id: defaultAgentDmChatId, kind: 'dm', title: 'Tavern' },
+            { id: 'cht_agt_tavern_12345678_dm', kind: 'dm', title: 'Tavern' },
         ]);
     });
 

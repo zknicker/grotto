@@ -175,6 +175,24 @@ upgrades transport only, contracts unchanged.
   edges, `scheduledFor` (a reminder anchored on the task message covers it), attachment
   promotion (files live on the server post-WS6), per-task work chats (threads), auto-dispatch
   queue, `tasks_*` tools, `workbench/tasks/T-…` folders.
+- **D9 — MCP replaces plugins; the runtime is the credential broker** (walked and resolved
+  2026-07-24; full evidence in ADR 0017). The plugin concept is retired. Outside services reach
+  agents as operator-configured **MCP servers**, granted per-agent like skills; the remaining
+  non-MCP capabilities are **host tools** (Browser) and **model capabilities** (image
+  generation). A runtime-owned relay holds upstream credentials **in the runtime** (Raft
+  parity: secrets live on the computer, not the central server), authenticates agents by their
+  own token, terminates MCP + auth (no passthrough), and authorizes per tool-call. Per-server
+  auth is per-integration (owner-OAuth for personal external accounts; a Grotto-issued badge for
+  first-party services), not one universal scheme. No `grotto integration` CLI family and no
+  Clerk M2M machine-per-agent — the relay + per-agent grants already carry custody, access
+  control, and audit; downstream machine identity is added only per-service if independent
+  revocation/rate-limits demand it. First-party service logic (MerchBase) leaves Grotto for its
+  own MCP server; Google is a configuration example proving zero first-party code is required.
+  Evidence tags M1 (no rail — Raft runs zero registered integrations on its own server; the
+  governed path is standards, not a proprietary protocol), M2 (Raft keeps third-party creds on
+  the computer/service, not raft.build), M3 (survey: literal client-credentials is rare —
+  Linear only — so per-agent downstream identity is selective, not universal). Supersedes the
+  former "WS5.5 — Plugin CLIs" and ADR 0004.
 - **T1 — Threads are child conversation containers** (amended after code audit; wire evidence:
   `channel_type: "thread"`, own name, `parent_channel_*` pointers, own inbox target and seq
   domain). A thread has its own id + seq space, an anchor-message pointer, and a parent-chat
@@ -492,22 +510,52 @@ deployment, so intermediate brokenness is not a constraint.
   `grotto claim`, Clerk member forwarding, `docs/api/auth.md` member model. **Data cutover:
   grotto.sh starts fresh — existing local chat history is trashed, not migrated (decided).**
   Agent memory survives regardless: workspaces live on the computer, not in the chat DB.
+  **Integration credentials also stay on the runtime, not the server** (D9): the MCP relay and
+  its secret store live where agents execute; the server split moves chat + identity, never the
+  upstream credentials. WS6 does not gate WS-MCP.
 - **WS7 — Memory/Wiki/Automations retirement.** Delete extraction/dreaming/core-memory
   injection, Wiki, cron product + `cron_*`/`wiki_*`/memory surfaces (D3/D3b/D4); manual cutover
   seeds existing core memory into agent workspaces. Coordinated cut, likely folded into WS2's
   landing window.
-- **WS5.5 — Plugin CLIs.** Per-plugin CLI wrappers on the agent PATH (Raft `integration
-  env/invoke` pattern): runtime-held credentials, injected like the grotto wrapper, one CLI per
-  granted plugin (MerchBase, Google, Browser) plus image generation. Replaces the plugin engine
-  tools deleted at the flip (flip ruling: delete now, CLIs later — plugins go dark in dev
-  between flip and WS5.5). The `## Plugins` prompt section composes only when a plugin CLI
-  exists; never at the flip.
+- **WS-MCP — MCP servers, per-agent grants, plugin retirement** (supersedes the former
+  "WS5.5 — Plugin CLIs"; see ADR 0017). The plugin concept is retired. Agents reach outside
+  services through **MCP servers** the operator configures and grants per-agent (same
+  assignment model as skills); the surviving non-MCP capabilities are **host tools** (Browser)
+  and **model capabilities** (image generation, already codex-native). No `grotto integration`
+  CLI family — ever (evidence M1). Scope:
+  - **Runtime relay/broker.** Agents call granted MCP servers through a runtime-owned relay
+    authenticated by their existing agent token; the relay holds upstream credentials in the
+    runtime, terminates MCP and auth (no token passthrough — MCP spec forbids it), authorizes
+    every tool-call against `(agent, server, tool)`, and never logs secrets. Credentials live
+    in the **runtime**, not the grotto.sh server (Raft parity: secrets live on the computer;
+    evidence M2). OS-level agent-vs-agent isolation is an operator **deployment** concern
+    (run the runtime under a separate user for hard isolation) — documented, not built.
+  - **Per-server auth is per-integration, not universal** (evidence M3): personal external
+    accounts (e.g. Google Calendar) → operator completes OAuth once, relay holds the session;
+    first-party services (MerchBase) → relay presents a Grotto-issued badge the agent cannot
+    mint. No Clerk M2M machine-per-agent, no static shared secret trusted by localhost alone.
+  - **First-party service code leaves Grotto.** MerchBase logic moves to an MCP server in
+    `merchbase-core`; the Grotto-side MerchBase and Google plugin code is deleted. Google is a
+    **configuration example**, not a shipped feature — proving an operator can add it with zero
+    first-party code is the acceptance test for the whole system.
+  - **UI ports, not rewrites** (operator ruling, same as WS5): lift the polished plugin
+    settings cards/dialogs/forms (`apps/website/src/features/settings/plugins/`) onto the
+    existing MCP data layer (`apps/website/src/features/settings/mcp/`), then delete
+    `settings/plugins/`. Keep `agent-engine/mcp-servers.ts` + `mcp-routes.ts` as the substrate.
+  - **Delete:** the plugin host/manifest/settings framework (`apps/runtime/src/plugins/store.ts`,
+    `routes.ts`, `agent-capabilities.ts`, `materialize-skills.ts`, `merchbase*`, `google*`;
+    server `api/plugin/**`), rehoming Browser's health/grant wiring onto the MCP-grants surface.
+  - **Build on the runtime now — no WS6 dependency.** Integrations are a runtime feature; the
+    server split does not gate them and does not change where secrets live.
+  - The `## MCP` prompt section composes only for agents with at least one granted server.
 - **Release blockers (flip → mini):** the flip may not ride a release to the mini without
-  **WS5** (task surface — flip deletes the old product wholesale; WS5 ports the landed
-  board/list/calendar/label/priority components onto task-messages, resurrecting from git
-  history, not rewriting) and **WS5.5** (plugin CLIs — MerchBase readouts are live daily usage
-  on the mini). Also riding that release: mini cutover (Blippy/Tiny tokens, operator handle,
-  retired-skill-id SQLite edit, PRD-89 mini verification).
+  **WS5** (✅ landed — task surface ported from pre-flip components) and **WS-MCP** (MerchBase
+  readouts are live daily usage on the mini; blocker is satisfied when Blippy reaches MerchBase
+  via its MCP server and the Google-as-configured-server path is proven). Also riding that
+  release: mini cutover (Blippy/Tiny tokens, operator handle, retired-skill-id SQLite edit,
+  PRD-89 mini verification). **External MCP-client exposure** (letting Claude.ai/ChatGPT reach
+  first-party services as an OAuth resource server) is explicitly **deferred** — not required to
+  validate the local relay, and additive later with no rework.
 - **WS9 — Shell + agent panel reorganization.** U1 rail taxonomy, U2 Members page + 6-tab agent
   profile (absorbs the agent drawer and per-agent settings), per-conversation Chat|Tasks|Files
   tabs (U3), Activity inbox page (with WS4), Search page. Largely parallel to WS3–WS5; shares

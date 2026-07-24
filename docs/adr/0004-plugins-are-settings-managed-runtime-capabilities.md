@@ -1,10 +1,18 @@
 ---
-summary: Decision to make Tavern Plugins settings-managed Runtime capabilities, not agent-managed setup flows.
+summary: SUPERSEDED by ADR 0017 — plugins are retired in favor of operator-configured MCP servers. Historical record of the plugin capability model.
 read_when:
-  - adding or changing Plugin configuration, health, settings, agent tools, or Widgets
+  - understanding the retired plugin framework being deleted in WS-MCP
+  - reading history behind ADR 0017 (integrations are MCP servers)
 ---
 
 # Plugins are settings-managed Runtime capabilities
+
+> **Superseded by [ADR 0017](0017-integrations-are-mcp-servers.md)** (2026-07-24,
+> WS-MCP; decision D9). The plugin concept is retired: outside services now reach
+> agents as operator-configured MCP servers granted per-agent, with credentials
+> held by a runtime broker. Browser survives as a host tool; image generation as
+> a model capability. The framework this ADR describes is being deleted. The text
+> below is kept as the historical record of what plugins were.
 
 Tavern Plugins are built-in, manifest-declared capability bundles configured
 and repaired through Tavern settings. Agents may read Plugin health and use

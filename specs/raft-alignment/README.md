@@ -552,7 +552,9 @@ deployment, so intermediate brokenness is not a constraint.
   **WS5** (✅ landed — task surface ported from pre-flip components) and **WS-MCP** (MerchBase
   readouts are live daily usage on the mini; blocker is satisfied when Blippy reaches MerchBase
   via its MCP server and the Google-as-configured-server path is proven). Also riding that
-  release: mini cutover (Blippy/Tiny tokens, operator handle, retired-skill-id SQLite edit,
+  release: mini cutover (Blippy/Tiny tokens, operator handle, retired-skill-id SQLite edit —
+  strip `visuals-charts`, `visuals-diagrams`, `page-design`, and `tasks` from agent
+  `enabledSkillIds` and delete their stale seeded skill directories,
   PRD-89 mini verification). **External MCP-client exposure** (letting Claude.ai/ChatGPT reach
   first-party services as an OAuth resource server) is explicitly **deferred** — not required to
   validate the local relay, and additive later with no rework.

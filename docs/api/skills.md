@@ -32,7 +32,7 @@ Plugin or runtime experiment.
 * Hub installs record the installed content hash. Reinstalling an edited hub
   skill returns a conflict unless `force` is set. Available hub entries report
   `edited` and `updateAvailable` from the installed hash.
-* Seeded `tavern-agent` and `tasks` skills can be reset to Tavern defaults
+* Seeded `tavern-agent` and `visuals` skills can be reset to Tavern defaults
   through `POST /skills/:id/reset`; Runtime also refreshes changed seeded
   content when preparing managed skills.
 * Tool ids are Runtime-native tool names.

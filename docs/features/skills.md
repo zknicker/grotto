@@ -67,11 +67,10 @@ content differs from that installed hash reports a conflict unless the caller
 forces the reinstall. The hub inventory reports both local edits and whether the
 bundled hub version differs from the installed hash.
 
-The seeded `tavern-agent` and `tasks` skills are created when missing and
+The seeded `tavern-agent` and `visuals` skills are created when missing and
 refreshed when their content differs from the current Tavern defaults. Other
-non-Plugin skills do not have Tavern defaults. The `tasks` skill teaches board
-etiquette for the Tasks tracker and is enabled for new agents (and the managed
-agent) by default.
+non-Plugin skills do not have Tavern defaults. Task guidance is taught by the
+composed agent prompt (grotto CLI task verbs), not a seeded skill.
 
 Agent-authored skills have a lifecycle. Runtime marks unused agent-created
 skills stale after 30 days and archives them after 90 days by moving the whole

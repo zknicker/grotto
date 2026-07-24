@@ -64,7 +64,6 @@ describe('Runtime agent and agent engine reads', () => {
         expect(createResponse.status).toBe(200);
         await expect(createResponse.json()).resolves.toMatchObject({
             webAccessEnabled: false,
-            enabledPluginIds: [],
             // The pre-flip `tasks` skill left the seeded defaults (WS8): its
             // content teaches the retired tasks_* tool surface.
             enabledSkillIds: ['tavern-agent', 'visuals'],

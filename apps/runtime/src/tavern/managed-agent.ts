@@ -8,7 +8,10 @@ import { registerAgentWorkspace } from '../workspace/instructions.ts';
 import { getStoredAgent, upsertStoredAgent } from './agents-store.ts';
 
 // Seeded skills every agent starts with; the upgrade below appends newly
-// seeded ids to agents stored before those skills existed.
+// seeded ids to agents stored before those skills existed. The pre-flip
+// `tasks` skill is deliberately absent: its content teaches the retired
+// `tasks_*` tool surface (superseded by the prompt's grotto task teaching),
+// so new agents must not receive it.
 const defaultSeededSkillIds = [tavernAgentSkillId, visualsSkillId];
 
 export function primaryManagedAgent(): AgentRuntimeAgent {

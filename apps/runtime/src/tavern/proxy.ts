@@ -39,6 +39,7 @@ import {
     saveAgentModelSelectionIntent,
 } from '../models/selection-service.ts';
 import { registerAgentWorkspace } from '../workspace/instructions.ts';
+import { seedAgentWorkspace } from '../workspace/starter-kit.ts';
 import { readAgentInboxVisibility } from './agent-inbox-api.ts';
 import { stopAgentTurn, stopAgentTurns } from './agent-turn-runner.ts';
 import {
@@ -92,6 +93,12 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
             },
         });
         await fs.mkdir(agent.workspaceFolder, { recursive: true });
+        await seedAgentWorkspace({
+            agentName: agent.name,
+            archetype: input.archetype ?? null,
+            bio: agent.bio ?? null,
+            workspaceDir: agent.workspaceFolder,
+        });
         registerAgentWorkspace(getDb(), {
             agentId: agent.id,
             agentName: agent.name,

@@ -340,6 +340,22 @@ export const agentRuntimeThinkingLevelSchema = z.enum([
 
 const agentRuntimeJsonRecordSchema = z.record(z.string(), z.unknown());
 
+/**
+ * Creation-time archetype proposals (Raft recipe archetypes + the onboarding
+ * guide). The archetype only shapes the seeded workspace starter kit; it is
+ * not stored on the agent — identity accumulates in memory (ruling W2).
+ */
+export const agentArchetypeIdSchema = z.enum([
+    'analyst',
+    'coordinator',
+    'designer',
+    'gate',
+    'guide',
+    'operator',
+    'patrol',
+    'writer',
+]);
+
 export const agentRuntimePluginIdSchema = z.enum(tavernPluginIds);
 
 const agentRuntimePluginSecretFieldSchema = z
@@ -1049,6 +1065,7 @@ export const agentRuntimeArchiveAgentSchema = z.object({
 
 export const agentRuntimeCreateAgentSchema = z.object({
     webAccessEnabled: z.boolean().optional(),
+    archetype: agentArchetypeIdSchema.optional(),
     bio: z.string().trim().min(1).nullable().optional(),
     enabledPluginIds: z.array(agentRuntimePluginIdSchema).optional(),
     enabledSkillIds: z.array(z.string().trim().min(1)).optional(),
@@ -2241,6 +2258,7 @@ export const agentRuntimeErrorSchema = z.object({
 });
 
 export type ChatTarget = z.infer<typeof chatTargetSchema>;
+export type AgentArchetypeId = z.infer<typeof agentArchetypeIdSchema>;
 export type AgentRuntimeAgent = z.infer<typeof agentRuntimeAgentSchema>;
 export type AgentRuntimeAgentBinding = z.infer<typeof agentRuntimeAgentBindingSchema>;
 export type AgentRuntimeAgentList = z.infer<typeof agentRuntimeAgentListSchema>;

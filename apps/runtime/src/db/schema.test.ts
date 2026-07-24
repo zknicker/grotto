@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { createAgentTurn } from '../tavern/agent-turn-store';
 import {
     createChat,
     getResponseActivity,
@@ -194,6 +195,59 @@ INSERT INTO thread_follows (thread_chat_id, participant_id, created_at)
         });
     });
 
+    it('repairs legacy chat-scoped agent turns for global-session delivery', () => {
+        const db = initTestDb();
+        ensureRuntimeSchema(db);
+        db.prepare(
+            `INSERT INTO agents (
+                id, name, workspace_folder, raw_json, last_synced_at, created_at, updated_at
+             )
+             VALUES ('agt_old', 'Old', 'old', '{}', '2026-07-17', '2026-07-17', '2026-07-17')`
+        ).run();
+        db.prepare(
+            `INSERT INTO agent_sessions (
+                id, agent_id, generation, effective_model_json, status, created_at, updated_at
+             )
+             VALUES (
+                'ags_old', 'agt_old', 1, '{"provider":"codex","model":"gpt-5.5"}',
+                'active', '2026-07-17', '2026-07-17'
+             )`
+        ).run();
+        replaceAgentTurnsWithLegacyTable(db);
+
+        ensureRuntimeSchema(db);
+
+        expect(tableSql(db, 'agent_turns')).toContain("'start', 'drain'");
+        expect(tableSql(db, 'agent_turns')).not.toContain('chat_id');
+        expect(
+            db
+                .prepare(
+                    `SELECT id, agent_id, agent_session_id, kind, status, metadata_json
+                     FROM agent_turns WHERE id = 'run_old'`
+                )
+                .get()
+        ).toEqual({
+            agent_id: 'agt_old',
+            agent_session_id: 'ags_old',
+            id: 'run_old',
+            kind: 'drain',
+            metadata_json: '{"kept":true}',
+            status: 'completed',
+        });
+        expect(() =>
+            createAgentTurn(
+                {
+                    agentId: 'agt_old',
+                    agentSessionId: 'ags_old',
+                    id: 'run_new',
+                    kind: 'drain',
+                },
+                db
+            )
+        ).not.toThrow();
+        expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+    });
+
     it('creates the WS5 task, reminder, reaction, and attachment tables', () => {
         const db = initTestDb();
         ensureRuntimeSchema(db);
@@ -294,6 +348,41 @@ CREATE TABLE chats (
   updated_at            TEXT NOT NULL,
   last_message_sequence INTEGER NOT NULL DEFAULT 0
 );
+`);
+}
+
+function replaceAgentTurnsWithLegacyTable(db: Database) {
+    db.exec(`
+PRAGMA foreign_keys = OFF;
+DROP TABLE agent_turns;
+CREATE TABLE agent_turns (
+  id                      TEXT PRIMARY KEY,
+  chat_id                 TEXT NOT NULL,
+  agent_session_id        TEXT NOT NULL,
+  agent_participant_id    TEXT NOT NULL,
+  agent_id                TEXT NOT NULL,
+  trigger_message_id      TEXT NOT NULL,
+  response_id             TEXT NOT NULL,
+  status                  TEXT NOT NULL CHECK (status IN ('queued', 'running', 'completed', 'failed', 'cancelled')),
+  attempt                 INTEGER NOT NULL CHECK (attempt > 0),
+  output_message_ids_json TEXT NOT NULL DEFAULT '[]',
+  activity_ids_json       TEXT NOT NULL DEFAULT '[]',
+  metadata_json           TEXT NOT NULL DEFAULT '{}',
+  created_at              TEXT NOT NULL,
+  updated_at              TEXT NOT NULL,
+  started_at              TEXT,
+  completed_at            TEXT
+);
+INSERT INTO agent_turns (
+  id, chat_id, agent_session_id, agent_participant_id, agent_id,
+  trigger_message_id, response_id, status, attempt, metadata_json,
+  created_at, updated_at, started_at, completed_at
+) VALUES (
+  'run_old', 'cht_old', 'ags_old', 'agt_old', 'agt_old',
+  'msg_old', 'rsp_old', 'completed', 1, '{"kept":true}',
+  '2026-07-17', '2026-07-17', '2026-07-17', '2026-07-17'
+);
+PRAGMA foreign_keys = ON;
 `);
 }
 

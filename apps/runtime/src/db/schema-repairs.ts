@@ -1,3 +1,4 @@
+import { repairAgentTurnShape } from './agent-turn-schema-repair.ts';
 import type { Database } from './sqlite.ts';
 
 const CHAT_RESPONSE_ACTIVITY_TABLE = `
@@ -77,6 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_memory_jobs_status_due
 `;
 
 export function repairRuntimeSchema(db: Database): void {
+    repairAgentTurnShape(db);
     ensureChatResponseActivityWidgetKind(db);
     ensureChatsKinds(db);
     ensureMemoryJobsSkillReviewKind(db);

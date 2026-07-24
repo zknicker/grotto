@@ -11,16 +11,18 @@ import {
     isReservedAgentRuntimeSkillFilePath,
     normalizeAgentRuntimeSkillFiles,
 } from '@tavern/api';
+import { browserSkillContent } from '../browser/browser-skill.generated.ts';
 import { AGENT_HOME } from '../config.ts';
-import { readPluginSkillBundlesForAgent } from '../plugins/agent-capabilities.ts';
-import { resetPluginSkillToDefault } from '../plugins/materialize-skills.ts';
+import { getDb } from '../db/connection.ts';
+import type { Database } from '../db/sqlite.ts';
+import { namedParams } from '../db/sqlite.ts';
 import { publishSkillUpdated } from '../skills/events.ts';
 import { sha256, tryRecordSkillSource } from '../skills/store.ts';
+import { hasAgentHostToolGrant } from './host-tools.ts';
 import {
     managedSkillSummaryState,
     type SkillSummarySource,
     tryReadSkillSummarySource,
-    tryResolveSkillSource,
 } from './managed-skill-summary.ts';
 import { defaultVisualsSkill, visualsSkillFiles, visualsSkillId } from './visuals-skill.ts';
 
@@ -76,7 +78,6 @@ export interface AssignedSkillFile {
 
 interface RuntimeSkillOptions {
     agent?: AgentRuntimeAgent | null;
-    includePluginSkills?: boolean;
     skillsDir?: string;
 }
 
@@ -153,11 +154,50 @@ export async function resetRuntimeSkillToDefault(
     if (isSeededSkillId(skillId)) {
         return await resetSeededSkill(skillId, options);
     }
-    const pluginReset = await resetPluginSkillToDefault(skillId, options);
-    if (pluginReset) {
-        return pluginReset;
+    throw new Error('Only seeded skills have Grotto defaults.');
+}
+
+export function setRuntimeSkillEnabled(skillId: string, enabled: boolean, db: Database = getDb()) {
+    const now = new Date().toISOString();
+    const affectedAgents = enabled
+        ? []
+        : (db
+              .prepare(
+                  `SELECT agents.id, agents.name
+                   FROM agent_skill_assignments
+                   JOIN agents ON agents.id = agent_skill_assignments.agent_id
+                   WHERE skill_id = $skillId AND enabled = 1
+                   ORDER BY agents.name, agents.id`
+              )
+              .all(namedParams({ skillId })) as Array<{ id: string; name: string }>);
+    db.exec('BEGIN IMMEDIATE');
+    try {
+        db.prepare(
+            `INSERT INTO skill_settings (skill_id, enabled, created_at, updated_at)
+             VALUES ($skillId, $enabled, $now, $now)
+             ON CONFLICT(skill_id) DO UPDATE SET
+               enabled = excluded.enabled,
+               updated_at = excluded.updated_at`
+        ).run(namedParams({ enabled: enabled ? 1 : 0, now, skillId }));
+        if (!enabled) {
+            db.prepare('DELETE FROM agent_skill_assignments WHERE skill_id = $skillId').run(
+                namedParams({ skillId })
+            );
+        }
+        db.exec('COMMIT');
+    } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
     }
-    throw new Error('Only seeded and Plugin skills have Grotto defaults.');
+    publishSkillUpdated(skillId);
+    return affectedAgents;
+}
+
+export function isRuntimeSkillEnabled(skillId: string, db: Database = getDb()) {
+    const row = db
+        .prepare('SELECT enabled FROM skill_settings WHERE skill_id = $skillId')
+        .get(namedParams({ skillId })) as { enabled: 0 | 1 } | undefined;
+    return row?.enabled !== 0;
 }
 
 export async function listRuntimeSkills(options: RuntimeSkillOptions = {}) {
@@ -211,7 +251,7 @@ export async function getRuntimeSkill(
 }
 
 export async function readAssignedSkillBundles(
-    agent: Pick<AgentRuntimeAgent, 'enabledSkillIds'>,
+    agent: Pick<AgentRuntimeAgent, 'enabledSkillIds'> & Partial<Pick<AgentRuntimeAgent, 'id'>>,
     options: { skillsDir?: string } = {}
 ) {
     const bundles: AssignedSkillBundle[] = [];
@@ -222,14 +262,7 @@ export async function readAssignedSkillBundles(
             continue;
         }
         seen.add(skillId);
-        if (tryResolveSkillSource({ seededSkillId: tavernAgentSkillId, skillId }) === 'plugin') {
-            continue;
-        }
-
-        const skill = await getRuntimeSkill(skillId, {
-            ...options,
-            includePluginSkills: false,
-        });
+        const skill = await getRuntimeSkill(skillId, options);
         if (!skill || skill.disabled === true) {
             continue;
         }
@@ -244,12 +277,17 @@ export async function readAssignedSkillBundles(
         });
     }
 
-    const pluginBundles =
-        'enabledPluginIds' in agent
-            ? await readPluginSkillBundlesForAgent(agent as AgentRuntimeAgent, options)
-            : [];
-
-    return [...bundles, ...pluginBundles];
+    if (agent.id && hasAgentHostToolGrant(agent.id, 'browser')) {
+        bundles.push({
+            content: browserSkillContent,
+            description: 'Control the managed browser with agent-browser commands.',
+            files: [],
+            id: 'browser',
+            name: 'Browser',
+            path: null,
+        });
+    }
+    return bundles;
 }
 
 async function scanInstalledSkillSummaries(skillsDir: string) {
@@ -314,7 +352,7 @@ function skillSummaryFromMarkdown(input: {
         commandVisible: true,
         configChecks: [],
         description: readSkillDescription(input.content),
-        disabled: false,
+        disabled: !isRuntimeSkillEnabled(input.skillId),
         edited: managedState.edited,
         eligible: true,
         filePath: input.filePath,
@@ -326,9 +364,7 @@ function skillSummaryFromMarkdown(input: {
         name: input.skillId,
         primaryEnv: null,
         requirements: emptyRequirements,
-        runtimeSource: seeded
-            ? 'Agent engine'
-            : (managedState.pluginRuntimeSource ?? 'Installed skill'),
+        runtimeSource: seeded ? 'Agent engine' : 'Installed skill',
         skillKey: input.skillId,
         source: seeded ? 'builtin' : 'installed',
         updateAvailable: managedState.updateAvailable,

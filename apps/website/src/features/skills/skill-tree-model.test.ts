@@ -24,7 +24,6 @@ test('buildSkillTreeSubjects maps installed skills into flat SKILL.md paths', ()
                 id: 'browser',
                 missing: { anyBins: [], bins: [], config: [], env: [], os: [] },
                 name: 'browser',
-                plugin: null,
                 readOnly: false,
                 surface: 'agent',
                 updatedAt: null,
@@ -48,7 +47,7 @@ test('buildSkillTreeSubjects sources managed flags from the runtime summary', ()
         hubByName: new Map(),
         runtimeByName: new Map([
             ['tavern-agent', { edited: false, managedSource: 'seeded', updateAvailable: true }],
-            ['merchbase', { edited: true, managedSource: 'plugin', updateAvailable: false }],
+            ['tavern-workflow', { edited: true, managedSource: 'hub', updateAvailable: false }],
         ]),
         skills: [
             {
@@ -60,7 +59,6 @@ test('buildSkillTreeSubjects sources managed flags from the runtime summary', ()
                 id: 'tavern-agent',
                 missing: { anyBins: [], bins: [], config: [], env: [], os: [] },
                 name: 'tavern-agent',
-                plugin: null,
                 readOnly: false,
                 surface: 'agent',
                 updatedAt: null,
@@ -70,14 +68,13 @@ test('buildSkillTreeSubjects sources managed flags from the runtime summary', ()
             {
                 allowedTools: null,
                 dependencyState: 'ready',
-                description: 'MerchBase workflow guidance',
+                description: 'Workflow guidance',
                 diagnostic: null,
                 enabled: true,
-                id: 'merchbase',
+                id: 'tavern-workflow',
                 missing: { anyBins: [], bins: [], config: [], env: [], os: [] },
-                name: 'merchbase',
-                plugin: { displayName: 'MerchBase', enabled: true, id: 'merchbase' },
-                readOnly: true,
+                name: 'tavern-workflow',
+                readOnly: false,
                 surface: 'agent',
                 updatedAt: null,
                 usability: 'enabled',
@@ -91,39 +88,8 @@ test('buildSkillTreeSubjects sources managed flags from the runtime summary', ()
     expect(seeded?.updateAvailable).toBe(true);
     expect(seeded?.edited).toBe(false);
 
-    const plugin = subjects.find((subject) => subject.treePath === 'merchbase/SKILL.md');
-    expect(plugin?.managedSource).toBe('plugin');
-    expect(plugin?.edited).toBe(true);
-    expect(plugin?.updateAvailable).toBe(false);
-});
-
-test('buildSkillTreeSubjects keeps plugin skills flat without a group folder', () => {
-    const subjects = buildSkillTreeSubjects({
-        hubByName: new Map(),
-        skills: [
-            {
-                allowedTools: null,
-                dependencyState: 'ready',
-                description: 'MerchBase workflow guidance',
-                diagnostic: null,
-                enabled: true,
-                id: 'merchbase',
-                missing: { anyBins: [], bins: [], config: [], env: [], os: [] },
-                name: 'merchbase',
-                plugin: {
-                    displayName: 'MerchBase',
-                    enabled: true,
-                    id: 'merchbase',
-                },
-                readOnly: true,
-                surface: 'agent',
-                updatedAt: null,
-                usability: 'enabled',
-                version: null,
-            },
-        ],
-    });
-
-    expect(subjects.map((subject) => subject.treePath)).toEqual(['merchbase/SKILL.md']);
-    expect(subjects[0]?.managedSource).toBe(null);
+    const hub = subjects.find((subject) => subject.treePath === 'tavern-workflow/SKILL.md');
+    expect(hub?.managedSource).toBe('hub');
+    expect(hub?.edited).toBe(true);
+    expect(hub?.updateAvailable).toBe(false);
 });

@@ -1,8 +1,4 @@
-import {
-    agentRuntimePluginIdSchema,
-    agentRuntimeSkillHubTapSchema,
-    agentRuntimeSkillRequirementsSchema,
-} from '@tavern/api';
+import { agentRuntimeSkillHubTapSchema, agentRuntimeSkillRequirementsSchema } from '@tavern/api';
 import * as z from 'zod';
 
 export const skillIdSchema = z.string().trim().min(1).max(200);
@@ -62,14 +58,6 @@ export const skillDependencyStateSchema = z.enum(['missing', 'ready', 'unknown']
 export const skillPluginUsabilitySchema = z.enum(['disabled', 'enabled', 'not_usable']);
 export const skillRuntimeSurfaceSchema = z.literal('agent');
 
-export const skillPluginRefSchema = z
-    .object({
-        displayName: z.string().trim().min(1),
-        enabled: z.boolean(),
-        id: agentRuntimePluginIdSchema,
-    })
-    .strict();
-
 export const skillSummarySchema = z.object({
     allowedTools: z.string().nullable(),
     description: z.string().nullable(),
@@ -80,7 +68,6 @@ export const skillSummarySchema = z.object({
     enabled: z.boolean(),
     missing: agentRuntimeSkillRequirementsSchema,
     readOnly: z.boolean(),
-    plugin: skillPluginRefSchema.nullable(),
     surface: skillRuntimeSurfaceSchema,
     updatedAt: z.string().datetime().nullable(),
     usability: skillPluginUsabilitySchema,
@@ -94,7 +81,6 @@ export const toolSummarySchema = z.object({
     enabled: z.boolean(),
     id: z.string().min(1),
     name: z.string().min(1),
-    plugin: skillPluginRefSchema.nullable(),
     readOnly: z.boolean(),
     tools: z.array(z.string().min(1)),
     usability: skillPluginUsabilitySchema,

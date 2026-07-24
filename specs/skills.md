@@ -1,110 +1,87 @@
-# Skills and Tools
+# Skills and tools
 
 Skills are reusable instruction packages. Tools are executable agent actions.
-Plugins are built-in Tavern integrations. MCP servers are advanced agent-engine
-connection records. Channels are chat frontends.
+MCP connections expose external tools. Channels are chat frontends.
 
-## Product Expectations
+## Product expectations
 
-- A skill has a stable Runtime source identity.
-- A skill contains instructions and may include supporting files such as
-  scripts, references, or assets.
-- Tavern shows Runtime-visible skills without owning their filesystem
-  lifecycle.
-- A tool has a stable Runtime-native name.
-- Product-facing skill and tool selection applies to the agent.
-- Selecting a skill affects only the agent's skill access.
-- Enabling a tool affects only Runtime's agent tool materialization.
-- Plugins may provide tools, workflows, providers, channels, hooks, or skills.
-  Tavern presents the built-in Plugin as the user-facing integration surface.
-- MCP servers are not tools. They are advanced connection records that may
-  expose tools behind a Plugin or runtime experiment.
-- Channels are not MCP servers. They are places where humans can talk with
+- A skill has a stable Runtime source identity and may include scripts,
+  references, or assets.
+- Skill assignment affects instruction access only. It does not grant tools.
+- A tool has a stable Runtime identity.
+- Host tools and MCP tools are granted independently per agent.
+- MCP discovery never grants access. A grant identifies one connection and one
+  exact upstream tool name.
+- Channels are not MCP connections. They are places where humans talk with
   Tavern agents.
 
 ## Ownership
 
-- Tavern Runtime is canonical for the managed agent's skill, tool, channel,
-  Plugin, and advanced MCP state.
-- Runtime remains canonical for execution behavior: prompt loading, tool
-  calling, connection tools, sandboxing, durable turns, and replay.
-- Runtime-discovered skills remain owned by their source location.
-- Runtime-discovered tools remain owned by Runtime materialization.
-- Runtime owns MCP server records and secrets when MCP is used as advanced
-  integration plumbing.
-- Plugins own their contributed skills and tools. Direct enablement changes
-  from Skills or Tools are rejected when Plugin enablement owns the row.
+- Runtime is canonical for installed skills, skill assignments, MCP
+  connections, connection credentials, host-tool grants, and MCP tool grants.
+- Skill packages remain owned by their source location. Tavern shows the
+  Runtime inventory without copying packages into an app-owned store.
+- External service logic and tool schemas belong to the MCP server.
+- Runtime owns AI SDK tool composition, call-time grant checks, MCP client
+  lifecycle, sandboxing, durable turns, and metadata-only tool-call audit.
+- Credentials stay in the Runtime vault and are never included in prompts,
+  tool arguments, or audit rows.
 
-## Source Model
+## Sources
 
-### Skill Sources
+### Skills
 
-Runtime reports skill files and packages from the active agent project and
-managed skill locations. Tavern should show the inventory Runtime reports and
-should not copy Runtime skills into an app-owned store.
+Runtime reports installed skill packages from managed and external locations.
+The App shows Installed and Available views. Globally disabling a skill removes
+its current agent assignments after user confirmation; enabling it later does
+not restore them.
 
-### Tool Sources
+### Host tools
 
-Runtime reports tools from the active agent project:
+Browser and `web_fetch` are Tavern host tools. Both use explicit per-agent
+grants. New agents receive `web_fetch` by default; Browser remains ungranted
+until selected.
 
-1. authored tools
-2. agent-engine default tools that remain enabled
-3. dynamic tools resolved by Runtime
-4. subagent tools
-5. Plugin-provided tools compiled into the agent project
-6. advanced connection tools surfaced from MCP servers
+Harness-native tools such as shell and file editing come from the selected
+executor and remain governed by sandbox and approval policy.
 
-Tavern may group tools visually, but it should not name that grouping as an
-agent-engine primitive.
+### MCP tools
 
-### MCP Sources
+Settings -> Connections manages HTTP and stdio MCP connections. A connection
+represents one server account. Built-in presets reduce configuration but use
+the same storage, auth, discovery, and grant path as custom connections.
 
-Advanced MCP settings manage MCP server records when Runtime or Plugin
-development needs them. A server may use command or URL transport, optional
-env/header secrets, enablement, and health checks. Runtime stores secrets
-redacted and materializes enabled records for the agent engine.
+Runtime discovers upstream tools and presents only granted tools to each agent
+with stable namespaced model-visible names. A newly discovered upstream tool
+starts ungranted. Runtime rechecks the grant immediately before forwarding a
+call.
 
-### Channel Sources
+OAuth connections use Connect/Reconnect and Disconnect. There is no connection
+enable switch. Disconnect clears credentials and grants. Custom connections may
+also be deleted.
+
+### Channels
 
 Settings -> Channels manages frontend bindings for Tavern agents. Tavern chat
-is built in. Discord, Telegram, Slack, SDK, and other frontends are separate
-channels with their own session bindings.
+is built in. Discord and other frontends have their own bindings and session
+routing.
 
-## UI Model
+## UI model
 
-- Skills and Plugins are separate settings pages.
-- The Skills page has Installed and Available views.
-- The Plugins page is the normal external integration setup surface.
-- The Advanced MCP page lists MCP servers and MCP catalog entries only when
-  direct MCP plumbing is exposed for development.
-- The Channels page lists Tavern and external frontend bindings.
-- Skill rows open the skill detail surface.
-- Runtime tool inventory remains diagnostic Runtime data, not a standalone
-  settings page.
-- Advanced MCP rows expose server transport, health, test, edit, enable, and
-  delete actions.
-- Plugin-owned rows are visibly Plugin-owned and locked to Plugin enablement.
+- Settings -> Skills manages global skill inventory and enablement.
+- Settings -> Connections manages MCP connection setup, auth, discovery,
+  testing, disconnect, and custom-connection deletion.
+- Settings -> Browser manages the local Browser host service.
+- An agent's Tools tab manages host-tool and exact MCP tool grants.
+- Skills remain assigned separately from tools.
+- Runtime tool inventory may remain available as diagnostics; it is not the
+  source of per-agent grants.
 
-## Usability State
+## Failure behavior
 
-Tavern keeps product state small:
-
-| State | Meaning |
-| --- | --- |
-| `enabled` | The user wants the agent to use the skill or tool. |
-| `disabled` | The user does not want the agent to use the skill or tool. |
-| `not_usable` | The item is enabled, but Runtime reports that the agent cannot currently use it. |
-
-Runtime diagnostic text can explain missing setup, auth, dependencies,
-restart, stale inventory, or policy failures. Tavern should display useful text
-without inventing a second taxonomy.
-
-## Failure Behavior
-
-- If Runtime inventory fails, settings should keep the last observed records
-  visible when available and mark current usability as unknown.
-- Missing dependencies do not remove an item.
-- Unsupported tool mutations fail through Runtime and leave the visible record
-  intact.
-- MCP test failures are shown on the advanced MCP row or dialog and do not
-  remove the server record.
+- Cached skill and connection records remain visible when Runtime is
+  temporarily unavailable.
+- Missing dependencies do not silently remove a skill.
+- An unavailable granted MCP tool stays visible to the agent and returns the
+  connection failure so the agent can report it.
+- A failed MCP test does not remove the connection or change grants.

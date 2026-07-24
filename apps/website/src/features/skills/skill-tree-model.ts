@@ -1,7 +1,7 @@
 import type { SkillListOutput } from '../../lib/trpc.tsx';
 
 type SkillSummary = SkillListOutput['skills'][number];
-export type ManagedSource = 'hub' | 'plugin' | 'seeded';
+export type ManagedSource = 'hub' | 'seeded';
 export interface HubEntry {
     edited: boolean;
     identifier: string;
@@ -28,7 +28,6 @@ export interface SkillTreeSubject {
     installed: boolean;
     managedSource: ManagedSource | null;
     name: string;
-    plugin: SkillSummary['plugin'];
     readOnly: boolean;
     skillId: null | string;
     sourceLabel: string;
@@ -76,12 +75,11 @@ function installedTreeSubject(
         installed: true,
         managedSource: managed.managedSource,
         name: skill.name,
-        plugin: skill.plugin,
         readOnly: skill.readOnly,
         skillId: skill.id,
-        sourceLabel: skill.plugin ? skill.plugin.displayName : 'Installed',
+        sourceLabel: 'Installed',
         treePath: skillFilePath(skill.name),
-        trustLevel: skill.plugin ? 'builtin' : narrowTrustLevel(hubEntry?.trustLevel),
+        trustLevel: narrowTrustLevel(hubEntry?.trustLevel),
         uninstallName: hubEntry ? skill.name : null,
         updateAvailable: managed.updateAvailable,
         updatedAt: skill.updatedAt,

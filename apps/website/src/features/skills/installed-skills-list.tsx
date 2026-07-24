@@ -93,11 +93,6 @@ function SkillRow({ onSelect, skill }: { onSelect: () => void; skill: SkillSumma
                             {skill.diagnostic ?? 'Needs setup'}
                         </Badge>
                     ) : null}
-                    {skill.plugin ? (
-                        <Badge size="sm" variant="secondary">
-                            Plugin
-                        </Badge>
-                    ) : null}
                 </span>
                 <span className="mt-0.5 line-clamp-1 text-muted-foreground text-sm">
                     {skill.description ?? skill.id}

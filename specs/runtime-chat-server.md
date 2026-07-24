@@ -86,7 +86,7 @@ App tables are cache, presentation, or runtime evidence:
 * Per-chat `sequence` is assigned in the same transaction as message insert.
 * Durable events are inserted in the same transaction as the mutation.
 * Duplicate `message.id` or `(chat_id, nonce)` returns the existing message.
-* Plugin relay delivery is queued after the durable message exists.
+* External frontend delivery is queued after the durable message exists.
 * Assistant replies are Tavern messages authored by agent participants.
 * Agent work is a durable response with ordered response activity.
 * Tool progress and results update the same durable activity rows by identity.

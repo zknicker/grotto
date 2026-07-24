@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { closeMcpClientsForAgent } from '../agent-engine/mcp-clients.ts';
 import { getDb } from '../db/connection.ts';
 import { registerAgentWorkspace } from '../workspace/instructions.ts';
 import { seedAgentWorkspace } from '../workspace/starter-kit.ts';
@@ -27,6 +28,7 @@ export async function resetAgentSession(input: {
     if (kind === 'full') {
         await wipeAgentWorkspace(input.agentId);
     }
+    await closeMcpClientsForAgent(input.agentId);
     const session = startNewAgentSession({ agentId: input.agentId });
     rotateAgentToken(input.agentId);
     recordSessionResetNotice({

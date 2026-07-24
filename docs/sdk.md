@@ -2,7 +2,7 @@
 summary: TypeScript SDK guide for @tavern/api contracts, @tavern/sdk client shape, bot/webhook/local tool usage, capabilities, and compatibility rules.
 read_when:
   - changing @tavern/api, @tavern/sdk, or client examples
-  - adding bots, webhooks, automations, local tools, or runtime Plugins
+  - adding bots, webhooks, automations, local tools, or MCP connections
 ---
 
 # TypeScript SDK
@@ -81,11 +81,12 @@ Ownership:
 | Realtime subscriptions and recovery | [Realtime](api/realtime.md) |
 | Chat messages, responses, activity, artifacts, and delivery | [Chat API](api/chat.md) |
 | Health, status, and admin control | [Admin API](api/admin.md) |
-| Agents, models, skills, and Plugin grants | [Agents API](api/agents.md) |
+| Agents, models, skills, and tool grants | [Agents API](api/agents.md) |
 | Memory inspection and review | [Memory API](api/memory.md) |
 | Wiki pages and citations | [Memory API](api/memory.md) |
 | Cron automations and run history | [Automations API](api/automations.md) |
 | Skill packages and assignment | [Skills API](api/skills.md) |
+| MCP connections and exact tool grants | [Connections API](api/connections.md) |
 | Usage and operational stats | [Stats API](api/stats.md) |
 
 ## Rules

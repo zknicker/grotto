@@ -310,15 +310,6 @@ export function createAppRouter() {
                                                     ),
                                                 },
                                                 {
-                                                    path: 'connections',
-                                                    element: (
-                                                        <Navigate
-                                                            replace
-                                                            to={appRoutes.settingsAgentRuntime}
-                                                        />
-                                                    ),
-                                                },
-                                                {
                                                     path: 'models',
                                                     lazy: lazyRoute(
                                                         () =>
@@ -351,18 +342,25 @@ export function createAppRouter() {
                                                     element: (
                                                         <Navigate
                                                             replace
-                                                            to={appRoutes.settingsPlugins}
+                                                            to={appRoutes.settingsConnections}
                                                         />
                                                     ),
                                                 },
                                                 {
-                                                    path: 'plugins',
+                                                    path: 'connections',
+                                                    lazy: lazyRoute(
+                                                        () => import('./routes/app/mcp-page.tsx'),
+                                                        'McpPage'
+                                                    ),
+                                                },
+                                                {
+                                                    path: 'browser',
                                                     lazy: lazyRoute(
                                                         () =>
                                                             import(
-                                                                './routes/app/settings-plugins-page.tsx'
+                                                                './routes/app/settings-browser-page.tsx'
                                                             ),
-                                                        'SettingsPluginsPage'
+                                                        'SettingsBrowserPage'
                                                     ),
                                                 },
                                                 {
@@ -373,13 +371,6 @@ export function createAppRouter() {
                                                                 './routes/app/channels-page.tsx'
                                                             ),
                                                         'ChannelsPage'
-                                                    ),
-                                                },
-                                                {
-                                                    path: 'mcp',
-                                                    lazy: lazyRoute(
-                                                        () => import('./routes/app/mcp-page.tsx'),
-                                                        'McpPage'
                                                     ),
                                                 },
                                                 {
@@ -504,7 +495,6 @@ function resolveLegacySettingsPath(segments: string[]) {
     }
 
     if (
-        section === 'connections' ||
         section === 'tracking' ||
         section === 'notes-md' ||
         section === 'soul-md' ||

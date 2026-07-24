@@ -48,8 +48,7 @@ Modules accept the smallest useful scope:
 type DoctorScope =
   | { kind: 'all' }
   | { kind: 'agent'; agentId: string }
-  | { kind: 'provider'; providerId: string }
-  | { kind: 'plugin'; pluginId: string };
+  | { kind: 'provider'; providerId: string };
 ```
 
 Provider changes use provider or all scope for `models`, then all scope for
@@ -86,7 +85,7 @@ run the Agent.
 - **Manual check.** Run the requested module or baseline chain and return a
   structured result to the caller.
 - **Scheduled check.** Refresh external state that can drift outside Tavern,
-  such as CLI OAuth files or Plugin credentials.
+  such as CLI OAuth files or provider credentials.
 
 ## Result Shape
 

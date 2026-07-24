@@ -1,7 +1,8 @@
-import type { McpServerListOutput, McpServerSaveInput } from '../../../lib/trpc.tsx';
+import type { McpConnectionListOutput, McpConnectionSaveInput } from '../../../lib/trpc.tsx';
 
-export type McpServer = McpServerListOutput['servers'][number];
-export type McpServerTransport = 'http' | 'stdio';
+export type McpConnection = McpConnectionListOutput['connections'][number];
+export type McpConnectionFilter = 'all' | 'connected' | 'not-connected';
+export type McpConnectionTransport = 'http' | 'stdio';
 
 export interface SecretDraftEntry {
     key: string;
@@ -9,24 +10,90 @@ export interface SecretDraftEntry {
     value: string;
 }
 
-export interface McpServerDraft {
+export interface McpConnectionDraft {
     args: string;
+    auth: 'headers' | 'none' | 'oauth';
     command: string;
     env: SecretDraftEntry[];
+    headers: SecretDraftEntry[];
     name: string;
-    transport: McpServerTransport;
+    oauthClientId: string;
+    oauthClientSecret: string;
+    oauthScopes: string;
+    transport: McpConnectionTransport;
     url: string;
 }
 
-export function splitArgs(value: string): string[] {
-    return value.split(/\s+/u).filter((part) => part.length > 0);
+export function connectionSummary(connection: McpConnection): string {
+    if (connection.transport === 'stdio') {
+        return [connection.command, ...connection.args].filter(Boolean).join(' ');
+    }
+    return connection.url ?? '';
 }
 
-export function joinArgs(args: string[]): string {
-    return args.join(' ');
+export function visibleConnections(
+    connections: McpConnection[],
+    filter: McpConnectionFilter
+): McpConnection[] {
+    if (filter === 'all') {
+        return connections;
+    }
+    return connections.filter((connection) =>
+        filter === 'connected' ? connection.connected : !connection.connected
+    );
 }
 
-export function toEnvRecord(entries: { name: string; value: string }[]): Record<string, string> {
+export function createConnectionDraft(): McpConnectionDraft {
+    return {
+        args: '',
+        auth: 'none',
+        command: '',
+        env: [],
+        headers: [],
+        name: '',
+        oauthClientId: '',
+        oauthClientSecret: '',
+        oauthScopes: '',
+        transport: 'http',
+        url: '',
+    };
+}
+
+export function buildSaveInput(draft: McpConnectionDraft): McpConnectionSaveInput {
+    const env = toSecretRecord(draft.env);
+    const headers = toSecretRecord(draft.headers);
+    return {
+        args: draft.transport === 'stdio' ? splitArgs(draft.args) : undefined,
+        auth: draft.transport === 'stdio' ? 'none' : draft.auth,
+        command: draft.transport === 'stdio' ? draft.command.trim() : undefined,
+        env: Object.keys(env).length > 0 ? env : undefined,
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+        name: draft.name.trim(),
+        oauthClientId:
+            draft.transport === 'http' && draft.auth === 'oauth'
+                ? draft.oauthClientId.trim() || undefined
+                : undefined,
+        oauthClientSecret:
+            draft.transport === 'http' && draft.auth === 'oauth'
+                ? draft.oauthClientSecret || undefined
+                : undefined,
+        oauthScopes:
+            draft.transport === 'http' && draft.auth === 'oauth'
+                ? splitArgs(draft.oauthScopes)
+                : undefined,
+        url: draft.transport === 'http' ? draft.url.trim() : undefined,
+    };
+}
+
+export function createSecretDraftEntry(): SecretDraftEntry {
+    return { key: crypto.randomUUID(), name: '', value: '' };
+}
+
+export function splitArgs(value: string) {
+    return value.split(/\s+/u).filter(Boolean);
+}
+
+export function toSecretRecord(entries: SecretDraftEntry[]) {
     return Object.fromEntries(
         entries
             .map((entry) => [entry.name.trim(), entry.value] as const)
@@ -34,46 +101,14 @@ export function toEnvRecord(entries: { name: string; value: string }[]): Record<
     );
 }
 
-export function mcpServerSummary(server: McpServer): string {
-    if (server.transport === 'stdio') {
-        const parts = [server.command ?? '', joinArgs(server.args)].filter(Boolean);
-        return `stdio: ${parts.join(' ')}`;
-    }
-
-    return server.url ? `http: ${urlHost(server.url)}` : server.transport;
+export function joinArgs(args: string[]) {
+    return args.join(' ');
 }
 
-function urlHost(value: string): string {
-    try {
-        return new URL(value).host;
-    } catch {
-        return value;
-    }
-}
-
-export function createMcpServerDraft(server: McpServer | null): McpServerDraft {
-    return {
-        args: joinArgs(server?.args ?? []),
-        command: server?.command ?? '',
-        env: [],
-        name: server?.name ?? '',
-        transport: server?.transport === 'http' ? 'http' : 'stdio',
-        url: server?.url ?? '',
-    };
-}
-
-export function buildSaveInput(draft: McpServerDraft): McpServerSaveInput {
-    const env = toEnvRecord(draft.env);
-
-    return {
-        args: draft.transport === 'stdio' ? splitArgs(draft.args) : undefined,
-        command: draft.transport === 'stdio' ? draft.command.trim() : undefined,
-        env: Object.keys(env).length > 0 ? env : undefined,
-        name: draft.name.trim(),
-        url: draft.transport === 'http' ? draft.url.trim() : undefined,
-    };
-}
-
-export function createSecretDraftEntry(): SecretDraftEntry {
-    return { key: crypto.randomUUID(), name: '', value: '' };
+export function toEnvRecord(entries: Array<{ name: string; value: string }>) {
+    return Object.fromEntries(
+        entries
+            .map((entry) => [entry.name.trim(), entry.value] as const)
+            .filter(([name]) => name.length > 0)
+    );
 }

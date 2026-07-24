@@ -52,7 +52,7 @@ export const agentSkillWriteFileRequestSchema = z
     .strict();
 
 export async function listAgentSkills(agentId: string, skillsDir = agentEngineSkillsDir) {
-    const skills = await listRuntimeSkills({ includePluginSkills: false, skillsDir });
+    const skills = await listRuntimeSkills({ skillsDir });
     return { skills: skills.map((skill) => skillSummary(agentId, skill)) };
 }
 
@@ -74,7 +74,7 @@ export async function viewAgentSkill(
     if (!contained) {
         throw new AgentApiError('SKILL_NOT_FOUND', `Skill not found: ${skillId}`, 404);
     }
-    const skill = await getRuntimeSkill(skillId, { includePluginSkills: false, skillsDir });
+    const skill = await getRuntimeSkill(skillId, { skillsDir });
     if (!skill) {
         throw new AgentApiError('SKILL_NOT_FOUND', `Skill not found: ${skillId}`, 404);
     }
@@ -105,7 +105,7 @@ export async function createAgentAuthoredSkill(
             400
         );
     }
-    const existing = await listRuntimeSkills({ includePluginSkills: false, skillsDir });
+    const existing = await listRuntimeSkills({ skillsDir });
     if (existing.some((skill) => skill.id === skillId)) {
         throw new AgentApiError('SKILL_EXISTS', `Skill already exists: ${skillId}`, 409);
     }

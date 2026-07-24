@@ -38,12 +38,12 @@ agent-engine implementation choices directly.
   membership.
 - `participants.md`: observed participants, labels, and self actor presentation.
 - `mentions.md`: `@` references in composers, their metadata, and their runtime effects.
-- `jobs.md`, `workers.md`, `models.md`, `skills.md`, `tools.md`, `plugins.md`, `catalog.md`,
+- `jobs.md`, `workers.md`, `models.md`, `skills.md`, `tools.md`, `mcp.md`, `catalog.md`,
   `activity-log.md`: focused product surfaces.
 - `clarifications.md`: mid-turn questions, skip/timeout answers, and runtime
   response wiring.
-- `mcp.md`: advanced MCP server records for Runtime and Plugin-backed
-  integration plumbing.
+- `mcp.md`: MCP connections, credentials, discovery, and exact per-agent tool
+  grants.
 - `permissions.md`: tool sources, sandbox mode, approval policy, and command
   allowlist.
 - `workspace.md`: the rendered system prompt and its editable sources

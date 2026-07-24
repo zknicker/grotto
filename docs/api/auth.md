@@ -36,7 +36,9 @@ Model provider credentials belong to their provider integration:
 - Anthropic, OpenAI, and OpenRouter API-key routes use Runtime-stored
   provider secrets or explicit environment overrides such as
   `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `TAVERN_AGENT_API_KEY`.
-- Plugin credentials live in Plugin-specific secret storage.
+- MCP connection credentials live in the Runtime vault. Runtime uses them only
+  at the upstream MCP boundary; they never enter agent prompts, tool arguments,
+  or audit records.
 
 Do not put secrets in:
 
@@ -77,8 +79,9 @@ use the newest session.
 Runtime-token and owner sessions have full Runtime access. Member sessions may
 use the Tavern `/api/*` chat surface and read app-facing identity, capabilities,
 events, agents, models, and Mac app inventory. Runtime administration remains
-owner-only, including model access, agent environment, Plugins, MCP, updates,
-development routes, and timezone settings. Verified non-members remain limited
+owner-only, including model access, agent environment, MCP connections,
+Browser settings, updates, development routes, and timezone settings.
+Verified non-members remain limited
 to identity introspection and invite redemption.
 
 Clients use Tavern API or TypeScript SDK surfaces instead of reading local

@@ -1,6 +1,5 @@
 import type { AgentRuntimeSkillSummary } from '@tavern/api';
 import type { TavernAgentRuntimeClient } from '../agent-runtime/client.ts';
-import { listAgentRuntimePlugins } from '../agent-runtime/plugins.ts';
 import {
     getAgentRuntimeSkill,
     listAgentRuntimeSkills,
@@ -26,24 +25,13 @@ import {
     enqueueRuntimeSkillInventoryRefreshIfStale,
 } from './inventory-job.ts';
 import { getCachedRuntimeSkillInventory, refreshRuntimeSkillInventory } from './inventory-sync.ts';
-import {
-    listMissingPluginTools,
-    rejectPluginSkillEnablement,
-    rejectPluginToolEnablement,
-    resolveSkillPlugin,
-    resolveToolPlugin,
-    type SkillPluginRef,
-} from './plugin-capabilities.ts';
-
 export async function listSkills(): Promise<SkillList> {
-    const [runtime, tools, plugins] = await Promise.all([
+    const [runtime, tools] = await Promise.all([
         getActiveAgentRuntimeConnection(),
         listAgentRuntimeTools().catch(() => []),
-        listAgentRuntimePlugins().catch(() => []),
     ]);
     const skillRuntimeId = getSkillInventoryRuntimeId(runtime);
     const runtimeTools = tools ?? [];
-    const runtimePlugins = plugins ?? [];
     const cachedInventory = skillRuntimeId
         ? await getCachedRuntimeSkillInventory(skillRuntimeId).catch(() => null)
         : null;
@@ -52,12 +40,9 @@ export async function listSkills(): Promise<SkillList> {
 
     return skillListSchema.parse({
         skills: filterRuntimeVisibleSkills(cachedInventory?.skills ?? []).map((skill) =>
-            buildSkillSummary(skill, runtimePlugins)
+            buildSkillSummary(skill)
         ),
-        tools: [
-            ...runtimeTools,
-            ...listMissingPluginTools(runtimePlugins, new Set(runtimeTools.map((tool) => tool.id))),
-        ].map((tool) => buildToolSummary(tool, runtimePlugins)),
+        tools: runtimeTools.map((tool) => buildToolSummary(tool)),
     });
 }
 
@@ -77,8 +62,7 @@ export async function setSkillEnabled(input: unknown): Promise<SkillList> {
     const cachedInventory = skillRuntimeId
         ? await getCachedRuntimeSkillInventory(skillRuntimeId).catch(() => null)
         : null;
-    const skill = cachedInventory?.skills.find((candidate) => candidate.id === parsed.skillId);
-    rejectPluginSkillEnablement(skill ?? parsed.skillId);
+    const _skill = cachedInventory?.skills.find((candidate) => candidate.id === parsed.skillId);
     const updated = await setAgentRuntimeSkillEnabled(parsed.skillId, { enabled: parsed.enabled });
     if (!updated) {
         throw new Error('Runtime skill enablement is unavailable.');
@@ -109,7 +93,6 @@ export async function resetSkill(input: unknown) {
 
 export async function setToolEnabled(input: unknown): Promise<SkillList> {
     const parsed = setToolEnabledInputSchema.parse(input);
-    rejectPluginToolEnablement(parsed.toolId);
     const updated = await setAgentRuntimeToolEnabled(parsed.toolId, {
         enabled: parsed.enabled,
     });
@@ -143,7 +126,6 @@ export function assertSkillsAssignable(
         if (!skill) {
             continue;
         }
-        rejectPluginSkillEnablement(skill);
         if (!isSkillEnabled(skill)) {
             throw new Error(
                 `Enable ${skill.name} in Settings -> Skills before assigning it to an agent.`
@@ -176,26 +158,21 @@ function isRuntimeVisibleSkill(skill: AgentRuntimeSkillSummary) {
     return skill.blockedByAllowlist !== true;
 }
 
-function buildSkillSummary(
-    skill: AgentRuntimeSkillSummary,
-    plugins: Awaited<ReturnType<typeof listAgentRuntimePlugins>>
-) {
-    const plugin = resolveSkillPlugin(skill, plugins ?? []);
+function buildSkillSummary(skill: AgentRuntimeSkillSummary) {
     const dependencyState = resolveDependencyState(skill);
-    const enabled = plugin ? plugin.enabled : isSkillEnabled(skill);
+    const enabled = isSkillEnabled(skill);
     const usability = resolveSkillUsability({ dependencyState, enabled });
 
     return skillSummarySchema.parse({
         allowedTools: skill.allowedTools,
-        diagnostic: buildSkillDiagnostic(skill, dependencyState, plugin),
+        diagnostic: buildSkillDiagnostic(skill, dependencyState),
         dependencyState,
         description: skill.description,
         enabled,
         id: skill.id,
         missing: skill.missing,
         name: skill.name,
-        plugin,
-        readOnly: plugin !== null,
+        readOnly: false,
         surface: resolveSkillSurface(),
         updatedAt: skill.updatedAt,
         usability,
@@ -207,22 +184,18 @@ function resolveSkillSurface(): SkillSummary['surface'] {
     return 'agent';
 }
 
-function buildToolSummary(
-    tool: {
-        configured: boolean;
-        description: null | string;
-        enabled: boolean;
-        id: string;
-        label: string;
-        placeholder?: boolean;
-        readOnly?: boolean;
-        tools: string[];
-    },
-    plugins: Awaited<ReturnType<typeof listAgentRuntimePlugins>>
-): ToolSummary {
-    const plugin = resolveToolPlugin({ ...tool, name: tool.label }, plugins ?? []);
-    const enabled = plugin ? plugin.enabled : tool.enabled;
-    const diagnostic = resolveToolDiagnostic({ enabled, plugin, tool });
+function buildToolSummary(tool: {
+    configured: boolean;
+    description: null | string;
+    enabled: boolean;
+    id: string;
+    label: string;
+    placeholder?: boolean;
+    readOnly?: boolean;
+    tools: string[];
+}): ToolSummary {
+    const enabled = tool.enabled;
+    const diagnostic = resolveToolDiagnostic({ enabled, tool });
     return {
         configured: tool.configured,
         description: tool.description,
@@ -230,7 +203,6 @@ function buildToolSummary(
         enabled,
         id: tool.id,
         name: tool.label,
-        plugin,
         readOnly: tool.readOnly ?? false,
         tools: tool.tools,
         usability: diagnostic ? 'not_usable' : enabled ? 'enabled' : 'disabled',
@@ -239,19 +211,10 @@ function buildToolSummary(
 
 function resolveToolDiagnostic(input: {
     enabled: boolean;
-    plugin: SkillPluginRef | null;
     tool: { configured: boolean; placeholder?: boolean };
 }) {
-    if (input.plugin && !input.plugin.enabled) {
-        return `Enable ${input.plugin.displayName} in Plugins.`;
-    }
-    if (input.plugin && 'placeholder' in input.tool) {
-        return `Restart the agent engine to load ${input.plugin.displayName} tools.`;
-    }
     if (input.enabled && !input.tool.configured) {
-        return input.plugin
-            ? `Finish ${input.plugin.displayName} setup in Plugins.`
-            : 'Required provider keys are missing.';
+        return 'Required provider keys are missing.';
     }
     return null;
 }
@@ -275,12 +238,8 @@ function isSkillEnabled(skill: AgentRuntimeSkillSummary) {
 
 function buildSkillDiagnostic(
     skill: AgentRuntimeSkillSummary,
-    dependencyState: SkillSummary['dependencyState'],
-    plugin: SkillPluginRef | null
+    dependencyState: SkillSummary['dependencyState']
 ) {
-    if (plugin && !plugin.enabled) {
-        return `Enable ${plugin.displayName} in Plugins.`;
-    }
     if (dependencyState !== 'missing') {
         return null;
     }

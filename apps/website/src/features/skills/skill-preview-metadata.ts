@@ -38,9 +38,6 @@ export function mergeKeywords(...keywordGroups: string[][]) {
 }
 
 export function getSkillCreator(subject: SkillTreeSubject) {
-    if (subject.plugin) {
-        return subject.plugin.displayName;
-    }
     if (subject.trustLevel === 'builtin' || subject.sourceLabel === 'Built-in library') {
         return 'Grotto';
     }

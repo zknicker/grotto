@@ -1,12 +1,9 @@
 import {
     type AgentRuntimeAgent,
     agentRuntimeAgentInboxSchema,
-    agentRuntimeAgentPluginGrantListSchema,
-    agentRuntimeAgentPluginGrantSchema,
     agentRuntimeAgentStopResultSchema,
     agentRuntimeArchiveAgentSchema,
     agentRuntimeCreateAgentSchema,
-    agentRuntimePluginIdSchema,
     agentRuntimeRoutes,
     agentRuntimeSkillListSchema,
     agentRuntimeSkillSchema,
@@ -14,14 +11,18 @@ import {
     agentRuntimeUpdateAgentBioSchema,
     agentRuntimeUpdateAgentModelSchema,
     agentRuntimeUpdateAgentNameSchema,
-    agentRuntimeUpdateAgentPluginGrantSchema,
     agentRuntimeUpdateAgentThinkingDefaultSchema,
     agentRuntimeUpdateAgentWebSettingsSchema,
     agentRuntimeUpdateSkillEnabledSchema,
     agentRuntimeUpdateToolEnabledSchema,
 } from '@tavern/api';
 import { ZodError } from 'zod';
-import { getRuntimeSkill, listRuntimeSkills } from '../agent-engine/skill-library.ts';
+import { closeMcpClientsForAgent } from '../agent-engine/mcp-clients.ts';
+import {
+    getRuntimeSkill,
+    listRuntimeSkills,
+    setRuntimeSkillEnabled,
+} from '../agent-engine/skill-library.ts';
 import { runRuntimeDoctor } from '../doctor/runtime-doctor.ts';
 import { listAgentModels } from '../models/catalog-service.ts';
 import {
@@ -34,9 +35,7 @@ import { stopAgentTurn, stopAgentTurns } from './agent-turn-runner.ts';
 import {
     deleteStoredAgent,
     getStoredAgent,
-    listAgentPluginGrants,
     listStoredAgents,
-    setAgentPluginGrant,
     updateStoredAgent,
 } from './agents-store.ts';
 import { HandleValidationError } from './handles.ts';
@@ -74,6 +73,7 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
         return withResolvedModelName(agent);
     }
     if (method === 'DELETE' && segments[0] === 'agents' && segments[1] && !segments[2]) {
+        await closeMcpClientsForAgent(segments[1]);
         deleteStoredAgent(segments[1]);
         return agentRuntimeArchiveAgentSchema.parse({
             archived: true,
@@ -135,43 +135,6 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
     if (method === 'GET' && segments[0] === 'agents' && segments[1] && segments[2] === 'inbox') {
         return agentRuntimeAgentInboxSchema.parse(readAgentInboxVisibility(segments[1]));
     }
-    if (method === 'GET' && segments[0] === 'agents' && segments[1] && segments[2] === 'plugins') {
-        const agentId = segments[1];
-        const agent = getStoredAgent(agentId);
-        if (!agent) {
-            return undefined;
-        }
-        return agentRuntimeAgentPluginGrantListSchema.parse({
-            grants: listAgentPluginGrants(agentId).map((grant) => ({
-                agentId,
-                enabled: grant.enabled === 1,
-                pluginId: grant.plugin_id,
-                updatedAt: grant.updated_at,
-            })),
-        });
-    }
-    if (
-        method === 'PUT' &&
-        segments[0] === 'agents' &&
-        segments[1] &&
-        segments[2] === 'plugins' &&
-        segments[3] &&
-        segments[4] === 'enabled'
-    ) {
-        const payload = agentRuntimeUpdateAgentPluginGrantSchema.parse(await readJson(request));
-        const pluginId = agentRuntimePluginIdSchema.parse(segments[3]);
-        const agent = setAgentPluginGrant({
-            agentId: segments[1],
-            enabled: payload.enabled,
-            pluginId,
-        });
-        return agentRuntimeAgentPluginGrantSchema.parse({
-            agentId: agent.id,
-            enabled: (agent.enabledPluginIds ?? []).includes(pluginId),
-            pluginId,
-            updatedAt: new Date().toISOString(),
-        });
-    }
     // The managed agent-file surface (NOTES.md / SOUL.md editors) retired
     // with the flip: notes injection died with D3 and SOUL with ruling W2.
     if (method === 'GET' && url.pathname === agentRuntimeRoutes.models) {
@@ -192,7 +155,8 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
         return skill ? agentRuntimeSkillSchema.parse(skill) : undefined;
     }
     if (method === 'PUT' && segments[0] === 'skills' && segments[1] && segments[2] === 'enabled') {
-        agentRuntimeUpdateSkillEnabledSchema.parse(await readJson(request));
+        const input = agentRuntimeUpdateSkillEnabledSchema.parse(await readJson(request));
+        setRuntimeSkillEnabled(segments[1], input.enabled);
         const skill = await getRuntimeSkill(segments[1]);
         return skill ? agentRuntimeSkillSchema.parse(skill) : undefined;
     }

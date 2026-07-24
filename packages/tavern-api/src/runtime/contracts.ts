@@ -1,6 +1,5 @@
 import * as z from 'zod';
 
-import { tavernPluginCapabilityIds, tavernPluginIds } from '../plugins/ids.ts';
 import { agentRuntimeModelProviderIdSchema } from './model-providers.ts';
 
 export const agentRuntimeProtocolVersion = 1 as const;
@@ -20,14 +19,12 @@ const agentRuntimeCoreCapabilityIds = [
     'cron',
     'autoDispatch',
     'webAccess',
+    'browser',
     'devToolkit',
     'identity',
 ] as const;
 
-export const agentRuntimeCapabilitySchema = z.enum([
-    ...agentRuntimeCoreCapabilityIds,
-    ...tavernPluginCapabilityIds,
-]);
+export const agentRuntimeCapabilitySchema = z.enum(agentRuntimeCoreCapabilityIds);
 
 export const agentRuntimeCapabilityHealthIdSchema = agentRuntimeCapabilitySchema;
 
@@ -355,97 +352,6 @@ export const agentArchetypeIdSchema = z.enum([
     'patrol',
     'writer',
 ]);
-
-export const agentRuntimePluginIdSchema = z.enum(tavernPluginIds);
-
-const agentRuntimePluginSecretFieldSchema = z
-    .object({
-        hasValue: z.boolean(),
-        name: z.string().trim().min(1).max(128),
-    })
-    .strict();
-
-const agentRuntimePluginServiceSchema = z
-    .object({
-        description: z.string().trim().min(1),
-        displayName: z.string().trim().min(1),
-        enabled: z.boolean(),
-        healthCapabilities: z.array(agentRuntimeCapabilityHealthIdSchema),
-        id: z.string().trim().min(1).max(128),
-        scopes: z.array(z.string().trim().min(1)),
-    })
-    .strict();
-
-export const agentRuntimePluginSchema = z
-    .object({
-        config: agentRuntimeJsonRecordSchema,
-        description: z.string().trim().min(1),
-        displayName: z.string().trim().min(1),
-        enabled: z.boolean(),
-        id: agentRuntimePluginIdSchema,
-        secrets: z.array(agentRuntimePluginSecretFieldSchema),
-        services: z.array(agentRuntimePluginServiceSchema),
-        updatedAt: z.string().datetime().nullable(),
-    })
-    .strict();
-
-export const agentRuntimePluginListSchema = z
-    .object({
-        plugins: z.array(agentRuntimePluginSchema),
-    })
-    .strict();
-
-export const agentRuntimeAgentPluginGrantSchema = z
-    .object({
-        agentId: z.string().trim().min(1),
-        enabled: z.boolean(),
-        pluginId: agentRuntimePluginIdSchema,
-        updatedAt: z.string().datetime().nullable(),
-    })
-    .strict();
-
-export const agentRuntimeAgentPluginGrantListSchema = z
-    .object({
-        grants: z.array(agentRuntimeAgentPluginGrantSchema),
-    })
-    .strict();
-
-export const agentRuntimeUpdateAgentPluginGrantSchema = z
-    .object({
-        enabled: z.boolean(),
-    })
-    .strict();
-
-export const agentRuntimeMerchbaseSettingsSchema = z
-    .object({
-        apiKey: z.string(),
-        apiKeyConfigured: z.boolean(),
-        baseUrl: z.string().trim().url(),
-        defaultAccount: z.string().trim().min(1).max(160).nullable(),
-        defaultMarketplace: z.string().trim().min(1).max(40).nullable(),
-        enabled: z.boolean(),
-        enablementSource: z.enum(['environment', 'settings']),
-        skillConflict: z
-            .object({
-                skillName: z.literal('merchbase'),
-                skillPath: z.string().trim().min(1),
-            })
-            .strict()
-            .nullable(),
-        updatedAt: z.string().datetime().nullable(),
-    })
-    .strict();
-
-export const agentRuntimeSaveMerchbaseSettingsSchema = z
-    .object({
-        apiKey: z.string().trim().min(1).max(4096).nullable().optional(),
-        baseUrl: z.string().trim().url().optional(),
-        defaultAccount: z.string().trim().min(1).max(160).nullable().optional(),
-        defaultMarketplace: z.string().trim().min(1).max(40).nullable().optional(),
-        enabled: z.boolean().optional(),
-    })
-    .strict();
-
 export const agentRuntimeBrowserStateSchema = z.enum([
     'stopped',
     'starting',
@@ -494,6 +400,12 @@ export const agentRuntimeBrowserStatusSchema = z
 
 export const agentRuntimeBrowserSettingsSchema = z
     .object({
+        affectedAgents: z.array(
+            z.object({
+                id: z.string(),
+                name: z.string(),
+            })
+        ),
         application: z
             .object({
                 path: z.string().trim().min(1),
@@ -527,398 +439,6 @@ export const agentRuntimeBrowserActionResultSchema = z
         message: z.string().trim().min(1).nullable(),
         ok: z.boolean(),
         status: agentRuntimeBrowserStatusSchema.nullable(),
-    })
-    .strict();
-
-export const agentRuntimeGoogleSettingsSchema = z
-    .object({
-        calendarEnabled: z.boolean(),
-        connected: z.boolean(),
-        connectedAccountEmail: z.string().trim().min(1).nullable(),
-        enabled: z.boolean(),
-        grantedScopes: z.array(z.string().trim().min(1)),
-        missingCalendarScopes: z.array(z.string().trim().min(1)),
-        updatedAt: z.string().datetime().nullable(),
-    })
-    .strict();
-
-export const agentRuntimeSaveGoogleSettingsSchema = z
-    .object({
-        calendarEnabled: z.boolean().optional(),
-        enabled: z.boolean().optional(),
-    })
-    .strict();
-
-export const agentRuntimeStartGoogleOAuthSchema = z
-    .object({
-        redirectUri: z.string().url().optional(),
-    })
-    .strict();
-
-export const agentRuntimeGoogleOAuthStartSchema = z
-    .object({
-        authUrl: z.string().url(),
-        expiresAt: z.string().datetime(),
-        sessionId: z.string().trim().min(1),
-    })
-    .strict();
-
-export const agentRuntimeGoogleOAuthPollInputSchema = z
-    .object({
-        sessionId: z.string().trim().min(1),
-    })
-    .strict();
-
-export const agentRuntimeCompleteGoogleOAuthSchema = z
-    .object({
-        code: z.string().trim().min(1).optional(),
-        error: z.string().trim().min(1).optional(),
-        state: z.string().trim().min(1),
-    })
-    .strict();
-
-export const agentRuntimeGoogleOAuthPollSchema = z
-    .object({
-        errorMessage: z.string().trim().min(1).nullable(),
-        sessionId: z.string().trim().min(1),
-        status: z.enum(['approved', 'error', 'expired', 'pending']),
-    })
-    .strict();
-
-export const agentRuntimeGoogleCalendarEventSchema = z
-    .object({
-        description: z.string().nullable(),
-        end: z.string().nullable(),
-        htmlLink: z.string().url().nullable(),
-        id: z.string().trim().min(1),
-        location: z.string().nullable(),
-        start: z.string().nullable(),
-        status: z.string().nullable(),
-        summary: z.string().nullable(),
-    })
-    .strict();
-
-export const agentRuntimeGoogleCalendarEventsListInputSchema = z
-    .object({
-        calendarId: z.string().trim().min(1).default('primary'),
-        maxResults: z.number().int().min(1).max(50).default(10),
-        query: z.string().trim().min(1).max(512).optional(),
-        timeMax: z.string().datetime().optional(),
-        timeMin: z.string().datetime().optional(),
-        timeZone: z.string().trim().min(1).max(128).optional(),
-    })
-    .strict();
-
-export const agentRuntimeGoogleCalendarEventsListSchema = z
-    .object({
-        events: z.array(agentRuntimeGoogleCalendarEventSchema),
-    })
-    .strict();
-
-export const agentRuntimeGoogleCalendarEventCreateInputSchema = z
-    .object({
-        calendarId: z.string().trim().min(1).default('primary'),
-        description: z.string().trim().min(1).max(8192).optional(),
-        endDateTime: z.string().datetime(),
-        location: z.string().trim().min(1).max(1024).optional(),
-        startDateTime: z.string().datetime(),
-        summary: z.string().trim().min(1).max(1024),
-        timeZone: z.string().trim().min(1).max(128).optional(),
-    })
-    .strict();
-
-export const agentRuntimeGoogleCalendarEventCreateSchema = z
-    .object({
-        event: agentRuntimeGoogleCalendarEventSchema,
-    })
-    .strict();
-
-export const agentRuntimeMerchbaseSalesBucketSchema = z.enum(['day', 'week', 'month']);
-
-const optionalMerchbaseFilterSchema = z.string().trim().min(1).max(160).optional();
-const merchbasePaginationDefaults = { limit: 25, offset: 0 } as const;
-const merchbaseSalesFilterDefaults = { range: '30d' } as const;
-const merchbaseSalesSeriesInputDefault = { bucket: 'day', range: '30d' } as const;
-const merchbasePaginatedSalesDefaults = {
-    ...merchbaseSalesFilterDefaults,
-    ...merchbasePaginationDefaults,
-} as const;
-const merchbaseSalesBreakdownGroupBySchema = z.enum([
-    'marketplace',
-    'asin',
-    'productType',
-    'fit',
-    'color',
-    'facet',
-]);
-
-export const agentRuntimeMerchbaseSalesSeriesInputSchema = z
-    .object({
-        asin: optionalMerchbaseFilterSchema,
-        bucket: agentRuntimeMerchbaseSalesBucketSchema.default('day'),
-        color: optionalMerchbaseFilterSchema,
-        facet: optionalMerchbaseFilterSchema,
-        facetName: optionalMerchbaseFilterSchema,
-        fit: optionalMerchbaseFilterSchema,
-        marketplace: optionalMerchbaseFilterSchema,
-        productType: optionalMerchbaseFilterSchema,
-        range: z.string().trim().min(1).max(80).default('30d'),
-    })
-    .strict();
-
-export const agentRuntimeMerchbaseSalesPointSchema = z
-    .object({
-        bucketEnd: z.string().trim().min(1),
-        bucketStart: z.string().trim().min(1),
-        currencyCode: z.string().trim().min(1),
-        netUnits: z.number(),
-        revenue: z.number(),
-        royalties: z.number(),
-        unitsCancelled: z.number(),
-        unitsReturned: z.number(),
-        unitsSold: z.number(),
-    })
-    .strict();
-
-const merchbaseChartValueSchema = z.union([z.string(), z.number(), z.null()]);
-
-export const agentRuntimeMerchbaseSalesSeriesSchema = z
-    .object({
-        chartData: z
-            .object({
-                data: z.array(z.record(z.string(), merchbaseChartValueSchema)),
-                title: z.string().trim().min(1),
-                unit: z.string().trim().min(1),
-                x: z.string().trim().min(1),
-                y: z.string().trim().min(1),
-            })
-            .strict(),
-        query: agentRuntimeMerchbaseSalesSeriesInputSchema,
-        series: z.array(agentRuntimeMerchbaseSalesPointSchema),
-    })
-    .strict();
-
-const merchbaseEmptyInputSchema = z.object({}).strict();
-const merchbasePaginationSchema = z
-    .object({
-        limit: z.number().int().min(1).max(100).default(25),
-        offset: z.number().int().min(0).default(0),
-    })
-    .strict();
-const merchbaseSalesFiltersSchema = z
-    .object({
-        asin: optionalMerchbaseFilterSchema,
-        color: optionalMerchbaseFilterSchema,
-        facet: optionalMerchbaseFilterSchema,
-        facetName: optionalMerchbaseFilterSchema,
-        fit: optionalMerchbaseFilterSchema,
-        marketplace: optionalMerchbaseFilterSchema,
-        productType: optionalMerchbaseFilterSchema,
-        range: z.string().trim().min(1).max(80).default('30d'),
-    })
-    .strict();
-
-export const agentRuntimeMerchbaseActionNameSchema = z.enum([
-    'accounts.get',
-    'setup.status',
-    'merchAccount.get',
-    'merchAccount.statusCounts.get',
-    'products.list',
-    'products.search',
-    'products.get',
-    'products.metadata',
-    'products.catalog.get',
-    'products.catalog.options',
-    'products.catalog.product',
-    'designs.list',
-    'designs.get',
-    'designs.facets.get',
-    'designs.facets.status',
-    'sales.summary',
-    'sales.records',
-    'sales.series',
-    'sales.breakdown',
-]);
-
-export const agentRuntimeMerchbaseActionInputSchema = z.discriminatedUnion('action', [
-    z
-        .object({
-            action: z.literal('accounts.get'),
-            input: merchbaseEmptyInputSchema.default({}),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('setup.status'),
-            input: merchbaseEmptyInputSchema.default({}),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('merchAccount.get'),
-            input: merchbaseEmptyInputSchema.default({}),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('merchAccount.statusCounts.get'),
-            input: merchbaseEmptyInputSchema.default({}),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('products.list'),
-            input: merchbasePaginationSchema
-                .extend({
-                    marketplace: optionalMerchbaseFilterSchema,
-                    status: optionalMerchbaseFilterSchema,
-                })
-                .default(merchbasePaginationDefaults),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('products.search'),
-            input: merchbasePaginationSchema
-                .extend({
-                    facet: optionalMerchbaseFilterSchema,
-                    facetName: optionalMerchbaseFilterSchema,
-                    marketplace: optionalMerchbaseFilterSchema,
-                    query: optionalMerchbaseFilterSchema,
-                })
-                .default(merchbasePaginationDefaults),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('products.get'),
-            input: z
-                .object({
-                    asin: z.string().trim().min(1).max(40),
-                    marketplace: optionalMerchbaseFilterSchema,
-                })
-                .strict(),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('products.metadata'),
-            input: z
-                .object({
-                    asin: optionalMerchbaseFilterSchema,
-                    marketplace: optionalMerchbaseFilterSchema,
-                })
-                .strict()
-                .default({}),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('products.catalog.get'),
-            input: merchbaseEmptyInputSchema.default({}),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('products.catalog.options'),
-            input: z
-                .object({
-                    productType: optionalMerchbaseFilterSchema,
-                })
-                .strict()
-                .default({}),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('products.catalog.product'),
-            input: z
-                .object({
-                    productType: z.string().trim().min(1).max(160),
-                })
-                .strict(),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('designs.list'),
-            input: merchbasePaginationSchema
-                .extend({
-                    facet: optionalMerchbaseFilterSchema,
-                    facetName: optionalMerchbaseFilterSchema,
-                    query: optionalMerchbaseFilterSchema,
-                })
-                .default(merchbasePaginationDefaults),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('designs.get'),
-            input: z
-                .object({
-                    designId: z.string().trim().min(1).max(160),
-                })
-                .strict(),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('designs.facets.get'),
-            input: z
-                .object({
-                    designId: z.string().trim().min(1).max(160),
-                })
-                .strict(),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('designs.facets.status'),
-            input: z
-                .object({
-                    jobId: z.string().trim().min(1).max(160),
-                })
-                .strict(),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('sales.summary'),
-            input: merchbaseSalesFiltersSchema.default(merchbaseSalesFilterDefaults),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('sales.records'),
-            input: merchbaseSalesFiltersSchema
-                .merge(merchbasePaginationSchema)
-                .default(merchbasePaginatedSalesDefaults),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('sales.series'),
-            input: agentRuntimeMerchbaseSalesSeriesInputSchema.default(
-                merchbaseSalesSeriesInputDefault
-            ),
-        })
-        .strict(),
-    z
-        .object({
-            action: z.literal('sales.breakdown'),
-            input: merchbaseSalesFiltersSchema.merge(merchbasePaginationSchema).extend({
-                direction: z.enum(['asc', 'desc']).default('desc'),
-                groupBy: merchbaseSalesBreakdownGroupBySchema,
-                sort: optionalMerchbaseFilterSchema,
-            }),
-        })
-        .strict(),
-]);
-
-export const agentRuntimeMerchbaseActionResultSchema = z
-    .object({
-        action: agentRuntimeMerchbaseActionNameSchema,
-        result: z.unknown(),
     })
     .strict();
 
@@ -1043,7 +563,6 @@ export const agentRuntimeDiscordBindingListSchema = z.object({
 export const agentRuntimeAgentSchema = z.object({
     webAccessEnabled: z.boolean().optional(),
     bio: z.string().trim().min(1).nullable().optional(),
-    enabledPluginIds: z.array(agentRuntimePluginIdSchema).optional(),
     enabledSkillIds: z.array(z.string().trim().min(1)),
     id: z.string().trim().min(1),
     isAdmin: z.boolean(),
@@ -1067,7 +586,6 @@ export const agentRuntimeCreateAgentSchema = z.object({
     webAccessEnabled: z.boolean().optional(),
     archetype: agentArchetypeIdSchema.optional(),
     bio: z.string().trim().min(1).nullable().optional(),
-    enabledPluginIds: z.array(agentRuntimePluginIdSchema).optional(),
     enabledSkillIds: z.array(z.string().trim().min(1)).optional(),
     id: z.string().trim().min(1),
     isAdmin: z.boolean().optional(),
@@ -1079,7 +597,6 @@ export const agentRuntimeCreateAgentSchema = z.object({
 export const agentRuntimeUpdateAgentSchema = z.object({
     webAccessEnabled: z.boolean().optional(),
     bio: z.string().trim().min(1).nullable().optional(),
-    enabledPluginIds: z.array(agentRuntimePluginIdSchema).optional(),
     enabledSkillIds: z.array(z.string().trim().min(1)).optional(),
     isAdmin: z.boolean().optional(),
     name: z
@@ -1247,7 +764,7 @@ export const agentRuntimeSkillSummarySchema = z.object({
     id: z.string().trim().min(1),
     install: z.array(agentRuntimeSkillInstallOptionSchema).default([]),
     // Managed source with a Tavern default that can be restored.
-    managedSource: z.enum(['seeded', 'hub', 'plugin']).nullable().optional(),
+    managedSource: z.enum(['seeded', 'hub']).nullable().optional(),
     missing: agentRuntimeSkillRequirementsSchema,
     modelVisible: z.boolean().optional(),
     name: z.string().trim().min(1),
@@ -2323,58 +1840,11 @@ export type AgentRuntimeCapabilityHealthState = z.infer<
 export type AgentRuntimeRefreshCapabilities = z.infer<typeof agentRuntimeRefreshCapabilitiesSchema>;
 export type PlatformInboundMode = z.infer<typeof agentRuntimeInboundModeSchema>;
 export type AgentRuntimeInfo = z.infer<typeof agentRuntimeInfoSchema>;
-export type AgentRuntimePlugin = z.infer<typeof agentRuntimePluginSchema>;
-export type AgentRuntimeAgentPluginGrant = z.infer<typeof agentRuntimeAgentPluginGrantSchema>;
-export type AgentRuntimeAgentPluginGrantList = z.infer<
-    typeof agentRuntimeAgentPluginGrantListSchema
->;
-export type AgentRuntimePluginId = z.infer<typeof agentRuntimePluginIdSchema>;
-export type AgentRuntimePluginList = z.infer<typeof agentRuntimePluginListSchema>;
-export type AgentRuntimeUpdateAgentPluginGrant = z.infer<
-    typeof agentRuntimeUpdateAgentPluginGrantSchema
->;
-export type AgentRuntimeMerchbaseSalesSeries = z.infer<
-    typeof agentRuntimeMerchbaseSalesSeriesSchema
->;
-export type AgentRuntimeMerchbaseSalesSeriesInput = z.input<
-    typeof agentRuntimeMerchbaseSalesSeriesInputSchema
->;
-export type AgentRuntimeMerchbaseActionInput = z.input<
-    typeof agentRuntimeMerchbaseActionInputSchema
->;
-export type AgentRuntimeMerchbaseActionResult = z.infer<
-    typeof agentRuntimeMerchbaseActionResultSchema
->;
-export type AgentRuntimeMerchbaseSettings = z.infer<typeof agentRuntimeMerchbaseSettingsSchema>;
-export type AgentRuntimeSaveMerchbaseSettings = z.infer<
-    typeof agentRuntimeSaveMerchbaseSettingsSchema
->;
 export type AgentRuntimeBrowserState = z.infer<typeof agentRuntimeBrowserStateSchema>;
 export type AgentRuntimeBrowserStatus = z.infer<typeof agentRuntimeBrowserStatusSchema>;
 export type AgentRuntimeBrowserSettings = z.infer<typeof agentRuntimeBrowserSettingsSchema>;
 export type AgentRuntimeSaveBrowserSettings = z.infer<typeof agentRuntimeSaveBrowserSettingsSchema>;
 export type AgentRuntimeBrowserActionResult = z.infer<typeof agentRuntimeBrowserActionResultSchema>;
-export type AgentRuntimeGoogleSettings = z.infer<typeof agentRuntimeGoogleSettingsSchema>;
-export type AgentRuntimeSaveGoogleSettings = z.infer<typeof agentRuntimeSaveGoogleSettingsSchema>;
-export type AgentRuntimeStartGoogleOAuth = z.infer<typeof agentRuntimeStartGoogleOAuthSchema>;
-export type AgentRuntimeGoogleOAuthStart = z.infer<typeof agentRuntimeGoogleOAuthStartSchema>;
-export type AgentRuntimeGoogleOAuthPollInput = z.infer<
-    typeof agentRuntimeGoogleOAuthPollInputSchema
->;
-export type AgentRuntimeCompleteGoogleOAuth = z.infer<typeof agentRuntimeCompleteGoogleOAuthSchema>;
-export type AgentRuntimeGoogleOAuthPoll = z.infer<typeof agentRuntimeGoogleOAuthPollSchema>;
-export type AgentRuntimeGoogleCalendarEventsListInput = z.input<
-    typeof agentRuntimeGoogleCalendarEventsListInputSchema
->;
-export type AgentRuntimeGoogleCalendarEventsList = z.infer<
-    typeof agentRuntimeGoogleCalendarEventsListSchema
->;
-export type AgentRuntimeGoogleCalendarEventCreateInput = z.input<
-    typeof agentRuntimeGoogleCalendarEventCreateInputSchema
->;
-export type AgentRuntimeGoogleCalendarEventCreate = z.infer<
-    typeof agentRuntimeGoogleCalendarEventCreateSchema
->;
 export type AgentRuntimeBinding = z.infer<typeof agentRuntimeBindingSchema>;
 export type AgentRuntimeBindingList = z.infer<typeof agentRuntimeBindingListSchema>;
 export type AgentRuntimeBindingMatch = z.infer<typeof agentRuntimeBindingMatchSchema>;

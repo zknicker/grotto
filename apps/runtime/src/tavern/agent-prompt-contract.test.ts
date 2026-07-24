@@ -13,6 +13,7 @@ import { ensureRuntimeSchema } from '../db/schema.ts';
 import { handleTimezoneSettingsRequest } from '../timezone-settings.ts';
 import type { AgentExecutorInput } from './agent-executor.ts';
 import { buildAgentInstructions } from './agent-instructions.ts';
+import { upsertStoredAgent } from './agents-store.ts';
 
 /**
  * PROMPT CONTRACT — read before editing this file or any prompt source.
@@ -77,10 +78,10 @@ import { buildAgentInstructions } from './agent-instructions.ts';
  * - `URL wrapping near non-ASCII text` — dropped (operator-ruled):
  *   English-only workspace; the section's value is language-conditional —
  *   re-add if agents ever produce CJK content.
- * - `no MerchBase tool teaching without the plugin grant` — reworded: plugin
- *   engine tools retired at the flip (operator ruling); the per-plugin CLI
- *   entry and its granted test arrive with plugin CLIs. The absence row
- *   below enforces the plugin-free prompt meanwhile.
+ * - `no MerchBase tool teaching without the plugin grant` — reworded after
+ *   external integrations moved to self-documenting MCP tools. The absence
+ *   row below enforces that integration-specific teaching stays out of the
+ *   shared prompt.
  * Text that also left without ever being a named requirement: NOTES.md /
  * ## Notes section, outcome notes, workbench teaching, Files section.
  */
@@ -624,17 +625,15 @@ const REQUIREMENTS: PromptRequirement[] = [
         expected: 'web_fetch',
         prompt: 'minimal',
     },
-    // Plugin engine tools retired at the flip (operator ruling); the plugin
-    // CLI entry returns with plugin CLIs and re-gains its granted test then.
     {
         absent: true,
-        capability: 'no plugin entry without a plugin CLI',
+        capability: 'no integration-specific teaching',
         expected: 'MerchBase',
         prompt: 'full',
     },
     {
         absent: true,
-        capability: 'no plugin engine tools',
+        capability: 'no retired integration tools',
         expected: 'merchbase_sales_series',
         prompt: 'full',
     },
@@ -799,6 +798,7 @@ describe('agent prompt contract', () => {
         skillsDir = await mkdtemp(path.join(tmpdir(), 'tavern-prompt-skills-'));
         workspaceDir = await mkdtemp(path.join(tmpdir(), 'tavern-prompt-workspace-'));
         ensureRuntimeSchema(initTestDb());
+        upsertStoredAgent({ agent: executorInput('full', workspaceDir).agent });
         // Pin the home timezone so snapshots never depend on the host machine.
         await handleTimezoneSettingsRequest(
             new Request(`http://runtime.test${agentRuntimeRoutes.timezoneSettings}`, {

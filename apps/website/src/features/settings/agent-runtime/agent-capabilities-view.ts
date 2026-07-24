@@ -3,7 +3,7 @@ import type { AgentRuntimeConnectionOutput } from '../../../lib/trpc.tsx';
 type RuntimeConnection = NonNullable<AgentRuntimeConnectionOutput>;
 type RuntimeCapability = RuntimeConnection['capabilities'][number];
 type CapabilityId = RuntimeCapability['capability'];
-type CapabilityCategoryId = 'extensions' | 'knowledge' | 'plugins' | 'runtimeCore';
+type CapabilityCategoryId = 'extensions' | 'knowledge' | 'runtimeCore';
 export type CapabilityCriticality = 'primary' | 'required' | 'supporting';
 
 export interface CapabilityView {
@@ -22,7 +22,6 @@ const categories: CapabilityCategory[] = [
     { id: 'runtimeCore', label: 'Runtime core' },
     { id: 'knowledge', label: 'Knowledge & memory' },
     { id: 'extensions', label: 'Skills & models' },
-    { id: 'plugins', label: 'Plugins' },
 ];
 
 const capabilityCategories: Partial<Record<CapabilityId, CapabilityCategoryId>> = {
@@ -35,9 +34,7 @@ const capabilityCategories: Partial<Record<CapabilityId, CapabilityCategoryId>> 
     memoryDreaming: 'knowledge',
     memoryExtraction: 'knowledge',
     modelExecution: 'extensions',
-    'plugin.browser': 'plugins',
-    'plugin.google.calendar': 'plugins',
-    'plugin.merchbase': 'plugins',
+    browser: 'extensions',
     skills: 'extensions',
 };
 
@@ -52,9 +49,7 @@ const capabilityDisplayOrder: CapabilityId[] = [
     'memoryDreaming',
     'modelExecution',
     'skills',
-    'plugin.merchbase',
-    'plugin.google.calendar',
-    'plugin.browser',
+    'browser',
 ];
 
 const capabilityDisplayRank = new Map(
@@ -87,9 +82,7 @@ const capabilityDescriptions: Partial<Record<CapabilityId, string>> = {
     memoryExtraction:
         'Background extraction can distill settled conversations into per-agent episodic evidence using the Fast background model.',
     modelExecution: 'At least one AI model is connected and ready to run agent turns.',
-    'plugin.browser': 'Managed Chrome browser for agent web automation.',
-    'plugin.google.calendar': 'Google Calendar access for your agents.',
-    'plugin.merchbase': 'MerchBase sales and product data tools for your agents.',
+    browser: 'Managed Chrome browser for agent web automation.',
     skills: 'Reusable skills agents load for specialized tasks.',
 };
 

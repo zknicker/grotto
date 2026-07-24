@@ -1,6 +1,9 @@
 import path from 'node:path';
 import { setAgentCliServerUrl } from './agent-engine/agent-cli-wrapper.ts';
+import { closeAllMcpClients } from './agent-engine/mcp-clients.ts';
 import { seededSkillDefaultEntries, seedManagedSkills } from './agent-engine/skill-library.ts';
+import { setBrowserStatusListener, stopBrowserService } from './browser/service.ts';
+import { reconcileBrowserService } from './browser/settings.ts';
 import { refreshRuntimeCapabilities } from './capabilities/store.ts';
 import { dispatch } from './cli/main.ts';
 import { ensureCliOnPath } from './cli-path.ts';
@@ -11,9 +14,6 @@ import { runRuntimeDoctor } from './doctor/runtime-doctor.ts';
 import { type RuntimeJobsManager, startRuntimeJobsManager } from './jobs/manager.ts';
 import { ensureRuntimeJobsSchema } from './jobs/schema.ts';
 import { log } from './log.ts';
-import { setBrowserStatusListener, stopBrowserService } from './plugins/browser/service.ts';
-import { reconcileBrowserService } from './plugins/browser.ts';
-import { materializePluginSkills } from './plugins/materialize-skills.ts';
 import { recordSkillSource, sha256 } from './skills/store.ts';
 import { wakeAgent } from './tavern/agent-turn-runner.ts';
 import { installInboxDelivery } from './tavern/delivery-planner.ts';
@@ -56,9 +56,6 @@ async function main(): Promise<void> {
     await seedManagedSkills().catch((err: unknown) => {
         log.warn('Seeded skills failed to refresh during startup', { err });
     });
-    await materializePluginSkills({ db }).catch((err: unknown) => {
-        log.warn('Plugin skills failed to materialize during startup', { err });
-    });
     await runRuntimeDoctor({ db, reason: 'runtime_start' }).catch((err: unknown) => {
         log.warn('Runtime Doctor failed during startup', { err });
     });
@@ -90,9 +87,9 @@ async function main(): Promise<void> {
     log.info('Reminder scheduler ready');
 
     // Browser supervision never blocks Runtime startup: launch or adoption
-    // failures surface only through `plugin.browser` capability health.
+    // failures surface only through Browser capability health.
     setBrowserStatusListener(() => {
-        void refreshRuntimeCapabilities({ ids: ['plugin.browser'], publishUpdated: true }).catch(
+        void refreshRuntimeCapabilities({ ids: ['browser'], publishUpdated: true }).catch(
             (err: unknown) => {
                 log.warn('Browser capability refresh failed', { err });
             }
@@ -135,6 +132,9 @@ async function shutdown(signal: string): Promise<void> {
     log.info('Stopping browser supervision');
     stopBrowserService();
     log.info('Browser supervision stopped');
+    log.info('Closing MCP connections');
+    await closeAllMcpClients();
+    log.info('MCP connections closed');
     log.info('Stopping Runtime server');
     runtimeServer?.stop();
     log.info('Runtime server stopped');

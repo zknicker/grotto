@@ -19,8 +19,8 @@ person to choose among internal runtime workers.
 ## Ownership
 
 - Runtime is canonical for execution config.
-- Runtime agent config may include name, model route, skill enablement, Plugin grants,
-  workspace, generated instruction context, and `SOUL.md` identity.
+- Runtime agent config may include name, model route, skill assignments, exact MCP and host-tool
+  grants, workspace, and generated instruction context.
 - Tavern exposes Runtime's per-agent thinking setting as model effort when the Runtime supports it.
 - Tavern reads and writes supported agent config through Runtime APIs.
 - Tavern does not keep a competing canonical agent config store.

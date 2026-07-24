@@ -23,28 +23,44 @@ test('lists installed skills with available and sources management', async ({ pa
     await page.keyboard.press('Escape');
 });
 
-test('redirects the retired tools settings page to Plugins', async ({ page }) => {
+test('redirects the retired tools settings page to Connections', async ({ page }) => {
     await page.goto('/settings/tools');
 
-    await expect(page).toHaveURL(/\/settings\/plugins$/);
-    await expect(page.getByRole('heading', { exact: true, name: 'Plugins' })).toBeVisible();
+    await expect(page).toHaveURL(/\/settings\/connections$/);
+    await expect(page.getByRole('heading', { exact: true, name: 'Connections' })).toBeVisible();
 });
 
-test('splits channels and MCP into separate settings pages', async ({ page }) => {
+test('splits channels and MCP connections into separate settings pages', async ({ page }) => {
     await page.goto('/settings/channels');
 
     await expect(page.getByRole('heading', { level: 1, name: 'Channels' })).toBeVisible();
     await expect(page.getByRole('main').getByText('Grotto', { exact: true }).first()).toBeVisible();
 
-    await page.goto('/settings/mcp');
+    await page.goto('/settings/connections');
 
-    await expect(
-        page.getByRole('main').getByText('Advanced MCP', { exact: true }).first()
-    ).toBeVisible();
-    await expect(
-        page
-            .getByRole('main')
-            .getByText(/MCP servers/)
-            .first()
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Connections' })).toBeVisible();
+    await expect(page.getByText('MCP connections', { exact: true })).toBeVisible();
+});
+
+test('creates and deletes a custom MCP connection', async ({ page }) => {
+    const name = 'codex-smoke-mcp';
+    await page.goto('/settings/connections');
+
+    await page.getByRole('button', { name: 'Add connection' }).click();
+    const drawer = page.getByRole('dialog', { name: 'Add custom connection' });
+    await drawer.getByLabel('Name').fill(name);
+    await drawer.getByLabel('URL').fill('https://example.com/mcp');
+    await drawer.getByRole('button', { name: 'Add connection' }).click();
+
+    await page.getByRole('tab', { exact: true, name: 'Connected' }).click();
+    const row = page.getByRole('button', { name: new RegExp(name, 'u') });
+    await expect(row).toBeVisible();
+    await row.click();
+    const detail = page.getByRole('dialog', { name });
+    await detail.getByRole('button', { name: `${name} actions` }).click();
+    await page.getByRole('menuitem', { name: 'Delete connection' }).click();
+    const confirmation = page.getByRole('alertdialog', { name: `Delete ${name}?` });
+    await expect(confirmation.getByText('This connection has no agent tool grants.')).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Delete' }).click();
+    await expect(row).toHaveCount(0);
 });

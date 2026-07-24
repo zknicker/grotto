@@ -119,9 +119,11 @@ a `workspace_changes` tool activity, served at
 [data model](data-model.md#agent_turn_file_changes)).
 
 Tool calls are auto-approved. Tavern does not expose an interactive tool
-approval prompt. Harness tools come from the selected executor, Plugin tools
-come from Plugin grants, and safety is controlled through sandbox mode plus any
-Runtime approval policy. The current sandbox mode is `none`: a trusted local workspace rooted at
+approval prompt. Harness-native tools come from the selected executor. Runtime
+adds only host tools and exact upstream MCP tools granted to the agent, and
+rechecks MCP grants immediately before each call. Safety is controlled through
+sandbox mode plus any Runtime approval policy. The current sandbox mode is
+`none`: a trusted local workspace rooted at
 `.tavern/agents/<agent-id>/workspace`. It scopes working directory and files; it
 is not a security sandbox.
 
@@ -227,27 +229,28 @@ current turn. Runtime intersects those references with the addressed Agent's
 that is not assigned to that Agent produces no hidden prompt context and does
 not grant access.
 
-The engine exposes zero tools to a turn except the uniform `web_fetch` host
-tool (ADR 0014); every other agent capability — messaging, reading chat
-history, channel attention, skills, Plugins — arrives as a CLI verb on PATH
-instead of a tool-schema addition. Harness executors' own native tools
-(shell, file edit, and so on) still run under sandbox mode and approval
-policy; Runtime exposes built-ins through `GET /tools` as enabled,
-configured, read-only diagnostics, but Tavern does not surface a user-facing
-Tools page or per-agent tool grant editor.
+Runtime composes the AI SDK tool set for each turn from three sources:
+
+1. harness-native tools supplied by the selected executor,
+2. explicitly granted host tools such as Browser and `web_fetch`, and
+3. explicitly granted tools discovered from MCP connections.
+
+MCP tools keep their upstream schemas and receive stable namespaced
+model-visible names. Discovery never grants a tool. Runtime checks the
+`(agent, connection, upstream tool name)` grant immediately before the
+upstream call and records metadata-only audit evidence. Messaging, chat
+history, and channel attention remain CLI verbs on PATH rather than MCP tools.
 
 Agents read chat history themselves through `grotto message read` and
 `grotto message search` rather than a tool call — same-chat and cross-chat,
 bounded to what the CLI resolves.
 
-Web access is a per-agent opt-in (`webAccessEnabled`, default off). When on,
-Runtime enables the executor's provider-native web search where the model
-supports it (Claude Code native search, Codex live search; API-key OpenAI
-routes have none) and adds the Runtime-local `web_fetch` tool
-(`apps/runtime/src/web/`), which fetches one URL and returns readable,
-size-capped markdown. Native page-fetch tools stay disabled even when web
-access is on so page reads share one size cap and injection posture. When
-off, no web tools reach the turn.
+Web access is a per-agent opt-in (`webAccessEnabled`, default off) for the
+executor's provider-native web search where the model supports it. The
+Runtime-local `web_fetch` tool (`apps/runtime/src/web/`) is a separate host
+tool grant and is granted to new agents by default. It fetches one URL and
+returns readable, size-capped markdown. Native page-fetch tools stay disabled
+so page reads share one size cap and injection posture.
 
 Runtime writes product facts through Tavern stores. The agent itself writes
 `chat_messages` (via `grotto message send`); Runtime writes `agent_turns` and

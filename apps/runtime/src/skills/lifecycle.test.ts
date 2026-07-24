@@ -76,9 +76,7 @@ describe('skill lifecycle', () => {
         ).resolves.toBe('important detail');
         await expect(fs.stat(path.join(skillsDir, 'old-narrow-skill'))).rejects.toThrow();
         expect(readAssignment('old-narrow-skill')).toMatchObject({ enabled: 0 });
-        await expect(
-            listRuntimeSkills({ includePluginSkills: false, skillsDir })
-        ).resolves.not.toEqual(
+        await expect(listRuntimeSkills({ skillsDir })).resolves.not.toEqual(
             expect.arrayContaining([expect.objectContaining({ id: 'old-narrow-skill' })])
         );
     });
@@ -104,8 +102,8 @@ describe('skill lifecycle', () => {
         ).resolves.toBeTruthy();
     });
 
-    test('leaves seeded hub external and Plugin skills untouched at any age', async () => {
-        for (const source of ['seeded', 'hub', 'external', 'plugin'] as const) {
+    test('leaves seeded hub and external skills untouched at any age', async () => {
+        for (const source of ['seeded', 'hub', 'external'] as const) {
             await writeSkillDir(source);
             recordSkillSource({ skillId: source, source });
             setCreatedAt(source, '2026-01-01T00:00:00.000Z');
@@ -119,7 +117,6 @@ describe('skill lifecycle', () => {
         expect(readSource('seeded')).toMatchObject({ state: 'active' });
         expect(readSource('hub')).toMatchObject({ state: 'active' });
         expect(readSource('external')).toMatchObject({ state: 'active' });
-        expect(readSource('plugin')).toMatchObject({ state: 'active' });
     });
 
     test('archiveAgentSkill rejects read-only skills and archives agent skills', async () => {

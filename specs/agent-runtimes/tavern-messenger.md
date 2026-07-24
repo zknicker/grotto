@@ -107,8 +107,8 @@ identity.
 * Tavern App chat messages appear in Tavern App.
 * Discord messages appear in Discord.
 * A future Telegram or SDK channel owns its own conversation ids and delivery.
-* Shared agents, model configuration, skills, Plugin grants, and Memory reads
-  live in Tavern Runtime, not in individual frontend clients.
+* Shared agents, model configuration, skills, exact tool grants, and Memory
+  reads live in Tavern Runtime, not in individual frontend clients.
 
 Human-only chat messages are valid Tavern messages. They invoke an agent only
 when Runtime routes them to an Agent seat, such as through selected-agent send,

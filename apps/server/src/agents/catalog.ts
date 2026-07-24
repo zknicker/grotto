@@ -45,7 +45,6 @@ const fallbackAgentUpdatedAt = new Date(0).toISOString();
 export interface Agent {
     bio: string | null;
     character: AgentCharacter | null;
-    enabledPluginIds: NonNullable<AgentRuntimeAgent['enabledPluginIds']>;
     enabledSkillIds: string[] | null;
     id: string;
     name: string;
@@ -94,7 +93,6 @@ export interface AgentCatalogItem {
     defaultPrimaryColor: string;
     effectiveCharacter: AgentCharacter;
     effectivePrimaryColor: string;
-    enabledPluginIds: NonNullable<AgentRuntimeAgent['enabledPluginIds']>;
     enabledSkillIds: string[];
     id: string;
     name: string;
@@ -124,7 +122,6 @@ function toAgent(agent: AgentRecord, profile: AgentProfileLike | null): Agent {
         webAccessEnabled: runtimeAgent.webAccessEnabled === true,
         bio: parseAgentRawJson(agent).bio ?? null,
         character: parseCharacter(profile?.character),
-        enabledPluginIds: runtimeAgent.enabledPluginIds ?? [],
         enabledSkillIds: parseEnabledSkillIds(agent),
         id: agent.id,
         name: agent.name,
@@ -185,7 +182,6 @@ export function toAgentCatalogItem(
         defaultPrimaryColor: resolveAgentDefaultPrimaryColor(agent.id),
         effectiveCharacter: agent.character ?? defaultCharacter,
         effectivePrimaryColor: buildAgentPalette(agent).accentFrom,
-        enabledPluginIds: [...new Set(agent.enabledPluginIds ?? [])],
         enabledSkillIds,
         id: agent.id,
         name: resolveAgentName(agent),
@@ -523,7 +519,6 @@ function toAgentFromAgentRuntimeAgent(input: {
         webAccessEnabled: input.agent.webAccessEnabled === true,
         bio: input.agent.bio ?? null,
         character: parseCharacter(input.profile?.character),
-        enabledPluginIds: input.agent.enabledPluginIds ?? [],
         enabledSkillIds: input.agent.enabledSkillIds,
         id: input.id,
         name: input.agent.name,

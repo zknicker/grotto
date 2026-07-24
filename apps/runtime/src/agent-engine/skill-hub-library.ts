@@ -27,7 +27,7 @@ import {
 export async function getSkillHubAvailable(
     options: { skillsDir?: string } = {}
 ): Promise<AgentRuntimeSkillHubAvailable> {
-    const installedSkills = await listRuntimeSkills({ ...options, includePluginSkills: false });
+    const installedSkills = await listRuntimeSkills(options);
     const installedByName = new Map(installedSkills.map((skill) => [skill.name, skill]));
 
     return agentRuntimeSkillHubAvailableSchema.parse({

@@ -1,89 +1,25 @@
 ---
-summary: Browser Plugin internals for managed Chrome supervision, the launch contract, profiles, guarded recovery, and agent-browser forwarding.
+summary: Managed Chrome supervision and Browser host-tool execution.
 read_when:
-  - changing browser supervision, Chrome launch flags, profile handling, or recovery policy
-  - changing the browser tool, command serialization, or the managed Browser skill sync
-  - debugging an unavailable or degraded plugin.browser capability
+  - changing Browser settings, supervision, profiles, or agent-browser forwarding
 ---
 
 # Browser
 
-Tavern Runtime supervises one visible Google Chrome and exposes it to granted
-agents as the `browser` tool. The implementation lives in
-`apps/runtime/src/plugins/browser/` with plugin glue in
-`apps/runtime/src/plugins/browser.ts`. It ports the proven BrowserHost
-supervision behavior into Runtime; there is no separate browser-management
-product, daemon, HTTP surface, or release pipeline.
+Browser is a first-party host tool, not an external integration or MCP server.
+Runtime supervises one visible Chrome instance with a durable named profile
+under `~/.tavern/browser/profiles`.
 
-## Managed Chrome
+The implementation lives under `apps/runtime/src/browser/`. It detects Chrome,
+owns the launch contract, adopts only matching managed processes, serializes
+commands through one FIFO, and exposes Open and Restart through `/browser/*`.
+Failures update the `browser` Runtime capability without blocking startup.
 
-* Version one detects Google Chrome Stable at fixed macOS bundle locations
-  only. Zero installations produce an unavailable `plugin.browser` capability
-  with a direct installation reason. Non-macOS hosts report Browser as
-  unavailable without blocking any other Runtime feature.
-* `profileName` is a validated slug naming a Tavern-owned Chrome user-data
-  directory under `~/.tavern/browser/profiles/<profileName>` (root overridable
-  with `TAVERN_BROWSER_HOME`). Chrome's internal profile directory stays
-  `Default`. Profile directories are durable machine state: upgrades, Plugin
-  disablement, and profile switching never delete them.
-* The managed launch contract pins identity-affecting flags: an OS-selected
-  CDP port (`--remote-debugging-port=0`, discovered via `DevToolsActivePort`),
-  the user-data directory, `--password-store=basic`, `--use-mock-keychain`,
-  `--disable-skia-graphite`, and a fixed argument set
-  (`launch-contract.ts`). The cookie-encryption mode is recorded in a
-  `<profileName>.mode.json` marker beside the profile; an incompatible launch
-  is refused rather than silently invalidating cookies.
-* Chrome is launched detached. Runtime shutdown or upgrade leaves Chrome
-  running; the next boot re-adopts only a process matching the exact managed
-  launch contract on Tavern's user-data directory. Personal Chrome processes
-  and profiles are never adopted. A pidfile profile lock
-  (`<profileName>.lock`) keeps a second Runtime or operator command from
-  writing the same profile concurrently.
+Browser access is an explicit per-agent host-tool grant. Enabling Browser
+globally starts supervision; disabling it warns about affected agents and clears
+their Browser grants. `web_fetch` is a separate host tool and remains granted by
+default.
 
-## Supervision and recovery
-
-* The supervisor (`supervisor.ts`) keeps the seven-state model: `stopped`,
-  `starting`, `healthy`, `pressured`, `unresponsive`, `recovering`, and
-  `degraded`. Capability mapping: pressured stays healthy with pressure
-  metadata; starting/recovering map to degraded; stopped, unresponsive, and
-  degraded map to unavailable with the current reason.
-* Sustained GPU pressure is reported but never restarts Chrome. Automatic
-  recovery requires sustained CDP unresponsiveness (60s window at 15s
-  samples), captures evidence in bounded memory, spends a restart budget
-  (2 per hour), performs bounded graceful-then-forced shutdown, and verifies
-  process, contract, lock, and CDP health after restart. A recovery that
-  leaves Chrome dead degrades Browser until an operator restart; exhausting
-  the budget degrades with an explicit reason.
-* Supervision starts with the Plugin on Runtime boot and never blocks
-  startup; failures surface only through `plugin.browser` capability health.
-
-## Agent surface
-
-* ADR 0014 retired plugin engine tools: the engine exposes zero tools to a
-  turn except the uniform `web_fetch` host tool, so `browser` is no longer
-  wired as an AI SDK tool call. The catalog/settings surface below still
-  lists it as a Plugin-owned tool group pending its CLI-verb migration
-  ("plugin CLIs follow" per ADR 0014); do not treat that listing as proof the
-  engine can invoke it today.
-* agent-browser (a pinned npm dependency of Runtime) owns the automation
-  verbs; forwarding ran under a pinned session and a neutralized config,
-  re-attaching to the current CDP endpoint before every command
-  (`agent-browser-cli.ts`).
-* One process-wide FIFO (`command-queue.ts`) serializes browser commands
-  across agents and turns. Active commands inhibit automatic recovery, and
-  recovery waits a bounded period for the queue to drain.
-* The tool may start a stopped browser. A degraded or unavailable browser
-  fails fast with the current capability reason.
-* The managed Browser skill is vendored from the installed agent-browser
-  package by `scripts/sync-browser-skill.mjs`
-  (`bun run sync:browser-skill`), which keeps upstream command vocabulary
-  verbatim and rewrites only the invocation surface and shell-only guidance.
-  Re-run it after bumping the agent-browser dependency; anchor drift fails
-  the sync deliberately.
-
-## Remote surface
-
-Runtime's existing authenticated API is the only remote control plane:
-settings (`/plugins/browser/settings`) plus `/plugins/browser/open` and
-`/plugins/browser/restart` actions. Browser adds no Unix socket, standalone
-HTTP API, or Tailscale endpoint.
+The generated Browser skill documents `agent-browser` vocabulary. The executable
+AI SDK tool rechecks the grant before forwarding a command to the supervised
+Chrome endpoint.

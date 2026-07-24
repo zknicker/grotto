@@ -12,7 +12,7 @@ runtime boundaries explicit.
 - Tavern App does not read agent-engine SQLite databases, config files, identity files, or home directories
   directly.
 - Tavern Runtime writes generated agent config. Other agent management happens
-  through supported Runtime APIs and plugins.
+  through supported Runtime APIs.
 - Unsupported agent capabilities should fail visibly rather than silently escalating access.
 
 ## Execution Boundary
@@ -29,6 +29,8 @@ runtime boundaries explicit.
 ## Secrets
 
 - Provider credentials entered through Tavern stay in Runtime-owned configuration.
+- MCP connection credentials stay in the Runtime vault and are used only at
+  the upstream MCP boundary.
 - Tavern-owned memory secrets stay in Runtime.
 - Logs, setup status, model-access status, and app UI must not include raw secret values.
 

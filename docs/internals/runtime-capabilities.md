@@ -220,9 +220,9 @@ and external dependencies.
 | `gateway` | Runtime can open the agent-engine event stream. |
 | `modelExecution` | Runtime has at least one usable agent execution model for the relevant agent or action. |
 | `imageGeneration` | A supported API-key image model or Codex subscription image route is selected and ready. |
-| `skills` | Runtime can reach skill inventory. App-side capability methods under `skills` also track the skill hub (`skill-hub.*`), tool setup, and advanced MCP management (`mcp.*`) surfaces. |
+| `skills` | Runtime can reach skill inventory. App-side capability methods under `skills` also track the skill hub (`skill-hub.*`) and tool setup surfaces. |
 | `webAccess` | Runtime supports per-agent web access (always healthy on Runtimes that ship it; the id gates the app surface on older Runtimes). |
-| `plugin.merchbase` | Runtime has an enabled MerchBase Plugin, an API key, and can read the configured MerchBase account. |
+| `browser` | Runtime can find and supervise the configured local Browser service. |
 
 Plain Tavern CRUD, timeline, mentions, and logging surfaces are not
 capabilities by themselves. Add a capability only when a user-facing action

@@ -34,7 +34,7 @@ read_when:
 ## Language
 
 Use product nouns directly: Chat, Channel, DM, participant, Agent seat, Agent
-session, Agent turn, Runtime, model record, Tool, Skill, Memory, Plugin,
+session, Agent turn, Runtime, model record, Tool, Skill, MCP connection, Memory,
 automation.
 
 Avoid docs that turn internal plumbing into user-visible features. Do not add

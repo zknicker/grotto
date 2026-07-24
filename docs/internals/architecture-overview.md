@@ -57,8 +57,8 @@ Runtime is the source of truth for values that affect execution:
 - Agent default model
 - current Agent session
 - Agent session effective model
-- tool inventory diagnostics
-- Plugin grants
+- MCP connection configuration and credentials
+- exact per-agent MCP and host-tool grants
 - sandbox mode
 - turn queue and turn status
 - inbox delivery cursors and assistant messages

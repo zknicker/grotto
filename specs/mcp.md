@@ -1,38 +1,54 @@
-# Advanced MCP Servers
+---
+summary: Normative product contract for MCP connections, credentials, discovery, and exact agent tool grants.
+read_when:
+  - changing Connections settings or agent Tools
+  - changing MCP storage, auth, client lifecycle, or audit
+---
 
-MCP servers are advanced agent-engine connection records that can expose
-external tools. Tavern's normal user-facing integration surface is built-in
-Plugins; direct MCP server setup is retained for Runtime development and
-Plugin-backed experiments.
+# MCP connections
 
-## Product Expectations
+## Product model
 
-- A developer or advanced user can add, edit, test, enable, disable, and remove
-  MCP servers in Settings without editing generated agent project files.
-- An MCP server has a stable user-facing name, a transport (`command` or
-  `url`), and optional env/header secrets.
-- Each MCP server shows health: configured, connected, or failing with a
-  Runtime-provided reason.
-- Secrets are entered once and stored safely; they are never shown again.
-- Adding or changing an MCP server takes effect through Runtime agent
-  materialization.
+- A connection identifies one MCP server account.
+- Built-in presets populate URL and auth defaults. They use the same storage,
+  discovery, OAuth, and grant path as custom connections.
+- Preset coordinates are Runtime-owned and immutable. Generic connection
+  creation cannot select a preset.
+- Multiple connections may share a server or preset.
+- Connection state is Connect/Reconnect or Disconnect. There is no enabled flag.
+- Disconnect clears credentials and exact tool grants. Custom connections may
+  also be deleted.
 
-## Ownership
+## Agent access
 
-- Tavern Runtime is canonical for MCP server records.
-- Runtime executes MCP connection tools through the agent engine. Tavern does
-  not proxy or reimplement tool calls.
-- MCP tools surface through the Runtime tool inventory. An MCP server is a
-  configuration record, not a tool row.
-- MCP health is a Runtime capability so app surfaces and the agent can explain
-  degraded setup.
+- Grants are `(agent_id, connection_id, upstream_tool_name)`.
+- Tool discovery never grants access.
+- A granted tool is presented as an AI SDK tool with a stable namespaced model
+  name.
+- Runtime rechecks the grant immediately before the upstream call.
+- Discovery or session failures stay visible as an unavailable granted tool so
+  the agent can report the connection problem.
 
-## UI Model
+## Auth
 
-- `Settings -> MCP` is an advanced page that lists MCP servers as rows with
-  health, transport, and actions.
-- The page may include a curated MCP catalog, but custom command/URL servers
-  are not the default product extension path.
-- MCP servers do not appear in `Settings -> Channels`.
-- MCP servers do not create a user-facing Tools page. Runtime may still report
-  concrete MCP-backed tools as diagnostics.
+- Secrets stay in Runtime's vault.
+- HTTP connections support no auth, headers, or MCP OAuth.
+- OAuth uses protected-resource and authorization-server metadata, PKCE,
+  refresh tokens, and DCR through AI SDK. Custom connections may instead
+  provide a pre-registered client id, optional client secret, and scopes.
+- A different authorization-server origin requires persisted user approval.
+- Credential-bearing HTTP connections and authorization servers require HTTPS.
+  Plain HTTP is allowed only for explicit loopback development.
+- Google Calendar uses the packaged Google client because Google does not offer
+  DCR. MerchBase uses Clerk DCR.
+- Changing URL, command, args, auth, or OAuth client configuration is an
+  identity change. Runtime validates the complete new identity, closes its
+  existing client, then atomically clears credentials and grants before use.
+
+## Operations
+
+- Tool calls record agent, turn, connection, tool, timestamps, outcome, and
+  error summary only.
+- HTTP client sessions are isolated by agent and connection.
+- Tool listing follows bounded MCP pagination and rejects cursor cycles.
+- Expired sessions are closed, evicted, and retried once with a new client.

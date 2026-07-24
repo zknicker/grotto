@@ -15,6 +15,70 @@ CREATE TABLE IF NOT EXISTS tavern_vault_secrets (
   updated_at  TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS mcp_connections (
+  id            TEXT PRIMARY KEY,
+  name          TEXT NOT NULL,
+  preset        TEXT CHECK (preset IN ('google-calendar', 'merchbase')),
+  transport     TEXT NOT NULL CHECK (transport IN ('http', 'stdio')),
+  auth          TEXT NOT NULL CHECK (auth IN ('none', 'headers', 'oauth')),
+  url           TEXT,
+  command       TEXT,
+  args_json     TEXT NOT NULL DEFAULT '[]',
+  header_names_json TEXT NOT NULL DEFAULT '[]',
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  CHECK ((transport = 'http' AND url IS NOT NULL AND command IS NULL)
+      OR (transport = 'stdio' AND command IS NOT NULL AND url IS NULL))
+);
+
+CREATE TABLE IF NOT EXISTS agent_mcp_tool_grants (
+  agent_id      TEXT NOT NULL,
+  connection_id TEXT NOT NULL,
+  tool_name     TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  PRIMARY KEY(agent_id, connection_id, tool_name),
+  FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+  FOREIGN KEY(connection_id) REFERENCES mcp_connections(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_mcp_tool_grants_connection
+  ON agent_mcp_tool_grants(connection_id, agent_id, tool_name);
+
+CREATE TABLE IF NOT EXISTS agent_host_tool_grants (
+  agent_id   TEXT NOT NULL,
+  tool_id    TEXT NOT NULL CHECK (tool_id IN ('browser', 'web_fetch')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY(agent_id, tool_id),
+  FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS mcp_tool_audit (
+  call_id       TEXT PRIMARY KEY,
+  agent_id      TEXT NOT NULL,
+  turn_id       TEXT NOT NULL,
+  connection_id TEXT NOT NULL,
+  tool_name     TEXT NOT NULL,
+  started_at    TEXT NOT NULL,
+  completed_at  TEXT,
+  outcome       TEXT NOT NULL CHECK (outcome IN ('running', 'succeeded', 'failed')),
+  error         TEXT,
+  FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+  FOREIGN KEY(connection_id) REFERENCES mcp_connections(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_mcp_tool_audit_agent_started
+  ON mcp_tool_audit(agent_id, started_at DESC);
+
+CREATE TABLE IF NOT EXISTS browser_settings (
+  singleton    INTEGER PRIMARY KEY CHECK (singleton = 1),
+  enabled      INTEGER NOT NULL CHECK (enabled IN (0, 1)),
+  profile_name TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS runtime_capabilities (
   id                TEXT PRIMARY KEY,
   display_name      TEXT NOT NULL,
@@ -27,22 +91,6 @@ CREATE TABLE IF NOT EXISTS runtime_capabilities (
   last_healthy_at   TEXT,
   next_check_at     TEXT,
   updated_at        TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS runtime_plugins (
-  id          TEXT PRIMARY KEY,
-  enabled     INTEGER NOT NULL CHECK (enabled IN (0, 1)),
-  config_json TEXT NOT NULL DEFAULT '{}',
-  created_at  TEXT NOT NULL,
-  updated_at  TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS runtime_plugin_secrets (
-  plugin_id   TEXT PRIMARY KEY,
-  secret_json TEXT NOT NULL,
-  created_at  TEXT NOT NULL,
-  updated_at  TEXT NOT NULL,
-  FOREIGN KEY(plugin_id) REFERENCES runtime_plugins(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS workspace_agent_instructions (
@@ -84,9 +132,16 @@ CREATE TABLE IF NOT EXISTS agent_skill_assignments (
 CREATE INDEX IF NOT EXISTS idx_agent_skill_assignments_enabled
   ON agent_skill_assignments(agent_id, enabled, skill_id);
 
+CREATE TABLE IF NOT EXISTS skill_settings (
+  skill_id   TEXT PRIMARY KEY,
+  enabled    INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS skill_sources (
   skill_id            TEXT PRIMARY KEY,
-  source              TEXT NOT NULL CHECK (source IN ('seeded', 'hub', 'agent', 'external', 'plugin')),
+  source              TEXT NOT NULL CHECK (source IN ('seeded', 'hub', 'agent', 'external')),
   state               TEXT NOT NULL DEFAULT 'active' CHECK (state IN ('active', 'stale', 'archived')),
   created_by_agent_id TEXT,
   installed_hash      TEXT,
@@ -104,33 +159,6 @@ CREATE TABLE IF NOT EXISTS skill_usage (
 
 CREATE INDEX IF NOT EXISTS idx_skill_usage_skill_occurred
   ON skill_usage(skill_id, occurred_at);
-
-CREATE TABLE IF NOT EXISTS agent_plugin_grants (
-  agent_id   TEXT NOT NULL,
-  plugin_id  TEXT NOT NULL,
-  enabled    INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  PRIMARY KEY(agent_id, plugin_id),
-  FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE,
-  FOREIGN KEY(plugin_id) REFERENCES runtime_plugins(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_agent_plugin_grants_enabled
-  ON agent_plugin_grants(agent_id, enabled, plugin_id);
-
-CREATE TABLE IF NOT EXISTS agent_mcp_grants (
-  agent_id        TEXT NOT NULL,
-  mcp_server_name TEXT NOT NULL,
-  enabled         INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
-  created_at      TEXT NOT NULL,
-  updated_at      TEXT NOT NULL,
-  PRIMARY KEY(agent_id, mcp_server_name),
-  FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_agent_mcp_grants_enabled
-  ON agent_mcp_grants(agent_id, enabled, mcp_server_name);
 
 CREATE TABLE IF NOT EXISTS agent_runtime_profiles (
   agent_id           TEXT PRIMARY KEY,

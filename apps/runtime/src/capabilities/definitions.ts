@@ -3,18 +3,7 @@ import type {
     AgentRuntimeCapabilityHealthId,
     AgentRuntimeCapabilityHealthState,
 } from '@tavern/api';
-import {
-    browserPluginHealthCapabilityId,
-    browserPluginManifest,
-} from '@tavern/api/plugins/browser';
-import {
-    googleCalendarPluginHealthCapabilityId,
-    googlePluginManifest,
-} from '@tavern/api/plugins/google';
-import {
-    merchbasePluginHealthCapabilityId,
-    merchbasePluginManifest,
-} from '@tavern/api/plugins/merchbase';
+import { checkBrowserCapability } from '../browser/settings.ts';
 import { fallbackBinDirectories, findExecutable } from '../cli-path.ts';
 import { AGENT_WORKSPACE } from '../config.ts';
 import { isClerkConfigured } from '../identity/clerk-session.ts';
@@ -24,9 +13,6 @@ import { loadVaultBackedCodexCredentials } from '../model-access/codex-settings.
 import { hasHostClaudeLogin } from '../model-access/host-claude-login.ts';
 import { listAgentModels } from '../models/catalog-service.ts';
 import { resolveAgentModelSummary } from '../models/model-access.ts';
-import { checkBrowserCapability } from '../plugins/browser.ts';
-import { checkGoogleCalendarCapability } from '../plugins/google.ts';
-import { checkMerchbaseCapability } from '../plugins/merchbase.ts';
 import { isDevToolkitEnabled } from '../tavern/development-turn-simulator.ts';
 
 export interface RuntimeCapabilityCheckResult {
@@ -161,32 +147,10 @@ export const runtimeCapabilityDefinitions: RuntimeCapabilityDefinition[] = [
     },
     {
         async check() {
-            return await checkMerchbaseCapability();
-        },
-        displayName: merchbasePluginManifest.displayName,
-        id: merchbasePluginHealthCapabilityId,
-        refresh: {
-            intervalMs: 5 * minuteMs,
-            runOnStart: true,
-        },
-    },
-    {
-        async check() {
-            return await checkGoogleCalendarCapability();
-        },
-        displayName: `${googlePluginManifest.displayName} Calendar`,
-        id: googleCalendarPluginHealthCapabilityId,
-        refresh: {
-            intervalMs: 5 * minuteMs,
-            runOnStart: true,
-        },
-    },
-    {
-        async check() {
             return await checkBrowserCapability();
         },
-        displayName: browserPluginManifest.displayName,
-        id: browserPluginHealthCapabilityId,
+        displayName: 'Browser',
+        id: 'browser',
         refresh: {
             intervalMs: 5 * minuteMs,
             runOnStart: true,

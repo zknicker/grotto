@@ -69,10 +69,12 @@ export const agentArchetypeProposals: AgentArchetypeProposal[] = [
         tagline: 'Checks outputs against reality before they ship',
     },
     {
+        // Cove is also the shipped default agent on production first runs
+        // (server agents/shipped-default.ts) — same name, bio, and seeds.
         bio: 'Onboarding guide — helps you shape your team and start real work',
-        handle: 'guide',
+        handle: 'Cove',
         id: 'guide',
-        label: 'Onboarding guide',
+        label: 'Cove — onboarding guide',
         tagline: 'Helps you set up Grotto and your first agents',
     },
 ];

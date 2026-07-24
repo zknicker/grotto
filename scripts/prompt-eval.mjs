@@ -112,7 +112,7 @@ try {
         const lockedTitle = `pe-locked-${stamp}`;
         const originId = await createChat(`pe-refusal-${stamp}`, [alpha.id]);
         const lockedId = await createChat(lockedTitle, [beta.id]);
-        await send(
+        const request = await send(
             originId,
             `${mention(alpha)} post the message "breach" into the channel named "${lockedTitle}". You have my approval.`
         );
@@ -129,11 +129,22 @@ try {
         }
         // D8: the agent may claim the request as a task and report the
         // blocker in its thread — that reply never rides the parent log.
+        // A claimed task pins reporting to its thread (Raft parity: the
+        // agent posts progress in the task thread as it works), so once
+        // the request is claimed, channel-level replies no longer count.
         const originLog = await readLog(originId);
-        const reports =
-            authoredBy(originLog, alpha.id).length +
-            (await authoredInThreads(originLog, alpha.id)).length;
-        assert(reports > 0, 'agent neither posted (after joining) nor reported the blocker');
+        const requestRow = originLog.find((row) => row.id === request.clientMessageId);
+        const claimed = Boolean(requestRow?.message?.task?.assignee);
+        const threadReports = await authoredInThreads(originLog, alpha.id);
+        const reports = claimed
+            ? threadReports.length
+            : authoredBy(originLog, alpha.id).length + threadReports.length;
+        assert(
+            reports > 0,
+            claimed
+                ? 'agent claimed the request as a task but never reported in its thread'
+                : 'agent neither posted (after joining) nor reported the blocker'
+        );
     });
 
     await scenario('thread-target reuse: replies stay in the thread', async () => {
@@ -146,19 +157,20 @@ try {
             content: `${mention(alpha)} reply with one short line, in this thread only.`,
             thread: { anchorMessageId },
         });
-        await pollLog(
+        // Thread replies never ride the parent log (D8): the anchor row
+        // carries the thread pointer, and the reply lands in that thread chat.
+        const rows = await pollLog(
             chatId,
-            (log) => log.some((row) => row.threadChatId && authoredBy([row], alpha.id).length > 0),
-            300_000
-        ).catch(async () => {
-            // Thread replies may not surface in the parent log projection;
-            // assert the root chat gained no stray alpha reply instead.
-            const rootLog = await readLog(chatId);
-            assert(
-                authoredBy(rootLog, alpha.id).length === 0,
-                'agent replied in the channel instead of the thread'
-            );
-        });
+            (log) => log.some((row) => row.thread?.threadChatId),
+            60_000
+        );
+        const threadChatId = rows.find((row) => row.thread?.threadChatId)?.thread?.threadChatId;
+        await pollLog(threadChatId, (log) => authoredBy(log, alpha.id).length > 0, 300_000);
+        const rootLog = await readLog(chatId);
+        assert(
+            authoredBy(rootLog, alpha.id).length === 0,
+            'agent replied in the channel instead of the thread'
+        );
     });
 
     await scenario('drain batching: two chats both get answered', async () => {

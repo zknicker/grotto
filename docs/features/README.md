@@ -1,5 +1,5 @@
 ---
-summary: Feature docs index for Tavern product capabilities: chat, agents, context management, rich references, clarifications, skills and tools, Plugins, stats, and pets.
+summary: Feature docs index for Tavern product capabilities.
 read_when:
   - looking for Tavern's user-facing product capabilities
   - adding, renaming, or reorganizing feature docs
@@ -21,7 +21,7 @@ implementation ownership, and runtime details live under
 | Tasks | [Tasks](tasks.md) |
 | Reminders | [Reminders](reminders.md) |
 | Skills and Tools | [Skills and Tools](skills.md) |
-| Plugins | [Plugins](plugins.md) |
+| Connections | [Connections](connections.md) |
 | Stats | [Stats](stats.md) |
 | Pets and rewards | [Pets and rewards](pets.md) |
 

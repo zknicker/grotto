@@ -167,9 +167,6 @@ function SkillDetailSummary({
 }
 
 function formatSkillSource(subject: SkillTreeSubject) {
-    if (subject.plugin) {
-        return `Plugin · ${subject.plugin.displayName}`;
-    }
     if (subject.managedSource === 'seeded') {
         return 'Grotto default';
     }

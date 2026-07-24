@@ -1,5 +1,6 @@
 import { agentRouter } from './agent/router.ts';
 import { agentRuntimeRouter } from './agent-runtime/router.ts';
+import { browserRouter } from './browser/router.ts';
 import { chatRouter } from './chat/router.ts';
 import { devRouter } from './dev/router.ts';
 import { identityRouter } from './identity/router.ts';
@@ -15,7 +16,6 @@ import { openAiSettingsRouter } from './openai-settings/router.ts';
 import { openRouterSettingsRouter } from './openrouter-settings/router.ts';
 import { paneRouter } from './pane/router.ts';
 import { participantRouter } from './participant/router.ts';
-import { pluginRouter } from './plugin/router.ts';
 import { reminderRouter } from './reminder/router.ts';
 import { sessionRouter } from './session/router.ts';
 import { skillRouter } from './skill/router.ts';
@@ -29,6 +29,7 @@ import { workerRouter } from './worker/router.ts';
 
 export const appRouter = createRouter({
     agent: agentRouter,
+    browser: browserRouter,
     identity: identityRouter,
     chat: chatRouter,
     mcp: mcpRouter,
@@ -44,7 +45,6 @@ export const appRouter = createRouter({
     openRouterSettings: openRouterSettingsRouter,
     pane: paneRouter,
     participant: participantRouter,
-    plugin: pluginRouter,
     reminder: reminderRouter,
     agentRuntime: agentRuntimeRouter,
     session: sessionRouter,

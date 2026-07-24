@@ -29,12 +29,12 @@ source of truth for agent behavior.
   through first-class Tavern APIs hosted by Runtime. App storage may keep
   presentation overlays, but it does not decide whether an agent exists.
 * **Agent execution settings are runtime-owned.** Provider setup, executable
-  model inventory, selected model, skill assignments, Plugin grants,
-  instructions, sessions, turns, presence, and the activity feed come from
-  Runtime. App settings screens invoke Runtime API mutations; they do not
-  maintain a separate executable config.
+  model inventory, selected model, skill assignments, MCP connections, exact
+  tool grants, instructions, sessions, turns, presence, and the activity feed
+  come from Runtime. App settings screens invoke Runtime API mutations; they
+  do not maintain a separate executable config.
 * **Runtime adapters stay behind adapters.** Agent-engine payloads and
-  plugin-specific details do not leak into product domains.
+  MCP transport details do not leak into product domains.
 * **Settings save through Runtime.** App settings call narrow mutations such as
   agent name, model, thinking default, and messaging binding updates. The app
   does not maintain a global agent-engine config draft or send arbitrary config

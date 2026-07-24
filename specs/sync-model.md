@@ -11,7 +11,7 @@ app-facing facts through Runtime APIs and events when Tavern needs to render or 
   operational jobs.
 - Tavern App owns React Query cache, presentation state, optimistic UI, and app-shell preferences.
 - Tavern API / SDK exposes stable chat, realtime, automation, admin, Runtime control, memory, skill,
-  stats, and Plugin contracts.
+  MCP connection, stats, and tool-grant contracts.
 - Tavern Runtime owns native agent execution, sessions, turns, transcripts, logs, agent files, tool
   calls, model calls, context management, and applied native config.
 - Runtime persists any agent-produced data Tavern may render, inspect, recover, or navigate later.
@@ -37,7 +37,8 @@ app-facing facts through Runtime APIs and events when Tavern needs to render or 
 
 ## Runtime Records
 
-- Runtime records use stable product ids or stable source ids from the owning runtime or Plugin.
+- Runtime records use stable product ids or stable source ids from the owning runtime or external
+  system.
 - Runtime evidence rows include the stable agent runtime namespace when the source is the local
   agent engine.
 - Runtime adapters normalize source-specific chat, participant, session, and tool facts before data
@@ -65,7 +66,7 @@ app-facing facts through Runtime APIs and events when Tavern needs to render or 
 
 - Observed execution history includes sessions, turns, tool calls, model calls, logs, cron runs,
   worker activity, and recoverable response activity.
-- Observed history remains labeled with its source runtime or Plugin.
+- Observed history remains labeled with its source runtime or external system.
 - Observed history is upserted by stable source identifiers.
 - Observed history survives agent-engine reinstall/reset when Runtime storage is preserved.
 - Runtime writes accepted messages, active responses, and response activity before notifying clients.

@@ -22,8 +22,8 @@ is simply unclaimed.
   convenience, a runtime that already has a Clerk key configured is also
   claimed by the first verified user to connect. Ownership never transfers;
   resetting means deleting the runtime database (greenfield).
-- Agents, model credentials, plugins, skills, secrets, and runtime settings
-  are owner-administered. Members converse; the owner runs the house.
+- Agents, model credentials, MCP connections, skills, secrets, and runtime
+  settings are owner-administered. Members converse; the owner runs the house.
 
 ## Ownership vs access
 

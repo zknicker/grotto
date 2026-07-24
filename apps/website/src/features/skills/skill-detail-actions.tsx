@@ -10,7 +10,6 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '../../components/ui/menu.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import { Spinner } from '../../components/ui/spinner.tsx';
-import { Switch } from '../../components/ui/switch.tsx';
 import { toastManager } from '../../components/ui/toast.tsx';
 import { useSkillHubInstall } from '../../hooks/skills/use-skill-hub-install.ts';
 import { useSkillHubUninstall } from '../../hooks/skills/use-skill-hub-uninstall.ts';
@@ -20,6 +19,7 @@ import {
     showSkillFailureToast,
     UpdateConflictDialog,
 } from './skill-content-dialogs.tsx';
+import { SkillEnableSwitch } from './skill-enable-switch.tsx';
 import type { ManagedSource, SkillTreeSubject } from './skill-tree-model.ts';
 
 const restoreActionLabel = 'Restore Original Version';
@@ -28,7 +28,7 @@ function restoreTargetLabel(source: ManagedSource): string {
     if (source === 'seeded') {
         return 'the Grotto default';
     }
-    return source === 'plugin' ? "the plugin's original version" : 'the original Grotto version';
+    return 'the original Grotto version';
 }
 
 export interface SkillEnablementController {
@@ -53,7 +53,7 @@ export function SkillDetailActions({
     const [resetOpen, setResetOpen] = React.useState(false);
 
     const managedSource = subject.managedSource;
-    // Hub skills replace via install-with-force; plugin/seeded regenerate via reset.
+    // Hub skills replace via install-with-force; seeded skills regenerate via reset.
     const isHubManaged = managedSource === 'hub' && Boolean(subject.identifier);
 
     const canUninstall = Boolean(subject.installed && subject.uninstallName);
@@ -136,14 +136,11 @@ export function SkillDetailActions({
     return (
         <div className="flex shrink-0 items-center gap-1.5">
             {subject.installed && subject.skillId && !subject.readOnly ? (
-                <Switch
-                    aria-label={`${subject.enabled ? 'Disable' : 'Enable'} ${subject.name}`}
-                    checked={subject.enabled === true}
-                    className="data-[checked]:bg-success"
-                    disabled={setEnabled.isPending}
-                    onCheckedChange={(checked) =>
-                        setEnabled.mutate({ enabled: checked, skillId: subject.skillId! })
-                    }
+                <SkillEnableSwitch
+                    enabled={subject.enabled === true}
+                    name={subject.name}
+                    setEnabled={setEnabled}
+                    skillId={subject.skillId}
                 />
             ) : null}
             {showUpdate ? (

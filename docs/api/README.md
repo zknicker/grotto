@@ -33,6 +33,6 @@ Tavern's shape is clear:
 | Agents | [Agents API](agents.md) |
 | Skills | [Skills API](skills.md) |
 | Stats | [Stats API](stats.md) |
-| Plugins | [Plugins API](plugins.md) |
+| Connections | [Connections API](connections.md) |
 
 The TypeScript client wrapper lives in [TypeScript SDK](../sdk.md).

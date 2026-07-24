@@ -114,26 +114,22 @@ individual lifecycle.
 _Avoid_: Tavern tool, Plugin action, MCP server
 
 **Tavern host tool**:
-A Tool implemented by Tavern Runtime and passed to the Agent executor, such as Memory reads, Plugin
-actions, chat sends, or other Tavern-owned product actions.
-_Avoid_: Harness-native tool, raw Runtime route, Plugin setting
+A Tool implemented by Tavern Runtime and passed to the Agent executor, such as `web_fetch`,
+browser control, Memory reads, chat sends, or other Tavern-owned product actions.
+_Avoid_: Harness-native tool, raw Runtime route, MCP connection setting
 
-**MCP server**:
-A Runtime-owned connection record for an external Model Context Protocol server, including
-transport, secrets, enablement, health, and the tools or resources it exposes to eligible agents.
-MCP servers are advanced Runtime plumbing in v1; Tavern's normal user-facing integration surface is
-Plugins.
-_Avoid_: Tool, Plugin, Channel
+**MCP connection**:
+A Runtime-owned configured instance of an external Model Context Protocol server, including its
+transport, authentication boundary, account identity, connection state, and discovered tools.
+Multiple connections may target the same MCP server for different accounts. Runtime holds
+credentials and relays granted calls without exposing credentials to agents.
+_Avoid_: MCP server, Tool, Channel, Plugin
 
-**MCP grant**:
-An internal or advanced agent-level policy that allows an agent to use one Runtime-enabled MCP
-server during Agent turns. V1 product surfaces should prefer Plugin grants.
-_Avoid_: MCP server enablement, per-chat MCP setting, Plugin grant
-
-**Plugin grant**:
-An agent-level policy that allows an agent to use one enabled built-in Tavern Plugin's agent-facing
-tools.
-_Avoid_: Plugin enablement, Plugin setting, Plugin health, user-installed tool package
+**MCP tool grant**:
+An agent-level policy that allows one exact upstream tool from one MCP connection during Agent
+turns. Newly discovered tools are ungranted by default, and Runtime rechecks the grant immediately
+before forwarding every call.
+_Avoid_: Connection enablement, per-chat MCP setting, broad server grant
 
 **Sandbox mode**:
 The execution environment for an agent's tools and harness processes: none, Docker, or Podman.
@@ -145,8 +141,8 @@ root and runs child processes directly from that workspace.
 _Avoid_: Secure sandbox, container, VM
 
 **Assignable primitive**:
-A Tavern capability that can be attached to an agent definition, such as a Skill, Plugin, Memory
-namespace, or Channel membership.
+A Tavern capability that can be attached to an agent definition, such as a Skill, MCP tool grant,
+host-tool grant, Memory namespace, or Channel membership.
 _Avoid_: Runtime plugin, harness setting, bundled feature
 
 **Installed skill**:
@@ -172,33 +168,6 @@ _Avoid_: Rich Response, custom widget, raw HTML block
 The seeded skill that owns rendering guidance for agents: when to render, the visual and artifact
 fence contracts, and the design system (ADR 0012).
 _Avoid_: Prompt design section, page-design skill, per-medium design skills
-
-**Plugin**:
-A Tavern-managed, manifest-declared capability bundle for an external system. A Plugin owns its
-configuration, status, runtime actions, agent-facing skills and tools, and normalized view models.
-In v1, Plugins are first-party and compiled into Tavern rather
-than user-installed packages; user-provided executable integrations belong behind MCP servers.
-_Avoid_: Skill, connector, CLI dependency, user-installed package
-
-**Plugin health**:
-Runtime-owned readiness for a Plugin, including whether its required configuration and upstream
-access are usable.
-_Avoid_: Skill setup, tool availability, connection wizard state
-
-**Plugin settings**:
-Runtime-owned durable Plugin configuration, stored in dedicated Plugin tables and edited
-through Tavern settings.
-_Avoid_: Runtime metadata key, executor config, CLI config, skill config
-
-**Plugin secret**:
-Write-only credential material for a Plugin, stored in the Runtime Plugin secret store and
-masked in API reads.
-_Avoid_: Environment variable, executor home file, checked-in config
-
-**Plugin action**:
-A Runtime-owned operation exposed by a Plugin to Tavern surfaces such as Widgets,
-agent tools, or settings.
-_Avoid_: CLI command, skill tool, raw upstream API call
 
 **Artifact**:
 A durable Runtime-owned output that can be rendered, reopened, and referenced from chat.

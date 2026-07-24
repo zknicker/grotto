@@ -35,12 +35,12 @@ export function AgentWebAccessSection({
         <SettingsSection title="Web access">
             <SettingsGroup>
                 <SettingsRow
-                    description="Let this agent search the web and fetch pages as untrusted reference content."
-                    title="Search and fetch the web"
+                    description="Let this agent use model-provided web search when its selected model supports it. Page fetching is granted separately under Tools."
+                    title="Web search"
                 >
                     <div className="flex justify-start md:justify-end">
                         <Switch
-                            aria-label="Search and fetch the web"
+                            aria-label="Web search"
                             checked={webAccess}
                             disabled={isSaving}
                             onCheckedChange={(enabled) => {

@@ -45,7 +45,6 @@ const nonMemberAllowedRoutes = new Set<string>([
 const memberDeniedPrefixes = [
     '/model-access',
     '/agent-env',
-    '/plugins',
     '/mcp',
     '/update',
     '/dev',

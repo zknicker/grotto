@@ -24,7 +24,7 @@ can continue to feel primary-agent-first.
 * **Runtime-managed agent records.** Runtime can store multiple agents with
   independent names, enabled skill ids, model choices, and workspace folders.
   Settings -> Agents lists those agents, creates new agents, and routes each
-  agent to General, Skills & Plugins, and Channels pages.
+  agent to General, Skills, Tools, and Channels pages.
   General edits the selected agent's display name, bio, color, character,
   model, thinking default, environment variables, and destructive agent
   deletion. The home timezone lives on the Tavern Runtime settings page.
@@ -56,19 +56,16 @@ can continue to feel primary-agent-first.
   workspace.
 * **New chats.** Starting a direct chat belongs to the normal New Chat flow, not
   an agent landing page.
-* **Agent skills and Plugins.** Runtime stores per-agent enabled skill ids.
+* **Agent skills and tools.** Runtime stores per-agent enabled skill ids.
   Assigned skills are resolved from Runtime's installed skill library and added
-  to the agent's AI SDK instructions at turn startup. Plugin grants decide which
-  built-in Plugin tools and Plugin-owned guidance the agent receives. Harness
-  tools come from the selected executor and are governed by sandbox and approval
-  policy.
+  to the agent's AI SDK instructions at turn startup. Exact grants decide which
+  MCP tools and host tools the agent receives. Harness-native tools come from
+  the selected executor and are governed by sandbox and approval policy.
 * **Web access.** A per-agent opt-in (default off) on the General settings
-  page. When on, the agent can search the web (provider-native search, when the
-  agent's model supports it) and fetch pages with the Runtime `web_fetch` tool,
-  which returns readable, size-capped markdown. Web content is treated as
-  untrusted reference data: the agent is instructed to cite sources and never
-  follow instructions found in fetched pages. When off, the web tools are
-  absent from the agent's turns.
+  page controls provider-native web search when the model supports it.
+  `web_fetch` is a separately granted host tool that returns readable,
+  size-capped markdown and is granted to new agents by default. Web content is
+  untrusted reference data.
 * **Sessions.** Synced Tavern, system, and external chats are visible from
   Settings -> Sessions with source filters.
 
@@ -76,10 +73,9 @@ can continue to feel primary-agent-first.
 
 The primary app sidebar lists product areas and chats. It does not list agents.
 Agent configuration lives in Settings -> Agents. Each agent has its own sidebar
-section with General, Skills & Plugins, and Channels pages. The
-Skills & Plugins page lists only what the agent already has; new skills and
-Plugin grants are added through searchable pickers that offer only globally
-usable entries, so global setup problems never render as per-agent noise.
+section with General, Skills, Tools, and Channels pages. Skills are assigned
+independently from tools. Tools lists host tools and exact upstream MCP tools,
+grouped by connection; discovery never grants new tools.
 Model fallbacks, web page summarizer model, context compression, permission
 prompts, and subagent model defaults are not settings surfaces until the local
 agent engine supports them.

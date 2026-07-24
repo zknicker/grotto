@@ -24,9 +24,9 @@ export const appRoutes = {
     settingsStats: '/settings/stats',
     settingsSessions: '/settings/sessions',
     settingsSkills: '/settings/skills',
-    settingsPlugins: '/settings/plugins',
+    settingsBrowser: '/settings/browser',
+    settingsConnections: '/settings/connections',
     settingsChannels: '/settings/channels',
-    settingsMcp: '/settings/mcp',
     settingsModels: '/settings/models',
     settingsJobs: '/settings/jobs',
 } as const;

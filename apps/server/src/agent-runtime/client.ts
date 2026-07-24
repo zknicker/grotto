@@ -6,8 +6,6 @@ import {
     type AgentRuntimeAgentFileContent,
     type AgentRuntimeAgentFileList,
     type AgentRuntimeAgentInbox,
-    type AgentRuntimeAgentPluginGrant,
-    type AgentRuntimeAgentPluginGrantList,
     type AgentRuntimeAgentPresenceList,
     type AgentRuntimeAgentStopResult,
     type AgentRuntimeApplyAgentEngineConfig,
@@ -22,34 +20,29 @@ import {
     type AgentRuntimeCapabilityHealthList,
     type AgentRuntimeChat,
     type AgentRuntimeChatPaneState,
-    type AgentRuntimeCompleteGoogleOAuth,
     type AgentRuntimeCreateAgent,
     type AgentRuntimeCreateMessage,
     type AgentRuntimeCurrentAgentSessionResult,
     type AgentRuntimeDeleteDiscordBinding,
     type AgentRuntimeDiscordBinding,
     type AgentRuntimeEventList,
-    type AgentRuntimeGoogleCalendarEventsList,
-    type AgentRuntimeGoogleCalendarEventsListInput,
-    type AgentRuntimeGoogleOAuthPoll,
-    type AgentRuntimeGoogleOAuthPollInput,
-    type AgentRuntimeGoogleOAuthStart,
-    type AgentRuntimeGoogleSettings,
+    type AgentRuntimeHostToolList,
     type AgentRuntimeJobDetail,
     type AgentRuntimeJobList,
     type AgentRuntimeJobSlug,
     type AgentRuntimeMacAppList,
-    type AgentRuntimeMcpCatalog,
-    type AgentRuntimeMcpCatalogInstall,
-    type AgentRuntimeMcpServer,
-    type AgentRuntimeMcpServerCreate,
-    type AgentRuntimeMcpServerList,
-    type AgentRuntimeMcpServerTestResult,
-    type AgentRuntimeMerchbaseActionInput,
-    type AgentRuntimeMerchbaseActionResult,
-    type AgentRuntimeMerchbaseSalesSeries,
-    type AgentRuntimeMerchbaseSalesSeriesInput,
-    type AgentRuntimeMerchbaseSettings,
+    type AgentRuntimeMcpAgentToolGrantList,
+    type AgentRuntimeMcpConnection,
+    type AgentRuntimeMcpConnectionCreate,
+    type AgentRuntimeMcpConnectionList,
+    type AgentRuntimeMcpConnectionTestResult,
+    type AgentRuntimeMcpConnectionUpdate,
+    type AgentRuntimeMcpDisconnectResult,
+    type AgentRuntimeMcpOAuthComplete,
+    type AgentRuntimeMcpOAuthStart,
+    type AgentRuntimeMcpOAuthStartResult,
+    type AgentRuntimeMcpPresetAccountCreate,
+    type AgentRuntimeMcpToolList,
     type AgentRuntimeMessageAccepted,
     type AgentRuntimeModelAccess,
     type AgentRuntimeModelCapabilitySelectionSettings,
@@ -60,9 +53,6 @@ import {
     type AgentRuntimeModels,
     type AgentRuntimeOpenAiSettings,
     type AgentRuntimeOpenRouterSettings,
-    type AgentRuntimePlugin,
-    type AgentRuntimePluginId,
-    type AgentRuntimePluginList,
     type AgentRuntimePollModelProviderOAuth,
     type AgentRuntimeRenderedWorkspaceInstructions,
     type AgentRuntimeResetAgentSession,
@@ -74,8 +64,6 @@ import {
     type AgentRuntimeSaveAgentFile,
     type AgentRuntimeSaveBrowserSettings,
     type AgentRuntimeSaveDiscordBinding,
-    type AgentRuntimeSaveGoogleSettings,
-    type AgentRuntimeSaveMerchbaseSettings,
     type AgentRuntimeSaveModelCapabilitySelections,
     type AgentRuntimeSaveModelCategorySettings,
     type AgentRuntimeSaveModelCategorySettingsResult,
@@ -104,7 +92,6 @@ import {
     type AgentRuntimeSkillHubUninstallInput,
     type AgentRuntimeSkillResetResult,
     type AgentRuntimeSkillSummary,
-    type AgentRuntimeStartGoogleOAuth,
     type AgentRuntimeStartModelProviderOAuth,
     type AgentRuntimeStopTurn,
     type AgentRuntimeStopTurnResult,
@@ -122,7 +109,6 @@ import {
     type AgentRuntimeUpdateAgentBio,
     type AgentRuntimeUpdateAgentModel,
     type AgentRuntimeUpdateAgentName,
-    type AgentRuntimeUpdateAgentPluginGrant,
     type AgentRuntimeUpdateAgentThinkingDefault,
     type AgentRuntimeUpdateAgentWebSettings,
     type AgentRuntimeUpdateModelProvider,
@@ -140,8 +126,6 @@ import {
     agentRuntimeAgentFileListSchema,
     agentRuntimeAgentInboxSchema,
     agentRuntimeAgentListSchema,
-    agentRuntimeAgentPluginGrantListSchema,
-    agentRuntimeAgentPluginGrantSchema,
     agentRuntimeAgentPresenceListSchema,
     agentRuntimeAgentSchema,
     agentRuntimeAgentStopResultSchema,
@@ -158,34 +142,29 @@ import {
     agentRuntimeCapabilityHealthSchema,
     agentRuntimeChatListSchema,
     agentRuntimeChatPaneStateSchema,
-    agentRuntimeCompleteGoogleOAuthSchema,
     agentRuntimeCreateAgentSchema,
     agentRuntimeCreateMessageSchema,
     agentRuntimeCurrentAgentSessionResultSchema,
     agentRuntimeDeleteDiscordBindingSchema,
     agentRuntimeDiscordBindingListSchema,
     agentRuntimeErrorSchema,
-    agentRuntimeGoogleCalendarEventsListInputSchema,
-    agentRuntimeGoogleCalendarEventsListSchema,
-    agentRuntimeGoogleOAuthPollInputSchema,
-    agentRuntimeGoogleOAuthPollSchema,
-    agentRuntimeGoogleOAuthStartSchema,
-    agentRuntimeGoogleSettingsSchema,
+    agentRuntimeHostToolListSchema,
     agentRuntimeJobDetailSchema,
     agentRuntimeJobListSchema,
     agentRuntimeJobSlugSchema,
     agentRuntimeMacAppListSchema,
-    agentRuntimeMcpCatalogInstallSchema,
-    agentRuntimeMcpCatalogSchema,
-    agentRuntimeMcpServerCreateSchema,
-    agentRuntimeMcpServerListSchema,
-    agentRuntimeMcpServerSchema,
-    agentRuntimeMcpServerTestResultSchema,
-    agentRuntimeMerchbaseActionInputSchema,
-    agentRuntimeMerchbaseActionResultSchema,
-    agentRuntimeMerchbaseSalesSeriesInputSchema,
-    agentRuntimeMerchbaseSalesSeriesSchema,
-    agentRuntimeMerchbaseSettingsSchema,
+    agentRuntimeMcpAgentToolGrantListSchema,
+    agentRuntimeMcpConnectionCreateSchema,
+    agentRuntimeMcpConnectionListSchema,
+    agentRuntimeMcpConnectionSchema,
+    agentRuntimeMcpConnectionTestResultSchema,
+    agentRuntimeMcpConnectionUpdateSchema,
+    agentRuntimeMcpDisconnectResultSchema,
+    agentRuntimeMcpOAuthCompleteSchema,
+    agentRuntimeMcpOAuthStartResultSchema,
+    agentRuntimeMcpOAuthStartSchema,
+    agentRuntimeMcpPresetAccountCreateSchema,
+    agentRuntimeMcpToolListSchema,
     agentRuntimeMessageAcceptedSchema,
     agentRuntimeModelAccessSchema,
     agentRuntimeModelCapabilitySelectionSettingsSchema,
@@ -202,9 +181,6 @@ import {
     agentRuntimeMutationOrigins,
     agentRuntimeOpenAiSettingsSchema,
     agentRuntimeOpenRouterSettingsSchema,
-    agentRuntimePluginIdSchema,
-    agentRuntimePluginListSchema,
-    agentRuntimePluginSchema,
     agentRuntimePollModelProviderOAuthSchema,
     agentRuntimeRenderedWorkspaceInstructionsSchema,
     agentRuntimeResetAgentSessionResultSchema,
@@ -217,8 +193,6 @@ import {
     agentRuntimeSaveAgentFileSchema,
     agentRuntimeSaveBrowserSettingsSchema,
     agentRuntimeSaveDiscordBindingSchema,
-    agentRuntimeSaveGoogleSettingsSchema,
-    agentRuntimeSaveMerchbaseSettingsSchema,
     agentRuntimeSaveModelCapabilitySelectionsSchema,
     agentRuntimeSaveModelCategorySettingsResultSchema,
     agentRuntimeSaveModelCategorySettingsSchema,
@@ -247,7 +221,6 @@ import {
     agentRuntimeSkillListSchema,
     agentRuntimeSkillResetResultSchema,
     agentRuntimeSkillSchema,
-    agentRuntimeStartGoogleOAuthSchema,
     agentRuntimeStartModelProviderOAuthSchema,
     agentRuntimeStopTurnResultSchema,
     agentRuntimeStopTurnSchema,
@@ -264,7 +237,6 @@ import {
     agentRuntimeUpdateAgentBioSchema,
     agentRuntimeUpdateAgentModelSchema,
     agentRuntimeUpdateAgentNameSchema,
-    agentRuntimeUpdateAgentPluginGrantSchema,
     agentRuntimeUpdateAgentThinkingDefaultSchema,
     agentRuntimeUpdateAgentWebSettingsSchema,
     agentRuntimeUpdateModelProviderSchema,
@@ -310,17 +282,20 @@ export class AgentRuntimeRequestError extends Error {
 }
 
 export interface TavernAgentRuntimeClient {
-    addMcpServer(input: AgentRuntimeMcpServerCreate): Promise<AgentRuntimeMcpServer>;
+    addMcpConnection(input: AgentRuntimeMcpConnectionCreate): Promise<AgentRuntimeMcpConnection>;
+    addMcpPresetAccount(
+        input: AgentRuntimeMcpPresetAccountCreate
+    ): Promise<AgentRuntimeMcpConnection>;
     addSkillHubTap(input: AgentRuntimeSkillHubTap): Promise<AgentRuntimeSkillHubTapList>;
     applyAgentEngineConfig(
         input: AgentRuntimeApplyAgentEngineConfig
     ): Promise<AgentRuntimeAgentEngineConfigSnapshot>;
     cancelModelProviderOAuth(input: AgentRuntimeCancelModelProviderOAuth): Promise<unknown>;
     close(): void;
-    completeGoogleOAuth(
-        sessionId: string,
-        input: AgentRuntimeCompleteGoogleOAuth
-    ): Promise<AgentRuntimeGoogleOAuthPoll>;
+    completeMcpConnectionOAuth(
+        connectionId: string,
+        input: AgentRuntimeMcpOAuthComplete
+    ): Promise<AgentRuntimeMcpConnection>;
     createIdentityInvite(): Promise<RuntimeInviteCreateResult>;
     deleteAgent(agentId: string): Promise<AgentRuntimeArchiveAgent>;
     deleteBinding(bindingId: string): Promise<AgentRuntimeArchiveBinding>;
@@ -329,9 +304,10 @@ export interface TavernAgentRuntimeClient {
         input: AgentRuntimeDeleteDiscordBinding
     ): Promise<AgentRuntimeAgentEngineConfigSnapshot>;
     deleteIdentityInvite(inviteId: string): Promise<RuntimeIdentityMutationResult>;
+    deleteMcpConnection(connectionId: string): Promise<AgentRuntimeMcpDisconnectResult>;
     deleteOpenAiSettings(): Promise<AgentRuntimeOpenAiSettings>;
     deleteOpenRouterSettings(): Promise<AgentRuntimeOpenRouterSettings>;
-    disconnectGoogleOAuth(): Promise<AgentRuntimeGoogleSettings>;
+    disconnectMcpConnection(connectionId: string): Promise<AgentRuntimeMcpDisconnectResult>;
     getAgentConfig(agentId: string): Promise<AgentRuntimeAgent>;
     getAgentEngineConfig(): Promise<AgentRuntimeAgentEngineConfigSnapshot>;
     getAgentEnv(): Promise<AgentRuntimeAgentEnv>;
@@ -344,10 +320,7 @@ export interface TavernAgentRuntimeClient {
         agentId?: string;
         chatId: string;
     }): Promise<AgentRuntimeCurrentAgentSessionResult>;
-    getGoogleSettings(): Promise<AgentRuntimeGoogleSettings>;
     getIdentityMe(userSessionToken: string): Promise<RuntimeIdentityMe>;
-    getMcpCatalog(): Promise<AgentRuntimeMcpCatalog>;
-    getMerchbaseSettings(): Promise<AgentRuntimeMerchbaseSettings>;
     getModelAccess(): Promise<AgentRuntimeModelAccess>;
     getModelCapabilitySelections(): Promise<AgentRuntimeModelCapabilitySelectionSettings>;
     getModelCategorySettings(): Promise<AgentRuntimeModelCategorySettings>;
@@ -356,7 +329,6 @@ export interface TavernAgentRuntimeClient {
     getModels(): Promise<AgentRuntimeModels>;
     getOpenAiSettings(): Promise<AgentRuntimeOpenAiSettings>;
     getOpenRouterSettings(): Promise<AgentRuntimeOpenRouterSettings>;
-    getPlugin(id: AgentRuntimePluginId): Promise<AgentRuntimePlugin>;
     getRuntimeJob(slug: AgentRuntimeJobSlug): Promise<AgentRuntimeJobDetail | null>;
     getSessionGraph(sessionKey: string): Promise<AgentRuntimeSessionGraph>;
     getSessionPrompt(sessionKey: string): Promise<AgentRuntimeSessionPrompt | null>;
@@ -367,15 +339,11 @@ export interface TavernAgentRuntimeClient {
     getUpdateStatus(): Promise<AgentRuntimeUpdate>;
     getWorkspaceFile(agentId: string, path: string): Promise<AgentRuntimeWorkspaceFileContent>;
     getWorkspaceInstructions(agentId: string): Promise<AgentRuntimeRenderedWorkspaceInstructions>;
-    installMcpCatalogEntry(
-        input: AgentRuntimeMcpCatalogInstall
-    ): Promise<AgentRuntimeSkillHubActionResult>;
     installSkillHubSkill(
         input: AgentRuntimeSkillHubInstallInput
     ): Promise<AgentRuntimeSkillHubActionResult>;
     listAgentActivity(agentId: string, limit?: number): Promise<AgentRuntimeAgentActivityList>;
     listAgentFiles(agentId: string): Promise<AgentRuntimeAgentFileList>;
-    listAgentPluginGrants(agentId: string): Promise<AgentRuntimeAgentPluginGrantList>;
     listAgentPresence(): Promise<AgentRuntimeAgentPresenceList>;
     listAgents(): Promise<{ agents: AgentRuntimeAgent[] }>;
     listBindings(): Promise<{ bindings: AgentRuntimeBinding[] }>;
@@ -386,8 +354,10 @@ export interface TavernAgentRuntimeClient {
     listIdentityInvites(): Promise<RuntimeInviteList>;
     listIdentityMembers(): Promise<RuntimeMemberList>;
     listMacApps(options?: { limit?: number; query?: string }): Promise<AgentRuntimeMacAppList>;
-    listMcpServers(): Promise<AgentRuntimeMcpServerList>;
-    listPlugins(): Promise<AgentRuntimePluginList>;
+    listMcpAgentGrants(agentId: string): Promise<AgentRuntimeMcpAgentToolGrantList>;
+    listMcpAgentHostTools(agentId: string): Promise<AgentRuntimeHostToolList>;
+    listMcpConnections(): Promise<AgentRuntimeMcpConnectionList>;
+    listMcpConnectionTools(connectionId: string): Promise<AgentRuntimeMcpToolList>;
     listRuntimeJobs(): Promise<AgentRuntimeJobList>;
     listSessionMessages(
         sessionKey: string,
@@ -407,26 +377,16 @@ export interface TavernAgentRuntimeClient {
         input?: AgentRuntimeWorkspaceFileListInput
     ): Promise<AgentRuntimeWorkspaceFileList>;
     openBrowser(): Promise<AgentRuntimeBrowserActionResult>;
-    pollGoogleOAuth(input: AgentRuntimeGoogleOAuthPollInput): Promise<AgentRuntimeGoogleOAuthPoll>;
     pollModelProviderOAuth(input: AgentRuntimePollModelProviderOAuth): Promise<unknown>;
     postMessage(
         chatId: string,
         input: AgentRuntimeCreateMessage
     ): Promise<AgentRuntimeMessageAccepted>;
     previewSkillHubSkill(identifier: string): Promise<AgentRuntimeSkillHubPreview>;
-    queryGoogleCalendarEvents(
-        input: AgentRuntimeGoogleCalendarEventsListInput
-    ): Promise<AgentRuntimeGoogleCalendarEventsList>;
-    queryMerchbaseAction(
-        input: AgentRuntimeMerchbaseActionInput
-    ): Promise<AgentRuntimeMerchbaseActionResult>;
-    queryMerchbaseSalesSeries(
-        input: AgentRuntimeMerchbaseSalesSeriesInput
-    ): Promise<AgentRuntimeMerchbaseSalesSeries>;
     redeemIdentityInvite(userSessionToken: string, code: string): Promise<void>;
     refreshCapability(id: AgentRuntimeCapabilityHealthId): Promise<AgentRuntimeCapabilityHealth>;
+    refreshMcpConnection(connectionId: string): Promise<AgentRuntimeMcpToolList>;
     removeIdentityMember(userId: string): Promise<RuntimeIdentityMutationResult>;
-    removeMcpServer(name: string): Promise<{ ok: boolean }>;
     removeSkillHubTap(repo: string): Promise<AgentRuntimeSkillHubTapList>;
     resetAgentSession(
         agentId: string,
@@ -456,10 +416,6 @@ export interface TavernAgentRuntimeClient {
     saveDiscordBinding(
         input: AgentRuntimeSaveDiscordBinding
     ): Promise<AgentRuntimeAgentEngineConfigSnapshot>;
-    saveGoogleSettings(input: AgentRuntimeSaveGoogleSettings): Promise<AgentRuntimeGoogleSettings>;
-    saveMerchbaseSettings(
-        input: AgentRuntimeSaveMerchbaseSettings
-    ): Promise<AgentRuntimeMerchbaseSettings>;
     saveModelCapabilitySelections(
         input: AgentRuntimeSaveModelCapabilitySelections
     ): Promise<AgentRuntimeModelCapabilitySelectionSettings>;
@@ -487,27 +443,35 @@ export interface TavernAgentRuntimeClient {
         toolId: string,
         input: AgentRuntimeToolProviderSelect
     ): Promise<AgentRuntimeToolProviderSelectResult>;
-    setAgentPluginGrant(
-        agentId: string,
-        pluginId: AgentRuntimePluginId,
-        input: AgentRuntimeUpdateAgentPluginGrant
-    ): Promise<AgentRuntimeAgentPluginGrant>;
     setChatPaneState(
         chatId: string,
         input: AgentRuntimeSetChatPaneStateRequest
     ): Promise<AgentRuntimeSetChatPaneStateResult>;
-    setMcpServerEnabled(name: string, enabled: boolean): Promise<{ ok: boolean }>;
+    setMcpAgentHostToolGrant(
+        agentId: string,
+        toolId: 'browser' | 'web_fetch',
+        enabled: boolean
+    ): Promise<{ enabled: boolean }>;
+    setMcpAgentToolGrant(
+        agentId: string,
+        connectionId: string,
+        toolName: string,
+        enabled: boolean
+    ): Promise<{ enabled: boolean }>;
     setModelProviderEnabled(
         providerId: string,
         input: AgentRuntimeUpdateModelProvider
     ): Promise<AgentRuntimeModelProviderCatalogEntry>;
-    startGoogleOAuth(input?: AgentRuntimeStartGoogleOAuth): Promise<AgentRuntimeGoogleOAuthStart>;
+    startMcpConnectionOAuth(
+        connectionId: string,
+        input: AgentRuntimeMcpOAuthStart
+    ): Promise<AgentRuntimeMcpOAuthStartResult>;
     startModelProviderOAuth(input: AgentRuntimeStartModelProviderOAuth): Promise<unknown>;
     startUpdate(input?: { targetVersion?: null | string }): Promise<AgentRuntimeUpdate>;
     stopAgent(agentId: string): Promise<AgentRuntimeAgentStopResult>;
     stopChatTurn(chatId: string, input: AgentRuntimeStopTurn): Promise<AgentRuntimeStopTurnResult>;
     submitModelProviderOAuth(input: AgentRuntimeSubmitModelProviderOAuth): Promise<unknown>;
-    testMcpServer(name: string): Promise<AgentRuntimeMcpServerTestResult>;
+    testMcpConnection(connectionId: string): Promise<AgentRuntimeMcpConnectionTestResult>;
     uninstallSkillHubSkill(
         input: AgentRuntimeSkillHubUninstallInput
     ): Promise<AgentRuntimeSkillHubActionResult>;
@@ -531,6 +495,10 @@ export interface TavernAgentRuntimeClient {
         agentId: string,
         input: AgentRuntimeUpdateAgentWebSettings
     ): Promise<AgentRuntimeAgent>;
+    updateMcpConnection(
+        connectionId: string,
+        input: AgentRuntimeMcpConnectionUpdate
+    ): Promise<AgentRuntimeMcpConnection>;
     updateSkillEnabled(
         skillId: string,
         input: AgentRuntimeUpdateSkillEnabled
@@ -1644,77 +1612,10 @@ class HttpTavernAgentRuntimeClient implements TavernAgentRuntimeClient {
         return agentRuntimeSaveAgentEnvResultSchema.parse(await response.json());
     }
 
-    async listPlugins() {
-        const response = await fetch(`${this.#baseUrl}${agentRuntimeRoutes.plugins}`, {
+    async getBrowserSettings() {
+        const response = await fetch(`${this.#baseUrl}${agentRuntimeRoutes.browserSettings}`, {
             headers: this.#authHeaders,
         });
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimePluginListSchema.parse(await response.json());
-    }
-
-    async listAgentPluginGrants(agentId: string) {
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.agentPluginGrants(agentId)}`,
-            { headers: this.#authHeaders }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeAgentPluginGrantListSchema.parse(await response.json());
-    }
-
-    async setAgentPluginGrant(
-        agentId: string,
-        pluginId: AgentRuntimePluginId,
-        input: AgentRuntimeUpdateAgentPluginGrant
-    ) {
-        const payload = agentRuntimeUpdateAgentPluginGrantSchema.parse(input);
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.agentPluginGrant(agentId, pluginId)}`,
-            {
-                body: JSON.stringify(payload),
-                headers: {
-                    ...this.#authHeaders,
-                    'content-type': 'application/json',
-                    [agentRuntimeMutationHeaders.origin]: agentRuntimeMutationOrigins.tavern,
-                },
-                method: 'PUT',
-            }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeAgentPluginGrantSchema.parse(await response.json());
-    }
-
-    async getPlugin(id: AgentRuntimePluginId) {
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.plugin(agentRuntimePluginIdSchema.parse(id))}`,
-            { headers: this.#authHeaders }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimePluginSchema.parse(await response.json());
-    }
-
-    async getBrowserSettings() {
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginBrowserSettings}`,
-            {
-                headers: this.#authHeaders,
-            }
-        );
 
         if (!response.ok) {
             await readErrorResponse(response);
@@ -1725,18 +1626,15 @@ class HttpTavernAgentRuntimeClient implements TavernAgentRuntimeClient {
 
     async saveBrowserSettings(input: AgentRuntimeSaveBrowserSettings) {
         const payload = agentRuntimeSaveBrowserSettingsSchema.parse(input);
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginBrowserSettings}`,
-            {
-                body: JSON.stringify(payload),
-                headers: {
-                    ...this.#authHeaders,
-                    'content-type': 'application/json',
-                    [agentRuntimeMutationHeaders.origin]: agentRuntimeMutationOrigins.tavern,
-                },
-                method: 'PUT',
-            }
-        );
+        const response = await fetch(`${this.#baseUrl}${agentRuntimeRoutes.browserSettings}`, {
+            body: JSON.stringify(payload),
+            headers: {
+                ...this.#authHeaders,
+                'content-type': 'application/json',
+                [agentRuntimeMutationHeaders.origin]: agentRuntimeMutationOrigins.tavern,
+            },
+            method: 'PUT',
+        });
 
         if (!response.ok) {
             await readErrorResponse(response);
@@ -1746,7 +1644,7 @@ class HttpTavernAgentRuntimeClient implements TavernAgentRuntimeClient {
     }
 
     async openBrowser() {
-        const response = await fetch(`${this.#baseUrl}${agentRuntimeRoutes.pluginBrowserOpen}`, {
+        const response = await fetch(`${this.#baseUrl}${agentRuntimeRoutes.browserOpen}`, {
             body: JSON.stringify({}),
             headers: {
                 ...this.#authHeaders,
@@ -1764,7 +1662,7 @@ class HttpTavernAgentRuntimeClient implements TavernAgentRuntimeClient {
     }
 
     async restartBrowser() {
-        const response = await fetch(`${this.#baseUrl}${agentRuntimeRoutes.pluginBrowserRestart}`, {
+        const response = await fetch(`${this.#baseUrl}${agentRuntimeRoutes.browserRestart}`, {
             body: JSON.stringify({}),
             headers: {
                 ...this.#authHeaders,
@@ -1779,214 +1677,6 @@ class HttpTavernAgentRuntimeClient implements TavernAgentRuntimeClient {
         }
 
         return agentRuntimeBrowserActionResultSchema.parse(await response.json());
-    }
-
-    async getMerchbaseSettings() {
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginMerchbaseSettings}`,
-            { headers: this.#authHeaders }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeMerchbaseSettingsSchema.parse(await response.json());
-    }
-
-    async getGoogleSettings() {
-        const response = await fetch(`${this.#baseUrl}${agentRuntimeRoutes.pluginGoogleSettings}`, {
-            headers: this.#authHeaders,
-        });
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeGoogleSettingsSchema.parse(await response.json());
-    }
-
-    async saveMerchbaseSettings(input: AgentRuntimeSaveMerchbaseSettings) {
-        const payload = agentRuntimeSaveMerchbaseSettingsSchema.parse(input);
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginMerchbaseSettings}`,
-            {
-                body: JSON.stringify(payload),
-                headers: {
-                    ...this.#authHeaders,
-                    'content-type': 'application/json',
-                    [agentRuntimeMutationHeaders.origin]: agentRuntimeMutationOrigins.tavern,
-                },
-                method: 'PUT',
-            }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeMerchbaseSettingsSchema.parse(await response.json());
-    }
-
-    async saveGoogleSettings(input: AgentRuntimeSaveGoogleSettings) {
-        const payload = agentRuntimeSaveGoogleSettingsSchema.parse(input);
-        const response = await fetch(`${this.#baseUrl}${agentRuntimeRoutes.pluginGoogleSettings}`, {
-            body: JSON.stringify(payload),
-            headers: {
-                ...this.#authHeaders,
-                'content-type': 'application/json',
-                [agentRuntimeMutationHeaders.origin]: agentRuntimeMutationOrigins.tavern,
-            },
-            method: 'PUT',
-        });
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeGoogleSettingsSchema.parse(await response.json());
-    }
-
-    async startGoogleOAuth(input: AgentRuntimeStartGoogleOAuth = {}) {
-        const payload = agentRuntimeStartGoogleOAuthSchema.parse(input);
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginGoogleOAuthStart}`,
-            {
-                body: JSON.stringify(payload),
-                headers: {
-                    ...this.#authHeaders,
-                    'content-type': 'application/json',
-                    [agentRuntimeMutationHeaders.origin]: agentRuntimeMutationOrigins.tavern,
-                },
-                method: 'POST',
-            }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeGoogleOAuthStartSchema.parse(await response.json());
-    }
-
-    async completeGoogleOAuth(sessionId: string, input: AgentRuntimeCompleteGoogleOAuth) {
-        const payload = agentRuntimeCompleteGoogleOAuthSchema.parse(input);
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginGoogleOAuthComplete(sessionId)}`,
-            {
-                body: JSON.stringify(payload),
-                headers: {
-                    ...this.#authHeaders,
-                    'content-type': 'application/json',
-                    [agentRuntimeMutationHeaders.origin]: agentRuntimeMutationOrigins.tavern,
-                },
-                method: 'POST',
-            }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeGoogleOAuthPollSchema.parse(await response.json());
-    }
-
-    async pollGoogleOAuth(input: AgentRuntimeGoogleOAuthPollInput) {
-        const payload = agentRuntimeGoogleOAuthPollInputSchema.parse(input);
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginGoogleOAuthPoll(payload.sessionId)}`,
-            { headers: this.#authHeaders }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeGoogleOAuthPollSchema.parse(await response.json());
-    }
-
-    async disconnectGoogleOAuth() {
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginGoogleDisconnect}`,
-            {
-                body: JSON.stringify({}),
-                headers: {
-                    ...this.#authHeaders,
-                    'content-type': 'application/json',
-                    [agentRuntimeMutationHeaders.origin]: agentRuntimeMutationOrigins.tavern,
-                },
-                method: 'POST',
-            }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeGoogleSettingsSchema.parse(await response.json());
-    }
-
-    async queryMerchbaseSalesSeries(input: AgentRuntimeMerchbaseSalesSeriesInput) {
-        const payload = agentRuntimeMerchbaseSalesSeriesInputSchema.parse(input);
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginMerchbaseSalesSeries}`,
-            {
-                body: JSON.stringify(payload),
-                headers: {
-                    ...this.#authHeaders,
-                    'content-type': 'application/json',
-                },
-                method: 'POST',
-            }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeMerchbaseSalesSeriesSchema.parse(await response.json());
-    }
-
-    async queryGoogleCalendarEvents(input: AgentRuntimeGoogleCalendarEventsListInput) {
-        const payload = agentRuntimeGoogleCalendarEventsListInputSchema.parse(input);
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginGoogleCalendarEvents}`,
-            {
-                body: JSON.stringify(payload),
-                headers: {
-                    ...this.#authHeaders,
-                    'content-type': 'application/json',
-                },
-                method: 'POST',
-            }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeGoogleCalendarEventsListSchema.parse(await response.json());
-    }
-
-    async queryMerchbaseAction(input: AgentRuntimeMerchbaseActionInput) {
-        const payload = agentRuntimeMerchbaseActionInputSchema.parse(input);
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.pluginMerchbaseAction}`,
-            {
-                body: JSON.stringify(payload),
-                headers: {
-                    ...this.#authHeaders,
-                    'content-type': 'application/json',
-                },
-                method: 'POST',
-            }
-        );
-
-        if (!response.ok) {
-            await readErrorResponse(response);
-        }
-
-        return agentRuntimeMerchbaseActionResultSchema.parse(await response.json());
     }
 
     async listSkills(options?: AgentRuntimeListSkillsOptions) {
@@ -2135,49 +1825,142 @@ class HttpTavernAgentRuntimeClient implements TavernAgentRuntimeClient {
         );
     }
 
-    async listMcpServers() {
-        return agentRuntimeMcpServerListSchema.parse(
-            await this.#getSkillHubJson(agentRuntimeRoutes.mcpServers)
+    async listMcpConnections() {
+        return agentRuntimeMcpConnectionListSchema.parse(
+            await this.#getSkillHubJson(agentRuntimeRoutes.mcpConnections)
         );
     }
 
-    async addMcpServer(input: AgentRuntimeMcpServerCreate) {
-        const payload = agentRuntimeMcpServerCreateSchema.parse(input);
-        return agentRuntimeMcpServerSchema.parse(
-            await this.#sendSkillHubJson('POST', agentRuntimeRoutes.mcpServers, payload)
+    async addMcpConnection(input: AgentRuntimeMcpConnectionCreate) {
+        return agentRuntimeMcpConnectionSchema.parse(
+            await this.#sendSkillHubJson(
+                'POST',
+                agentRuntimeRoutes.mcpConnections,
+                agentRuntimeMcpConnectionCreateSchema.parse(input)
+            )
         );
     }
 
-    async removeMcpServer(name: string) {
+    async addMcpPresetAccount(input: AgentRuntimeMcpPresetAccountCreate) {
+        return agentRuntimeMcpConnectionSchema.parse(
+            await this.#sendSkillHubJson(
+                'POST',
+                agentRuntimeRoutes.mcpPresetAccounts,
+                agentRuntimeMcpPresetAccountCreateSchema.parse(input)
+            )
+        );
+    }
+
+    async updateMcpConnection(connectionId: string, input: AgentRuntimeMcpConnectionUpdate) {
+        return agentRuntimeMcpConnectionSchema.parse(
+            await this.#sendSkillHubJson(
+                'PATCH',
+                agentRuntimeRoutes.mcpConnection(connectionId),
+                agentRuntimeMcpConnectionUpdateSchema.parse(input)
+            )
+        );
+    }
+
+    async deleteMcpConnection(connectionId: string) {
+        return agentRuntimeMcpDisconnectResultSchema.parse(
+            await this.#sendSkillHubJson(
+                'DELETE',
+                agentRuntimeRoutes.mcpConnection(connectionId),
+                undefined
+            )
+        );
+    }
+
+    async disconnectMcpConnection(connectionId: string) {
+        return agentRuntimeMcpDisconnectResultSchema.parse(
+            await this.#sendSkillHubJson(
+                'POST',
+                agentRuntimeRoutes.mcpConnectionDisconnect(connectionId),
+                {}
+            )
+        );
+    }
+
+    async testMcpConnection(connectionId: string) {
+        return agentRuntimeMcpConnectionTestResultSchema.parse(
+            await this.#sendSkillHubJson(
+                'POST',
+                agentRuntimeRoutes.mcpConnectionTest(connectionId),
+                {}
+            )
+        );
+    }
+
+    async listMcpConnectionTools(connectionId: string) {
+        return agentRuntimeMcpToolListSchema.parse(
+            await this.#getSkillHubJson(agentRuntimeRoutes.mcpConnectionTools(connectionId))
+        );
+    }
+
+    async refreshMcpConnection(connectionId: string) {
+        return agentRuntimeMcpToolListSchema.parse(
+            await this.#sendSkillHubJson(
+                'POST',
+                agentRuntimeRoutes.mcpConnectionRefresh(connectionId),
+                {}
+            )
+        );
+    }
+
+    async listMcpAgentGrants(agentId: string) {
+        return agentRuntimeMcpAgentToolGrantListSchema.parse(
+            await this.#getSkillHubJson(agentRuntimeRoutes.mcpAgentGrants(agentId))
+        );
+    }
+
+    async listMcpAgentHostTools(agentId: string) {
+        return agentRuntimeHostToolListSchema.parse(
+            await this.#getSkillHubJson(agentRuntimeRoutes.mcpAgentHostTools(agentId))
+        );
+    }
+
+    async setMcpAgentToolGrant(
+        agentId: string,
+        connectionId: string,
+        toolName: string,
+        enabled: boolean
+    ) {
         return (await this.#sendSkillHubJson(
-            'DELETE',
-            agentRuntimeRoutes.mcpServer(name),
-            undefined
-        )) as { ok: boolean };
+            'PUT',
+            agentRuntimeRoutes.mcpAgentToolGrant(agentId, connectionId, toolName),
+            { enabled }
+        )) as { enabled: boolean };
     }
 
-    async testMcpServer(name: string) {
-        return agentRuntimeMcpServerTestResultSchema.parse(
-            await this.#sendSkillHubJson('POST', agentRuntimeRoutes.mcpServerTest(name), {})
+    async setMcpAgentHostToolGrant(
+        agentId: string,
+        toolId: 'browser' | 'web_fetch',
+        enabled: boolean
+    ) {
+        return (await this.#sendSkillHubJson(
+            'PUT',
+            agentRuntimeRoutes.mcpAgentHostToolGrant(agentId, toolId),
+            { enabled }
+        )) as { enabled: boolean };
+    }
+
+    async startMcpConnectionOAuth(connectionId: string, input: AgentRuntimeMcpOAuthStart) {
+        return agentRuntimeMcpOAuthStartResultSchema.parse(
+            await this.#sendSkillHubJson(
+                'POST',
+                agentRuntimeRoutes.mcpConnectionOAuthStart(connectionId),
+                agentRuntimeMcpOAuthStartSchema.parse(input)
+            )
         );
     }
 
-    async setMcpServerEnabled(name: string, enabled: boolean) {
-        return (await this.#sendSkillHubJson('PUT', agentRuntimeRoutes.mcpServerEnabled(name), {
-            enabled,
-        })) as { ok: boolean };
-    }
-
-    async getMcpCatalog() {
-        return agentRuntimeMcpCatalogSchema.parse(
-            await this.#getSkillHubJson(agentRuntimeRoutes.mcpCatalog)
-        );
-    }
-
-    async installMcpCatalogEntry(input: AgentRuntimeMcpCatalogInstall) {
-        const payload = agentRuntimeMcpCatalogInstallSchema.parse(input);
-        return agentRuntimeSkillHubActionResultSchema.parse(
-            await this.#sendSkillHubJson('POST', agentRuntimeRoutes.mcpCatalogInstall, payload)
+    async completeMcpConnectionOAuth(connectionId: string, input: AgentRuntimeMcpOAuthComplete) {
+        return agentRuntimeMcpConnectionSchema.parse(
+            await this.#sendSkillHubJson(
+                'POST',
+                agentRuntimeRoutes.mcpConnectionOAuthComplete(connectionId),
+                agentRuntimeMcpOAuthCompleteSchema.parse(input)
+            )
         );
     }
 
@@ -2214,7 +1997,11 @@ class HttpTavernAgentRuntimeClient implements TavernAgentRuntimeClient {
         return await response.json();
     }
 
-    async #sendSkillHubJson(method: 'DELETE' | 'POST' | 'PUT', pathname: string, payload: unknown) {
+    async #sendSkillHubJson(
+        method: 'DELETE' | 'PATCH' | 'POST' | 'PUT',
+        pathname: string,
+        payload: unknown
+    ) {
         const response = await fetch(`${this.#baseUrl}${pathname}`, {
             ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
             headers: {

@@ -96,9 +96,10 @@ Agent seat.
 
 Tavern does not expose interactive tool approval prompts. Enabled tools are
 auto-approved unless Runtime adds a narrower approval policy. Harness tools
-come from the selected executor, Plugin tools come from Plugin grants, and
-safety is expressed through Sandbox mode. Under Sandbox mode `none`, enabled
-local tools imply full host trust.
+come from the selected executor. Runtime supplies host tools through exact
+host-tool grants and relays MCP tools through exact per-agent, per-connection
+tool grants. Safety is expressed through Sandbox mode. Under Sandbox mode
+`none`, enabled local tools imply full host trust.
 
 The first Sandbox mode is `none`: a trusted local workspace under the Runtime
 data root, such as `.tavern/agents/<agent-id>/workspace`. This is organization

@@ -1,6 +1,5 @@
 import type { AgentRuntimeTool } from '@tavern/api';
 import { imageGenerationReadiness } from '../models/capability-selections.ts';
-import { listPluginToolGroups } from '../plugins/agent-capabilities.ts';
 
 const builtInTools = [
     {
@@ -75,16 +74,12 @@ const builtInTools = [
 
 export function listRuntimeTools() {
     return {
-        tools: [
-            ...builtInTools.map((tool) => ({ ...tool })),
-            imageGenerationToolGroup(),
-            ...listPluginToolGroups(),
-        ],
+        tools: [...builtInTools.map((tool) => ({ ...tool })), imageGenerationToolGroup()],
     };
 }
 
 export function getRuntimeTool(toolId: string) {
-    const tool = [...builtInTools, imageGenerationToolGroup(), ...listPluginToolGroups()].find(
+    const tool = [...builtInTools, imageGenerationToolGroup()].find(
         (candidate) => candidate.id === toolId
     );
     return tool ? { ...tool } : null;

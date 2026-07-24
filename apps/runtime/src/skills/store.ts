@@ -5,7 +5,7 @@ import { getDb } from '../db/connection.ts';
 import type { Database } from '../db/sqlite.ts';
 import { namedParams } from '../db/sqlite.ts';
 
-export type SkillSource = 'agent' | 'external' | 'hub' | 'plugin' | 'seeded';
+export type SkillSource = 'agent' | 'external' | 'hub' | 'seeded';
 
 export interface SkillSnapshot {
     content: string;

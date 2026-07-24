@@ -36,8 +36,8 @@ describe('Runtime capability gates', () => {
         expect(formatCapabilityDisabledReason(capability)).toBe('Grotto update required.');
     });
 
-    test('gates Plugins settings on Runtime API access', () => {
-        expect(settingsCapabilityRequirements.plugins).toEqual(['apiServer']);
+    test('gates Connections settings on Runtime API access', () => {
+        expect(settingsCapabilityRequirements.connections).toEqual(['apiServer']);
     });
 
     test('keeps local shell tabs reachable without Runtime capabilities', () => {

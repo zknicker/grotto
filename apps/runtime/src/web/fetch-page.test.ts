@@ -2,12 +2,27 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { AgentRuntimeAgent } from '@tavern/api';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { setAgentHostToolGrant } from '../agent-engine/host-tools.ts';
+import { closeDb, initTestDb } from '../db/connection.ts';
+import { ensureRuntimeSchema } from '../db/schema.ts';
+import { upsertStoredAgent } from '../tavern/agents-store.ts';
 import { createWebToolsForAgent } from './agent-tools.ts';
 import { fetchPageAsMarkdown } from './fetch-page.ts';
 
 const maxBodyBytes = 2 * 1024 * 1024;
 const truncationMarker = '[Content truncated at 40000 characters]';
+
+beforeAll(() => {
+    ensureRuntimeSchema(initTestDb());
+    upsertStoredAgent({ agent: createAgent() });
+});
+
+beforeEach(() => {
+    setAgentHostToolGrant(createAgent().id, 'web_fetch', true);
+});
+
+afterAll(() => closeDb());
 
 describe('fetchPageAsMarkdown', () => {
     let baseUrl: string;
@@ -96,7 +111,7 @@ describe('fetchPageAsMarkdown', () => {
     });
 
     test('returns fetch failures as tool errors', async () => {
-        const tools = createWebToolsForAgent(createAgent(true));
+        const tools = createWebToolsForAgent(createAgent());
 
         await expect(runTool(tools, { url: `${baseUrl}/missing` })).resolves.toEqual({
             error: 'Web request failed with status 503.',
@@ -108,34 +123,44 @@ describe('fetchPageAsMarkdown', () => {
 });
 
 describe('createWebToolsForAgent', () => {
-    test('gates web_fetch on explicit agent web access', () => {
-        expect(createWebToolsForAgent(createAgent(false))).toEqual({});
+    test('gates web_fetch on its exact host-tool grant', () => {
+        expect(createWebToolsForAgent(createAgent())).toHaveProperty('web_fetch');
+
+        setAgentHostToolGrant(createAgent().id, 'web_fetch', false);
+
         expect(createWebToolsForAgent(createAgent())).toEqual({});
-        expect(createWebToolsForAgent(createAgent(true))).toHaveProperty('web_fetch');
     });
 
     test('labels fetched content as untrusted external data', () => {
-        const tool = createWebToolsForAgent(createAgent(true)).web_fetch;
+        const tool = createWebToolsForAgent(createAgent()).web_fetch;
 
         expect(tool?.description).toContain('UNTRUSTED external data');
     });
 
     test('returns non-http scheme failures as tool errors', async () => {
-        const tools = createWebToolsForAgent(createAgent(true));
+        const tools = createWebToolsForAgent(createAgent());
 
         await expect(runTool(tools, { url: 'file:///tmp/page.html' })).resolves.toEqual({
             error: 'Only http(s) URLs can be fetched.',
         });
     });
+
+    test('rechecks the grant immediately before fetching', async () => {
+        const tools = createWebToolsForAgent(createAgent());
+        setAgentHostToolGrant(createAgent().id, 'web_fetch', false);
+
+        await expect(runTool(tools, { url: 'https://example.com' })).rejects.toThrow(
+            'Web fetch access was revoked.'
+        );
+    });
 });
 
-function createAgent(webAccessEnabled?: boolean): AgentRuntimeAgent {
+function createAgent(): AgentRuntimeAgent {
     return {
-        ...(webAccessEnabled === undefined ? {} : { webAccessEnabled }),
         enabledSkillIds: [],
         id: 'agt_web_test',
         isAdmin: true,
-        name: 'Web Test',
+        name: 'WebTest',
         primaryColor: null,
         workspaceFolder: '/tmp/tavern-web-test',
     };

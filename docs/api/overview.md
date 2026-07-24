@@ -2,7 +2,7 @@
 summary: Tavern API architecture for typed chat/realtime contracts, Runtime admin contracts, SDK wrappers, and contract rules.
 read_when:
   - changing tRPC routers, runtime HTTP routes, websocket behavior, or SDK methods
-  - adding Plugins, bots, webhooks, automations, or external clients
+  - adding MCP connections, bots, webhooks, automations, or external clients
 ---
 
 # API Overview
@@ -67,5 +67,6 @@ subscribes to active Runtime turn events.
 - [Realtime](realtime.md)
 - [Agents API](agents.md)
 - [Skills API](skills.md)
+- [Connections API](connections.md)
 - [Agent Engine Runtime](../internals/agent-engine-runtime.md)
 - [Architecture Overview](../internals/architecture-overview.md)

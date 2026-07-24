@@ -225,10 +225,10 @@ Messages have one text body and durable attachments. Agent work such
 as thinking summaries, tool calls, tool results, assistant progress, and status
 updates belongs to `response` and `activity` records, not message body fields.
 
-Harness tools come from the selected executor. Plugin tools come from built-in
-Plugin enablement plus agent Plugin grants. Enabled tools are auto-approved
-unless Runtime adds a narrower approval policy. Tavern does not expose an
-approval response endpoint.
+Harness-native tools come from the selected executor. Runtime adds only the
+host tools and MCP tools granted to that agent; MCP grants are rechecked at
+call time. Exposed tools are auto-approved unless Runtime adds a narrower
+approval policy. Tavern does not expose an approval response endpoint.
 
 Request:
 

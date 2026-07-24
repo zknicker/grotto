@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { hasAgentHostToolGrant, setAgentHostToolGrant } from '../agent-engine/host-tools.ts';
+import { setRuntimeSkillEnabled } from '../agent-engine/skill-library.ts';
 import { closeDb, initTestDb } from '../db/connection.ts';
 import { ensureRuntimeSchema } from '../db/schema.ts';
 import {
@@ -9,8 +11,7 @@ import {
     saveClaudeOAuthCredentials,
 } from '../model-access/claude-settings.ts';
 import { setModelProviderEnabled } from '../models/provider-store.ts';
-import { materializePluginSkills } from '../plugins/materialize-skills.ts';
-import { saveMerchbaseSettings } from '../plugins/merchbase.ts';
+import { getStoredAgent, updateStoredAgent, upsertStoredAgent } from './agents-store.ts';
 import { getChat } from './chat-api/index.ts';
 import { handleTavernRuntimeRequest } from './router.ts';
 
@@ -63,7 +64,6 @@ describe('Runtime agent and agent engine reads', () => {
         expect(createResponse.status).toBe(200);
         await expect(createResponse.json()).resolves.toMatchObject({
             webAccessEnabled: false,
-            enabledPluginIds: [],
             // The pre-flip `tasks` skill left the seeded defaults (WS8): its
             // content teaches the retired tasks_* tool surface.
             enabledSkillIds: ['tavern-agent', 'visuals'],
@@ -94,7 +94,6 @@ describe('Runtime agent and agent engine reads', () => {
 
         expect(createResponse.status).toBe(200);
         await expect(createResponse.json()).resolves.toMatchObject({
-            enabledPluginIds: [],
             enabledSkillIds: ['research'],
             id: 'agt_research',
             isAdmin: false,
@@ -164,6 +163,42 @@ describe('Runtime agent and agent engine reads', () => {
         } finally {
             await fs.rm(workspaceFolder, { force: true, recursive: true });
         }
+    });
+
+    it('does not restore revoked default host tools on agent updates', () => {
+        upsertStoredAgent({
+            agent: {
+                enabledSkillIds: [],
+                id: 'agt_tools',
+                isAdmin: false,
+                name: 'Tools',
+                primaryColor: null,
+                workspaceFolder: '/tmp/tavern-tools-workspace',
+            },
+        });
+        expect(hasAgentHostToolGrant('agt_tools', 'web_fetch')).toBe(true);
+
+        setAgentHostToolGrant('agt_tools', 'web_fetch', false);
+        updateStoredAgent({ agentId: 'agt_tools', name: 'UpdatedTools' });
+
+        expect(hasAgentHostToolGrant('agt_tools', 'web_fetch')).toBe(false);
+    });
+
+    it('does not restore a disabled skill from legacy agent JSON', () => {
+        upsertStoredAgent({
+            agent: {
+                enabledSkillIds: ['research'],
+                id: 'agt_skills',
+                isAdmin: false,
+                name: 'Skills',
+                primaryColor: null,
+                workspaceFolder: '/tmp/tavern-skills-workspace',
+            },
+        });
+
+        setRuntimeSkillEnabled('research', false);
+
+        expect(getStoredAgent('agt_skills')?.enabledSkillIds).toEqual([]);
     });
 
     it('persists the agent bio through create, update, and clear', async () => {
@@ -414,167 +449,6 @@ describe('Runtime agent and agent engine reads', () => {
             ])
         );
         expect(unknown.skills).toEqual([]);
-    });
-
-    it('rejects Plugin grants while the Plugin is globally disabled', async () => {
-        await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/agents', {
-                body: JSON.stringify({
-                    id: 'agt_research',
-                    name: 'Research',
-                    workspaceFolder: '/tmp/tavern-research-workspace',
-                }),
-                headers: { 'content-type': 'application/json' },
-                method: 'POST',
-            })
-        );
-
-        await expect(
-            handleTavernRuntimeRequest(
-                new Request('http://runtime.test/agents/agt_research/plugins/merchbase/enabled', {
-                    body: JSON.stringify({ enabled: true }),
-                    headers: { 'content-type': 'application/json' },
-                    method: 'PUT',
-                })
-            )
-        ).rejects.toThrow(
-            'Enable MerchBase in Settings -> Plugins before granting it to an agent.'
-        );
-    });
-
-    it('stores Plugin grants as agent-level capability access', async () => {
-        saveMerchbaseSettings({ apiKey: 'secret-key', enabled: true });
-        await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/agents', {
-                body: JSON.stringify({
-                    id: 'agt_research',
-                    name: 'Research',
-                    workspaceFolder: '/tmp/tavern-research-workspace',
-                }),
-                headers: { 'content-type': 'application/json' },
-                method: 'POST',
-            })
-        );
-
-        const grantResponse = await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/agents/agt_research/plugins/merchbase/enabled', {
-                body: JSON.stringify({ enabled: true }),
-                headers: { 'content-type': 'application/json' },
-                method: 'PUT',
-            })
-        );
-        const listResponse = await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/agents/agt_research/plugins')
-        );
-        const configResponse = await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/agents/agt_research/config')
-        );
-
-        expect(grantResponse.status).toBe(200);
-        await expect(grantResponse.json()).resolves.toMatchObject({
-            agentId: 'agt_research',
-            enabled: true,
-            pluginId: 'merchbase',
-        });
-        expect(listResponse.status).toBe(200);
-        await expect(listResponse.json()).resolves.toMatchObject({
-            grants: [
-                expect.objectContaining({
-                    agentId: 'agt_research',
-                    enabled: true,
-                    pluginId: 'merchbase',
-                }),
-            ],
-        });
-        await expect(configResponse.json()).resolves.toMatchObject({
-            enabledPluginIds: ['merchbase'],
-            id: 'agt_research',
-        });
-    });
-
-    it('lists materialized Plugin skills from disk', async () => {
-        saveMerchbaseSettings({
-            apiKey: 'secret-key',
-            baseUrl: 'https://app.merchbase.co',
-            enabled: true,
-        });
-        await materializePluginSkills();
-        for (const [id, name] of [
-            ['agt_research', 'Research'],
-            ['agt_other', 'Other'],
-        ]) {
-            await handleTavernRuntimeRequest(
-                new Request('http://runtime.test/agents', {
-                    body: JSON.stringify({
-                        id,
-                        name,
-                        workspaceFolder: `/tmp/tavern-${name?.toLowerCase()}-workspace`,
-                    }),
-                    headers: { 'content-type': 'application/json' },
-                    method: 'POST',
-                })
-            );
-        }
-        await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/agents/agt_research/plugins/merchbase/enabled', {
-                body: JSON.stringify({ enabled: true }),
-                headers: { 'content-type': 'application/json' },
-                method: 'PUT',
-            })
-        );
-
-        const grantedResponse = await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/skills?agentId=agt_research')
-        );
-        const detailResponse = await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/skills/merchbase')
-        );
-        const ungrantedResponse = await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/skills?agentId=agt_other')
-        );
-
-        expect(grantedResponse.status).toBe(200);
-        const granted = (await grantedResponse.json()) as { skills: Array<{ id: string }> };
-        const ungranted = (await ungrantedResponse.json()) as { skills: Array<{ id: string }> };
-
-        expect(granted.skills).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    id: 'merchbase',
-                    runtimeSource: 'tavern-plugin:merchbase',
-                }),
-            ])
-        );
-        expect(ungranted.skills).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    id: 'merchbase',
-                    runtimeSource: 'tavern-plugin:merchbase',
-                }),
-            ])
-        );
-        expect(detailResponse.status).toBe(200);
-        await expect(detailResponse.json()).resolves.toMatchObject({
-            contentMarkdown: expect.stringContaining('merchbase_sales_series'),
-            id: 'merchbase',
-            runtimeSource: 'tavern-plugin:merchbase',
-        });
-    });
-
-    it('serves Plugin tool groups through the runtime adapter', async () => {
-        const response = await handleTavernRuntimeRequest(new Request('http://runtime.test/tools'));
-
-        expect(response.status).toBe(200);
-        await expect(response.json()).resolves.toMatchObject({
-            tools: expect.arrayContaining([
-                expect.objectContaining({
-                    enabled: false,
-                    id: 'merchbase',
-                    readOnly: true,
-                    tools: expect.arrayContaining(['merchbase_sales_series']),
-                }),
-            ]),
-        });
     });
 
     it('serves agent engine sessions and evidence through the runtime adapter', async () => {

@@ -16,11 +16,9 @@ export const agentRuntimeCapabilities = [
     'cron',
     'autoDispatch',
     'webAccess',
+    'browser',
     'devToolkit',
     'identity',
-    'plugin.merchbase',
-    'plugin.google.calendar',
-    'plugin.browser',
 ] as const;
 
 export const agentRuntimeCapabilitySchema = z.enum(agentRuntimeCapabilities);

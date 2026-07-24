@@ -12,7 +12,9 @@ import { createPi, type PiAuthOptions } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { AgentRuntimeModelName, AgentRuntimeThinkingLevel } from '@tavern/api';
 import { buildAgentToolEnvironment } from '../agent-engine/agent-cli-wrapper.ts';
+import { createBrowserToolForAgent } from '../agent-engine/host-tools.ts';
 import { createLocalTrustedSandboxProvider } from '../agent-engine/local-trusted-sandbox.ts';
+import { createAgentMcpTools } from '../agent-engine/mcp-clients.ts';
 import {
     type AssignedSkillBundle,
     readAssignedSkillBundles,
@@ -117,7 +119,7 @@ async function executeHarnessTurn(
     if (instructionsDelivered) {
         recordAgentSessionInstructionsHash({ hash: fingerprint, id: input.agentSession.id });
     }
-    const agent = harnessAgentFactory(input, createLocalTrustedSandboxProvider, {
+    const agent = await harnessAgentFactory(input, createLocalTrustedSandboxProvider, {
         instructions,
         skills,
     });
@@ -177,7 +179,7 @@ export function setHarnessAgentFactoryForTesting(factory: typeof createHarnessAg
     };
 }
 
-function createHarnessAgent(
+async function createHarnessAgent(
     input: AgentExecutorInput,
     sandboxFactory: typeof createLocalTrustedSandboxProvider,
     options: {
@@ -186,12 +188,14 @@ function createHarnessAgent(
     }
 ) {
     const harness = createHarness(input);
-    // Zero engine tools (D5): the CLI on PATH is the agent's whole surface.
-    // web_fetch stays as the one named host-tool exception — the uniform
-    // Tavern fetch tool with one size-cap and injection posture — pending a
-    // WS2-gate note in the PR.
+    // Host tools and exact MCP grants compose into the AI SDK turn surface.
     const tools = {
         ...createWebToolsForAgent(input.agent),
+        ...createBrowserToolForAgent(input.agent.id),
+        ...(await createAgentMcpTools({
+            agentId: input.agent.id,
+            turnId: input.runId,
+        })),
     };
     return new HarnessAgent({
         harness,

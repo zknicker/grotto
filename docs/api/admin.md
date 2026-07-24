@@ -37,14 +37,14 @@ It is not a second product API.
 | Agent execution                 | `/agent-engine/config`, `/agent-env`                                                                                                                                                                                                                                                                                |
 | Agent presence, activity, inbox | `/agents/presence`, `/agents/{id}/activity`, `/agents/{id}/inbox`, `/agents/{id}/stop`, `/agents/{id}/session/reset`                                                                                                                                                                                                                       |
 | Timezone settings               | `/timezone/settings`                                                                                                                                                                                                                                                                                                                       |
-| Plugins                         | `/plugins`, `/plugins/{id}`, `/plugins/merchbase/settings`, `/plugins/merchbase/action`, `/plugins/merchbase/sales/series`                                                                                                                                                                                                                 |
+| Browser                         | `/browser/settings`, `/browser/open`, `/browser/restart`                                                                                                                                                                                                                                                                                   |
 | Agents and files                | `/agents`, `/agents/{id}`, `/agents/{id}/config`, `/agents/{id}/files`, `/agents/{id}/files/{path}`, `/workspace/agents/{id}/files`, `/workspace/agents/{id}/files/{path}`                                                                                                                                       |
 | Sessions and execution evidence | `/agent/sessions`, `/agent/sessions/previews`, `/agent/sessions/{sessionKey}/messages`, `/agent/sessions/{sessionKey}/graph`, `/agent/sessions/{sessionKey}/prompt`, `/agent/sessions/{sessionKey}/resync`                                                                                                                                 |
 | Jobs                            | `/jobs`, `/jobs/{slug}`, `/jobs/{slug}/run`                                                                                                                                                                                                                                                                                                |
 | Skills                          | `/skills`, `/skills/{id}`, `/skills/{id}/config`                                                                                                                                                                                                                                                                                           |
 | Skill hub                       | `/skills/hub/available`, `/skills/hub/preview`, `/skills/hub/scan`, `/skills/hub/install`, `/skills/hub/uninstall`, `/skills/hub/taps`, `/skills/hub/taps/{repo}`                                                                                                                                                                          |
 | Tools                           | `/tools`, `/tools/{id}/enabled`, `/tools/{id}/config`, `/tools/{id}/provider`, `/tools/{id}/env`, `/tools/{id}/post-setup`                                                                                                                                                                                                                 |
-| Advanced MCP servers            | `/mcp/servers`, `/mcp/servers/{name}`, `/mcp/servers/{name}/test`, `/mcp/servers/{name}/enabled`, `/mcp/catalog`, `/mcp/catalog/install`                                                                                                                                                                                                   |
+| MCP connections                 | `/mcp/connections`, `/mcp/connections/{id}`, `/mcp/connections/{id}/test`, `/mcp/connections/{id}/tools`, `/mcp/connections/{id}/disconnect`, `/mcp/connections/{id}/oauth/start`, `/mcp/connections/{id}/oauth/complete`, `/mcp/agents/{agentId}/grants`, `/mcp/agents/{agentId}/host-tools` |
 | Models and access               | `/models`, `/model-categories/settings`, `/model-capabilities/selections`, `/model-providers/catalog`, `/model-providers/enabled`, `/model-providers/{providerId}`, `/model-access`, `/model-access/api-key`, `/model-access/oauth/{providerId}/start`, `/model-access/oauth/{providerId}/poll/{sessionId}`, `/model-access/oauth/{providerId}/submit`, `/model-access/oauth/sessions/{sessionId}`, `/model-access/openrouter` |
 | Platform bindings               | `/bindings`, `/bindings/{id}`                                                                                                                                                                                                                                                                                                              |
 | Runtime chat projections        | `/agent/chats`, `/agent/chats/{chatId}/messages`, `/agent/chats/{chatId}/agent-sessions/current`, `/agent/chats/{chatId}/pane-state`                                                                                                                                                                                              |
@@ -79,18 +79,18 @@ that workspace, traversal is rejected, hidden and generated dependency folders
 are omitted from listings, and sensitive files such as `.env` and key material
 are blocked. Tavern App uses these routes to preview linked workspace artifacts.
 
-`/mcp/servers` owns Tavern-stored MCP server records for advanced Runtime
-plumbing and Plugin-backed experiments. Secret env values live in Tavern-managed
-secret storage and are materialized for the agent engine as environment
-variables. Reads return server configuration without secret values.
-`POST /mcp/servers/{name}/test` checks command resolution or URL reachability
-without touching active turns.
+`/mcp/connections` owns Runtime-stored MCP connection records. Public
+configuration is inspectable; credentials and secret headers stay in the
+Runtime vault. A connection represents one account. Tool discovery is
+read-only and never grants access. Per-agent grants identify the connection
+and exact upstream tool name; Runtime checks them again at call time.
+Disconnect clears credentials and grants. Custom connections may also be
+deleted.
 
-`/plugins` owns Tavern Runtime Plugin records. Settings and write-only
-secrets live in dedicated Runtime Plugin tables, health lives in Runtime
-capabilities, and read-oriented domain actions such as
-`/plugins/merchbase/action` and `/plugins/merchbase/sales/series`
-use the Plugin client.
+OAuth routes implement MCP authorization discovery, PKCE, refresh, and dynamic
+client registration through the AI SDK MCP client. The App Server owns the
+ephemeral loopback callback. Browser is a separate host-tool service with its
+own settings and lifecycle routes.
 
 `/model-providers/catalog` lists addable providers. `/model-providers/enabled`
 lists the providers this Runtime has enabled. `/model-providers/{providerId}`

@@ -196,9 +196,6 @@ test('skill service exposes Runtime read-only tools', async () => {
                 ],
             });
         }
-        if (url.pathname === '/plugins') {
-            return Response.json({ plugins: [] });
-        }
         throw new Error(`Unexpected fetch: ${url.pathname}`);
     };
 
@@ -212,7 +209,6 @@ test('skill service exposes Runtime read-only tools', async () => {
             enabled: true,
             id: 'bash',
             name: 'Bash',
-            plugin: null,
             readOnly: true,
             tools: ['bash'],
             usability: 'enabled',

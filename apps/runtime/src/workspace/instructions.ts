@@ -2,7 +2,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import type { AgentRuntimeAgent, AgentRuntimeModelName } from '@tavern/api';
-import runtimePackage from '../../package.json';
+import runtimePackage from '../../package.json' with { type: 'json' };
+import { hasAgentHostToolGrant } from '../agent-engine/host-tools.ts';
 import type { Database } from '../db/sqlite.ts';
 import { namedParams } from '../db/sqlite.ts';
 import { resolveAgentModelSelection } from '../models/selection-service.ts';
@@ -151,9 +152,6 @@ export async function generateAgentInstructions(
         hostname: facts.hostname,
         initialRole: agent?.bio ?? null,
         os: facts.os,
-        // No per-plugin CLIs exist yet; the section composes once they do
-        // (flip ruling: plugin tools retired, plugin CLIs are follow-up work).
-        pluginCliEntries: [],
         runtimeVersion: facts.runtimeVersion,
         webAccess: resolveWebAccessVariant(agent, options.model, source.agentId),
         workspacePath: source.workspaceDir,
@@ -208,12 +206,16 @@ function resolveWebAccessVariant(
     agent: AgentRuntimeAgent | null,
     model: AgentRuntimeModelName | undefined,
     agentId: string
-): 'fetch-only' | 'search' | null {
+): 'fetch-only' | 'search' | 'search-only' | null {
     if (agent?.webAccessEnabled !== true) {
         return null;
     }
     const effectiveModel = model ?? resolveAgentModelSelection({ agentId });
-    return modelProviderHasWebSearch(effectiveModel.provider) ? 'search' : 'fetch-only';
+    const canFetch = hasAgentHostToolGrant(agentId, 'web_fetch');
+    if (modelProviderHasWebSearch(effectiveModel.provider)) {
+        return canFetch ? 'search' : 'search-only';
+    }
+    return canFetch ? 'fetch-only' : null;
 }
 
 function hostRuntimeContextFacts(): AgentRuntimeContextFacts {

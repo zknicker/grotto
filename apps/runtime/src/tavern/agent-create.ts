@@ -9,7 +9,7 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { AgentArchetypeId, AgentRuntimeAgent } from '@tavern/api';
+import type { AgentArchetypeId } from '@tavern/api';
 import { tavernAgentSkillId, visualsSkillId } from '../agent-engine/skill-library.ts';
 import { AGENT_HOME } from '../config.ts';
 import { getDb } from '../db/connection.ts';
@@ -26,7 +26,6 @@ export interface CreateRuntimeAgentInput {
     archetype?: AgentArchetypeId | null;
     bio?: string | null;
     db?: Database;
-    enabledPluginIds?: AgentRuntimeAgent['enabledPluginIds'];
     enabledSkillIds?: string[];
     /** Server-created agents arrive with their id; omitted ids are generated. */
     id?: string;
@@ -42,7 +41,6 @@ export async function createRuntimeAgent(input: CreateRuntimeAgentInput) {
     const agent = upsertStoredAgent({
         agent: {
             bio: input.bio ?? null,
-            enabledPluginIds: input.enabledPluginIds ?? [],
             enabledSkillIds: input.enabledSkillIds ?? [...defaultSeededSkillIds],
             id,
             isAdmin: input.isAdmin ?? false,

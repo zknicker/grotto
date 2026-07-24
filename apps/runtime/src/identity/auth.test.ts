@@ -17,7 +17,7 @@ describe('runtime route auth policy', () => {
         { kind: 'runtime-token' } as const,
         { kind: 'user', role: 'owner', user } as const,
     ])('allows owner auth to use every route', (auth) => {
-        expect(isRouteAllowedForAuth(auth, '/plugins/example', 'DELETE')).toBe(true);
+        expect(isRouteAllowedForAuth(auth, '/mcp/connections/example', 'DELETE')).toBe(true);
         expect(isRouteAllowedForAuth(auth, '/model-access', 'POST')).toBe(true);
     });
 
@@ -53,9 +53,8 @@ describe('runtime route auth policy', () => {
         ['/model-access', 'GET'],
         ['/model-access/api-key', 'POST'],
         ['/agent-env', 'GET'],
-        ['/plugins', 'GET'],
-        ['/plugins/example', 'POST'],
-        ['/mcp/servers', 'GET'],
+        ['/mcp/connections', 'GET'],
+        ['/mcp/connections/example', 'POST'],
         ['/update/status', 'GET'],
         ['/dev/simulate-turn', 'POST'],
         ['/memory/settings', 'GET'],

@@ -1,5 +1,11 @@
+import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { useState } from 'react';
+import {
+    Collapsible,
+    CollapsiblePanel,
+    CollapsibleTrigger,
+} from '../../../components/ui/collapsible.tsx';
 import {
     Drawer,
     DrawerFooter,
@@ -8,7 +14,9 @@ import {
     DrawerPopup,
     DrawerTitle,
 } from '../../../components/ui/drawer.tsx';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
+import { Field, FieldLabel } from '../../../components/ui/primitives/field.tsx';
 import { Form } from '../../../components/ui/primitives/form.tsx';
 import { Input } from '../../../components/ui/primitives/input.tsx';
 import {
@@ -18,34 +26,26 @@ import {
     SelectTrigger,
     SelectValue,
 } from '../../../components/ui/select.tsx';
-import type { McpServerSaveInput } from '../../../lib/trpc.tsx';
+import type { McpConnectionSaveInput } from '../../../lib/trpc.tsx';
 import { SecretFieldsEditor } from './mcp-secret-fields.tsx';
 import {
     buildSaveInput,
-    createMcpServerDraft,
-    type McpServer,
-    type McpServerTransport,
+    createConnectionDraft,
+    type McpConnectionDraft,
 } from './mcp-server-shared.ts';
 
-const transportLabels: Record<McpServerTransport, string> = {
-    http: 'HTTP',
-    stdio: 'stdio',
-};
-
-export function McpServerFormDrawer({
-    server,
+export function McpConnectionFormDrawer({
     onOpenChange,
     onSave,
     open,
     saving,
 }: {
-    server: McpServer | null;
     onOpenChange: (open: boolean) => void;
-    onSave: (input: McpServerSaveInput) => void;
+    onSave: (input: McpConnectionSaveInput) => void;
     open: boolean;
     saving: boolean;
 }) {
-    const [draft, setDraft] = useState(() => createMcpServerDraft(server));
+    const [draft, setDraft] = useState(createConnectionDraft);
     const canSave = Boolean(
         draft.name.trim() && (draft.transport === 'stdio' ? draft.command.trim() : draft.url.trim())
     );
@@ -53,8 +53,11 @@ export function McpServerFormDrawer({
     return (
         <Drawer onOpenChange={onOpenChange} open={open} position="right">
             <DrawerPopup className="max-w-[600px] sm:w-[600px]" showCloseButton variant="inset">
+                <DrawerHeader>
+                    <DrawerTitle>Add custom connection</DrawerTitle>
+                </DrawerHeader>
                 <Form
-                    className="flex min-h-0 flex-1 flex-col gap-0"
+                    className="contents"
                     onSubmit={(event) => {
                         event.preventDefault();
                         if (canSave) {
@@ -62,108 +65,47 @@ export function McpServerFormDrawer({
                         }
                     }}
                 >
-                    <DrawerHeader>
-                        <DrawerTitle>{server ? 'Edit MCP server' : 'Add MCP server'}</DrawerTitle>
-                    </DrawerHeader>
                     <DrawerPanel className="grid gap-6">
-                        <McpServerField label="Name">
+                        <LabeledField label="Name">
                             <Input
-                                onChange={(event) =>
-                                    setDraft((current) => ({
-                                        ...current,
-                                        name: event.target.value,
-                                    }))
-                                }
-                                placeholder="GitHub"
+                                onChange={(event) => update(setDraft, { name: event.target.value })}
+                                placeholder="My MCP server"
+                                type="text"
                                 value={draft.name}
                             />
-                        </McpServerField>
-
-                        <McpServerField label="Transport">
+                        </LabeledField>
+                        <LabeledField label="Transport">
                             <Select
                                 onValueChange={(value) =>
-                                    setDraft((current) => ({
-                                        ...current,
-                                        transport: value === 'http' ? 'http' : 'stdio',
-                                    }))
+                                    update(setDraft, {
+                                        transport: value === 'stdio' ? 'stdio' : 'http',
+                                    })
                                 }
                                 value={draft.transport}
                             >
                                 <SelectTrigger>
-                                    <SelectValue>{transportLabels[draft.transport]}</SelectValue>
+                                    <SelectValue>
+                                        {draft.transport === 'http' ? 'Streamable HTTP' : 'stdio'}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {Object.entries(transportLabels).map(([value, label]) => (
-                                        <SelectItem key={value} value={value}>
-                                            {label}
-                                        </SelectItem>
-                                    ))}
+                                    <SelectItem value="http">Streamable HTTP</SelectItem>
+                                    <SelectItem value="stdio">stdio</SelectItem>
                                 </SelectContent>
                             </Select>
-                        </McpServerField>
-
-                        {draft.transport === 'stdio' ? (
-                            <>
-                                <McpServerField label="Command">
-                                    <Input
-                                        onChange={(event) =>
-                                            setDraft((current) => ({
-                                                ...current,
-                                                command: event.target.value,
-                                            }))
-                                        }
-                                        placeholder="mcp-server"
-                                        value={draft.command}
-                                    />
-                                </McpServerField>
-                                <McpServerField
-                                    description="Separate arguments with spaces."
-                                    label="Arguments"
-                                >
-                                    <Input
-                                        onChange={(event) =>
-                                            setDraft((current) => ({
-                                                ...current,
-                                                args: event.target.value,
-                                            }))
-                                        }
-                                        placeholder="--flag value"
-                                        value={draft.args}
-                                    />
-                                </McpServerField>
-                            </>
+                        </LabeledField>
+                        {draft.transport === 'http' ? (
+                            <HttpConnectionFields draft={draft} setDraft={setDraft} />
                         ) : (
-                            <McpServerField label="URL">
-                                <Input
-                                    onChange={(event) =>
-                                        setDraft((current) => ({
-                                            ...current,
-                                            url: event.target.value,
-                                        }))
-                                    }
-                                    placeholder="https://example.com/mcp"
-                                    value={draft.url}
-                                />
-                            </McpServerField>
+                            <StdioConnectionFields draft={draft} setDraft={setDraft} />
                         )}
-
-                        <SecretFieldsEditor
-                            addLabel="Add variable"
-                            entries={draft.env}
-                            onChange={(env) => setDraft((current) => ({ ...current, env }))}
-                            title="Environment variables"
-                        />
                     </DrawerPanel>
                     <DrawerFooter>
-                        <Button
-                            onClick={() => onOpenChange(false)}
-                            type="button"
-                            variant="secondary"
-                        >
+                        <Button onClick={() => onOpenChange(false)} type="button" variant="ghost">
                             Cancel
                         </Button>
                         <Button disabled={!canSave} loading={saving} type="submit">
-                            {server ? 'Save MCP server' : 'Add MCP server'}
+                            Add connection
                         </Button>
                     </DrawerFooter>
                 </Form>
@@ -172,22 +114,176 @@ export function McpServerFormDrawer({
     );
 }
 
-function McpServerField({
-    children,
-    description,
-    label,
+function HttpConnectionFields({
+    draft,
+    setDraft,
 }: {
-    children: React.ReactNode;
-    description?: string;
-    label: string;
+    draft: McpConnectionDraft;
+    setDraft: React.Dispatch<React.SetStateAction<McpConnectionDraft>>;
 }) {
     return (
-        <label className="grid gap-1.5">
-            <span className="font-medium text-foreground text-sm">{label}</span>
-            {children}
-            {description ? (
-                <span className="text-muted-foreground text-xs">{description}</span>
+        <>
+            <LabeledField label="URL">
+                <Input
+                    onChange={(event) => update(setDraft, { url: event.target.value })}
+                    placeholder="https://example.com/mcp"
+                    type="url"
+                    value={draft.url}
+                />
+            </LabeledField>
+            <LabeledField label="Authentication">
+                <Select
+                    onValueChange={(value) =>
+                        update(setDraft, {
+                            auth:
+                                value === 'oauth'
+                                    ? 'oauth'
+                                    : value === 'headers'
+                                      ? 'headers'
+                                      : 'none',
+                        })
+                    }
+                    value={draft.auth}
+                >
+                    <SelectTrigger>
+                        <SelectValue>{authLabel(draft.auth)}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="oauth">OAuth</SelectItem>
+                        <SelectItem value="headers">Secret headers</SelectItem>
+                    </SelectContent>
+                </Select>
+            </LabeledField>
+            {draft.auth === 'headers' ? (
+                <SecretFieldsEditor
+                    addLabel="Add header"
+                    entries={draft.headers}
+                    onChange={(headers) => update(setDraft, { headers })}
+                    title="Secret headers"
+                />
             ) : null}
-        </label>
+            {draft.auth === 'oauth' ? (
+                <OAuthAdvancedFields draft={draft} setDraft={setDraft} />
+            ) : null}
+            <p className="text-meta text-muted-foreground">
+                Only connect servers from developers you trust. Their tools and behavior can change.
+            </p>
+        </>
     );
+}
+
+function OAuthAdvancedFields({
+    draft,
+    setDraft,
+}: {
+    draft: McpConnectionDraft;
+    setDraft: React.Dispatch<React.SetStateAction<McpConnectionDraft>>;
+}) {
+    return (
+        <Collapsible>
+            <CollapsibleTrigger className="group flex w-full items-center gap-1.5 rounded-md py-1 text-muted-foreground text-sm hover:text-foreground">
+                <Icon
+                    className="size-3 transition-transform group-data-[panel-open]:rotate-90"
+                    icon={ArrowRight01Icon}
+                />
+                Advanced OAuth settings
+            </CollapsibleTrigger>
+            <CollapsiblePanel>
+                <div className="grid gap-4 pt-3">
+                    <LabeledField label="Client ID">
+                        <Input
+                            onChange={(event) =>
+                                update(setDraft, { oauthClientId: event.target.value })
+                            }
+                            placeholder="Optional — dynamic registration is the default"
+                            type="text"
+                            value={draft.oauthClientId}
+                        />
+                    </LabeledField>
+                    <LabeledField label="Client secret">
+                        <Input
+                            onChange={(event) =>
+                                update(setDraft, { oauthClientSecret: event.target.value })
+                            }
+                            placeholder="Optional"
+                            type="password"
+                            value={draft.oauthClientSecret}
+                        />
+                    </LabeledField>
+                    <LabeledField label="Scopes">
+                        <Input
+                            onChange={(event) =>
+                                update(setDraft, { oauthScopes: event.target.value })
+                            }
+                            placeholder="Space-separated, optional"
+                            type="text"
+                            value={draft.oauthScopes}
+                        />
+                    </LabeledField>
+                </div>
+            </CollapsiblePanel>
+        </Collapsible>
+    );
+}
+
+function StdioConnectionFields({
+    draft,
+    setDraft,
+}: {
+    draft: McpConnectionDraft;
+    setDraft: React.Dispatch<React.SetStateAction<McpConnectionDraft>>;
+}) {
+    return (
+        <>
+            <LabeledField label="Command">
+                <Input
+                    onChange={(event) => update(setDraft, { command: event.target.value })}
+                    placeholder="mcp-server"
+                    type="text"
+                    value={draft.command}
+                />
+            </LabeledField>
+            <LabeledField label="Arguments">
+                <Input
+                    onChange={(event) => update(setDraft, { args: event.target.value })}
+                    placeholder="--flag value"
+                    type="text"
+                    value={draft.args}
+                />
+            </LabeledField>
+            <SecretFieldsEditor
+                addLabel="Add variable"
+                entries={draft.env}
+                onChange={(env) => update(setDraft, { env })}
+                title="Environment variables"
+            />
+        </>
+    );
+}
+
+function LabeledField({ children, label }: { children: React.ReactNode; label: string }) {
+    return (
+        <Field render={<label />}>
+            <FieldLabel render={<span />}>{label}</FieldLabel>
+            {children}
+        </Field>
+    );
+}
+
+function update(
+    setDraft: React.Dispatch<React.SetStateAction<McpConnectionDraft>>,
+    patch: Partial<McpConnectionDraft>
+) {
+    setDraft((current) => ({ ...current, ...patch }));
+}
+
+function authLabel(auth: McpConnectionDraft['auth']) {
+    if (auth === 'oauth') {
+        return 'OAuth';
+    }
+    if (auth === 'headers') {
+        return 'Secret headers';
+    }
+    return 'None';
 }

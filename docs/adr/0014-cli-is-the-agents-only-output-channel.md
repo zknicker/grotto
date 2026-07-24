@@ -47,8 +47,9 @@ CLI on PATH. Consequences adopted together as one landing:
 The same landing retires the systems the CLI-only model replaces: the memory
 pipeline (extraction, dreaming, core-memory injection), the Wiki, the cron
 product, SOUL injection (the agent description is the personality surface),
-plugin engine tools (plugin CLIs follow), and the first task tracker (chat-
-first tasks return with the tasks workstream).
+first-party plugin engine tools, and the first task tracker (chat-first tasks
+return with the tasks workstream). ADR 0017 later replaced the retired plugin
+model with standard MCP connections and Runtime-relayed exact tool grants.
 
 ## Why
 

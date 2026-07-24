@@ -1,7 +1,7 @@
 ---
-summary: Agent records and configuration API for model choices, skill assignment, Plugin grants, and runtime metadata boundaries.
+summary: Agent records and configuration API for models, skills, host tools, MCP tool grants, and runtime metadata boundaries.
 read_when:
-  - changing agent records, instructions, personality, model settings, Plugin grants, or per-agent skill controls
+  - changing agent records, instructions, personality, model settings, or per-agent skill and tool controls
   - changing how clients list, configure, or address agents
 ---
 
@@ -11,8 +11,8 @@ The Agents API is for the workers users configure and talk to in Tavern.
 
 Agents are client-facing records. Runtime sessions and execution details
 can be attached as metadata, but the API exposes agents as named Tavern workers
-with instruction settings, model, execution, skill assignment, and Plugin
-grant policy.
+with instruction settings, model, execution, skill assignment, and tool grant
+policy.
 
 ## Contract
 
@@ -26,7 +26,8 @@ grant policy.
   must not contact the agent runtime or enqueue a background sync job just to
   discover agents.
 * Agent records expose display name, bio, model policy, skill selections,
-  Plugin grants, workspace folder, and availability.
+  workspace folder, and availability. Exact MCP and host-tool grants are
+  separate Runtime-owned records keyed by agent.
 * The bio is a short Runtime-owned job description (max 280 characters,
   nullable). Runtime injects each agent seat's bio into the participant roster
   of every agent turn prompt in shared chats, so co-resident agents know what
@@ -47,14 +48,17 @@ grant policy.
 * Model records include the Runtime execution kind. All supported agent model
   rows execute through the harness route; OpenAI API-key rows use the Pi
   harness adapter.
-* Skill assignments and Plugin grants are inspectable before a run starts.
-  Harness tools are executor facts governed by sandbox and approval policy, not
-  per-agent grants.
+* Skill assignments and exact MCP and host-tool grants are inspectable before
+  a run starts. Harness-native tools are executor facts governed by sandbox
+  and approval policy, not Tavern grants.
 * Assignment requires global availability. Skill saves reject newly assigned
-  skills that are globally disabled, missing setup, or Plugin-owned; Plugin
-  grant writes reject enabling a grant while the Plugin is globally disabled.
-  Removing assignments and grants is always allowed, and existing assignments
-  survive a later global disable.
+  skills that are globally disabled or missing setup. Globally disabling a
+  skill removes its current agent assignments after user confirmation.
+* MCP grants identify one connection and one upstream tool name. Discovery
+  never grants a new tool. Runtime checks the grant again immediately before
+  every upstream call.
+* Browser and `web_fetch` are host tools with explicit grants. New agents get
+  `web_fetch` by default; Browser remains ungranted until selected.
 * Instruction settings use markdown source files. Runtime composes the system
   prompt from Tavern-managed instruction text plus the agent's description
   (the personality surface); it does not materialize a generated `AGENTS.md`
@@ -66,11 +70,11 @@ grant policy.
 * Agent settings use narrow domain mutations. Clients update agent
   name, bio, model, thinking default, and messaging bindings through agent and
   messaging APIs instead of editing or saving raw engine config JSON.
-* Web settings store each agent's web access opt-in (`webAccessEnabled`,
-  default off) via `PATCH /agents/{id}/web-settings`. With web access on, the
-  agent gets provider-native web search when its model supports it plus the
-  Runtime `web_fetch` tool; off means the tools are absent from its turns. The
-  `webAccess` Runtime capability gates the app surface.
+* Web settings store each agent's provider-native web-search opt-in
+  (`webAccessEnabled`, default off) via
+  `PATCH /agents/{id}/web-settings`. The separately granted Runtime
+  `web_fetch` host tool is not controlled by this flag. The `webAccess`
+  Runtime capability gates the native-search setting.
 * Instruction-affecting settings (name, bio, description) apply per session:
   executors receive instructions once at a session's first turn, so changes
   land when the next session starts. The current-session read returns
@@ -101,7 +105,7 @@ The API covers:
 * read model choices and availability
 * read and update agent environment variables
 * read and update skill assignment
-* read and update agent Plugin grants
+* read and update exact MCP and host-tool grants
 * read generated instruction status when exposed for diagnostics
 * read agent presence (busy/idle), the activity feed, and read-only inbox
   visibility (pending targets, mutes, followed threads)

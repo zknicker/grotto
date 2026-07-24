@@ -1,4 +1,4 @@
-import type { Database } from './sqlite';
+import type { Database } from './sqlite.ts';
 
 const CHAT_RESPONSE_ACTIVITY_TABLE = `
 CREATE TABLE chat_response_activity (
@@ -76,24 +76,12 @@ CREATE INDEX IF NOT EXISTS idx_memory_jobs_status_due
   ON memory_jobs(status, created_at);
 `;
 
-const SKILL_SOURCES_TABLE = `
-CREATE TABLE skill_sources (
-  skill_id            TEXT PRIMARY KEY,
-  source              TEXT NOT NULL CHECK (source IN ('seeded', 'hub', 'agent', 'external', 'plugin')),
-  state               TEXT NOT NULL DEFAULT 'active' CHECK (state IN ('active', 'stale', 'archived')),
-  created_by_agent_id TEXT,
-  installed_hash      TEXT,
-  created_at          TEXT NOT NULL,
-  updated_at          TEXT NOT NULL,
-  archived_at         TEXT
-)`;
-
 export function repairRuntimeSchema(db: Database): void {
     ensureChatResponseActivityWidgetKind(db);
     ensureChatsKinds(db);
     ensureMemoryJobsSkillReviewKind(db);
-    ensureSkillSourcesPluginSource(db);
     hydrateAgentSkillAssignments(db);
+    hydrateDefaultHostToolGrants(db);
 }
 
 function ensureChatsKinds(db: Database): void {
@@ -230,61 +218,6 @@ ${MEMORY_JOBS_INDEXES}
     }
 }
 
-function ensureSkillSourcesPluginSource(db: Database): void {
-    const sql = tableSql(db, 'skill_sources');
-
-    if (!sql || sql.includes("'plugin'")) {
-        return;
-    }
-    ensureTableColumn(db, {
-        column: 'state',
-        definition: "TEXT NOT NULL DEFAULT 'active'",
-        table: 'skill_sources',
-    });
-    ensureTableColumn(db, {
-        column: 'installed_hash',
-        definition: 'TEXT',
-        table: 'skill_sources',
-    });
-    ensureTableColumn(db, {
-        column: 'archived_at',
-        definition: 'TEXT',
-        table: 'skill_sources',
-    });
-
-    let transactionOpen = false;
-    db.exec('PRAGMA foreign_keys = OFF');
-    try {
-        db.exec('BEGIN IMMEDIATE');
-        transactionOpen = true;
-        db.exec(`
-DROP TABLE IF EXISTS temp.skill_sources_rebuild;
-CREATE TEMP TABLE skill_sources_rebuild AS
-  SELECT skill_id, source, state, created_by_agent_id, installed_hash,
-         created_at, updated_at, archived_at
-  FROM skill_sources;
-DROP TABLE skill_sources;
-${SKILL_SOURCES_TABLE};
-INSERT INTO skill_sources
-  (skill_id, source, state, created_by_agent_id, installed_hash,
-   created_at, updated_at, archived_at)
-  SELECT skill_id, source, state, created_by_agent_id, installed_hash,
-         created_at, updated_at, archived_at
-  FROM skill_sources_rebuild;
-DROP TABLE temp.skill_sources_rebuild;
-`);
-        db.exec('COMMIT');
-        transactionOpen = false;
-    } catch (error) {
-        if (transactionOpen) {
-            db.exec('ROLLBACK');
-        }
-        throw error;
-    } finally {
-        db.exec('PRAGMA foreign_keys = ON');
-    }
-}
-
 function tableSql(db: Database, name: string): string | null {
     const row = db
         .prepare('SELECT sql FROM sqlite_master WHERE type = $type AND name = $name')
@@ -302,7 +235,7 @@ function columnExpression(columns: Set<string>, column: string, fallback: string
     return columns.has(column) ? column : fallback;
 }
 
-function ensureTableColumn(
+function _ensureTableColumn(
     db: Database,
     input: { column: string; definition: string; table: string }
 ): void {
@@ -343,6 +276,42 @@ function hydrateAgentSkillAssignments(db: Database): void {
         for (const skillId of parseStringArray(row.enabled_skill_ids_json)) {
             insert.run({ $agentId: row.id, $now: now, $skillId: skillId });
         }
+    }
+}
+
+function hydrateDefaultHostToolGrants(db: Database): void {
+    if (
+        !(
+            tableSql(db, 'agents') &&
+            tableSql(db, 'agent_host_tool_grants') &&
+            tableSql(db, 'runtime_metadata')
+        )
+    ) {
+        return;
+    }
+    const migrationKey = 'host_tool_defaults_seeded';
+    const migrated = db
+        .prepare('SELECT 1 FROM runtime_metadata WHERE key = $key')
+        .get({ $key: migrationKey });
+    if (migrated) {
+        return;
+    }
+    const now = new Date().toISOString();
+    db.exec('BEGIN IMMEDIATE');
+    try {
+        db.prepare(
+            `INSERT OR IGNORE INTO agent_host_tool_grants
+             (agent_id, tool_id, created_at, updated_at)
+             SELECT id, 'web_fetch', $now, $now FROM agents`
+        ).run({ $now: now });
+        db.prepare(
+            `INSERT INTO runtime_metadata (key, value, updated_at)
+             VALUES ($key, '1', $now)`
+        ).run({ $key: migrationKey, $now: now });
+        db.exec('COMMIT');
+    } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
     }
 }
 

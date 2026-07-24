@@ -27,7 +27,7 @@ local agents.
 ## Specs
 
 - `agent-runtimes.md`: Runtime ownership and local agent mapping model.
-- `tavern-messenger.md`: first-party Tavern chat channel/plugin expectations.
+- `tavern-messenger.md`: first-party Tavern chat frontend expectations.
 - `capability-degradation.md`: capability-level agent degradation model.
 - `communication-regression.md`: deterministic agent communication regression scenarios.
 - `agents.md`: local agent expectations.

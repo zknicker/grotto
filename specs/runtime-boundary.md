@@ -22,7 +22,7 @@ execution state.
 ## Runtime Expectations
 
 - Tavern maps runtime data into Tavern product behavior and terminology.
-- Tavern App edits runtime-owned config through supported Runtime APIs or plugins.
+- Tavern App edits runtime-owned config through supported Runtime APIs.
 - Tavern does not maintain duplicate canonical records for runtime-owned config.
 - Runtime-native edits remain valid and refresh Tavern through sync and events.
 - Periodic sync refreshes runtime evidence and observed history. It does not make runtime-native

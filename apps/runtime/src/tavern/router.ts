@@ -17,10 +17,10 @@ import {
 } from '@tavern/api';
 import { handleAgentEnvRequest } from '../agent-engine/agent-env-routes.ts';
 import { handleMcpRequest } from '../agent-engine/mcp-routes.ts';
-import { handleMcpServersRequest } from '../agent-engine/mcp-server-routes.ts';
 import { handleSkillHubRequest } from '../agent-engine/skill-hub-routes.ts';
 import { resetRuntimeSkillToDefault } from '../agent-engine/skill-library.ts';
 import { handleToolSetupRequest } from '../agent-engine/tool-setup-routes.ts';
+import { handleBrowserRequest } from '../browser/routes.ts';
 import { handleRuntimeCapabilitiesRequest } from '../capabilities/routes.ts';
 import type { RuntimeRequestAuth } from '../identity/auth.ts';
 import { handleIdentityRequest } from '../identity/routes.ts';
@@ -33,7 +33,6 @@ import { handleModelCapabilitySelectionsRequest } from '../models/capability-sel
 import { handleModelCategorySettingsRequest } from '../models/category-settings.ts';
 import { handleModelProviderRequest } from '../models/provider-routes.ts';
 import { handleChatPaneRequest } from '../pane/routes.ts';
-import { handlePluginsRequest } from '../plugins/routes.ts';
 import { handleTimezoneSettingsRequest } from '../timezone-settings.ts';
 import { handleWorkspaceRequest } from '../workspace/routes.ts';
 import { listAgentActivity } from './agent-activity.ts';
@@ -131,14 +130,9 @@ export async function handleTavernRuntimeRequest(
         return agentEnvResponse;
     }
 
-    const mcpServersResponse = await handleMcpServersRequest(request);
-    if (mcpServersResponse) {
-        return mcpServersResponse;
-    }
-
-    const pluginsResponse = await handlePluginsRequest(request);
-    if (pluginsResponse) {
-        return pluginsResponse;
+    const browserResponse = await handleBrowserRequest(request);
+    if (browserResponse) {
+        return browserResponse;
     }
 
     const devToolkitResponse = await handleDevToolkitRequest(request);

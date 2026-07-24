@@ -32,6 +32,7 @@ export function SecretFieldsEditor({
                             )
                         }
                         placeholder="Name"
+                        type="text"
                         value={entry.name}
                     />
                     <Input
@@ -45,6 +46,7 @@ export function SecretFieldsEditor({
                             )
                         }
                         placeholder="Value"
+                        type="password"
                         value={entry.value}
                     />
                     <Button

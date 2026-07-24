@@ -3,8 +3,8 @@ import {
     BubbleChatIcon,
     Folder01Icon,
     Notification03Icon,
-    PuzzleIcon,
     UserCircleIcon,
+    Wrench01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
 import {
@@ -30,7 +30,7 @@ const tabs = [
     { icon: BubbleChatIcon, label: 'Chat', value: 'chat' },
     { icon: Notification03Icon, label: 'Reminders', value: 'reminders' },
     { icon: Folder01Icon, label: 'Workspace', value: 'workspace' },
-    { icon: PuzzleIcon, label: 'Apps', value: 'apps' },
+    { icon: Wrench01Icon, label: 'Tools', value: 'tools' },
 ] as const;
 
 type AgentProfileTabId = (typeof tabs)[number]['value'];
@@ -131,7 +131,7 @@ function ActiveTab({
             return <AgentRemindersTab agentId={agent.id} />;
         case 'workspace':
             return <AgentWorkspaceTab agentId={agent.id} />;
-        case 'apps':
+        case 'tools':
             return <AgentAppsTab agent={agent} />;
     }
 }

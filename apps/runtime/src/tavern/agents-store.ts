@@ -1,16 +1,15 @@
 import {
     type AgentRuntimeAgent,
-    type AgentRuntimePluginId,
     agentRuntimeAgentListSchema,
     agentRuntimeAgentSchema,
-    agentRuntimePluginIdSchema,
 } from '@tavern/api';
-import { tavernPluginManifests } from '@tavern/api/plugins';
 import { removeAgentToolEnvironment } from '../agent-engine/agent-cli-wrapper.ts';
-import { getDb } from '../db/connection';
-import type { Database } from '../db/sqlite';
-import { namedParams } from '../db/sqlite';
-import { archiveAgentDmChat, ensureAgentDmChat } from './bootstrap-chats';
+import { ensureDefaultHostToolGrants } from '../agent-engine/host-tools.ts';
+import { closeMcpClientsForAgent } from '../agent-engine/mcp-clients.ts';
+import { getDb } from '../db/connection.ts';
+import type { Database } from '../db/sqlite.ts';
+import { namedParams } from '../db/sqlite.ts';
+import { archiveAgentDmChat, ensureAgentDmChat } from './bootstrap-chats.ts';
 import { assertParticipantHandleAvailable, assertParticipantSeatAvailable } from './handles.ts';
 
 interface AgentRow {
@@ -67,6 +66,9 @@ export function upsertStoredAgent(input: {
         syncedAt,
     });
     ensureAgentDmChat({ agentId: agent.id, agentName: agent.name, db });
+    if (!existing) {
+        ensureDefaultHostToolGrants(agent.id, db);
+    }
 
     const saved = getStoredAgent(agent.id, db);
     if (!saved) {
@@ -76,6 +78,7 @@ export function upsertStoredAgent(input: {
 }
 
 export function deleteStoredAgent(agentId: string, db: Database = getDb()) {
+    void closeMcpClientsForAgent(agentId);
     db.exec('BEGIN IMMEDIATE');
     try {
         db.prepare('DELETE FROM agents WHERE id = $id').run(namedParams({ id: agentId }));
@@ -93,7 +96,6 @@ export function updateStoredAgent(input: {
     webAccessEnabled?: boolean;
     bio?: string | null;
     db?: Database;
-    enabledPluginIds?: AgentRuntimePluginId[];
     enabledSkillIds?: string[];
     name?: string;
     thinkingDefault?: AgentRuntimeAgent['thinkingDefault'];
@@ -114,9 +116,6 @@ export function updateStoredAgent(input: {
             ...(input.enabledSkillIds === undefined
                 ? {}
                 : { enabledSkillIds: input.enabledSkillIds }),
-            ...(input.enabledPluginIds === undefined
-                ? {}
-                : { enabledPluginIds: input.enabledPluginIds }),
             ...(input.name === undefined ? {} : { name: input.name }),
             ...(input.thinkingDefault === undefined
                 ? {}
@@ -147,6 +146,7 @@ export function replaceStoredAgents(input: {
     for (const agent of existing) {
         if (!nextJsonById.has(agent.id)) {
             changedAgentIds.add(agent.id);
+            void closeMcpClientsForAgent(agent.id);
         }
     }
 
@@ -176,6 +176,9 @@ export function replaceStoredAgents(input: {
     }
     for (const agent of input.agents) {
         ensureAgentDmChat({ agentId: agent.id, agentName: agent.name, db });
+        if (!existingJsonById.has(agent.id)) {
+            ensureDefaultHostToolGrants(agent.id, db);
+        }
     }
 
     return {
@@ -190,8 +193,7 @@ function rowToAgent(row: AgentRow, db: Database): AgentRuntimeAgent {
     return agentRuntimeAgentSchema.parse({
         webAccessEnabled: raw?.webAccessEnabled ?? false,
         ...(raw?.bio == null ? {} : { bio: raw.bio }),
-        enabledPluginIds: listAgentPluginGrantIds(row.id, db),
-        enabledSkillIds: listAssignedSkillIds(row.id, row.enabled_skill_ids_json, db),
+        enabledSkillIds: listAssignedSkillIds(row.id, db),
         id: row.id,
         isAdmin: row.is_admin === 1,
         name: row.name,
@@ -201,79 +203,7 @@ function rowToAgent(row: AgentRow, db: Database): AgentRuntimeAgent {
     });
 }
 
-export function listAgentPluginGrants(agentId: string, db: Database = getDb()) {
-    return db
-        .prepare(
-            `SELECT plugin_id, enabled, updated_at
-             FROM agent_plugin_grants
-             WHERE agent_id = $agentId
-             ORDER BY plugin_id ASC`
-        )
-        .all(namedParams({ agentId })) as Array<{
-        enabled: 0 | 1;
-        plugin_id: string;
-        updated_at: string;
-    }>;
-}
-
-export function setAgentPluginGrant(input: {
-    agentId: string;
-    db?: Database;
-    enabled: boolean;
-    pluginId: AgentRuntimePluginId;
-}) {
-    const db = input.db ?? getDb();
-    const now = new Date().toISOString();
-    const pluginId = agentRuntimePluginIdSchema.parse(input.pluginId);
-    const existingAgent = getStoredAgent(input.agentId, db);
-    if (!existingAgent) {
-        throw new Error(`Agent "${input.agentId}" does not exist.`);
-    }
-    if (input.enabled && !isPluginGloballyEnabled(pluginId, db)) {
-        throw new Error(
-            `Enable ${pluginDisplayName(pluginId)} in Settings -> Plugins before granting it to an agent.`
-        );
-    }
-
-    db.prepare(
-        `INSERT OR IGNORE INTO runtime_plugins (id, enabled, config_json, created_at, updated_at)
-         VALUES ($pluginId, 0, '{}', $now, $now)`
-    ).run(namedParams({ now, pluginId }));
-
-    db.prepare(
-        `INSERT INTO agent_plugin_grants
-         (agent_id, plugin_id, enabled, created_at, updated_at)
-         VALUES ($agentId, $pluginId, $enabled, $now, $now)
-         ON CONFLICT(agent_id, plugin_id) DO UPDATE SET
-           enabled = excluded.enabled,
-           updated_at = excluded.updated_at`
-    ).run(
-        namedParams({
-            agentId: input.agentId,
-            enabled: input.enabled ? 1 : 0,
-            now,
-            pluginId,
-        })
-    );
-
-    const agent = getStoredAgent(input.agentId, db);
-    return agent ?? existingAgent;
-}
-
-function parseEnabledSkillIds(value: string) {
-    try {
-        const parsed = JSON.parse(value) as unknown;
-        if (Array.isArray(parsed) && parsed.every((entry) => typeof entry === 'string')) {
-            return parsed;
-        }
-    } catch {
-        return [];
-    }
-
-    return [];
-}
-
-function listAssignedSkillIds(agentId: string, fallbackJson: string, db: Database = getDb()) {
+function listAssignedSkillIds(agentId: string, db: Database = getDb()) {
     const rows = db
         .prepare(
             `SELECT skill_id
@@ -283,27 +213,13 @@ function listAssignedSkillIds(agentId: string, fallbackJson: string, db: Databas
         )
         .all(namedParams({ agentId })) as Array<{ skill_id: string }>;
 
-    return rows.length > 0 ? rows.map((row) => row.skill_id) : parseEnabledSkillIds(fallbackJson);
-}
-
-function listAgentPluginGrantIds(agentId: string, db: Database = getDb()) {
-    const rows = db
-        .prepare(
-            `SELECT plugin_id
-             FROM agent_plugin_grants
-             WHERE agent_id = $agentId AND enabled = 1
-             ORDER BY created_at ASC, plugin_id ASC`
-        )
-        .all(namedParams({ agentId })) as Array<{ plugin_id: string }>;
-
-    return rows.map((row) => agentRuntimePluginIdSchema.parse(row.plugin_id));
+    return rows.map((row) => row.skill_id);
 }
 
 function stableAgentJson(agent: AgentRuntimeAgent) {
     return JSON.stringify({
         webAccessEnabled: agent.webAccessEnabled ?? false,
         ...(agent.bio == null ? {} : { bio: agent.bio }),
-        enabledPluginIds: agent.enabledPluginIds ?? [],
         enabledSkillIds: agent.enabledSkillIds,
         id: agent.id,
         isAdmin: agent.isAdmin,
@@ -333,7 +249,6 @@ function writeStoredAgent(input: {
     assertParticipantHandleAvailable(input.agent.name, input.agent.id, input.db);
     assertParticipantSeatAvailable(input.agent.id, input.db);
     const enabledSkillIds = [...new Set(input.agent.enabledSkillIds)];
-    const enabledPluginIds = [...new Set(input.agent.enabledPluginIds ?? [])];
 
     input.db
         .prepare(
@@ -401,12 +316,6 @@ function writeStoredAgent(input: {
         skillIds: enabledSkillIds,
         timestamp: input.syncedAt,
     });
-    replaceAgentPluginGrants({
-        agentId: input.agent.id,
-        db: input.db,
-        pluginIds: enabledPluginIds,
-        timestamp: input.syncedAt,
-    });
 }
 
 function replaceAgentSkillAssignments(input: {
@@ -434,49 +343,4 @@ function replaceAgentSkillAssignments(input: {
             })
         );
     }
-}
-
-function replaceAgentPluginGrants(input: {
-    agentId: string;
-    db: Database;
-    pluginIds: AgentRuntimePluginId[];
-    timestamp: string;
-}) {
-    input.db
-        .prepare('DELETE FROM agent_plugin_grants WHERE agent_id = $agentId')
-        .run(namedParams({ agentId: input.agentId }));
-
-    const insertPlugin = input.db.prepare(
-        `INSERT OR IGNORE INTO runtime_plugins (id, enabled, config_json, created_at, updated_at)
-         VALUES ($pluginId, 0, '{}', $timestamp, $timestamp)`
-    );
-    const insertGrant = input.db.prepare(
-        `INSERT INTO agent_plugin_grants
-         (agent_id, plugin_id, enabled, created_at, updated_at)
-         VALUES ($agentId, $pluginId, 1, $timestamp, $timestamp)`
-    );
-
-    for (const pluginId of input.pluginIds) {
-        insertPlugin.run(namedParams({ pluginId, timestamp: input.timestamp }));
-        insertGrant.run(
-            namedParams({
-                agentId: input.agentId,
-                pluginId,
-                timestamp: input.timestamp,
-            })
-        );
-    }
-}
-
-function isPluginGloballyEnabled(pluginId: AgentRuntimePluginId, db: Database) {
-    const row = db
-        .prepare('SELECT enabled FROM runtime_plugins WHERE id = $pluginId LIMIT 1')
-        .get(namedParams({ pluginId })) as { enabled: 0 | 1 } | null;
-    return Boolean(row?.enabled);
-}
-
-function pluginDisplayName(pluginId: AgentRuntimePluginId) {
-    return (
-        tavernPluginManifests.find((manifest) => manifest.id === pluginId)?.displayName ?? pluginId
-    );
 }

@@ -11,13 +11,13 @@ import {
 import { Icon } from '../../components/ui/icon.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import { Spinner } from '../../components/ui/spinner.tsx';
-import { Switch } from '../../components/ui/switch.tsx';
 import { useSkillEnabledSet } from '../../hooks/skills/use-skill-enabled-set.ts';
 import { useSkillHubInstall } from '../../hooks/skills/use-skill-hub-install.ts';
 import { useSkillHubPreview } from '../../hooks/skills/use-skill-hub-preview.ts';
 import { useSkillHubScan } from '../../hooks/skills/use-skill-hub-scan.ts';
 import { useSkillHubUninstall } from '../../hooks/skills/use-skill-hub-uninstall.ts';
 import { cn } from '../../lib/utils.ts';
+import { SkillEnableSwitch } from './skill-enable-switch.tsx';
 import { SkillScanBadge, SkillTrustBadge } from './skill-hub-badges.tsx';
 import { formatSkillName } from './skill-name-format.ts';
 
@@ -33,7 +33,6 @@ export interface SkillDialogSubject {
     identifier: null | string;
     installed: boolean;
     name: string;
-    plugin: null | { displayName: string; enabled: boolean; id: string };
     readOnly: boolean;
     skillId: null | string;
     trustLevel?: 'builtin' | 'community' | 'trusted';
@@ -90,18 +89,15 @@ function SkillDialogBody({
                             <SkillTrustBadge trustLevel={subject.trustLevel} />
                         ) : null}
                         {subject.installed && subject.skillId && !subject.readOnly ? (
-                            <Switch
-                                aria-label={`${subject.enabled ? 'Disable' : 'Enable'} ${subject.name}`}
-                                checked={subject.enabled === true}
-                                disabled={setEnabled.isPending}
-                                onCheckedChange={(checked) => {
-                                    if (subject.skillId) {
-                                        setEnabled.mutate({
-                                            enabled: checked,
-                                            skillId: subject.skillId,
-                                        });
-                                    }
+                            <SkillEnableSwitch
+                                enabled={subject.enabled === true}
+                                name={subject.name}
+                                setEnabled={{
+                                    error: setEnabled.error,
+                                    isPending: setEnabled.isPending,
+                                    mutate: setEnabled.mutate,
                                 }}
+                                skillId={subject.skillId}
                             />
                         ) : null}
                     </span>
@@ -112,13 +108,6 @@ function SkillDialogBody({
             </DialogHeader>
 
             <DialogPanel className="grid gap-4">
-                {subject.plugin ? (
-                    <p className="rounded-lg border border-border/70 bg-muted/25 px-3 py-2 text-muted-foreground text-sm">
-                        Managed by the {subject.plugin.displayName} Plugin. Enable or disable it
-                        from Settings -&gt; Plugins.
-                    </p>
-                ) : null}
-
                 {subject.installed || !scanQuery.data ? null : (
                     <div className="flex flex-wrap items-center gap-2">
                         <SkillScanBadge scan={scanQuery.data} />

@@ -134,17 +134,16 @@ agent_skill_assignments
   created_at             TEXT NOT NULL
   updated_at             TEXT NOT NULL
 
-agent_plugin_grants
+agent_mcp_tool_grants
   agent_id               TEXT NOT NULL
-  plugin_id              TEXT NOT NULL
-  enabled                INTEGER NOT NULL DEFAULT 1
+  connection_id          TEXT NOT NULL
+  tool_name              TEXT NOT NULL
   created_at             TEXT NOT NULL
   updated_at             TEXT NOT NULL
 
-agent_mcp_grants
+agent_host_tool_grants
   agent_id               TEXT NOT NULL
-  mcp_server_name        TEXT NOT NULL
-  enabled                INTEGER NOT NULL DEFAULT 1
+  tool_id                TEXT NOT NULL
   created_at             TEXT NOT NULL
   updated_at             TEXT NOT NULL
 ```
@@ -152,9 +151,8 @@ agent_mcp_grants
 Rules:
 
 - `agent_skill_assignments` is the canonical per-agent skill assignment table.
-- `agent_plugin_grants` is the canonical per-agent Plugin access table.
-- `agent_mcp_grants` is reserved for advanced Runtime MCP plumbing. Normal user
-  setup uses built-in Plugins instead.
+- `agent_mcp_tool_grants` is the canonical exact grant for connection tools.
+- `agent_host_tool_grants` stores Browser and `web_fetch` access.
 - `agents.enabled_skill_ids_json` remains only as a compatibility snapshot for
   existing records and sync payloads.
 - Harness tools are executor facts and do not have agent grant rows.

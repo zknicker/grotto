@@ -1,15 +1,15 @@
 ---
-summary: Agent profile — the single tabbed surface for an agent's identity, settings, session, activity, workspace, and apps, hosted on the Members page and in the chat right pane.
+summary: Agent profile — the single tabbed surface for an agent's identity, settings, session, activity, workspace, and tools, hosted on the Members page and in the chat right pane.
 read_when:
   - changing the agent profile tabs, Members page, or agent avatar click targets
-  - changing per-agent settings surfaces (model, web access, skills, apps, session reset)
+  - changing per-agent settings surfaces (model, web access, skills, tools, session reset)
   - changing session reset behavior or the new-session notice
 ---
 
 # Agent Profile
 
 One component family renders every per-agent surface: a six-tab profile —
-Profile, Activity, Chat, Reminders, Workspace, Apps — with a persistent
+Profile, Activity, Chat, Reminders, Workspace, Tools — with a persistent
 header (face, name, description, live presence, and Message / Stop / Restart
 actions). It absorbed the former agent drawer and the per-agent settings
 pages; there is no other per-agent surface.
@@ -50,7 +50,9 @@ pages; there is no other per-agent surface.
   workspace (MEMORY.md, notes/). The workspace is agent-maintained memory;
   identity steering is the Profile tab's editable description
   (specs/raft-alignment W2 — SOUL retired, no file editors here).
-- **Apps.** Per-agent plugin grants (enabled-first list plus picker).
+- **Tools.** Host tools and exact upstream MCP tools, grouped by connection.
+  Discovery never grants a tool. Browser and `web_fetch` are host tools;
+  `web_fetch` is granted to new agents by default.
 
 ## Session facts and resets
 

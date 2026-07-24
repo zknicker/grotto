@@ -43,9 +43,9 @@ and artifact pages: when to render, fence grammar, and the design system
 
 The system prompt keeps only a three-line pointer: the surfaces exist, the
 visuals skill is a mandatory read before emitting any fence, and raw markup
-never appears in plain reply text. Plugin presentation guidance rides the
-Plugin's skill (manifest `skillGuidance`), which already gates on the plugin
-grant.
+never appears in plain reply text. External integrations self-document their
+granted tools through MCP rather than injecting integration-specific rendering
+guidance into the shared prompt.
 
 The prompt contract suite guards both sides: prompt requirements for the
 pointer, skill-side requirements (`VISUALS_SKILL_REQUIREMENTS`) for every

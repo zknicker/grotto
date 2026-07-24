@@ -50,6 +50,7 @@ let mainWindow = null;
 let serverProcess = null;
 let serverReadyPromise = null;
 let updateCheckInterval = null;
+let availableDesktopUpdateVersion = null;
 const newWindowOffsetPx = 36;
 
 app.setName('Grotto');
@@ -302,10 +303,12 @@ async function runMockUpdateDownload() {
 }
 
 autoUpdater.on('update-available', (updateInfo) => {
+    availableDesktopUpdateVersion = updateInfo.version;
     sendUpdateStatus({ phase: 'available', version: updateInfo.version });
 });
 
 autoUpdater.on('update-not-available', () => {
+    availableDesktopUpdateVersion = null;
     sendUpdateStatus({ phase: 'current' });
 });
 
@@ -313,11 +316,12 @@ autoUpdater.on('download-progress', (progress) => {
     sendUpdateStatus({
         phase: 'downloading',
         progress: Math.max(0, Math.min(progress.percent / 100, 1)),
-        version: autoUpdater.currentVersion?.version ?? app.getVersion(),
+        version: availableDesktopUpdateVersion ?? app.getVersion(),
     });
 });
 
 autoUpdater.on('update-downloaded', (updateInfo) => {
+    availableDesktopUpdateVersion = updateInfo.version;
     sendUpdateStatus({ phase: 'ready', version: updateInfo.version });
 });
 

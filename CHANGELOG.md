@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.1 - 2026-07-24
+
+- App: update progress now keeps showing the version being downloaded instead
+  of briefly reverting to the currently installed version.
+
 ## v1.6.0 - 2026-07-24
 
 - Runtime/API/App: MCP Connections replace first-party Plugins. Remote MCP

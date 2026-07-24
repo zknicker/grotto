@@ -13,8 +13,11 @@ can continue to feel primary-agent-first.
 
 ## Current Contract
 
-* **Bootstrapped agent.** Tavern bootstraps `agt_primary` so a fresh Runtime is
-  immediately useful.
+* **Shipped default agent.** Nothing is bootstrapped lazily; a production
+  first run (zero agents) creates **Cove**, the onboarding guide, through the
+  normal create path — blob avatar, guide-seeded workspace. Any existing
+  agent suppresses it, so deleting Cove never brings it back. Dev stacks seed
+  the demo agents (Otto/Wren, pinned non-blob avatars) instead.
 * **Agent DMs.** Each Runtime-managed agent has one built-in DM with the local
   human operator. Tavern does not create duplicate direct chats for the same
   agent.

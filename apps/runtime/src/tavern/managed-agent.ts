@@ -1,6 +1,6 @@
 import type { AgentRuntimeAgent } from '@tavern/api';
 import { defaultAgentDisplayName, defaultAgentEngineAgentId } from '../agent-engine/constants.ts';
-import { tasksSkillId, tavernAgentSkillId, visualsSkillId } from '../agent-engine/skill-library.ts';
+import { tavernAgentSkillId, visualsSkillId } from '../agent-engine/skill-library.ts';
 import { AGENT_WORKSPACE } from '../config.ts';
 import { getDb } from '../db/connection.ts';
 import type { Database } from '../db/sqlite.ts';
@@ -9,7 +9,7 @@ import { getStoredAgent, upsertStoredAgent } from './agents-store.ts';
 
 // Seeded skills every agent starts with; the upgrade below appends newly
 // seeded ids to agents stored before those skills existed.
-const defaultSeededSkillIds = [tavernAgentSkillId, tasksSkillId, visualsSkillId];
+const defaultSeededSkillIds = [tavernAgentSkillId, visualsSkillId];
 
 export function primaryManagedAgent(): AgentRuntimeAgent {
     return {

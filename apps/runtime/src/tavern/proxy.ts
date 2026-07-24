@@ -27,7 +27,6 @@ import { defaultAgentEngineAgentId } from '../agent-engine/constants.ts';
 import {
     getRuntimeSkill,
     listRuntimeSkills,
-    tasksSkillId,
     tavernAgentSkillId,
     visualsSkillId,
 } from '../agent-engine/skill-library.ts';
@@ -83,11 +82,7 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
             agent: {
                 webAccessEnabled: input.webAccessEnabled ?? false,
                 bio: input.bio ?? null,
-                enabledSkillIds: input.enabledSkillIds ?? [
-                    tavernAgentSkillId,
-                    tasksSkillId,
-                    visualsSkillId,
-                ],
+                enabledSkillIds: input.enabledSkillIds ?? [tavernAgentSkillId, visualsSkillId],
                 enabledPluginIds: input.enabledPluginIds ?? [],
                 id: input.id,
                 isAdmin: input.isAdmin ?? false,

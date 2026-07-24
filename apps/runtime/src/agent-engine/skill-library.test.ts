@@ -14,7 +14,6 @@ import { upsertStoredAgent } from '../tavern/agents-store.ts';
 import { subscribeToRuntimeEvents } from '../tavern/runtime-events.ts';
 import { getSkillHubAvailable, installSkillHubSkill } from './skill-hub-library.ts';
 import {
-    defaultTasksSkill,
     defaultTavernSkill,
     getRuntimeSkill,
     listRuntimeSkills,
@@ -22,7 +21,6 @@ import {
     resetRuntimeSkillToDefault,
     resetSeededSkill,
     seedManagedSkills,
-    tasksSkillId,
     tavernAgentSkillId,
     visualsSkillId,
 } from './skill-library.ts';
@@ -199,25 +197,25 @@ describe('Runtime skill library', () => {
         expect(readSkillSource(tavernAgentSkillId)?.source).toBe('seeded');
     });
 
-    it('seeds the managed tasks skill beside the agent skill', async () => {
+    it('seeds the managed agent skill with an assignable bundle', async () => {
         await seedManagedSkills({ skillsDir });
 
         await expect(
-            fs.readFile(path.join(skillsDir, tasksSkillId, 'SKILL.md'), 'utf8')
-        ).resolves.toBe(defaultTasksSkill);
-        expect(readSkillSource(tasksSkillId)?.source).toBe('seeded');
-        await expect(readSkillSummary(tasksSkillId)).resolves.toMatchObject({
+            fs.readFile(path.join(skillsDir, tavernAgentSkillId, 'SKILL.md'), 'utf8')
+        ).resolves.toBe(defaultTavernSkill);
+        expect(readSkillSource(tavernAgentSkillId)?.source).toBe('seeded');
+        await expect(readSkillSummary(tavernAgentSkillId)).resolves.toMatchObject({
             bundled: true,
             edited: false,
             managedSource: 'seeded',
         });
 
         const bundles = await readAssignedSkillBundles(
-            { enabledSkillIds: [tasksSkillId] },
+            { enabledSkillIds: [tavernAgentSkillId] },
             { skillsDir }
         );
         expect(bundles).toHaveLength(1);
-        expect(bundles[0]?.content).toContain('Dispatched tasks');
+        expect(bundles[0]?.content).toContain('Grotto chat context');
     });
 
     it('seeds the visuals skill with references and icon assets', async () => {
@@ -276,7 +274,7 @@ describe('Runtime skill library', () => {
 
     it('restores tampered seeded skills and publishes their updates', async () => {
         await seedManagedSkills({ skillsDir });
-        await fs.writeFile(path.join(skillsDir, tasksSkillId, 'SKILL.md'), '# Tampered\n');
+        await fs.writeFile(path.join(skillsDir, tavernAgentSkillId, 'SKILL.md'), '# Tampered\n');
         const events: unknown[] = [];
         const unsubscribe = subscribeToRuntimeEvents((event) => events.push(event));
 
@@ -287,27 +285,27 @@ describe('Runtime skill library', () => {
         }
 
         await expect(
-            fs.readFile(path.join(skillsDir, tasksSkillId, 'SKILL.md'), 'utf8')
-        ).resolves.toBe(defaultTasksSkill);
-        expect(readSkillSource(tasksSkillId)).toMatchObject({
-            installedHash: sha256(defaultTasksSkill),
+            fs.readFile(path.join(skillsDir, tavernAgentSkillId, 'SKILL.md'), 'utf8')
+        ).resolves.toBe(defaultTavernSkill);
+        expect(readSkillSource(tavernAgentSkillId)).toMatchObject({
+            installedHash: sha256(defaultTavernSkill),
             source: 'seeded',
         });
         expect(events).toContainEqual(
-            expect.objectContaining({ skillId: tasksSkillId, type: 'skill.updated' })
+            expect.objectContaining({ skillId: tavernAgentSkillId, type: 'skill.updated' })
         );
     });
 
     it('replaces a stale seeded default with the current release content', async () => {
-        const staleDefault = defaultTasksSkill.replace('## Dispatched tasks', '## Old dispatch');
-        expect(staleDefault).not.toBe(defaultTasksSkill);
-        await writeSkill(tasksSkillId, staleDefault);
+        const staleDefault = defaultTavernSkill.replace('Grotto chat context', 'old chat context');
+        expect(staleDefault).not.toBe(defaultTavernSkill);
+        await writeSkill(tavernAgentSkillId, staleDefault);
 
         await seedManagedSkills({ skillsDir });
 
         await expect(
-            fs.readFile(path.join(skillsDir, tasksSkillId, 'SKILL.md'), 'utf8')
-        ).resolves.toBe(defaultTasksSkill);
+            fs.readFile(path.join(skillsDir, tavernAgentSkillId, 'SKILL.md'), 'utf8')
+        ).resolves.toBe(defaultTavernSkill);
     });
 
     it('reports seeded skill summary edit and managed flags', async () => {

@@ -44,7 +44,7 @@ describe('Runtime agent and agent engine reads', () => {
                 {
                     webAccessEnabled: false,
                     enabledPluginIds: [],
-                    enabledSkillIds: ['tasks', 'tavern-agent', 'visuals'],
+                    enabledSkillIds: ['tavern-agent', 'visuals'],
                     modelName: {
                         model: 'gpt-4.1-mini',
                         provider: 'openai',

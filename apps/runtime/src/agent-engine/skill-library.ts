@@ -28,116 +28,13 @@ export { visualsSkillId };
 
 export const agentEngineSkillsDir = path.join(AGENT_HOME, 'skills');
 export const tavernAgentSkillId = 'tavern-agent';
-export const tasksSkillId = 'tasks';
 
 export const defaultTavernSkill = `# Grotto Agent
 
 Use Grotto chat context, memory, files, and local tools. Keep replies direct and action-oriented.
 `;
 
-export const defaultTasksSkill = `---
-name: tasks
-description: >
-  Use for the shared Tasks board: filing tracked work, updating task status,
-  working dispatched tasks, epics, and T-number references.
----
-
-# Tasks
-
-Managed by Grotto. Do not edit this skill directory; Grotto refreshes it on
-startup. For durable agent-managed skill changes, create or update a separate
-skill in your normal skills directory.
-
-The Tasks board is the durable work tracker you share with the user. Every
-item has a short T-number (T-1, T-2, ...) either of you can drop into a chat
-message. The user sees the board on the Tasks page; keep it accurate enough
-to trust.
-
-## Tools
-
-Use \`tasks_list\`, \`tasks_get\`, \`tasks_create\`, and \`tasks_update\`.
-Reference tasks as T-<number> in replies so the user can find them on the
-board.
-
-## When to file a task
-
-File a task when the user asks to track work, or when real follow-up work
-surfaces that should outlive this conversation. Would the user expect to see
-it on the board? Then file it: short imperative title, description with
-enough context to act on later without this chat.
-Tasks you file remember this chat; auto-dispatched close-outs post a short result here.
-
-Do not mirror your in-conversation working steps onto the board. The board
-tracks outcomes the user cares about, not your scratch plan for the current
-turn.
-
-Filing is not doing. When the user asks you to plan or file work, file the
-tasks and stop: execution happens when a task is dispatched to you or the
-user says to start now. The board is how the user schedules and gates the
-work; racing ahead of it takes that control away.
-
-## Working a task
-
-Statuses:
-
-- backlog: filed for user triage.
-- todo: ready queue; only the user promotes work here.
-- in_progress: actively being worked.
-- blocked: cannot continue until input arrives or an error is resolved.
-- review: ready for the user to check.
-- done: finished.
-- canceled: intentionally closed without doing it.
-
-Agent-created tasks always land in backlog. Never set a task to todo; the user
-promotes work into the queue.
-
-For ordered batches, file the chain with blockedBy T-numbers so work runs in
-order once the user promotes it. For dated one-shot follow-ups, set
-scheduledFor, like "check ad performance next week". Both still start in
-backlog for user triage.
-
-Labels are shared records. Reuse existing label names from \`tasks_list\` when
-they fit; new label names are created automatically.
-
-Mark a task in_progress when you begin work outside dispatch. When closing as
-done, review, blocked, or canceled, include a short summary: what changed, how
-you verified it, and what remains. Do task work under
-\`workbench/tasks/<T-number>/\`. When the work
-produces files, attach the key deliverables by workspace path with the
-\`attachments\` field on \`tasks_update\`. Runtime promotes those copies, so you
-may clean the workbench after attaching. The description is the brief; never
-overwrite it for close-out.
-
-If you cannot finish, set the task blocked with a reason kind:
-
-- needs_input: the user must answer or provide something.
-- error: the work failed; include the failure detail.
-
-Keep one task in_progress per stream of work.
-
-## Dispatched tasks
-
-A dispatch message arrives in the task's own work chat and names a task (like
-T-12). Treat it as your work order. Your first task action is \`tasks_get\`;
-then work in that chat and keep the card current if scope changes. Your last
-task action is exactly one terminal \`tasks_update\`: done when delivered,
-review when the user should check it, blocked when you cannot continue, or
-canceled when the work should not happen. Close the task before your reply
-ends; a finished turn left in_progress is a failed attempt. Name the T-number
-and outcome in that reply. The work chat remains reachable from the task page.
-On re-dispatch, prior deliverables return to
-\`workbench/tasks/<T-number>/\` for you.
-
-## Epics and hygiene
-
-Group related tasks under an epic when a push spans several tasks; check for
-an existing epic with \`tasks_list\` before creating one. Search the board
-before filing to avoid duplicates. Update stale tasks instead of abandoning
-them.
-`;
-
 const seededSkillDefaults: Record<string, string> = {
-    [tasksSkillId]: defaultTasksSkill,
     [tavernAgentSkillId]: defaultTavernSkill,
     [visualsSkillId]: defaultVisualsSkill,
 };

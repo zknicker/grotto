@@ -55,7 +55,9 @@ function startDesktopUpdateMonitor() {
 
     monitorStarted = true;
     bridge.onUpdateStatus((status) => {
-        setDesktopUpdateStatus(fromBridgeStatus(status));
+        setDesktopUpdateStatus(
+            reconcileDesktopUpdateStatus(currentStatus, fromBridgeStatus(status))
+        );
     });
     void checkForDesktopUpdate({ install: false });
 }
@@ -205,4 +207,15 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 function fromBridgeStatus(status: DesktopUpdateBridgeStatus): DesktopUpdateStatus {
     return status;
+}
+
+export function reconcileDesktopUpdateStatus(
+    current: DesktopUpdateStatus,
+    incoming: DesktopUpdateStatus
+): DesktopUpdateStatus {
+    if (current.phase === 'downloading' && incoming.phase === 'downloading') {
+        return { ...incoming, version: current.version };
+    }
+
+    return incoming;
 }

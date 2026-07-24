@@ -1,14 +1,15 @@
 import type { AgentListOutput } from '../../lib/trpc.tsx';
 
-export function createNewAgentName(agents: AgentListOutput['agents']) {
+/** Unique-suffix a proposed handle against the existing agent roster. */
+export function createNewAgentName(agents: AgentListOutput['agents'], base = 'new-agent') {
     const names = new Set(agents.map((agent) => agent.name.trim().toLowerCase()));
-    if (!names.has('new-agent')) {
-        return 'new-agent';
+    if (!names.has(base)) {
+        return base;
     }
 
     let suffix = 2;
-    while (names.has(`new-agent-${suffix}`)) {
+    while (names.has(`${base}-${suffix}`)) {
         suffix += 1;
     }
-    return `new-agent-${suffix}`;
+    return `${base}-${suffix}`;
 }

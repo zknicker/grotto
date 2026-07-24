@@ -1,11 +1,19 @@
 import { Plus } from '@hugeicons/core-free-icons';
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
+import {
+    Menu,
+    MenuItem,
+    MenuPopup,
+    MenuSeparator,
+    MenuTrigger,
+} from '../../components/ui/menu.tsx';
 import { useAgentList } from '../../hooks/agents/use-agent-list.ts';
 import { appRoutes } from '../../lib/app-routes.ts';
 import { withSavingToast } from '../../lib/saving-toast.ts';
 import { trpc } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
+import { type AgentArchetypeProposal, agentArchetypeProposals } from './agent-archetypes.ts';
 import { AgentProfile } from './agent-profile/agent-profile.tsx';
 import { createNewAgentName } from './create-agent-name.ts';
 import { HumanMemberList } from './human-member-list.tsx';
@@ -32,6 +40,15 @@ export function MembersPage() {
             navigate(appRoutes.memberAgent(agent.id));
         },
     });
+    const handleCreate = (proposal: AgentArchetypeProposal | null) => {
+        void withSavingToast(() =>
+            createAgent.mutateAsync({
+                archetype: proposal?.id,
+                bio: proposal?.bio,
+                name: createNewAgentName(agents, proposal?.handle),
+            })
+        ).catch(() => undefined);
+    };
 
     return (
         <main className="flex min-h-0 flex-1">
@@ -42,20 +59,40 @@ export function MembersPage() {
                             <span>Agents</span>
                             <span className="tabular-nums">{agents.length}</span>
                         </h1>
-                        <button
-                            aria-label="Create agent"
-                            className="no-drag flex size-5 cursor-pointer items-center justify-center rounded-md text-sidebar-muted hover:bg-[var(--nav-hover)] hover:text-foreground disabled:cursor-default disabled:opacity-50"
-                            disabled={createAgent.isPending}
-                            onClick={() => {
-                                void withSavingToast(() =>
-                                    createAgent.mutateAsync({ name: createNewAgentName(agents) })
-                                ).catch(() => undefined);
-                            }}
-                            title="Create agent"
-                            type="button"
-                        >
-                            <Icon aria-hidden="true" icon={Plus} size={14} />
-                        </button>
+                        <Menu>
+                            <MenuTrigger
+                                aria-label="Create agent"
+                                className="no-drag flex size-5 cursor-pointer items-center justify-center rounded-md text-sidebar-muted hover:bg-[var(--nav-hover)] hover:text-foreground disabled:cursor-default disabled:opacity-50"
+                                disabled={createAgent.isPending}
+                                title="Create agent"
+                            >
+                                <Icon aria-hidden="true" icon={Plus} size={14} />
+                            </MenuTrigger>
+                            <MenuPopup align="start" className="w-72">
+                                <MenuItem onClick={() => handleCreate(null)}>
+                                    <div className="flex flex-col gap-0.5 py-0.5">
+                                        <span>Blank agent</span>
+                                        <span className="text-muted-foreground text-xs">
+                                            Starts with no role; its lane emerges from work
+                                        </span>
+                                    </div>
+                                </MenuItem>
+                                <MenuSeparator />
+                                {agentArchetypeProposals.map((proposal) => (
+                                    <MenuItem
+                                        key={proposal.id}
+                                        onClick={() => handleCreate(proposal)}
+                                    >
+                                        <div className="flex flex-col gap-0.5 py-0.5">
+                                            <span>{proposal.label}</span>
+                                            <span className="text-muted-foreground text-xs">
+                                                {proposal.tagline}
+                                            </span>
+                                        </div>
+                                    </MenuItem>
+                                ))}
+                            </MenuPopup>
+                        </Menu>
                     </div>
                     <div className="space-y-1 px-2">
                         {agents.map((agent) => (

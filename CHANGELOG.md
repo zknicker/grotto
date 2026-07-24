@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.0 - 2026-07-24
+
+- Runtime/API/App: MCP Connections replace first-party Plugins. Remote MCP
+  servers use standard discovery and OAuth, API headers, or no authentication;
+  Runtime keeps credentials and exposes only the exact upstream tools granted
+  to each agent. MerchBase and Google Calendar presets simplify setup without
+  changing the standard MCP contract. Requires this Runtime. **Breaking:**
+  Plugin records, routes, and grants are retired.
+- Runtime/API/App: agents use one floating global session and a chat-first work
+  loop, with child threads, task ownership and reminders, inbox delivery, and
+  guarded cross-chat coordination. Retired Wiki, cron, and legacy agent-tool
+  surfaces are no longer carried forward. Requires this Runtime.
+- App: every agent has a full profile and workspace, while every conversation
+  has Chat, Tasks, and Files views. The navigation rail now centers Search,
+  Chat, Activity, Tasks, Reminders, Members, Connections, and Browser.
+- Runtime/App: Cove is the default agent, and new agents receive an
+  archetype-aware starter workspace with durable memory and operating notes.
+- Runtime/App: generated visual responses render as first-class chat content,
+  and agent activity remains visible while navigating around the app.
+
 ## v1.5.5 - 2026-07-21
 
 - Runtime: Homebrew installs now package and load Wiki recall correctly,

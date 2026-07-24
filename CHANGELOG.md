@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.2 - 2026-07-24
+
+- Runtime: existing installations now upgrade the retired chat-scoped agent
+  turn table to the current global-session shape, restoring message delivery
+  and agent tool execution without losing historical turn evidence. Requires
+  this Runtime.
+
 ## v1.6.1 - 2026-07-24
 
 - App: update progress now keeps showing the version being downloaded instead

@@ -116,7 +116,7 @@ try {
                 assert(Date.now() < deadline, 'freshness turn never settled');
                 const page = await readPage(chat);
                 const reply = authoredBy(page.rows, alpha.id).join(' ');
-                if (page.activeReplies.length === 0 && reply.length > 0) {
+                if (page.activeTurnAgentIds.length === 0 && reply.length > 0) {
                     assert(
                         reply.toLowerCase().includes('vermilion'),
                         `the settled reply never saw the mid-turn message; replies: ${reply.slice(0, 200)}`
@@ -236,7 +236,7 @@ async function waitForTurnActive(chatId, timeoutMs) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
         const page = await readPage(chatId);
-        if (page.activeReplies.length > 0) {
+        if (page.activeTurnAgentIds.length > 0) {
             return;
         }
         await sleep(1000);

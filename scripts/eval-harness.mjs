@@ -222,12 +222,18 @@ export function createEvalHarness({ evalName }) {
         return await trpc('chat.send', { chatId, content });
     }
 
+    // In-flight turns ride the chat record (I1: turns float on the session;
+    // chat.log.list carries durable rows only), so quiet-detection reads the
+    // chat's activeTurnParticipantIds alongside the timeline page.
     async function readPage(chatId) {
-        const data = await trpc('chat.log.list', { id: chatId, limit: 100 });
+        const [page, chat] = await Promise.all([
+            trpc('chat.log.list', { id: chatId, limit: 100 }),
+            trpc('chat.get', { chatId }),
+        ]);
+        const record = chat?.chat ?? chat;
         return {
-            activeReplies: data?.activeReplies ?? [],
-            failedTurns: data?.failedTurns ?? [],
-            rows: data?.rows ?? [],
+            activeTurnAgentIds: record?.activeTurnParticipantIds ?? [],
+            rows: page?.rows ?? [],
         };
     }
 
@@ -265,9 +271,6 @@ export function createEvalHarness({ evalName }) {
         const deadline = Date.now() + timeoutMs;
         while (Date.now() < deadline) {
             const page = await readPage(chatId);
-            if (page.failedTurns.length > 0) {
-                throw new InfraError(page.failedTurns[0]?.error?.slice(0, 200) ?? 'turn failed');
-            }
             if (predicate(page.rows)) {
                 return page.rows;
             }
@@ -279,19 +282,16 @@ export function createEvalHarness({ evalName }) {
     async function pollUntilSilent(chatId, agentId, timeoutMs) {
         const deadline = Date.now() + timeoutMs;
         const startedAt = Date.now();
-        let sawActiveReply = false;
+        let sawActiveTurn = false;
         while (Date.now() < deadline) {
             const page = await readPage(chatId);
-            if (page.failedTurns.length > 0) {
-                throw new InfraError(page.failedTurns[0]?.error?.slice(0, 200) ?? 'turn failed');
-            }
             const replies = authoredBy(page.rows, agentId);
             if (replies.length > 0) {
                 throw new Error(`expected no reply, got: ${replies[0]?.slice(0, 120)}`);
             }
-            if (page.activeReplies.length > 0) {
-                sawActiveReply = true;
-            } else if (sawActiveReply || Date.now() - startedAt > 60_000) {
+            if (page.activeTurnAgentIds.length > 0) {
+                sawActiveTurn = true;
+            } else if (sawActiveTurn || Date.now() - startedAt > 60_000) {
                 return;
             }
             await sleep(3000);
@@ -308,14 +308,11 @@ export function createEvalHarness({ evalName }) {
         let quietSince = Date.now();
         while (Date.now() < deadline) {
             const page = await readPage(chatId);
-            if (page.failedTurns.length > 0) {
-                throw new InfraError(page.failedTurns[0]?.error?.slice(0, 200) ?? 'turn failed');
-            }
-            const signature = JSON.stringify({ active: page.activeReplies, rows: page.rows });
+            const signature = JSON.stringify({ active: page.activeTurnAgentIds, rows: page.rows });
             if (signature !== lastSignature) {
                 lastSignature = signature;
                 quietSince = Date.now();
-            } else if (page.activeReplies.length === 0 && Date.now() - quietSince >= quietMs) {
+            } else if (page.activeTurnAgentIds.length === 0 && Date.now() - quietSince >= quietMs) {
                 return;
             }
             await sleep(5000);
@@ -330,7 +327,7 @@ export function createEvalHarness({ evalName }) {
         const deadline = Date.now() + timeoutMs;
         while (Date.now() < deadline) {
             const pages = await Promise.all(createdChatIds.map((chatId) => readPage(chatId)));
-            if (pages.every((page) => page.activeReplies.length === 0)) {
+            if (pages.every((page) => page.activeTurnAgentIds.length === 0)) {
                 return;
             }
             await sleep(2000);

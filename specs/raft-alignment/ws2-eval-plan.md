@@ -6,7 +6,16 @@ on a dev stack — most scenarios now assert *CLI actions taken* (sends, claims,
 holds) rather than reply text, so the harness gains a helper that inspects the
 turn's shell calls and resulting chat state.
 
-Status: DRAFT for operator review. Not implemented.
+Status: LANDED. The battery below shipped with the flip; the 2026-07-24 pass
+added the WS5-era scenarios (task lifecycle, claim contention, reminder
+fire, memory across reset), merged exact-text into consult, retired the
+standalone bio-awareness scenario (misdirect exercises discovery), and made
+thread-aware grading the default (D8: claimed tasks report in their thread).
+Still deferred pending a turn-trace surface: heredoc discipline,
+one-command-per-call, freshness-hold staging, notice-deferral honesty,
+no-polling. WS-MCP scenarios (granted-server use; no-grant honesty) arrive
+with that workstream. scripts/prompt-eval.mjs is the source of truth for
+the current scenario list.
 
 ## Existing scenarios: keep / rewrite / retire
 

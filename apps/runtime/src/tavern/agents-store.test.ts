@@ -1,3 +1,6 @@
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AGENT_WORKSPACE } from '../config.ts';
 import { closeDb, initTestDb } from '../db/connection.ts';
@@ -44,6 +47,8 @@ describe('Runtime agent and agent engine reads', () => {
                 {
                     webAccessEnabled: false,
                     enabledPluginIds: [],
+                    // The pre-flip `tasks` skill left the seeded defaults (WS8):
+                    // its content teaches the retired tasks_* tool surface.
                     enabledSkillIds: ['tavern-agent', 'visuals'],
                     modelName: {
                         model: 'gpt-4.1-mini',
@@ -111,6 +116,43 @@ describe('Runtime agent and agent engine reads', () => {
             ],
             title: 'Research',
         });
+    });
+
+    it('seeds the workspace starter kit when creating an agent', async () => {
+        const workspaceFolder = await fs.mkdtemp(path.join(os.tmpdir(), 'tavern-create-seed-'));
+
+        try {
+            const createResponse = await handleTavernRuntimeRequest(
+                new Request('http://runtime.test/agents', {
+                    body: JSON.stringify({
+                        archetype: 'analyst',
+                        bio: 'Data analyst — decision-shaped reads',
+                        id: 'agt_analyst',
+                        name: 'analyst',
+                        workspaceFolder,
+                    }),
+                    headers: { 'content-type': 'application/json' },
+                    method: 'POST',
+                })
+            );
+            expect(createResponse.status).toBe(200);
+
+            const memory = await fs.readFile(path.join(workspaceFolder, 'MEMORY.md'), 'utf8');
+            expect(memory).toMatch(/^# analyst\n/u);
+            expect(memory).toContain('Data analyst — decision-shaped reads');
+            expect(memory).toContain('notes/lane.md — ');
+            await expect(
+                fs.readFile(path.join(workspaceFolder, 'notes', 'lane.md'), 'utf8')
+            ).resolves.toContain('# Your lane: data reads for decisions');
+            await expect(
+                fs.readFile(
+                    path.join(workspaceFolder, 'notes', 'practices', 'task-claim-lock.md'),
+                    'utf8'
+                )
+            ).resolves.toContain('the claim is the concurrency lock');
+        } finally {
+            await fs.rm(workspaceFolder, { force: true, recursive: true });
+        }
     });
 
     it('persists the agent bio through create, update, and clear', async () => {

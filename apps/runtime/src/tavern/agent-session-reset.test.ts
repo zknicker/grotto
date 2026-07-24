@@ -55,7 +55,7 @@ describe('agent session reset', () => {
         );
     });
 
-    it('full reset wipes and recreates the workspace', async () => {
+    it('full reset wipes the workspace back to the factory starter kit', async () => {
         ensureCurrentAgentSession({ agentId: 'agt_otto' });
 
         const { session } = await resetAgentSession({ agentId: 'agt_otto', kind: 'full' });
@@ -63,6 +63,10 @@ describe('agent session reset', () => {
         expect(readCurrentAgentSession({ agentId: 'agt_otto' })?.id).toBe(session.id);
         const entries = await fs.readdir(workspaceDir);
         expect(entries).not.toContain('NOTES.md');
+        // The wiped workspace is re-seeded like a newborn agent's (WS8).
+        const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
+        expect(memory).toMatch(/^# Otto\n/u);
+        expect(memory).toContain('notes/practices/task-claim-lock.md');
     });
 
     it('lands a durable system receipt in the agent DM', async () => {

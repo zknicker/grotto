@@ -66,6 +66,36 @@ describe('inbox delivery (I1/I2/I3)', () => {
         expect(readInboxCursor(wren.id, 'cht_general').deliveredUpToSeq).toBe(reply.sequence);
     });
 
+    it('never delivers a channel message to an agent that is not a member', () => {
+        // Membership fan-out is a security invariant (WS6 carries it over a
+        // network hop unchanged): a stored agent outside the participant list
+        // gets no delivery, no wake, and no pierce — even when mentioned.
+        const irisId = 'agt_iris';
+        upsertStoredAgent({
+            agent: {
+                enabledSkillIds: [],
+                id: irisId,
+                isAdmin: false,
+                name: 'Iris',
+                primaryColor: null,
+                workspaceFolder: '/tmp/agt_iris',
+            },
+        });
+        const iris = sessionFor(irisId);
+
+        const mention = sendHuman('paging @Iris even though she is not here');
+        planMessageDelivery('cht_general', mention);
+
+        expect(readInboxCursor(iris.id, 'cht_general').deliveredUpToSeq).toBe(0);
+        expect(listInboxPierces(iris.id)).toEqual([]);
+        expect(listPendingInboxTargets(iris.id)).toEqual([]);
+        expect(woken).not.toContain(irisId);
+        // Members still received the same message normally.
+        expect(readInboxCursor(sessionFor(ottoId).id, 'cht_general').deliveredUpToSeq).toBe(
+            mention.sequence
+        );
+    });
+
     it('freezes delivered on muted channels and pierces personal mentions only', () => {
         muteAgentChannel(ottoId, { target: '#general' });
 

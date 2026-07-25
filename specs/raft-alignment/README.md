@@ -35,23 +35,168 @@ Three components, mirroring Raft exactly:
 | Raft | Grotto | Owns |
 | --- | --- | --- |
 | Hosted server (api/app.raft.build) | **grotto server** (grotto.sh) | Canonical chats, messages, threads, tasks, inbox cursors, files/attachments, search, auth (Clerk roles/invites), agent identities + credentials, reminder schedules |
-| raft-computer + daemon | **grotto-runtime** (per machine) | Attach to server, run assigned agents, engine/harness execution, agent workspaces, lifecycle (sleep/wake), wake + envelope delivery, per-agent CLI wrapper injection, reminder script payloads |
-| `raft` CLI (injected wrapper / npm) | **grotto CLI** (agent-facing) | All agent verbs. Identity baked into a per-agent PATH wrapper (managed path); npm-style install + device-code credential mint later for external agents |
+| raft-computer + daemon | **Grotto Computer** (per physical machine, one isolated attachment per Server) | Attach to servers, run assigned Agents, engine/harness execution, Agent workspaces, lifecycle (sleep/wake), delivery, per-Agent CLI wrapper injection, reminder script payloads |
+| `raft` CLI (injected managed wrapper; standalone npm for external Agents) | **grotto CLI** (Agent-facing, embedded in `grotto-computer`) | All Agent verbs. Identity baked into a per-Agent PATH wrapper and mediated by the local Computer proxy; no standalone package while external Agents are out of scope |
+
+**Server deployment (decided).** WS6 deploys `grotto.sh` as one Bun/Fastify node on the
+operator's always-on Mac mini behind Cloudflare Tunnel. Cloudflare owns DNS, TLS, and ingress
+only. PostgreSQL, attachment files, search, jobs, events, and the outbox remain on the same Mac
+mini, avoiding a home-to-cloud data hop on ordinary requests. Attachment metadata lives in
+PostgreSQL and bytes live in a dedicated local Server filesystem root; S3-compatible storage is
+deferred. PostgreSQL and attachment files receive asynchronous off-machine backups with a tested
+restore procedure. A future move off the Mac mini moves the entire Server bundle into one provider
+and region rather than splitting application compute from its hot data path.
 
 The CLI's wire contract is designed as the grotto.sh server API from day one: WS1 serves it from
 the chat surface of `@tavern/api` co-hosted in the local process, and WS6 moves the process, not
 the plumbing.
 
-**Transport topology (decided).** The server is the only party anyone talks to; the runtime is
-just another client. **app ↔ server**: one websocket carrying two event classes — durable
+**Transport topology (decided).** The hosted Server is the durable hub; the Computer is an
+attached client. **App ↔ Server**: one websocket carrying two event classes — durable
 (message.created etc., replayable, reconnect-refetch) and volatile (compositions, status dots;
-fire-and-forget, no replay) — plus HTTP for queries/mutations. **runtime ↔ server**: one
-persistent duplex connection (wake/delivery signals down; composition deltas coalesced ~10Hz,
-status transitions, telemetry, heartbeats up — Raft's daemon topology) plus the CLI's per-action
-HTTP. **runtime ↔ app: nothing, ever** — remote viewing, multi-device, and member visibility all
-require server fan-out, and the server membership-checks every relayed event, ephemeral ones
+fire-and-forget, no replay) — plus HTTP for queries/mutations. **Computer ↔ Server**: one
+persistent duplex connection per Server attachment (typed start/delivery/control messages down;
+composition deltas coalesced ~10Hz, status transitions, telemetry, heartbeats up — Raft's daemon
+topology) plus the CLI proxy's per-action HTTP. **Computer ↔ App: nothing, ever** — remote
+viewing, multi-device, and member visibility all require Server fan-out, and the Server
+membership-checks every relayed event, ephemeral ones
 included. Pre-WS6 both connections are in-process hops inside the co-hosted process; WS6
-upgrades transport only, contracts unchanged.
+upgrades transport only, contracts unchanged. One resident `grotto-computer` OS service
+supervises one isolated child runner per Server attachment; attaching another Server creates
+another child, not another service or a stop/restart cycle. Setup is additive across Servers.
+Each Computer attachment is a hard execution namespace: its Agents, workspaces, skills, MCP
+connections, grants, queues, sessions, and effective state cannot cross to another Computer or
+attachment. Server-owned desired configuration is scoped by Computer id and may reference only
+that Computer's reported inventory. The physical installation shares only installed software and
+native runtime/model access.
+As in Raft, an Agent's one global session inherently serializes its turns; new work for a busy
+Agent waits in that Agent's pending inbox rather than entering a separate scheduler. Different
+Agents run concurrently on the same Computer, including across Server attachments. There is no
+Computer-wide job queue.
+Codex, Claude Code, and Pi all receive an isolated per-Agent logical `HOME`; native locations such
+as `.agents/skills` and `.claude/skills` resolve to the Agent's canonical writable `skills/`
+directory. The Computer passes that directory through the AI SDK harness skill contract, making it
+the exact set visible to every executor while excluding host-global, cross-Agent, and
+cross-Computer skills. This deliberately diverges from Raft's ambient host-global discovery:
+runtime-compatible global skill folders on the physical machine are opt-in import sources only.
+Changing an Agent between Codex, Claude Code, or Pi keeps that same library unchanged. Grotto
+creates no per-runtime copies or variants, performs no conversion or compatibility filtering, and
+treats runtime-specific instructions as ordinary Agent-owned skill content.
+The App may copy a selected bundle into one Agent library while its Computer is online, after which
+the Agent owns an independent mutable copy. Agents may also create, edit, and delete their own
+skills through `grotto skill`. There is no shared catalog, Server-owned skill assignment,
+automatic synchronization, or reconciliation flow.
+As in Raft's `agent:skills:list`, the Computer reports only importable names, descriptions, and
+shortened source paths to Server Owners and Admins. **Import to Agent** copies the bundle locally
+on the Computer; its contents never transit through or persist on the Server.
+Runtime-specific references or environment injection reuse the physical machine's native provider
+session without copying provider credentials into Grotto-owned state. Imports and Agent-authored
+changes never interrupt an active turn and appear on the next turn; there is no service restart or
+mid-turn reload protocol.
+Removing a skill from an Agent is a confirmed deletion of that Agent's mutable copy, including its
+adaptations. The dialog names the Agent and skill and states that the copy will be deleted. The
+import source and other Agent libraries remain unchanged; there is no archive or disabled copy.
+The Computer reports each Agent skill's name, description, content hash, and modified time for
+offline App display. Bodies and supporting files remain Computer-local; viewing or mutating them
+uses the authorized live relay and requires the Computer online. The Server does not keep another
+copy of skill contents.
+Stopping the service is temporary and preserves all attachments; permanent Computer removal is
+an App action, never a CLI detach. The installed service starts automatically at boot unless an
+operator has explicitly stopped it; that stopped state persists until `grotto-computer start`.
+Computer releases are operator-triggered, not installed automatically at service startup.
+Computer settings show the installed and available versions plus update progress; an Owner or
+Admin starts an update, the Server sends a typed command over the attachment socket, and the
+Computer verifies, stages, restarts, and reconnects. `grotto-computer upgrade` remains the local
+recovery path. Any attached Server's Owner or Admin may trigger the signed update. Because the
+resident binary is shared, every child runner restarts; all attachments see update state but never
+the initiating Server or User. Download and verification may overlap active turns, but restart
+drains first: stop admitting new turns, report `waiting-for-agents`, finish active turns, restart,
+then resume queued work. A stuck Agent requires an explicit admin stop; updates never force-kill a
+turn on a hidden timeout.
+The attachment socket has one deliberately stable compatibility seam: a minimal authenticated
+bootstrap handshake carrying binary/protocol versions plus signed update command and progress.
+An incompatible Computer connects in `update-required` mode with no Agent starts, delivery, or
+ordinary control. If it cannot speak the bootstrap protocol, recovery requires a local
+`grotto-computer upgrade`; Grotto does not preserve old product-protocol behavior.
+Grotto deliberately omits Raft's `latest`/`alpha`/`pinned` release-channel model. There is one
+production Computer release stream, and both App-triggered updates and plain CLI upgrades target
+its newest version.
+As in Raft's executable-versus-`$SLOCK_HOME` split, Grotto Computer's npm-delivered install root
+is disposable and strictly separate from its stable data root. Computer identity, attachments,
+queues, logs, credentials, and Agent workspaces never live under an npm package or executable
+directory. Updates atomically replace code only; they never clean, relocate, stage through, or
+otherwise treat durable Agent data as part of the release. Like Raft, Grotto does not snapshot
+control state or Agent workspaces before an update; small Computer records use atomic writes and
+local schema changes are transactional. Unlike Raft's production CDN-delivered standalone binary,
+Grotto keeps no `<executable>.prev` rollback copy: its immutable npm releases are repaired by a
+new release or explicit npm reinstall.
+The npm prefix contains the disposable package and `grotto-computer` PATH entry; neither lives
+inside `~/.grotto`. The canonical data root is `~/.grotto`, with resident service state under
+`computer/`. Every attachment owns `computer/servers/<server-id>/`, containing its credential,
+vault, queues, and `agents/<agent-id>/{home,skills,workspace,runtime}/`. As in the
+Raft layout shown above, the `computer/` directory is state owned by the service, not the service
+binary.
+npm install/uninstall owns code only and never touches `~/.grotto`. A reinstall validates and
+resumes still-valid attachments and workspaces; permanent cleanup occurs only through explicit
+Agent, Computer, or Server deletion.
+WS6 supports Apple Silicon macOS only, matching the current Grotto Runtime release. It ships one
+npm artifact and launchd service implementation, reports OS/architecture in the Computer
+handshake, and adds no Linux, Intel Mac, Windows, or generic service-manager abstraction.
+Computer credentials follow Raft's locked-down-file model rather than macOS Keychain. Each
+Server attachment credential is atomically stored mode `0600`; runner credentials are
+memory-only; per-launch Agent proxy tokens are mode-`0600` files removed at launch end and swept
+after crashes. MCP secrets stay in the attachment-local Runtime vault; model-provider
+authentication remains native runtime state outside Grotto. Logs, traces, update state, and Server
+diagnostics never include secret values.
+Model-provider access is shared by the physical machine, in direct Raft parity: locally installed
+runtimes reuse host subscriptions and sessions such as Codex OAuth. Every Server attachment may
+advertise sanitized model availability and assign its Agents to it; raw provider credentials
+never enter Grotto at all. Provider setup and login use each runtime's native local flow; Grotto
+Computer only detects and reports availability. Setup explicitly acknowledges that attaching a
+Server shares this paid compute capacity.
+MCP binaries/definitions may be machine-wide, but every configured MCP connection and credential
+is scoped to one Server attachment and stored in that attachment's local vault namespace. Only
+that Server sees non-secret metadata, and only Agents assigned to that same Computer may receive
+grants. Other Computers and attachments cannot discover, reference, or reuse it; the same external
+account requires explicit authorization for each Computer. MCP calls never relay through a second
+Computer.
+WS6 preserves the shipped MCP product surface rather than applying the model-runtime simplification
+to integrations: Google Calendar keeps its packaged OAuth client, MerchBase keeps Clerk DCR, and
+custom no-auth, secret-header, OAuth, and stdio connections remain supported. Human-entered secret
+mutations are online-only typed relays to the target Computer. The Server never persists, queues,
+retries, or logs their values; an offline Computer rejects the mutation.
+MCP OAuth uses a hosted callback without hosted token custody: the Computer retains PKCE, the
+Server validates short-lived routing state and immediately forwards the one-time code over the
+live attachment socket, and only the Computer exchanges and stores tokens. Codes are neither
+persisted nor retried; an offline Computer expires the attempt.
+Grotto copies Raft's offline desired-config behavior, not Raft's current hosted MCP custody.
+Runtime/model choices and same-Computer MCP grants may be saved against the
+Computer's last reported inventory while it is offline and apply from a full snapshot on reconnect.
+The App shows them as pending until Computer-reported effective state catches up. Missing local
+resources degrade explicitly; no substitute is chosen. Runtime rescans, MCP auth/test/identity or
+secret changes, skill package mutations, local inspection, and process lifecycle actions require
+the Computer online and are never queued.
+As in Raft, changing an Agent's runtime or model finishes the active turn and starts a fresh Agent
+session generation on the next turn. No transcript is converted or replayed across executors.
+Identity, workspace, `MEMORY.md`, and the canonical Agent skill library persist unchanged.
+Grotto removes its seven-day idle safety reset: session age and Computer downtime never rotate
+context. The current session resumes until a human resets it, changes runtime/model, or its stored
+runtime session cannot be resumed. Matching the actual Raft Computer, a missing runtime session or
+provider-rejected replay automatically rotates the Agent session generation and cold-starts once.
+Activity and the fresh context disclose the loss and direct recovery from Grotto history plus
+local `MEMORY.md`/notes. Only a failed cold start leaves the Agent offline with an error.
+Grotto keeps Raft's three-level Agent repair ladder. **Restart** restarts the executor and resumes
+the current session. **Session reset** starts fresh context while preserving workspace,
+`MEMORY.md`, and skills. **Full reset** starts fresh context and recreates the Agent's `home/`,
+`skills/`, `workspace/`, and `runtime/` directories, deleting all Agent-owned local state while
+leaving host-global import sources untouched. The Agent's Server identity, memberships, history,
+Computer assignment, runtime/model configuration, and MCP grants persist. Full reset uses a strict
+confirmation that names the Agent and lists workspace, memory, and Agent-owned skills as
+permanently deleted.
+Matching Raft, **Stop** persists as Server-owned Agent lifecycle state rather than acting only as a
+turn interrupt. It terminates the live turn and suppresses automatic message/reminder wakes across
+Computer reconnects and service restarts while delivery continues accumulating in the pending
+inbox. Human **Start** resumes the current session and drains that work.
 
 ## Program principles
 
@@ -177,7 +322,8 @@ upgrades transport only, contracts unchanged.
   queue, `tasks_*` tools, `workbench/tasks/T-…` folders.
 - **D9 — MCP replaces plugins; the runtime is the credential broker** (walked and resolved
   2026-07-24; full evidence in ADR 0017). The plugin concept is retired. Outside services reach
-  agents as operator-configured **MCP servers**, granted per-agent like skills; the remaining
+  agents as operator-configured **MCP servers** with explicit Server-owned per-Agent grants;
+  unlike local Agent skills, MCP access is an authorization boundary. The remaining
   non-MCP capabilities are **host tools** (Browser) and **model capabilities** (image
   generation). A runtime-owned relay holds upstream credentials **in the runtime** (Raft
   parity: secrets live on the computer, not the central server), authenticates agents by their
@@ -213,8 +359,12 @@ upgrades transport only, contracts unchanged.
 - **I1 — Inbox delivery replaces evaluation dispatch; turns float on the session.** Message
   lands → queued per attention rules (ordinary delivery: joined channels, followed threads,
   DMs; mute suppresses a channel + its threads; @mentions and DMs pierce mutes/unfollows as
-  single messages that do not re-follow). Idle agent → one drain turn delivers ALL pending
-  bodies batched as labeled envelopes; busy agent → content-free notice. Per-message evaluation
+  single messages that do not re-follow). The Server sends a canonical message envelope to the
+  Computer over its typed socket. The Computer accepts it into the Agent's local pending inbox
+  and wakes or steers the Agent with a content-free target summary. `grotto message check`
+  drains full pending bodies from that local inbox first and falls through to the Server only
+  when no local pending copy exists. A bounded resume catch-up may embed concrete envelopes
+  directly. Per-message evaluation
   turns and `NO_REPLY` die; chain budgets govern the drain loop. Turns are anchored to the
   session, not a chat: per-turn chat response rows die, Stop moves to agent presence.
   Presentation splits cleanly: **chat level** shows only human-vocabulary signals — the
@@ -231,11 +381,13 @@ upgrades transport only, contracts unchanged.
   sidebar, the same short status in DM topbars, and the deep execution trace in the agent detail
   panel. In-chat work-evidence groups retire. Read state stays internal (drives unread math,
   not presented as chat activity).
-- **I2 — Mid-turn traffic is content-free notices only.** Raft's exact row format (target,
+- **I2 — Ordinary wake and mid-turn traffic shown to the model are content-free notices.**
+  Raft's exact row format (target,
   pending count, first/latest msg ids, latest sender, `· task/thread/dm/mention` tags); bodies
-  only ever arrive via pull (`message check`) or the next drain turn's envelopes. Notice
-  flushing copies the daemon's gating: only at tool boundaries, never while compacting or with
-  outstanding tool uses.
+  arrive through `message check` or a bounded concrete resume batch. The Computer already has
+  the full socket-delivered envelope; content-free describes the runtime input, not the
+  Computer transport. Notice flushing copies the daemon's gating: only at tool boundaries,
+  never while compacting or with outstanding tool uses.
 - **I3 — Two durable cursors, model-seen authority** (re-derived from daemon source;
   `cursorAuthority: "model_seen_only"` is Raft's own literal). Per (session, target):
   `delivered` (inbox/transport state; muted targets never advance it) and `seen` (sole
@@ -247,7 +399,8 @@ upgrades transport only, contracts unchanged.
   wakes advance nothing, ever (their wake proofs stamp `cursorImpact: {deliveryAck: false,
   modelSeen: false, read: false}` — adopted as a contract test). A turn that pulled and died
   leaves `read > seen` in effect; catch-up re-delivers from `seen`.
-- **W1 — WS1 wire-contract gate rulings (2026-07-21).** (a) Freshness-hold drafts are
+- **W1 — WS1 wire-contract gate rulings (2026-07-21; managed transport corrected
+  2026-07-25 against `raft-computer` 1.0.13).** (a) Freshness-hold drafts are
   **server-held** — approved divergence from shipped Raft's client-local tmpdir drafts (found in
   the WS1 audit; the contract had mischaracterized Raft as server-held). Vocabulary made
   explicit: the **runtime is the witness** (attests what the model provably saw), the **server
@@ -256,9 +409,13 @@ upgrades transport only, contracts unchanged.
   rule is Grotto-owned (unverifiable in Raft's wire layer): single token
   `[A-Za-z0-9][A-Za-z0-9_-]{0,31}`, case-insensitive uniqueness, participant and channel
   namespaces separate, named reserved list (`all, everyone, here, human, humans, agent, agents,
-  system, idle, busy, grotto`). (c) No daemon proxy — CLI talks to the server directly with
-  per-agent credentials, delivered as a **token file (0600), not env**, rotated on session
-  reset. Full rationale + divergence table: `specs/grotto-cli.md` §10.
+  system, idle, busy, grotto`). (c) Managed Agents use Raft's actual local-proxy shape:
+  the injected CLI wrapper receives a loopback proxy URL plus a narrow token file; Grotto
+  Computer serves pending inbox reads locally when possible and forwards ordinary Agent API
+  calls with a scoped Agent runner credential minted through the Computer credential for that
+  launch and revoked when the launch ends. The local proxy credential has no direct Server
+  authority, and the Server-valid runner credential never reaches the Agent process.
+  Full rationale + divergence table: `specs/grotto-cli.md` §10.
 - **W2 — Identity and skills go Raft-native (ruled 2026-07-21, post-WS2-prep).** (a) **SOUL is
   retired.** Adopted philosophy: identity accumulates in memory and other people's expectations,
   not in config — the agent **description** is the personality surface (it already rides every
@@ -267,9 +424,10 @@ upgrades transport only, contracts unchanged.
   and its settings editor all retire at the flip; existing SOUL content folds into
   description/MEMORY.md at manual cutover. (b) **The Skills prompt section is dropped.** Skill
   discovery is harness-native (our engine drives Claude Code/Codex/Pi harnesses via AI SDK
-  adapters; assigned skill bundles materialize into each harness's own skill system) — listing
-  them again in our prompt was redundant. Per-agent skill ASSIGNMENT stays (it gates what the
-  harness sees); `grotto skill …` management verbs stay CLI family 9 (WS5); the
+  adapters; each Agent's local library materializes into its harness's own skill system) — listing
+  it again in our prompt was redundant. There is no Server-owned skill assignment; the Agent's
+  writable local library gates what the harness sees. `grotto skill …` management verbs stay CLI
+  family 9 (WS5); the
   save-as-a-skill habit teaching moves to WS8 seeded notes. Net: the composed prompt drops
   ~0.9k below Raft's own length.
 - **I4 — Inbox visibility read-only; attention is agent-owned.** The agent detail panel gains a
@@ -338,9 +496,9 @@ section; `## Chat History` tool teaching; all prompt-taught tool catalogs.
 
 ## 3. Grotto agent CLI
 
-Per-agent PATH wrapper injected by grotto-runtime carrying agent identity; talks to the chat
-surface (local first, grotto.sh after WS6). One command per shell call; stdin bodies; canonical
-text out; teach-at-point-of-use everywhere.
+Per-Agent PATH wrapper injected by Grotto Computer carrying Agent identity; talks through the
+Computer's loopback proxy. One command per shell call; stdin bodies; canonical text out;
+teach-at-point-of-use everywhere.
 
 | Family | Verbs | Notes |
 | --- | --- | --- |
@@ -433,9 +591,10 @@ operator's arcade server 2026-07-21) against our current frontend
 **Backlog (observations, not workstreams):** stall-state presence (orange-dot "stalled"
 distinct from "working", per Raft's runtime_stalled taxonomy — WS4-era); session-age
 economics (track cost/turn vs session age post-flip before touching compaction cadence);
-runtime upgrades stay operator-TRIGGERED (Raft: an update button in the app fires the
-server-staged upgrade — not automatic); our existing update surface (Settings → Updates /
-sidebar update item) needs to work better and, on update, regenerate the per-agent CLI
+Computer upgrades stay operator-TRIGGERED (Raft: an update button in the app fires the
+server-staged upgrade — not automatic); the Computer reports checking, available, installing,
+restarting, complete, and failed states. Our existing update surface (Settings → Updates /
+sidebar update item) becomes the implementation parts shelf and, on update, regenerates per-Agent CLI
 wrappers so agents pick up the new `grotto` in their next turn shell — today CLI and runtime
 are one binary, so wrapper regeneration IS the CLI update; revisit if an npm-shaped external
 CLI ships with WS6. Heartbeat: skipped by ruling — future path is a server-side recurring
@@ -503,24 +662,52 @@ deployment, so intermediate brokenness is not a constraint.
   task-messages; the automations page anatomy (filter sidebar, status rows, run-history
   drawers ≈ `reminder log`, editor panes) becomes the Reminders operator view. Port source =
   the last pre-flip main sha (pin it in the WS5 kickoff when the flip merges).
-- **WS6 — grotto.sh server split.** Move the chat surface to the hosted server + DB (drizzle
-  migrations); grotto-runtime becomes the machine attachment (claim/attach, wake delivery,
-  lifecycle); Clerk Owner/Admin/Member roles, invites; agent credential minting; later external
-  agents, action cards, third-party events. Existing seams: `@tavern/api` chat/admin split,
+- **WS6 — grotto.sh server split.** Move the chat surface to the single-node Mac mini Server,
+  local PostgreSQL, and local attachment filesystem behind Cloudflare Tunnel (with asynchronous
+  off-machine backup and a tested restore procedure); use Drizzle migrations; extract Grotto
+  Computer as the machine service (inline-authorized setup, wake delivery,
+  lifecycle); Clerk human authentication; Grotto Owner/Admin/Member roles and Server-owned,
+  email-bound, seven-day, single-use invites that always create Members; confirmed human removal
+  immediately revokes access while preserving former-member history, leaves Server-owned
+  Agents/Computers intact, and never restores prior roles/private memberships on re-invite; action
+  cards and third-party events remain later work. External Agents, direct Agent login, hosted
+  Agent credential profiles, and an external wake bridge are explicit non-goals. Existing seams:
+  `@tavern/api` chat/admin split,
   `grotto claim`, Clerk member forwarding, `docs/api/auth.md` member model. **Data cutover:
-  grotto.sh starts fresh — existing local chat history is trashed, not migrated (decided).**
-  Agent memory survives regardless: workspaces live on the computer, not in the chat DB.
+  grotto.sh starts completely fresh — existing local chat history and Agent workspaces are
+  discarded, not migrated or adopted (decided).**
   **Integration credentials also stay on the runtime, not the server** (D9): the MCP relay and
   its secret store live where agents execute; the server split moves chat + identity, never the
-  upstream credentials. WS6 does not gate WS-MCP.
+  upstream credentials. WS6 does not gate WS-MCP. Agent deletion requires an App confirmation,
+  immediately retires Server membership/assignments/reminders/task claims while preserving
+  tombstoned authored history, and queues Computer-local workspace cleanup without waiting for an
+  offline Computer; deletion has no restore path. Each Agent's creation-time Computer assignment is
+  immutable: offline Agents resume only when that same Computer reconnects, and a Computer cannot
+  be removed until every assigned Agent is explicitly deleted. There is no Agent migration,
+  adoption, reassignment, or unhosted-Agent recovery state. Stopping Grotto Computer preserves
+  attachments and workspaces; the App may remove a confirmed, Agent-free Computer even while it is
+  offline, without waiting for impossible local cleanup. There is no detach/forget/reclaim flow.
+  Agents, workspaces, skills, MCP connections, grants, queues, sessions, and effective state are
+  isolated to one Computer attachment. They cannot be migrated, shared, or invoked across
+  Computers; only installed software and native runtime/model access are machine-wide.
+  `grotto-computer setup /server` is additive and idempotent: it starts a new per-Server runner
+  without disturbing current attachments, or validates and starts that Server's existing valid
+  attachment. A manual `stop` persists across reboot until an explicit `start`; absent that pause,
+  the service starts automatically at boot. Replacing a Computer means creating a new Computer and
+  new Agents; the replacement may be brought online before the old Agents and Computer are deleted.
+  Server deletion is an Owner-only permanent cascade with Raft's strict danger-zone modal: list the
+  destroyed data, require the exact immutable slug (with `/` rendered as a fixed prefix), keep the
+  destructive button disabled until an exact match, and recheck both slug and Owner authority on the
+  Server. Hosted deletion does not wait for offline Computers and cannot guarantee erasure from a
+  lost machine.
 - **WS7 — Memory/Wiki/Automations retirement.** Delete extraction/dreaming/core-memory
   injection, Wiki, cron product + `cron_*`/`wiki_*`/memory surfaces (D3/D3b/D4); manual cutover
   seeds existing core memory into agent workspaces. Coordinated cut, likely folded into WS2's
   landing window.
 - **WS-MCP — MCP servers, per-agent grants, plugin retirement** (supersedes the former
   "WS5.5 — Plugin CLIs"; see ADR 0017). The plugin concept is retired. Agents reach outside
-  services through **MCP servers** the operator configures and grants per-agent (same
-  assignment model as skills); the surviving non-MCP capabilities are **host tools** (Browser)
+  services through **MCP servers** the operator configures with explicit Server-owned per-Agent
+  grants; the surviving non-MCP capabilities are **host tools** (Browser)
   and **model capabilities** (image generation, already codex-native). No `grotto integration`
   CLI family — ever (evidence M1). Scope:
   - **Runtime relay/broker.** Agents call granted MCP servers through a runtime-owned relay

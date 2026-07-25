@@ -28,6 +28,16 @@ Tavern Runtime is an AI SDK MCP client and credential broker:
 - Runtime does not expose an agent-facing token relay and does not pass Tavern
   tokens upstream.
 
+WS6 preserves this product and protocol surface while moving the local Runtime
+behind a Server-scoped Grotto Computer attachment. Existing no-auth,
+secret-header, OAuth, and stdio connections remain supported. The built-in
+Google Calendar packaged-client flow and MerchBase Clerk DCR flow remain
+ordinary presets on that same path. Hosted Server procedures carry non-secret
+connection state and grants durably. A human-entered secret mutation is
+forwarded only to an online Computer and is never queued, persisted, or logged
+by the Server; the attachment-local vault remains the sole durable secret
+store.
+
 Each connection is one account. The same MCP server or built-in preset may have
 multiple connections. Disconnect removes credentials and all grants for that
 connection. Deleting is the same operation plus removal of a custom connection;
@@ -35,9 +45,14 @@ the two seeded preset rows cannot be deleted.
 
 OAuth follows the MCP authorization standard through AI SDK. Runtime owns
 discovery, PKCE, dynamic client registration, optional pre-registered clients,
-refresh tokens, and authorization server trust. The App Server supplies an
-ephemeral loopback callback. A cross-origin authorization server requires an
-explicit user confirmation that is persisted for that connection.
+refresh tokens, and authorization server trust. Under the hosted Server model,
+Grotto Computer creates and retains the PKCE verifier while `grotto.sh`
+supplies the browser callback and routes the one-time authorization code over
+that Computer attachment's live socket. The hosted Server validates
+short-lived routing state but cannot redeem the code, never persists it, and
+does not retry it; if the Computer is offline, the attempt expires. A
+cross-origin authorization server requires an explicit user confirmation that
+is persisted for that connection.
 Credential-bearing remote endpoints require HTTPS. Changing a connection's
 URL, command, args, auth, or OAuth client configuration closes the old client
 and atomically clears server-bound credentials and grants before the new

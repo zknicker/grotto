@@ -157,3 +157,37 @@ the agent-facing `grotto` CLI.
 `login`, `attach <serverSlug>`, `setup <serverSlug>`, `start/stop/restart`, `status`, `doctor`,
 `logs`, `runners list/stop`, `channel` (release channel), `upgrade`. State under `$SLOCK_HOME`
 (`~/.slock`): per-agent workspaces, per-agent proxy tokens, per-server runner state, trace jsonl.
+In 1.0.13, `setup` is the convenience path that logs in if needed, attaches one Server, and starts
+the service; adding another Server does not detach existing ones. `start [serverSlug]` may resume
+one attachment or all attachments, while `stop` stops compute without deleting attachment records.
+Grotto keeps these additive and temporary lifecycle semantics but omits Raft's persistent
+`login`/`logout`, standalone `attach`, legacy adoption, and fresh-replacement surfaces.
+
+## Managed transport audit (2026-07-25, `raft-computer` 1.0.13)
+
+The current Computer binary confirms the managed path that the older npm-only audit could not
+fully observe:
+
+- One per-Server runner opens an authenticated outbound WebSocket at `/daemon/connect`. On
+  connect it sends a `ready` snapshot containing detected runtimes, running Agents, host facts,
+  versions, and capabilities.
+- `agent:start` carries desired runtime configuration, launch/session identity, an optional
+  canonical `wakeMessage`, unread counts, resume prompt, and bounded resume messages.
+  `agent:deliver` carries a canonical message body plus delivery id, sequence, and transient
+  flag. The socket is typed Computer control and delivery, not a generic HTTP tunnel.
+- The Computer acknowledges `agent:deliver` only after its Agent manager accepts the message
+  into a running, starting, or restartable Agent path. An acknowledgement is transport
+  acceptance, not proof that the model saw the body. If the socket is down, delivery
+  acknowledgements are not replayed locally; the Server remains responsible for redelivery.
+- Ordinary wake and busy inputs written into the runtime are content-free inbox rows: target,
+  pending count, first/latest ids, latest sender, flags, and optional attention hint. The full
+  message remains in the Computer's pending inbox. Transient control messages and bounded
+  resume catch-up are the exceptions that may be injected concretely.
+- The injected `raft` wrapper receives `SLOCK_AGENT_PROXY_URL` and a per-launch local proxy token
+  file. `raft inbox check` is answered from the Computer's pending inbox without draining
+  bodies. `raft message check` reads pending bodies from that local inbox first; other calls,
+  and reads with no local pending copy, are forwarded to the hosted Agent API.
+- Before starting a managed Agent, the Computer uses its Computer credential to mint a scoped
+  runner credential from `/internal/computer/runners/:agentId/credentials`. The Computer keeps
+  that credential behind the loopback proxy and revokes it when the runtime process stops.
+  The Agent shell sees only the local proxy token.

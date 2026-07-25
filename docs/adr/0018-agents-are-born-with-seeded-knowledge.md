@@ -38,18 +38,22 @@ every envelope), and a workspace lane note with the archetype's lane design
 and failure modes. The archetype is not stored on the agent record — it only
 shapes the seed, and everything remains editable.
 
-**Onboarding is an agent, and Cove is the shipped default.** The Grotto
-onboarding experience ships as the `guide` archetype — an agent modeled on
-Raft's Cindy, seeded with an adapted playbook (open practical, route by
-intent, one next step per turn), a durable objectives file (status contract
-with persistent refusal-memory and a consent-gated local setup-scan toolbox),
-and an FAQ of reference patterns. There is no scripted onboarding wizard.
-On a production first run the server creates **Cove** — the guide archetype
-with the blob avatar — as the shipped default agent, but only when the
-runtime has zero agents: any existing agent suppresses it, so deleting Cove
-never resurrects it. Dev stacks (`TAVERN_DEV_STACK=1`) and test runs skip it.
+**Onboarding is an agent, and Cove is the recommended first Agent.** The
+Grotto onboarding experience ships as the `guide` archetype — an Agent
+modeled on Raft's Cindy, seeded with an adapted playbook (open practical,
+route by intent, one next step per turn), a durable objectives file (status
+contract with persistent refusal-memory and a consent-gated local setup-scan
+toolbox), and an FAQ of reference patterns. There is no scripted onboarding
+wizard. After the first Computer reports its installed Agent runtimes, the
+setup flow offers **Cove** — the guide archetype with the blob avatar — and
+requires the Owner to choose its Computer, Agent runtime, and model before
+explicitly creating it through the normal Agent creation path. The Owner may
+skip Cove and create another Agent. Grotto never creates or recreates Cove
+merely because a Server has zero Agents. Creating Cove also creates the normal
+Owner-to-Cove DM, where onboarding begins; Grotto does not seed Raft's special
+private `#onboarding-owner` Channel.
 
-**No agent is bootstrapped outside the create path.** The lazy `agt_primary`
+**No Agent is bootstrapped outside the create path.** The lazy `agt_primary`
 bootstrap is retired. Every agent — app-created, Cove, dev demo agents
 (Otto/Wren), and the e2e fixture — is created through the one runtime create
 path (`tavern/agent-create.ts`) with generated prod-shape ids and the seeded

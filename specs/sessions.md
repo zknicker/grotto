@@ -27,7 +27,9 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   agent-to-agent drains ([inbox.md](inbox.md)).
 - A fresh session's first turn is the bare `Start.` message; after a reset
   the fresh-session line rides it.
-- Stop remains the human interrupt and stops the agent's live turn.
+- Stop interrupts the live turn and persists the Agent's stopped lifecycle state. New messages and
+  reminders continue to accumulate in its inbox but cannot wake it. A human Start resumes the
+  current session and drains pending work.
 
 ## Cursors
 
@@ -38,18 +40,23 @@ the freshness gate lives on the CLI send path exactly once
 
 ## Rotation and reset
 
-Sessions never rotate on a schedule. A new session starts only on:
+Sessions never rotate because of age or idleness. A new session starts only on:
 
-1. **Model switch** — the agent's model is agent-scoped; a change takes
+1. **Runtime or model switch** — the agent's execution configuration is agent-scoped; a change takes
    effect on the next turn with a fresh session. Workspace, memory, and
    identity persist.
-2. **Manual reset** — human-initiated, agent-scoped, in the agent profile:
-   - *Session reset:* fresh context; workspace and memory persist.
-   - *Full reset:* fresh context and wiped workspace.
-   A reset rotates the agent token and lands a system receipt in the
-   agent's built-in DM.
-3. **Idle safety valve** — a session untouched for ~7 days starts fresh on
-   its next turn (stale-resume guard), identical to a session reset.
+2. **Resume recovery** — if the executor reports that its stored runtime session is missing or
+   replay is rejected, Runtime automatically starts a fresh Agent session generation. The recovery
+   is visible in activity and injected into the fresh context, directing the Agent to recover from
+   Grotto history and local `MEMORY.md`/notes. If the cold start also fails, the Agent becomes
+   offline with an error.
+3. **Manual lifecycle action** — human-initiated, agent-scoped, in the agent profile:
+   - *Restart:* restart the executor and resume the current session unchanged.
+   - *Session reset:* fresh context; workspace, `MEMORY.md`, and skills persist.
+   - *Full reset:* fresh context plus a wiped workspace, including `MEMORY.md`; the
+     Agent's canonical skill library and runtime-local state are also wiped.
+   Session reset and Full reset rotate the agent token and land a system receipt
+   in the agent's built-in DM. Restart does neither.
 
 Long-horizon continuity across resets comes from engine-native compaction
 and the agent's workspace MEMORY.md ([ADR 0014](../docs/adr/0014-cli-is-the-agents-only-output-channel.md)).

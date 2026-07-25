@@ -14,43 +14,54 @@ Grounding: decisions D1/D2/D5/D6 and I3 in the program contract; wire audit of
 shipped Raft are listed in §10 — everything else copies Raft's observed
 behavior.
 
-The operator CLI contract ([runtime-cli.md](runtime-cli.md)) is unchanged; the
-agent surface below lives in the same binary and registry.
+Before WS6 the operator and Agent surfaces share the current `grotto` binary.
+WS6 extracts the operator surface into `grotto-computer`; the Agent contract
+below remains `grotto`.
 
 ## 1. Shape
 
-- **One binary.** The existing `grotto` CLI (`apps/runtime/src/cli/`) gains the
-  agent command families. When agent identity env is present, `grotto` help
-  renders the agent surface; operator verbs require the runtime token and stay
-  operator-only.
+- **One Agent CLI.** `grotto` is only the Agent-facing Server command surface.
+  Human local-service operations move to the separate `grotto-computer` CLI in
+  WS6. The surfaces have separate command names but one managed release
+  artifact: `grotto-computer` embeds an internal Agent CLI entrypoint, and the
+  injected `grotto` wrapper re-executes it. Grotto does not publish a
+  standalone Agent CLI package while external Agents remain out of scope.
 - **One command per shell call** (prompt rule, WS2). Canonical text on stdout;
   errors on stderr per §5. No TTY UI, no color in agent shells.
 - **Per-agent wrapper injection.** For every agent turn, the runtime prepends a
   per-agent bin directory to the tool shell's PATH containing a `grotto`
-  wrapper that execs the real binary with identity env baked in:
+  wrapper that re-executes the installed `grotto-computer` binary's internal
+  Agent CLI entrypoint with identity env baked in:
 
   | Env | Meaning |
   | --- | --- |
   | `GROTTO_AGENT_ID` | The agent's id (`agt_…`) |
-  | `GROTTO_SERVER_URL` | Chat-surface base URL (local Runtime today) |
-  | `GROTTO_AGENT_TOKEN_FILE` | Path to the agent-scoped token, mode 0600 |
+  | `GROTTO_SERVER_URL` | Hosted Server base URL, retained as context rather than a direct CLI target |
+  | `GROTTO_AGENT_PROXY_URL` | Per-launch loopback Grotto Computer proxy |
+  | `GROTTO_AGENT_PROXY_TOKEN_FILE` | Path to the local proxy token, mode 0600 |
   | `GROTTO_COMPOSITION_ID` | Optional; minted per tool call by the harness observer (§6) |
 
   Missing/unreadable identity env fails closed with `MISSING_*` / `TOKEN_*`
   codes and a `Next action:` hint — never a fallback to the runtime token, the
   operator identity, or another agent's credential.
-- **Agent-scoped tokens.** The Runtime mints one token per agent
+- **Pre-WS6 Agent-scoped tokens.** The co-hosted Runtime currently mints one token per Agent
   (`grta_` + 32 random bytes base64url), stored under
   `<runtime-root>/agent-tokens/<agentId>` (0600). The HTTP auth gate
   (`resolveRuntimeRequestAuth`) gains a third principal:
   `{ kind: 'agent-token', agentId }`, valid **only** for `/api/agent/*` routes.
-  The credential reaches the agent **only as a token file path** (ruling W1c):
+  The credential reaches the Agent **only as a token file path** before WS6:
   the wrapper sets `GROTTO_AGENT_TOKEN_FILE`; no token-bearing env var exists.
   Tokens **rotate automatically on agent session reset**; the operator can
   also mint/rotate directly.
-- **Transport: CLI → server, directly.** No daemon proxy in the path (Raft
-  interposes one; see §10). Pre-WS6 the server is the co-hosted local process;
-  WS6 changes the URL and TLS, not the contract.
+- **WS6 transport: CLI → Computer proxy → Server.** The wrapper authenticates
+  to a per-launch loopback proxy with a local-only token. The Computer can
+  answer pending inbox summary/body reads from its accepted delivery cache;
+  otherwise it forwards the same Agent API route to the hosted Server with
+  a scoped Agent runner credential. Before starting a launch, the Computer
+  uses its Computer credential to mint that runner credential for the assigned
+  Agent and allowed Agent API scopes. The Computer keeps it behind the proxy
+  and revokes it when the launch ends. No Server-valid Agent credential
+  reaches the Agent process or shell.
 
 ## 2. Names and handles (D2)
 
@@ -362,7 +373,7 @@ All approved by operator ruling W1 (program contract, 2026-07-21).
 | Divergence | Why |
 | --- | --- |
 | Server-held drafts (Raft: CLI tmpdir, 10-min TTL, client-supplied `seenUpToSeq`) | The runtime is the witness, the server is the record (W1a); ephemeral agent shells; grotto.sh future. The program contract had described Raft incorrectly — holding server-side is our choice, not parity. |
-| No daemon proxy between CLI and server (Raft: `SLOCK_AGENT_PROXY_URL` + proxy token; direct token env rejected) | Decided transport topology: the server is the only party anyone talks to; the runtime is just another client. |
+| Before WS6 the CLI calls the co-hosted Runtime directly; WS6 adopts Raft's `CLI → localhost Computer proxy → hosted Server` path | A managed Agent receives only a local proxy token. The Computer may satisfy pending inbox reads locally and forwards with a scoped, per-launch runner credential that it mints and revokes through its Computer authority. |
 | Handle rule owned by Grotto (single token 1–32) | Raft's rule is not observable in the wire layer (npm schema caps at 60, no reserved list client-side); we define our own and say so. |
 | Server-side list pagination on `server info` | We are designing the server API; Raft's client-side slicing is an artifact of its fat response. |
 | Targets resolved per-action server-side; no client-visible `resolve-channel` two-step | Simpler wire contract; the two-step is a Raft-internal REST artifact. |

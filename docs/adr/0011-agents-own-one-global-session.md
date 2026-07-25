@@ -57,16 +57,30 @@ likely multi-human future.
   chat) record of what has provably been model-visible. Outbound actions
   against a stale chat are held with the unseen rows embedded
   (specs/steering.md's freshness gate, generalized).
-- **No scheduled rotation.** Sessions live until: a manual reset, an agent
-  model switch (fresh session on next turn; workspace, memory, and identity
-  persist), or a ~7-day fully-idle safety valve. Engine-native compaction
-  plus Memory carry long-horizon continuity.
+- **No age- or idle-based rotation.** Sessions live until a manual reset,
+  an Agent runtime/model switch, or automatic recovery from unusable executor
+  resume state. A switch or recovery starts a fresh session while workspace,
+  memory, identity, and skills persist. Engine-native compaction plus Memory
+  carry long-horizon continuity.
+- **Resume recovery is automatic and explicit.** When an executor reports
+  that its stored runtime session is missing or replay is rejected, Runtime
+  rotates the Agent session generation and cold-starts once. Activity and the
+  fresh context state that earlier runtime context was not restored and direct
+  recovery from Grotto history plus `MEMORY.md`/notes. Only a failed cold start
+  leaves the Agent offline with an error.
 - **Reset is a human-initiated, agent-scoped contract** living in agent
-  settings: session reset (fresh context; workspace and memory persist) and
-  full reset (context and workspace wiped). Raft's restart level (resume
-  as-is) is a no-op here — turns already resume the session from durable
-  state — so it has no surface. The chat drawer shows session status
-  read-only.
+  settings: restart (restart the executor and resume the current session),
+  session reset (fresh context; workspace, `MEMORY.md`, and skills persist),
+  and full reset (fresh context plus a wiped workspace, including
+  `MEMORY.md`, canonical Agent skills, and runtime-local state). Full reset
+  keeps the Agent's
+  Server identity, memberships, authored history, Computer assignment,
+  runtime/model configuration, and MCP grants. The chat drawer shows session
+  status read-only.
+- **Stop is persistent lifecycle state.** It interrupts the live turn and
+  prevents messages or reminders from waking the Agent until a human starts it
+  again. Pending inbox work remains durable. Start resumes the current session
+  and drains that work.
 - **Model selection is agent-scoped.** Per-chat model overrides are removed.
 
 ## Consequences

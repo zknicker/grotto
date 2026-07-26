@@ -48,9 +48,31 @@ one, so an authenticated human who has done nothing leaves no row behind.
 
 `CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
 App attaches the token as `Authorization: Bearer` on HTTP and as
-`connectionParams.clerkSessionToken` on the WebSocket. Verification also
-requires the token's Clerk authorized party (`azp`) to equal `APP_ORIGIN`;
-same-instance tokens minted for another frontend are refused.
+`connectionParams.clerkSessionToken` on the WebSocket.
+
+### Authorized party
+
+One Clerk instance signs tokens for every frontend attached to it, so a valid
+signature and issuer do not say a token was minted for this App. The `azp`
+claim names the frontend that asked for it, and the Server judges it after
+signature, configured issuer, expiry, and subject all pass:
+
+| `azp` | Outcome |
+| --- | --- |
+| Absent | Accepted — Clerk omits it when no browser Origin took part, as with the native header-authenticated desktop session |
+| Exactly `APP_ORIGIN` | Accepted |
+| Another origin | Rejected — a same-instance token minted for someone else's frontend |
+| `null`, non-string, or empty | Rejected |
+
+The only authorized party is `APP_ORIGIN`'s exact origin. A `file://` origin, a
+loopback or localhost guess, and the CORS origin predicate are never authorized
+parties — CORS decides which browsers may call the Server, not whose tokens it
+trusts.
+
+Accepting an absent `azp` is a deliberate trade for native desktop sessions,
+and matches `@clerk/backend`, which also skips the check when the claim is
+missing. The issuer check still bounds it: the token must come from the
+configured Clerk instance.
 
 ## State
 

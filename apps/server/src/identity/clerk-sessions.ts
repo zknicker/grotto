@@ -27,8 +27,12 @@ export function createClerkSessions(issuerUrl: string, appOrigin: string): Clerk
 
             // One Clerk instance signs tokens for every frontend attached to
             // it, so the issuer alone does not say the token was minted for
-            // this Server's App. `azp` is the frontend that asked for it.
-            if (payload.azp !== expectedAuthorizedParty) {
+            // this Server's App. `azp` is the frontend that asked for it, and
+            // Clerk omits it when no browser Origin took part — as with the
+            // native header-authenticated desktop session. Present means it
+            // must be this App's exact origin; a null, non-string, empty, or
+            // foreign value all fail that comparison.
+            if (payload.azp !== undefined && payload.azp !== expectedAuthorizedParty) {
                 throw new Error('Clerk session token was issued for another authorized party.');
             }
 

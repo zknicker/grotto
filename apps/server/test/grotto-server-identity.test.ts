@@ -24,14 +24,27 @@ test('rejects Server reads without a Clerk session', async () => {
     client.close();
 });
 
-test('rejects a Clerk session minted for another authorized party', async () => {
-    const foreignOrigin = await signIn('user_clerk_foreign_origin', {
-        azp: 'https://someone-elses-app.example',
-    });
-    const noAuthorizedParty = await signIn('user_clerk_no_azp', { azp: undefined });
+test('rejects a Clerk session whose authorized party is not this App', async () => {
+    const rejected = {
+        empty: await signIn('user_clerk_empty_azp', { azp: '' }),
+        foreign: await signIn('user_clerk_foreign_azp', {
+            azp: 'https://someone-elses-app.example',
+        }),
+        nonString: await signIn('user_clerk_non_string_azp', { azp: 42 }),
+        null: await signIn('user_clerk_null_azp', { azp: null }),
+    };
 
-    await expect(foreignOrigin.trpc.server.list.query()).rejects.toThrow(/sign in/i);
-    await expect(noAuthorizedParty.trpc.server.list.query()).rejects.toThrow(/sign in/i);
+    for (const client of Object.values(rejected)) {
+        await expect(client.trpc.server.list.query()).rejects.toThrow(/sign in/i);
+    }
+});
+
+test('accepts a Clerk session with no authorized party', async () => {
+    // Clerk omits `azp` when no browser Origin took part, as with the native
+    // header-authenticated desktop session.
+    const client = await signIn('user_clerk_no_azp', { azp: undefined });
+
+    await expect(client.trpc.server.list.query()).resolves.toEqual([]);
 });
 
 test('lists no Servers, and mints no User, for a human who has none', async () => {

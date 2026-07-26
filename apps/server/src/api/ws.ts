@@ -2,16 +2,20 @@ import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { applyWSSHandler } from '@trpc/server/adapters/ws';
 import { WebSocketServer } from 'ws';
-import { isAllowedAppOrigin } from '../origin.ts';
 import { createApiContext } from './context.ts';
 import { wsRouter } from './ws-router.ts';
 
 const trpcWebSocketPath = '/trpc';
 
-export function startTrpcWebSocketServer(server: Server) {
+interface TrpcWebSocketServerOptions {
+    isAllowedOrigin(origin: string | undefined): boolean;
+}
+
+export function startTrpcWebSocketServer(server: Server, options: TrpcWebSocketServerOptions) {
     const wss = new WebSocketServer({
         noServer: true,
     });
+    const activeSockets = new Set<Duplex>();
     let isClosing = false;
 
     const handler = applyWSSHandler({
@@ -30,13 +34,17 @@ export function startTrpcWebSocketServer(server: Server) {
             return;
         }
 
-        if (!isAllowedAppOrigin(request.headers.origin)) {
+        if (!options.isAllowedOrigin(request.headers.origin)) {
             socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
             return;
         }
 
         try {
             wss.handleUpgrade(request, socket, head, (webSocket) => {
+                activeSockets.add(socket);
+                webSocket.once('close', () => {
+                    activeSockets.delete(socket);
+                });
                 wss.emit('connection', webSocket, request);
             });
         } catch {
@@ -46,13 +54,6 @@ export function startTrpcWebSocketServer(server: Server) {
 
     server.on('upgrade', handleUpgrade);
 
-    process.on('SIGTERM', () => {
-        isClosing = true;
-        server.off('upgrade', handleUpgrade);
-        handler.broadcastReconnectNotification();
-        wss.close();
-    });
-
     return {
         broadcastReconnectNotification() {
             handler.broadcastReconnectNotification();
@@ -60,6 +61,13 @@ export function startTrpcWebSocketServer(server: Server) {
         close() {
             isClosing = true;
             server.off('upgrade', handleUpgrade);
+            for (const client of wss.clients) {
+                client.terminate();
+            }
+            for (const socket of activeSockets) {
+                socket.destroy();
+            }
+            activeSockets.clear();
             wss.close();
         },
     };

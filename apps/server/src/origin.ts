@@ -1,11 +1,9 @@
-import { env } from './config/env.ts';
-
-export function isAllowedAppOrigin(origin: string | undefined) {
+export function isAllowedAppOrigin(origin: string | undefined, appOrigin: string) {
     if (!origin) {
         return true;
     }
 
-    if (origin === env.APP_ORIGIN) {
+    if (origin === appOrigin) {
         return true;
     }
 

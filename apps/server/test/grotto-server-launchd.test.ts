@@ -72,8 +72,10 @@ test('ships one private PostgreSQL Compose service with durable state', () => {
     expect(postgres?.stop_signal).toBe('SIGINT');
     expect(postgres?.volumes).toEqual(['postgres_data:/var/lib/postgresql/data']);
     expect(compose.volumes.postgres_data?.name).toBe('grotto_postgres_data');
-    expect(composeText).toContain(
-        'POSTGRES_PASSWORD: ${GROTTO_POSTGRES_ADMIN_PASSWORD:?GROTTO_POSTGRES_ADMIN_PASSWORD is required}'
+    expect((postgres?.environment as Record<string, string>).POSTGRES_PASSWORD).toBe(
+        ['$', '{GROTTO_POSTGRES_ADMIN_PASSWORD:?GROTTO_POSTGRES_ADMIN_PASSWORD is required}'].join(
+            ''
+        )
     );
     expect(composeText).not.toContain('POSTGRES_HOST_AUTH_METHOD');
     expect(composeText).not.toContain('GENERATE_ON_HOST');

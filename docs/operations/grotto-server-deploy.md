@@ -212,8 +212,9 @@ database.
 Keep the previous release and all state untouched. If application verification
 fails, stop Tunnel ingress or restore its previously recorded route, point
 `current` back to the prior release, and restart only the affected daemon.
-Stop the database with `docker compose -p grotto down` without `--volumes`;
-preserve `grotto_postgres_data`. Never roll back PostgreSQL by deleting or
-overwriting its data. Keep shared system Colima supervision in place unless the
-operator separately decides to restore login-scoped recovery. Capture redacted
-service status and logs before changing anything further.
+Stop the database with
+`docker compose -f /Users/zknicker/srv/grotto/compose.yml -p grotto down`
+without `--volumes`; preserve `grotto_postgres_data`. Never roll back PostgreSQL
+by deleting or overwriting its data. Keep shared system Colima supervision in
+place unless the operator separately decides to restore login-scoped recovery.
+Capture redacted service status and logs before changing anything further.

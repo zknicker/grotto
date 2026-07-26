@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 import { basename } from 'node:path';
 
 const errorTailLength = 2048;
@@ -51,9 +51,11 @@ export async function runGrottoCommand(
 }
 
 export async function sha256(path: string) {
-    return createHash('sha256')
-        .update(await readFile(path))
-        .digest('hex');
+    const hash = createHash('sha256');
+    for await (const chunk of createReadStream(path)) {
+        hash.update(chunk);
+    }
+    return hash.digest('hex');
 }
 
 function sensitiveEnvironmentValues(environment: Record<string, string | undefined>) {

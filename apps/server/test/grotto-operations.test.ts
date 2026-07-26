@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { fileURLToPath } from 'node:url';
 import { runGrottoCommand } from '../src/grotto-operations.ts';
 
 test('keeps operation credentials and credential paths out of actionable errors', async () => {
@@ -26,5 +27,29 @@ test('keeps operation credentials and credential paths out of actionable errors'
         for (const secret of Object.values(secrets)) {
             expect(message).not.toContain(secret);
         }
+    }
+});
+
+test('shell-sourced backup and restore examples preserve credential paths', async () => {
+    const configRoot = fileURLToPath(new URL('../config/', import.meta.url));
+
+    for (const name of ['backup.env.example', 'restore.env.example']) {
+        const command = Bun.spawn(
+            [
+                '/bin/sh',
+                '-c',
+                '. "$1"; test "$RESTIC_PASSWORD_FILE" = "/Library/Application Support/Grotto/Server/restic-password"',
+                'sh',
+                `${configRoot}${name}`,
+            ],
+            { stderr: 'pipe' }
+        );
+        const [exitCode, stderr] = await Promise.all([
+            command.exited,
+            new Response(command.stderr).text(),
+        ]);
+
+        expect(stderr).toBe('');
+        expect(exitCode).toBe(0);
     }
 });

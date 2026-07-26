@@ -12,6 +12,7 @@ import {
     chatsTable,
     threadFollowsTable,
 } from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import { ensureHostedThread } from '../threads/ensure-thread.ts';
 import { autoFollowHostedThreadMentions } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -44,6 +45,10 @@ export async function sendHostedChatMessage(
     input: HostedChatSendInput
 ): Promise<SendHostedChatMessageResult> {
     return await db.transaction(async (tx) => {
+        // Server row first, then authorize: a send that started before a removal
+        // must re-read membership behind it rather than commit past it.
+        await lockServerRow(tx, input.serverId);
+
         const thread = input.thread
             ? await ensureHostedThread(tx, member, {
                   anchorMessageId: input.thread.anchorMessageId,

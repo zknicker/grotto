@@ -5,6 +5,7 @@ import { createGrottoContextFactory } from './grotto-api/context.ts';
 import { grottoRouter } from './grotto-api/router.ts';
 import { startGrottoWebSocketServer } from './grotto-api/ws.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
+import { type ClerkUsers, createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectGrottoDatabase } from './postgres/connection.ts';
 
@@ -15,8 +16,14 @@ import { connectGrottoDatabase } from './postgres/connection.ts';
  */
 export interface GrottoServerApplicationOptions {
     appOrigin: string;
+    /** Clerk Backend API origin; defaults to Clerk's production endpoint. */
+    clerkApiUrl?: string;
     /** Origin of the Clerk instance that authenticates humans. */
     clerkIssuerUrl: string;
+    /** Clerk secret for the verified-email lookup invitations depend on. */
+    clerkSecretKey?: string;
+    /** Overrides the Clerk verified-email boundary; tests stand in for it. */
+    clerkUsers?: ClerkUsers;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
     databaseUrl: string;
 }
@@ -37,6 +44,12 @@ export async function createGrottoServerApplication(
     try {
         const createContext = createGrottoContextFactory({
             clerkSessions: createClerkSessions(options.clerkIssuerUrl, options.appOrigin),
+            clerkUsers:
+                options.clerkUsers ??
+                createClerkUsers({
+                    apiUrl: options.clerkApiUrl,
+                    secretKey: options.clerkSecretKey,
+                }),
             grottoDb: grotto.db,
         });
         const isAllowedOrigin = (origin: string | undefined) =>

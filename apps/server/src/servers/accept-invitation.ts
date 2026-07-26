@@ -1,0 +1,142 @@
+import { and, eq, type SQL, sql } from 'drizzle-orm';
+import type { ClerkUsers } from '../identity/clerk-users.ts';
+import type { GrottoDatabase } from '../postgres/connection.ts';
+import { createOpaqueId } from '../postgres/opaque-id.ts';
+import {
+    serverInvitationsTable,
+    serverMembershipsTable,
+    serversTable,
+} from '../postgres/schema.ts';
+import { ensureUserByClerkId } from '../users/grotto-user.ts';
+import {
+    AlreadyServerMemberError,
+    InvitationEmailMismatchError,
+    InvitationNotAcceptableError,
+} from './invitation-access.ts';
+import { hashInvitationToken } from './invitation-token.ts';
+import { clearHostedPersonalWork, joinAllChannel } from './member-personal-work.ts';
+import { lockServerRow } from './server-lock.ts';
+
+export interface AcceptedServerInvitation {
+    serverId: string;
+    serverSlug: string;
+}
+
+/**
+ * One transaction validates the invitation, consumes it, and commits the fresh
+ * Member stint joined to exactly `#all`. The invitation row is locked first, so
+ * concurrent acceptances of one token serialize and only the first commits.
+ *
+ * The verified-email lookup happens before the transaction opens: it is an
+ * outbound Clerk call, and holding a row lock across the network would let a
+ * slow Clerk response block every other acceptance on the Server.
+ */
+export async function acceptServerInvitation(
+    db: GrottoDatabase,
+    clerkUsers: ClerkUsers,
+    clerkUserId: string,
+    token: string
+): Promise<AcceptedServerInvitation> {
+    const verifiedEmails = await clerkUsers.readVerifiedEmails(clerkUserId);
+    const tokenHash = hashInvitationToken(token);
+
+    return await db.transaction(async (tx) => {
+        const [invitation] = await tx
+            .select({
+                email: serverInvitationsTable.email,
+                id: serverInvitationsTable.id,
+                isLive: isLiveInvitation(),
+                serverId: serverInvitationsTable.serverId,
+            })
+            .from(serverInvitationsTable)
+            .where(eq(serverInvitationsTable.tokenHash, tokenHash))
+            .limit(1)
+            .for('update');
+
+        if (!invitation?.isLive) {
+            throw new InvitationNotAcceptableError();
+        }
+
+        // Server row before any membership or Channel write, matching every
+        // other hosted durable write. The invitation row is already locked, so
+        // this pair is always taken in the same order.
+        await lockServerRow(tx, invitation.serverId);
+
+        if (!verifiedEmails.includes(invitation.email)) {
+            throw new InvitationEmailMismatchError();
+        }
+
+        const [server] = await tx
+            .select({ slug: serversTable.slug })
+            .from(serversTable)
+            .where(eq(serversTable.id, invitation.serverId))
+            .limit(1);
+
+        if (!server) {
+            throw new InvitationNotAcceptableError();
+        }
+
+        const user = await ensureUserByClerkId(tx, clerkUserId);
+        const [standing] = await tx
+            .select({ id: serverMembershipsTable.id, revokedAt: serverMembershipsTable.revokedAt })
+            .from(serverMembershipsTable)
+            .where(
+                and(
+                    eq(serverMembershipsTable.serverId, invitation.serverId),
+                    eq(serverMembershipsTable.userId, user.id)
+                )
+            )
+            .limit(1)
+            .for('update');
+
+        if (standing && standing.revokedAt === null) {
+            // Their existing standing, including any administrative role, is
+            // theirs to keep; consuming the invitation would silently demote it.
+            throw new AlreadyServerMemberError();
+        }
+
+        if (standing) {
+            // Reset in place: the row is the anchor authored history points at,
+            // so a returning human reuses it as a brand-new Member stint.
+            await tx
+                .update(serverMembershipsTable)
+                .set({ joinedAt: sql`now()`, revokedAt: null, role: 'member' })
+                .where(eq(serverMembershipsTable.id, standing.id));
+        } else {
+            await tx.insert(serverMembershipsTable).values({
+                id: createOpaqueId('mem'),
+                role: 'member',
+                serverId: invitation.serverId,
+                userId: user.id,
+            });
+        }
+
+        await clearHostedPersonalWork(tx, invitation.serverId, user.id);
+        await joinAllChannel(tx, invitation.serverId, user.id);
+
+        await tx
+            .update(serverInvitationsTable)
+            .set({ acceptedAt: sql`now()`, acceptedUserId: user.id })
+            .where(eq(serverInvitationsTable.id, invitation.id));
+
+        return { serverId: invitation.serverId, serverSlug: server.slug };
+    });
+}
+
+/**
+ * Whether an invitation is still usable, judged entirely by PostgreSQL. Expiry
+ * has to be read on the same clock that stamps `expires_at` and that the listed
+ * status is derived from — comparing against the application's clock would let
+ * an invitation read `pending` in the directory while acceptance called it
+ * lapsed, or the reverse.
+ *
+ * Unknown, revoked, consumed, and lapsed tokens are all simply unavailable. One
+ * answer for every case keeps the endpoint from confirming which tokens exist.
+ */
+export function isLiveInvitation(): SQL<boolean> {
+    return sql<boolean>`(
+        ${serverInvitationsTable.revokedAt} is null
+        and ${serverInvitationsTable.acceptedAt} is null
+        and ${serverInvitationsTable.expiresAt} > now()
+    )`;
+}

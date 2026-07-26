@@ -29,12 +29,47 @@ const schemaStatements = [
         role text NOT NULL CONSTRAINT server_memberships_role
             CHECK (role IN ('owner', 'admin', 'member')),
         revoked_at timestamptz,
+        joined_at timestamptz NOT NULL DEFAULT now(),
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
     `CREATE UNIQUE INDEX IF NOT EXISTS server_memberships_server_user_key
         ON server_memberships (server_id, user_id);`,
     `CREATE INDEX IF NOT EXISTS server_memberships_user_idx
         ON server_memberships (user_id);`,
+    `CREATE TABLE IF NOT EXISTS server_invitations (
+        id text PRIMARY KEY NOT NULL,
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        email text NOT NULL
+            CONSTRAINT server_invitations_email_normalized
+            CHECK (email = lower(email) AND email <> ''),
+        token_hash text NOT NULL,
+        invited_by_user_id text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        expires_at timestamptz NOT NULL,
+        revoked_at timestamptz,
+        accepted_at timestamptz,
+        accepted_user_id text,
+        CONSTRAINT server_invitations_inviter_membership_fk
+            FOREIGN KEY (server_id, invited_by_user_id)
+            REFERENCES server_memberships (server_id, user_id),
+        CONSTRAINT server_invitations_accepted_membership_fk
+            FOREIGN KEY (server_id, accepted_user_id)
+            REFERENCES server_memberships (server_id, user_id),
+        CONSTRAINT server_invitations_terminal CHECK (
+            (accepted_at IS NULL) = (accepted_user_id IS NULL)
+            AND NOT (accepted_at IS NOT NULL AND revoked_at IS NOT NULL)
+        )
+    );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS server_invitations_token_hash_key
+        ON server_invitations (token_hash);`,
+    // At most one live invitation per address per Server. Expiry cannot join
+    // this predicate — index predicates must be immutable and \`now()\` is not —
+    // so issuing a fresh invitation first retires a lapsed one.
+    `CREATE UNIQUE INDEX IF NOT EXISTS server_invitations_live_email_key
+        ON server_invitations (server_id, email)
+        WHERE revoked_at IS NULL AND accepted_at IS NULL;`,
+    `CREATE INDEX IF NOT EXISTS server_invitations_server_idx
+        ON server_invitations (server_id, created_at DESC);`,
     `CREATE TABLE IF NOT EXISTS chats (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,

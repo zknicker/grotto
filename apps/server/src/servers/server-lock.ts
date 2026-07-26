@@ -1,0 +1,27 @@
+import { sql } from 'drizzle-orm';
+import type { GrottoDatabase } from '../postgres/connection.ts';
+import { serversTable } from '../postgres/schema.ts';
+
+/**
+ * The Server row is the one serialization point for hosted durable writes, and
+ * every transaction that needs it takes it **first, before authorizing**.
+ *
+ * Two things depend on that order. Authorizing after the lock means a write
+ * already in flight re-reads membership behind a concurrent removal, so
+ * revocation is genuinely immediate rather than "immediate unless something was
+ * mid-transaction". And taking the Server row before any Chat, message, or read
+ * row means no two transactions can want those in opposite orders — removal
+ * (Server, then read markers) and a read marker (its own row, then the Server
+ * event cursor) would otherwise form a deadlock cycle.
+ *
+ * Transactions that take it: message send, read marking, invitation acceptance,
+ * role change, removal, and leaving. Creating a DM does not — it allocates no
+ * event cursor and touches no read markers, so it cannot participate in either
+ * hazard.
+ */
+export async function lockServerRow(
+    tx: Pick<GrottoDatabase, 'execute'>,
+    serverId: string
+): Promise<void> {
+    await tx.execute(sql`select id from ${serversTable} where id = ${serverId} for update`);
+}

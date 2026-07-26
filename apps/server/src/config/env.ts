@@ -127,6 +127,7 @@ applyCliOverrides(process.argv.slice(2));
 
 const envSchema = z.object({
     APP_ORIGIN: z.string().url().default(getDefaultAppOrigin()),
+    CLERK_API_URL: z.string().url().optional(),
     CLERK_ISSUER_URL: z.string().url().default(getDefaultClerkIssuerUrl()),
     CLERK_SECRET_KEY: z.string().min(1).optional(),
     DATABASE_PATH: z.string().min(1).default(getDefaultDatabasePath()).transform(resolveHomePath),

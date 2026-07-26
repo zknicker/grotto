@@ -17,7 +17,9 @@ async function start() {
 
     const application = await createGrottoServerApplication({
         appOrigin: env.APP_ORIGIN,
+        clerkApiUrl: env.CLERK_API_URL,
         clerkIssuerUrl: env.CLERK_ISSUER_URL,
+        clerkSecretKey: env.CLERK_SECRET_KEY,
         databaseUrl: env.DATABASE_URL,
     });
 
@@ -28,6 +30,13 @@ async function start() {
     logStartupSection('Grotto Server');
     logStartupDetail('🐘', 'PostgreSQL', describeDatabaseUrl(env.DATABASE_URL));
     logStartupDetail('🔑', 'Clerk', env.CLERK_ISSUER_URL);
+    logStartupDetail(
+        '✉️',
+        'Invitations',
+        env.CLERK_SECRET_KEY
+            ? 'verified-email lookup configured'
+            : 'disabled — set CLERK_SECRET_KEY to accept invitations'
+    );
     logStartupDetail('🌐', 'App origin', env.APP_ORIGIN);
     logStartupDetail('📡', 'HTTP', `http://localhost:${env.GROTTO_SERVER_PORT}`);
     logStartupDetail('🔌', 'WebSocket', `ws://localhost:${env.GROTTO_SERVER_PORT}/trpc`);

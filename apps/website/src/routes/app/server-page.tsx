@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import { ServerChat } from '../../features/servers/server-chat.tsx';
 import { ServerChatSearch } from '../../features/servers/server-chat-search.tsx';
+import { serverMembersRoute } from '../../features/servers/server-routes.ts';
 import { ServerSwitcher } from '../../features/servers/server-switcher.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
@@ -76,11 +77,19 @@ export function ServerPage() {
                 </div>
             </aside>
             <main className="flex min-w-0 flex-1 flex-col">
-                <header className="flex flex-col gap-0.5 border-border border-b px-6 py-4">
-                    <h1 className="font-semibold text-base text-foreground">
-                        {server.data.displayName}
-                    </h1>
-                    <p className="text-meta text-muted-foreground">/{server.data.slug}</p>
+                <header className="flex items-center justify-between gap-4 border-border border-b px-6 py-4">
+                    <div className="flex flex-col gap-0.5">
+                        <h1 className="font-semibold text-base text-foreground">
+                            {server.data.displayName}
+                        </h1>
+                        <p className="text-meta text-muted-foreground">/{server.data.slug}</p>
+                    </div>
+                    <Link
+                        className="text-muted-foreground text-sm hover:text-foreground"
+                        to={serverMembersRoute(server.data.slug)}
+                    >
+                        Members
+                    </Link>
                 </header>
                 <ServerChatSearch onOpenChat={setSelectedChatId} serverId={server.data.id} />
                 {selectedChat ? (

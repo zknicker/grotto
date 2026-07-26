@@ -5,7 +5,6 @@ import { DevModeProvider } from './components/dev-mode-provider.tsx';
 import { ThemeProvider } from './components/theme-provider.tsx';
 import { DesktopEditContextMenuProvider } from './components/ui/edit-context-menu.tsx';
 import { ToastProvider } from './components/ui/toast.tsx';
-import { SignInGate } from './features/auth/sign-in-gate.tsx';
 import { TavernClerkProvider } from './lib/clerk.tsx';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
 import './styles/global.css';
@@ -27,9 +26,7 @@ createRoot(rootElement).render(
                 <DevModeProvider>
                     <ToastProvider>
                         <DesktopEditContextMenuProvider>
-                            <SignInGate>
-                                <App />
-                            </SignInGate>
+                            <App />
                         </DesktopEditContextMenuProvider>
                     </ToastProvider>
                 </DevModeProvider>

@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { GrottoServerProvider } from '../../lib/grotto-server.tsx';
+import { SignInGate } from '../auth/sign-in-gate.tsx';
 
 /**
  * Grotto server routes talk straight to the hosted Server, so they run on the
@@ -7,8 +8,10 @@ import { GrottoServerProvider } from '../../lib/grotto-server.tsx';
  */
 export function GrottoServerRoutes() {
     return (
-        <GrottoServerProvider>
-            <Outlet />
-        </GrottoServerProvider>
+        <SignInGate>
+            <GrottoServerProvider>
+                <Outlet />
+            </GrottoServerProvider>
+        </SignInGate>
     );
 }

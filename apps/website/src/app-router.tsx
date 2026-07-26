@@ -11,6 +11,7 @@ import { AppFrame } from './components/app-frame.tsx';
 import { DevAutoSignIn } from './features/auth/dev-auto-sign-in.tsx';
 import { MembershipGate } from './features/auth/membership-gate.tsx';
 import { SessionTokenKeepalive } from './features/auth/session-token-keepalive.tsx';
+import { SignInGate } from './features/auth/sign-in-gate.tsx';
 import { buildDefaultWorkspaceChatPath } from './features/chats/chat-path.ts';
 import { RuntimeSetupGate } from './features/onboarding/runtime-setup-gate.tsx';
 import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
@@ -465,13 +466,15 @@ export function createAppRouter() {
     ]);
 }
 
-function LocalAppFrame() {
+export function LocalAppFrame() {
     return (
         <TavernProviders>
             <DevAutoSignIn />
             <SessionTokenKeepalive />
-            <CommandMenu />
-            <AppFrame />
+            <SignInGate>
+                <CommandMenu />
+                <AppFrame />
+            </SignInGate>
         </TavernProviders>
     );
 }

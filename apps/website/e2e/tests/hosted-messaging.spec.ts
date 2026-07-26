@@ -138,7 +138,7 @@ function resolvePsql() {
 }
 
 function assertOpaqueId(value: string | undefined): asserts value is string {
-    if (!(value && /^[a-z0-9_]+$/iu.test(value))) {
+    if (!(value && /^[a-z0-9_-]+$/iu.test(value))) {
         throw new Error('The hosted messaging fixture did not resolve an opaque id.');
     }
 }

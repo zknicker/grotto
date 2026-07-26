@@ -15,7 +15,6 @@ export function startTrpcWebSocketServer(server: Server, options: TrpcWebSocketS
     const wss = new WebSocketServer({
         noServer: true,
     });
-    const activeSockets = new Set<Duplex>();
     let isClosing = false;
 
     const handler = applyWSSHandler({
@@ -41,10 +40,6 @@ export function startTrpcWebSocketServer(server: Server, options: TrpcWebSocketS
 
         try {
             wss.handleUpgrade(request, socket, head, (webSocket) => {
-                activeSockets.add(socket);
-                webSocket.once('close', () => {
-                    activeSockets.delete(socket);
-                });
                 wss.emit('connection', webSocket, request);
             });
         } catch {
@@ -64,10 +59,6 @@ export function startTrpcWebSocketServer(server: Server, options: TrpcWebSocketS
             for (const client of wss.clients) {
                 client.terminate();
             }
-            for (const socket of activeSockets) {
-                socket.destroy();
-            }
-            activeSockets.clear();
             wss.close();
         },
     };

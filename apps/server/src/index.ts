@@ -31,7 +31,7 @@ import { listConfiguredAgentRuntimeConnections } from './storage/agent-runtime-c
 import { syncAgentRuntimeAgents } from './sync/agent-runtime-sync.ts';
 
 async function start() {
-    const stopOrphanExitWatch = startOrphanExitWatch({
+    startOrphanExitWatch({
         enabled: process.env.TAVERN_EXIT_ON_ORPHAN === '1',
         exit: (code) => {
             process.exit(code);
@@ -53,7 +53,7 @@ async function start() {
     });
 
     await startJobsManager();
-    registerShutdown(application, stopOrphanExitWatch);
+    registerShutdown(application);
     startApiEventScheduler();
     startAgentRuntimeEventSync();
     void refreshRuntimeAfterStartup();
@@ -80,9 +80,8 @@ async function start() {
     logStartupComplete('Grotto is ready');
 }
 
-function registerShutdown(application: ServerApplication, stopOrphanExitWatch: () => void) {
+function registerShutdown(application: ServerApplication) {
     process.once('SIGTERM', () => {
-        stopOrphanExitWatch();
         void application.close().catch((error) => {
             console.error('[tavern] failed to close Grotto Server', error);
         });

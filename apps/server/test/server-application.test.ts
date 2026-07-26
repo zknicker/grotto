@@ -109,8 +109,8 @@ function closeSocket(socket: WebSocket) {
 }
 
 function waitForSocketClose(socket: WebSocket) {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve) => {
         socket.once('close', () => resolve());
-        socket.once('error', reject);
+        socket.once('error', () => undefined);
     });
 }

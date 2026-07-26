@@ -33,6 +33,9 @@ capability lives; keep route and feature folders for page assembly.
   reference rendering belong to the mentions product area, not a tool-specific
   feature. See [Rich References](../../specs/mentions.md).
 * Keep feature folders for page-specific orchestration and local state.
+* Keep `/s/*` in the hosted route-tree branch. It may mount the hosted tRPC
+  provider and Server hooks, but not the local Command menu, Runtime gates,
+  sidecar hooks, or Electron IPC.
 * Move chat workflow orchestration, optimistic reconciliation, and event cache
   handling into `hooks/chats`. Chat feature components should receive ids,
   narrow view models, and command callbacks.

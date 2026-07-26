@@ -1,5 +1,5 @@
 ---
-summary: Durable chat API for messages, artifacts, receipts, reads, events, soft deletes, inbox delivery, and runtime metadata.
+summary: Hosted human chat plus the local Runtime chat contract for messages, reads, search, events, execution, and delivery.
 read_when:
   - changing chat messages, artifacts, receipts, history, or timeline recovery
   - changing how agent runtimes, bots, webhooks, or local tools send chat work into Tavern
@@ -8,14 +8,53 @@ read_when:
 
 # Chat API
 
-The Chat API is message-first and runtime-hosted.
+The Chat API has a hosted human collaboration surface and a local Runtime
+execution surface. The hosted surface is canonical for Server Channels, DMs,
+human messages, reads, search, and durable events. It does not require a
+Computer.
 
 Agent runtimes have sessions and turns. Chat apps have messages and responses.
-Tavern Runtime exposes durable messages, agent responses, response activity,
+Tavern Runtime exposes agent responses, response activity,
 artifacts, receipts, history, and events. Execution identity rides along as
 metadata.
 
-## Source Of Truth
+## Hosted Human Chat
+
+The App calls the hosted Server directly over typed tRPC:
+
+| Procedure | Contract |
+| --- | --- |
+| `chat.list` | Accessible Channels and DMs with Server-owned unread counts |
+| `chat.ensureDm` | Resolve or create the caller's sorted two-human DM pair |
+| `chat.messages` | Stable sequence page for one authorized Chat |
+| `chat.send` | Immutable message create with a required client nonce |
+| `chat.markRead` | Monotonic reader-derived high-water mark |
+| `chat.search` | PostgreSQL full-text search across accessible Chats |
+| `chat.eventHead` | Current per-Server durable cursor for first subscription |
+| `chat.events` | Durable event catch-up after a cursor |
+| `chat.onEvent` | Live durable-event notification; clients refetch exact resources |
+| `chat.publishComposition` / `chat.onComposition` | Best-effort, live-only composition state |
+
+Every input carries `serverId`; the Server derives the actor or reader from the
+verified Clerk User and current Server membership. Channel access comes from
+`channel_participants`. A DM's sorted two-User pair on `chats` is its sole
+membership truth.
+
+Each DM names the other human with `peerUserId`. The App can open a DM from an
+author already visible in an accessible transcript; there is no member
+directory or member-management surface in this slice.
+
+Message order is the positive per-Chat `sequence`, allocated while the Chat row
+is transactionally locked. `(server_id, chat_id, nonce)` is unique. Retrying
+the same actor and content returns the original message and event cursor;
+reusing the nonce for different content is a conflict. Messages have no update
+or delete procedure.
+
+Hosted human chat intentionally excludes Threads, reactions, tasks, reminders,
+attachments, Agent execution, delivery queues, and Computer wake behavior.
+Those nouns must not be copied from the broader local Runtime contract below.
+
+## Local Runtime Contract (pre-cutover)
 
 Tavern Runtime is the durable source for chat objects.
 

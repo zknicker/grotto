@@ -1,7 +1,8 @@
 ---
-summary: Tavern data model for Runtime chat tables, inbox delivery, execution evidence, artifacts, app cache, FTS, and invariants.
+summary: Hosted PostgreSQL collaboration plus Runtime execution chat, app cache, FTS, and storage invariants.
 read_when:
   - changing SQLite tables, ids, sync invariants, or runtime transcript storage
+  - changing hosted PostgreSQL Chats, messages, reads, search, or event recovery
   - changing chat/session/message identity, event recovery, or sync semantics
 ---
 
@@ -39,11 +40,42 @@ delivery, and the product timeline.
 | Runtime SQLite           | Tavern Runtime                             | Canonical chat model, automation delivery, agent seats, Agent sessions, inbox delivery cursors, cursor-backed events, read markers, runtime metadata |
 | App SQLite               | Tavern App                                 | Client cache, app-shell preferences, and presentation state                                                                       |
 | Agent execution evidence | Tavern Runtime                             | Sessions, turns, tools, model calls, transcripts, and files                                                                       |
+| Hosted PostgreSQL        | Grotto Server                              | Users, Servers, memberships, Channels, DMs, human messages, reads, search index, and durable collaboration events                  |
 
 Runtime SQLite is the product source of truth for chat. App SQLite can cache for
 fast UI, but reconnect and hard reload recover from Runtime history and cursors.
 Agent transcripts are execution evidence linked to Tavern messages and stored
 through Tavern Runtime.
+
+## Hosted PostgreSQL Chat Tables
+
+```text
+chats
+channel_participants
+chat_messages
+chat_reads
+chat_events
+```
+
+Every row carries `server_id`. Composite keys and foreign keys require related
+Chats, memberships, messages, reads, and events to belong to that same Server.
+Channels store participants in `channel_participants`; a DM stores its sorted
+two-User pair directly on `chats` and has no duplicate participant rows.
+
+`chats.last_message_sequence` is locked and incremented in the message
+transaction. `chat_messages` is unique by `(server_id, chat_id, sequence)` and
+by `(server_id, chat_id, nonce)`. Message and `message.created` event insertion
+are atomic. Read advancement and its private `chat.read` event are atomic.
+`chat_messages.search_vector` is a generated PostgreSQL `tsvector`; it is
+derived search state queried through its GIN index, not a second message store.
+`servers.last_chat_event_cursor` allocates commit-ordered event cursors while
+the Server row is locked. `server_memberships.revoked_at` preserves historical
+author and DM foreign keys while excluding the human from every current access
+check; no member-management API is part of this slice.
+
+The hosted schema is fresh-bootstrap only. An incompatible development
+database must be recreated manually after operator approval; there is no
+migration runner, compatibility view, or fallback path.
 
 The channel relay writes durable chat records and dispatches through the
 agent's current global Agent session. It does not keep a private outbox,
@@ -781,6 +813,11 @@ are derived state, not the source of truth.
 
 ## Invariants
 
+- Hosted human collaboration remains available with every Computer offline.
+- Hosted actor and reader ids come from verified Clerk identity plus current
+  Server membership, never browser authority.
+- Hosted durable events notify; cursor catch-up and exact query refetch recover.
+- Hosted composition events are volatile and never persisted or replayed.
 - Tavern Runtime chat history is canonical product state.
 - Channels and DMs are durable chat rooms; Tavern App does not model pinned
   chats.

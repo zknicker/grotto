@@ -68,7 +68,7 @@ Before handoff, report the commands you ran and anything you did not verify.
 | Focused unit/domain tests | Pure logic, view models, hooks, mappers, scheduling rules, validation, or regressions. | Add one targeted regression for behavior changes. Avoid asserting implementation calls. |
 | Runtime store/service tests | Persistence, ids, ordering, idempotency, transactions, recovery, chat, inbox cursors, jobs, or execution evidence. | Use real temp SQLite/temp dirs and the real store/service. Do not mock tables or transaction behavior. |
 | Runtime handler tests | Boot, process wiring, HTTP payload shape, event delivery, or route-owned error/auth/transport behavior. | Use the real Bun handler or a started local service only when the handler owns meaningful behavior. |
-| Hosted Server tests | Grotto Server creation, slugs, memberships, roles, Channels, or Clerk-to-User mapping. | Drive the public tRPC surface through `test/grotto-server-harness.ts`: a throwaway PostgreSQL cluster plus a local Clerk issuer. Never mock PostgreSQL or the transaction. |
+| Hosted Server tests | Grotto Server identity, Chats, messages, reads, search, ordering, authorization, or realtime. | Drive the public tRPC surface through `test/grotto-server-harness.ts`: a throwaway PostgreSQL cluster plus a local Clerk issuer. Never mock PostgreSQL or the transaction. |
 | Contract/API/SDK gates | `packages/tavern-api`, OpenAPI, SDK client shape, generated types, or cross-boundary request/response contracts. | Run `@tavern/api check`, SDK tests/typecheck, and update docs with the product contract. |
 | App component/hook tests | React state rules, cache invalidation, optimistic UI, row models, filters, keyboard behavior, or rendering transforms. | Prefer hook/model/component tests before e2e. Use the `react-best-practices` skill for nontrivial React architecture. |
 | App e2e | Browser-level app contracts: navigation, reload recovery, websocket reconnect, full chat identity, user flows, or layout-critical behavior. | Use deterministic Playwright against isolated ports, isolated DBs/runtime dirs, managed Runtime, and a fake executor. |
@@ -134,6 +134,17 @@ terminal progress.
 Keep timing thresholds limited to deterministic mock-provider runs. Live
 harness smoke can print timing summaries, but should not fail normal CI on real
 model latency.
+
+Hosted human messaging has a smaller Playwright lane:
+
+```bash
+TAVERN_E2E_HOSTED_ONLY=1 bun e2e/run-playwright.ts e2e/tests/hosted-messaging.spec.ts
+```
+
+That lane starts only the hosted Server, throwaway PostgreSQL, Clerk issuer, and
+website. It proves `/s/*` does not launch or query the local sidecar, Runtime,
+Computer, or Agent process; an adjacent local-route assertion proves ordinary
+routes still mount their local boundary.
 
 ## Runtime Adapter Contracts
 

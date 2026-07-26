@@ -21,7 +21,6 @@ const legacyProcedures = [
     'identity.me',
     'identity.pushSessionToken',
     'identity.removeMember',
-    'chat.list',
     'agentRuntime.connect',
     'skill.list',
     'model.list',

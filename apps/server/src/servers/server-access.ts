@@ -1,6 +1,6 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { channelsTable, serverMembershipsTable, serversTable } from '../postgres/schema.ts';
+import { chatsTable, serverMembershipsTable, serversTable } from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import type { ServerDetail, ServerRole, ServerSummary } from './contracts.ts';
 
@@ -24,7 +24,7 @@ export class ServerAccessDeniedError extends Error {
  * A human with no Grotto User yet is simply not a member.
  */
 export async function requireServerMembership(
-    db: GrottoDatabase,
+    db: Pick<GrottoDatabase, 'select'>,
     member: GrottoUser | null,
     serverId: string
 ): Promise<ServerSummary> {
@@ -40,7 +40,8 @@ export async function requireServerMembership(
             serverMembershipsTable,
             and(
                 eq(serverMembershipsTable.serverId, serversTable.id),
-                eq(serverMembershipsTable.userId, member?.id ?? '')
+                eq(serverMembershipsTable.userId, member?.id ?? ''),
+                isNull(serverMembershipsTable.revokedAt)
             )
         )
         .where(eq(serversTable.id, serverId))
@@ -75,10 +76,24 @@ export async function openServerBySlug(
 
     const server = await requireServerMembership(db, member, found.id);
     const channels = await db
-        .select({ id: channelsTable.id, name: channelsTable.name })
-        .from(channelsTable)
-        .where(eq(channelsTable.serverId, server.id))
-        .orderBy(asc(channelsTable.name));
+        .select({ id: chatsTable.id, name: chatsTable.name })
+        .from(chatsTable)
+        .where(and(eq(chatsTable.serverId, server.id), eq(chatsTable.kind, 'channel')))
+        .orderBy(asc(chatsTable.name));
 
-    return { ...server, channels };
+    return {
+        ...server,
+        channels: channels.map((channel) => ({
+            id: channel.id,
+            name: requireChannelName(channel.name),
+        })),
+    };
+}
+
+function requireChannelName(name: string | null) {
+    if (name === null) {
+        throw new Error('A Channel must have a name.');
+    }
+
+    return name;
 }

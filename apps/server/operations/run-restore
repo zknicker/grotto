@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+umask 077
+set -a
+. "/Library/Application Support/Grotto/Server/restore.env"
+set +a
+exec /opt/grotto-server/current/bin/grotto-server-restore

@@ -25,6 +25,7 @@
     "release:check": "node scripts/release/validate-release-metadata.mjs",
     "release:check-desktop-artifacts": "node scripts/release/check-desktop-artifacts.mjs",
     "release:build-runtime-artifact": "node scripts/release/build-runtime-artifact.mjs",
+    "build:grotto-server-artifact": "node scripts/build-grotto-server-artifact.mjs",
     "release:publish-homebrew-formula": "node scripts/release/publish-homebrew-formula.mjs",
     "release:publish": "node scripts/release/publish-release.mjs",
     "test:e2e": "bun run --filter @tavern/website test:e2e",

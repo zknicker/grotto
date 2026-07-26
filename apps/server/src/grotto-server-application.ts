@@ -36,7 +36,7 @@ export async function createGrottoServerApplication(
 
     try {
         const createContext = createGrottoContextFactory({
-            clerkSessions: createClerkSessions(options.clerkIssuerUrl),
+            clerkSessions: createClerkSessions(options.clerkIssuerUrl, options.appOrigin),
             grottoDb: grotto.db,
         });
         const isAllowedOrigin = (origin: string | undefined) =>

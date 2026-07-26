@@ -24,6 +24,16 @@ test('rejects Server reads without a Clerk session', async () => {
     client.close();
 });
 
+test('rejects a Clerk session minted for another authorized party', async () => {
+    const foreignOrigin = await signIn('user_clerk_foreign_origin', {
+        azp: 'https://someone-elses-app.example',
+    });
+    const noAuthorizedParty = await signIn('user_clerk_no_azp', { azp: undefined });
+
+    await expect(foreignOrigin.trpc.server.list.query()).rejects.toThrow(/sign in/i);
+    await expect(noAuthorizedParty.trpc.server.list.query()).rejects.toThrow(/sign in/i);
+});
+
 test('lists no Servers, and mints no User, for a human who has none', async () => {
     const client = await signIn('user_clerk_fresh');
 

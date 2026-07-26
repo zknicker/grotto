@@ -5,12 +5,18 @@ import { exportJWK, generateKeyPair, type KeyObject, SignJWT } from 'jose';
 /**
  * Serves a JWKS the hosted Server can verify against, so tests exercise real
  * Clerk session-token verification instead of stubbing the identity boundary.
+ * Tokens carry the `azp` authorized party Clerk puts on real session tokens:
+ * the origin of the frontend that asked for them.
  */
 export interface ClerkTestIssuer {
     close(): Promise<void>;
     /** A session token whose lifetime has already run out. */
     mintExpiredSessionToken(clerkUserId: string): Promise<string>;
-    /** Extra claims let tests prove Clerk Organization claims carry no authority. */
+    /**
+     * Extra claims let tests prove Clerk Organization claims carry no
+     * authority, and let them override `azp` to stand in for another frontend
+     * on the same Clerk instance.
+     */
     mintSessionToken(clerkUserId: string, claims?: Record<string, unknown>): Promise<string>;
     url: string;
 }
@@ -19,7 +25,8 @@ const keyId = 'grotto-test-key';
 const tokenLifetimeSeconds = 300;
 const expiredTokenAgeSeconds = 600;
 
-export async function startClerkTestIssuer(): Promise<ClerkTestIssuer> {
+export async function startClerkTestIssuer(appOrigin: string): Promise<ClerkTestIssuer> {
+    const authorizedParty = new URL(appOrigin).origin;
     const { privateKey, publicKey } = await generateKeyPair('RS256', { extractable: true });
     const jwk = await exportJWK(publicKey as KeyObject);
     const jwks = JSON.stringify({ keys: [{ ...jwk, alg: 'RS256', kid: keyId, use: 'sig' }] });
@@ -51,7 +58,7 @@ export async function startClerkTestIssuer(): Promise<ClerkTestIssuer> {
         mintExpiredSessionToken(clerkUserId) {
             const expiredAt = Math.floor(Date.now() / 1000) - expiredTokenAgeSeconds;
 
-            return new SignJWT({})
+            return new SignJWT({ azp: authorizedParty })
                 .setProtectedHeader({ alg: 'RS256', kid: keyId })
                 .setIssuer(url)
                 .setSubject(clerkUserId)
@@ -60,7 +67,7 @@ export async function startClerkTestIssuer(): Promise<ClerkTestIssuer> {
                 .sign(privateKey);
         },
         mintSessionToken(clerkUserId, claims = {}) {
-            return new SignJWT(claims)
+            return new SignJWT({ azp: authorizedParty, ...claims })
                 .setProtectedHeader({ alg: 'RS256', kid: keyId })
                 .setIssuer(url)
                 .setSubject(clerkUserId)

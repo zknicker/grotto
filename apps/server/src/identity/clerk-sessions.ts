@@ -12,10 +12,11 @@ export interface ClerkSessions {
 
 const clockToleranceSeconds = 10;
 
-export function createClerkSessions(issuerUrl: string): ClerkSessions {
+export function createClerkSessions(issuerUrl: string, appOrigin: string): ClerkSessions {
     const issuer = new URL(issuerUrl);
     const getKey = createRemoteJWKSet(new URL('/.well-known/jwks.json', issuer));
     const expectedIssuer = issuer.origin;
+    const expectedAuthorizedParty = new URL(appOrigin).origin;
 
     return {
         async verify(token) {
@@ -23,6 +24,13 @@ export function createClerkSessions(issuerUrl: string): ClerkSessions {
                 clockTolerance: clockToleranceSeconds,
                 issuer: expectedIssuer,
             });
+
+            // One Clerk instance signs tokens for every frontend attached to
+            // it, so the issuer alone does not say the token was minted for
+            // this Server's App. `azp` is the frontend that asked for it.
+            if (payload.azp !== expectedAuthorizedParty) {
+                throw new Error('Clerk session token was issued for another authorized party.');
+            }
 
             if (typeof payload.sub !== 'string' || payload.sub.length === 0) {
                 throw new Error('Clerk session token has no subject.');

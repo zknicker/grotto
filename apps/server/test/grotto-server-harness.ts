@@ -25,7 +25,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
     let clerk: ClerkTestIssuer | null = null;
 
     try {
-        clerk = await startClerkTestIssuer();
+        clerk = await startClerkTestIssuer(harnessAppOrigin);
 
         const application = await createGrottoServerApplication({
             appOrigin: harnessAppOrigin,

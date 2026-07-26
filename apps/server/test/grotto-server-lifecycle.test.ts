@@ -4,6 +4,7 @@ import { createGrottoServerApplication } from '../src/grotto-server-application.
 import { startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
+const appOrigin = 'https://app.grotto.test';
 let cluster: PostgresCluster;
 let observer: SQL;
 
@@ -22,7 +23,7 @@ afterAll(async () => {
 test('closes PostgreSQL when application construction fails', async () => {
     await expect(
         createGrottoServerApplication({
-            appOrigin: 'https://app.grotto.test',
+            appOrigin,
             clerkIssuerUrl: 'not-a-clerk-instance',
             databaseUrl: cluster.databaseUrl,
         })
@@ -32,9 +33,9 @@ test('closes PostgreSQL when application construction fails', async () => {
 });
 
 test('closes PostgreSQL when a started application shuts down', async () => {
-    const clerk = await startClerkTestIssuer();
+    const clerk = await startClerkTestIssuer(appOrigin);
     const application = await createGrottoServerApplication({
-        appOrigin: 'https://app.grotto.test',
+        appOrigin,
         clerkIssuerUrl: clerk.url,
         databaseUrl: cluster.databaseUrl,
     });
@@ -48,14 +49,14 @@ test('closes PostgreSQL when a started application shuts down', async () => {
 });
 
 test('closes PostgreSQL when the Server cannot bind its port', async () => {
-    const clerk = await startClerkTestIssuer();
+    const clerk = await startClerkTestIssuer(appOrigin);
     const occupied = Bun.listen({
         hostname: '0.0.0.0',
         port: 0,
         socket: { data: () => undefined },
     });
     const application = await createGrottoServerApplication({
-        appOrigin: 'https://app.grotto.test',
+        appOrigin,
         clerkIssuerUrl: clerk.url,
         databaseUrl: cluster.databaseUrl,
     });

@@ -48,7 +48,9 @@ one, so an authenticated human who has done nothing leaves no row behind.
 
 `CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
 App attaches the token as `Authorization: Bearer` on HTTP and as
-`connectionParams.clerkSessionToken` on the WebSocket.
+`connectionParams.clerkSessionToken` on the WebSocket. Verification also
+requires the token's Clerk authorized party (`azp`) to equal `APP_ORIGIN`;
+same-instance tokens minted for another frontend are refused.
 
 ## State
 

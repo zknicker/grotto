@@ -12,12 +12,15 @@ import { clerkSessionFile, e2eClerkUserId } from './support/clerk-session.ts';
 const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const stateDirectory = fileURLToPath(new URL('../../../.context/e2e/', import.meta.url));
 const clerkSessionPath = clerkSessionFile();
+// The browser is the frontend that asks Clerk for the session, so it is the
+// authorized party the Server binds to.
+const appOrigin = process.env.APP_ORIGIN ?? 'http://127.0.0.1:3101';
 
 mkdirSync(stateDirectory, { recursive: true });
 rmSync(clerkSessionPath, { force: true });
 
 const cluster = await startPostgresCluster();
-const clerk = await startClerkTestIssuer();
+const clerk = await startClerkTestIssuer(appOrigin);
 
 process.once('exit', () => cluster.stop());
 process.once('SIGTERM', () => process.exit(0));
@@ -29,7 +32,7 @@ writeFileSync(
 );
 
 process.env.NODE_ENV = 'test';
-process.env.APP_ORIGIN = process.env.APP_ORIGIN ?? 'http://127.0.0.1:3101';
+process.env.APP_ORIGIN = appOrigin;
 process.env.CLERK_ISSUER_URL = clerk.url;
 process.env.DATABASE_URL = cluster.databaseUrl;
 

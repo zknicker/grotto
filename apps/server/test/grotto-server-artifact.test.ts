@@ -56,6 +56,7 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./launchd/com.grotto.monitor.plist');
     expect(paths).not.toContain('./launchd/com.grotto.postgresql.plist');
     expect(paths).toContain('./operations/install-colima-boot');
+    expect(paths).toContain('./operations/launchctl-service-disabled');
     expect(paths).toContain('./operations/rollback-colima-boot');
     expect(paths).toContain('./operations/run-server');
     expect(paths).toContain('./operations/run-restore');

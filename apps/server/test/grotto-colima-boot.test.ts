@@ -42,9 +42,10 @@ test('ships system-boot supervision for the existing Colima profile', () => {
 
 test('ships syntax-valid install and rollback operations for only Colima supervision', () => {
     const installPath = join(operationsRoot, 'install-colima-boot');
+    const parserPath = join(operationsRoot, 'launchctl-service-disabled');
     const rollbackPath = join(operationsRoot, 'rollback-colima-boot');
 
-    for (const path of [installPath, rollbackPath]) {
+    for (const path of [installPath, parserPath, rollbackPath]) {
         const syntax = Bun.spawnSync(['/bin/sh', '-n', path], {
             stderr: 'pipe',
             stdout: 'pipe',
@@ -54,6 +55,7 @@ test('ships syntax-valid install and rollback operations for only Colima supervi
 
     const install = readFileSync(installPath, 'utf8');
     const rollback = readFileSync(rollbackPath, 'utf8');
+    expect(install).toContain('/bin/sh "$disabled_parser" "$label"');
     expect(install).toContain('bootout gui/');
     expect(install).toContain('disable gui/');
     expect(install).toContain('bootstrap system');
@@ -67,4 +69,52 @@ test('ships syntax-valid install and rollback operations for only Colima supervi
     expect(rollback).toContain('bootstrap gui/');
     expect(`${install}${rollback}`).not.toContain('docker restart');
     expect(`${install}${rollback}`).not.toContain('colima stop');
+});
+
+test('recognizes disabled launchctl service output variants', () => {
+    const parserPath = join(operationsRoot, 'launchctl-service-disabled');
+    const label = 'com.merchbaseco.colima-autostart';
+    const fixtures = [
+        {
+            disabled: true,
+            output: `disabled services = {\n\t"${label}" => disabled\n}\n`,
+        },
+        {
+            disabled: true,
+            output: `disabled services = {\n\t"${label}" => true\n}\n`,
+        },
+        {
+            disabled: false,
+            output: `disabled services = {\n\t"${label}" => enabled\n}\n`,
+        },
+        {
+            disabled: false,
+            output: `disabled services = {\n\t"${label}" => false\n}\n`,
+        },
+        {
+            disabled: false,
+            output: 'disabled services = {\n\t"com.example.other" => disabled\n}\n',
+        },
+    ];
+
+    for (const fixture of fixtures) {
+        const parsed = Bun.spawnSync(
+            [
+                '/bin/sh',
+                '-c',
+                'printf "%s" "$LAUNCHCTL_OUTPUT" | /bin/sh "$PARSER_PATH" "$SERVICE_LABEL"',
+            ],
+            {
+                env: {
+                    ...process.env,
+                    LAUNCHCTL_OUTPUT: fixture.output,
+                    PARSER_PATH: parserPath,
+                    SERVICE_LABEL: label,
+                },
+                stderr: 'pipe',
+                stdout: 'pipe',
+            }
+        );
+        expect(parsed.exitCode).toBe(fixture.disabled ? 0 : 1);
+    }
 });

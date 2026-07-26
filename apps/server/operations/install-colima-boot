@@ -7,6 +7,7 @@ agent="/Users/zknicker/Library/LaunchAgents/${label}.plist"
 daemon="/Library/LaunchDaemons/${label}.plist"
 release_root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 source_plist="${release_root}/colima/${label}.plist"
+disabled_parser="${release_root}/operations/launchctl-service-disabled"
 wrapper="/Users/zknicker/services/bin/ensure-colima.sh"
 mode=${1:-install}
 user_uid=$(/usr/bin/id -u "$user_name")
@@ -21,7 +22,8 @@ inventory() {
     else
         echo "agent_job=not_loaded"
     fi
-    if /bin/launchctl print-disabled "gui/${user_uid}" | /usr/bin/grep -q "${label}.*true"; then
+    if /bin/launchctl print-disabled "gui/${user_uid}" |
+        /bin/sh "$disabled_parser" "$label"; then
         echo "agent_disabled=yes"
     else
         echo "agent_disabled=no"
@@ -54,6 +56,10 @@ if [ ! -f "$source_plist" ]; then
     echo "Release Colima LaunchDaemon is missing." >&2
     exit 1
 fi
+if [ ! -f "$disabled_parser" ]; then
+    echo "Release launchctl state parser is missing." >&2
+    exit 1
+fi
 /usr/bin/plutil -lint "$source_plist" >/dev/null
 if [ -e "$daemon" ] && ! /usr/bin/cmp -s "$source_plist" "$daemon"; then
     echo "A different system Colima LaunchDaemon exists; refusing overwrite." >&2
@@ -82,7 +88,8 @@ agent_was_disabled=0
 agent_was_loaded=0
 daemon_installed=0
 system_was_loaded=0
-if /bin/launchctl print-disabled "gui/${user_uid}" | /usr/bin/grep -q "${label}.*true"; then
+if /bin/launchctl print-disabled "gui/${user_uid}" |
+    /bin/sh "$disabled_parser" "$label"; then
     agent_was_disabled=1
 fi
 if /bin/launchctl print "system/${label}" >/dev/null 2>&1; then

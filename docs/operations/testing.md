@@ -135,11 +135,16 @@ Keep timing thresholds limited to deterministic mock-provider runs. Live
 harness smoke can print timing summaries, but should not fail normal CI on real
 model latency.
 
-Hosted human messaging has a smaller Playwright lane:
+Hosted human messaging and membership have a smaller Playwright lane:
 
 ```bash
 TAVERN_E2E_HOSTED_ONLY=1 bun e2e/run-playwright.ts e2e/tests/hosted-messaging.spec.ts
+TAVERN_E2E_HOSTED_ONLY=1 bun e2e/run-playwright.ts e2e/tests/hosted-membership.spec.ts
 ```
+
+The membership spec drives the real invitation round trip across two Clerk
+identities. The local Clerk issuer answers the verified-email lookup as well as
+JWKS, so nothing about acceptance is stubbed inside the Server.
 
 That lane starts only the hosted Server, throwaway PostgreSQL, Clerk issuer, and
 website. It proves `/s/*` does not launch or query the local sidecar, Runtime,

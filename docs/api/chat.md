@@ -42,9 +42,10 @@ verified Clerk User and current Server membership. Channel access comes from
 `channel_participants`. A DM's sorted two-User pair on `chats` is its sole
 membership truth.
 
-Each DM names the other human with `peerUserId`. The App can open a DM from an
-author already visible in an accessible transcript; there is no member
-directory or member-management surface in this slice.
+Each DM names the other human with `peerUserId`. The App opens a DM from an
+author already visible in an accessible transcript; the member directory is a
+management surface and starts no Chats. Invitation and membership procedures
+live in [Grotto Server](../internals/grotto-server.md#membership).
 
 Message order is the positive per-Chat `sequence`, allocated while the Chat row
 is transactionally locked. `(server_id, chat_id, nonce)` is unique. Retrying

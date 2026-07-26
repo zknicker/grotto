@@ -56,6 +56,7 @@ chat_messages
 chat_reads
 chat_events
 thread_follows
+server_invitations
 ```
 
 Every row carries `server_id`. Composite keys and foreign keys require related
@@ -77,7 +78,25 @@ derived search state queried through its GIN index, not a second message store.
 `servers.last_chat_event_cursor` allocates commit-ordered event cursors while
 the Server row is locked. `server_memberships.revoked_at` preserves historical
 author and DM foreign keys while excluding the human from every current access
-check; no member-management API is part of this slice.
+check.
+
+`server_memberships` is unique by `(server_id, user_id)`, and six composite
+foreign keys point at it from `chats` (both DM sides), `channel_participants`,
+`chat_messages`, `chat_reads`, and `chat_events`. That row is the durable anchor
+of authored history, so membership is revoked and re-accepted in place, never
+deleted and re-inserted. `joined_at` stamps the current stint, which is what
+makes a returning human distinguishable from one who never left.
+
+`server_invitations` stores only a token's SHA-256 hash, unique across the
+table. A partial unique index on `(server_id, email)` where the invitation is
+neither revoked nor accepted allows at most one live invitation per address.
+Expiry cannot join that predicate — index predicates must be immutable and
+`now()` is not — so issuing a fresh invitation first retires a lapsed one.
+Acceptance locks the invitation row, so one token yields exactly one membership
+under concurrency.
+
+Membership changes lock the `servers` row before counting Owners, which is what
+holds the last-Owner invariant across concurrent requests.
 
 The hosted schema is fresh-bootstrap only. An incompatible development
 database must be recreated manually after operator approval; there is no

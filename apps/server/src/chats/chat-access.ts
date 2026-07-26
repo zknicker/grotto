@@ -25,8 +25,9 @@ export interface AccessibleChat {
     dmMemberOneUserId: string | null;
     dmMemberTwoUserId: string | null;
     id: string;
-    kind: 'channel' | 'dm';
+    kind: 'channel' | 'dm' | 'thread';
     lastMessageSequence: number;
+    parentChatId: string | null;
     serverId: string;
 }
 
@@ -72,6 +73,7 @@ export async function findHostedChatAccess(
             id: chatsTable.id,
             kind: chatsTable.kind,
             lastMessageSequence: chatsTable.lastMessageSequence,
+            parentChatId: chatsTable.parentChatId,
             serverId: chatsTable.serverId,
         })
         .from(chatsTable)
@@ -91,6 +93,7 @@ export async function findHostedChatAccess(
               id: chat.id,
               kind: chat.kind,
               lastMessageSequence: chat.lastMessageSequence,
+              parentChatId: chat.parentChatId,
               serverId: chat.serverId,
           }
         : null;

@@ -28,7 +28,7 @@ pointers, and per-participant follow records derived from parent membership.
 
 - A thread is a `chats` row (`kind: 'thread'`) with `parent_chat_id` and
   `anchor_message_id`, its own deterministic id
-  (`cht_thr_<anchor-msg-id>`), and its own per-chat sequence space. First
+  (`cht_thr_<anchor message id without msg_>`), and its own per-chat sequence space. First
   reply creates it; no nesting; membership always derives from the parent.
 - `thread_follows` records attention per participant, humans and agents
   identically: participate/@mention auto-follows, posting re-follows,
@@ -48,7 +48,6 @@ pointers, and per-participant follow records derived from parent membership.
 - Thread display names derive at read time from the parent handle + anchor
   reference (`#channel:anchor-ref`, `dm:@name:anchor-ref`): 8-char short ids
   for canonical messages, exact full ids otherwise. Renames propagate by construction.
-- Existing databases carry dead `parent_message_id`/`thread_root_id`
-  columns; the stale `chats.kind` CHECK constraint is rebuilt by the
-  startup schema-repair path (the same guarded rebuild that added the
-  `task` kind), so upgrades need no manual step.
+- Hosted PostgreSQL adds Threads through fresh-schema bootstrap only. Existing
+  hosted databases are manually recreated after operator approval; there is no
+  migration, compatibility view, or schema-repair path.

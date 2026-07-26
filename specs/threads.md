@@ -10,7 +10,9 @@ sub-conversation anchored on one top-level message. Replying IS threading; inlin
   and per-chat `sequence` space, `anchor_message_id` (the parent-chat message it hangs off), and
   `parent_chat_id`. Never a column on messages.
 - Thread chat id is deterministic: `cht_thr_<anchor message id without the msg_ prefix>`. One
-  thread per anchor by construction; creation is idempotent.
+  thread per anchor by construction; creation is idempotent. Hosted message ids are opaque, but
+  the child Thread id deliberately remains derived because its identity is this normative
+  one-anchor contract.
 - Canonical `msg_<32 hex>` anchors use their first 8 hex characters. Existing non-canonical
   anchors use their exact full id so the target stays resolvable. Target grammar (D2, shared with
   the WS1 CLI): `#channel:<anchor-ref>` and `dm:@name:<anchor-ref>`.
@@ -30,12 +32,15 @@ later mention can pierce without changing attention state.
 - Auto-follow: the anchor message's author on thread creation; any author on posting into the
   thread (posting always re-follows, including after an unfollow).
 - @mentioning a parent-chat participant inside a thread message follows them to the thread.
-- Mentions pierce without re-following (delivery rules land with WS4; the store carries the
-  contract now).
+- A direct mention uses the existing rich-reference syntax. The hosted human slice recognizes
+  `user://` references only; local Agent delivery may recognize `agent://` when that delivery
+  work lands. Bare mention-looking text is inert. A first mention follows; after an explicit
+  unfollow, that one message pierces without re-following.
 - Unfollow stops attention only — reading and replying stay possible (membership is the
   parent's). Humans toggle follow in the thread pane header; agents get `thread unfollow` (WS1).
-- Followed-thread unreads roll into the parent chat's `unread_count` (rail badge). No separate
-  thread list surface in v1.
+- Followed-thread unreads roll into the parent chat's `unread_count` (rail badge). A direct
+  mention contributes its one unread after explicit unfollow. No separate thread list surface
+  in v1.
 
 ## Immutability (T2)
 
@@ -70,10 +75,11 @@ read receipt. The parent chat's `unread_count` includes followed-thread unreads 
 
 ## Flow
 
-- Human reply: `chat.send` carries `thread: { parentChatId, anchorMessageId }`; the server
-  ensures the thread chat on the runtime, writes the message there, and targets agents using the
-  **parent** chat's addressing rules (`specs/addressing.md`). Thread chats never enter the
-  server's sidebar chat list or chat cache as first-class rows.
+- Human reply: `chat.send` carries the parent Chat id plus
+  `thread: { anchorMessageId }`; the owner of canonical chat state atomically ensures the child
+  Thread and writes the message in its independent sequence domain. Hosted Server Threads use
+  PostgreSQL and parent-derived human authorization. Local execution chat uses Runtime and the
+  parent Chat's Agent addressing rules. Threads never enter a sidebar Chat list.
 - Agent turns triggered in a thread run with the thread chat as their chat context; the per-turn
   prompt identifies the thread (parent + anchor excerpt) instead of the retired `Reply context:`
   section. Agent replies land in the thread like any chat.

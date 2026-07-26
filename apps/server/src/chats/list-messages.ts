@@ -2,6 +2,7 @@ import type { HostedChatMessage } from '@tavern/api';
 import { and, desc, eq, lt } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
+import { listHostedThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
 import { toHostedChatMessage } from './message-shape.ts';
@@ -15,7 +16,11 @@ export async function listHostedChatMessages(
         limit: number;
         serverId: string;
     }
-): Promise<{ messages: HostedChatMessage[]; nextBeforeSequence: number | null }> {
+): Promise<{
+    messages: HostedChatMessage[];
+    nextBeforeSequence: number | null;
+    threads: Awaited<ReturnType<typeof listHostedThreadSummaries>>;
+}> {
     await requireChatAccess(db, member, input);
 
     const predicates = [
@@ -39,5 +44,10 @@ export async function listHostedChatMessages(
     return {
         messages,
         nextBeforeSequence: hasOlderMessages ? (messages[0]?.sequence ?? null) : null,
+        threads: await listHostedThreadSummaries(db, member, {
+            anchorMessageIds: messages.map((message) => message.id),
+            parentChatId: input.chatId,
+            serverId: input.serverId,
+        }),
     };
 }

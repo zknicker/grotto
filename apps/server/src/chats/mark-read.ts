@@ -25,7 +25,10 @@ export async function markHostedChatRead(
         }
 
         const [chat] = await tx
-            .select({ lastMessageSequence: chatsTable.lastMessageSequence })
+            .select({
+                lastMessageSequence: chatsTable.lastMessageSequence,
+                parentChatId: chatsTable.parentChatId,
+            })
             .from(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
             .limit(1);
@@ -134,6 +137,7 @@ export async function markHostedChatRead(
                 createdAt: event.createdAt.toISOString(),
                 cursor: event.cursor.toString(),
                 id: event.id,
+                parentChatId: chat.parentChatId,
                 sequence,
                 serverId: input.serverId,
                 type: 'chat.read',

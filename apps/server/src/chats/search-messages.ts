@@ -1,5 +1,5 @@
 import type { HostedChatMessage } from '@tavern/api';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -48,6 +48,7 @@ export async function searchHostedChatMessages(
         .where(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),
+                ne(chatsTable.kind, 'thread'),
                 input.chatId ? eq(chatMessagesTable.chatId, input.chatId) : undefined,
                 sql`${chatMessagesTable.searchVector}
                     @@ websearch_to_tsquery('simple', ${input.query})`,

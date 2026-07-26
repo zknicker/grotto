@@ -39,15 +39,17 @@ from durable `chat_events`.
 
 ## Hosted Server Realtime
 
-`chat.send` and an advancing `chat.markRead` insert their durable event in the
+`chat.send`, an advancing `chat.markRead`, and `thread.setFollow` insert their durable event in the
 same PostgreSQL transaction as the owned row. `chat.events` lists accessible
 events after a cursor in ascending order. `chat.onEvent` does not replay; it
 notifies the App after commit. On subscription start or reconnect, the App
 seeds a new in-memory cursor from `chat.eventHead` and refetches the Server Chat
 snapshot, or walks `chat.events` from its last cursor with a private catch-up
 cursor. Live delivery can advance in parallel without skipping the catch-up
-window. Message events invalidate the exact Chat message, list, and Server
-search queries; read events invalidate the Server Chat list.
+window. Thread events carry the child Chat id and nullable parent Chat id.
+Message events invalidate the exact message query, its parent summary when
+present, the Chat list, and Server search; read/follow events invalidate the
+parent summary and Chat list.
 
 The Server row owns the next durable cursor. Event transactions increment that
 counter while holding the Server row lock, then insert `chat_events` before
@@ -55,8 +57,8 @@ commit. Therefore a visible higher cursor can never precede an uncommitted
 lower cursor, including mutations in different Chats.
 
 Durable event payloads stay small: Server id, Chat id, event id, cursor,
-sequence, timestamp, and the message id when applicable. Message bodies and
-read models come from focused queries.
+sequence, timestamp, nullable parent Chat id, and the message id when
+applicable. Message bodies, anchors, and read models come from focused queries.
 
 Every subscription is checked at registration and again before each delivery.
 Read events are visible only to their reader. Cross-Server events are neither
@@ -68,6 +70,9 @@ Hosted composition events use a separate in-memory hub. They carry current
 composition text or a clear signal, are never written to PostgreSQL, have no
 cursor, and are never replayed. The subscriber's Chat access is rechecked for
 every delivery.
+
+Hosted durable event kinds are `message.created`, `chat.read`, and the
+reader-private `thread.follow.updated`.
 
 ## Endpoints
 

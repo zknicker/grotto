@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createWSClient, httpLink, splitLink, wsLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
@@ -6,6 +6,7 @@ import * as React from 'react';
 import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
 import { getClerkSessionToken } from './clerk.tsx';
 import { watchGrottoSession } from './grotto-session-refresh.ts';
+import { queryClientDefaultOptions } from './query-policy.ts';
 
 /**
  * The App's direct connection to the hosted Grotto Server. It is separate from
@@ -34,7 +35,9 @@ export function getGrottoServerOrigin(): string {
 }
 
 export function GrottoServerProvider({ children }: React.PropsWithChildren) {
-    const queryClient = useQueryClient();
+    const [queryClient] = React.useState(
+        () => new QueryClient({ defaultOptions: queryClientDefaultOptions })
+    );
     // A socket presents the Clerk session it was opened with. When Clerk hands
     // out a new one, open the next connection and re-register subscriptions
     // against it. Query data lives in the shared cache, so the swap is silent.
@@ -57,13 +60,15 @@ export function GrottoServerProvider({ children }: React.PropsWithChildren) {
     }, [connection]);
 
     return (
-        <grottoTrpc.Provider
-            client={connection.client}
-            key={connection.generation}
-            queryClient={queryClient}
-        >
-            {children}
-        </grottoTrpc.Provider>
+        <QueryClientProvider client={queryClient}>
+            <grottoTrpc.Provider
+                client={connection.client}
+                key={connection.generation}
+                queryClient={queryClient}
+            >
+                {children}
+            </grottoTrpc.Provider>
+        </QueryClientProvider>
     );
 }
 

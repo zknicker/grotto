@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useDevMode } from '../components/dev-mode-provider.tsx';
 import { toastManager } from '../components/ui/toast.tsx';
 import { buildChatList } from '../features/chats/chat-list-data.ts';
@@ -12,18 +13,9 @@ import { buildNavigationCommandGroup } from './navigation-commands.ts';
 import { buildSettingsCommandGroup } from './settings-commands.ts';
 import { filterCommandGroups } from './types.ts';
 
-export interface CommandRouter {
-    navigate: (path: string) => void | Promise<void>;
-    state: {
-        location: {
-            pathname: string;
-        };
-    };
-    subscribe: (listener: () => void) => () => void;
-}
-
-export function useAppCommands(router: CommandRouter) {
-    const pathname = useRouterPathname(router);
+export function useAppCommands() {
+    const { pathname } = useLocation();
+    const navigateRoute = useNavigate();
     const { devMode, setDevMode } = useDevMode();
     const resolveCapability = useCapability();
     const chatsQuery = useChatList();
@@ -56,9 +48,9 @@ export function useAppCommands(router: CommandRouter) {
 
     const navigate = React.useCallback(
         (path: string) => {
-            void router.navigate(path);
+            void navigateRoute(path);
         },
-        [router]
+        [navigateRoute]
     );
 
     return React.useMemo(() => {
@@ -94,12 +86,4 @@ export function useAppCommands(router: CommandRouter) {
         resolveCapability,
         setDevMode,
     ]);
-}
-
-function useRouterPathname(router: CommandRouter) {
-    return React.useSyncExternalStore(
-        router.subscribe,
-        () => router.state.location.pathname,
-        () => router.state.location.pathname
-    );
 }

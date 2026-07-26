@@ -8,13 +8,18 @@ import {
     useParams,
 } from 'react-router-dom';
 import { AppFrame } from './components/app-frame.tsx';
+import { DevAutoSignIn } from './features/auth/dev-auto-sign-in.tsx';
 import { MembershipGate } from './features/auth/membership-gate.tsx';
+import { SessionTokenKeepalive } from './features/auth/session-token-keepalive.tsx';
+import { SignInGate } from './features/auth/sign-in-gate.tsx';
 import { buildDefaultWorkspaceChatPath } from './features/chats/chat-path.ts';
 import { RuntimeSetupGate } from './features/onboarding/runtime-setup-gate.tsx';
 import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
+import { CommandMenu } from './features/shell/command-menu.tsx';
 import { Layout } from './layout.tsx';
 import { isPackagedDesktopApp } from './lib/agent-runtime.ts';
 import { appRoutes } from './lib/app-routes.ts';
+import { TavernProviders } from './lib/trpc.tsx';
 
 function lazyRoute<TModule extends Record<string, unknown>>(
     load: () => Promise<TModule>,
@@ -42,14 +47,6 @@ export function createAppRouter() {
             element: <AppFrame />,
             children: [
                 {
-                    path: '/onboarding',
-                    lazy: lazyRoute(() => import('./routes/onboarding-page.tsx'), 'OnboardingPage'),
-                },
-                {
-                    path: '/sso-callback',
-                    element: <AuthenticateWithRedirectCallback />,
-                },
-                {
                     // Hosted Grotto servers address themselves by slug and talk
                     // straight to the Server on its own client, outside the
                     // pre-WS6 local sidecar and its runtime gates.
@@ -70,6 +67,19 @@ export function createAppRouter() {
                             ),
                         },
                     ],
+                },
+            ],
+        },
+        {
+            element: <LocalAppFrame />,
+            children: [
+                {
+                    path: '/onboarding',
+                    lazy: lazyRoute(() => import('./routes/onboarding-page.tsx'), 'OnboardingPage'),
+                },
+                {
+                    path: '/sso-callback',
+                    element: <AuthenticateWithRedirectCallback />,
                 },
                 {
                     path: 'dashboard',
@@ -454,6 +464,19 @@ export function createAppRouter() {
             ],
         },
     ]);
+}
+
+export function LocalAppFrame() {
+    return (
+        <TavernProviders>
+            <DevAutoSignIn />
+            <SessionTokenKeepalive />
+            <SignInGate>
+                <CommandMenu />
+                <AppFrame />
+            </SignInGate>
+        </TavernProviders>
+    );
 }
 
 function LegacyAgentSettingsRedirect() {

@@ -10,13 +10,17 @@ read_when:
 
 Realtime is notification plus recovery.
 
-Runtime SQLite is the source of truth. WebSocket delivery is allowed to drop.
-Clients recover by refetching durable resources through normal Tavern API reads.
+PostgreSQL is the source of truth for hosted Server collaboration. Runtime
+SQLite remains the pre-cutover source for local execution chat. WebSocket
+delivery is allowed to drop; clients recover through durable reads.
 
 ## Components
 
 | Component | Owner | Role |
 | --- | --- | --- |
+| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for human messages and reads |
+| Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
+| Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
 | `chat_events` | Tavern Runtime | Durable cursor-backed event log |
 | `chat_responses` / `chat_response_activity` | Tavern Runtime | Durable response/activity rows (real agent turns no longer populate them — see [Chat API](chat.md)) |
 | `chat_artifacts` | Tavern Runtime | Durable renderable outputs |
@@ -32,6 +36,38 @@ events, but missed app notifications recover through Tavern API reads.
 
 The event list does not own a second event log. App notifications are derived
 from durable `chat_events`.
+
+## Hosted Server Realtime
+
+`chat.send` and an advancing `chat.markRead` insert their durable event in the
+same PostgreSQL transaction as the owned row. `chat.events` lists accessible
+events after a cursor in ascending order. `chat.onEvent` does not replay; it
+notifies the App after commit. On subscription start or reconnect, the App
+seeds a new in-memory cursor from `chat.eventHead` and refetches the Server Chat
+snapshot, or walks `chat.events` from its last cursor with a private catch-up
+cursor. Live delivery can advance in parallel without skipping the catch-up
+window. Message events invalidate the exact Chat message, list, and Server
+search queries; read events invalidate the Server Chat list.
+
+The Server row owns the next durable cursor. Event transactions increment that
+counter while holding the Server row lock, then insert `chat_events` before
+commit. Therefore a visible higher cursor can never precede an uncommitted
+lower cursor, including mutations in different Chats.
+
+Durable event payloads stay small: Server id, Chat id, event id, cursor,
+sequence, timestamp, and the message id when applicable. Message bodies and
+read models come from focused queries.
+
+Every subscription is checked at registration and again before each delivery.
+Read events are visible only to their reader. Cross-Server events are neither
+listed nor delivered. A durable notification for a Chat the subscriber cannot
+open is skipped without terminating the Server feed; loss of Server membership
+fails the subscription.
+
+Hosted composition events use a separate in-memory hub. They carry current
+composition text or a clear signal, are never written to PostgreSQL, have no
+cursor, and are never replayed. The subscriber's Chat access is rechecked for
+every delivery.
 
 ## Endpoints
 
@@ -137,6 +173,8 @@ resource.
 
 ## Ordering
 
+* Hosted `chat_events.cursor` is monotonic and commit-ordered within one Server.
+* Hosted message order is the transactional positive per-Chat sequence.
 * `chat_events.cursor` is monotonic inside Runtime SQLite.
 * Message timeline order is `chat_messages.sequence`, not event cursor.
 * Event cursor order records mutation order for inspection.

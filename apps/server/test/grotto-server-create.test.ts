@@ -78,7 +78,10 @@ test('creates no Computer or Agent alongside the Server', async () => {
     expect(created.channels).toHaveLength(1);
     await expect(readTableNames()).resolves.toEqual([
         'channel_participants',
-        'channels',
+        'chat_events',
+        'chat_messages',
+        'chat_reads',
+        'chats',
         'server_memberships',
         'servers',
         'users',

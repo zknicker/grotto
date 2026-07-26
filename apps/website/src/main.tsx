@@ -5,12 +5,8 @@ import { DevModeProvider } from './components/dev-mode-provider.tsx';
 import { ThemeProvider } from './components/theme-provider.tsx';
 import { DesktopEditContextMenuProvider } from './components/ui/edit-context-menu.tsx';
 import { ToastProvider } from './components/ui/toast.tsx';
-import { DevAutoSignIn } from './features/auth/dev-auto-sign-in.tsx';
-import { SessionTokenKeepalive } from './features/auth/session-token-keepalive.tsx';
-import { SignInGate } from './features/auth/sign-in-gate.tsx';
 import { TavernClerkProvider } from './lib/clerk.tsx';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
-import { TavernProviders } from './lib/trpc.tsx';
 import './styles/global.css';
 
 const rootElement = document.getElementById('root');
@@ -29,15 +25,9 @@ createRoot(rootElement).render(
             <ThemeProvider>
                 <DevModeProvider>
                     <ToastProvider>
-                        <TavernProviders>
-                            <DevAutoSignIn />
-                            <SessionTokenKeepalive />
-                            <DesktopEditContextMenuProvider>
-                                <SignInGate>
-                                    <App />
-                                </SignInGate>
-                            </DesktopEditContextMenuProvider>
-                        </TavernProviders>
+                        <DesktopEditContextMenuProvider>
+                            <App />
+                        </DesktopEditContextMenuProvider>
                     </ToastProvider>
                 </DevModeProvider>
             </ThemeProvider>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AppCommand } from '../../commands/types.ts';
 import { getCommandSearchText } from '../../commands/types.ts';
-import { type CommandRouter, useAppCommands } from '../../commands/use-app-commands.ts';
+import { useAppCommands } from '../../commands/use-app-commands.ts';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { TavernLogo } from '../../components/tavern-logo.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
@@ -31,12 +31,12 @@ import { getChannelColorStyle } from './channel-color-options.ts';
  * groups from `src/commands`; command modules own navigation, feature, and
  * developer action definitions while this component owns only the shell.
  */
-export function CommandMenu({ router }: { router: CommandRouter }) {
+export function CommandMenu() {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
     const lookupAppearance = useAgentAppearanceLookup();
     const dark = useResolvedThemeOptional() === 'dark';
-    const commandGroups = useAppCommands(router);
+    const commandGroups = useAppCommands();
     const visibleCommandGroups = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase();
 

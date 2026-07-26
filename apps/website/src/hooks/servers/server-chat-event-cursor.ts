@@ -2,6 +2,25 @@ import type { HostedDurableEvent } from '@tavern/api';
 
 const pageSize = 100;
 
+export function hostedEventRefetchTargets(events: HostedDurableEvent[]) {
+    const messageEvents = events.filter((event) => event.type === 'message.created');
+
+    return {
+        invalidateSearch: messageEvents.length > 0,
+        messageChatIds: [
+            ...new Set(
+                messageEvents.flatMap((event) => [
+                    event.chatId,
+                    ...(event.parentChatId ? [event.parentChatId] : []),
+                ])
+            ),
+        ],
+        parentChatIds: [
+            ...new Set(events.flatMap((event) => (event.parentChatId ? [event.parentChatId] : []))),
+        ],
+    };
+}
+
 export function laterHostedEventCursor(left: string, right: string): string {
     return BigInt(left) >= BigInt(right) ? left : right;
 }

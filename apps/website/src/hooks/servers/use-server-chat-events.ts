@@ -1,7 +1,11 @@
 import type { HostedDurableEvent } from '@tavern/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
-import { laterHostedEventCursor, walkHostedEventCatchUp } from './server-chat-event-cursor.ts';
+import {
+    hostedEventRefetchTargets,
+    laterHostedEventCursor,
+    walkHostedEventCatchUp,
+} from './server-chat-event-cursor.ts';
 
 export function useServerChatEvents(serverId: string | undefined) {
     const utils = grottoTrpc.useUtils();
@@ -17,16 +21,17 @@ export function useServerChatEvents(serverId: string | undefined) {
                 return;
             }
 
-            const messageEvents = events.filter((event) => event.type === 'message.created');
-            const chatIds = [...new Set(messageEvents.map((event) => event.chatId))];
+            const targets = hostedEventRefetchTargets(events);
             const invalidations: Promise<unknown>[] = [utils.chat.list.invalidate({ serverId })];
 
-            if (messageEvents.length > 0) {
-                invalidations.push(
-                    utils.chat.search.invalidate({ serverId }),
-                    ...chatIds.map((chatId) => utils.chat.messages.invalidate({ chatId, serverId }))
-                );
+            if (targets.invalidateSearch) {
+                invalidations.push(utils.chat.search.invalidate({ serverId }));
             }
+            invalidations.push(
+                ...[...new Set([...targets.messageChatIds, ...targets.parentChatIds])].map(
+                    (chatId) => utils.chat.messages.invalidate({ chatId, serverId })
+                )
+            );
 
             await Promise.all(invalidations);
         },

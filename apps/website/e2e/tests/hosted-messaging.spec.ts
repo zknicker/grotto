@@ -100,6 +100,70 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     expect(localProductRequests).toEqual([]);
 });
 
+test('a hosted Thread panel follows and catches up after websocket reconnect', async ({ page }) => {
+    await signInAsClerkHuman(page);
+    await page.goto('/s/hosted-messages');
+
+    const anchorText = 'First durable human message';
+    const anchorArticle = page
+        .getByText(anchorText, { exact: true })
+        .locator('xpath=ancestor::article');
+    await anchorArticle.hover();
+    await anchorArticle.getByRole('button', { name: 'Reply in thread' }).click();
+
+    const panel = page.getByRole('complementary', { name: 'Thread' });
+    await expect(panel).toBeVisible();
+    await panel.getByPlaceholder('Message thread').fill('First hosted Thread reply');
+    await panel.getByRole('button', { name: 'Send' }).click();
+    await expect(panel.getByText('First hosted Thread reply', { exact: true })).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Following' })).toBeVisible();
+    await panel.getByRole('button', { name: 'Following' }).click();
+    await expect(panel.getByRole('button', { name: 'Follow', exact: true })).toBeVisible();
+
+    const { peerToken, token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as {
+        peerToken: string;
+        token: string;
+    };
+    const owner = createHostedClient(token);
+    const peer = createHostedClient(peerToken);
+    const server = await owner.server.bySlug.query({ slug: 'hosted-messages' });
+    const parentChatId = server.channels.find((channel) => channel.name === 'all')?.id;
+    if (!parentChatId) {
+        throw new Error('The hosted Thread test did not resolve #all.');
+    }
+    const pageSnapshot = await owner.chat.messages.query({
+        chatId: parentChatId,
+        serverId: server.id,
+    });
+    const anchor = pageSnapshot.messages.find((message) => message.content === anchorText);
+    if (!anchor) {
+        throw new Error('The hosted Thread test did not resolve its anchor.');
+    }
+
+    await page.context().setOffline(true);
+    await peer.chat.send.mutate({
+        chatId: parentChatId,
+        content: 'Reply sent while the App was offline',
+        nonce: 'e2e-thread-offline-reply',
+        serverId: server.id,
+        thread: { anchorMessageId: anchor.id },
+    });
+    await page.context().setOffline(false);
+
+    await expect(
+        panel.getByText('Reply sent while the App was offline', { exact: true })
+    ).toBeVisible();
+    await panel.getByRole('button', { name: 'Close thread' }).click();
+    await expect(page.getByRole('button', { name: /2 replies/u })).toBeVisible();
+
+    await page.setViewportSize({ height: 720, width: 800 });
+    await page.getByRole('button', { name: /2 replies/u }).click();
+    await expect(page.getByRole('button', { name: 'Back to chat' })).toBeVisible();
+    await page.getByRole('button', { name: 'View in channel' }).click();
+    await expect(page.getByText(anchorText, { exact: true })).toBeVisible();
+    await expect(panel).toHaveCount(0);
+});
+
 function createHostedClient(token: string) {
     return createTRPCClient<GrottoRouter>({
         links: [

@@ -52,7 +52,7 @@ export function threadPaneTitles(
 // The wire contract's short-id rule (specs/grotto-cli.md): only canonical
 // msg_<32 hex> ids shorten to hex8; anything else keeps its full value so
 // server-side resolution stays unambiguous.
-function threadAnchorShortId(anchorMessageId: string) {
+export function threadAnchorShortId(anchorMessageId: string) {
     const match = /^msg_([A-Fa-f0-9]{32})$/u.exec(anchorMessageId);
     return match?.[1]?.slice(0, 8).toLowerCase() ?? anchorMessageId;
 }

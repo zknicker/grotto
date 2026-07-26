@@ -2,7 +2,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { startClerkTestIssuer } from '../../server/test/clerk-test-issuer.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';
-import { clerkSessionFile, e2eClerkUserId } from './support/clerk-session.ts';
+import { clerkSessionFile, e2eClerkUserId, e2ePeerClerkUserId } from './support/clerk-session.ts';
 
 /**
  * Starts the hosted Grotto Server for e2e: a throwaway PostgreSQL cluster and a
@@ -22,13 +22,24 @@ rmSync(clerkSessionPath, { force: true });
 const cluster = await startPostgresCluster();
 const clerk = await startClerkTestIssuer(appOrigin);
 
-process.once('exit', () => cluster.stop());
-process.once('SIGTERM', () => process.exit(0));
-process.once('SIGINT', () => process.exit(0));
+process.once('exit', () => {
+    rmSync(clerkSessionPath, { force: true });
+    void cluster.stop();
+});
+process.once('SIGTERM', () => {
+    void shutdown();
+});
+process.once('SIGINT', () => {
+    void shutdown();
+});
 
 writeFileSync(
     clerkSessionPath,
-    JSON.stringify({ token: await clerk.mintSessionToken(e2eClerkUserId) })
+    JSON.stringify({
+        databaseUrl: cluster.databaseUrl,
+        peerToken: await clerk.mintSessionToken(e2ePeerClerkUserId),
+        token: await clerk.mintSessionToken(e2eClerkUserId),
+    })
 );
 
 process.env.NODE_ENV = 'test';
@@ -39,3 +50,17 @@ process.env.DATABASE_URL = cluster.databaseUrl;
 process.chdir(workspaceRoot);
 
 await import('../../server/src/grotto-server.ts');
+
+let shuttingDown = false;
+
+async function shutdown() {
+    if (shuttingDown) {
+        return;
+    }
+
+    shuttingDown = true;
+    await clerk.close();
+    await cluster.stop();
+    rmSync(clerkSessionPath, { force: true });
+    process.exit(0);
+}

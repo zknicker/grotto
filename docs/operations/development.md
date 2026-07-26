@@ -26,9 +26,18 @@ brew services start postgresql@16
 createdb grotto
 ```
 
-`DATABASE_URL` defaults to `postgres://127.0.0.1:5432/grotto`; set it in the
-root `.env` to point elsewhere. The Server sets up its fresh schema at startup,
-so an empty database needs no other setup.
+`GROTTO_DATABASE_URL` defaults to `postgres://127.0.0.1:5432/grotto`; set it in
+the root `.env` to point elsewhere. Bootstrap a fresh schema explicitly before
+starting the hosted Server:
+
+```bash
+GROTTO_DATABASE_BOOTSTRAP_URL=postgres://127.0.0.1:5432/grotto \
+GROTTO_DATABASE_RUNTIME_ROLE="$(whoami)" \
+bun run --filter @tavern/server bootstrap:grotto
+```
+
+Runtime startup checks PostgreSQL but never runs DDL. The bootstrap is for an
+empty database only; there is no migration or adoption path.
 
 The hosted Server is its own process, separate from the local sidecar:
 

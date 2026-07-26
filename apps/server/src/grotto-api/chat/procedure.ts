@@ -1,7 +1,8 @@
 import { TRPCError } from '@trpc/server';
 import { ChatAccessDeniedError, ChatNotFoundError } from '../../chats/chat-access.ts';
 import { DmPeerNotFoundError, InvalidDmPeerError } from '../../chats/ensure-dm.ts';
-import { ChatNonceConflictError } from '../../chats/send-message.ts';
+import { ChatNonceConflictError, DirectThreadSendError } from '../../chats/send-message.ts';
+import { InvalidThreadAnchorError, NestedThreadError } from '../../threads/ensure-thread.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const chatProcedure = memberProcedure.use(async ({ next }) => {
@@ -30,6 +31,14 @@ export const chatProcedure = memberProcedure.use(async ({ next }) => {
     }
 
     if (cause instanceof InvalidDmPeerError) {
+        throw new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
+    }
+
+    if (
+        cause instanceof DirectThreadSendError ||
+        cause instanceof InvalidThreadAnchorError ||
+        cause instanceof NestedThreadError
+    ) {
         throw new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
     }
 

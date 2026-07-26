@@ -24,7 +24,9 @@ export const chatEventsTable = pgTable(
         readerUserId: text('reader_user_id'),
         sequence: integer('sequence').notNull(),
         serverId: text('server_id').notNull(),
-        type: text('event_type').notNull().$type<'chat.read' | 'message.created'>(),
+        type: text('event_type')
+            .notNull()
+            .$type<'chat.read' | 'message.created' | 'thread.follow.updated'>(),
     },
     (table) => [
         uniqueIndex('chat_events_server_cursor_key').on(table.serverId, table.cursor),
@@ -53,6 +55,11 @@ export const chatEventsTable = pgTable(
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'chat.read'
+                    AND ${table.messageId} IS NULL
+                    AND ${table.readerUserId} IS NOT NULL
+                    AND ${table.sequence} >= 0)
+                OR
+                (${table.type} = 'thread.follow.updated'
                     AND ${table.messageId} IS NULL
                     AND ${table.readerUserId} IS NOT NULL
                     AND ${table.sequence} >= 0)

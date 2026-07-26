@@ -1,5 +1,6 @@
 import { chatRouter } from './chat/router.ts';
 import { serverRouter } from './server/router.ts';
+import { threadRouter } from './thread/router.ts';
 import { createRouter } from './trpc.ts';
 
 /**
@@ -9,6 +10,7 @@ import { createRouter } from './trpc.ts';
 export const grottoRouter = createRouter({
     chat: chatRouter,
     server: serverRouter,
+    thread: threadRouter,
 });
 
 export type GrottoRouter = typeof grottoRouter;

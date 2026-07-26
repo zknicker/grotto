@@ -55,12 +55,18 @@ channel_participants
 chat_messages
 chat_reads
 chat_events
+thread_follows
 ```
 
 Every row carries `server_id`. Composite keys and foreign keys require related
 Chats, memberships, messages, reads, and events to belong to that same Server.
 Channels store participants in `channel_participants`; a DM stores its sorted
 two-User pair directly on `chats` and has no duplicate participant rows.
+Threads are `chats(kind = 'thread')` with deterministic identity, parent and
+anchor pointers, their own sequence, and no participant rows. Composite
+constraints bind the parent and anchor to the same Server and forbid a Thread
+parent. `thread_follows` stores attention only; every access check resolves the
+parent Chat.
 
 `chats.last_message_sequence` is locked and incremented in the message
 transaction. `chat_messages` is unique by `(server_id, chat_id, sequence)` and
@@ -76,6 +82,11 @@ check; no member-management API is part of this slice.
 The hosted schema is fresh-bootstrap only. An incompatible development
 database must be recreated manually after operator approval; there is no
 migration runner, compatibility view, or fallback path.
+
+Hosted parent unread count is top-level unread plus unread replies by others in
+followed Threads. For an explicitly unfollowed Thread, only an unread explicit
+`user://` reference to the reader contributes, once, without changing the
+follow row. Thread reads use the ordinary per-Chat `chat_reads` high-water mark.
 
 The channel relay writes durable chat records and dispatches through the
 agent's current global Agent session. It does not keep a private outbox,
@@ -817,6 +828,8 @@ are derived state, not the source of truth.
 - Hosted actor and reader ids come from verified Clerk identity plus current
   Server membership, never browser authority.
 - Hosted durable events notify; cursor catch-up and exact query refetch recover.
+- Hosted Threads are hidden child Chats with parent-derived authorization and
+  parent unread rollup.
 - Hosted composition events are volatile and never persisted or replayed.
 - Tavern Runtime chat history is canonical product state.
 - Channels and DMs are durable chat rooms; Tavern App does not model pinned

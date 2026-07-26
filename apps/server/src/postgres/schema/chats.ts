@@ -22,10 +22,13 @@ export const chatsTable = pgTable(
         dmMemberTwoUserId: text('dm_member_two_user_id'),
         id: text('id').primaryKey(),
         isAll: boolean('is_all').notNull().default(false),
-        kind: text('kind').notNull().$type<'channel' | 'dm'>(),
+        kind: text('kind').notNull().$type<'channel' | 'dm' | 'thread'>(),
         lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),
         lastMessageSequence: integer('last_message_sequence').notNull().default(0),
         name: text('name'),
+        anchorMessageId: text('anchor_message_id'),
+        parentChatId: text('parent_chat_id'),
+        parentChatKind: text('parent_chat_kind').$type<'channel' | 'dm'>(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -40,6 +43,9 @@ export const chatsTable = pgTable(
             .on(table.serverId, table.dmMemberOneUserId, table.dmMemberTwoUserId)
             .where(sql`${table.kind} = 'dm'`),
         uniqueIndex('chats_server_all_key').on(table.serverId).where(sql`${table.isAll} = true`),
+        uniqueIndex('chats_server_thread_anchor_key')
+            .on(table.serverId, table.parentChatId, table.anchorMessageId)
+            .where(sql`${table.kind} = 'thread'`),
         foreignKey({
             columns: [table.serverId, table.dmMemberOneUserId],
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
@@ -50,8 +56,13 @@ export const chatsTable = pgTable(
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
             name: 'chats_dm_member_two_membership_fk',
         }),
+        foreignKey({
+            columns: [table.serverId, table.parentChatId, table.parentChatKind],
+            foreignColumns: [table.serverId, table.id, table.kind],
+            name: 'chats_thread_parent_fk',
+        }),
         check('chats_nonnegative_sequence', sql`${table.lastMessageSequence} >= 0`),
-        check('chats_kind', sql`${table.kind} in ('channel', 'dm')`),
+        check('chats_kind', sql`${table.kind} in ('channel', 'dm', 'thread')`),
         check(
             'chats_shape',
             sql`(
@@ -60,6 +71,9 @@ export const chatsTable = pgTable(
                     and ${table.name} is not null
                     and ${table.dmMemberOneUserId} is null
                     and ${table.dmMemberTwoUserId} is null
+                    and ${table.parentChatId} is null
+                    and ${table.parentChatKind} is null
+                    and ${table.anchorMessageId} is null
                     and (not ${table.isAll} or ${table.name} = 'all')
                 )
                 or (
@@ -68,7 +82,20 @@ export const chatsTable = pgTable(
                     and ${table.isAll} = false
                     and ${table.dmMemberOneUserId} is not null
                     and ${table.dmMemberTwoUserId} is not null
+                    and ${table.parentChatId} is null
+                    and ${table.parentChatKind} is null
+                    and ${table.anchorMessageId} is null
                     and ${table.dmMemberOneUserId} < ${table.dmMemberTwoUserId}
+                )
+                or (
+                    ${table.kind} = 'thread'
+                    and ${table.name} is null
+                    and ${table.isAll} = false
+                    and ${table.dmMemberOneUserId} is null
+                    and ${table.dmMemberTwoUserId} is null
+                    and ${table.parentChatId} is not null
+                    and ${table.parentChatKind} in ('channel', 'dm')
+                    and ${table.anchorMessageId} is not null
                 )
             )`
         ),

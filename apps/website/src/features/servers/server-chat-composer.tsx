@@ -13,26 +13,34 @@ import { useServerChatComposition } from '../../hooks/servers/use-server-chat-co
 export function ServerChatComposer({
     chatId,
     chatName,
+    compositionChatId,
+    onThreadCreated,
+    placeholder,
     serverId,
+    thread,
 }: {
     chatId: string;
     chatName: string;
+    compositionChatId: string | undefined;
+    onThreadCreated?: (threadChatId: string) => void;
+    placeholder?: string;
     serverId: string;
+    thread?: { anchorMessageId: string };
 }) {
     const [draft, setDraft] = React.useState('');
     const [compositionId] = React.useState(() => crypto.randomUUID());
     const send = useSendServerChatMessage();
-    const composition = useServerChatComposition(serverId, chatId);
+    const composition = useServerChatComposition(serverId, compositionChatId);
     const publishComposition = composition.publish.mutate;
 
     React.useEffect(() => {
-        if (draft.length === 0) {
+        if (draft.length === 0 || compositionChatId === undefined) {
             return;
         }
 
         const timeout = window.setTimeout(() => {
             publishComposition({
-                chatId,
+                chatId: compositionChatId,
                 compositionId,
                 serverId,
                 text: draft,
@@ -40,13 +48,20 @@ export function ServerChatComposer({
         }, 150);
 
         return () => window.clearTimeout(timeout);
-    }, [chatId, compositionId, draft, publishComposition, serverId]);
+    }, [compositionChatId, compositionId, draft, publishComposition, serverId]);
 
     React.useEffect(
         () => () => {
-            publishComposition({ chatId, compositionId, serverId, text: null });
+            if (compositionChatId) {
+                publishComposition({
+                    chatId: compositionChatId,
+                    compositionId,
+                    serverId,
+                    text: null,
+                });
+            }
         },
-        [chatId, compositionId, publishComposition, serverId]
+        [compositionChatId, compositionId, publishComposition, serverId]
     );
 
     const handleSubmit = async (event: React.FormEvent) => {
@@ -57,14 +72,25 @@ export function ServerChatComposer({
             return;
         }
 
-        await send.mutateAsync({
+        const receipt = await send.mutateAsync({
             chatId,
             content,
             nonce: crypto.randomUUID(),
             serverId,
+            thread,
         });
+        if (receipt.threadChatId) {
+            onThreadCreated?.(receipt.threadChatId);
+        }
         setDraft('');
-        publishComposition({ chatId, compositionId, serverId, text: null });
+        if (compositionChatId) {
+            publishComposition({
+                chatId: compositionChatId,
+                compositionId,
+                serverId,
+                text: null,
+            });
+        }
     };
 
     return (
@@ -79,7 +105,7 @@ export function ServerChatComposer({
                     <PromptInputTextarea
                         aria-label={`Message ${chatName}`}
                         onChange={(event) => setDraft(event.target.value)}
-                        placeholder={`Message ${chatName}`}
+                        placeholder={placeholder ?? `Message ${chatName}`}
                         value={draft}
                     />
                 </PromptInputBody>

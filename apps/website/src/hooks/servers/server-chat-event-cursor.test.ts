@@ -1,6 +1,10 @@
 import { expect, test } from 'bun:test';
 import type { HostedDurableEvent } from '@tavern/api';
-import { laterHostedEventCursor, walkHostedEventCatchUp } from './server-chat-event-cursor.ts';
+import {
+    hostedEventRefetchTargets,
+    laterHostedEventCursor,
+    walkHostedEventCatchUp,
+} from './server-chat-event-cursor.ts';
 
 test('catch-up keeps a private cursor while a newer live event advances shared state', async () => {
     const firstFetch = Promise.withResolvers<HostedDurableEvent[]>();
@@ -31,6 +35,27 @@ test('catch-up keeps a private cursor while a newer live event advances shared s
     expect(sharedCursor).toBe('4');
 });
 
+test('read and follow events refetch only their parent summaries', () => {
+    expect(
+        hostedEventRefetchTargets([
+            {
+                chatId: 'thread_one',
+                createdAt: '2026-07-26T12:00:00.000Z',
+                cursor: '2',
+                id: 'event_2',
+                parentChatId: 'chat_parent',
+                sequence: 1,
+                serverId: 'server_one',
+                type: 'thread.follow.updated',
+            },
+        ])
+    ).toEqual({
+        invalidateSearch: false,
+        messageChatIds: [],
+        parentChatIds: ['chat_parent'],
+    });
+});
+
 function messageEvent(cursor: string, chatId: string): HostedDurableEvent {
     return {
         chatId,
@@ -38,6 +63,7 @@ function messageEvent(cursor: string, chatId: string): HostedDurableEvent {
         cursor,
         id: `event_${cursor}`,
         messageId: `message_${cursor}`,
+        parentChatId: null,
         sequence: Number(cursor),
         serverId: 'server_one',
         type: 'message.created',

@@ -84,8 +84,9 @@ PostgreSQL owns the hosted collaboration tables
 | `users` | Grotto Users keyed by a unique `clerk_user_id` |
 | `servers` | Opaque id, address/display fields, and the commit-serialized Chat event cursor |
 | `server_memberships` | One human's standing access, Server role, and internal revocation marker |
-| `chats` | Server-owned Channels and canonical sorted two-human DMs |
+| `chats` | Server-owned Channels, canonical sorted two-human DMs, and hidden child Threads |
 | `channel_participants` | One human's participation in one Channel |
+| `thread_follows` | Per-human Thread attention; never membership |
 | `chat_messages` | Immutable human messages ordered by per-Chat sequence and nonce |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `chat_events` | Durable message/read events ordered by PostgreSQL cursor |
@@ -129,8 +130,8 @@ Server query, mutation, and subscription resolves membership through it:
 - `server.onUpdate` checks membership in middleware, so a non-member is refused
   at subscription registration and never reaches event delivery.
 - `chat.*` resolves current membership and Chat participation before every
-  read or write. Durable and composition subscriptions recheck that access for
-  each event delivery.
+  read or write. Thread access resolves through the parent Channel or DM.
+  Durable and composition subscriptions recheck that access for each event delivery.
 - Durable delivery skips inaccessible Chats without ending the Server feed.
   Revoked Server membership ends delivery.
 
@@ -142,6 +143,8 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 - `/s` lists the Servers this human can open and creates new ones.
 - `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, and search.
   An author already visible in the transcript is the entry point for their DM.
+  Message replies open hidden child Threads in the resizable side pane; Threads
+  never enter the hosted sidebar Chat list.
 
 These routes are a separate top-level route-tree branch and run on their own
 client — `apps/website/src/lib/grotto-server.tsx`
@@ -161,3 +164,8 @@ tolerated.
 Live durable notifications and composition are process-local signals.
 PostgreSQL cursors heal durable notification loss on reconnect; composition is
 intentionally best-effort and disappears instead of replaying.
+
+Thread message and follow notifications retain the existing durable event row
+shape. The public event adds only `parentChatId`, nullable for top-level Chats,
+so the App can refetch the child and its exact parent summary without carrying
+anchor or message content in the event.

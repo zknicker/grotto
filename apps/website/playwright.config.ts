@@ -8,6 +8,7 @@ const runtimePort = Number.parseInt(process.env.TAVERN_RUNTIME_PORT ?? '18790', 
 const serverPort = Number.parseInt(process.env.TAVERN_SERVER_PORT ?? '8081', 10);
 const grottoServerPort = Number.parseInt(process.env.GROTTO_SERVER_PORT ?? '8091', 10);
 const websitePort = Number.parseInt(process.env.TAVERN_WEBSITE_PORT ?? '3101', 10);
+const hostedOnly = process.env.TAVERN_E2E_HOSTED_ONLY === '1';
 const runtimeWebServerTimeoutMs = Number.parseInt(
     process.env.TAVERN_RUNTIME_WEBSERVER_TIMEOUT_MS ?? '180000',
     10
@@ -27,38 +28,44 @@ export default defineConfig({
 });
 
 function buildWebServers() {
+    const localWebServers = hostedOnly
+        ? []
+        : [
+              {
+                  command: [
+                      'NODE_ENV=development',
+                      `TAVERN_E2E_RUN_ID=${runId}`,
+                      `TAVERN_RUNTIME_PORT=${runtimePort}`,
+                      `TAVERN_AGENT_MODEL=${agentModel}`,
+                      `TAVERN_AGENT_PROVIDER=${agentProvider}`,
+                      'TAVERN_AGENT_BASE_URL=http://127.0.0.1:1/v1',
+                      // A fake key keeps the OpenAI provider live so the curated
+                      // model catalog stays available without reading the repo .env;
+                      // turn execution itself runs the fake harness either way.
+                      'TAVERN_AGENT_API_KEY=tavern-e2e-fake-key',
+                      // Hermetic catalog: never ride a host Claude Code login, so
+                      // Claude models stay out of Available Models on any machine.
+                      'TAVERN_AGENT_CLAUDE_CODE_HOST_LOGIN=0',
+                      'bun e2e/start-tavern-runtime.ts',
+                  ].join(' '),
+                  reuseExistingServer: false,
+                  stderr: 'pipe',
+                  stdout: 'pipe',
+                  timeout: runtimeWebServerTimeoutMs,
+                  url: `http://127.0.0.1:${runtimePort}/capabilities`,
+              },
+              {
+                  command: `TAVERN_E2E_RUN_ID=${runId} SERVER_PORT=${serverPort} APP_ORIGIN=http://127.0.0.1:${websitePort} TAVERN_RUNTIME_URL=http://127.0.0.1:${runtimePort} TAVERN_MENTION_CODEX_PLUGIN_ROOT=${mentionPluginRoot} bun e2e/start-tavern-server.ts`,
+                  reuseExistingServer: false,
+                  stderr: 'pipe',
+                  stdout: 'pipe',
+                  timeout: 30_000,
+                  url: `http://127.0.0.1:${serverPort}/healthz`,
+              },
+          ];
+
     return [
-        {
-            command: [
-                'NODE_ENV=development',
-                `TAVERN_E2E_RUN_ID=${runId}`,
-                `TAVERN_RUNTIME_PORT=${runtimePort}`,
-                `TAVERN_AGENT_MODEL=${agentModel}`,
-                `TAVERN_AGENT_PROVIDER=${agentProvider}`,
-                'TAVERN_AGENT_BASE_URL=http://127.0.0.1:1/v1',
-                // A fake key keeps the OpenAI provider live so the curated
-                // model catalog stays available without reading the repo .env;
-                // turn execution itself runs the fake harness either way.
-                'TAVERN_AGENT_API_KEY=tavern-e2e-fake-key',
-                // Hermetic catalog: never ride a host Claude Code login, so
-                // Claude models stay out of Available Models on any machine.
-                'TAVERN_AGENT_CLAUDE_CODE_HOST_LOGIN=0',
-                'bun e2e/start-tavern-runtime.ts',
-            ].join(' '),
-            reuseExistingServer: false,
-            stderr: 'pipe',
-            stdout: 'pipe',
-            timeout: runtimeWebServerTimeoutMs,
-            url: `http://127.0.0.1:${runtimePort}/capabilities`,
-        },
-        {
-            command: `TAVERN_E2E_RUN_ID=${runId} SERVER_PORT=${serverPort} APP_ORIGIN=http://127.0.0.1:${websitePort} TAVERN_RUNTIME_URL=http://127.0.0.1:${runtimePort} TAVERN_MENTION_CODEX_PLUGIN_ROOT=${mentionPluginRoot} bun e2e/start-tavern-server.ts`,
-            reuseExistingServer: false,
-            stderr: 'pipe',
-            stdout: 'pipe',
-            timeout: 30_000,
-            url: `http://127.0.0.1:${serverPort}/healthz`,
-        },
+        ...localWebServers,
         {
             // The hosted Grotto Server is its own process with its own
             // PostgreSQL and Clerk instance; the local sidecar above keeps its

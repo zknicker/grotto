@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, serversTable } from '../postgres/schema.ts';
 import type { ServerSummary } from './contracts.ts';
@@ -17,6 +17,8 @@ export async function listAccessibleServers(
         })
         .from(serverMembershipsTable)
         .innerJoin(serversTable, eq(serversTable.id, serverMembershipsTable.serverId))
-        .where(eq(serverMembershipsTable.userId, userId))
+        .where(
+            and(eq(serverMembershipsTable.userId, userId), isNull(serverMembershipsTable.revokedAt))
+        )
         .orderBy(asc(serversTable.createdAt));
 }

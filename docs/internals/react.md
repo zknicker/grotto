@@ -16,6 +16,8 @@ architecture work, use the `react-best-practices` skill alongside this doc.
 * Let route/page boundaries own `Suspense`, skeletons, and error boundaries.
 * Keep primary page content mounted during background refreshes.
 * Treat empty synced database results as valid rendered states.
+* Keep hosted Server routes structurally separate from local Runtime providers;
+  do not suppress local requests after those providers have mounted.
 
 ## Hooks
 
@@ -28,6 +30,9 @@ architecture work, use the `react-best-practices` skill alongside this doc.
 * For chat and other streaming surfaces, patch exact volatile state from live
   events. Do not refetch durable list or log queries for every progress token.
 * Effects are for external synchronization, not derived state.
+* Hosted Chat hooks keep messages, lists, reads, and search in React Query.
+  Durable reconnect events trigger cursor catch-up plus exact invalidation;
+  composition events stay component-local and are discarded on unmount.
 
 ## Queries
 

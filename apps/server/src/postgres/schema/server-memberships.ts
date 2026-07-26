@@ -8,6 +8,7 @@ export const serverMembershipsTable = pgTable(
     {
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         id: text('id').primaryKey(),
+        revokedAt: timestamp('revoked_at', { withTimezone: true }),
         role: text('role').notNull().$type<'admin' | 'member' | 'owner'>(),
         serverId: text('server_id')
             .notNull()

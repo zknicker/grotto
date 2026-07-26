@@ -1,5 +1,5 @@
 ---
-summary: The hosted Grotto Server's PostgreSQL ownership of Users, Servers, memberships, and Channels, its Clerk identity mapping, and the App's /s/<slug> surface.
+summary: The hosted Grotto Server's PostgreSQL ownership of Users, Servers, Chats, messages, reads, search, and realtime, plus its direct App surface.
 read_when:
   - changing Grotto Server creation, slugs, membership, roles, or Channels
   - changing hosted PostgreSQL schema or Server authorization
@@ -76,28 +76,39 @@ configured Clerk instance.
 
 ## State
 
-PostgreSQL owns five tables (`apps/server/src/postgres/schema/`):
+PostgreSQL owns the hosted collaboration tables
+(`apps/server/src/postgres/schema/`):
 
 | Table | Owns |
 | --- | --- |
 | `users` | Grotto Users keyed by a unique `clerk_user_id` |
-| `servers` | Opaque id, globally unique immutable `slug`, editable `display_name` |
-| `server_memberships` | One human's standing access and Server role |
-| `channels` | Server-owned Channels, unique by name inside one Server |
+| `servers` | Opaque id, address/display fields, and the commit-serialized Chat event cursor |
+| `server_memberships` | One human's standing access, Server role, and internal revocation marker |
+| `chats` | Server-owned Channels and canonical sorted two-human DMs |
 | `channel_participants` | One human's participation in one Channel |
+| `chat_messages` | Immutable human messages ordered by per-Chat sequence and nonce |
+| `chat_reads` | One monotonic reader high-water mark per Chat |
+| `chat_events` | Durable message/read events ordered by PostgreSQL cursor |
 
 Every relationship and every authorization check uses the opaque Server id. The
 slug is only the human-facing address at `/s/<slug>`; it never moves, and no
 procedure accepts a new one.
 
-Invariants live in PostgreSQL, not only in TypeScript: `server_memberships.role`
-carries a `server_memberships_role` CHECK for `owner`, `admin`, and `member`, so
-a write from any path is refused by the database.
+Every hosted collaboration row carries `server_id`. Composite foreign keys bind
+Chats, participants, messages, reads, events, and memberships to the same
+Server. Invariants live in PostgreSQL, not only TypeScript: role, Chat shape,
+positive message sequence, nonce uniqueness, DM pair ordering, and event shape
+all fail closed in the database.
 
 `apps/server/src/postgres/bootstrap.ts` is the schema of record — fresh-schema
 DDL applied by the explicit bootstrap command before the application starts.
 `schema.ts` describes the same tables for typed queries. Runtime has table DML
 authority but no DDL authority. There is no migration history or tooling.
+
+Membership revocation sets `server_memberships.revoked_at`; it does not delete
+the row. This keeps immutable message authors and canonical DM pairs intact
+while every membership gate fails closed. There is no invite, removal, or
+member-management procedure in this slice.
 
 ## Creation
 
@@ -117,6 +128,11 @@ Server query, mutation, and subscription resolves membership through it:
 - `server.rename` authorizes before writing the display name.
 - `server.onUpdate` checks membership in middleware, so a non-member is refused
   at subscription registration and never reaches event delivery.
+- `chat.*` resolves current membership and Chat participation before every
+  read or write. Durable and composition subscriptions recheck that access for
+  each event delivery.
+- Durable delivery skips inaccessible Chats without ending the Server feed.
+  Revoked Server membership ends delivery.
 
 A human without membership gets `FORBIDDEN`; an address with no Server gets
 `NOT_FOUND`. App-side checks are presentation only.
@@ -124,14 +140,17 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 ## App surface
 
 - `/s` lists the Servers this human can open and creates new ones.
-- `/s/<slug>` opens one Server with its Channel switcher and `#all`.
+- `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, and search.
+  An author already visible in the transcript is the entry point for their DM.
 
-These routes run on their own client — `apps/website/src/lib/grotto-server.tsx`
-— using the browser's same origin in production and the
-`VITE_GROTTO_SERVER_ORIGIN` override in development, with the Clerk session
-attached per request and per WebSocket connection. They never use the local
-sidecar's client, and no product operation is routed through Electron IPC.
-Hooks live in `apps/website/src/hooks/servers/`.
+These routes are a separate top-level route-tree branch and run on their own
+client — `apps/website/src/lib/grotto-server.tsx` — using the browser's same
+origin in production and the `VITE_GROTTO_SERVER_ORIGIN` override in
+development, with the Clerk session attached per request and per WebSocket
+connection. They never use the local sidecar's client, and no product operation
+is routed through Electron IPC. Hooks live in `apps/website/src/hooks/servers/`.
+The local Command menu, Runtime gates, sidecar query hooks, and query cache exist
+only in the ordinary local route branch.
 
 A socket presents the Clerk session it was opened with, so the provider watches
 the current session and opens a fresh connection when Clerk rotates the token;
@@ -139,6 +158,10 @@ subscriptions re-register against it while cached query data stays put. The
 Server independently verifies a current token on every operation, including
 each subscription start, so an expired session is refused rather than
 tolerated.
+
+Live durable notifications and composition are process-local signals.
+PostgreSQL cursors heal durable notification loss on reconnect; composition is
+intentionally best-effort and disappears instead of replaying.
 
 ## Production
 

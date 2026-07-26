@@ -3,7 +3,7 @@ import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     channelParticipantsTable,
-    channelsTable,
+    chatsTable,
     serverMembershipsTable,
     serversTable,
 } from '../postgres/schema.ts';
@@ -34,7 +34,13 @@ export async function createServer(
     input: CreateServerInput
 ): Promise<ServerDetail> {
     const server = { displayName: input.displayName, id: createOpaqueId('srv'), slug: input.slug };
-    const channel = { id: createOpaqueId('chn'), name: allChannelName, serverId: server.id };
+    const channel = {
+        id: createOpaqueId('cht'),
+        isAll: true,
+        kind: 'channel' as const,
+        name: allChannelName,
+        serverId: server.id,
+    };
 
     try {
         await db.transaction(async (tx) => {
@@ -47,10 +53,10 @@ export async function createServer(
                 serverId: server.id,
                 userId: owner.id,
             });
-            await tx.insert(channelsTable).values(channel);
+            await tx.insert(chatsTable).values(channel);
             await tx
                 .insert(channelParticipantsTable)
-                .values({ channelId: channel.id, userId: owner.id });
+                .values({ chatId: channel.id, serverId: server.id, userId: owner.id });
         });
     } catch (cause) {
         if (violatesConstraint(cause, 'servers_slug_key')) {

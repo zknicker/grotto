@@ -14,7 +14,7 @@ import { join } from 'node:path';
  */
 export interface PostgresCluster {
     databaseUrl: string;
-    stop(): void;
+    stop(): Promise<void>;
 }
 
 const clusterUser = 'grotto';
@@ -59,25 +59,39 @@ export async function startPostgresCluster(): Promise<PostgresCluster> {
 
     // SIGINT is PostgreSQL's fast shutdown: it releases the cluster's System V
     // shared-memory segment, which SIGKILL leaks — and macOS allows only 32
-    // before no cluster can start at all. The directory is swept again once
-    // the child is actually reaped, since shutdown outlives the first sweep.
-    server.once('exit', () => rmSync(root, { force: true, recursive: true }));
-
-    let stopped = false;
-    const stop = () => {
-        if (stopped) {
-            return;
-        }
-
-        stopped = true;
-        process.off('exit', stop);
+    // before no cluster can start at all. Teardown resolves only after the
+    // child is reaped and its exact temporary root is removed.
+    const stopAtProcessExit = () => {
         server.kill('SIGINT');
         rmSync(root, { force: true, recursive: true });
+    };
+    let stopPromise: Promise<void> | null = null;
+    const stop = () => {
+        if (stopPromise) {
+            return stopPromise;
+        }
+
+        process.off('exit', stopAtProcessExit);
+        stopPromise = new Promise((resolve) => {
+            const finish = () => {
+                rmSync(root, { force: true, recursive: true });
+                resolve();
+            };
+
+            if (server.exitCode !== null || server.signalCode !== null) {
+                finish();
+                return;
+            }
+
+            server.once('exit', finish);
+            server.kill('SIGINT');
+        });
+        return stopPromise;
     };
 
     // A test that throws before its teardown would otherwise leave the data
     // directory behind even though the child dies with this process.
-    process.once('exit', stop);
+    process.once('exit', stopAtProcessExit);
 
     try {
         await waitForReadyCluster(binaries, port, server);
@@ -91,7 +105,7 @@ export async function startPostgresCluster(): Promise<PostgresCluster> {
             clusterDatabase,
         ]);
     } catch (error) {
-        stop();
+        await stop();
         throw error;
     }
 

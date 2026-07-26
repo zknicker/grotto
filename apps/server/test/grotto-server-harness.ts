@@ -1,6 +1,7 @@
 import type { AddressInfo } from 'node:net';
 import { SQL } from 'bun';
 import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
+import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -26,6 +27,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
 
     try {
         clerk = await startClerkTestIssuer(harnessAppOrigin);
+        await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
 
         const application = await createGrottoServerApplication({
             appOrigin: harnessAppOrigin,
@@ -46,7 +48,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
                 await sql.close();
                 await application.close();
                 await issuer.close();
-                cluster.stop();
+                await cluster.stop();
             },
             databaseUrl: cluster.databaseUrl,
             sql,
@@ -54,7 +56,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
         };
     } catch (error) {
         await clerk?.close();
-        cluster.stop();
+        await cluster.stop();
         throw error;
     }
 }

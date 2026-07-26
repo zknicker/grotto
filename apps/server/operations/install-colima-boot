@@ -1,0 +1,71 @@
+#!/bin/sh
+set -eu
+
+label="com.merchbaseco.colima-autostart"
+user_name="zknicker"
+agent="/Users/zknicker/Library/LaunchAgents/${label}.plist"
+daemon="/Library/LaunchDaemons/${label}.plist"
+release_root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+source_plist="${release_root}/colima/${label}.plist"
+wrapper="/Users/zknicker/services/bin/ensure-colima.sh"
+
+if [ "$(/usr/bin/id -u)" -ne 0 ]; then
+    echo "install-colima-boot requires root." >&2
+    exit 1
+fi
+if [ ! -x "$wrapper" ] || [ ! -f "$agent" ]; then
+    echo "Existing Colima supervision is incomplete; refusing installation." >&2
+    exit 1
+fi
+if [ ! -f "$source_plist" ]; then
+    echo "Release Colima LaunchDaemon is missing." >&2
+    exit 1
+fi
+/usr/bin/plutil -lint "$source_plist" >/dev/null
+if [ -e "$daemon" ]; then
+    echo "System Colima LaunchDaemon already exists; refusing overwrite." >&2
+    exit 1
+fi
+
+user_uid=$(/usr/bin/id -u "$user_name")
+agent_disabled=0
+agent_was_loaded=0
+daemon_installed=0
+
+rollback_failed_install() {
+    status=$?
+    trap - EXIT HUP INT TERM
+    if [ "$status" -ne 0 ]; then
+        if /bin/launchctl print "system/${label}" >/dev/null 2>&1; then
+            /bin/launchctl bootout system "$daemon" >/dev/null 2>&1 || true
+        fi
+        if [ "$daemon_installed" -eq 1 ]; then
+            /bin/rm -f "$daemon"
+        fi
+        if [ "$agent_disabled" -eq 1 ]; then
+            /bin/launchctl enable gui/${user_uid}/${label} >/dev/null 2>&1 || true
+        fi
+        if [ "$agent_was_loaded" -eq 1 ]; then
+            /bin/launchctl bootstrap gui/${user_uid} "$agent" >/dev/null 2>&1 || true
+        fi
+    fi
+    exit "$status"
+}
+trap rollback_failed_install EXIT
+trap 'exit 1' HUP INT TERM
+
+/bin/launchctl disable gui/${user_uid}/${label}
+agent_disabled=1
+if /bin/launchctl print "gui/${user_uid}/${label}" >/dev/null 2>&1; then
+    /bin/launchctl bootout gui/${user_uid} "$agent"
+    agent_was_loaded=1
+fi
+
+/usr/bin/install -o root -g wheel -m 0644 "$source_plist" "$daemon"
+daemon_installed=1
+/bin/launchctl bootstrap system "$daemon"
+/bin/launchctl print "system/${label}" >/dev/null
+/usr/bin/sudo -u "$user_name" -H /opt/homebrew/bin/colima status >/dev/null
+
+trap - EXIT HUP INT TERM
+echo "Installed system-boot Colima supervision; existing Colima processes were not restarted."

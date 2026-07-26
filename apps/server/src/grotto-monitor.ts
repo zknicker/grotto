@@ -4,6 +4,8 @@ export interface GrottoMonitorOptions {
     backupSuccessFile: string;
     pgIsReadyCommand: string;
     postgresDatabase: string;
+    postgresHost: string;
+    postgresPort: string;
     probes: {
         backupPingUrl?: string;
         postgresPingUrl?: string;
@@ -32,7 +34,13 @@ export async function runGrottoMonitor(options: GrottoMonitorOptions) {
         {
             alertUrl: options.probes.postgresPingUrl,
             code: 'postgres_unavailable',
-            run: () => checkPostgres(options.pgIsReadyCommand, options.postgresDatabase),
+            run: () =>
+                checkPostgres(
+                    options.pgIsReadyCommand,
+                    options.postgresHost,
+                    options.postgresPort,
+                    options.postgresDatabase
+                ),
         },
         {
             alertUrl: options.probes.tunnelPingUrl,
@@ -82,12 +90,14 @@ async function checkGrottoRoute(url: string) {
     }
 }
 
-async function checkPostgres(command: string, database: string) {
+async function checkPostgres(command: string, host: string, port: string, database: string) {
     try {
-        const child = Bun.spawn(
-            [command, '--host', '127.0.0.1', '--port', '5432', '--dbname', database],
-            { stderr: 'ignore', stdout: 'ignore' }
-        );
+        const child = Bun.spawn([command, '--host', host, '--port', port, '--dbname', database], {
+            killSignal: 'SIGKILL',
+            stderr: 'ignore',
+            stdout: 'ignore',
+            timeout: 8000,
+        });
         return (await child.exited) === 0;
     } catch {
         return false;

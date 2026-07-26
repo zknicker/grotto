@@ -13,7 +13,7 @@
         <string>--config</string>
         <string>/Library/Application Support/Grotto/Server/cloudflared.yml</string>
         <string>--metrics</string>
-        <string>127.0.0.1:20241</string>
+        <string>127.0.0.1:20242</string>
         <string>run</string>
         <string>grotto-production</string>
     </array>

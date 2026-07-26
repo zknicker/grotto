@@ -52,6 +52,13 @@ run(
 await fs.cp(path.join(repoRoot, 'apps', 'server', 'launchd'), path.join(stageRoot, 'launchd'), {
     recursive: true,
 });
+await fs.cp(path.join(repoRoot, 'apps', 'server', 'colima'), path.join(stageRoot, 'colima'), {
+    recursive: true,
+});
+await fs.copyFile(
+    path.join(repoRoot, 'apps', 'server', 'compose.yml'),
+    path.join(stageRoot, 'compose.yml')
+);
 await fs.cp(path.join(repoRoot, 'apps', 'server', 'config'), path.join(stageRoot, 'config'), {
     recursive: true,
 });
@@ -60,7 +67,14 @@ await fs.cp(
     path.join(stageRoot, 'operations'),
     { recursive: true }
 );
-for (const operation of ['run-server', 'run-backup', 'run-monitor', 'run-restore']) {
+for (const operation of [
+    'install-colima-boot',
+    'rollback-colima-boot',
+    'run-server',
+    'run-backup',
+    'run-monitor',
+    'run-restore',
+]) {
     await fs.chmod(path.join(stageRoot, 'operations', operation), 0o755);
 }
 

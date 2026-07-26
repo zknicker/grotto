@@ -35,20 +35,39 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
         stderr: 'pipe',
         stdout: 'pipe',
     });
+    const verboseArchive = Bun.spawnSync(['/usr/bin/tar', '-tvzf', artifact], {
+        stderr: 'pipe',
+        stdout: 'pipe',
+    });
     const paths = archive.stdout.toString();
     expect(archive.exitCode).toBe(0);
+    expect(verboseArchive.exitCode).toBe(0);
     expect(paths).toContain('./bin/grotto-server');
     expect(paths).toContain('./bin/grotto-server-bootstrap');
     expect(paths).toContain('./bin/grotto-server-backup');
     expect(paths).toContain('./bin/grotto-server-restore');
     expect(paths).toContain('./bin/grotto-server-monitor');
     expect(paths).toContain('./share/grotto-server/app/index.html');
+    expect(paths).toContain('./compose.yml');
+    expect(paths).toContain('./colima/com.merchbaseco.colima-autostart.plist');
     expect(paths).toContain('./launchd/com.grotto.server.plist');
+    expect(paths).toContain('./launchd/com.grotto.tunnel.plist');
+    expect(paths).toContain('./launchd/com.grotto.backup.plist');
+    expect(paths).toContain('./launchd/com.grotto.monitor.plist');
+    expect(paths).not.toContain('./launchd/com.grotto.postgresql.plist');
+    expect(paths).toContain('./operations/install-colima-boot');
+    expect(paths).toContain('./operations/rollback-colima-boot');
     expect(paths).toContain('./operations/run-server');
     expect(paths).toContain('./operations/run-restore');
     expect(paths).toContain('./config/server.env.example');
     expect(paths).toContain('./config/restore.env.example');
     expect(paths).toContain('./config/cloudflared.yml.example');
+    expect(verboseArchive.stdout.toString()).toMatch(
+        /-rwxr-xr-x .* \.\/operations\/install-colima-boot/u
+    );
+    expect(verboseArchive.stdout.toString()).toMatch(
+        /-rwxr-xr-x .* \.\/operations\/rollback-colima-boot/u
+    );
 }, 120_000);
 
 test('refuses to build an App that cannot sign in', async () => {

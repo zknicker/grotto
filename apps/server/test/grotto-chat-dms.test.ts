@@ -137,6 +137,20 @@ test('opening an existing DM returns its current peer identity and unread count'
     });
 });
 
+test('a revoked member cannot be opened as a DM peer', async () => {
+    await harness.sql`
+        update server_memberships set revoked_at = now()
+        where server_id = ${ownerServerId} and user_id = ${peerUserId}
+    `;
+
+    await expect(
+        owner.trpc.chat.ensureDm.mutate({
+            peerUserId,
+            serverId: ownerServerId,
+        })
+    ).rejects.toThrow(/not a member/i);
+});
+
 async function signIn(clerkUserId: string) {
     const token = await harness.clerk.mintSessionToken(clerkUserId);
     return createGrottoClient(harness, token);

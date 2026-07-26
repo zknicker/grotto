@@ -1,5 +1,5 @@
 import type { HostedChat } from '@tavern/api';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
@@ -38,7 +38,8 @@ export async function ensureHostedDm(
         .where(
             and(
                 eq(serverMembershipsTable.serverId, input.serverId),
-                eq(serverMembershipsTable.userId, input.peerUserId)
+                eq(serverMembershipsTable.userId, input.peerUserId),
+                isNull(serverMembershipsTable.revokedAt)
             )
         )
         .limit(1);

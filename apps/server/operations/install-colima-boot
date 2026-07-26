@@ -78,9 +78,13 @@ if [ "$(/usr/bin/id -u)" -ne 0 ]; then
 fi
 
 agent_disabled=0
+agent_was_disabled=0
 agent_was_loaded=0
 daemon_installed=0
 system_was_loaded=0
+if /bin/launchctl print-disabled "gui/${user_uid}" | /usr/bin/grep -q "${label}.*true"; then
+    agent_was_disabled=1
+fi
 if /bin/launchctl print "system/${label}" >/dev/null 2>&1; then
     system_was_loaded=1
 fi
@@ -96,7 +100,7 @@ rollback_failed_install() {
         if [ "$daemon_installed" -eq 1 ]; then
             /bin/rm -f "$daemon"
         fi
-        if [ "$agent_disabled" -eq 1 ]; then
+        if [ "$agent_disabled" -eq 1 ] && [ "$agent_was_disabled" -eq 0 ]; then
             /bin/launchctl enable gui/${user_uid}/${label} >/dev/null 2>&1 || true
         fi
         if [ "$agent_was_loaded" -eq 1 ]; then

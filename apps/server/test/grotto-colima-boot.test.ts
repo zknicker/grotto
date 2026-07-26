@@ -61,6 +61,7 @@ test('ships syntax-valid install and rollback operations for only Colima supervi
     expect(install).toContain('--dry-run');
     expect(install).toContain('/usr/bin/cmp -s "$source_plist" "$daemon"');
     expect(install).toContain('System Colima LaunchDaemon is already installed');
+    expect(install).toContain('agent_was_disabled');
     expect(rollback).toContain('bootout system');
     expect(rollback).toContain('enable gui/');
     expect(rollback).toContain('bootstrap gui/');

@@ -1,8 +1,8 @@
-import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { serverIdSchema } from '../../servers/contracts.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { subscribeToServerUpdates } from '../server-events.ts';
+import { toMembershipLossError } from './membership-loss.ts';
 import { memberProcedure } from './procedure.ts';
 
 /**
@@ -24,18 +24,20 @@ export const onServerUpdate = memberProcedure
                 continue;
             }
 
-            // A generator body runs after the procedure's error mapping, so the
-            // refusal is raised as its own coded error. The App reads that code
-            // to tell losing access apart from losing the socket, and clears
-            // what it has cached only for the former.
+            // A generator body runs after the procedure's error mapping, so a
+            // refusal is raised as its own coded error. Only the membership
+            // refusals are translated; anything else stays the internal failure
+            // it is, because the App purges its cached Server state on that code.
             try {
                 await requireServerMembership(ctx.grottoDb, ctx.member, input.serverId);
             } catch (cause) {
-                throw new TRPCError({
-                    cause,
-                    code: 'FORBIDDEN',
-                    message: 'You are no longer a member of this Grotto server.',
-                });
+                const refusal = toMembershipLossError(cause);
+
+                if (!refusal) {
+                    throw cause;
+                }
+
+                throw refusal;
             }
 
             yield event;

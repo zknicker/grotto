@@ -99,6 +99,11 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     await expect(peerPage.getByRole('heading', { level: 2, name: '#all' })).toHaveCount(0);
     await expect(peerPage.getByText('Server unavailable')).toBeVisible();
 
+    // The Server is gone from their list too. Clearing that cache rather than
+    // marking it stale is what stops the removed Server staying openable.
+    await peerPage.goto('/s');
+    await expect(peerPage.getByRole('link', { name: /Membership HQ/u })).toHaveCount(0);
+
     await peerContext.close();
 });
 

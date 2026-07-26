@@ -17,7 +17,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await observer.close();
-    cluster.stop();
+    await cluster.stop();
 });
 
 test('closes PostgreSQL when application construction fails', async () => {

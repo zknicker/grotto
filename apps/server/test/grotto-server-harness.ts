@@ -46,7 +46,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
                 await sql.close();
                 await application.close();
                 await issuer.close();
-                cluster.stop();
+                await cluster.stop();
             },
             databaseUrl: cluster.databaseUrl,
             sql,
@@ -54,7 +54,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
         };
     } catch (error) {
         await clerk?.close();
-        cluster.stop();
+        await cluster.stop();
         throw error;
     }
 }

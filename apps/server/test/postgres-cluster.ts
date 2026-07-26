@@ -14,7 +14,7 @@ import { join } from 'node:path';
  */
 export interface PostgresCluster {
     databaseUrl: string;
-    stop(): void;
+    stop(): Promise<void>;
 }
 
 const clusterUser = 'grotto';
@@ -61,23 +61,31 @@ export async function startPostgresCluster(): Promise<PostgresCluster> {
     // shared-memory segment, which SIGKILL leaks — and macOS allows only 32
     // before no cluster can start at all. The directory is swept again once
     // the child is actually reaped, since shutdown outlives the first sweep.
-    server.once('exit', () => rmSync(root, { force: true, recursive: true }));
+    const exited = Promise.withResolvers<void>();
+    server.once('exit', () => {
+        rmSync(root, { force: true, recursive: true });
+        exited.resolve();
+    });
 
     let stopped = false;
-    const stop = () => {
+    const stopAtProcessExit = () => {
+        server.kill('SIGINT');
+    };
+    const stop = async () => {
         if (stopped) {
+            await exited.promise;
             return;
         }
 
         stopped = true;
-        process.off('exit', stop);
+        process.off('exit', stopAtProcessExit);
         server.kill('SIGINT');
-        rmSync(root, { force: true, recursive: true });
+        await exited.promise;
     };
 
     // A test that throws before its teardown would otherwise leave the data
     // directory behind even though the child dies with this process.
-    process.once('exit', stop);
+    process.once('exit', stopAtProcessExit);
 
     try {
         await waitForReadyCluster(binaries, port, server);
@@ -91,7 +99,7 @@ export async function startPostgresCluster(): Promise<PostgresCluster> {
             clusterDatabase,
         ]);
     } catch (error) {
-        stop();
+        await stop();
         throw error;
     }
 

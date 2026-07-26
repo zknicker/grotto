@@ -13,6 +13,7 @@ Internals docs explain how Tavern is built. Product-facing behavior belongs in
 | Topic | Doc |
 | --- | --- |
 | Architecture overview | [Architecture Overview](architecture-overview.md) |
+| Grotto Server | [Grotto Server](grotto-server.md) |
 | Tavern App | [Tavern App](app.md) |
 | Runtime boundary | [Tavern Runtime](runtime.md) |
 | Runtime Doctor | [Runtime Doctor](runtime-doctor.md) |

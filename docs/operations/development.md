@@ -17,6 +17,28 @@ bun run dev
 
 This starts Tavern Runtime, the local app backend, and the website dev server.
 
+The Server also needs PostgreSQL for hosted Grotto server state
+([Grotto Server](../internals/grotto-server.md)). Once per machine:
+
+```bash
+brew install postgresql@16
+brew services start postgresql@16
+createdb grotto
+```
+
+`DATABASE_URL` defaults to `postgres://127.0.0.1:5432/grotto`; set it in the
+root `.env` to point elsewhere. The Server sets up its fresh schema at startup,
+so an empty database needs no other setup.
+
+The hosted Server is its own process, separate from the local sidecar:
+
+```bash
+bun run --filter @tavern/server dev:grotto
+```
+
+Point the App at it with `VITE_GROTTO_SERVER_ORIGIN` (default port `8090`) so
+the `/s` routes reach it. `bun run dev` starts the local sidecar only.
+
 The dev stack uses worktree-isolated development state by default:
 
 ```txt

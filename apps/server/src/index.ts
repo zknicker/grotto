@@ -1,6 +1,3 @@
-import cors from '@fastify/cors';
-import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
-import Fastify from 'fastify';
 import {
     refreshAgentRuntimeEventSync,
     startAgentRuntimeEventSync,
@@ -14,16 +11,13 @@ import {
     ensureShippedDefaultAgent,
     pinDevelopmentDemoAgentAvatars,
 } from './agents/shipped-default.ts';
-import { createApiContext } from './api/context.ts';
 import { apiEventSchedulerIntervals, startApiEventScheduler } from './api/events-scheduler.ts';
 import { emitAgentRuntimeUpdated } from './api/invalidation-events.ts';
-import { appRouter } from './api/router.ts';
-import { startTrpcWebSocketServer } from './api/ws.ts';
 import { env } from './config/env.ts';
 import { ensureDatabaseSchema } from './db/bootstrap.ts';
 import { startOrphanExitWatch } from './dev/orphan-exit-watch.ts';
 import { startJobsManager } from './jobs/manager.ts';
-import { isAllowedAppOrigin } from './origin.ts';
+import { createServerApplication, type ServerApplication } from './server-application.ts';
 import {
     formatDurationMs,
     logStartupBanner,
@@ -49,38 +43,17 @@ async function start() {
     await ensureDatabaseSchema();
     await loadAgentRuntimeConnection({ refreshStatus: false });
 
-    const app = Fastify({
-        bodyLimit: 12 * 1024 * 1024,
-        logger: false,
+    const application = await createServerApplication({
+        appOrigin: env.APP_ORIGIN,
     });
 
-    await app.register(cors, {
-        origin: (origin, callback) => {
-            callback(null, isAllowedAppOrigin(origin));
-        },
-        credentials: true,
-    });
-
-    await app.register(fastifyTRPCPlugin, {
-        prefix: '/trpc',
-        trpcOptions: {
-            allowMethodOverride: true,
-            createContext: createApiContext,
-            router: appRouter,
-        },
-    });
-
-    app.get('/healthz', async () => ({
-        status: 'ok',
-    }));
-
-    await app.listen({
+    await application.app.listen({
         host: '0.0.0.0',
         port: env.SERVER_PORT,
     });
 
     await startJobsManager();
-    startTrpcWebSocketServer(app.server);
+    registerShutdown(application);
     startApiEventScheduler();
     startAgentRuntimeEventSync();
     void refreshRuntimeAfterStartup();
@@ -105,6 +78,14 @@ async function start() {
         formatDurationMs(apiEventSchedulerIntervals.usageIntervalMs)
     );
     logStartupComplete('Grotto is ready');
+}
+
+function registerShutdown(application: ServerApplication) {
+    process.once('SIGTERM', () => {
+        void application.close().catch((error) => {
+            console.error('[tavern] failed to close Grotto Server', error);
+        });
+    });
 }
 
 const startupRuntimeConfirmRetryMs = 2000;

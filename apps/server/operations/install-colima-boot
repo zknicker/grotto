@@ -8,10 +8,43 @@ daemon="/Library/LaunchDaemons/${label}.plist"
 release_root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 source_plist="${release_root}/colima/${label}.plist"
 wrapper="/Users/zknicker/services/bin/ensure-colima.sh"
+mode=${1:-install}
+user_uid=$(/usr/bin/id -u "$user_name")
 
-if [ "$(/usr/bin/id -u)" -ne 0 ]; then
-    echo "install-colima-boot requires root." >&2
-    exit 1
+inventory() {
+    echo "source_plist=${source_plist}"
+    echo "preserved_agent=${agent}"
+    echo "system_daemon=${daemon}"
+    echo "colima_wrapper=${wrapper}"
+    if /bin/launchctl print "gui/${user_uid}/${label}" >/dev/null 2>&1; then
+        echo "agent_job=loaded"
+    else
+        echo "agent_job=not_loaded"
+    fi
+    if /bin/launchctl print-disabled "gui/${user_uid}" | /usr/bin/grep -q "${label}.*true"; then
+        echo "agent_disabled=yes"
+    else
+        echo "agent_disabled=no"
+    fi
+    if /bin/launchctl print "system/${label}" >/dev/null 2>&1; then
+        echo "system_job=loaded"
+    else
+        echo "system_job=not_loaded"
+    fi
+    if [ -e "$daemon" ]; then
+        if /usr/bin/cmp -s "$source_plist" "$daemon"; then
+            echo "system_daemon_file=matching"
+        else
+            echo "system_daemon_file=different"
+        fi
+    else
+        echo "system_daemon_file=absent"
+    fi
+}
+
+if [ "$mode" != install ] && [ "$mode" != --inventory ] && [ "$mode" != --dry-run ]; then
+    echo "Usage: install-colima-boot [--inventory|--dry-run]" >&2
+    exit 2
 fi
 if [ ! -x "$wrapper" ] || [ ! -f "$agent" ]; then
     echo "Existing Colima supervision is incomplete; refusing installation." >&2
@@ -22,21 +55,42 @@ if [ ! -f "$source_plist" ]; then
     exit 1
 fi
 /usr/bin/plutil -lint "$source_plist" >/dev/null
-if [ -e "$daemon" ]; then
-    echo "System Colima LaunchDaemon already exists; refusing overwrite." >&2
+if [ -e "$daemon" ] && ! /usr/bin/cmp -s "$source_plist" "$daemon"; then
+    echo "A different system Colima LaunchDaemon exists; refusing overwrite." >&2
+    exit 1
+fi
+if [ "$mode" = --inventory ]; then
+    inventory
+    exit 0
+fi
+if [ "$mode" = --dry-run ]; then
+    inventory
+    echo "would_disable=gui/${user_uid}/${label}"
+    echo "would_bootout=${agent}"
+    echo "would_install=${source_plist} -> ${daemon} root:wheel 0644"
+    echo "would_bootstrap=system/${label}"
+    echo "would_verify=${wrapper} via colima status"
+    exit 0
+fi
+if [ "$(/usr/bin/id -u)" -ne 0 ]; then
+    echo "install-colima-boot requires root." >&2
     exit 1
 fi
 
-user_uid=$(/usr/bin/id -u "$user_name")
 agent_disabled=0
 agent_was_loaded=0
 daemon_installed=0
+system_was_loaded=0
+if /bin/launchctl print "system/${label}" >/dev/null 2>&1; then
+    system_was_loaded=1
+fi
 
 rollback_failed_install() {
     status=$?
     trap - EXIT HUP INT TERM
     if [ "$status" -ne 0 ]; then
-        if /bin/launchctl print "system/${label}" >/dev/null 2>&1; then
+        if [ "$system_was_loaded" -eq 0 ] &&
+            /bin/launchctl print "system/${label}" >/dev/null 2>&1; then
             /bin/launchctl bootout system "$daemon" >/dev/null 2>&1 || true
         fi
         if [ "$daemon_installed" -eq 1 ]; then
@@ -61,11 +115,21 @@ if /bin/launchctl print "gui/${user_uid}/${label}" >/dev/null 2>&1; then
     agent_was_loaded=1
 fi
 
-/usr/bin/install -o root -g wheel -m 0644 "$source_plist" "$daemon"
-daemon_installed=1
-/bin/launchctl bootstrap system "$daemon"
+if [ ! -e "$daemon" ]; then
+    /usr/bin/install -o root -g wheel -m 0644 "$source_plist" "$daemon"
+    daemon_installed=1
+fi
+if /bin/launchctl print "system/${label}" >/dev/null 2>&1; then
+    :
+else
+    /bin/launchctl bootstrap system "$daemon"
+fi
 /bin/launchctl print "system/${label}" >/dev/null
 /usr/bin/sudo -u "$user_name" -H /opt/homebrew/bin/colima status >/dev/null
 
 trap - EXIT HUP INT TERM
-echo "Installed system-boot Colima supervision; existing Colima processes were not restarted."
+if [ "$daemon_installed" -eq 0 ] && [ "$system_was_loaded" -eq 1 ]; then
+    echo "System Colima LaunchDaemon is already installed; existing Colima processes were not restarted."
+else
+    echo "Installed system-boot Colima supervision; existing Colima processes were not restarted."
+fi

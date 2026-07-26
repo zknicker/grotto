@@ -10,7 +10,7 @@ const serverPort = Number(process.env.TAVERN_SERVER_PORT ?? '8080');
 const serverOrigin = `http://localhost:${serverPort}`;
 
 export default defineConfig(({ command }) => ({
-    base: command === 'build' ? './' : '/',
+    base: command === 'build' && process.env.TAVERN_HOSTED_APP !== '1' ? './' : '/',
     plugins: [tailwindcss(), react()],
     resolve: {
         alias: {

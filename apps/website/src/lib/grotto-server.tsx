@@ -22,15 +22,41 @@ export type ServerDetail = GrottoOutputs['server']['bySlug'];
 const sessionWatchIntervalMs = 30_000;
 
 export function getGrottoServerOrigin(): string {
-    const origin = import.meta.env.VITE_GROTTO_SERVER_ORIGIN;
+    return resolveGrottoServerOrigin(
+        import.meta.env.VITE_GROTTO_SERVER_ORIGIN,
+        globalThis.window?.location.origin,
+        import.meta.env.DEV
+    );
+}
 
-    if (!origin) {
-        throw new Error(
-            'VITE_GROTTO_SERVER_ORIGIN is not set. Point the App at your Grotto Server.'
-        );
+export function resolveGrottoServerOrigin(
+    configuredOrigin: string | undefined,
+    browserOrigin: string | undefined,
+    allowDevelopmentOverride = false
+): string {
+    if (allowDevelopmentOverride) {
+        const configuredUrl = parseHttpOrigin(configuredOrigin);
+        if (configuredUrl) {
+            return configuredUrl.origin;
+        }
     }
 
-    return origin;
+    const browserUrl = parseHttpOrigin(browserOrigin);
+    if (browserUrl) {
+        return browserUrl.origin;
+    }
+
+    throw new Error(
+        'The Grotto Server origin is unavailable. Open the hosted App over HTTP(S) or configure VITE_GROTTO_SERVER_ORIGIN for development.'
+    );
+}
+
+function parseHttpOrigin(value: string | undefined) {
+    if (!value) {
+        return null;
+    }
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url : null;
 }
 
 export function GrottoServerProvider({ children }: React.PropsWithChildren) {

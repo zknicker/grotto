@@ -18,7 +18,8 @@ async function start() {
     const application = await createGrottoServerApplication({
         appOrigin: env.APP_ORIGIN,
         clerkIssuerUrl: env.CLERK_ISSUER_URL,
-        databaseUrl: env.DATABASE_URL,
+        databaseUrl: env.GROTTO_DATABASE_URL,
+        staticAppRoot: env.GROTTO_STATIC_APP_ROOT,
     });
 
     await application.listen(env.GROTTO_SERVER_PORT);
@@ -26,11 +27,11 @@ async function start() {
     registerShutdown(application);
 
     logStartupSection('Grotto Server');
-    logStartupDetail('🐘', 'PostgreSQL', describeDatabaseUrl(env.DATABASE_URL));
+    logStartupDetail('🐘', 'PostgreSQL', describeDatabaseUrl(env.GROTTO_DATABASE_URL));
     logStartupDetail('🔑', 'Clerk', env.CLERK_ISSUER_URL);
     logStartupDetail('🌐', 'App origin', env.APP_ORIGIN);
-    logStartupDetail('📡', 'HTTP', `http://localhost:${env.GROTTO_SERVER_PORT}`);
-    logStartupDetail('🔌', 'WebSocket', `ws://localhost:${env.GROTTO_SERVER_PORT}/trpc`);
+    logStartupDetail('📡', 'HTTP', `http://127.0.0.1:${env.GROTTO_SERVER_PORT}`);
+    logStartupDetail('🔌', 'WebSocket', `ws://127.0.0.1:${env.GROTTO_SERVER_PORT}/trpc`);
     logStartupComplete('Grotto Server is ready');
 }
 

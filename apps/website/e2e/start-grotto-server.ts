@@ -1,5 +1,6 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { bootstrapGrottoDatabase } from '../../server/src/postgres/bootstrap.ts';
 import { startClerkTestIssuer } from '../../server/test/clerk-test-issuer.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';
 import { clerkSessionFile, e2eClerkUserId } from './support/clerk-session.ts';
@@ -21,10 +22,17 @@ rmSync(clerkSessionPath, { force: true });
 
 const cluster = await startPostgresCluster();
 const clerk = await startClerkTestIssuer(appOrigin);
+await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
 
-process.once('exit', () => cluster.stop());
-process.once('SIGTERM', () => process.exit(0));
-process.once('SIGINT', () => process.exit(0));
+const stopDependencies = async () => {
+    await clerk.close();
+    await cluster.stop();
+};
+const stopAndExit = () => {
+    void stopDependencies().finally(() => process.exit(0));
+};
+process.once('SIGTERM', stopAndExit);
+process.once('SIGINT', stopAndExit);
 
 writeFileSync(
     clerkSessionPath,
@@ -34,7 +42,7 @@ writeFileSync(
 process.env.NODE_ENV = 'test';
 process.env.APP_ORIGIN = appOrigin;
 process.env.CLERK_ISSUER_URL = clerk.url;
-process.env.DATABASE_URL = cluster.databaseUrl;
+process.env.GROTTO_DATABASE_URL = cluster.databaseUrl;
 
 process.chdir(workspaceRoot);
 

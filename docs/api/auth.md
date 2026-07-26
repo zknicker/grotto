@@ -10,6 +10,11 @@ read_when:
 Grotto is a local-owner app. The owner controls the App process, Runtime host,
 workspace files, and model-provider credentials.
 
+Hosted Grotto servers do not use that model: they own their own Users,
+memberships, and roles in PostgreSQL, and Clerk only authenticates the human.
+See [Grotto Server](../internals/grotto-server.md). The rest of this page
+describes the local-owner surfaces that still exist.
+
 ## Trust Boundaries
 
 | Boundary | Trust |

@@ -38,6 +38,7 @@ Memory, Wiki, cron automations, and the first task tracker were retired; see
 | Need | Read |
 | --- | --- |
 | App/runtime boundary | [Architecture Overview](internals/architecture-overview.md) |
+| Hosted Servers, membership, Channels | [Grotto Server](internals/grotto-server.md) |
 | Agent execution | [Agent Engine Runtime](internals/agent-engine-runtime.md) |
 | Runtime startup and repair checks | [Runtime Doctor](internals/runtime-doctor.md) |
 | Chat/session decision | [ADR 0007](adr/0007-chat-participants-own-agent-sessions.md) |

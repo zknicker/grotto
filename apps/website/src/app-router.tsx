@@ -11,6 +11,7 @@ import { AppFrame } from './components/app-frame.tsx';
 import { MembershipGate } from './features/auth/membership-gate.tsx';
 import { buildDefaultWorkspaceChatPath } from './features/chats/chat-path.ts';
 import { RuntimeSetupGate } from './features/onboarding/runtime-setup-gate.tsx';
+import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
 import { Layout } from './layout.tsx';
 import { isPackagedDesktopApp } from './lib/agent-runtime.ts';
 import { appRoutes } from './lib/app-routes.ts';
@@ -47,6 +48,28 @@ export function createAppRouter() {
                 {
                     path: '/sso-callback',
                     element: <AuthenticateWithRedirectCallback />,
+                },
+                {
+                    // Hosted Grotto servers address themselves by slug and talk
+                    // straight to the Server on its own client, outside the
+                    // pre-WS6 local sidecar and its runtime gates.
+                    element: <GrottoServerRoutes />,
+                    children: [
+                        {
+                            path: 's',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/servers-page.tsx'),
+                                'ServersPage'
+                            ),
+                        },
+                        {
+                            path: 's/:slug',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/server-page.tsx'),
+                                'ServerPage'
+                            ),
+                        },
+                    ],
                 },
                 {
                     path: 'dashboard',

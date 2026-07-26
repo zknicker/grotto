@@ -1,5 +1,3 @@
-import { setCurrentSessionToken } from '../identity/session-token-store.ts';
-
 export interface ApiContext {
     /**
      * Clerk session token forwarded by the app. HTTP requests carry it as an
@@ -28,10 +26,9 @@ export function createApiContext(opts?: ContextCarrier): ApiContext {
             : typeof value === 'string' && value.startsWith('Bearer ')
               ? value.slice(7)
               : null;
-    if (clerkSessionToken) {
-        // Runtime clients need the latest user bearer even while the app is otherwise idle.
-        setCurrentSessionToken(clerkSessionToken);
-        return { clerkSessionToken, requestHost };
-    }
-    return { clerkSessionToken: null, requestHost };
+
+    // The session stays on this request. Only the explicit Runtime seams
+    // (`agentRuntime.connect`, `identity.pushSessionToken`) publish a token to
+    // the shared Runtime transport this sidecar owns.
+    return { clerkSessionToken, requestHost };
 }

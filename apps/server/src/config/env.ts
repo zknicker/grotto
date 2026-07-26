@@ -19,6 +19,20 @@ export function getDefaultDatabasePath() {
     return join(os.homedir(), '.grotto', 'grotto.sqlite');
 }
 
+export function getDefaultGrottoServerPort() {
+    const port = process.env.GROTTO_SERVER_PORT;
+
+    return port && isValidPort(port) ? Number(port) : 8090;
+}
+
+export function getDefaultDatabaseUrl() {
+    return `postgres://127.0.0.1:5432/grotto${isTestEnvironment() ? '_test' : ''}`;
+}
+
+export function getDefaultClerkIssuerUrl() {
+    return 'https://clerk.grotto.sh';
+}
+
 function resolveHomePath(value: string) {
     if (value === '~') {
         return os.homedir();
@@ -113,8 +127,11 @@ applyCliOverrides(process.argv.slice(2));
 
 const envSchema = z.object({
     APP_ORIGIN: z.string().url().default(getDefaultAppOrigin()),
+    CLERK_ISSUER_URL: z.string().url().default(getDefaultClerkIssuerUrl()),
     CLERK_SECRET_KEY: z.string().min(1).optional(),
     DATABASE_PATH: z.string().min(1).default(getDefaultDatabasePath()).transform(resolveHomePath),
+    DATABASE_URL: z.string().min(1).default(getDefaultDatabaseUrl()),
+    GROTTO_SERVER_PORT: z.coerce.number().int().positive().default(getDefaultGrottoServerPort()),
     DEV_CLERK_SIGN_IN_USER_ID: z.string().min(1).optional(),
     TAVERN_RUNTIME_URL: z.string().url().optional(),
     SERVER_PORT: z.coerce.number().int().positive().default(getDefaultServerPort()),

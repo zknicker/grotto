@@ -6,6 +6,11 @@ import { appRouter } from './api/router.ts';
 import { startTrpcWebSocketServer } from './api/ws.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 
+/**
+ * The local sidecar the packaged desktop app launches beside itself. It owns
+ * the pre-WS6 local-owner router and its SQLite database, and never touches
+ * PostgreSQL — the hosted Grotto Server is a separate application.
+ */
 export interface ServerApplicationOptions {
     appOrigin: string;
 }

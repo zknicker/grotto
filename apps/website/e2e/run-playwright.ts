@@ -30,7 +30,8 @@ function getFreePort() {
 
 const websiteRoot = fileURLToPath(new URL('../', import.meta.url));
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-const [runtimePort, serverPort, websitePort] = await Promise.all([
+const [runtimePort, serverPort, grottoServerPort, websitePort] = await Promise.all([
+    getFreePort(),
     getFreePort(),
     getFreePort(),
     getFreePort(),
@@ -49,6 +50,7 @@ const env = {
     TAVERN_RUNTIME_PORT: `${runtimePort}`,
     TAVERN_RUNTIME_TOKEN: runtimeToken,
     TAVERN_RUNTIME_URL: `http://127.0.0.1:${runtimePort}`,
+    GROTTO_SERVER_PORT: `${grottoServerPort}`,
     TAVERN_SERVER_PORT: `${serverPort}`,
     TAVERN_WEBSITE_PORT: `${websitePort}`,
 };

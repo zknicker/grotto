@@ -19,11 +19,8 @@ interface ClerkGlobal {
  * short-lived JWT internally; read it fresh per request, never cache it.
  */
 export async function getClerkSessionToken(): Promise<string | null> {
-    if (!isClerkEnabled) {
-        return null;
-    }
     try {
-        if (isElectronDesktopApp()) {
+        if (isClerkEnabled && isElectronDesktopApp()) {
             return await getNativeClerkSessionToken();
         }
 

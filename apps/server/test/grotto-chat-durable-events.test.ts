@@ -127,8 +127,9 @@ test('event subscription rechecks persisted membership revocation after the auth
     await expect(within(subscription.nextEvent, 'receiving the revocation error')).rejects.toThrow(
         /member/i
     );
-    await expect(within(peer.trpc.server.list.query(), 'listing Servers after revocation')).resolves
-        .not.toContainEqual(expect.objectContaining({ id: serverId }));
+    await expect(
+        within(peer.trpc.server.list.query(), 'listing Servers after revocation')
+    ).resolves.not.toContainEqual(expect.objectContaining({ id: serverId }));
     await expect(
         within(
             harness.sql`

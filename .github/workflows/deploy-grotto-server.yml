@@ -24,7 +24,7 @@ concurrency:
 jobs:
   deploy:
     name: Deploy published Grotto version
-    runs-on: self-hosted
+    runs-on: [self-hosted, grotto]
     permissions:
       contents: read
     env:

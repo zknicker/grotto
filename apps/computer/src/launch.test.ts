@@ -65,6 +65,7 @@ test('runs a deterministic Agent launch that lands a durable hosted message', as
     const attachment: Attachment = {
         computerId: 'cmp_launchtest0000000',
         credential: 'launch-test-credential',
+        serverOrigin: `http://127.0.0.1:${state.server.port}`,
         serverId: 'srv_launchtest',
         slug: 'launch-test',
     };
@@ -137,6 +138,7 @@ test('reports a failed turn when the runtime is not installed', async () => {
         attachment: {
             computerId: 'cmp_launchtest0000000',
             credential: 'launch-test-credential',
+            serverOrigin: `http://127.0.0.1:${state.server.port}`,
             serverId: 'srv_launchtest',
             slug: 'launch-test',
         },

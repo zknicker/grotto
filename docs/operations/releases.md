@@ -60,6 +60,32 @@ and metadata to `TAVERN_RELEASE_S3_URI`, verifies each S3 object is visible,
 commits release metadata, pushes `main`, pushes the version tag, and creates the
 GitHub Release.
 
+## Hosted Server Promotion
+
+The hosted Server and hosted web App use the same product version as
+`apps/website`. They are one atomic production artifact; there is no separate
+Server SemVer.
+
+Publishing the annotated `vX.Y.Z` GitHub Release triggers the production
+deployment. A push to `main` does not. The deploy resolves that immutable tag to
+its full commit SHA, builds the Server and hosted App together, installs the
+release under that full SHA, then atomically activates it. Human-facing identity
+is `X.Y.Z`; deploy, rollback, audit, and artifact identity use the full source
+SHA and content digest.
+
+The `Deploy Grotto Server` Actions workflow is the only manual promotion
+surface. It accepts an exact existing published, non-draft, non-prerelease
+`vX.Y.Z` and either:
+
+* `deploy`: build, install, and activate that published source
+* `activate`: verify and switch to that already installed release without a
+  rebuild
+
+It does not accept branches, `main`, arbitrary SHAs, draft releases, or
+prereleases. Cut an annotated patch release for an urgent fix. The Computer and
+optional Runtime remain separate operator-triggered release streams under their
+existing rules.
+
 ## Runtime Release Flow
 
 Use this lane only when the Runtime package must ship.

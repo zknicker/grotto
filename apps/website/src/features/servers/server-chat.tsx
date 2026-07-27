@@ -10,17 +10,29 @@ import { ServerThreadPanel } from './thread/server-thread-panel.tsx';
 
 export function ServerChat({
     chat,
+    initialTask,
     onOpenChat,
 }: {
     chat: HostedChat;
+    initialTask?: { message: HostedChatMessage; threadChatId: string };
     onOpenChat: (chatId: string) => void;
 }) {
     const [threadSelection, setThreadSelection] = React.useState<{
         anchor: HostedChatMessage;
         initialSummary: HostedThreadSummary | null;
-    } | null>(null);
+        initialThreadChatId?: string;
+    } | null>(() =>
+        initialTask
+            ? {
+                  anchor: initialTask.message,
+                  initialSummary: null,
+                  initialThreadChatId: initialTask.threadChatId,
+              }
+            : null
+    );
     const threadTakeover = useViewportBelow(1024);
     const messages = useServerChatMessages(chat.serverId, chat.id);
+    const transcriptMessages = mergeTaskAnchor(messages.data?.messages, initialTask?.message);
     const lastSequence = messages.data?.messages.at(-1)?.sequence ?? 0;
     const read = useMarkServerChatReadOnView({
         chatId: messages.data ? chat.id : undefined,
@@ -29,6 +41,7 @@ export function ServerChat({
         serverId: messages.data ? chat.serverId : undefined,
     });
     const ensureDm = useEnsureServerDm(onOpenChat);
+
     const chatName =
         chat.kind === 'channel' ? `#${chat.name}` : `Direct · ${shortUserId(chat.peerUserId)}`;
     const threadSummary =
@@ -55,6 +68,7 @@ export function ServerChat({
         <ServerThreadPanel
             anchor={threadSelection.anchor}
             chat={chat}
+            initialThreadChatId={threadSelection.initialThreadChatId}
             key={threadSelection.anchor.id}
             onClose={closeThread}
             onViewInChannel={viewThreadInChannel}
@@ -80,7 +94,7 @@ export function ServerChat({
                 <div className="min-h-0 flex-1">
                     <ServerChatTranscript
                         activeThreadAnchorId={threadSelection?.anchor.id}
-                        messages={messages.data?.messages}
+                        messages={transcriptMessages}
                         onOpenThread={(anchor, summary) =>
                             setThreadSelection({ anchor, initialSummary: summary })
                         }
@@ -109,6 +123,16 @@ export function ServerChat({
             {threadPanel}
         </section>
     );
+}
+
+export function mergeTaskAnchor(
+    messages: HostedChatMessage[] | undefined,
+    anchor: HostedChatMessage | undefined
+) {
+    if (!(messages && anchor) || messages.some((message) => message.id === anchor.id)) {
+        return messages;
+    }
+    return [...messages, anchor].sort((left, right) => left.sequence - right.sequence);
 }
 
 function shortUserId(userId: string | null) {

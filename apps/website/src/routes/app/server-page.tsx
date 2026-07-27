@@ -4,6 +4,8 @@ import { Button } from '../../components/ui/primitives/button.tsx';
 import { ServerChat } from '../../features/servers/server-chat.tsx';
 import { ServerChatSearch } from '../../features/servers/server-chat-search.tsx';
 import { ServerSwitcher } from '../../features/servers/server-switcher.tsx';
+import type { ServerTask } from '../../features/servers/tasks/server-task-presentation.ts';
+import { ServerTasksSurface } from '../../features/servers/tasks/server-tasks-surface.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
 import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
@@ -14,6 +16,8 @@ import { useServerList } from '../../hooks/servers/use-server-list.ts';
 export function ServerPage() {
     const { slug = '' } = useParams();
     const [selectedChatId, setSelectedChatId] = React.useState<string | null>(null);
+    const [surface, setSurface] = React.useState<'chat' | 'tasks'>('chat');
+    const [taskToOpen, setTaskToOpen] = React.useState<ServerTask | null>(null);
     const server = useServer(slug);
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
@@ -38,6 +42,7 @@ export function ServerPage() {
         chats.data?.find((chat) => chat.id === selectedChatId) ??
         chats.data?.find((chat) => chat.isAll) ??
         chats.data?.[0];
+    const selectedTask = taskToOpen?.message.serverId === server.data.id ? taskToOpen : null;
 
     return (
         <div className="flex h-dvh w-full">
@@ -47,6 +52,14 @@ export function ServerPage() {
                 </p>
                 <ServerSwitcher servers={servers.data ?? []} />
                 <div className="flex flex-col gap-1">
+                    <Button
+                        className="justify-start"
+                        onClick={() => setSurface('tasks')}
+                        size="sm"
+                        variant={surface === 'tasks' ? 'secondary' : 'ghost'}
+                    >
+                        Tasks
+                    </Button>
                     <p className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
                         Chats
                     </p>
@@ -60,9 +73,17 @@ export function ServerPage() {
                             <Button
                                 className="justify-between"
                                 key={chat.id}
-                                onClick={() => setSelectedChatId(chat.id)}
+                                onClick={() => {
+                                    setSelectedChatId(chat.id);
+                                    setSurface('chat');
+                                    setTaskToOpen(null);
+                                }}
                                 size="sm"
-                                variant={chat.id === selectedChat?.id ? 'secondary' : 'ghost'}
+                                variant={
+                                    surface === 'chat' && chat.id === selectedChat?.id
+                                        ? 'secondary'
+                                        : 'ghost'
+                                }
                             >
                                 <span>{name}</span>
                                 {chat.unreadCount > 0 ? (
@@ -82,12 +103,43 @@ export function ServerPage() {
                     </h1>
                     <p className="text-meta text-muted-foreground">/{server.data.slug}</p>
                 </header>
-                <ServerChatSearch onOpenChat={setSelectedChatId} serverId={server.data.id} />
-                {selectedChat ? (
+                {surface === 'chat' ? (
+                    <ServerChatSearch
+                        onOpenChat={(chatId) => {
+                            setSelectedChatId(chatId);
+                            setTaskToOpen(null);
+                        }}
+                        serverId={server.data.id}
+                    />
+                ) : null}
+                {surface === 'tasks' ? (
+                    <ServerTasksSurface
+                        chats={chats.data ?? []}
+                        onOpenTask={(task) => {
+                            setSelectedChatId(task.chatId);
+                            setTaskToOpen(task);
+                            setSurface('chat');
+                        }}
+                        role={server.data.role}
+                        serverId={server.data.id}
+                        viewerUserId={server.data.viewerUserId}
+                    />
+                ) : selectedChat ? (
                     <ServerChat
                         chat={selectedChat}
-                        key={selectedChat.id}
-                        onOpenChat={setSelectedChatId}
+                        initialTask={
+                            selectedTask
+                                ? {
+                                      message: selectedTask.message,
+                                      threadChatId: selectedTask.threadChatId,
+                                  }
+                                : undefined
+                        }
+                        key={`${selectedChat.id}:${selectedTask?.id ?? ''}`}
+                        onOpenChat={(chatId) => {
+                            setSelectedChatId(chatId);
+                            setTaskToOpen(null);
+                        }}
                     />
                 ) : null}
             </main>

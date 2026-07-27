@@ -1,5 +1,6 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { bootstrapGrottoDatabase } from '../../server/src/postgres/bootstrap.ts';
 import { startClerkTestIssuer } from '../../server/test/clerk-test-issuer.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';
 import { clerkSessionFile, e2eClerkUserId, e2ePeerClerkUserId } from './support/clerk-session.ts';
@@ -21,6 +22,7 @@ rmSync(clerkSessionPath, { force: true });
 
 const cluster = await startPostgresCluster();
 const clerk = await startClerkTestIssuer(appOrigin);
+await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
 
 // The invitation boundary asks Clerk which of a human's addresses are verified.
 // The local issuer answers that too, so e2e drives the real acceptance path.
@@ -56,7 +58,7 @@ process.env.APP_ORIGIN = appOrigin;
 process.env.CLERK_API_URL = clerk.url;
 process.env.CLERK_ISSUER_URL = clerk.url;
 process.env.CLERK_SECRET_KEY = 'sk_test_grotto_e2e';
-process.env.DATABASE_URL = cluster.databaseUrl;
+process.env.GROTTO_DATABASE_URL = cluster.databaseUrl;
 
 process.chdir(workspaceRoot);
 

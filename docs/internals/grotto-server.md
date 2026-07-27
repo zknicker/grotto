@@ -110,9 +110,9 @@ positive message sequence, nonce uniqueness, DM pair ordering, and event shape
 all fail closed in the database.
 
 `apps/server/src/postgres/bootstrap.ts` is the schema of record — fresh-schema
-DDL applied when the application starts, mirroring the SQLite bootstrap seam.
-`schema.ts` describes the same tables for typed queries. There is no migration
-history and no migration tooling.
+DDL applied by the explicit bootstrap command before the application starts.
+`schema.ts` describes the same tables for typed queries. Runtime has table DML
+authority but no DDL authority. There is no migration history or tooling.
 
 ## Reminder scheduler
 
@@ -252,12 +252,13 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   never exposes its private `file:` URL; that origin must match `APP_ORIGIN`.
 
 These routes are a separate top-level route-tree branch and run on their own
-client — `apps/website/src/lib/grotto-server.tsx`
-— pointed at `VITE_GROTTO_SERVER_ORIGIN`, with the Clerk session attached per
-request and per WebSocket connection. They never use the local sidecar's
-client, and no product operation is routed through Electron IPC. Hooks live in
-`apps/website/src/hooks/servers/`. The local Command menu, Runtime gates, and
-sidecar query hooks exist only in the ordinary local route branch.
+client — `apps/website/src/lib/grotto-server.tsx` — using the browser's same
+origin in production and the `VITE_GROTTO_SERVER_ORIGIN` override in
+development, with the Clerk session attached per request and per WebSocket
+connection. They never use the local sidecar's client, and no product operation
+is routed through Electron IPC. Hooks live in `apps/website/src/hooks/servers/`.
+The local Command menu, Runtime gates, sidecar query hooks, and query cache exist
+only in the ordinary local route branch.
 
 A socket presents the Clerk session it was opened with, so the provider watches
 the current session and opens a fresh connection when Clerk rotates the token;
@@ -274,3 +275,11 @@ Thread message and follow notifications retain the existing durable event row
 shape. The public event adds only `parentChatId`, nullable for top-level Chats,
 so the App can refetch the child and its exact parent summary without carrying
 anchor or message content in the event.
+
+## Production
+
+The single-node production Server listens on `127.0.0.1:18791` and serves the
+hosted App, tRPC HTTP, WebSocket, and `/healthz` from `https://grotto.sh`.
+Cloudflare is limited to DNS, TLS, and named Tunnel ingress. PostgreSQL,
+attachment storage, and jobs remain local to the Mac mini. See
+[Grotto Server deployment](../operations/grotto-server-deploy.md).

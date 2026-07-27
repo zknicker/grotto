@@ -59,28 +59,34 @@ export async function startPostgresCluster(): Promise<PostgresCluster> {
 
     // SIGINT is PostgreSQL's fast shutdown: it releases the cluster's System V
     // shared-memory segment, which SIGKILL leaks — and macOS allows only 32
-    // before no cluster can start at all. The directory is swept again once
-    // the child is actually reaped, since shutdown outlives the first sweep.
-    const exited = Promise.withResolvers<void>();
-    server.once('exit', () => {
-        rmSync(root, { force: true, recursive: true });
-        exited.resolve();
-    });
-
-    let stopped = false;
+    // before no cluster can start at all. Teardown resolves only after the
+    // child is reaped and its exact temporary root is removed.
     const stopAtProcessExit = () => {
         server.kill('SIGINT');
+        rmSync(root, { force: true, recursive: true });
     };
-    const stop = async () => {
-        if (stopped) {
-            await exited.promise;
-            return;
+    let stopPromise: Promise<void> | null = null;
+    const stop = () => {
+        if (stopPromise) {
+            return stopPromise;
         }
 
-        stopped = true;
         process.off('exit', stopAtProcessExit);
-        server.kill('SIGINT');
-        await exited.promise;
+        stopPromise = new Promise((resolve) => {
+            const finish = () => {
+                rmSync(root, { force: true, recursive: true });
+                resolve();
+            };
+
+            if (server.exitCode !== null || server.signalCode !== null) {
+                finish();
+                return;
+            }
+
+            server.once('exit', finish);
+            server.kill('SIGINT');
+        });
+        return stopPromise;
     };
 
     // A test that throws before its teardown would otherwise leave the data

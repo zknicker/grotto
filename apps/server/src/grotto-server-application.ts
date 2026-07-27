@@ -4,6 +4,8 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { createGrottoContextFactory } from './grotto-api/context.ts';
 import { grottoRouter } from './grotto-api/router.ts';
 import { startGrottoWebSocketServer } from './grotto-api/ws.ts';
+import { registerGrottoHealth } from './grotto-health.ts';
+import { registerGrottoStaticApp } from './grotto-static-app.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
 import { type ClerkUsers, createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
@@ -37,6 +39,8 @@ export interface GrottoServerApplicationOptions {
     reminderClock?: ReminderClock;
     /** Timer seam; production uses the process interval. */
     reminderSchedulerTimers?: ReminderSchedulerTimers;
+    /** Built hosted App assets. Omit only when another process serves the App in development. */
+    staticAppRoot?: string;
 }
 
 export interface GrottoServerApplication {
@@ -101,17 +105,19 @@ export async function createGrottoServerApplication(
         });
         await reminderScheduler.start();
 
-        app.get('/healthz', async () => {
-            const reminders = reminderScheduler?.health() ?? {
-                consecutiveFailures: 1,
-                lastSuccessfulTickAt: null,
-                status: 'degraded' as const,
-            };
-            return {
-                reminders,
-                status: reminders.status === 'healthy' ? 'ok' : 'degraded',
-            };
+        registerGrottoHealth(app, grotto.health, 5000, () => {
+            return (
+                reminderScheduler?.health() ?? {
+                    consecutiveFailures: 1,
+                    lastSuccessfulTickAt: null,
+                    status: 'degraded' as const,
+                }
+            );
         });
+
+        if (options.staticAppRoot) {
+            await registerGrottoStaticApp(app, options.staticAppRoot);
+        }
 
         let closePromise: Promise<void> | null = null;
         const close = () => {
@@ -129,9 +135,9 @@ export async function createGrottoServerApplication(
         return {
             app: startedApp,
             close,
-            listen: async (port: number) => {
+            listen: async (port) => {
                 try {
-                    await startedApp.listen({ host: '0.0.0.0', port });
+                    await startedApp.listen({ host: '127.0.0.1', port });
                 } catch (cause) {
                     // A failed bind leaves the application and its PostgreSQL
                     // pool open; the bind error is the useful one.

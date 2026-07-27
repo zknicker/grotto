@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:grotto": "TAVERN_HOSTED_APP=1 vite build --outDir dist-grotto",
     "build:desktop:icons": "node ../../scripts/build-macos-app-icon.mjs",
     "build:desktop:sidecar": "node ../../scripts/build-electron-sidecar.mjs",
     "desktop:build": "bun run build:desktop:icons && bun run build:desktop:sidecar && bun run build && bun x electron-builder --config electron-builder.config.cjs --mac",

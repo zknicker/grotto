@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "dev:grotto": "bun --watch src/grotto-server.ts",
+    "bootstrap:grotto": "bun src/grotto-server-bootstrap.ts",
     "build": "bun build src/index.ts --target bun --format esm --outdir dist",
     "start": "bun dist/index.js",
     "build:grotto": "bun build src/grotto-server.ts --target bun --format esm --outdir dist",
@@ -19,6 +20,7 @@
   },
   "dependencies": {
     "@fastify/cors": "11.2.0",
+    "@fastify/static": "9.1.3",
     "@tavern/api": "workspace:*",
     "@tavern/claude-usage": "workspace:*",
     "@tavern/codex-usage": "workspace:*",

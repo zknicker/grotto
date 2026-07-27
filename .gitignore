@@ -9,6 +9,8 @@ apps/server/data
 .*.bun-build
 .context
 apps/server/dist-sidecar
+apps/server/release
+apps/website/dist-grotto
 apps/website/electron-dist
 apps/website/electron/generated-icons
 apps/website/electron/icons

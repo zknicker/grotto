@@ -1,4 +1,4 @@
-import type { SQL } from 'bun';
+import { SQL } from 'bun';
 import { taskSchemaStatements } from './task-bootstrap.ts';
 
 /**
@@ -7,13 +7,13 @@ import { taskSchemaStatements } from './task-bootstrap.ts';
  * the same tables for typed queries. There is no migration history.
  */
 const schemaStatements = [
-    `CREATE TABLE IF NOT EXISTS users (
+    `CREATE TABLE users (
         id text PRIMARY KEY NOT NULL,
         clerk_user_id text NOT NULL,
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
-    'CREATE UNIQUE INDEX IF NOT EXISTS users_clerk_user_id_key ON users (clerk_user_id);',
-    `CREATE TABLE IF NOT EXISTS servers (
+    'CREATE UNIQUE INDEX users_clerk_user_id_key ON users (clerk_user_id);',
+    `CREATE TABLE servers (
         id text PRIMARY KEY NOT NULL,
         slug text NOT NULL,
         display_name text NOT NULL,
@@ -22,8 +22,8 @@ const schemaStatements = [
             CHECK (last_chat_event_cursor >= 0),
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
-    'CREATE UNIQUE INDEX IF NOT EXISTS servers_slug_key ON servers (slug);',
-    `CREATE TABLE IF NOT EXISTS server_memberships (
+    'CREATE UNIQUE INDEX servers_slug_key ON servers (slug);',
+    `CREATE TABLE server_memberships (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         user_id text NOT NULL REFERENCES users (id) ON DELETE CASCADE,
@@ -35,11 +35,11 @@ const schemaStatements = [
             CONSTRAINT server_memberships_positive_stint CHECK (stint > 0),
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS server_memberships_server_user_key
+    `CREATE UNIQUE INDEX server_memberships_server_user_key
         ON server_memberships (server_id, user_id);`,
-    `CREATE INDEX IF NOT EXISTS server_memberships_user_idx
+    `CREATE INDEX server_memberships_user_idx
         ON server_memberships (user_id);`,
-    `CREATE TABLE IF NOT EXISTS server_invitations (
+    `CREATE TABLE server_invitations (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         email text NOT NULL
@@ -63,17 +63,17 @@ const schemaStatements = [
             AND NOT (accepted_at IS NOT NULL AND revoked_at IS NOT NULL)
         )
     );`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS server_invitations_token_hash_key
+    `CREATE UNIQUE INDEX server_invitations_token_hash_key
         ON server_invitations (token_hash);`,
     // At most one live invitation per address per Server. Expiry cannot join
     // this predicate — index predicates must be immutable and \`now()\` is not —
     // so issuing a fresh invitation first retires a lapsed one.
-    `CREATE UNIQUE INDEX IF NOT EXISTS server_invitations_live_email_key
+    `CREATE UNIQUE INDEX server_invitations_live_email_key
         ON server_invitations (server_id, email)
         WHERE revoked_at IS NULL AND accepted_at IS NULL;`,
-    `CREATE INDEX IF NOT EXISTS server_invitations_server_idx
+    `CREATE INDEX server_invitations_server_idx
         ON server_invitations (server_id, created_at DESC);`,
-    `CREATE TABLE IF NOT EXISTS agents (
+    `CREATE TABLE agents (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         handle text NOT NULL,
@@ -83,10 +83,10 @@ const schemaStatements = [
         retired_at timestamptz,
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
-    'CREATE UNIQUE INDEX IF NOT EXISTS agents_server_id_key ON agents (server_id, id);',
-    `CREATE UNIQUE INDEX IF NOT EXISTS agents_server_handle_key
+    'CREATE UNIQUE INDEX agents_server_id_key ON agents (server_id, id);',
+    `CREATE UNIQUE INDEX agents_server_handle_key
         ON agents (server_id, lower(handle));`,
-    `CREATE TABLE IF NOT EXISTS chats (
+    `CREATE TABLE chats (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         kind text NOT NULL CONSTRAINT chats_kind CHECK (kind IN ('channel', 'dm', 'thread')),
@@ -155,11 +155,11 @@ const schemaStatements = [
             FOREIGN KEY (server_id, parent_chat_id, parent_chat_kind)
             REFERENCES chats (server_id, id, kind)
     );`,
-    'CREATE UNIQUE INDEX IF NOT EXISTS chats_server_id_key ON chats (server_id, id);',
-    'CREATE UNIQUE INDEX IF NOT EXISTS chats_server_id_kind_key ON chats (server_id, id, kind);',
-    `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_channel_name_key
+    'CREATE UNIQUE INDEX chats_server_id_key ON chats (server_id, id);',
+    'CREATE UNIQUE INDEX chats_server_id_kind_key ON chats (server_id, id, kind);',
+    `CREATE UNIQUE INDEX chats_server_channel_name_key
         ON chats (server_id, name) WHERE kind = 'channel';`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_dm_pair_key
+    `CREATE UNIQUE INDEX chats_server_dm_pair_key
         ON chats (
             server_id,
             dm_member_one_user_id,
@@ -167,11 +167,11 @@ const schemaStatements = [
             dm_member_one_stint,
             dm_member_two_stint
         ) WHERE kind = 'dm';`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_thread_anchor_key
+    `CREATE UNIQUE INDEX chats_server_thread_anchor_key
         ON chats (server_id, parent_chat_id, anchor_message_id) WHERE kind = 'thread';`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_all_key
+    `CREATE UNIQUE INDEX chats_server_all_key
         ON chats (server_id) WHERE is_all = true;`,
-    `CREATE TABLE IF NOT EXISTS channel_participants (
+    `CREATE TABLE channel_participants (
         server_id text NOT NULL,
         chat_id text NOT NULL,
         chat_kind text NOT NULL DEFAULT 'channel'
@@ -186,9 +186,9 @@ const schemaStatements = [
             FOREIGN KEY (server_id, user_id)
             REFERENCES server_memberships (server_id, user_id) ON DELETE CASCADE
     );`,
-    `CREATE INDEX IF NOT EXISTS channel_participants_user_idx
+    `CREATE INDEX channel_participants_user_idx
         ON channel_participants (server_id, user_id);`,
-    `CREATE TABLE IF NOT EXISTS channel_agent_participants (
+    `CREATE TABLE channel_agent_participants (
         server_id text NOT NULL,
         chat_id text NOT NULL,
         chat_kind text NOT NULL DEFAULT 'channel'
@@ -203,7 +203,7 @@ const schemaStatements = [
             FOREIGN KEY (server_id, agent_id)
             REFERENCES agents (server_id, id) ON DELETE CASCADE
     );`,
-    `CREATE TABLE IF NOT EXISTS chat_messages (
+    `CREATE TABLE chat_messages (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL,
         chat_id text NOT NULL,
@@ -227,18 +227,18 @@ const schemaStatements = [
             (author_user_id IS NULL AND system_author = 'reminder')
         )
     );`,
-    'CREATE UNIQUE INDEX IF NOT EXISTS chat_messages_server_id_key ON chat_messages (server_id, id);',
-    `CREATE UNIQUE INDEX IF NOT EXISTS chat_messages_chat_sequence_key
+    'CREATE UNIQUE INDEX chat_messages_server_id_key ON chat_messages (server_id, id);',
+    `CREATE UNIQUE INDEX chat_messages_chat_sequence_key
         ON chat_messages (server_id, chat_id, sequence);`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS chat_messages_chat_nonce_key
+    `CREATE UNIQUE INDEX chat_messages_chat_nonce_key
         ON chat_messages (server_id, chat_id, nonce);`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS chat_messages_chat_id_key
+    `CREATE UNIQUE INDEX chat_messages_chat_id_key
         ON chat_messages (server_id, chat_id, id);`,
-    `CREATE INDEX IF NOT EXISTS chat_messages_chat_sequence_idx
+    `CREATE INDEX chat_messages_chat_sequence_idx
         ON chat_messages (server_id, chat_id, sequence);`,
-    `CREATE INDEX IF NOT EXISTS chat_messages_search_idx
+    `CREATE INDEX chat_messages_search_idx
         ON chat_messages USING gin (search_vector);`,
-    `CREATE TABLE IF NOT EXISTS reminders (
+    `CREATE TABLE reminders (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         owner_agent_id text NOT NULL,
@@ -271,10 +271,10 @@ const schemaStatements = [
             FOREIGN KEY (server_id, schedule_receipt_message_id)
             REFERENCES chat_messages (server_id, id)
     );`,
-    'CREATE UNIQUE INDEX IF NOT EXISTS reminders_server_id_key ON reminders (server_id, id);',
-    `CREATE INDEX IF NOT EXISTS reminders_due_idx
+    'CREATE UNIQUE INDEX reminders_server_id_key ON reminders (server_id, id);',
+    `CREATE INDEX reminders_due_idx
         ON reminders (fire_at, id) WHERE status = 'scheduled';`,
-    `CREATE TABLE IF NOT EXISTS reminder_commands (
+    `CREATE TABLE reminder_commands (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         actor_kind text NOT NULL CONSTRAINT reminder_commands_actor_kind
@@ -292,9 +292,9 @@ const schemaStatements = [
             FOREIGN KEY (server_id, reminder_id)
             REFERENCES reminders (server_id, id) ON DELETE CASCADE
     );`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS reminder_commands_actor_command_key
+    `CREATE UNIQUE INDEX reminder_commands_actor_command_key
         ON reminder_commands (server_id, actor_kind, actor_id, command_id);`,
-    `CREATE TABLE IF NOT EXISTS reminder_fires (
+    `CREATE TABLE reminder_fires (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         reminder_id text NOT NULL,
@@ -308,11 +308,11 @@ const schemaStatements = [
             FOREIGN KEY (server_id, receipt_message_id)
             REFERENCES chat_messages (server_id, id)
     );`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS reminder_fires_server_id_key
+    `CREATE UNIQUE INDEX reminder_fires_server_id_key
         ON reminder_fires (server_id, id);`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS reminder_fires_logical_fire_key
+    `CREATE UNIQUE INDEX reminder_fires_logical_fire_key
         ON reminder_fires (server_id, reminder_id, scheduled_for);`,
-    `CREATE TABLE IF NOT EXISTS reminder_agent_attention (
+    `CREATE TABLE reminder_agent_attention (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         agent_id text NOT NULL,
@@ -343,19 +343,14 @@ const schemaStatements = [
             FOREIGN KEY (server_id, receipt_message_id)
             REFERENCES chat_messages (server_id, id)
     );`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS reminder_agent_attention_server_id_key
+    `CREATE UNIQUE INDEX reminder_agent_attention_server_id_key
         ON reminder_agent_attention (server_id, id);`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS reminder_agent_attention_fire_key
+    `CREATE UNIQUE INDEX reminder_agent_attention_fire_key
         ON reminder_agent_attention (server_id, fire_id);`,
-    `DO $$
-    BEGIN
-        ALTER TABLE chats ADD CONSTRAINT chats_thread_anchor_fk
-            FOREIGN KEY (server_id, parent_chat_id, anchor_message_id)
-            REFERENCES chat_messages (server_id, chat_id, id);
-    EXCEPTION
-        WHEN duplicate_object THEN NULL;
-    END $$;`,
-    `CREATE TABLE IF NOT EXISTS thread_follows (
+    `ALTER TABLE chats ADD CONSTRAINT chats_thread_anchor_fk
+        FOREIGN KEY (server_id, parent_chat_id, anchor_message_id)
+        REFERENCES chat_messages (server_id, chat_id, id);`,
+    `CREATE TABLE thread_follows (
         server_id text NOT NULL,
         thread_chat_id text NOT NULL,
         thread_chat_kind text NOT NULL DEFAULT 'thread'
@@ -372,7 +367,7 @@ const schemaStatements = [
             FOREIGN KEY (server_id, user_id)
             REFERENCES server_memberships (server_id, user_id) ON DELETE CASCADE
     );`,
-    `CREATE TABLE IF NOT EXISTS chat_reads (
+    `CREATE TABLE chat_reads (
         server_id text NOT NULL,
         chat_id text NOT NULL,
         reader_user_id text NOT NULL,
@@ -387,7 +382,7 @@ const schemaStatements = [
             REFERENCES server_memberships (server_id, user_id) ON DELETE CASCADE
     );`,
     ...taskSchemaStatements,
-    `CREATE TABLE IF NOT EXISTS chat_events (
+    `CREATE TABLE chat_events (
         cursor bigint NOT NULL CONSTRAINT chat_events_positive_cursor CHECK (cursor > 0),
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL,
@@ -471,12 +466,50 @@ const schemaStatements = [
             )
         )
     );`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS chat_events_server_cursor_key
+    `CREATE UNIQUE INDEX chat_events_server_cursor_key
         ON chat_events (server_id, cursor);`,
 ];
 
-export async function ensureGrottoSchema(client: SQL) {
+export async function ensureGrottoSchema(client: SQL, runtimeRole: string) {
+    if (!/^[a-z_][a-z0-9_]{0,62}$/u.test(runtimeRole)) {
+        throw new Error(
+            'The Grotto PostgreSQL runtime role must be a plain PostgreSQL identifier.'
+        );
+    }
+
+    const existingTables = (await client`
+        SELECT count(*)::int AS total
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+    `) as { total: number }[];
+    if (existingTables[0]?.total !== 0) {
+        throw new Error('The Grotto PostgreSQL database must be empty before bootstrap.');
+    }
+
     for (const statement of schemaStatements) {
         await client.unsafe(statement);
+    }
+
+    await client.unsafe('REVOKE CREATE ON SCHEMA public FROM PUBLIC');
+    await client.unsafe(`GRANT USAGE ON SCHEMA public TO ${runtimeRole}`);
+    await client.unsafe(
+        `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${runtimeRole}`
+    );
+}
+
+export async function bootstrapGrottoDatabase(databaseUrl: string, runtimeRole: string) {
+    const client = new SQL({ max: 1, url: databaseUrl });
+
+    try {
+        await client.unsafe('BEGIN');
+        try {
+            await ensureGrottoSchema(client, runtimeRole);
+            await client.unsafe('COMMIT');
+        } catch (error) {
+            await client.unsafe('ROLLBACK');
+            throw error;
+        }
+    } finally {
+        await client.close();
     }
 }

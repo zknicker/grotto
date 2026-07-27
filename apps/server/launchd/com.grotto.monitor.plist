@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.grotto.monitor</string>
+    <key>UserName</key>
+    <string>_grotto_monitor</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>/Users/zknicker/srv/grotto/current/operations/run-monitor</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>60</integer>
+    <key>StandardOutPath</key>
+    <string>/Users/zknicker/srv/grotto/logs/monitor.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/zknicker/srv/grotto/logs/monitor.error.log</string>
+</dict>
+</plist>

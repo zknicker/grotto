@@ -5,6 +5,7 @@ import {
     type GrottoServerApplication,
 } from '../src/grotto-server-application.ts';
 import type { ClerkUsers } from '../src/identity/clerk-users.ts';
+import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -53,6 +54,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
 
     try {
         clerk = await startClerkTestIssuer(harnessAppOrigin);
+        await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
 
         const issuer = clerk;
         const sql = new SQL({ url: cluster.databaseUrl });

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { eq, sql } from 'drizzle-orm';
 import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
+import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import {
     agentsTable,
@@ -35,6 +36,7 @@ afterEach(async () => {
 describe('hosted reminder scheduler lifecycle', () => {
     test('fresh schema indexes the global scheduled-due scan', async () => {
         cluster = await startPostgresCluster();
+        await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
         connection = await connectGrottoDatabase(cluster.databaseUrl);
 
         const result = await connection.db.execute(sql`
@@ -52,6 +54,7 @@ describe('hosted reminder scheduler lifecycle', () => {
 
     test('recovers one overdue fire on startup and does not burst after restart', async () => {
         cluster = await startPostgresCluster();
+        await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
         clerk = await startClerkTestIssuer(appOrigin);
         connection = await connectGrottoDatabase(cluster.databaseUrl);
         await seedOverdueReminder(connection);
@@ -159,6 +162,7 @@ describe('hosted reminder scheduler lifecycle', () => {
 
     test('continues past one poisoned reminder and reports the degraded tick', async () => {
         cluster = await startPostgresCluster();
+        await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
         connection = await connectGrottoDatabase(cluster.databaseUrl);
         await seedOverdueReminder(connection);
         await connection.db

@@ -16,3 +16,4 @@ to use, and the result to verify.
 | Testing | [Testing](testing.md) |
 | Release process and Homebrew tap | [Release Process](releases.md) |
 | Runtime deployment | [Runtime Deployment](runtime-deploy.md) |
+| Hosted Server deployment | [Grotto Server Deployment](grotto-server-deploy.md) |

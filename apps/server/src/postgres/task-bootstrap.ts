@@ -1,6 +1,6 @@
 /** Fresh-schema task tables, inserted after hosted Chats and before durable events. */
 export const taskSchemaStatements = [
-    `CREATE TABLE IF NOT EXISTS task_labels (
+    `CREATE TABLE task_labels (
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         id text NOT NULL,
         name text NOT NULL,
@@ -10,9 +10,9 @@ export const taskSchemaStatements = [
         updated_at timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY (server_id, id)
     );`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS task_labels_server_name_key
+    `CREATE UNIQUE INDEX task_labels_server_name_key
         ON task_labels (server_id, lower(name));`,
-    `CREATE TABLE IF NOT EXISTS message_tasks (
+    `CREATE TABLE message_tasks (
         server_id text NOT NULL,
         message_id text NOT NULL,
         chat_id text NOT NULL,
@@ -47,9 +47,9 @@ export const taskSchemaStatements = [
             FOREIGN KEY (server_id, assignee_user_id)
             REFERENCES server_memberships (server_id, user_id)
     );`,
-    `CREATE INDEX IF NOT EXISTS message_tasks_chat_status_idx
+    `CREATE INDEX message_tasks_chat_status_idx
         ON message_tasks (server_id, chat_id, status);`,
-    `CREATE TABLE IF NOT EXISTS message_task_labels (
+    `CREATE TABLE message_task_labels (
         server_id text NOT NULL,
         message_id text NOT NULL,
         label_id text NOT NULL,

@@ -11,6 +11,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
+import { remindersTable } from './reminders.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 
 export const chatEventsTable = pgTable(
@@ -22,11 +23,17 @@ export const chatEventsTable = pgTable(
         id: text('id').primaryKey(),
         messageId: text('message_id'),
         readerUserId: text('reader_user_id'),
+        reminderAction: text('reminder_action').$type<
+            'canceled' | 'fired' | 'scheduled' | 'snoozed' | 'updated'
+        >(),
+        reminderId: text('reminder_id'),
         sequence: integer('sequence').notNull(),
         serverId: text('server_id').notNull(),
         type: text('event_type')
             .notNull()
-            .$type<'chat.read' | 'message.created' | 'thread.follow.updated'>(),
+            .$type<
+                'chat.read' | 'message.created' | 'reminder.changed' | 'thread.follow.updated'
+            >(),
     },
     (table) => [
         uniqueIndex('chat_events_server_cursor_key').on(table.serverId, table.cursor),
@@ -35,6 +42,11 @@ export const chatEventsTable = pgTable(
             columns: [table.serverId, table.chatId],
             foreignColumns: [chatsTable.serverId, chatsTable.id],
             name: 'chat_events_chat_fk',
+        }).onDelete('cascade'),
+        foreignKey({
+            columns: [table.serverId, table.reminderId],
+            foreignColumns: [remindersTable.serverId, remindersTable.id],
+            name: 'chat_events_reminder_fk',
         }).onDelete('cascade'),
         foreignKey({
             columns: [table.serverId, table.messageId],
@@ -52,16 +64,31 @@ export const chatEventsTable = pgTable(
                 (${table.type} = 'message.created'
                     AND ${table.messageId} IS NOT NULL
                     AND ${table.readerUserId} IS NULL
+                    AND ${table.reminderId} IS NULL
+                    AND ${table.reminderAction} IS NULL
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'chat.read'
                     AND ${table.messageId} IS NULL
                     AND ${table.readerUserId} IS NOT NULL
+                    AND ${table.reminderId} IS NULL
+                    AND ${table.reminderAction} IS NULL
                     AND ${table.sequence} >= 0)
                 OR
                 (${table.type} = 'thread.follow.updated'
                     AND ${table.messageId} IS NULL
                     AND ${table.readerUserId} IS NOT NULL
+                    AND ${table.reminderId} IS NULL
+                    AND ${table.reminderAction} IS NULL
+                    AND ${table.sequence} >= 0)
+                OR
+                (${table.type} = 'reminder.changed'
+                    AND ${table.messageId} IS NULL
+                    AND ${table.readerUserId} IS NULL
+                    AND ${table.reminderId} IS NOT NULL
+                    AND ${table.reminderAction} IN (
+                        'scheduled', 'updated', 'snoozed', 'canceled', 'fired'
+                    )
                     AND ${table.sequence} >= 0)
             )`
         ),

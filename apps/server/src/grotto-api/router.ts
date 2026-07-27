@@ -1,6 +1,7 @@
 import { chatRouter } from './chat/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { memberRouter } from './member/router.ts';
+import { reminderRouter } from './reminder/router.ts';
 import { serverRouter } from './server/router.ts';
 import { threadRouter } from './thread/router.ts';
 import { createRouter } from './trpc.ts';
@@ -13,6 +14,7 @@ export const grottoRouter = createRouter({
     chat: chatRouter,
     invitation: invitationRouter,
     member: memberRouter,
+    reminder: reminderRouter,
     server: serverRouter,
     thread: threadRouter,
 });

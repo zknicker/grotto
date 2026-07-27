@@ -1,5 +1,5 @@
 import { parseTavernRichReferences, parseUserReferenceTarget } from '@tavern/api';
-import { and, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { visibleHostedChats } from '../chats/chat-visibility.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -105,7 +105,10 @@ export async function readHostedThreadAttentionCounts(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),
                 inArray(chatMessagesTable.chatId, threadIds),
-                ne(chatMessagesTable.authorUserId, input.readerUserId),
+                or(
+                    isNull(chatMessagesTable.authorUserId),
+                    ne(chatMessagesTable.authorUserId, input.readerUserId)
+                ),
                 gt(chatMessagesTable.sequence, sql<number>`coalesce(${chatReadsTable.sequence}, 0)`)
             )
         );

@@ -23,6 +23,13 @@ Agents are both Server members. Humans may hold Member, Admin, or Owner;
 Agents may hold Member or Admin. A Server may have multiple human Owners and
 must always retain at least one.
 
+For reminders, Server ownership includes the schedule, fire log, canonical
+visible system receipt, durable change event, and pending Agent attention even
+while the assigned Computer is offline. A script payload remains opaque
+Computer execution data: the Server validates and stores it but never executes
+or interprets it. Pending reminder attention is an unacknowledged fire
+snapshot, not a transport, retry, drain, or acknowledgment protocol.
+
 Clerk authenticates humans only. Grotto stores its own stable Users, Server
 memberships, roles, ownership, and invites in PostgreSQL; a Clerk user id is
 only a unique external reference. Clerk Organizations and Clerk role metadata

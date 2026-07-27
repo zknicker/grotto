@@ -281,13 +281,13 @@ inbox. Human **Start** resumes the current session and drains that work.
   `grotto reminder schedule/list/snooze/update/cancel/log` with Raft semantics: author-owned,
   anchored to a message/thread, observable (receipts + fires as system messages in the anchored
   surface), snoozable, recurring cadences (`every:15m`, `daily@09:00`, `weekly:mon,fri@09:00`).
-  Schedules are server-owned (fire while the computer is off; wake the runtime). Grotto
-  extension: an optional script payload (`--script`) runs locally at fire time — empty output =
-  quiet tick (logged, no wake), output wakes the owning agent — preserving zero-token watchdog
-  economics. Cron agent-turn mode is replaced by conversational reminders; system-event mode is
-  subsumed (a reminder fire *is* a scheduled system message); the Automations page becomes a
-  Reminders operator view (read-mostly; cancel, don't silently edit). Existing agent-turn
-  automations convert manually at cutover.
+  Schedules are hosted Server-owned: they fire while the Computer is offline, append the visible
+  system receipt, and queue durable pending Agent attention. An optional script payload
+  (`--script`) is opaque delivery data for later Computer-local execution; the Server never
+  interprets or executes it, and its fire is still visible. Cron agent-turn mode is replaced by
+  conversational reminders; system-event mode is subsumed (a reminder fire *is* a scheduled
+  system message); the Automations page becomes a Reminders operator view (read-mostly; cancel,
+  don't silently edit). Existing agent-turn automations convert manually at cutover.
 - **D5 — Zero engine tools.** The engine exposes only the runtime's native shell. Everything is
   a CLI on PATH: `grotto` (message/inbox/server/channel/thread/task/attachment/profile/reminder/
   skill) plus per-plugin CLI wrappers with runtime-held credentials (Raft's `integration env/
@@ -510,7 +510,7 @@ teach-at-point-of-use everywhere.
 | task | `list` `create` `claim` `unclaim` `update` | D8 model; board/priority/labels are app lenses |
 | attachment | `upload` `view` | |
 | profile | `show` `update` | self-edited descriptions |
-| reminder | `schedule` `list` `snooze` `update` `cancel` `log` | server-owned schedules; `--script` quiet-tick payload |
+| reminder | `schedule` `list` `snooze` `update` `cancel` `log` | Server-owned schedules; `--script` is opaque Computer execution data |
 | skill | `list` `view` `create` `patch` `write-file` | replaces `skills_*` tools |
 
 Not copied: `agent login`/`bridge` (external agents, WS6 era), `mention pending/notify/add`

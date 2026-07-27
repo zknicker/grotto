@@ -2,6 +2,12 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
 import { recordAgentTurnSummary } from '../src/hosted-agents/record-agent-turn.ts';
+import {
+    createHostedMcpConnection,
+    listHostedMcpConnections,
+    recordHostedMcpInventory,
+    setHostedMcpGrant,
+} from '../src/hosted-mcp/service.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
@@ -208,6 +214,90 @@ test('a human DM send enqueues durable pending work atomically with the message'
     `) as { n: number }[];
     expect(count[0]?.n).toBe((before[0]?.n ?? 0) + 1);
     expect(after[0]?.content).toBe('Durable delivery, please.');
+});
+
+test('relays secrets online, persists only public state, and fails closed across Computers', async () => {
+    const frames: unknown[] = [];
+    const computers = new ComputerConnections();
+    computers.register(computerId, { send: (frame) => frames.push(frame), serverId });
+    const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
+    const created = await createHostedMcpConnection(connection.db, computers, member, {
+        args: [],
+        computerId,
+        env: {},
+        headers: { Authorization: 'Bearer attachment-secret' },
+        name: 'Deterministic',
+        serverId,
+        url: 'http://127.0.0.1:9999/mcp',
+    });
+
+    expect(frames).toHaveLength(1);
+    expect(frames[0]).toMatchObject({
+        connection: { headers: { Authorization: 'Bearer attachment-secret' } },
+        type: 'mcp-upsert',
+    });
+    const rows = (await harness.sql`
+        select auth, header_names, tools
+        from mcp_connections where id = ${created.id}
+    `) as { auth: string; header_names: string[]; tools: string[] }[];
+    expect(rows[0]).toMatchObject({
+        auth: 'headers',
+        header_names: ['Authorization'],
+        tools: [],
+    });
+    expect(JSON.stringify(rows)).not.toContain('attachment-secret');
+
+    await recordHostedMcpInventory(connection.db, computerId, {
+        connectionId: created.id,
+        tools: ['echo'],
+    });
+    await setHostedMcpGrant(connection.db, computers, member, {
+        agentId,
+        connectionId: created.id,
+        enabled: true,
+        serverId,
+        toolName: 'echo',
+    });
+
+    const grants = (await harness.sql`
+        select agent_id, connection_id, tool_name from agent_mcp_tool_grants
+        where server_id = ${serverId} and agent_id = ${agentId}
+    `) as { agent_id: string; connection_id: string; tool_name: string }[];
+    expect(grants).toEqual([{ agent_id: agentId, connection_id: created.id, tool_name: 'echo' }]);
+
+    const otherComputerId = 'cmp_ssssssssssssssss';
+    await harness.sql`
+        insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
+        values (${otherComputerId}, ${serverId}, ${ownerUserId}, ${'e'.repeat(64)}, ${JSON.stringify({ runtimes: [codexRuntime] })}::jsonb, 'healthy')
+    `;
+    const otherConnectionId = 'mcp_abcdefghijklmnop';
+    await harness.sql`
+        insert into mcp_connections
+            (id, server_id, computer_id, name, transport, auth, url, command, args, header_names, tools)
+        values
+            (${otherConnectionId}, ${serverId}, ${otherComputerId}, 'Other', 'stdio', 'none',
+             null, 'other-mcp', ARRAY[]::text[], ARRAY[]::text[], ARRAY['echo'])
+    `;
+    await expect(
+        setHostedMcpGrant(connection.db, computers, member, {
+            agentId,
+            connectionId: otherConnectionId,
+            enabled: true,
+            serverId,
+            toolName: 'echo',
+        })
+    ).rejects.toThrow('same Computer');
+
+    const offline = await listHostedMcpConnections(
+        connection.db,
+        new ComputerConnections(),
+        member,
+        serverId
+    );
+    expect(offline.find((item) => item.id === created.id)).toMatchObject({
+        status: 'pending',
+        tools: ['echo'],
+    });
 });
 
 test('records a compact turn summary and fails closed on cross-Computer claims', async () => {

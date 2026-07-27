@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { AttachmentMcpRuntime } from './mcp-runtime.ts';
 import { startLoopbackProxy } from './proxy.ts';
 import { writeGrottoWrapper } from './wrapper.ts';
 
@@ -9,6 +10,7 @@ export interface Attachment {
     computerId: string;
     credential: string;
     serverId: string;
+    serverOrigin: string;
     slug: string;
 }
 
@@ -60,6 +62,7 @@ export interface RunAgentLaunchOptions {
     attachment: Attachment;
     command: HostedAgentStartCommand;
     dataRoot: string;
+    mcpRuntime: AttachmentMcpRuntime;
     /** Pushes the compact turn summary up the attachment socket. */
     sendFrame(frame: unknown): void;
     serverOrigin: string;
@@ -142,6 +145,7 @@ export async function runAgentLaunch(
             serverUrl: options.serverOrigin,
         },
     });
+    const mcpEndpoint = startMcpEndpoint(options.mcpRuntime, command.agentId, proxyToken);
 
     let status: 'completed' | 'failed' = 'failed';
     try {
@@ -153,6 +157,8 @@ export async function runAgentLaunch(
                 GROTTO_AGENT_ID: command.agentId,
                 GROTTO_AGENT_PROXY_TOKEN_FILE: tokenFile,
                 GROTTO_AGENT_PROXY_URL: proxy.url,
+                GROTTO_MCP_URL: mcpEndpoint.url,
+                GROTTO_MCP_TOKEN: proxyToken,
                 GROTTO_SERVER_URL: options.serverOrigin,
                 GROTTO_TURN_PROMPT: command.prompt,
                 GROTTO_WRAPPER: wrapperPath,
@@ -176,6 +182,7 @@ export async function runAgentLaunch(
         await revokeRunner(options, runner.runnerId).catch(() => undefined);
         await rm(tokenFile, { force: true });
         proxy.close();
+        mcpEndpoint.close();
     }
 
     return reportTurn(options, {
@@ -187,6 +194,45 @@ export async function runAgentLaunch(
                 ? `Sent ${proxy.sendCount()} message(s).`
                 : 'The Agent turn did not complete.',
     });
+}
+
+function startMcpEndpoint(runtime: AttachmentMcpRuntime, agentId: string, token: string) {
+    const server = Bun.serve({
+        async fetch(request) {
+            if (request.headers.get('authorization') !== `Bearer ${token}`) {
+                return Response.json({ error: 'MCP authority was rejected.' }, { status: 401 });
+            }
+            try {
+                const body = (await request.json()) as {
+                    args?: unknown;
+                    connectionId?: string;
+                    toolName?: string;
+                };
+                if (!(body.connectionId && body.toolName)) {
+                    return Response.json({ error: 'Invalid MCP invocation.' }, { status: 400 });
+                }
+                return Response.json({
+                    result: await runtime.invoke({
+                        agentId,
+                        args: body.args ?? {},
+                        connectionId: body.connectionId,
+                        toolName: body.toolName,
+                    }),
+                });
+            } catch (error) {
+                return Response.json(
+                    { error: error instanceof Error ? error.message : String(error) },
+                    { status: 403 }
+                );
+            }
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    return {
+        close: () => server.stop(true),
+        url: `http://127.0.0.1:${server.port}`,
+    };
 }
 
 /** Validates a Server→Computer frame as a launch command. Fails closed to null. */

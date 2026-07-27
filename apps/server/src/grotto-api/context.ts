@@ -1,5 +1,6 @@
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
+import type { ComputerConnections } from '../computers/connections.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
 import type { ClerkUsers } from '../identity/clerk-users.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -23,6 +24,8 @@ export interface GrottoContext {
     clerkSessionToken: string | null;
     /** Verified-email lookup, used only by the invitation boundary. */
     clerkUsers: ClerkUsers;
+    /** Live attachment sockets for MCP configuration delivery. */
+    computerConnections: ComputerConnections;
     grottoDb: GrottoDatabase;
 }
 
@@ -32,6 +35,7 @@ export interface GrottoContextDependencies {
     attachmentRoot: AttachmentRoot;
     clerkSessions: ClerkSessions;
     clerkUsers: ClerkUsers;
+    computerConnections: ComputerConnections;
     grottoDb: GrottoDatabase;
 }
 

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { hostedIdSchema, hostedReminderChangedEventSchema } from './hosted-chat.ts';
 
 const hostedTimestampSchema = z.iso.datetime({ offset: true });

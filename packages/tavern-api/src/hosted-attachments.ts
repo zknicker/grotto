@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 const hostedIdSchema = z.string().trim().min(1);
 const hostedAttachmentFilenameSchema = z

@@ -34,3 +34,20 @@ route resolves the immutable built-in endpoint and auth configuration.
 
 The Server mirrors these routes through the `mcp` tRPC router and owns the
 ephemeral loopback callback listener used by the desktop app.
+
+Hosted Server connections use the same product contract through the attached
+Computer:
+
+- `mcp.add` requires the selected Computer online. The Server forwards headers
+  and stdio environment exactly once over that live attachment and stores only
+  endpoint identity, header names, and discovered tool names.
+- `mcp.list` returns Server-owned public connection state. An offline Computer
+  reports `pending` with its last tool inventory.
+- `mcp.setGrant` stores exact `(Agent, connection, upstream tool)` desired state.
+  Agent and connection must belong to the same Computer. Online changes are
+  also pushed to that attachment so invocation-time checks see revocations.
+
+The Computer stores connection secrets under its Server attachment root,
+maintains MCP sessions there, and checks the exact current grant immediately
+before each upstream call. Another attachment cannot resolve those connection
+files or sessions.

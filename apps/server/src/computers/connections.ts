@@ -37,4 +37,22 @@ export class ComputerConnections implements DeliveryTransport {
         computer.send(frame);
         return true;
     }
+
+    sendMcpConnection(computerId: string, connection: unknown): boolean {
+        const computer = this.attached.get(computerId);
+        if (!computer) {
+            return false;
+        }
+        computer.send({ connection, type: 'mcp-upsert' });
+        return true;
+    }
+
+    sendMcpGrant(computerId: string, grant: unknown): boolean {
+        const computer = this.attached.get(computerId);
+        if (!computer) {
+            return false;
+        }
+        computer.send({ grant, type: 'mcp-grant' });
+        return true;
+    }
 }

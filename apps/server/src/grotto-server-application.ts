@@ -85,6 +85,7 @@ export async function createGrottoServerApplication(
                     apiUrl: options.clerkApiUrl,
                     secretKey: options.clerkSecretKey,
                 }),
+            computerConnections,
             grottoDb: grotto.db,
         });
         const isAllowedOrigin = (origin: string | undefined) =>

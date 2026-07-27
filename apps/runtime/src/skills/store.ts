@@ -176,6 +176,58 @@ export async function createAgentSkill(input: {
     };
 }
 
+export async function deleteSkillPackage(input: {
+    agentId: string | null;
+    skillId: string;
+    skillsDir: string;
+}): Promise<void> {
+    const skillDir = await containedSkillDir(input);
+    if (!skillDir) {
+        throw new Error(`Skill not found: ${input.skillId}`);
+    }
+    await fs.rm(skillDir, { force: true, recursive: true });
+    deleteSkillSource(input.skillId);
+    if (input.agentId) {
+        removeSkillAssignment({ agentId: input.agentId, skillId: input.skillId });
+    }
+}
+
+/**
+ * Copy a host-source bundle into an Agent's library as an independent, mutable
+ * copy. The source is never linked, tracked, or synchronized afterward.
+ */
+export async function importHostSkill(input: {
+    agentId: string;
+    skillId: string;
+    sourceDir: string;
+    skillsDir: string;
+}): Promise<{ hash: string; id: string; name: string }> {
+    assertCanonicalSkillId(input.skillId);
+    const source = await fs.realpath(path.join(input.sourceDir, input.skillId)).catch((error) => {
+        if (isNotFoundError(error)) {
+            return null;
+        }
+        throw error;
+    });
+    if (!(source && (await skillExists(source)))) {
+        throw new Error(`Import source not found: ${input.skillId}`);
+    }
+    const target = path.join(input.skillsDir, input.skillId);
+    if (await skillExists(target)) {
+        throw new Error(`Skill already exists: ${input.skillId}`);
+    }
+    await fs.mkdir(input.skillsDir, { recursive: true });
+    await fs.cp(source, target, { recursive: true });
+    recordSkillSource({
+        createdByAgentId: input.agentId,
+        skillId: input.skillId,
+        source: 'external',
+    });
+    enableSkillForAgent({ agentId: input.agentId, skillId: input.skillId });
+    const markdown = await fs.readFile(path.join(target, 'SKILL.md'), 'utf8');
+    return { hash: sha256(markdown), id: input.skillId, name: input.skillId };
+}
+
 export async function patchSkillMarkdown(input: {
     content: string;
     expectedHash: string;
@@ -301,6 +353,14 @@ function enableSkillForAgent(input: { agentId: string; skillId: string }) {
                updated_at = excluded.updated_at`
         )
         .run(namedParams({ agentId: input.agentId, now, skillId: input.skillId }));
+}
+
+function removeSkillAssignment(input: { agentId: string; skillId: string }) {
+    getDb()
+        .prepare(
+            'DELETE FROM agent_skill_assignments WHERE agent_id = $agentId AND skill_id = $skillId'
+        )
+        .run(namedParams({ agentId: input.agentId, skillId: input.skillId }));
 }
 
 async function skillExists(skillDir: string) {

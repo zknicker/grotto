@@ -39,7 +39,10 @@ afterAll(async () => {
 test('reports PostgreSQL failure without exposing connection details', async () => {
     const healthy = await fetch(healthUrl);
     expect(healthy.status).toBe(200);
-    expect(await healthy.json()).toEqual({ status: 'ok' });
+    expect(await healthy.json()).toMatchObject({
+        reminders: { status: 'healthy' },
+        status: 'ok',
+    });
 
     await cluster.stop();
 

@@ -1,8 +1,9 @@
 ---
-summary: The hosted Grotto Server's PostgreSQL ownership of Users, Servers, Chats, messages, reads, search, and realtime, plus its direct App surface.
+summary: The hosted Grotto Server's PostgreSQL ownership of collaboration, reminders, durable attention, and realtime, plus its direct App surface.
 read_when:
   - changing Grotto Server creation, slugs, membership, roles, or Channels
   - changing hosted PostgreSQL schema or Server authorization
+  - changing reminder scheduler lifecycle or hosted Agent attention
   - changing the hosted Server / local sidecar application boundary
   - changing how Clerk authentication maps to a Grotto User
 ---
@@ -88,9 +89,13 @@ PostgreSQL owns the hosted collaboration tables
 | `chats` | Server-owned Channels, canonical sorted two-human DMs, and hidden child Threads |
 | `channel_participants` | One human's participation in one Channel |
 | `thread_follows` | Per-human Thread attention; never membership |
-| `chat_messages` | Immutable human messages ordered by per-Chat sequence and nonce |
+| `agents` / `channel_agent_participants` | Minimal hosted Agent identity and Channel access required by reminder authorship |
+| `chat_messages` | Immutable human or reminder-system messages ordered by per-Chat sequence and nonce |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
-| `chat_events` | Durable message/read events ordered by PostgreSQL cursor |
+| `chat_events` | Durable message/read/reminder-change events ordered by PostgreSQL cursor |
+| `reminders` / `reminder_commands` | Author-owned schedules and idempotent optimistic commands with original result snapshots |
+| `reminder_fires` | One durable row per logical scheduled fire |
+| `reminder_agent_attention` | One unacknowledged fire snapshot for the owning Agent |
 
 Every relationship and every authorization check uses the opaque Server id. The
 slug is only the human-facing address at `/s/<slug>`; it never moves, and no
@@ -106,6 +111,28 @@ all fail closed in the database.
 DDL applied by the explicit bootstrap command before the application starts.
 `schema.ts` describes the same tables for typed queries. Runtime has table DML
 authority but no DDL authority. There is no migration history or tooling.
+
+## Reminder scheduler
+
+The hosted process starts one concrete reminder scheduler after PostgreSQL
+bootstrap. It performs an immediate recovery tick, then checks every 15
+seconds. PostgreSQL row locks with `SKIP LOCKED` serialize concurrent ticks,
+and a unique logical-fire key prevents duplicate receipts after response loss
+or restart. One overdue slot fires and recurring cadence advances from the
+current time; missed slots never burst. A row-local fire failure is redacted,
+skipped for the rest of that tick, retried later, and does not block other due
+reminders.
+
+A fire transaction appends the visible reminder system message, fire log,
+pending Agent attention, reminder state, and durable events atomically. The
+Server performs no network, model, process, shell, workspace, or script work in
+that transaction. Script text is opaque, size-bounded delivery data for a
+future Computer-local path.
+
+`/healthz` reports only the scheduler's redacted state and safe timestamps.
+Shutdown stops new ticks and awaits any in-flight tick before closing
+PostgreSQL. Pending attention is durable across shutdown but defines no
+transport or acknowledgment behavior.
 
 Membership revocation sets `server_memberships.revoked_at`; it does not delete
 the row. This keeps immutable message authors and historical DM pairs intact

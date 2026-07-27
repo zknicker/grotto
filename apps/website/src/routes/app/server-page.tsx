@@ -1,9 +1,15 @@
 import * as React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/primitives/button.tsx';
+import { HostedServerReminders } from '../../features/servers/reminders/hosted-server-reminders.tsx';
 import { ServerChat } from '../../features/servers/server-chat.tsx';
 import { ServerChatSearch } from '../../features/servers/server-chat-search.tsx';
-import { serverMembersRoute } from '../../features/servers/server-routes.ts';
+import {
+    isServerRemindersPath,
+    serverMembersRoute,
+    serverRemindersRoute,
+    serverRoute,
+} from '../../features/servers/server-routes.ts';
 import { ServerSwitcher } from '../../features/servers/server-switcher.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
@@ -13,10 +19,13 @@ import { useServerList } from '../../hooks/servers/use-server-list.ts';
 /** One Grotto server opened at `/s/<slug>` with its `#all` Channel. */
 export function ServerPage() {
     const { slug = '' } = useParams();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [selectedChatId, setSelectedChatId] = React.useState<string | null>(null);
     const server = useServer(slug);
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
+    const remindersOpen = isServerRemindersPath(location.pathname, slug);
 
     useServerChatEvents(server.data?.id);
 
@@ -37,6 +46,11 @@ export function ServerPage() {
         chats.data?.find((chat) => chat.id === selectedChatId) ??
         chats.data?.find((chat) => chat.isAll) ??
         chats.data?.[0];
+    const canOperateReminders = server.data.role === 'owner' || server.data.role === 'admin';
+    const openChat = (chatId: string) => {
+        setSelectedChatId(chatId);
+        navigate(serverRoute(server.data.slug));
+    };
 
     return (
         <div className="flex h-dvh w-full">
@@ -59,9 +73,13 @@ export function ServerPage() {
                             <Button
                                 className="justify-between"
                                 key={chat.id}
-                                onClick={() => setSelectedChatId(chat.id)}
+                                onClick={() => openChat(chat.id)}
                                 size="sm"
-                                variant={chat.id === selectedChat?.id ? 'secondary' : 'ghost'}
+                                variant={
+                                    !remindersOpen && chat.id === selectedChat?.id
+                                        ? 'secondary'
+                                        : 'ghost'
+                                }
                             >
                                 <span>{name}</span>
                                 {chat.unreadCount > 0 ? (
@@ -73,6 +91,21 @@ export function ServerPage() {
                         );
                     })}
                 </div>
+                {canOperateReminders ? (
+                    <div className="flex flex-col gap-1">
+                        <p className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
+                            Operator
+                        </p>
+                        <Button
+                            className="justify-start"
+                            onClick={() => navigate(serverRemindersRoute(server.data.slug))}
+                            size="sm"
+                            variant={remindersOpen ? 'secondary' : 'ghost'}
+                        >
+                            Reminders
+                        </Button>
+                    </div>
+                ) : null}
             </aside>
             <main className="flex min-w-0 flex-1 flex-col">
                 <header className="flex items-center justify-between gap-4 border-border border-b px-6 py-4">
@@ -89,14 +122,27 @@ export function ServerPage() {
                         Members
                     </Link>
                 </header>
-                <ServerChatSearch onOpenChat={setSelectedChatId} serverId={server.data.id} />
-                {selectedChat ? (
-                    <ServerChat
-                        chat={selectedChat}
-                        key={selectedChat.id}
-                        onOpenChat={setSelectedChatId}
-                    />
-                ) : null}
+                {remindersOpen && canOperateReminders ? (
+                    <HostedServerReminders serverId={server.data.id} />
+                ) : remindersOpen ? (
+                    <div className="grid flex-1 place-content-center gap-1 px-6 text-center">
+                        <h2 className="font-medium text-foreground">Owner or Admin required</h2>
+                        <p className="max-w-sm text-muted-foreground text-sm">
+                            Reminder schedules and fire logs are available only to Server operators.
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        <ServerChatSearch onOpenChat={openChat} serverId={server.data.id} />
+                        {selectedChat ? (
+                            <ServerChat
+                                chat={selectedChat}
+                                key={selectedChat.id}
+                                onOpenChat={openChat}
+                            />
+                        ) : null}
+                    </>
+                )}
             </main>
         </div>
     );

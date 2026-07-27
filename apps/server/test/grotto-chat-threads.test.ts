@@ -103,6 +103,29 @@ test('explicit unfollow suppresses ordinary attention while one direct mention p
         ],
     });
 
+    await harness.sql`
+        update chats set last_message_sequence = 2
+        where server_id = ${server.id} and id = ${threadChatId}
+    `;
+    await harness.sql`
+        insert into chat_messages (
+            id, server_id, chat_id, author_user_id, system_author,
+            content, nonce, sequence, created_at
+        )
+        values (
+            'msg_system_thread_attention', ${server.id}, ${threadChatId}, null, 'reminder',
+            'System reminder reply', 'system-thread-attention', 2, now()
+        )
+    `;
+    await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([
+        { id: parentChatId, unreadCount: 2 },
+    ]);
+    await expect(
+        owner.trpc.chat.messages.query({ chatId: parentChatId, serverId: server.id })
+    ).resolves.toMatchObject({
+        threads: [{ followed: true, replyCount: 2, unreadCount: 2 }],
+    });
+
     await owner.trpc.thread.setFollow.mutate({
         follow: false,
         serverId: server.id,
@@ -132,12 +155,12 @@ test('explicit unfollow suppresses ordinary attention while one direct mention p
     await expect(
         owner.trpc.chat.messages.query({ chatId: parentChatId, serverId: server.id })
     ).resolves.toMatchObject({
-        threads: [{ followed: false, replyCount: 3, unreadCount: 3 }],
+        threads: [{ followed: false, replyCount: 4, unreadCount: 4 }],
     });
 
     await owner.trpc.chat.markRead.mutate({
         chatId: threadChatId,
-        sequence: 3,
+        sequence: 4,
         serverId: server.id,
     });
     await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([

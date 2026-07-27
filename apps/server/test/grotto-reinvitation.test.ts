@@ -93,7 +93,7 @@ test('a re-invited human returns as a Member joined only to #all', async () => {
 
     const messages = await returner.trpc.chat.messages.query({ chatId: allChatId, serverId });
     expect(messages.messages.at(0)).toMatchObject({
-        authorUserId: returnerUserId,
+        author: { kind: 'human', userId: returnerUserId },
         content: 'From my first stint',
     });
 

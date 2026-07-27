@@ -1,5 +1,5 @@
 ---
-summary: Realtime contract for durable chat events, the tRPC app-invalidation event set, the ephemeral composition stream, reconnect refetch, and app stream boundaries.
+summary: Realtime contract for durable hosted chat/reminder events, tRPC invalidation, composition, and reconnect recovery.
 read_when:
   - changing websocket subscriptions or reconnect behavior
   - adding a durable event type or a new tRPC invalidation event
@@ -18,7 +18,7 @@ delivery is allowed to drop; clients recover through durable reads.
 
 | Component | Owner | Role |
 | --- | --- | --- |
-| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for human messages and reads |
+| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, and reminder changes |
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
 | `chat_events` | Tavern Runtime | Durable cursor-backed event log |
@@ -39,8 +39,9 @@ from durable `chat_events`.
 
 ## Hosted Server Realtime
 
-`chat.send`, an advancing `chat.markRead`, and `thread.setFollow` insert their durable event in the
-same PostgreSQL transaction as the owned row. `chat.events` lists accessible
+`chat.send`, an advancing `chat.markRead`, `thread.setFollow`, and reminder
+mutations insert their durable event in the same PostgreSQL transaction as the
+owned row. `chat.events` lists accessible
 events after a cursor in ascending order. `chat.onEvent` does not replay; it
 notifies the App after commit. On subscription start or reconnect, the App
 seeds a new in-memory cursor from `chat.eventHead` and refetches the Server Chat
@@ -71,8 +72,20 @@ composition text or a clear signal, are never written to PostgreSQL, have no
 cursor, and are never replayed. The subscriber's Chat access is rechecked for
 every delivery.
 
-Hosted durable event kinds are `message.created`, `chat.read`, and the
-reader-private `thread.follow.updated`.
+Hosted durable event kinds are `message.created`, `chat.read`, the
+reader-private `thread.follow.updated`, and `reminder.changed`.
+
+Reminder scheduling, update, snooze, cancel, and fire append
+`reminder.changed` to the same per-Server cursor. A fire appends
+`message.created` first in the same transaction, so the canonical receipt is
+durable before its reminder invalidation. `reminder.changes` walks only those
+events after a cursor; `reminder.onEvent` is live-only. Owner/Admin authority
+is checked for catch-up, subscription start, and every live delivery.
+
+The Reminders hook owns this subscription and its exact list/run
+invalidations. On start or reconnect it merges durable catch-up with live
+delivery using a monotonic in-memory cursor, so a newer live event cannot be
+overwritten by an older catch-up page.
 
 ## Endpoints
 
@@ -172,6 +185,11 @@ Reconnect flow:
    skills, stats, or other visible resources through their normal API reads.
 4. Resume applying live notifications.
 
+Hosted Reminders use the same principle with a narrower lane: keep the last
+query snapshot rendered, walk `reminder.changes` from the hook's cursor,
+invalidate reminder list and run queries, then continue live
+`reminder.onEvent` delivery.
+
 History recovery does not depend on the event log retaining full message
 payloads. If a client suspects missed events, it refetches the affected
 resource.
@@ -180,6 +198,7 @@ resource.
 
 * Hosted `chat_events.cursor` is monotonic and commit-ordered within one Server.
 * Hosted message order is the transactional positive per-Chat sequence.
+* A fire's `message.created` cursor precedes its `reminder.changed` cursor.
 * `chat_events.cursor` is monotonic inside Runtime SQLite.
 * Message timeline order is `chat_messages.sequence`, not event cursor.
 * Event cursor order records mutation order for inspection.

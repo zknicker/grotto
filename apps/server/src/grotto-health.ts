@@ -1,9 +1,11 @@
 import type { FastifyInstance } from 'fastify';
+import type { ReminderSchedulerHealth } from './reminders/reminder-scheduler.ts';
 
 export function registerGrottoHealth(
     app: FastifyInstance,
     postgresIsAvailable: () => Promise<boolean>,
-    postgresTimeoutMs = 5000
+    postgresTimeoutMs = 5000,
+    reminderHealth?: () => ReminderSchedulerHealth
 ) {
     app.get('/healthz', async (_request, reply) => {
         const available = await Promise.race([
@@ -11,6 +13,13 @@ export function registerGrottoHealth(
             new Promise<false>((resolve) => setTimeout(() => resolve(false), postgresTimeoutMs)),
         ]);
         if (available) {
+            const reminders = reminderHealth?.();
+            if (reminders) {
+                return {
+                    reminders,
+                    status: reminders.status === 'healthy' ? 'ok' : 'degraded',
+                };
+            }
             return { status: 'ok' };
         }
 

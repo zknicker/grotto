@@ -69,7 +69,10 @@ test('a removed human loses access at once while their authorship remains', asyn
     expect(messages.messages.map((message) => message.content)).toContain(
         'Authored before removal'
     );
-    expect(messages.messages.at(0)?.authorUserId).toBe(leaverUserId);
+    expect(messages.messages.at(0)?.author).toEqual({
+        kind: 'human',
+        userId: leaverUserId,
+    });
 
     const [dmRow] = await harness.sql`
         select count(*)::int as total from chats where server_id = ${serverId} and id = ${dm.id}

@@ -51,6 +51,7 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./bin/grotto-server-backup');
     expect(paths).toContain('./bin/grotto-server-restore');
     expect(paths).toContain('./bin/grotto-server-monitor');
+    expect(paths).toContain('./bin/grotto-server-deploy');
     expect(paths).toContain('./bin/activate-grotto-server');
     expect(paths).toContain('./release-files.sha256');
     expect(paths).toContain('./release.json');
@@ -76,6 +77,9 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     );
     expect(verboseArchive.stdout.toString()).toMatch(
         /-rwxr-xr-x .* \.\/operations\/rollback-colima-boot/u
+    );
+    expect(verboseArchive.stdout.toString()).toMatch(
+        /-rwxr-xr-x .* \.\/bin\/grotto-server-deploy/u
     );
 
     const unpacked = mkdtempSync(join(tmpdir(), 'grotto-release-'));

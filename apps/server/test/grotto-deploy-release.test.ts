@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import {
-    existsSync,
     mkdirSync,
     mkdtempSync,
     readFileSync,
@@ -14,43 +13,36 @@ import { basename, join } from 'node:path';
 import {
     installGrottoRelease,
     parseGrottoDeployArguments,
-    readGrottoBuildValue,
 } from '../../../scripts/deploy-grotto-server.ts';
 
 const sourceRevision = '0123456789abcdef0123456789abcdef01234567';
 
-test('reads one public build value without evaluating the host environment file', () => {
-    const root = mkdtempSync(join(tmpdir(), 'grotto-build-env-'));
-    const envPath = join(root, '.env');
-    const sideEffect = join(root, 'should-not-exist');
-
-    try {
-        writeFileSync(
-            envPath,
-            [
-                `UNRELATED=$(touch ${sideEffect})`,
-                'VITE_CLERK_PUBLISHABLE_KEY="pk_test_fixture"',
-                '',
-            ].join('\n')
-        );
-
-        expect(readGrottoBuildValue(envPath, 'VITE_CLERK_PUBLISHABLE_KEY')).toBe('pk_test_fixture');
-        expect(existsSync(sideEffect)).toBeFalse();
-    } finally {
-        rmSync(root, { force: true, recursive: true });
-    }
-});
-
-test('accepts only the published-version deploy argument shape forwarded by Bun', () => {
-    expect(parseGrottoDeployArguments(['--', 'v1.6.2', 'deploy', sourceRevision])).toEqual({
+test('accepts only one exact published artifact install command', () => {
+    expect(
+        parseGrottoDeployArguments([
+            '--',
+            'install',
+            '/tmp/grotto-server.tar.gz',
+            'v1.6.2',
+            sourceRevision,
+        ])
+    ).toEqual({
+        artifactPath: '/tmp/grotto-server.tar.gz',
         productVersion: '1.6.2',
         sourceRevision,
         versionTag: 'v1.6.2',
     });
-    expect(() => parseGrottoDeployArguments(['main', 'deploy', sourceRevision])).toThrow('Usage');
-    expect(() => parseGrottoDeployArguments(['v1.6.2', 'activate', sourceRevision])).toThrow(
-        'Usage'
-    );
+    expect(() =>
+        parseGrottoDeployArguments(['install', '/tmp/grotto-server.tar.gz', 'main', sourceRevision])
+    ).toThrow('Usage');
+    expect(() =>
+        parseGrottoDeployArguments([
+            'activate',
+            '/tmp/grotto-server.tar.gz',
+            'v1.6.2',
+            sourceRevision,
+        ])
+    ).toThrow('Usage');
 });
 
 test('installs one immutable full-revision release and refuses changed content', async () => {
@@ -61,6 +53,7 @@ test('installs one immutable full-revision release and refuses changed content',
         const installed = await installGrottoRelease({
             artifactPath: firstArtifact,
             deployRoot: root,
+            productVersion: '1.6.2',
             sourceRevision,
         });
         expect(installed).toBe(join(root, 'releases', sourceRevision));
@@ -71,15 +64,26 @@ test('installs one immutable full-revision release and refuses changed content',
             await installGrottoRelease({
                 artifactPath: firstArtifact,
                 deployRoot: root,
+                productVersion: '1.6.2',
                 sourceRevision,
             })
         ).toBe(installed);
+
+        await expect(
+            installGrottoRelease({
+                artifactPath: firstArtifact,
+                deployRoot: root,
+                productVersion: '1.6.3',
+                sourceRevision,
+            })
+        ).rejects.toThrow('product version');
 
         const changedArtifact = makeArtifact(root, 'changed');
         await expect(
             installGrottoRelease({
                 artifactPath: changedArtifact,
                 deployRoot: root,
+                productVersion: '1.6.2',
                 sourceRevision,
             })
         ).rejects.toThrow('already exists with different content');

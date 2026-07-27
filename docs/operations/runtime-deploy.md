@@ -12,6 +12,25 @@ read_when:
 Grotto Runtime is an always-on server process. The desktop app connects to its
 configured Runtime URL.
 
+## Grotto Computer Recovery
+
+Grotto Computer is the separate local execution service introduced by the
+hosted Server split. Its normal signed production update starts from an
+Owner/Admin Computer settings page. If the installed binary cannot speak the
+stable bootstrap protocol, repair it locally:
+
+```bash
+grotto-computer upgrade
+```
+
+The command downloads the same latest-production descriptor as Settings,
+verifies its Ed25519 signature and tarball SHA-256, waits indefinitely for
+active Agent turns, replaces only the npm-installed code, and restarts the
+resident service plus every Server attachment runner. It never cleans
+`~/.grotto/computer`, and it never kills a stuck Agent on a hidden timeout. Use
+the explicit Owner/Admin Agent Stop control before retrying when a turn cannot
+finish.
+
 ## Runtime CLI
 
 Keep the CLI small:

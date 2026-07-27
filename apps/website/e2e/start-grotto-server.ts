@@ -25,6 +25,21 @@ rmSync(clerkSessionPath, { force: true });
 
 const cluster = await startPostgresCluster();
 const clerk = await startClerkTestIssuer(appOrigin);
+const computerReleaseServer = Bun.serve({
+    async fetch() {
+        await Bun.sleep(400);
+        return Response.json({
+            release: {
+                sha256: 'a'.repeat(64),
+                tarballUrl: 'https://updates.grotto.test/grotto-computer-1.1.0.tgz',
+                version: '1.1.0',
+            },
+            signature: 'c2lnbmF0dXJl'.repeat(3),
+        });
+    },
+    hostname: '127.0.0.1',
+    port: 0,
+});
 await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
 
 // The invitation boundary asks Clerk which of a human's addresses are verified.
@@ -38,6 +53,7 @@ clerk.setVerifiedEmails(e2ePeerClerkUserId, [e2ePeerEmail]);
 process.once('exit', () => {
     rmSync(clerkSessionPath, { force: true });
     rmSync(attachmentRoot, { force: true, recursive: true });
+    computerReleaseServer.stop(true);
     void cluster.stop();
 });
 process.once('SIGTERM', () => {
@@ -64,6 +80,7 @@ process.env.CLERK_ISSUER_URL = clerk.url;
 process.env.CLERK_SECRET_KEY = 'sk_test_grotto_e2e';
 process.env.GROTTO_DATABASE_URL = cluster.databaseUrl;
 process.env.GROTTO_ATTACHMENT_ROOT = attachmentRoot;
+process.env.GROTTO_COMPUTER_RELEASE_MANIFEST_URL = `http://127.0.0.1:${computerReleaseServer.port}/latest.json`;
 
 process.chdir(workspaceRoot);
 
@@ -78,6 +95,7 @@ async function shutdown() {
 
     shuttingDown = true;
     await clerk.close();
+    computerReleaseServer.stop(true);
     await cluster.stop();
     rmSync(clerkSessionPath, { force: true });
     rmSync(attachmentRoot, { force: true, recursive: true });

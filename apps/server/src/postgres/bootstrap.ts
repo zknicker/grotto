@@ -66,7 +66,19 @@ const schemaStatements = [
         architecture text,
         reported_inventory jsonb,
         health text NOT NULL DEFAULT 'offline'
-            CONSTRAINT computers_health CHECK (health IN ('offline', 'healthy', 'degraded')),
+            CONSTRAINT computers_health CHECK (
+                health IN ('offline', 'healthy', 'degraded', 'update-required')
+            ),
+        update_phase text NOT NULL DEFAULT 'idle'
+            CONSTRAINT computers_update_phase CHECK (
+                update_phase IN (
+                    'idle', 'checking', 'available', 'installing',
+                    'waiting-for-agents', 'restarting', 'complete', 'failed'
+                )
+            ),
+        update_target_version text,
+        update_detail text,
+        update_updated_at timestamptz,
         last_connected_at timestamptz,
         created_at timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT computers_attacher_membership_fk

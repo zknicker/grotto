@@ -1,13 +1,9 @@
-import { stat } from 'node:fs/promises';
-
 export interface GrottoMonitorOptions {
-    backupSuccessFile: string;
     pgIsReadyCommand: string;
     postgresDatabase: string;
     postgresHost: string;
     postgresPort: string;
     probes: {
-        backupPingUrl?: string;
         postgresPingUrl?: string;
         publicPingUrl?: string;
         publicUrl: string;
@@ -52,11 +48,6 @@ export async function runGrottoMonitor(options: GrottoMonitorOptions) {
             code: 'public_route_unavailable',
             run: () => checkGrottoRoute(options.probes.publicUrl),
         },
-        {
-            alertUrl: options.probes.backupPingUrl,
-            code: 'backup_stale',
-            run: () => checkBackupFreshness(options.backupSuccessFile),
-        },
     ];
     const results = await Promise.all(
         probes.map(async (probe) => ({ ...probe, healthy: await probe.run() }))
@@ -99,15 +90,6 @@ async function checkPostgres(command: string, host: string, port: string, databa
             timeout: 8000,
         });
         return (await child.exited) === 0;
-    } catch {
-        return false;
-    }
-}
-
-async function checkBackupFreshness(path: string) {
-    try {
-        const file = await stat(path);
-        return Date.now() - file.mtimeMs <= 8 * 60 * 60 * 1000;
     } catch {
         return false;
     }

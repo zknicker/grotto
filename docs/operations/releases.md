@@ -224,8 +224,6 @@ Required release environment:
 
 * `TAVERN_RELEASE_BASE_URL`
 * `TAVERN_RELEASE_S3_URI`
-* `TAVERN_GOOGLE_OAUTH_CLIENT_ID`
-* `TAVERN_GOOGLE_OAUTH_CLIENT_SECRET`
 * `TAVERN_HOMEBREW_TAP_REPO` defaults to `zknicker/homebrew-grotto`
 * `TAVERN_HOMEBREW_TAP_DIR` optionally points to a local tap checkout
 * `CSC_NAME` or `CSC_LINK` + `CSC_KEY_PASSWORD`
@@ -233,5 +231,9 @@ Required release environment:
 * `APPLE_PASSWORD` is accepted as a compatibility alias for
   `APPLE_APP_SPECIFIC_PASSWORD`
 * `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+
+Runtime releases additionally require `TAVERN_GOOGLE_OAUTH_CLIENT_ID` and
+`TAVERN_GOOGLE_OAUTH_CLIENT_SECRET` for the Runtime artifact. App-only releases
+do not.
 
 The GitHub Release step uses `gh`; run `gh auth status` before publishing.

@@ -150,7 +150,7 @@ export async function reportComputerHandshake(
     handshake: ComputerHandshake
 ) {
     const [computer] = await db
-        .select({ id: computersTable.id })
+        .select({ id: computersTable.id, serverId: computersTable.serverId })
         .from(computersTable)
         .where(eq(computersTable.credentialHash, credentialHash))
         .limit(1);

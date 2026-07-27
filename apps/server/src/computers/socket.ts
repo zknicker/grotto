@@ -1,10 +1,16 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
-import { hostedAgentEffectiveStateSchema, hostedComputerInventorySchema } from '@tavern/api';
+import {
+    hostedAgentEffectiveStateSchema,
+    hostedAgentTurnSummarySchema,
+    hostedComputerInventorySchema,
+} from '@tavern/api';
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 import { recordAgentEffectiveState } from '../hosted-agents/record-agent-effective-state.ts';
+import { recordAgentTurnSummary } from '../hosted-agents/record-agent-turn.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ComputerConnections } from './connections.ts';
 import { computerHandshakeSchema } from './contracts.ts';
 import {
     hashComputerSecret,
@@ -32,7 +38,11 @@ const reportSchema = z
     .strict();
 
 /** The only Server-to-Computer transport: one authenticated outbound socket per Computer. */
-export function startComputerAttachmentSocket(server: Server, db: GrottoDatabase) {
+export function startComputerAttachmentSocket(
+    server: Server,
+    db: GrottoDatabase,
+    connections: ComputerConnections
+) {
     const sockets = new Map<string, import('ws').WebSocket>();
     const socketServer = new WebSocketServer({ noServer: true });
     const onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) => {
@@ -49,7 +59,7 @@ export function startComputerAttachmentSocket(server: Server, db: GrottoDatabase
         let computerId: string | null = null;
         socket.on('message', async (raw) => {
             if (computerId) {
-                await ingestReport(db, computerId, raw.toString());
+                await ingestReport(db, connections, computerId, raw.toString());
                 return;
             }
             try {
@@ -65,6 +75,10 @@ export function startComputerAttachmentSocket(server: Server, db: GrottoDatabase
                 }
                 computerId = computer.id;
                 sockets.set(computer.id, socket);
+                connections.register(computer.id, {
+                    send: (frame) => socket.send(JSON.stringify(frame)),
+                    serverId: computer.serverId,
+                });
                 if (hello.inventory) {
                     await recordComputerInventory(db, computer.id, hello.inventory);
                 }
@@ -76,6 +90,7 @@ export function startComputerAttachmentSocket(server: Server, db: GrottoDatabase
         socket.on('close', () => {
             if (computerId) {
                 sockets.delete(computerId);
+                connections.unregister(computerId);
                 void markComputerOffline(db, computerId);
             }
         });
@@ -91,17 +106,34 @@ export function startComputerAttachmentSocket(server: Server, db: GrottoDatabase
     };
 }
 
-async function ingestReport(db: GrottoDatabase, computerId: string, raw: string) {
-    let report: z.infer<typeof reportSchema>;
+async function ingestReport(
+    db: GrottoDatabase,
+    connections: ComputerConnections,
+    computerId: string,
+    raw: string
+) {
+    let frame: unknown;
     try {
-        report = reportSchema.parse(JSON.parse(raw));
+        frame = JSON.parse(raw);
     } catch {
         return;
     }
-    if (report.inventory) {
-        await recordComputerInventory(db, computerId, report.inventory);
+
+    const turn = hostedAgentTurnSummarySchema.safeParse(frame);
+    if (turn.success) {
+        await recordAgentTurnSummary(db, computerId, turn.data);
+        connections.finishRun(turn.data.agentId);
+        return;
     }
-    if (report.agents.length > 0) {
-        await recordAgentEffectiveState(db, computerId, report.agents);
+
+    const report = reportSchema.safeParse(frame);
+    if (!report.success) {
+        return;
+    }
+    if (report.data.inventory) {
+        await recordComputerInventory(db, computerId, report.data.inventory);
+    }
+    if (report.data.agents.length > 0) {
+        await recordAgentEffectiveState(db, computerId, report.data.agents);
     }
 }

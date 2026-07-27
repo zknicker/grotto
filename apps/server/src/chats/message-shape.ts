@@ -1,6 +1,7 @@
 import type { HostedAttachmentMetadata, HostedChatMessage } from '@tavern/api';
 
 interface StoredChatMessage {
+    authorAgentId: string | null;
     authorUserId: string | null;
     chatId: string;
     content: string;
@@ -18,10 +19,7 @@ export function toHostedChatMessage(
 ): HostedChatMessage {
     return {
         attachments,
-        author:
-            message.systemAuthor === 'reminder'
-                ? { kind: 'system', system: 'reminder' }
-                : { kind: 'human', userId: requireHumanAuthor(message.authorUserId) },
+        author: readAuthor(message),
         chatId: message.chatId,
         content: message.content,
         createdAt: message.createdAt.toISOString(),
@@ -32,9 +30,15 @@ export function toHostedChatMessage(
     };
 }
 
-function requireHumanAuthor(authorUserId: string | null) {
-    if (authorUserId === null) {
+function readAuthor(message: StoredChatMessage): HostedChatMessage['author'] {
+    if (message.systemAuthor === 'reminder') {
+        return { kind: 'system', system: 'reminder' };
+    }
+    if (message.authorAgentId !== null) {
+        return { agentId: message.authorAgentId, kind: 'agent' };
+    }
+    if (message.authorUserId === null) {
         throw new Error('A hosted Chat message must have an explicit author.');
     }
-    return authorUserId;
+    return { kind: 'human', userId: message.authorUserId };
 }

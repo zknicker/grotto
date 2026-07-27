@@ -84,6 +84,7 @@ export async function sendHostedChatMessage(
 
         const [existing] = await tx
             .select({
+                authorAgentId: chatMessagesTable.authorAgentId,
                 authorUserId: chatMessagesTable.authorUserId,
                 chatId: chatMessagesTable.chatId,
                 content: chatMessagesTable.content,

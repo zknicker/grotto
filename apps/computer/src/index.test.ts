@@ -15,7 +15,9 @@ test('setup stores only a Server credential and reruns by validation', async () 
             const url = new URL(request.url);
             requests.push(`${request.method} ${url.pathname}`);
             if (url.pathname === '/computer/attachment') {
-                if (server.upgrade(request)) return;
+                if (server.upgrade(request)) {
+                    return;
+                }
                 return new Response('upgrade failed', { status: 500 });
             }
             if (url.pathname === '/computer/setup' && request.method === 'POST') {
@@ -28,11 +30,17 @@ test('setup stores only a Server credential and reruns by validation', async () 
             if (url.pathname === '/computer/setup/cap_1234567890123456') {
                 return Response.json({ computerId: 'cmp_1234567890123456', status: 'approved' });
             }
-            if (url.pathname === '/computer/validate') return Response.json({ id: 'cmp_1234567890123456' });
+            if (url.pathname === '/computer/validate') {
+                return Response.json({ id: 'cmp_1234567890123456' });
+            }
             return new Response('missing', { status: 404 });
         },
         port: 0,
-        websocket: { message(socket) { socket.send(JSON.stringify({ type: 'accepted' })); } },
+        websocket: {
+            message(socket) {
+                socket.send(JSON.stringify({ type: 'accepted' }));
+            },
+        },
     });
     try {
         const environment = {
@@ -43,8 +51,15 @@ test('setup stores only a Server credential and reruns by validation', async () 
         };
         await runCli(environment);
         const attachmentPath = join(dataRoot, 'servers', 'srv_test', 'attachment.json');
-        const attachment = JSON.parse(await readFile(attachmentPath, 'utf8')) as Record<string, string>;
-        expect(attachment).toMatchObject({ computerId: 'cmp_1234567890123456', serverId: 'srv_test', slug: 'hq' });
+        const attachment = JSON.parse(await readFile(attachmentPath, 'utf8')) as Record<
+            string,
+            string
+        >;
+        expect(attachment).toMatchObject({
+            computerId: 'cmp_1234567890123456',
+            serverId: 'srv_test',
+            slug: 'hq',
+        });
         expect(attachment.credential).toHaveLength(43);
         expect((await stat(attachmentPath)).mode & 0o777).toBe(0o600);
 

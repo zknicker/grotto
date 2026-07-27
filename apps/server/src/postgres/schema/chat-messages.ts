@@ -10,6 +10,7 @@ import {
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { agentsTable } from './agents.ts';
 import { chatsTable } from './chats.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 
@@ -20,6 +21,7 @@ const tsvector = customType<{ data: string }>({
 export const chatMessagesTable = pgTable(
     'chat_messages',
     {
+        authorAgentId: text('author_agent_id'),
         authorUserId: text('author_user_id'),
         chatId: text('chat_id').notNull(),
         content: text('content').notNull(),
@@ -52,13 +54,20 @@ export const chatMessagesTable = pgTable(
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
             name: 'chat_messages_author_membership_fk',
         }),
+        foreignKey({
+            columns: [table.serverId, table.authorAgentId],
+            foreignColumns: [agentsTable.serverId, agentsTable.id],
+            name: 'chat_messages_author_agent_fk',
+        }),
         check('chat_messages_positive_sequence', sql`${table.sequence} > 0`),
         check(
             'chat_messages_author_shape',
             sql`(
-                (${table.authorUserId} is not null and ${table.systemAuthor} is null)
+                (${table.authorUserId} is not null and ${table.authorAgentId} is null and ${table.systemAuthor} is null)
                 or
-                (${table.authorUserId} is null and ${table.systemAuthor} = 'reminder')
+                (${table.authorAgentId} is not null and ${table.authorUserId} is null and ${table.systemAuthor} is null)
+                or
+                (${table.authorUserId} is null and ${table.authorAgentId} is null and ${table.systemAuthor} = 'reminder')
             )`
         ),
         index('chat_messages_chat_sequence_idx').on(table.serverId, table.chatId, table.sequence),

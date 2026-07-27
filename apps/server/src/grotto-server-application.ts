@@ -1,9 +1,11 @@
 import cors from '@fastify/cors';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { registerAgentApiRoutes } from './agent-api/routes.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { reconcileHostedAttachments } from './attachments/reconcile-attachments.ts';
+import { ComputerConnections } from './computers/connections.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
 import { startComputerAttachmentSocket } from './computers/socket.ts';
 import { createGrottoContextFactory } from './grotto-api/context.ts';
@@ -68,6 +70,7 @@ export async function createGrottoServerApplication(
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot);
         await reconcileHostedAttachments(grotto.db, attachmentRoot);
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
+        const computerConnections = new ComputerConnections();
         const createContext = createGrottoContextFactory({
             appOrigin: options.appOrigin,
             attachmentRoot,
@@ -78,6 +81,7 @@ export async function createGrottoServerApplication(
                     apiUrl: options.clerkApiUrl,
                     secretKey: options.clerkSecretKey,
                 }),
+            computerConnections,
             grottoDb: grotto.db,
         });
         const isAllowedOrigin = (origin: string | undefined) =>
@@ -102,6 +106,7 @@ export async function createGrottoServerApplication(
             root: attachmentRoot,
         });
         registerComputerRoutes(app, { appOrigin: options.appOrigin, db: grotto.db });
+        registerAgentApiRoutes(app, { db: grotto.db });
 
         await app.register(fastifyTRPCPlugin, {
             prefix: '/trpc',
@@ -117,7 +122,11 @@ export async function createGrottoServerApplication(
             createContext,
             isAllowedOrigin,
         });
-        const computerSocket = startComputerAttachmentSocket(startedApp.server, grotto.db);
+        const computerSocket = startComputerAttachmentSocket(
+            startedApp.server,
+            grotto.db,
+            computerConnections
+        );
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         reminderScheduler = createHostedReminderScheduler({
             clock: reminderClock,

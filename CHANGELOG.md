@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.3 - 2026-07-27
+
+- Hosted Grotto adds Clerk sign-in, Server creation and reopen, durable human
+  chats, member invitations and removal, child threads, tasks, reminders, and
+  scheduled wakes at the canonical web App origin.
+- Published Grotto versions now promote the hosted App and Server atomically by
+  immutable source revision, with local PostgreSQL, supervised health,
+  encrypted backup and restore tooling, and rollback-safe activation.
+
 ## v1.6.2 - 2026-07-24
 
 - Runtime: existing installations now upgrade the retired chat-scoped agent

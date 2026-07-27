@@ -33,8 +33,11 @@ The self-hosted `Deploy Grotto Server` workflow:
    recreating, migrating, or bootstrapping it
 6. builds and installs an immutable full-SHA release, or verifies and activates
    an already installed release
-7. switches `current`, restarts only `com.grotto.server`, proves local health,
-   and rolls back to the exact previous SHA on failure
+7. switches `current`, bootstraps the exact root-owned Server plist when its
+   label is not loaded, otherwise restarts only `com.grotto.server`, and proves
+   local health
+8. rolls back to the exact previous SHA on failure; a failed first activation
+   boots out the label it introduced before removing `current`
 
 `productVersion` is the website version. `sourceRevision` is the full immutable
 tag commit SHA. The release id is
@@ -159,6 +162,17 @@ metrics bind to `127.0.0.1:20242`; the shared existing tunnel already owns
 every minute and requires the explicit PostgreSQL endpoint
 `127.0.0.1:5438`.
 
+Installing the Server plist does not load it before the next boot. Run the
+initial deployment before rebooting so the privileged activation helper owns
+the first bootstrap after `current` points at a verified release. It accepts
+only the exact root-owned
+`/Library/LaunchDaemons/com.grotto.server.plist`. If first-release health fails,
+the helper boots out the label it introduced before removing `current`, leaving
+no `KeepAlive` loop against a missing release. If the label was already loaded,
+the helper leaves `current` intact on failure because it cannot claim ownership
+of stopping that label. Later activations retain the exact previous-release
+rollback.
+
 The Server returns only `{"status":"ok"}` or the redacted
 `postgres_unavailable` code. The monitor classifies:
 
@@ -243,19 +257,20 @@ secret source, and rollback release before changing the host.
     component named above is root-owned and not writable by `zknicker` or the
     deploy runner. Validate and install
     `host-services/grotto-server-activation.sudoers` as root-owned mode `0440`;
-    it names only that exact executable and its full-SHA argument contract. This
-    is the runner's only NOPASSWD command. Install reviewed launchd plists
-    separately; ordinary release workflows never update these privileged
-    assets. Reinstall the helper through this operator gate before deploying a
-    release that changes its validation contract.
+    it names only that exact executable; the helper enforces the full-SHA
+    argument contract. This is the runner's only NOPASSWD command. Install
+    reviewed launchd plists separately; ordinary release workflows never update
+    these privileged assets. Reinstall the helper through this operator gate
+    before deploying a release that changes its validation contract.
 11. Manually dispatch the exact published `vX.Y.Z` in `deploy` mode. This seeds
-    the first immutable release through the same build, install, activation,
-    health, and rollback path used by later published releases.
+    the first immutable release through the same build, install, helper-owned
+    Server bootstrap, health, and rollback path used by later published
+    releases.
 12. Inject `backup.env`, `monitor.env`, restic key, and Tunnel credential.
 13. Create the named `grotto-production` Tunnel and confirm its config routes
    only to `127.0.0.1:18791`.
-14. Load the Server; verify local App, `/healthz`, authenticated API,
-   and WebSocket.
+14. Verify the helper-loaded Server through the local App, `/healthz`,
+    authenticated API, and WebSocket.
 15. Load the Tunnel, approve the `grotto.sh` DNS route, then verify canonical
     sign-in, Server creation, and reopen from a remote client.
 16. Run backup and the isolated restore drill; record evidence.
@@ -280,3 +295,9 @@ without `--volumes`; preserve `grotto_postgres_data`. Never roll back PostgreSQL
 by deleting or overwriting its data. Keep shared system Colima supervision in
 place unless the operator separately decides to restore login-scoped recovery.
 Capture redacted service status and logs before changing anything further.
+When the first activation has no previous release, failure instead boots out
+the Server label introduced by that attempt before removing `current`. A
+bootout failure leaves `current` on the failed release for diagnosis and
+requires operator intervention. If the label was already loaded, failure also
+leaves `current` intact because the helper did not introduce that label. Neither
+path claims rollback or creates a missing-`current` restart loop.

@@ -61,20 +61,33 @@ test('promotes only published Grotto versions or an explicit published-version c
 
     const job = workflow.jobs.deploy;
     const commands = job.steps.flatMap((step) => step.run ?? []).join('\n');
+    const resolveCommands =
+        job.steps.find((step) => step.name === 'Resolve published version')?.run ?? '';
+    const deployCommands =
+        job.steps.find((step) => step.name === 'Deploy downloaded release')?.run ?? '';
+    const activateCommands =
+        job.steps.find((step) => step.name === 'Activate installed release')?.run ?? '';
     expect(job['runs-on']).toEqual(['self-hosted', 'grotto']);
     expect(job.permissions).toEqual({ contents: 'read' });
     expect(source).toContain('/Users/zknicker/srv/grotto');
     expect(commands).toContain('.published_at');
     expect(commands).toContain('/git/ref/tags/');
     expect(commands).toContain('/git/tags/');
-    expect(commands).toContain('/releases/assets/');
-    expect(commands).toContain('application/octet-stream');
-    expect(commands).toContain('/usr/bin/shasum -a 256 -c');
-    expect(commands).toContain('./bin/grotto-server-deploy');
-    expect(commands).toContain('/bin/grotto-server-deploy');
+    expect(resolveCommands).not.toContain('/releases/assets/');
+    expect(resolveCommands).not.toContain('grotto-server-');
+    expect(deployCommands).toContain('/releases/assets/');
+    expect(deployCommands).toContain('application/octet-stream');
+    expect(deployCommands).toContain('/usr/bin/shasum -a 256 -c');
+    expect(deployCommands).toContain('./bin/grotto-server-deploy');
+    expect(deployCommands).toContain('/bin/grotto-server-deploy');
+    expect(activateCommands).not.toContain('/releases/assets/');
+    expect(activateCommands).not.toContain('grotto-server-');
+    expect(activateCommands).toContain(
+        '${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}'
+    );
     expect(commands).toContain('/usr/bin/sudo -n /usr/local/libexec/grotto/activate-grotto-server');
-    expect(commands.indexOf('/usr/bin/shasum -a 256 -c')).toBeLessThan(
-        commands.indexOf('./bin/grotto-server-deploy')
+    expect(deployCommands.indexOf('/usr/bin/shasum -a 256 -c')).toBeLessThan(
+        deployCommands.indexOf('./bin/grotto-server-deploy')
     );
     expect(commands).toContain("trap 'cleanup' EXIT");
     expect(commands).toContain('/usr/bin/trash');

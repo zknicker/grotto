@@ -28,13 +28,14 @@ The self-hosted `Deploy Grotto Server` workflow:
 2. rejects drafts, prereleases, lightweight tags, branches, and arbitrary SHAs
 3. resolves the annotated tag to a full commit SHA through the authenticated
    GitHub API
-4. requires the exact Server archive and sidecar whose version and short SHA
-   match that release
+4. in `deploy` mode, requires the exact Server archive and sidecar whose
+   version and short SHA match that release
 5. verifies the existing private PostgreSQL service without starting,
    recreating, migrating, or bootstrapping it
-6. downloads and checksum-verifies those two assets, extracts only the compiled
-   deploy operation, and uses it to verify and install the immutable full-SHA
-   release; `activate` skips download and install
+6. in `deploy` mode, downloads and checksum-verifies those two assets, extracts
+   only the compiled deploy operation, and uses it to verify and install the
+   immutable full-SHA release; `activate` verifies the installed release through
+   the activation helper and skips asset download and installation
 7. switches `current`, bootstraps the exact root-owned Server plist when its
    label is not loaded, otherwise restarts only `com.grotto.server`, and proves
    local health

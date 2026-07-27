@@ -84,6 +84,10 @@ surface. It accepts an exact existing published, non-draft, non-prerelease
 * `activate`: verify and switch to that already installed release without a
   download or rebuild
 
+`activate` validates the published tag and the already-installed release; it
+does not require release assets. This preserves rollback to an installed
+transitional release whose GitHub Release predates hosted Server assets.
+
 It does not accept branches, `main`, arbitrary SHAs, draft releases, or
 prereleases. Cut an annotated patch release for an urgent fix. The Computer and
 optional Runtime remain separate operator-triggered release streams under their

@@ -10,7 +10,7 @@ import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 import { recordAgentEffectiveState } from '../hosted-agents/record-agent-effective-state.ts';
 import { recordAgentTurnSummary } from '../hosted-agents/record-agent-turn.ts';
-import { recordHostedMcpInventory } from '../hosted-mcp/service.ts';
+import { recordHostedMcpInventory } from '../hosted-mcp/state.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentMcpToolGrantsTable, mcpConnectionsTable } from '../postgres/schema.ts';
 import type { ComputerConnections } from './connections.ts';
@@ -42,9 +42,28 @@ const reportSchema = z
 
 const mcpInventorySchema = z
     .object({
+        accountLabel: z.string().trim().min(1).max(200).nullable(),
+        connected: z.boolean(),
         connectionId: z.string().regex(/^mcp_[A-Za-z0-9_-]{16}$/u),
         tools: z.array(z.string().trim().min(1).max(200)).max(1000),
         type: z.literal('mcp-inventory'),
+    })
+    .strict();
+
+const mcpOAuthResponseSchema = z
+    .object({
+        error: z.string().max(500).optional(),
+        requestId: z.string().regex(/^req_[A-Za-z0-9_-]{16}$/u),
+        result: z
+            .discriminatedUnion('status', [
+                z.object({ authorizationUrl: z.string().url(), status: z.literal('ready') }),
+                z.object({
+                    authorizationServerOrigin: z.string().url(),
+                    status: z.literal('trust-required'),
+                }),
+            ])
+            .optional(),
+        type: z.enum(['mcp-oauth-completed', 'mcp-oauth-started']),
     })
     .strict();
 
@@ -153,6 +172,12 @@ async function ingestReport(
     const mcpInventory = mcpInventorySchema.safeParse(frame);
     if (mcpInventory.success) {
         await recordHostedMcpInventory(db, computerId, mcpInventory.data);
+        return;
+    }
+
+    const mcpOAuthResponse = mcpOAuthResponseSchema.safeParse(frame);
+    if (mcpOAuthResponse.success) {
+        connections.acceptMcpResponse(computerId, mcpOAuthResponse.data);
         return;
     }
 

@@ -13,6 +13,10 @@ export function serverComputersRoute(slug: string) {
     return `${serverRoute(slug)}/computers`;
 }
 
+export function serverConnectionsRoute(slug: string) {
+    return `${serverRoute(slug)}/connections`;
+}
+
 export function serverAgentsRoute(slug: string) {
     return `${serverRoute(slug)}/agents`;
 }

@@ -1,4 +1,4 @@
-import type { HostedAgent, HostedComputerInventory } from '@tavern/api';
+import type { HostedAgent, HostedComputerInventory, HostedMcpConnection } from '@tavern/api';
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/primitives/button.tsx';
@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/primitives/input.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { HostedAgentTools } from './hosted-agent-tools.tsx';
 
 interface ReportedComputer {
     id: string;
@@ -26,6 +27,7 @@ export function ServerAgentsPage() {
     const enabled = Boolean(server.data);
     const computers = grottoTrpc.computer.list.useQuery({ serverId }, { enabled });
     const agents = grottoTrpc.agent.list.useQuery({ serverId }, { enabled });
+    const connections = grottoTrpc.mcp.list.useQuery({ serverId }, { enabled });
 
     if (!server.data) {
         return null;
@@ -77,7 +79,11 @@ export function ServerAgentsPage() {
                 </p>
             )}
 
-            <AgentList agents={agents.data ?? []} />
+            <AgentList
+                agents={agents.data ?? []}
+                connections={connections.data ?? []}
+                serverId={serverId}
+            />
         </main>
     );
 }
@@ -231,7 +237,15 @@ function CreateAgentForm({
     );
 }
 
-function AgentList({ agents }: { agents: HostedAgent[] }) {
+function AgentList({
+    agents,
+    connections,
+    serverId,
+}: {
+    agents: HostedAgent[];
+    connections: HostedMcpConnection[];
+    serverId: string;
+}) {
     if (agents.length === 0) {
         return <p className="text-muted-foreground text-sm">No Agents yet.</p>;
     }
@@ -257,6 +271,7 @@ function AgentList({ agents }: { agents: HostedAgent[] }) {
                             Missing: {agent.missingResources.join(', ')}
                         </p>
                     ) : null}
+                    <HostedAgentTools agent={agent} connections={connections} serverId={serverId} />
                 </li>
             ))}
         </ul>

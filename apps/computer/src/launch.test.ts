@@ -181,11 +181,14 @@ test('the deterministic Agent invokes a granted MCP tool and cannot invoke it un
     );
     await mcpRuntime.upsert({
         args: [deterministicMcp],
+        auth: 'none',
         command: process.execPath,
         env: { MCP_PREFIX: 'agent' },
         headers: {},
         id: connectionId,
         name: 'Deterministic',
+        oauthScopes: [],
+        preset: null,
         url: null,
     });
     const base: HostedAgentStartCommand = {

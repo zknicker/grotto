@@ -1,15 +1,39 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+import {
+    type AttachmentMcpSecret,
+    type AttachmentOAuthStartResult,
+    completeAttachmentMcpOAuth,
+    createAttachmentOAuthProvider,
+    startAttachmentMcpOAuth,
+} from './mcp-oauth.ts';
+import { secureMcpFetch } from './mcp-secure-fetch.ts';
+import { AttachmentMcpStorage } from './mcp-storage.ts';
 
 export interface AttachmentMcpConnection {
     args: string[];
+    auth: 'headers' | 'none' | 'oauth';
     command: string | null;
     env: Record<string, string>;
     headers: Record<string, string>;
     id: string;
     name: string;
+    oauthClientId?: string;
+    oauthClientSecret?: string;
+    oauthScopes: string[];
+    preset: 'google-calendar' | 'merchbase' | null;
+    url: string | null;
+}
+
+export interface StoredAttachmentMcpConnection {
+    args: string[];
+    auth: AttachmentMcpConnection['auth'];
+    command: string | null;
+    id: string;
+    name: string;
+    oauthClientId?: string;
+    oauthScopes: string[];
+    preset: AttachmentMcpConnection['preset'];
     url: string | null;
 }
 
@@ -17,6 +41,11 @@ interface Grant {
     agentId: string;
     connectionId: string;
     toolName: string;
+}
+
+export interface AttachmentMcpDiscovery {
+    accountLabel: string;
+    tools: string[];
 }
 
 /**
@@ -27,16 +56,15 @@ interface Grant {
 export class AttachmentMcpRuntime {
     private readonly clients = new Map<string, Promise<MCPClient>>();
     private readonly grants = new Set<string>();
+    private readonly storage: AttachmentMcpStorage;
 
-    constructor(private readonly root: string) {}
+    constructor(root: string) {
+        this.storage = new AttachmentMcpStorage(root);
+    }
 
     async upsert(connection: AttachmentMcpConnection): Promise<void> {
-        await mkdir(this.root, { mode: 0o700, recursive: true });
         await this.closeConnection(connection.id);
-        const destination = this.path(connection.id);
-        const temporary = `${destination}.tmp`;
-        await writeFile(temporary, `${JSON.stringify(connection)}\n`, { mode: 0o600 });
-        await rename(temporary, destination);
+        await this.storage.save(connection);
     }
 
     replaceAgentGrants(agentId: string, grants: Grant[]): void {
@@ -69,8 +97,85 @@ export class AttachmentMcpRuntime {
     }
 
     async listTools(connectionId: string): Promise<string[]> {
+        return (await this.discover(connectionId)).tools;
+    }
+
+    async discover(connectionId: string): Promise<AttachmentMcpDiscovery> {
         const client = await this.client(connectionId);
-        return (await client.listTools()).tools.map((tool) => tool.name);
+        return {
+            accountLabel: client.serverInfo.name,
+            tools: (await client.listTools()).tools.map((tool) => tool.name),
+        };
+    }
+
+    async isConnected(connectionId: string): Promise<boolean> {
+        const connection = await this.readConnection(connectionId);
+        if (connection.auth === 'none') {
+            return true;
+        }
+        const secret = await this.readSecret(connectionId);
+        return connection.auth === 'headers'
+            ? Object.keys(secret.headers).length > 0
+            : Boolean(secret.tokens);
+    }
+
+    async startOAuth(input: {
+        allowAuthorizationServerOrigin: boolean;
+        connectionId: string;
+        redirectUrl: string;
+        routingState: string;
+    }): Promise<AttachmentOAuthStartResult> {
+        await this.closeConnection(input.connectionId);
+        const result = await startAttachmentMcpOAuth(this, input);
+        if (result.status === 'ready') {
+            this.clearConnectionGrants(input.connectionId);
+        }
+        return result;
+    }
+
+    async completeOAuth(input: {
+        code: string;
+        connectionId: string;
+        redirectUrl: string;
+        state: string;
+    }): Promise<AttachmentMcpDiscovery> {
+        await completeAttachmentMcpOAuth(this, input);
+        await this.closeConnection(input.connectionId);
+        return await this.discover(input.connectionId);
+    }
+
+    async disconnect(connectionId: string): Promise<void> {
+        await this.closeConnection(connectionId);
+        await this.storage.deleteSecret(connectionId);
+        for (const key of this.grants) {
+            if (key.includes(`\0${connectionId}\0`)) {
+                this.grants.delete(key);
+            }
+        }
+    }
+
+    async replaceHeaders(connectionId: string, headers: Record<string, string>): Promise<void> {
+        const connection = await this.readConnection(connectionId);
+        if (connection.auth !== 'headers') {
+            throw new Error('This MCP connection does not use header credentials.');
+        }
+        await this.closeConnection(connectionId);
+        const secret = await this.readSecret(connectionId);
+        await this.writeSecret(connectionId, { ...secret, headers });
+        this.clearConnectionGrants(connectionId);
+    }
+
+    async delete(connectionId: string): Promise<void> {
+        await this.disconnect(connectionId);
+        await this.storage.deleteConnection(connectionId);
+    }
+
+    private clearConnectionGrants(connectionId: string): void {
+        for (const key of this.grants) {
+            if (key.includes(`\0${connectionId}\0`)) {
+                this.grants.delete(key);
+            }
+        }
     }
 
     async invoke(input: {
@@ -122,14 +227,32 @@ export class AttachmentMcpRuntime {
 
     private async createClient(connectionId: string): Promise<MCPClient> {
         const connection = await this.readConnection(connectionId);
+        const secret = await this.readSecret(connectionId);
         const transport = connection.command
             ? new Experimental_StdioMCPTransport({
                   args: connection.args,
                   command: connection.command,
-                  env: connection.env,
+                  env: secret.env,
               })
             : {
-                  headers: connection.headers,
+                  authProvider:
+                      connection.auth === 'oauth'
+                          ? await createAttachmentOAuthProvider(
+                                this,
+                                connection.id,
+                                secret.redirectUrl ?? 'http://127.0.0.1/mcp/oauth/callback',
+                                {
+                                    allowAuthorizationServerOrigin: false,
+                                    onRedirect() {
+                                        throw new Error(
+                                            'Reconnect this MCP connection in the App.'
+                                        );
+                                    },
+                                }
+                            )
+                          : undefined,
+                  fetch: secureMcpFetch,
+                  headers: secret.headers,
                   redirect: 'error' as const,
                   type: 'http' as const,
                   url: requireValue(connection.url, 'URL'),
@@ -137,27 +260,22 @@ export class AttachmentMcpRuntime {
         return await createMCPClient({ clientName: 'Grotto Computer', transport });
     }
 
-    private async readConnection(connectionId: string): Promise<AttachmentMcpConnection> {
-        let raw: string;
-        try {
-            raw = await readFile(this.path(connectionId), 'utf8');
-        } catch {
-            throw new Error('MCP connection does not belong to this attachment.');
-        }
-        return JSON.parse(raw) as AttachmentMcpConnection;
+    async readConnection(connectionId: string): Promise<StoredAttachmentMcpConnection> {
+        return await this.storage.readConnection(connectionId);
+    }
+
+    async readSecret(connectionId: string): Promise<AttachmentMcpSecret> {
+        return await this.storage.readSecret(connectionId);
+    }
+
+    async writeSecret(connectionId: string, secret: AttachmentMcpSecret): Promise<void> {
+        await this.storage.writeSecret(connectionId, secret);
     }
 
     private async closeConnection(connectionId: string): Promise<void> {
         const pending = this.clients.get(connectionId);
         this.clients.delete(connectionId);
         await pending?.then((client) => client.close()).catch(() => undefined);
-    }
-
-    private path(connectionId: string): string {
-        if (!/^mcp_[A-Za-z0-9_-]{16}$/u.test(connectionId)) {
-            throw new Error('Invalid MCP connection id.');
-        }
-        return join(this.root, `${connectionId}.json`);
     }
 }
 

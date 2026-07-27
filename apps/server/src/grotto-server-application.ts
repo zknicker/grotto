@@ -13,6 +13,8 @@ import { grottoRouter } from './grotto-api/router.ts';
 import { startGrottoWebSocketServer } from './grotto-api/ws.ts';
 import { registerGrottoHealth } from './grotto-health.ts';
 import { registerGrottoStaticApp } from './grotto-static-app.ts';
+import { registerHostedMcpOAuthCallback } from './hosted-mcp/oauth-callback-route.ts';
+import { HostedMcpOAuthRelay } from './hosted-mcp/oauth-relay.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
 import { type ClerkUsers, createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
@@ -71,6 +73,7 @@ export async function createGrottoServerApplication(
         await reconcileHostedAttachments(grotto.db, attachmentRoot);
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
         const computerConnections = new ComputerConnections();
+        const mcpOAuthRelay = new HostedMcpOAuthRelay(computerConnections);
         const createContext = createGrottoContextFactory({
             appOrigin: options.appOrigin,
             attachmentRoot,
@@ -83,6 +86,7 @@ export async function createGrottoServerApplication(
                 }),
             computerConnections,
             grottoDb: grotto.db,
+            mcpOAuthRelay,
         });
         const isAllowedOrigin = (origin: string | undefined) =>
             isAllowedAppOrigin(origin, options.appOrigin);
@@ -107,6 +111,7 @@ export async function createGrottoServerApplication(
         });
         registerComputerRoutes(app, { appOrigin: options.appOrigin, db: grotto.db });
         registerAgentApiRoutes(app, { db: grotto.db });
+        registerHostedMcpOAuthCallback(app, mcpOAuthRelay);
 
         await app.register(fastifyTRPCPlugin, {
             prefix: '/trpc',

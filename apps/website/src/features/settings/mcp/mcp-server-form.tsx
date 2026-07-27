@@ -26,12 +26,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '../../../components/ui/select.tsx';
-import type { McpConnectionSaveInput } from '../../../lib/trpc.tsx';
 import { SecretFieldsEditor } from './mcp-secret-fields.tsx';
 import {
     buildSaveInput,
     createConnectionDraft,
     type McpConnectionDraft,
+    type McpConnectionSaveInput,
 } from './mcp-server-shared.ts';
 
 export function McpConnectionFormDrawer({

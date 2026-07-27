@@ -17,7 +17,6 @@ import {
 import { ServerMemberList } from '../../features/servers/server-member-list.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
-import { useServerEvents } from '../../hooks/servers/use-server-events.ts';
 import { useServerInvitations } from '../../hooks/servers/use-server-invitations.ts';
 import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
 import { useServerMembershipCommands } from '../../hooks/servers/use-server-membership-commands.ts';
@@ -34,8 +33,6 @@ export function ServerMembersPage() {
     const invitations = useServerInvitations(serverId, canInvite);
     const commands = useServerMembershipCommands(serverId);
     const [pending, setPending] = React.useState<PendingMemberChange | null>(null);
-
-    useServerEvents(serverId);
 
     if (server.error) {
         return <MembersMessage detail={server.error.message} title="Server unavailable" />;

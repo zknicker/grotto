@@ -128,6 +128,36 @@ test('a read marker already in flight cannot commit after the reader is removed'
     expect(reads.total).toBe(0);
 });
 
+test('a rename already in flight cannot commit after the member is removed', async () => {
+    const editor = await signIn('user_serialize_editor', ['serialize-editor@grotto.test']);
+    await join(editor, 'serialize-editor@grotto.test');
+    const editorUserId = await readUserId('user_serialize_editor');
+    let removal: Promise<unknown> = Promise.resolve();
+    let rename: Promise<unknown> = Promise.resolve();
+
+    await whileServerRowIsHeld(async () => {
+        removal = owner.trpc.member.remove.mutate({
+            confirmation: slug,
+            serverId,
+            userId: editorUserId,
+        });
+        await Bun.sleep(120);
+
+        rename = editor.trpc.server.rename.mutate({
+            displayName: 'Unauthorized rename',
+            serverId,
+        });
+        await Bun.sleep(120);
+    });
+
+    await expect(removal).resolves.toMatchObject({ userId: editorUserId });
+    await expect(rename).rejects.toThrow(/not a member/i);
+    await expect(owner.trpc.server.bySlug.query({ slug })).resolves.toMatchObject({
+        displayName: 'Serialize HQ',
+    });
+    editor.close();
+});
+
 test('removal never deadlocks against concurrent reads and sends', async () => {
     const crowd = await Promise.all(
         Array.from({ length: 6 }, async (_unused, index) => {

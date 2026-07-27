@@ -18,6 +18,22 @@ export function invitationRoute(token: string) {
     return `/invite/${token}`;
 }
 
-export function invitationLink(token: string) {
-    return new URL(invitationRoute(token), window.location.origin).toString();
+export function invitationLink(token: string, appOrigin = invitationAppOrigin()) {
+    return new URL(invitationRoute(token), appOrigin).toString();
+}
+
+function invitationAppOrigin() {
+    const configured = import.meta.env.VITE_GROTTO_APP_ORIGIN;
+
+    if (configured) {
+        return configured;
+    }
+
+    if (window.location.origin !== 'null') {
+        return window.location.origin;
+    }
+
+    throw new Error(
+        'VITE_GROTTO_APP_ORIGIN is required to create invitation links in the desktop App.'
+    );
 }

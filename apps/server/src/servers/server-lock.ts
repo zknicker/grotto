@@ -14,9 +14,9 @@ import { serversTable } from '../postgres/schema.ts';
  * (Server, then read markers) and a read marker (its own row, then the Server
  * event cursor) would otherwise form a deadlock cycle.
  *
- * Transactions that take it: message send, read marking, Thread following, DM
- * creation, invitation creation/acceptance/revocation, role change, removal,
- * and leaving.
+ * Transactions that take it: Server rename, message send, read marking, Thread
+ * following, DM creation, invitation creation/acceptance/revocation, role
+ * change, removal, and leaving.
  */
 export async function lockServerRow(
     tx: Pick<GrottoDatabase, 'execute'>,

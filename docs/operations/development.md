@@ -37,7 +37,10 @@ bun run --filter @tavern/server dev:grotto
 ```
 
 Point the App at it with `VITE_GROTTO_SERVER_ORIGIN` (default port `8090`) so
-the `/s` routes reach it. `bun run dev` starts the local sidecar only.
+the `/s` routes reach it. A packaged desktop build that issues invitations also
+needs `VITE_GROTTO_APP_ORIGIN`, the browser-reachable App origin used in the
+manual link; keep it equal to the Server's `APP_ORIGIN`. Web development falls
+back to the current browser origin. `bun run dev` starts the local sidecar only.
 
 The dev stack uses worktree-isolated development state by default:
 

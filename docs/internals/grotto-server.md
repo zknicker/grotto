@@ -209,6 +209,8 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 - `/s/<slug>/members` manages humans and invitations.
 - `/invite/<token>` is where an invited human accepts. It sits outside the
   `/s/<slug>` branch because a Server address may itself be `invite` or `join`.
+  Manual links use `VITE_GROTTO_APP_ORIGIN` when configured, so a packaged App
+  never exposes its private `file:` URL; that origin must match `APP_ORIGIN`.
 
 These routes are a separate top-level route-tree branch and run on their own
 client — `apps/website/src/lib/grotto-server.tsx`

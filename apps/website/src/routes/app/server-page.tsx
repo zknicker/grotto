@@ -8,7 +8,6 @@ import { ServerSwitcher } from '../../features/servers/server-switcher.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
 import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
-import { useServerEvents } from '../../hooks/servers/use-server-events.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
 
 /** One Grotto server opened at `/s/<slug>` with its `#all` Channel. */
@@ -19,7 +18,6 @@ export function ServerPage() {
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
 
-    useServerEvents(server.data?.id);
     useServerChatEvents(server.data?.id);
 
     if (server.error) {

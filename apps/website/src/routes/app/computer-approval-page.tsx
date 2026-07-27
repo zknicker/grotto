@@ -19,7 +19,9 @@ export function ComputerApprovalPage() {
                 </p>
             </div>
             {approval.isSuccess ? (
-                <p className="text-sm text-muted-foreground">Approved. Return to Grotto Computer.</p>
+                <p className="text-muted-foreground text-sm">
+                    Approved. Return to Grotto Computer.
+                </p>
             ) : (
                 <Button
                     disabled={invalid}
@@ -29,7 +31,9 @@ export function ComputerApprovalPage() {
                     Approve Computer
                 </Button>
             )}
-            {approval.error ? <p className="text-destructive text-sm">{approval.error.message}</p> : null}
+            {approval.error ? (
+                <p className="text-destructive text-sm">{approval.error.message}</p>
+            ) : null}
         </main>
     );
 }

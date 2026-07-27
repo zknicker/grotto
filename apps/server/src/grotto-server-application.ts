@@ -33,8 +33,7 @@ import { purgeDeletedServers } from './servers/delete-server.ts';
 
 /**
  * The hosted Grotto Server. It serves only the Grotto Server contract over
- * HTTP and WebSocket, backed by PostgreSQL and Clerk. The pre-WS6 local
- * sidecar is a separate application with its own router and SQLite database.
+ * HTTP and WebSocket, backed by PostgreSQL and Clerk.
  */
 export interface GrottoServerApplicationOptions {
     appOrigin: string;

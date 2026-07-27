@@ -14,8 +14,6 @@ afterEach(() => {
 
 describe('desktop runtime origin', () => {
     test('uses the Vite proxy in dev Electron', async () => {
-        let ensuredSidecar = false;
-
         Object.defineProperty(globalThis, 'window', {
             configurable: true,
             value: {
@@ -25,10 +23,6 @@ describe('desktop runtime origin', () => {
                 tavernDesktop: {
                     checkForUpdate: async () => undefined,
                     downloadUpdate: async () => undefined,
-                    ensureServerOrigin: async () => {
-                        ensuredSidecar = true;
-                        return 'http://127.0.0.1:3180';
-                    },
                     getInfo: async () => ({
                         isPackaged: false,
                         platform: process.platform,
@@ -44,6 +38,5 @@ describe('desktop runtime origin', () => {
 
         expect(isPackagedDesktopApp()).toBe(false);
         expect(await ensureDesktopServerOrigin()).toBe('');
-        expect(ensuredSidecar).toBe(false);
     });
 });

@@ -3,11 +3,7 @@ import { createReadStream } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-export async function findGrottoServerReleaseAssets({
-    releaseRoot,
-    sourceRevision,
-    version,
-}) {
+export async function findGrottoServerReleaseAssets({ releaseRoot, sourceRevision, version }) {
     if (!/^[0-9a-f]{40}$/u.test(sourceRevision)) {
         throw new Error('Grotto Server release revision must be a full lowercase Git SHA.');
     }

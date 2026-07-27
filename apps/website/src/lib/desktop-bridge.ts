@@ -17,7 +17,6 @@ export interface TavernDesktopBridge {
     checkForUpdate: () => Promise<void>;
     closeWindow: () => Promise<void>;
     downloadUpdate: () => Promise<void>;
-    ensureServerOrigin: () => Promise<string>;
     getInfo: () => Promise<{ isPackaged: boolean; platform: NodeJS.Platform; version: string }>;
     /** Main → renderer: the Developer menu toggled dev mode for this device. */
     onDevModeToggle?: (listener: () => void) => () => void;

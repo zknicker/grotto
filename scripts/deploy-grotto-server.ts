@@ -33,9 +33,7 @@ export function parseGrottoDeployArguments(args: string[]) {
             !extra.length
         )
     ) {
-        throw new Error(
-            'Usage: grotto-server-deploy install ARTIFACT_PATH vX.Y.Z FULL_GIT_SHA'
-        );
+        throw new Error('Usage: grotto-server-deploy install ARTIFACT_PATH vX.Y.Z FULL_GIT_SHA');
     }
     assertGrottoRevision(sourceRevision);
     return {

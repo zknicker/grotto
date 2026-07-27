@@ -3,8 +3,13 @@ import type { AgentRuntimeAgentSession } from '@tavern/api';
 import { readConfigValue } from '../config.ts';
 import { log } from '../log.ts';
 import { createAgentEngineExecutor } from './agent-engine-executor.ts';
-import type { AgentExecutor, AgentExecutorInput } from './agent-executor.ts';
-import { ensureCurrentAgentSession } from './agent-session-store.ts';
+import {
+    type AgentExecutor,
+    type AgentExecutorInput,
+    type AgentExecutorResult,
+    AgentSessionResumeRejectedError,
+} from './agent-executor.ts';
+import { ensureCurrentAgentSession, startNewAgentSession } from './agent-session-store.ts';
 import {
     type AgentTurn,
     cancelAgentTurn,
@@ -31,6 +36,7 @@ import { composeDrainDelivery, type DrainDelivery } from './inbox-drain.ts';
 import { noticeBusyAgent } from './inbox-notices.ts';
 import { publishRuntimeEvent } from './runtime-events.ts';
 import { listServedCursors } from './served-ledger.ts';
+import { recordSessionRotationReceipt } from './session-receipts.ts';
 import { registerTurnDelivery } from './turn-delivery.ts';
 import { captureTurnWorkspaceBaseline, settleTurnFileEvidence } from './turn-file-evidence.ts';
 
@@ -95,6 +101,25 @@ export function scheduleAgentStart(agentId: string) {
     const session = ensureCurrentAgentSession({ agentId });
     ensureStartTurn(agentId, session);
     void drainAgent(agentId);
+}
+
+/**
+ * Restart lifecycle action (specs/sessions.md): resume the current session
+ * unchanged. It interrupts any live turn and re-drives pending work on the
+ * SAME session — it rotates neither the session generation nor the agent
+ * token and lands no receipt (those belong to a reset). A pending model or
+ * runtime switch still takes effect on the next turn, exactly as for any wake.
+ */
+export async function restartAgent(agentId: string) {
+    const session = ensureCurrentAgentSession({ agentId });
+    const stopped = await stopAgentTurns(agentId);
+    // stopAgentTurns re-drives after interrupting a live turn. When nothing was
+    // running, resume any backlog so the current session picks up where it
+    // left off.
+    if (!stopped && listPendingInboxTargets(session.id).length > 0) {
+        scheduleAgentDrain(agentId);
+    }
+    return { session, stopped };
 }
 
 /**
@@ -205,6 +230,36 @@ function startTurnPrompt(session: AgentRuntimeAgentSession) {
     ].join('\n');
 }
 
+// Resume recovery rotates to a fresh generation carrying the same effective
+// model — this is repair, not a model switch — and records a receipt so the
+// recovery is visible in activity (agent-activity.ts).
+function recoverAgentSessionAfterResumeFailure(
+    agentId: string,
+    previous: AgentRuntimeAgentSession
+): AgentRuntimeAgentSession {
+    const fresh = startNewAgentSession({ agentId, effectiveModel: previous.effectiveModel });
+    recordSessionRotationReceipt({
+        agentId,
+        reason: 'recovery',
+        sessionId: fresh.id,
+        text: 'Earlier runtime context could not be restored, so this agent started a fresh session. Recover from Grotto history and MEMORY.md.',
+    });
+    publishAgentTurnStateChange(agentId);
+    log.warn('Rotated agent session after resume rejection', {
+        agentId,
+        from: previous.id,
+        to: fresh.id,
+    });
+    return fresh;
+}
+
+function resumeRecoveryPrompt(prompt: string) {
+    return [
+        'Fresh session: earlier runtime context could not be restored. Your workspace and MEMORY.md are intact — recover from Grotto history and MEMORY.md/notes before continuing.',
+        prompt,
+    ].join('\n\n');
+}
+
 async function drainAgent(agentId: string) {
     if (activeAgentRuns.has(agentId)) {
         return;
@@ -264,12 +319,31 @@ async function drainAgent(agentId: string) {
         return;
     }
 
+    let activeSession = session;
     try {
-        const result = await executeAgentTurnWithTimeout(input);
+        let result: AgentExecutorResult;
+        try {
+            result = await executeAgentTurnWithTimeout(input);
+        } catch (error) {
+            if (!(error instanceof AgentSessionResumeRejectedError)) {
+                throw error;
+            }
+            // Runtime-owned resume recovery (specs/sessions.md): the stored
+            // runtime session is gone or replay was rejected. Rotate to a fresh
+            // generation and cold-start once, directing recovery from Grotto
+            // history and MEMORY.md. A failure of this single cold start falls
+            // through to the turn-failure path, leaving the agent offline.
+            activeSession = recoverAgentSessionAfterResumeFailure(agentId, session);
+            result = await executeAgentTurnWithTimeout({
+                ...input,
+                agentSession: activeSession,
+                prompt: resumeRecoveryPrompt(input.prompt),
+            });
+        }
         await settleTurnFileEvidence({ agentId, baseline: workspaceBaseline, runId: turn.id });
         if (getAgentTurn(turn.id)?.status === 'running') {
             completeAgentTurn({ contextTokens: result.contextTokens, id: turn.id });
-            settleTurnCursors(session.id, delivery, servedSnapshot);
+            settleTurnCursors(activeSession.id, delivery, servedSnapshot);
             clearInboxPiercesForRun({ runId: turn.id });
             publishAgentTurnStateChange(agentId);
             notifyTurnSettled(turn.id, { status: 'completed' });

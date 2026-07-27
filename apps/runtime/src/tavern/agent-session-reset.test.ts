@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { agentSkillsDir } from '../agent-engine/skill-library.ts';
 import { closeDb, initTestDb } from '../db/connection.ts';
 import { ensureRuntimeSchema } from '../db/schema.ts';
 import { resetAgentSession } from './agent-session-reset.ts';
@@ -40,6 +41,9 @@ describe('agent session reset', () => {
         process.env.TAVERN_RUNTIME_ROOT = previousRuntimeRoot;
         await fs.rm(workspaceDir, { force: true, recursive: true });
         await fs.rm(runtimeRoot, { force: true, recursive: true });
+        // AGENT_HOME is frozen to the hermetic vitest root, so the skill
+        // library lands outside runtimeRoot; clean it between cases.
+        await fs.rm(agentSkillsDir('agt_otto'), { force: true, recursive: true });
     });
 
     it('session reset starts the next generation and keeps the workspace', async () => {
@@ -55,6 +59,20 @@ describe('agent session reset', () => {
         );
     });
 
+    it('session reset preserves the canonical skill library', async () => {
+        ensureCurrentAgentSession({ agentId: 'agt_otto' });
+        const skillsDir = agentSkillsDir('agt_otto');
+        await fs.mkdir(path.join(skillsDir, 'authored'), { recursive: true });
+        await fs.writeFile(path.join(skillsDir, 'authored', 'SKILL.md'), '# authored');
+
+        await resetAgentSession({ agentId: 'agt_otto', kind: 'session' });
+
+        // Skills persist across a session reset (specs/sessions.md).
+        await expect(
+            fs.readFile(path.join(skillsDir, 'authored', 'SKILL.md'), 'utf8')
+        ).resolves.toBe('# authored');
+    });
+
     it('full reset wipes the workspace back to the factory starter kit', async () => {
         ensureCurrentAgentSession({ agentId: 'agt_otto' });
 
@@ -67,6 +85,39 @@ describe('agent session reset', () => {
         const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
         expect(memory).toMatch(/^# Otto\n/u);
         expect(memory).toContain('notes/practices/task-claim-lock.md');
+    });
+
+    it('full reset recreates the skill library from factory defaults', async () => {
+        ensureCurrentAgentSession({ agentId: 'agt_otto' });
+        const skillsDir = agentSkillsDir('agt_otto');
+        await fs.mkdir(path.join(skillsDir, 'authored'), { recursive: true });
+        await fs.writeFile(path.join(skillsDir, 'authored', 'SKILL.md'), '# authored');
+
+        await resetAgentSession({ agentId: 'agt_otto', kind: 'full' });
+
+        // The authored skill is gone; the seeded managed library is restored.
+        await expect(
+            fs.readFile(path.join(skillsDir, 'authored', 'SKILL.md'), 'utf8')
+        ).rejects.toThrow();
+        await expect(
+            fs.readFile(path.join(skillsDir, 'tavern-agent', 'SKILL.md'), 'utf8')
+        ).resolves.toContain('# Grotto Agent');
+    });
+
+    it('records the rotation reason on the receipt', async () => {
+        ensureCurrentAgentSession({ agentId: 'agt_otto' });
+
+        await resetAgentSession({ agentId: 'agt_otto', kind: 'session' });
+        await resetAgentSession({ agentId: 'agt_otto', kind: 'full' });
+
+        const rows = listMessages('cht_agt_otto_dm', { limit: 10 });
+        const reasons = rows.messages
+            .filter((message) => message.role === 'system')
+            .map(
+                (message) => (message.metadata as { runtime?: { reason?: string } }).runtime?.reason
+            );
+        expect(reasons).toContain('session');
+        expect(reasons).toContain('full');
     });
 
     it('lands a durable system receipt in the agent DM', async () => {

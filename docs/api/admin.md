@@ -21,7 +21,7 @@ It is not a second product API.
 - **Runtime events.** Recent event lists and websocket notifications for
   operational state.
 - **Agent execution.** Engine config, presence, activity, read-only inbox
-  visibility, stop, and session reset.
+  visibility, stop, restart, and session reset.
 - **Operational records.** Agents, sessions, jobs, models, skills, bindings,
   and agent files.
 - **Runtime chat relay.** The private websocket Runtime uses for accepted chat
@@ -35,7 +35,7 @@ It is not a second product API.
 | Runtime update                  | `/update/status`, `/update`, `/update/restart`                                                                                                                                                                                                                                                                                             |
 | Runtime events                  | `/events`, websocket `/events`                                                                                                                                                                                                                                                                                                             |
 | Agent execution                 | `/agent-engine/config`, `/agent-env`                                                                                                                                                                                                                                                                                |
-| Agent presence, activity, inbox | `/agents/presence`, `/agents/{id}/activity`, `/agents/{id}/inbox`, `/agents/{id}/stop`, `/agents/{id}/session/reset`                                                                                                                                                                                                                       |
+| Agent presence, activity, inbox | `/agents/presence`, `/agents/{id}/activity`, `/agents/{id}/inbox`, `/agents/{id}/stop`, `/agents/{id}/restart`, `/agents/{id}/session/reset`                                                                                                                                                                                                                       |
 | Timezone settings               | `/timezone/settings`                                                                                                                                                                                                                                                                                                                       |
 | Browser                         | `/browser/settings`, `/browser/open`, `/browser/restart`                                                                                                                                                                                                                                                                                   |
 | Agents and files                | `/agents`, `/agents/{id}`, `/agents/{id}/config`, `/agents/{id}/files`, `/agents/{id}/files/{path}`, `/workspace/agents/{id}/files`, `/workspace/agents/{id}/files/{path}`                                                                                                                                       |
@@ -57,7 +57,11 @@ definitions own their payload schema and default input.
 pending targets, muted channels, and followed threads (see
 [Agent Inbox](../../specs/inbox.md)). `/agents/{id}/stop` is the agent-scoped
 interrupt — it stops the agent's running turn and clears its queued backlog
-wherever it is running, not a single chat's turn. Agents themselves reach
+wherever it is running, not a single chat's turn. `/agents/{id}/restart` is the
+lifecycle repair action — it interrupts any live turn and resumes the current
+session unchanged, rotating neither the session generation nor the agent token
+and landing no receipt (unlike `/agents/{id}/session/reset`, which rotates both
+and lands a receipt; see [Sessions](../../specs/sessions.md)). Agents themselves reach
 Runtime through a separate agent-token CLI surface (`/api/agent/*`, not this
 admin surface) for sending, reading history, and pulling pending messages —
 see [Agent Inbox](../../specs/inbox.md) and

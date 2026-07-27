@@ -30,7 +30,11 @@ import { readAnthropicApiKey } from '../models/provider-registry.ts';
 import { kimiCodingBaseUrl, kimiCodingModelDefinitions } from '../models/provider-sources/kimi.ts';
 import { recordInjectedSkillUsage } from '../skills/telemetry.ts';
 import { createWebToolsForAgent } from '../web/agent-tools.ts';
-import type { AgentExecutor, AgentExecutorInput } from './agent-executor.ts';
+import {
+    type AgentExecutor,
+    type AgentExecutorInput,
+    AgentSessionResumeRejectedError,
+} from './agent-executor.ts';
 import { buildAgentInstructionBundle } from './agent-instructions.ts';
 import {
     recordAgentSessionInstructionsHash,
@@ -135,13 +139,15 @@ async function executeHarnessTurn(
             if (!resumeFrom) {
                 throw error;
             }
-            // A stored session can predate sandbox or work-directory changes;
-            // continuing fresh beats failing the turn.
-            log.warn('Agent session resume failed; starting a fresh session', {
+            // The stored runtime session is gone or replay was rejected. Report
+            // it so Runtime rotates the generation and cold-starts once, making
+            // the recovery visible (specs/sessions.md); never continue on this
+            // generation in place.
+            log.warn('Agent session resume rejected; reporting for recovery', {
                 err: error,
                 runId: input.runId,
             });
-            session = await agent.createSession({ abortSignal, sessionId });
+            throw new AgentSessionResumeRejectedError(input.agentSession.id, { cause: error });
         }
         activeTurn.session = session;
 
@@ -165,6 +171,11 @@ async function executeHarnessTurn(
     } catch (error) {
         activeTurn.session = undefined;
         await session?.destroy().catch(() => {});
+        // Resume rejection is a Runtime-owned recovery signal, not a turn
+        // failure; hand it through untouched so the runner can rotate.
+        if (error instanceof AgentSessionResumeRejectedError) {
+            throw error;
+        }
         throw formatHarnessExecutionError(input, error);
     }
 }

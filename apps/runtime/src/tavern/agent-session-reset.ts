@@ -1,21 +1,22 @@
 import fs from 'node:fs/promises';
 import { closeMcpClientsForAgent } from '../agent-engine/mcp-clients.ts';
+import { agentSkillsDir, seedManagedSkills } from '../agent-engine/skill-library.ts';
 import { getDb } from '../db/connection.ts';
 import { registerAgentWorkspace } from '../workspace/instructions.ts';
 import { seedAgentWorkspace } from '../workspace/starter-kit.ts';
 import { startNewAgentSession } from './agent-session-store.ts';
 import { rotateAgentToken } from './agent-tokens.ts';
 import { getStoredAgent } from './agents-store.ts';
-import { createAgentParticipantId, createMessageId } from './chat-api/ids.ts';
-import { createMessage, listChatsForAgentParticipant } from './chat-api/index.ts';
+import { recordSessionRotationReceipt } from './session-receipts.ts';
 
 // Manual reset contract (specs/sessions.md): human-initiated, agent-scoped.
-// "Session reset" starts a fresh global session; workspace and memory
-// persist. "Full reset" wipes the workspace back to the factory starter kit
-// (starter MEMORY.md + practice notes — the same seed a newborn agent gets;
-// the creation-time archetype is not stored, so its lane note is not
-// re-seeded). Restart needs no Runtime action — turns already resume the
-// stored session as-is.
+// "Session reset" starts a fresh global session; workspace, MEMORY.md, and
+// skills persist. "Full reset" also recreates the workspace and the agent's
+// canonical skill library from the factory starter kit — the same seed a
+// newborn agent gets (the creation-time archetype is not stored, so its lane
+// note is not re-seeded). Both rotate the session generation and agent token
+// and land a receipt. Restart is a separate lifecycle action that does none
+// of this (agent-turn-runner.ts): it resumes the current session unchanged.
 
 export type AgentResetKind = 'full' | 'session';
 
@@ -27,18 +28,20 @@ export async function resetAgentSession(input: {
     const kind = input.kind ?? 'session';
     if (kind === 'full') {
         await wipeAgentWorkspace(input.agentId);
+        await resetAgentSkillLibrary(input.agentId);
     }
     await closeMcpClientsForAgent(input.agentId);
     const session = startNewAgentSession({ agentId: input.agentId });
     rotateAgentToken(input.agentId);
-    recordSessionResetNotice({
+    recordSessionRotationReceipt({
         agentId: input.agentId,
+        reason: kind,
         sessionId: session.id,
         text:
             input.noticeText ??
             (kind === 'full'
-                ? 'Started completely fresh: new session and a factory-fresh workspace.'
-                : 'Started a fresh session. New messages start with fresh context.'),
+                ? 'Started completely fresh: new session, a factory-fresh workspace, and default skills. Earlier files and MEMORY.md are gone.'
+                : 'Started a fresh session. New messages start with fresh context; your workspace and MEMORY.md are intact.'),
     });
     return { session };
 }
@@ -62,27 +65,12 @@ async function wipeAgentWorkspace(agentId: string) {
     });
 }
 
-// Evidence lands as a durable system message in the agent's built-in DM —
-// the agent's home surface — since the reset is agent-scoped, not
-// chat-scoped. (Quiet system receipt; per-turn response rows retired, I1.)
-function recordSessionResetNotice(input: { agentId: string; sessionId: string; text: string }) {
-    const participantId = createAgentParticipantId(input.agentId);
-    const dm = listChatsForAgentParticipant(participantId).find((chat) => chat.kind === 'dm');
-    if (!dm) {
-        return;
-    }
-    createMessage(dm.id, {
-        author_id: 'sys_session_reset',
-        content: input.text,
-        id: createMessageId(),
-        metadata: {
-            runtime: {
-                agentId: input.agentId,
-                notice: 'new_session',
-                sessionId: input.sessionId,
-                source: 'session-reset',
-            },
-        },
-        role: 'system',
-    });
+// Full reset recreates the agent's canonical skill library too (ADR 0011):
+// authored or edited skills are discarded back to the seeded managed set.
+// Server identity, model configuration, and MCP grants are untouched.
+async function resetAgentSkillLibrary(agentId: string) {
+    const skillsDir = agentSkillsDir(agentId);
+    await fs.rm(skillsDir, { force: true, recursive: true });
+    await fs.mkdir(skillsDir, { recursive: true });
+    await seedManagedSkills({ skillsDir });
 }

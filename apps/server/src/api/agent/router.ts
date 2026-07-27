@@ -13,6 +13,7 @@ import { onAgentInstructionsUpdate } from './on-instructions-update.ts';
 import { onAgentUpdate } from './on-update.ts';
 import { listAgentPresenceRoute } from './presence.ts';
 import { getPrimaryAgentRoute } from './primary.ts';
+import { restartAgentRoute } from './restart.ts';
 import { saveAgentProfile } from './save-profile.ts';
 import { saveAgentSkillsProcedure } from './save-skills.ts';
 import { getAgentSessionProcedure, resetAgentSessionProcedure } from './session.ts';
@@ -48,6 +49,7 @@ export const agentRouter = createRouter({
     onUpdate: onAgentUpdate,
     primary: getPrimaryAgentRoute,
     resetSession: resetAgentSessionProcedure,
+    restart: restartAgentRoute,
     saveEnvSettings: saveAgentEnvSettingsProcedure,
     saveProfile: saveAgentProfile,
     saveSkills: saveAgentSkillsProcedure,

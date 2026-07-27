@@ -1,4 +1,5 @@
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
+import type { ClerkUsers } from '../identity/clerk-users.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 
 /**
@@ -14,11 +15,14 @@ export interface GrottoContext {
      * connectionParams. Null when the request is unauthenticated.
      */
     clerkSessionToken: string | null;
+    /** Verified-email lookup, used only by the invitation boundary. */
+    clerkUsers: ClerkUsers;
     grottoDb: GrottoDatabase;
 }
 
 export interface GrottoContextDependencies {
     clerkSessions: ClerkSessions;
+    clerkUsers: ClerkUsers;
     grottoDb: GrottoDatabase;
 }
 

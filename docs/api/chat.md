@@ -25,7 +25,7 @@ The App calls the hosted Server directly over typed tRPC:
 | Procedure | Contract |
 | --- | --- |
 | `chat.list` | Accessible Channels and DMs with Server-owned unread counts |
-| `chat.ensureDm` | Resolve or create the caller's sorted two-human DM pair |
+| `chat.ensureDm` | Resolve or create the sorted two-human DM for both current membership stints |
 | `chat.messages` | Stable sequence page for one authorized Chat |
 | `chat.send` | Immutable message create; optional anchor target creates/posts to a child Thread |
 | `chat.markRead` | Monotonic reader-derived high-water mark |
@@ -39,12 +39,14 @@ The App calls the hosted Server directly over typed tRPC:
 
 Every input carries `serverId`; the Server derives the actor or reader from the
 verified Clerk User and current Server membership. Channel access comes from
-`channel_participants`. A DM's sorted two-User pair on `chats` is its sole
-membership truth.
+`channel_participants`. A DM records the sorted two-User pair plus each
+membership's current stint. A returning human cannot reopen a DM or child
+Thread from a former stint; the peer who never left retains that history.
 
-Each DM names the other human with `peerUserId`. The App can open a DM from an
-author already visible in an accessible transcript; there is no member
-directory or member-management surface in this slice.
+Each DM names the other human with `peerUserId`. The App opens a DM from an
+author already visible in an accessible transcript; the member directory is a
+management surface and starts no Chats. Invitation and membership procedures
+live in [Grotto Server](../internals/grotto-server.md#membership).
 
 Message order is the positive per-Chat `sequence`, allocated while the Chat row
 is transactionally locked. `(server_id, chat_id, nonce)` is unique. Retrying

@@ -3,6 +3,7 @@ export * from './schema/chat-events.ts';
 export * from './schema/chat-messages.ts';
 export * from './schema/chat-reads.ts';
 export * from './schema/chats.ts';
+export * from './schema/server-invitations.ts';
 export * from './schema/server-memberships.ts';
 export * from './schema/servers.ts';
 export * from './schema/thread-follows.ts';

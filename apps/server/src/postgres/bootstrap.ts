@@ -29,19 +29,58 @@ const schemaStatements = [
         role text NOT NULL CONSTRAINT server_memberships_role
             CHECK (role IN ('owner', 'admin', 'member')),
         revoked_at timestamptz,
+        joined_at timestamptz NOT NULL DEFAULT now(),
+        stint integer NOT NULL DEFAULT 1
+            CONSTRAINT server_memberships_positive_stint CHECK (stint > 0),
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
     `CREATE UNIQUE INDEX IF NOT EXISTS server_memberships_server_user_key
         ON server_memberships (server_id, user_id);`,
     `CREATE INDEX IF NOT EXISTS server_memberships_user_idx
         ON server_memberships (user_id);`,
+    `CREATE TABLE IF NOT EXISTS server_invitations (
+        id text PRIMARY KEY NOT NULL,
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        email text NOT NULL
+            CONSTRAINT server_invitations_email_normalized
+            CHECK (email = lower(email) AND email <> ''),
+        token_hash text NOT NULL,
+        invited_by_user_id text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        expires_at timestamptz NOT NULL,
+        revoked_at timestamptz,
+        accepted_at timestamptz,
+        accepted_user_id text,
+        CONSTRAINT server_invitations_inviter_membership_fk
+            FOREIGN KEY (server_id, invited_by_user_id)
+            REFERENCES server_memberships (server_id, user_id),
+        CONSTRAINT server_invitations_accepted_membership_fk
+            FOREIGN KEY (server_id, accepted_user_id)
+            REFERENCES server_memberships (server_id, user_id),
+        CONSTRAINT server_invitations_terminal CHECK (
+            (accepted_at IS NULL) = (accepted_user_id IS NULL)
+            AND NOT (accepted_at IS NOT NULL AND revoked_at IS NOT NULL)
+        )
+    );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS server_invitations_token_hash_key
+        ON server_invitations (token_hash);`,
+    // At most one live invitation per address per Server. Expiry cannot join
+    // this predicate — index predicates must be immutable and \`now()\` is not —
+    // so issuing a fresh invitation first retires a lapsed one.
+    `CREATE UNIQUE INDEX IF NOT EXISTS server_invitations_live_email_key
+        ON server_invitations (server_id, email)
+        WHERE revoked_at IS NULL AND accepted_at IS NULL;`,
+    `CREATE INDEX IF NOT EXISTS server_invitations_server_idx
+        ON server_invitations (server_id, created_at DESC);`,
     `CREATE TABLE IF NOT EXISTS chats (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         kind text NOT NULL CONSTRAINT chats_kind CHECK (kind IN ('channel', 'dm', 'thread')),
         name text,
         is_all boolean NOT NULL DEFAULT false,
+        dm_member_one_stint integer,
         dm_member_one_user_id text,
+        dm_member_two_stint integer,
         dm_member_two_user_id text,
         parent_chat_id text,
         parent_chat_kind text,
@@ -55,7 +94,9 @@ const schemaStatements = [
             (
                 kind = 'channel'
                 AND name IS NOT NULL
+                AND dm_member_one_stint IS NULL
                 AND dm_member_one_user_id IS NULL
+                AND dm_member_two_stint IS NULL
                 AND dm_member_two_user_id IS NULL
                 AND parent_chat_id IS NULL
                 AND parent_chat_kind IS NULL
@@ -66,7 +107,9 @@ const schemaStatements = [
                 kind = 'dm'
                 AND name IS NULL
                 AND is_all = false
+                AND dm_member_one_stint IS NOT NULL
                 AND dm_member_one_user_id IS NOT NULL
+                AND dm_member_two_stint IS NOT NULL
                 AND dm_member_two_user_id IS NOT NULL
                 AND parent_chat_id IS NULL
                 AND parent_chat_kind IS NULL
@@ -77,7 +120,9 @@ const schemaStatements = [
                 kind = 'thread'
                 AND name IS NULL
                 AND is_all = false
+                AND dm_member_one_stint IS NULL
                 AND dm_member_one_user_id IS NULL
+                AND dm_member_two_stint IS NULL
                 AND dm_member_two_user_id IS NULL
                 AND parent_chat_id IS NOT NULL
                 AND parent_chat_kind IN ('channel', 'dm')
@@ -99,7 +144,13 @@ const schemaStatements = [
     `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_channel_name_key
         ON chats (server_id, name) WHERE kind = 'channel';`,
     `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_dm_pair_key
-        ON chats (server_id, dm_member_one_user_id, dm_member_two_user_id) WHERE kind = 'dm';`,
+        ON chats (
+            server_id,
+            dm_member_one_user_id,
+            dm_member_two_user_id,
+            dm_member_one_stint,
+            dm_member_two_stint
+        ) WHERE kind = 'dm';`,
     `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_thread_anchor_key
         ON chats (server_id, parent_chat_id, anchor_message_id) WHERE kind = 'thread';`,
     `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_all_key

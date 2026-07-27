@@ -50,7 +50,7 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./bin/grotto-server-bootstrap');
     expect(paths).toContain('./bin/grotto-server-backup');
     expect(paths).toContain('./bin/grotto-server-restore');
-    expect(paths).toContain('./bin/grotto-server-monitor');
+    expect(paths).not.toContain('./bin/grotto-server-monitor');
     expect(paths).toContain('./bin/grotto-server-deploy');
     expect(paths).toContain('./bin/activate-grotto-server');
     expect(paths).toContain('./release-files.sha256');
@@ -61,7 +61,7 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./launchd/com.grotto.server.plist');
     expect(paths).toContain('./launchd/com.grotto.tunnel.plist');
     expect(paths).toContain('./launchd/com.grotto.backup.plist');
-    expect(paths).toContain('./launchd/com.grotto.monitor.plist');
+    expect(paths).not.toContain('./launchd/com.grotto.monitor.plist');
     expect(paths).not.toContain('./launchd/com.grotto.postgresql.plist');
     expect(paths).toContain('./host-services/grotto-server-activation.sudoers');
     expect(paths).toContain('./operations/install-colima-boot');

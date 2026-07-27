@@ -11,10 +11,17 @@ test('relays one callback only to the attachment that started it', async () => {
     const frames: Record<string, unknown>[] = [];
     const connections = new ComputerConnections();
     connections.register(computerId, {
+        ordinary: true,
         send: (frame) => frames.push(asFrame(frame)),
         serverId: 's',
+        updatePhase: 'idle',
     });
-    connections.register(otherComputerId, { send: () => undefined, serverId: 's' });
+    connections.register(otherComputerId, {
+        ordinary: true,
+        send: () => undefined,
+        serverId: 's',
+        updatePhase: 'idle',
+    });
     const relay = new HostedMcpOAuthRelay(connections);
 
     const started = relay.start({
@@ -69,8 +76,10 @@ test('expires routing state without forwarding a callback code', async () => {
     const frames: Record<string, unknown>[] = [];
     const connections = new ComputerConnections();
     connections.register(computerId, {
+        ordinary: true,
         send: (frame) => frames.push(asFrame(frame)),
         serverId: 's',
+        updatePhase: 'idle',
     });
     const relay = new HostedMcpOAuthRelay(connections, () => now, 50);
     const started = relay.start({
@@ -99,8 +108,10 @@ test('an offline attachment consumes the attempt and teaches retry', async () =>
     const frames: Record<string, unknown>[] = [];
     const connections = new ComputerConnections();
     connections.register(computerId, {
+        ordinary: true,
         send: (frame) => frames.push(asFrame(frame)),
         serverId: 's',
+        updatePhase: 'idle',
     });
     const relay = new HostedMcpOAuthRelay(connections);
     const started = relay.start({

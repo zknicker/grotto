@@ -93,6 +93,35 @@ prereleases. Cut an annotated patch release for an urgent fix. The Computer and
 optional Runtime remain separate operator-triggered release streams under their
 existing rules.
 
+## Computer Release Contract
+
+Grotto Computer has one production stream. Its latest descriptor is a JSON
+document at `GROTTO_COMPUTER_RELEASE_MANIFEST_URL` (default
+`https://releases.grotto.sh/computer/latest.json`):
+
+```json
+{
+  "release": {
+    "sha256": "<lowercase tarball sha256>",
+    "tarballUrl": "https://…/grotto-computer-X.Y.Z.tgz",
+    "version": "X.Y.Z"
+  },
+  "signature": "<base64 Ed25519 signature>"
+}
+```
+
+The signature covers the compact JSON release object in `sha256`,
+`tarballUrl`, `version` order. The Computer install records the PEM public key
+from `GROTTO_COMPUTER_UPDATE_PUBLIC_KEY` under its stable data root. Settings
+and `grotto-computer upgrade` both target this same descriptor. The Computer
+verifies the signature and downloaded SHA-256 before invoking npm; failed
+verification never reaches install or attachment/Agent data.
+
+Starting the Computer never checks or installs a release. An Owner or Admin
+must choose **Check** and **Update** in the attached Server's Computer settings,
+or an operator must run `grotto-computer upgrade` locally. There are no channels,
+pins, prerelease tracks, automatic startup installs, or rollback copies.
+
 ## Runtime Release Flow
 
 Use this lane only when the Runtime package must ship.

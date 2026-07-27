@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/primitives/button.tsx';
+import { ComputerUpdateControls } from '../../features/servers/computer-update-controls.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
@@ -12,7 +13,10 @@ export function ServerComputersPage() {
     const server = useServer(slug);
     const computers = grottoTrpc.computer.list.useQuery(
         { serverId: server.data?.id ?? '' },
-        { enabled: Boolean(server.data) }
+        {
+            enabled: Boolean(server.data),
+            refetchInterval: 1000,
+        }
     );
     const utils = grottoTrpc.useUtils();
     const [removing, setRemoving] = React.useState<string | null>(null);
@@ -83,6 +87,7 @@ export function ServerComputersPage() {
                                     No runtimes reported yet.
                                 </p>
                             )}
+                            <ComputerUpdateControls computer={computer} serverId={server.data.id} />
                             <Button
                                 className="self-start"
                                 onClick={() => setRemoving(computer.id)}

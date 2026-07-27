@@ -10,6 +10,7 @@ import { reconcileHostedAttachments } from './attachments/reconcile-attachments.
 import { ComputerConnections } from './computers/connections.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
 import { startComputerAttachmentSocket } from './computers/socket.ts';
+import { productionComputerManifestUrl } from './computers/update.ts';
 import { createGrottoContextFactory } from './grotto-api/context.ts';
 import { grottoRouter } from './grotto-api/router.ts';
 import { startGrottoWebSocketServer } from './grotto-api/ws.ts';
@@ -46,6 +47,8 @@ export interface GrottoServerApplicationOptions {
     clerkSecretKey?: string;
     /** Overrides the Clerk verified-email boundary; tests stand in for it. */
     clerkUsers?: ClerkUsers;
+    /** Signed latest-production Computer release descriptor. */
+    computerReleaseManifestUrl?: string;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
     databaseUrl: string;
     /** Controlled time seam for deterministic reminder lifecycle tests. */
@@ -89,6 +92,8 @@ export async function createGrottoServerApplication(
                     secretKey: options.clerkSecretKey,
                 }),
             computerConnections,
+            computerReleaseManifestUrl:
+                options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
             grottoDb: grotto.db,
             mcpOAuthRelay,
         });

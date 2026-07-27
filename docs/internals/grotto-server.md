@@ -95,7 +95,7 @@ PostgreSQL owns the hosted collaboration tables
 | `users` | Grotto Users keyed by a unique `clerk_user_id` |
 | `servers` | Opaque id, address/display fields, and the commit-serialized Chat event cursor |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
-| `computers` / `computer_setup_approvals` | Server-scoped Computer credentials (hash only), one-use expiring browser approvals, and the last authenticated handshake facts |
+| `computers` / `computer_setup_approvals` | Server-scoped Computer credentials (hash only), one-use expiring browser approvals, last authenticated handshake facts, and attachment-visible update progress |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
 | `chats` | Server-owned Channels, canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and hidden child Threads |
 | `channel_participants` | One human's participation in one Channel |
@@ -131,9 +131,25 @@ Server stores only the hash of the Computer-generated Server credential. A
 re-run validates that credential and fails closed if it was revoked. The
 Computer keeps its attachment record under `~/.grotto/computer`, separate from
 npm-delivered code, and its resident launchd service reconnects through the
-single outbound `/computer/attachment` socket. Its first typed frame reports
-the product version, protocol version, operating system, architecture, and
-health. This slice records those facts; it does not apply a version policy.
+single outbound `/computer/attachment` socket.
+
+Every socket starts with bootstrap protocol version 1. The authenticated
+`bootstrap` frame carries only Computer product/protocol facts and shared update
+progress. The Server admits ordinary reports, delivery, and control only when
+the ordinary protocol is version 1. An incompatible Computer stays connected
+as `update-required`: signed update control remains available, while inventory,
+Agent delivery, and MCP control fail closed. A Computer that cannot send the
+stable bootstrap frame is rejected and must be repaired with
+`grotto-computer upgrade`; there is no old ordinary-protocol fallback.
+
+Update progress is stored per attachment in `computers` and refreshed from the
+shared Computer-local update record, so every attached Server sees the same
+phase without receiving the initiating User or Server identity. Download and
+signature verification run while turns may continue. `waiting-for-agents`
+closes local and Server admission, waits for every active-run marker to clear
+without a deadline, then the verified npm tarball replaces code and the
+resident service restarts every attachment runner. Queued Server work drains
+after reconnect.
 
 Only Owners and Admins can approve or view Computers. The Server never opens
 an inbound Computer connection and never receives a human login session from a

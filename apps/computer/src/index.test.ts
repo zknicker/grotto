@@ -3,13 +3,15 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { launchdPlist } from './index.ts';
+import { launchdPlist, recoverInterruptedUpdate } from './index.ts';
+import { progress, readUpdateProgress, writeUpdateProgress } from './update.ts';
 
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
 test('setup stores only a Server credential and reruns by validation', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
     const requests: string[] = [];
+    const socketFrames: unknown[] = [];
     const peer = Bun.serve({
         fetch(request, server) {
             const url = new URL(request.url);
@@ -37,8 +39,9 @@ test('setup stores only a Server credential and reruns by validation', async () 
         },
         port: 0,
         websocket: {
-            message(socket) {
-                socket.send(JSON.stringify({ type: 'accepted' }));
+            message(socket, message) {
+                socketFrames.push(JSON.parse(String(message)));
+                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
             },
         },
     });
@@ -63,6 +66,13 @@ test('setup stores only a Server credential and reruns by validation', async () 
         });
         expect(attachment.credential).toHaveLength(43);
         expect((await stat(attachmentPath)).mode & 0o777).toBe(0o600);
+        expect(socketFrames[0]).toMatchObject({
+            bootstrapProtocolVersion: 1,
+            productVersion: '1.0.0',
+            protocolVersion: 1,
+            type: 'bootstrap',
+            update: { phase: 'idle' },
+        });
 
         await runCli(environment);
         expect(requests.filter((request) => request === 'POST /computer/setup')).toHaveLength(1);
@@ -79,6 +89,24 @@ test('the resident service keeps its state root outside executable code', () => 
     expect(plist).toContain('<key>GROTTO_COMPUTER_DATA_ROOT</key>');
     expect(plist).toContain('.grotto/computer');
     expect(plist).not.toContain('/opt/grotto/package/.grotto');
+});
+
+test('startup reopens admission after an interrupted update', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    try {
+        await writeUpdateProgress(
+            dataRoot,
+            progress('waiting-for-agents', '1.1.0', 'Waiting for active Agents.')
+        );
+        await recoverInterruptedUpdate(dataRoot);
+        expect(await readUpdateProgress(dataRoot)).toMatchObject({
+            detail: expect.stringContaining('interrupted'),
+            phase: 'failed',
+            targetVersion: '1.1.0',
+        });
+    } finally {
+        await rm(dataRoot, { force: true, recursive: true });
+    }
 });
 
 async function runCli(environment: Record<string, string | undefined>) {

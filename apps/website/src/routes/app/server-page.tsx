@@ -5,6 +5,7 @@ import { HostedServerReminders } from '../../features/servers/reminders/hosted-s
 import { ServerChat } from '../../features/servers/server-chat.tsx';
 import { ServerChatSearch } from '../../features/servers/server-chat-search.tsx';
 import {
+    isServerRemindersPath,
     serverMembersRoute,
     serverRemindersRoute,
     serverRoute,
@@ -24,7 +25,7 @@ export function ServerPage() {
     const server = useServer(slug);
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
-    const remindersOpen = location.pathname.endsWith('/reminders');
+    const remindersOpen = isServerRemindersPath(location.pathname, slug);
 
     useServerChatEvents(server.data?.id);
 

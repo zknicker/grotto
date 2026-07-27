@@ -3,6 +3,7 @@ import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { reminderCommandsTable, remindersTable } from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import { parseReminderRepeat, parseReminderSnooze } from './cadence.ts';
 import {
     lockReminderCommand,
@@ -94,6 +95,7 @@ async function applyReschedule(
     }
 ) {
     const result = await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
         const agent = await requireActiveAgent(tx, input.serverId, agentId);
         await lockReminderCommand(tx, input.serverId, 'agent', agentId, input.commandId);
         const existing = await readExistingCommand(tx, input, agentId, change.fingerprint);

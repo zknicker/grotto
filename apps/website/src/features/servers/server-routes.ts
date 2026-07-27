@@ -13,6 +13,10 @@ export function serverRemindersRoute(slug: string) {
     return `${serverRoute(slug)}/reminders`;
 }
 
+export function isServerRemindersPath(pathname: string, slug: string) {
+    return pathname === serverRemindersRoute(slug);
+}
+
 /**
  * Invitations live outside `/s/:slug` on purpose: a Server address may itself
  * be `join` or `invite`, so nesting the token under the slug branch would be

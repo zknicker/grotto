@@ -169,23 +169,80 @@ describe('hosted reminder operator API', () => {
         expect(results[0]?.reminder).toEqual(results[1]?.reminder);
     });
 
+    test('an operator cancellation queued behind removal reauthorizes before writing', async () => {
+        const departingAdmin = await addHuman('user_reminder_api_race', 'admin');
+        const [departingUser] = (await harness.sql`
+            select id from users where clerk_user_id = 'user_reminder_api_race'
+        `) as { id: string }[];
+        const reminder = await schedule('operator-removal-race', 'Removal race');
+        let removal: Promise<unknown> = Promise.resolve();
+        let cancellation: Promise<unknown> = Promise.resolve();
+
+        await whileServerRowIsHeld(async () => {
+            removal = owner.trpc.member.remove.mutate({
+                confirmation: 'reminder-api-server',
+                serverId,
+                userId: departingUser.id,
+            });
+            await Bun.sleep(120);
+            cancellation = departingAdmin.trpc.reminder.cancel.mutate({
+                commandId: 'operator-removal-race-cancel',
+                expectedVersion: reminder.reminder.version,
+                reminderId: reminder.reminder.id,
+                serverId,
+            });
+            await Bun.sleep(120);
+        });
+
+        await expect(removal).resolves.toMatchObject({ userId: departingUser.id });
+        await expect(cancellation).rejects.toThrow(/not a member/i);
+        await expect(owner.trpc.reminder.list.query({ serverId })).resolves.toContainEqual(
+            expect.objectContaining({ id: reminder.reminder.id, status: 'scheduled' })
+        );
+        departingAdmin.close();
+    });
+
     test('rechecks persisted operator authority during live delivery', async () => {
         const subscription = subscribeToReminderEvents(admin, serverId);
         await subscription.started;
         const [adminUser] = (await harness.sql`
             select id from users where clerk_user_id = 'user_reminder_api_admin'
         `) as { id: string }[];
-        await harness.sql`
-            update server_memberships set revoked_at = now()
-            where server_id = ${serverId} and user_id = ${adminUser.id}
-        `;
+        await owner.trpc.member.remove.mutate({
+            confirmation: 'reminder-api-server',
+            serverId,
+            userId: adminUser.id,
+        });
 
         await schedule('operator-revoked', 'Revoked operator event');
 
-        await expect(subscription.nextEvent).rejects.toThrow(/member/i);
+        await expect(subscription.nextEvent).rejects.toMatchObject({
+            data: { code: 'FORBIDDEN' },
+        });
         await expect(
             admin.trpc.reminder.changes.query({ afterCursor: '0', serverId })
         ).rejects.toThrow(/member/i);
+    });
+
+    test('reports live operator role loss as forbidden', async () => {
+        const departingAdmin = await addHuman('user_reminder_api_role_loss', 'admin');
+        const subscription = subscribeToReminderEvents(departingAdmin, serverId);
+        await subscription.started;
+        const [departingUser] = (await harness.sql`
+            select id from users where clerk_user_id = 'user_reminder_api_role_loss'
+        `) as { id: string }[];
+        await owner.trpc.member.changeRole.mutate({
+            role: 'member',
+            serverId,
+            userId: departingUser.id,
+        });
+
+        await schedule('operator-role-loss', 'Role loss event');
+
+        await expect(subscription.nextEvent).rejects.toMatchObject({
+            data: { code: 'FORBIDDEN' },
+        });
+        departingAdmin.close();
     });
 });
 
@@ -225,6 +282,23 @@ async function addHuman(clerkUserId: string, role: 'admin' | 'member') {
         values (${`mem_${clerkUserId}`}, ${serverId}, ${user.id}, ${role})
     `;
     return client;
+}
+
+async function whileServerRowIsHeld(run: () => Promise<void>) {
+    const holding = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const held = harness.sql.begin(async (tx: typeof harness.sql) => {
+        await tx`select id from servers where id = ${serverId} for update`;
+        holding.resolve();
+        await release.promise;
+    });
+    await holding.promise;
+    try {
+        await run();
+    } finally {
+        release.resolve();
+        await held;
+    }
 }
 
 function subscribeToReminderEvents(client: GrottoClient, subscribedServerId: string) {

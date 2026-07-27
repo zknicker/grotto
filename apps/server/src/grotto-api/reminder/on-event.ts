@@ -2,8 +2,13 @@ import {
     hostedReminderChangedEventSchema,
     hostedReminderEventSubscriptionInputSchema,
 } from '@tavern/api';
+import { TRPCError } from '@trpc/server';
 import { subscribeToDurableChatEvents } from '../../chats/durable-events.ts';
-import { requireReminderOperator } from '../../reminders/operator-reminders.ts';
+import {
+    ReminderOperatorAccessDeniedError,
+    requireReminderOperator,
+} from '../../reminders/operator-reminders.ts';
+import { toMembershipLossError } from '../server/membership-loss.ts';
 import { reminderProcedure } from './procedure.ts';
 
 export const onReminderEventProcedure = reminderProcedure
@@ -18,7 +23,22 @@ export const onReminderEventProcedure = reminderProcedure
             if (event.serverId !== input.serverId || event.type !== 'reminder.changed') {
                 continue;
             }
-            await requireReminderOperator(ctx.grottoDb, ctx.member, input.serverId);
+            try {
+                await requireReminderOperator(ctx.grottoDb, ctx.member, input.serverId);
+            } catch (cause) {
+                const refusal = toMembershipLossError(cause);
+                if (!refusal) {
+                    if (cause instanceof ReminderOperatorAccessDeniedError) {
+                        throw new TRPCError({
+                            cause,
+                            code: 'FORBIDDEN',
+                            message: cause.message,
+                        });
+                    }
+                    throw cause;
+                }
+                throw refusal;
+            }
             yield hostedReminderChangedEventSchema.parse(event);
         }
     });

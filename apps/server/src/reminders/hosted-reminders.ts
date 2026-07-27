@@ -9,6 +9,7 @@ import {
     reminderCommandsTable,
     remindersTable,
 } from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import { isValidReminderTimezone, nextReminderFireAt, parseReminderRepeat } from './cadence.ts';
 import { lockReminderCommand, parseReminderCommandResult } from './mutations.ts';
 import { insertReminderChangedEvent } from './reminder-events.ts';
@@ -65,6 +66,7 @@ export async function scheduleHostedReminder(
     });
 
     const result = await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
         const agent = await requireActiveAgent(tx, input.serverId, agentId);
         if (!isValidReminderTimezone(agent.homeTimezone)) {
             throw new Error('The reminder author must have a valid IANA timezone.');

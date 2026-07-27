@@ -12,6 +12,7 @@ import {
     remindersTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import {
     lockReminderCommand,
@@ -173,6 +174,7 @@ export async function cancelOperatorReminder(
         reminderId: input.reminderId,
     });
     const result = await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
         const operator = await requireReminderOperator(tx, member, input.serverId);
         await lockReminderCommand(tx, input.serverId, 'user', operator.id, input.commandId);
         const [command] = await tx

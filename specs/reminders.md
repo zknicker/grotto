@@ -41,7 +41,9 @@ cancelable wake anchored to a message in a Channel or Thread.
   visible receipts remain.
 - Commands carry an idempotency key and expected version. A repeated identical
   command returns its original result; reused input conflicts. PostgreSQL row
-  locks serialize mutation/fire races.
+  locks serialize mutation/fire races. Every reminder write locks its Server
+  row before reminder, Chat, message, or event rows so hosted writes share one
+  deadlock-free order.
 
 ## Fire semantics
 

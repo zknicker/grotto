@@ -10,6 +10,7 @@ import {
     reminderFiresTable,
     remindersTable,
 } from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import { nextReminderFireAt, parseReminderRepeat } from './cadence.ts';
 import {
     insertAnchoredReminderChangedEvent,
@@ -29,7 +30,7 @@ export async function tickHostedReminders(db: GrottoDatabase, clock: ReminderClo
     const failedReminderIds: string[] = [];
     let fired = 0;
     while (true) {
-        let result: HostedDurableEvent[] | null;
+        let result: ReminderFireAttempt | null;
         try {
             result = await fireNextDueReminder(db, now, failedReminderIds);
         } catch (cause) {
@@ -45,8 +46,10 @@ export async function tickHostedReminders(db: GrottoDatabase, clock: ReminderClo
             }
             return { fired };
         }
-        fired += 1;
-        for (const event of result) {
+        if (result.fired) {
+            fired += 1;
+        }
+        for (const event of result.events) {
             emitDurableChatEvent({ audienceUserId: null, event });
         }
     }
@@ -56,12 +59,12 @@ async function fireNextDueReminder(
     db: GrottoDatabase,
     now: Date,
     excludedReminderIds: string[]
-): Promise<HostedDurableEvent[] | null> {
+): Promise<ReminderFireAttempt | null> {
     let selectedReminderId: string | null = null;
     try {
         return await db.transaction(async (tx) => {
-            const [reminder] = await tx
-                .select()
+            const [candidate] = await tx
+                .select({ id: remindersTable.id, serverId: remindersTable.serverId })
                 .from(remindersTable)
                 .where(
                     and(
@@ -73,12 +76,27 @@ async function fireNextDueReminder(
                     )
                 )
                 .orderBy(asc(remindersTable.fireAt), asc(remindersTable.id))
-                .limit(1)
-                .for('update', { skipLocked: true });
-            if (!reminder) {
+                .limit(1);
+            if (!candidate) {
                 return null;
             }
-            selectedReminderId = reminder.id;
+            selectedReminderId = candidate.id;
+            await lockServerRow(tx, candidate.serverId);
+            const [reminder] = await tx
+                .select()
+                .from(remindersTable)
+                .where(
+                    and(
+                        eq(remindersTable.serverId, candidate.serverId),
+                        eq(remindersTable.id, candidate.id),
+                        eq(remindersTable.status, 'scheduled'),
+                        lte(remindersTable.fireAt, now)
+                    )
+                )
+                .for('update', { skipLocked: true });
+            if (!reminder) {
+                return { events: [], fired: false };
+            }
 
             try {
                 await requireActiveAgent(tx, reminder.serverId, reminder.ownerAgentId);
@@ -93,7 +111,10 @@ async function fireNextDueReminder(
                     cause instanceof ReminderAgentInactiveError ||
                     cause instanceof ReminderAnchorAccessError
                 ) {
-                    return [await cancelUnauthorizedReminder(tx, reminder, now)];
+                    return {
+                        events: [await cancelUnauthorizedReminder(tx, reminder, now)],
+                        fired: true,
+                    };
                 }
                 throw cause;
             }
@@ -205,7 +226,7 @@ async function fireNextDueReminder(
                 sequence,
                 serverId: reminder.serverId,
             });
-            return [messageEvent, reminderEvent];
+            return { events: [messageEvent, reminderEvent], fired: true };
         });
     } catch (cause) {
         if (selectedReminderId) {
@@ -213,6 +234,11 @@ async function fireNextDueReminder(
         }
         throw cause;
     }
+}
+
+interface ReminderFireAttempt {
+    events: HostedDurableEvent[];
+    fired: boolean;
 }
 
 class ReminderFireError extends Error {

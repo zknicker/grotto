@@ -1,7 +1,7 @@
 import type { HostedReminderChangedEvent } from '@tavern/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
-import { laterReminderCursor, walkReminderChangeCatchUp } from './server-reminder-event-cursor.ts';
+import { catchUpReminderChanges, laterReminderCursor } from './server-reminder-event-cursor.ts';
 
 export type ServerReminderConnectionState = 'connected' | 'connecting' | 'reconnecting';
 
@@ -14,25 +14,31 @@ export function useServerReminderEvents(serverId: string) {
         stateRef.current = { cursor: '0', serverId };
     }
 
+    const invalidateSnapshot = React.useCallback(async () => {
+        await Promise.all([
+            utils.reminder.list.invalidate({ serverId }),
+            utils.reminder.runs.invalidate({ serverId }),
+        ]);
+    }, [serverId, utils.reminder.list, utils.reminder.runs]);
     const invalidate = React.useCallback(
         async (events: HostedReminderChangedEvent[]) => {
-            if (events.length === 0) {
-                return;
+            if (events.length > 0) {
+                await invalidateSnapshot();
             }
-            await Promise.all([
-                utils.reminder.list.invalidate({ serverId }),
-                utils.reminder.runs.invalidate({ serverId }),
-            ]);
         },
-        [serverId, utils.reminder.list, utils.reminder.runs]
+        [invalidateSnapshot]
     );
     const catchUp = React.useCallback(async () => {
         const current = stateRef.current;
         if (current.serverId !== serverId) {
             return;
         }
-        const cursor = await walkReminderChangeCatchUp({
+        const cursor = await catchUpReminderChanges({
             afterCursor: current.cursor,
+            fetchHead: async () =>
+                await utils.chat.eventHead
+                    .fetch({ serverId })
+                    .then((eventHead) => eventHead.cursor),
             fetchPage: async (afterCursor, limit) =>
                 await utils.reminder.changes.fetch({
                     afterCursor,
@@ -40,11 +46,12 @@ export function useServerReminderEvents(serverId: string) {
                     serverId,
                 }),
             onEvents: invalidate,
+            onSnapshot: invalidateSnapshot,
         });
         if (stateRef.current.serverId === serverId) {
             stateRef.current.cursor = laterReminderCursor(stateRef.current.cursor, cursor);
         }
-    }, [invalidate, serverId, utils.reminder.changes]);
+    }, [invalidate, invalidateSnapshot, serverId, utils.chat.eventHead, utils.reminder.changes]);
 
     grottoTrpc.reminder.onEvent.useSubscription(
         { serverId },

@@ -6,6 +6,27 @@ export function laterReminderCursor(left: string, right: string) {
     return BigInt(left) >= BigInt(right) ? left : right;
 }
 
+export async function catchUpReminderChanges({
+    afterCursor,
+    fetchHead,
+    fetchPage,
+    onEvents,
+    onSnapshot,
+}: {
+    afterCursor: string;
+    fetchHead: () => Promise<string>;
+    fetchPage: (afterCursor: string, limit: number) => Promise<HostedReminderChangedEvent[]>;
+    onEvents: (events: HostedReminderChangedEvent[]) => Promise<void>;
+    onSnapshot: () => Promise<void>;
+}) {
+    if (afterCursor === '0') {
+        const cursor = await fetchHead();
+        await onSnapshot();
+        return cursor;
+    }
+    return await walkReminderChangeCatchUp({ afterCursor, fetchPage, onEvents });
+}
+
 export async function walkReminderChangeCatchUp({
     afterCursor,
     fetchPage,

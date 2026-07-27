@@ -1,6 +1,33 @@
 import { expect, test } from 'bun:test';
 import type { HostedReminderChangedEvent } from '@tavern/api';
-import { laterReminderCursor, walkReminderChangeCatchUp } from './server-reminder-event-cursor.ts';
+import {
+    catchUpReminderChanges,
+    laterReminderCursor,
+    walkReminderChangeCatchUp,
+} from './server-reminder-event-cursor.ts';
+
+test('initial reminder catch-up reads the durable head and refreshes once', async () => {
+    const calls: string[] = [];
+    const cursor = await catchUpReminderChanges({
+        afterCursor: '0',
+        fetchHead: async () => {
+            calls.push('head');
+            return '41';
+        },
+        fetchPage: async () => {
+            throw new Error('Initial catch-up must not walk reminder history.');
+        },
+        onEvents: async () => {
+            throw new Error('Initial catch-up must not replay reminder history.');
+        },
+        onSnapshot: async () => {
+            calls.push('snapshot');
+        },
+    });
+
+    expect(cursor).toBe('41');
+    expect(calls).toEqual(['head', 'snapshot']);
+});
 
 test('reconnect catch-up never moves behind a newer live reminder event', async () => {
     const firstFetch = Promise.withResolvers<HostedReminderChangedEvent[]>();

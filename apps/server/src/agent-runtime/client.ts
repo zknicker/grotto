@@ -57,6 +57,7 @@ import {
     type AgentRuntimeRenderedWorkspaceInstructions,
     type AgentRuntimeResetAgentSession,
     type AgentRuntimeResetAgentSessionResult,
+    type AgentRuntimeRestartAgentResult,
     type AgentRuntimeRunJob,
     type AgentRuntimeRunJobInput,
     type AgentRuntimeSaveAgentEnv,
@@ -185,6 +186,7 @@ import {
     agentRuntimeRenderedWorkspaceInstructionsSchema,
     agentRuntimeResetAgentSessionResultSchema,
     agentRuntimeResetAgentSessionSchema,
+    agentRuntimeRestartAgentResultSchema,
     agentRuntimeRoutes,
     agentRuntimeRunJobInputSchema,
     agentRuntimeRunJobSchema,
@@ -393,6 +395,7 @@ export interface TavernAgentRuntimeClient {
         input: AgentRuntimeResetAgentSession
     ): Promise<AgentRuntimeResetAgentSessionResult>;
     resetSkill(skillId: string): Promise<AgentRuntimeSkillResetResult>;
+    restartAgent(agentId: string): Promise<AgentRuntimeRestartAgentResult>;
     restartBrowser(): Promise<AgentRuntimeBrowserActionResult>;
     restartForUpdate(): Promise<AgentRuntimeUpdate>;
     resyncSession(sessionKey: string): Promise<AgentRuntimeSessionResync>;
@@ -639,6 +642,23 @@ class HttpTavernAgentRuntimeClient implements TavernAgentRuntimeClient {
             await readErrorResponse(response);
         }
         return agentRuntimeAgentStopResultSchema.parse(await response.json());
+    }
+
+    async restartAgent(agentId: string) {
+        const response = await fetch(
+            `${this.#baseUrl}${agentRuntimeRoutes.agentRestart(agentId)}`,
+            {
+                headers: {
+                    ...this.#authHeaders,
+                    [agentRuntimeMutationHeaders.origin]: agentRuntimeMutationOrigins.tavern,
+                },
+                method: 'POST',
+            }
+        );
+        if (!response.ok) {
+            await readErrorResponse(response);
+        }
+        return agentRuntimeRestartAgentResultSchema.parse(await response.json());
     }
 
     async getAgentConfig(agentId: string) {

@@ -9,6 +9,10 @@ export function serverMembersRoute(slug: string) {
     return `${serverRoute(slug)}/members`;
 }
 
+export function serverComputersRoute(slug: string) {
+    return `${serverRoute(slug)}/computers`;
+}
+
 export function serverRemindersRoute(slug: string) {
     return `${serverRoute(slug)}/reminders`;
 }

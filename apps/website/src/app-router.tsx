@@ -74,10 +74,24 @@ export function createAppRouter() {
                             ),
                         },
                         {
+                            path: 's/:slug/computers',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/server-computers-page.tsx'),
+                                'ServerComputersPage'
+                            ),
+                        },
+                        {
                             path: 's/:slug/reminders',
                             lazy: lazyRoute(
                                 () => import('./routes/app/server-page.tsx'),
                                 'ServerPage'
+                            ),
+                        },
+                        {
+                            path: 'computer/approve',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/computer-approval-page.tsx'),
+                                'ComputerApprovalPage'
                             ),
                         },
                         {

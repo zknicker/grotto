@@ -86,6 +86,7 @@ PostgreSQL owns the hosted collaboration tables
 | `users` | Grotto Users keyed by a unique `clerk_user_id` |
 | `servers` | Opaque id, address/display fields, and the commit-serialized Chat event cursor |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
+| `computers` / `computer_setup_approvals` | Server-scoped Computer credentials (hash only), one-use expiring browser approvals, and the last authenticated handshake facts |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
 | `chats` | Server-owned Channels, canonical sorted two-human DMs, and hidden child Threads |
 | `channel_participants` | One human's participation in one Channel |
@@ -110,6 +111,22 @@ Chats, participants, messages, reads, events, and memberships to the same
 Server. Invariants live in PostgreSQL, not only TypeScript: role, Chat shape,
 positive message sequence, nonce uniqueness, DM pair ordering, and event shape
 all fail closed in the database.
+
+## Computer attachment
+
+`grotto-computer setup /<slug>` creates an expiring browser approval and holds its
+temporary secret only in memory. An Owner or Admin approves exactly once; the
+Server stores only the hash of the Computer-generated Server credential. A
+re-run validates that credential and fails closed if it was revoked. The
+Computer keeps its attachment record under `~/.grotto/computer`, separate from
+npm-delivered code, and its resident launchd service reconnects through the
+single outbound `/computer/attachment` socket. Its first typed frame reports
+the product version, protocol version, operating system, architecture, and
+health. This slice records those facts; it does not apply a version policy.
+
+Only Owners and Admins can approve or view Computers. The Server never opens
+an inbound Computer connection and never receives a human login session from a
+Computer.
 
 `apps/server/src/postgres/bootstrap.ts` is the schema of record — fresh-schema
 DDL applied by the explicit bootstrap command before the application starts.

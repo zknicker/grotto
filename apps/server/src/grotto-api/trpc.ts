@@ -4,6 +4,7 @@ import type { GrottoContext } from './context.ts';
 const t = initTRPC.context<GrottoContext>().create();
 
 export const createRouter = t.router;
+export const computerProcedure = t.procedure;
 
 /**
  * Verifies the Clerk session and carries its external subject for this request

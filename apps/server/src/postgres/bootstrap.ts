@@ -39,6 +39,46 @@ const schemaStatements = [
         ON server_memberships (server_id, user_id);`,
     `CREATE INDEX server_memberships_user_idx
         ON server_memberships (user_id);`,
+    `CREATE TABLE computers (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT computers_id_shape CHECK (id ~ '^cmp_[A-Za-z0-9_-]{16}$'),
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        attached_by_user_id text NOT NULL,
+        credential_hash text NOT NULL UNIQUE
+            CONSTRAINT computers_credential_hash_shape CHECK (credential_hash ~ '^[a-f0-9]{64}$'),
+        product_version text,
+        protocol_version integer,
+        operating_system text,
+        architecture text,
+        health text NOT NULL DEFAULT 'offline'
+            CONSTRAINT computers_health CHECK (health IN ('offline', 'healthy', 'degraded')),
+        last_connected_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT computers_attacher_membership_fk
+            FOREIGN KEY (server_id, attached_by_user_id)
+            REFERENCES server_memberships (server_id, user_id)
+    );`,
+    'CREATE UNIQUE INDEX computers_server_id_key ON computers (server_id, id);',
+    'CREATE INDEX computers_server_idx ON computers (server_id, created_at DESC);',
+    `CREATE TABLE computer_setup_approvals (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT computer_setup_approvals_id_shape CHECK (id ~ '^cap_[A-Za-z0-9_-]{16}$'),
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        credential_hash text NOT NULL
+            CONSTRAINT computer_setup_approvals_credential_hash_shape CHECK (credential_hash ~ '^[a-f0-9]{64}$'),
+        approval_secret_hash text NOT NULL UNIQUE
+            CONSTRAINT computer_setup_approvals_secret_hash_shape CHECK (approval_secret_hash ~ '^[a-f0-9]{64}$'),
+        expires_at timestamptz NOT NULL,
+        approved_at timestamptz,
+        approved_by_user_id text,
+        computer_id text UNIQUE REFERENCES computers (id) ON DELETE CASCADE,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT computer_setup_approvals_approval_shape CHECK (
+            (approved_at IS NULL AND approved_by_user_id IS NULL AND computer_id IS NULL)
+            OR (approved_at IS NOT NULL AND approved_by_user_id IS NOT NULL AND computer_id IS NOT NULL)
+        )
+    );`,
+    'CREATE INDEX computer_setup_approvals_server_idx ON computer_setup_approvals (server_id, created_at DESC);',
     `CREATE TABLE server_invitations (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,

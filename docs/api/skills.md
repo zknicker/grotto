@@ -29,6 +29,15 @@ Skill contract:
   setup blockers.
 - Setup requirements and source state remain visible even when blockers make a
   skill unusable.
+- Each agent has one canonical, writable library directory. Agent-scoped skill
+  reads, authoring, imports, and harness injection resolve to that directory, so
+  the harness receives exactly that library and no ambient, host-global, or
+  cross-agent skills.
+- `grotto skill delete <skillId>` (`DELETE /api/agent/skills/:id`) removes only
+  the calling agent's own copy. It names the agent and skill, clears that skill's
+  source record and the agent's assignment, and never alters an import source or
+  another agent's library. Seeded skills cannot be deleted; they are restored
+  each session.
 - Agent-authored skills are writable only by their creating agent. Other
   disk-backed skills remain non-editable on the agent surface.
 - Hub installs record the installed content hash. Reinstalling an edited skill

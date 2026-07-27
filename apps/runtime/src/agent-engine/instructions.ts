@@ -8,7 +8,7 @@ import {
     registerAgentWorkspace,
 } from '../workspace/instructions.ts';
 import { defaultAgentDisplayName } from './constants.ts';
-import { seedManagedSkills } from './skill-library.ts';
+import { agentSkillsDir, seedManagedSkills } from './skill-library.ts';
 
 export const agentEngineAgentId = 'main';
 
@@ -42,7 +42,9 @@ export async function prepareAgentEngineInstructions(
     });
 
     if (options.seedSkills !== false) {
-        await seedManagedSkills({ skillsDir: options.skillsDir });
+        // Seeding targets the Agent's own library so managed skills self-heal
+        // in the same isolated directory the harness reads at turn start.
+        await seedManagedSkills({ skillsDir: options.skillsDir ?? agentSkillsDir(agentId) });
     }
 
     return {

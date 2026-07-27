@@ -31,6 +31,20 @@ export { visualsSkillId };
 export const agentEngineSkillsDir = path.join(AGENT_HOME, 'skills');
 export const tavernAgentSkillId = 'tavern-agent';
 
+/**
+ * One canonical, writable skill library per Agent. Every Agent-scoped read,
+ * authoring write, and harness injection resolves here, so an Agent's harness
+ * never inherits the operator's global skills or another Agent's library.
+ */
+export function agentSkillsDir(agentId: string): string {
+    return path.join(AGENT_HOME, 'agents', agentId, 'skills');
+}
+
+/** Per-Agent library when an id is known; the shared library otherwise. */
+function resolveAgentSkillsDir(agentId: string | undefined): string {
+    return agentId ? agentSkillsDir(agentId) : agentEngineSkillsDir;
+}
+
 export const defaultTavernSkill = `# Grotto Agent
 
 Use Grotto chat context, memory, files, and local tools. Keep replies direct and action-oriented.
@@ -201,7 +215,9 @@ export function isRuntimeSkillEnabled(skillId: string, db: Database = getDb()) {
 }
 
 export async function listRuntimeSkills(options: RuntimeSkillOptions = {}) {
-    const skillsDir = options.skillsDir ?? agentEngineSkillsDir;
+    // An Agent-scoped listing reads that Agent's own library; only the
+    // agent-less management view falls back to the shared installed library.
+    const skillsDir = options.skillsDir ?? resolveAgentSkillsDir(options.agent?.id ?? undefined);
     const scanned = await scanInstalledSkillSummaries(skillsDir);
     const missingSeeded = Object.keys(seededSkillDefaults)
         .filter((skillId) => !scanned.some((skill) => skill.id === skillId))
@@ -254,6 +270,7 @@ export async function readAssignedSkillBundles(
     agent: Pick<AgentRuntimeAgent, 'enabledSkillIds'> & Partial<Pick<AgentRuntimeAgent, 'id'>>,
     options: { skillsDir?: string } = {}
 ) {
+    const skillsDir = options.skillsDir ?? resolveAgentSkillsDir(agent.id);
     const bundles: AssignedSkillBundle[] = [];
     const seen = new Set<string>();
 
@@ -262,7 +279,7 @@ export async function readAssignedSkillBundles(
             continue;
         }
         seen.add(skillId);
-        const skill = await getRuntimeSkill(skillId, options);
+        const skill = await getRuntimeSkill(skillId, { skillsDir });
         if (!skill || skill.disabled === true) {
             continue;
         }

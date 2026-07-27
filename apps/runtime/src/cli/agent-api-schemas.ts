@@ -220,3 +220,6 @@ export const agentSkillChangeResponseSchema = z.object({
         skillId: z.string(),
     }),
 });
+export const agentSkillDeleteResponseSchema = z.object({
+    deleted: z.object({ agentId: z.string(), skillId: z.string() }),
+});

@@ -1,12 +1,14 @@
 import * as z from 'zod';
 import {
-    agentEngineSkillsDir,
+    agentSkillsDir,
     getRuntimeSkill,
+    isSeededSkillId,
     listRuntimeSkills,
 } from '../agent-engine/skill-library.ts';
 import {
     assertCanonicalSkillId,
     createAgentSkill,
+    deleteSkillPackage,
     listSkillSupportFileSnapshots,
     patchSkillMarkdown,
     readSkillMarkdownSnapshot,
@@ -51,7 +53,7 @@ export const agentSkillWriteFileRequestSchema = z
     })
     .strict();
 
-export async function listAgentSkills(agentId: string, skillsDir = agentEngineSkillsDir) {
+export async function listAgentSkills(agentId: string, skillsDir = agentSkillsDir(agentId)) {
     const skills = await listRuntimeSkills({ skillsDir });
     return { skills: skills.map((skill) => skillSummary(agentId, skill)) };
 }
@@ -59,7 +61,7 @@ export async function listAgentSkills(agentId: string, skillsDir = agentEngineSk
 export async function viewAgentSkill(
     agentId: string,
     skillId: string,
-    skillsDir = agentEngineSkillsDir
+    skillsDir = agentSkillsDir(agentId)
 ) {
     try {
         assertCanonicalSkillId(skillId);
@@ -93,7 +95,7 @@ export async function viewAgentSkill(
 export async function createAgentAuthoredSkill(
     agentId: string,
     input: z.infer<typeof agentSkillCreateRequestSchema>,
-    skillsDir = agentEngineSkillsDir
+    skillsDir = agentSkillsDir(agentId)
 ) {
     let skillId: string;
     try {
@@ -132,7 +134,7 @@ export async function createAgentAuthoredSkill(
 export async function patchAgentSkill(
     agentId: string,
     input: z.infer<typeof agentSkillPatchRequestSchema>,
-    skillsDir = agentEngineSkillsDir
+    skillsDir = agentSkillsDir(agentId)
 ) {
     assertAgentOwnsSkill(agentId, input.skillId);
     try {
@@ -145,7 +147,7 @@ export async function patchAgentSkill(
 export async function writeAgentSkillFile(
     agentId: string,
     input: z.infer<typeof agentSkillWriteFileRequestSchema>,
-    skillsDir = agentEngineSkillsDir
+    skillsDir = agentSkillsDir(agentId)
 ) {
     assertAgentOwnsSkill(agentId, input.skillId);
     try {
@@ -153,6 +155,37 @@ export async function writeAgentSkillFile(
     } catch (error) {
         throw skillWriteError('SKILL_WRITE_FAILED', error);
     }
+}
+
+export async function deleteAgentSkill(
+    agentId: string,
+    skillId: string,
+    skillsDir = agentSkillsDir(agentId)
+) {
+    try {
+        assertCanonicalSkillId(skillId);
+    } catch (error) {
+        throw new AgentApiError(
+            'INVALID_ARG',
+            error instanceof Error ? error.message : 'Skill id is invalid.',
+            400
+        );
+    }
+    if (isSeededSkillId(skillId)) {
+        throw new AgentApiError(
+            'SKILL_NOT_DELETABLE',
+            'Seeded skills are restored each session and cannot be deleted.',
+            403
+        );
+    }
+    const contained = await skillPackageIsContained({ skillId, skillsDir }).catch(() => false);
+    if (!contained) {
+        throw new AgentApiError('SKILL_NOT_FOUND', `Skill not found: ${skillId}`, 404);
+    }
+    // Strict deletion: only this Agent's own mutable copy. Import sources and
+    // other Agents' libraries are separate directories and stay untouched.
+    await deleteSkillPackage({ agentId, skillId, skillsDir });
+    return { deleted: { agentId, skillId } };
 }
 
 function skillSummary(

@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTRPCClient, httpLink } from '@trpc/client';
+import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
 import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
 import { clerkSessionFile, signInAsClerkHuman } from '../support/clerk-session.ts';
 import { expect, test } from '../support/test.ts';
@@ -184,7 +185,11 @@ function createHostedClient(token: string) {
     return createTRPCClient<GrottoRouter>({
         links: [
             httpLink({
-                headers: { authorization: `Bearer ${token}` },
+                headers: {
+                    authorization: `Bearer ${token}`,
+                    [appProtocolHeaders.productVersion]: 'e2e',
+                    [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
+                },
                 url: `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/trpc`,
             }),
         ],
@@ -230,12 +235,18 @@ test('a signed-out human cannot read hosted messages', async ({ page }) => {
     await expect(page.getByText('First durable human message')).toHaveCount(0);
 });
 
-test('an ordinary local route retains its local Runtime boundary', async ({ page }) => {
+test('the direct-hosted App never requests a retired local product endpoint', async ({ page }) => {
     const localServerOrigin = `http://127.0.0.1:${process.env.TAVERN_SERVER_PORT}`;
-    const localRequest = page.waitForRequest((request) =>
-        request.url().startsWith(`${localServerOrigin}/trpc/`)
-    );
+    const localRequests: string[] = [];
 
-    await page.goto('/activity');
-    await expect(localRequest).resolves.toBeDefined();
+    page.on('request', (request) => {
+        if (request.url().startsWith(`${localServerOrigin}/trpc/`)) {
+            localRequests.push(request.url());
+        }
+    });
+
+    await signInAsClerkHuman(page);
+    await page.goto('/s/hosted-messages');
+    await expect(page.getByText('First durable human message')).toBeVisible();
+    expect(localRequests).toEqual([]);
 });

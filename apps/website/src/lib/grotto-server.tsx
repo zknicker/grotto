@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { appProtocolHeaders, appProtocolVersion } from '@tavern/api';
+import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
 import { createWSClient, httpLink, splitLink, wsLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';

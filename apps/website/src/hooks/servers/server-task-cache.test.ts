@@ -37,7 +37,7 @@ function taskItem(): HostedTaskListItem {
         chatName: 'all',
         chatPeerUserId: null,
         message: {
-            authorUserId: 'user_one',
+            author: { kind: 'human', userId: 'user_one' },
             chatId: 'chat_one',
             content: 'Task',
             createdAt: '2026-07-26T12:00:00.000Z',

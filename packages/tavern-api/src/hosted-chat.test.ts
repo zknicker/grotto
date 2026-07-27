@@ -52,7 +52,7 @@ test('hosted reads derive the reader from the verified Clerk member', () => {
 
 test('hosted messages and durable events keep stable Server and Chat identity', () => {
     const message = hostedChatMessageSchema.parse({
-        authorUserId: 'usr_human',
+        author: { kind: 'human', userId: 'usr_human' },
         chatId: 'cht_all',
         content: 'Durable.',
         createdAt: '2026-07-26T12:00:00.000Z',
@@ -75,4 +75,18 @@ test('hosted messages and durable events keep stable Server and Chat identity', 
             type: 'message.created',
         })
     ).toMatchObject({ cursor: '4', messageId: 'msg_one', type: 'message.created' });
+    expect(
+        hostedDurableEventSchema.parse({
+            action: 'fired',
+            chatId: message.chatId,
+            createdAt: message.createdAt,
+            cursor: '5',
+            id: 'evt_reminder',
+            parentChatId: null,
+            reminderId: 'rem_one',
+            sequence: message.sequence,
+            serverId: message.serverId,
+            type: 'reminder.changed',
+        })
+    ).toMatchObject({ action: 'fired', reminderId: 'rem_one' });
 });

@@ -4,9 +4,14 @@ import { hostedMessageTaskSchema } from './hosted-task-shared.ts';
 export const hostedIdSchema = z.string().trim().min(1);
 const hostedTimestampSchema = z.iso.datetime({ offset: true });
 
+export const hostedChatMessageAuthorSchema = z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('human'), userId: hostedIdSchema }).strict(),
+    z.object({ kind: z.literal('system'), system: z.literal('reminder') }).strict(),
+]);
+
 export const hostedChatMessageSchema = z
     .object({
-        authorUserId: hostedIdSchema,
+        author: hostedChatMessageAuthorSchema,
         chatId: hostedIdSchema,
         content: z.string().min(1),
         createdAt: hostedTimestampSchema,
@@ -236,12 +241,30 @@ export const hostedTaskLabelChangedEventSchema = z
     })
     .strict();
 
+export const hostedReminderChangedEventSchema = z
+    .object({
+        action: z.enum(['canceled', 'fired', 'scheduled', 'snoozed', 'updated']),
+        chatId: hostedIdSchema,
+        createdAt: hostedTimestampSchema,
+        cursor: z.string().regex(/^[1-9]\d*$/u),
+        id: hostedIdSchema,
+        parentChatId: hostedIdSchema.nullable(),
+        reminderId: hostedIdSchema,
+        sequence: z.number().int().nonnegative(),
+        serverId: hostedIdSchema,
+        type: z.literal('reminder.changed'),
+    })
+    .strict();
+
+export type HostedReminderChangedEvent = z.infer<typeof hostedReminderChangedEventSchema>;
+
 export const hostedDurableEventSchema = z.discriminatedUnion('type', [
     hostedMessageCreatedEventSchema,
     hostedChatReadEventSchema,
     hostedThreadFollowUpdatedEventSchema,
     hostedTaskChangedEventSchema,
     hostedTaskLabelChangedEventSchema,
+    hostedReminderChangedEventSchema,
 ]);
 
 export type HostedDurableEvent = z.infer<typeof hostedDurableEventSchema>;

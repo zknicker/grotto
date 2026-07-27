@@ -1,9 +1,15 @@
 import * as React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/primitives/button.tsx';
+import { HostedServerReminders } from '../../features/servers/reminders/hosted-server-reminders.tsx';
 import { ServerChat } from '../../features/servers/server-chat.tsx';
 import { ServerChatSearch } from '../../features/servers/server-chat-search.tsx';
-import { serverMembersRoute } from '../../features/servers/server-routes.ts';
+import {
+    isServerRemindersPath,
+    serverMembersRoute,
+    serverRemindersRoute,
+    serverRoute,
+} from '../../features/servers/server-routes.ts';
 import { ServerSwitcher } from '../../features/servers/server-switcher.tsx';
 import type { ServerTask } from '../../features/servers/tasks/server-task-presentation.ts';
 import { ServerTasksSurface } from '../../features/servers/tasks/server-tasks-surface.tsx';
@@ -15,12 +21,15 @@ import { useServerList } from '../../hooks/servers/use-server-list.ts';
 /** One Grotto server opened at `/s/<slug>` with its `#all` Channel. */
 export function ServerPage() {
     const { slug = '' } = useParams();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [selectedChatId, setSelectedChatId] = React.useState<string | null>(null);
     const [surface, setSurface] = React.useState<'chat' | 'tasks'>('chat');
     const [taskToOpen, setTaskToOpen] = React.useState<ServerTask | null>(null);
     const server = useServer(slug);
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
+    const remindersOpen = isServerRemindersPath(location.pathname, slug);
 
     useServerChatEvents(server.data?.id);
 
@@ -42,6 +51,13 @@ export function ServerPage() {
         chats.data?.find((chat) => chat.isAll) ??
         chats.data?.[0];
     const selectedTask = taskToOpen?.message.serverId === server.data.id ? taskToOpen : null;
+    const canOperateReminders = server.data.role === 'owner' || server.data.role === 'admin';
+    const openChat = (chatId: string) => {
+        setSelectedChatId(chatId);
+        setSurface('chat');
+        setTaskToOpen(null);
+        navigate(serverRoute(server.data.slug));
+    };
 
     return (
         <div className="flex h-dvh w-full">
@@ -53,9 +69,13 @@ export function ServerPage() {
                 <div className="flex flex-col gap-1">
                     <Button
                         className="justify-start"
-                        onClick={() => setSurface('tasks')}
+                        onClick={() => {
+                            setSurface('tasks');
+                            setTaskToOpen(null);
+                            navigate(serverRoute(server.data.slug));
+                        }}
                         size="sm"
-                        variant={surface === 'tasks' ? 'secondary' : 'ghost'}
+                        variant={!remindersOpen && surface === 'tasks' ? 'secondary' : 'ghost'}
                     >
                         Tasks
                     </Button>
@@ -72,14 +92,12 @@ export function ServerPage() {
                             <Button
                                 className="justify-between"
                                 key={chat.id}
-                                onClick={() => {
-                                    setSelectedChatId(chat.id);
-                                    setSurface('chat');
-                                    setTaskToOpen(null);
-                                }}
+                                onClick={() => openChat(chat.id)}
                                 size="sm"
                                 variant={
-                                    surface === 'chat' && chat.id === selectedChat?.id
+                                    !remindersOpen &&
+                                    surface === 'chat' &&
+                                    chat.id === selectedChat?.id
                                         ? 'secondary'
                                         : 'ghost'
                                 }
@@ -94,6 +112,21 @@ export function ServerPage() {
                         );
                     })}
                 </div>
+                {canOperateReminders ? (
+                    <div className="flex flex-col gap-1">
+                        <p className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
+                            Operator
+                        </p>
+                        <Button
+                            className="justify-start"
+                            onClick={() => navigate(serverRemindersRoute(server.data.slug))}
+                            size="sm"
+                            variant={remindersOpen ? 'secondary' : 'ghost'}
+                        >
+                            Reminders
+                        </Button>
+                    </div>
+                ) : null}
             </aside>
             <main className="flex min-w-0 flex-1 flex-col">
                 <header className="flex items-center justify-between gap-4 border-border border-b px-6 py-4">
@@ -110,16 +143,16 @@ export function ServerPage() {
                         Members
                     </Link>
                 </header>
-                {surface === 'chat' ? (
-                    <ServerChatSearch
-                        onOpenChat={(chatId) => {
-                            setSelectedChatId(chatId);
-                            setTaskToOpen(null);
-                        }}
-                        serverId={server.data.id}
-                    />
-                ) : null}
-                {surface === 'tasks' ? (
+                {remindersOpen && canOperateReminders ? (
+                    <HostedServerReminders serverId={server.data.id} />
+                ) : remindersOpen ? (
+                    <div className="grid flex-1 place-content-center gap-1 px-6 text-center">
+                        <h2 className="font-medium text-foreground">Owner or Admin required</h2>
+                        <p className="max-w-sm text-muted-foreground text-sm">
+                            Reminder schedules and fire logs are available only to Server operators.
+                        </p>
+                    </div>
+                ) : surface === 'tasks' ? (
                     <ServerTasksSurface
                         chats={chats.data ?? []}
                         onOpenTask={(task) => {
@@ -131,25 +164,27 @@ export function ServerPage() {
                         serverId={server.data.id}
                         viewerUserId={server.data.viewerUserId}
                     />
-                ) : selectedChat ? (
-                    <ServerChat
-                        chat={selectedChat}
-                        initialTask={
-                            selectedTask
-                                ? {
-                                      message: selectedTask.message,
-                                      summary: selectedTask.threadSummary,
-                                      threadChatId: selectedTask.threadChatId,
-                                  }
-                                : undefined
-                        }
-                        key={`${selectedChat.id}:${selectedTask?.id ?? ''}`}
-                        onOpenChat={(chatId) => {
-                            setSelectedChatId(chatId);
-                            setTaskToOpen(null);
-                        }}
-                    />
-                ) : null}
+                ) : (
+                    <>
+                        <ServerChatSearch onOpenChat={openChat} serverId={server.data.id} />
+                        {selectedChat ? (
+                            <ServerChat
+                                chat={selectedChat}
+                                initialTask={
+                                    selectedTask
+                                        ? {
+                                              message: selectedTask.message,
+                                              summary: selectedTask.threadSummary,
+                                              threadChatId: selectedTask.threadChatId,
+                                          }
+                                        : undefined
+                                }
+                                key={`${selectedChat.id}:${selectedTask?.id ?? ''}`}
+                                onOpenChat={openChat}
+                            />
+                        ) : null}
+                    </>
+                )}
             </main>
         </div>
     );

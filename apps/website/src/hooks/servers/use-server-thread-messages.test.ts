@@ -13,7 +13,7 @@ test('Thread pages merge oldest-first without duplicate messages', () => {
 
 function message(id: string, sequence: number): HostedChatMessage {
     return {
-        authorUserId: 'usr_author',
+        author: { kind: 'human', userId: 'usr_author' },
         chatId: 'cht_thread',
         content: id,
         createdAt: '2026-07-26T12:00:00.000Z',

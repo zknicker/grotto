@@ -73,6 +73,19 @@ const schemaStatements = [
         WHERE revoked_at IS NULL AND accepted_at IS NULL;`,
     `CREATE INDEX IF NOT EXISTS server_invitations_server_idx
         ON server_invitations (server_id, created_at DESC);`,
+    `CREATE TABLE IF NOT EXISTS agents (
+        id text PRIMARY KEY NOT NULL,
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        handle text NOT NULL,
+        display_name text NOT NULL,
+        home_timezone text NOT NULL,
+        role text NOT NULL CONSTRAINT agents_role CHECK (role IN ('admin', 'member')),
+        retired_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now()
+    );`,
+    'CREATE UNIQUE INDEX IF NOT EXISTS agents_server_id_key ON agents (server_id, id);',
+    `CREATE UNIQUE INDEX IF NOT EXISTS agents_server_handle_key
+        ON agents (server_id, lower(handle));`,
     `CREATE TABLE IF NOT EXISTS chats (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
@@ -175,13 +188,29 @@ const schemaStatements = [
     );`,
     `CREATE INDEX IF NOT EXISTS channel_participants_user_idx
         ON channel_participants (server_id, user_id);`,
+    `CREATE TABLE IF NOT EXISTS channel_agent_participants (
+        server_id text NOT NULL,
+        chat_id text NOT NULL,
+        chat_kind text NOT NULL DEFAULT 'channel'
+            CONSTRAINT channel_agent_participants_kind CHECK (chat_kind = 'channel'),
+        agent_id text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (server_id, chat_id, agent_id),
+        CONSTRAINT channel_agent_participants_chat_fk
+            FOREIGN KEY (server_id, chat_id, chat_kind)
+            REFERENCES chats (server_id, id, kind) ON DELETE CASCADE,
+        CONSTRAINT channel_agent_participants_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE
+    );`,
     `CREATE TABLE IF NOT EXISTS chat_messages (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL,
         chat_id text NOT NULL,
         sequence integer NOT NULL CONSTRAINT chat_messages_positive_sequence
             CHECK (sequence > 0),
-        author_user_id text NOT NULL,
+        author_user_id text,
+        system_author text,
         content text NOT NULL,
         nonce text NOT NULL,
         search_vector tsvector GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED,
@@ -191,7 +220,12 @@ const schemaStatements = [
             REFERENCES chats (server_id, id) ON DELETE CASCADE,
         CONSTRAINT chat_messages_author_membership_fk
             FOREIGN KEY (server_id, author_user_id)
-            REFERENCES server_memberships (server_id, user_id)
+            REFERENCES server_memberships (server_id, user_id),
+        CONSTRAINT chat_messages_author_shape CHECK (
+            (author_user_id IS NOT NULL AND system_author IS NULL)
+            OR
+            (author_user_id IS NULL AND system_author = 'reminder')
+        )
     );`,
     'CREATE UNIQUE INDEX IF NOT EXISTS chat_messages_server_id_key ON chat_messages (server_id, id);',
     `CREATE UNIQUE INDEX IF NOT EXISTS chat_messages_chat_sequence_key
@@ -204,6 +238,115 @@ const schemaStatements = [
         ON chat_messages (server_id, chat_id, sequence);`,
     `CREATE INDEX IF NOT EXISTS chat_messages_search_idx
         ON chat_messages USING gin (search_vector);`,
+    `CREATE TABLE IF NOT EXISTS reminders (
+        id text PRIMARY KEY NOT NULL,
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        owner_agent_id text NOT NULL,
+        title text NOT NULL CONSTRAINT reminders_title_length
+            CHECK (char_length(title) BETWEEN 1 AND 300),
+        anchor_chat_id text NOT NULL,
+        anchor_message_id text NOT NULL,
+        fire_at timestamptz NOT NULL,
+        repeat text,
+        timezone text NOT NULL,
+        script text CONSTRAINT reminders_script_size
+            CHECK (script IS NULL OR octet_length(script) BETWEEN 1 AND 16384),
+        status text NOT NULL CONSTRAINT reminders_status
+            CHECK (status IN ('scheduled', 'fired', 'canceled')),
+        version integer NOT NULL DEFAULT 1
+            CONSTRAINT reminders_positive_version CHECK (version > 0),
+        schedule_receipt_message_id text,
+        created_at timestamptz NOT NULL,
+        updated_at timestamptz NOT NULL,
+        CONSTRAINT reminders_owner_agent_fk
+            FOREIGN KEY (server_id, owner_agent_id)
+            REFERENCES agents (server_id, id),
+        CONSTRAINT reminders_anchor_chat_fk
+            FOREIGN KEY (server_id, anchor_chat_id)
+            REFERENCES chats (server_id, id),
+        CONSTRAINT reminders_anchor_message_fk
+            FOREIGN KEY (server_id, anchor_chat_id, anchor_message_id)
+            REFERENCES chat_messages (server_id, chat_id, id),
+        CONSTRAINT reminders_schedule_receipt_fk
+            FOREIGN KEY (server_id, schedule_receipt_message_id)
+            REFERENCES chat_messages (server_id, id)
+    );`,
+    'CREATE UNIQUE INDEX IF NOT EXISTS reminders_server_id_key ON reminders (server_id, id);',
+    `CREATE INDEX IF NOT EXISTS reminders_due_idx
+        ON reminders (fire_at, id) WHERE status = 'scheduled';`,
+    `CREATE TABLE IF NOT EXISTS reminder_commands (
+        id text PRIMARY KEY NOT NULL,
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        actor_kind text NOT NULL CONSTRAINT reminder_commands_actor_kind
+            CHECK (actor_kind IN ('agent', 'user')),
+        actor_id text NOT NULL,
+        command_id text NOT NULL,
+        action text NOT NULL,
+        request_fingerprint text NOT NULL,
+        result_snapshot jsonb NOT NULL,
+        reminder_id text NOT NULL,
+        applied_version integer NOT NULL CONSTRAINT reminder_commands_positive_version
+            CHECK (applied_version > 0),
+        created_at timestamptz NOT NULL,
+        CONSTRAINT reminder_commands_reminder_fk
+            FOREIGN KEY (server_id, reminder_id)
+            REFERENCES reminders (server_id, id) ON DELETE CASCADE
+    );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS reminder_commands_actor_command_key
+        ON reminder_commands (server_id, actor_kind, actor_id, command_id);`,
+    `CREATE TABLE IF NOT EXISTS reminder_fires (
+        id text PRIMARY KEY NOT NULL,
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        reminder_id text NOT NULL,
+        scheduled_for timestamptz NOT NULL,
+        fired_at timestamptz NOT NULL,
+        receipt_message_id text NOT NULL,
+        CONSTRAINT reminder_fires_reminder_fk
+            FOREIGN KEY (server_id, reminder_id)
+            REFERENCES reminders (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT reminder_fires_receipt_fk
+            FOREIGN KEY (server_id, receipt_message_id)
+            REFERENCES chat_messages (server_id, id)
+    );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS reminder_fires_server_id_key
+        ON reminder_fires (server_id, id);`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS reminder_fires_logical_fire_key
+        ON reminder_fires (server_id, reminder_id, scheduled_for);`,
+    `CREATE TABLE IF NOT EXISTS reminder_agent_attention (
+        id text PRIMARY KEY NOT NULL,
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        agent_id text NOT NULL,
+        reminder_id text NOT NULL,
+        fire_id text NOT NULL,
+        anchor_chat_id text NOT NULL,
+        receipt_message_id text NOT NULL,
+        attention_kind text NOT NULL,
+        script text,
+        queued_at timestamptz NOT NULL,
+        CONSTRAINT reminder_agent_attention_shape CHECK (
+            (attention_kind = 'reminder' AND script IS NULL)
+            OR
+            (attention_kind = 'reminder_script'
+                AND octet_length(script) BETWEEN 1 AND 16384)
+        ),
+        CONSTRAINT reminder_agent_attention_agent_fk
+            FOREIGN KEY (server_id, agent_id) REFERENCES agents (server_id, id),
+        CONSTRAINT reminder_agent_attention_reminder_fk
+            FOREIGN KEY (server_id, reminder_id)
+            REFERENCES reminders (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT reminder_agent_attention_fire_fk
+            FOREIGN KEY (server_id, fire_id)
+            REFERENCES reminder_fires (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT reminder_agent_attention_anchor_chat_fk
+            FOREIGN KEY (server_id, anchor_chat_id) REFERENCES chats (server_id, id),
+        CONSTRAINT reminder_agent_attention_receipt_fk
+            FOREIGN KEY (server_id, receipt_message_id)
+            REFERENCES chat_messages (server_id, id)
+    );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS reminder_agent_attention_server_id_key
+        ON reminder_agent_attention (server_id, id);`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS reminder_agent_attention_fire_key
+        ON reminder_agent_attention (server_id, fire_id);`,
     `DO $$
     BEGIN
         ALTER TABLE chats ADD CONSTRAINT chats_thread_anchor_fk
@@ -253,6 +396,8 @@ const schemaStatements = [
         message_id text,
         label_id text,
         reader_user_id text,
+        reminder_id text,
+        reminder_action text,
         sequence integer NOT NULL,
         created_at timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT chat_events_chat_fk
@@ -264,6 +409,9 @@ const schemaStatements = [
         CONSTRAINT chat_events_reader_membership_fk
             FOREIGN KEY (server_id, reader_user_id)
             REFERENCES server_memberships (server_id, user_id) ON DELETE CASCADE,
+        CONSTRAINT chat_events_reminder_fk
+            FOREIGN KEY (server_id, reminder_id)
+            REFERENCES reminders (server_id, id) ON DELETE CASCADE,
         CONSTRAINT chat_events_shape CHECK (
             (
                 event_type = 'message.created'
@@ -279,6 +427,8 @@ const schemaStatements = [
                 AND message_id IS NOT NULL
                 AND label_id IS NULL
                 AND reader_user_id IS NULL
+                AND reminder_id IS NULL
+                AND reminder_action IS NULL
                 AND sequence > 0
             )
             OR (
@@ -287,6 +437,8 @@ const schemaStatements = [
                 AND message_id IS NULL
                 AND label_id IS NULL
                 AND reader_user_id IS NOT NULL
+                AND reminder_id IS NULL
+                AND reminder_action IS NULL
                 AND sequence >= 0
             )
             OR (
@@ -295,6 +447,18 @@ const schemaStatements = [
                 AND message_id IS NULL
                 AND label_id IS NULL
                 AND reader_user_id IS NOT NULL
+                AND reminder_id IS NULL
+                AND reminder_action IS NULL
+                AND sequence >= 0
+            )
+            OR (
+                event_type = 'reminder.changed'
+                AND message_id IS NULL
+                AND reader_user_id IS NULL
+                AND reminder_id IS NOT NULL
+                AND reminder_action IN (
+                    'scheduled', 'updated', 'snoozed', 'canceled', 'fired'
+                )
                 AND sequence >= 0
             )
             OR (

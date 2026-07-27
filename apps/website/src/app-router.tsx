@@ -74,6 +74,13 @@ export function createAppRouter() {
                             ),
                         },
                         {
+                            path: 's/:slug/reminders',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/server-page.tsx'),
+                                'ServerPage'
+                            ),
+                        },
+                        {
                             // A Server address may itself be `join` or `invite`,
                             // so an invitation token cannot live under `s/:slug`.
                             path: 'invite/:token',

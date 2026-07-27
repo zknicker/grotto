@@ -84,6 +84,7 @@ export async function sendHostedChatMessage(
                 nonce: chatMessagesTable.nonce,
                 sequence: chatMessagesTable.sequence,
                 serverId: chatMessagesTable.serverId,
+                systemAuthor: chatMessagesTable.systemAuthor,
             })
             .from(chatMessagesTable)
             .innerJoin(

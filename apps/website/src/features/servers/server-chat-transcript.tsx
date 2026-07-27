@@ -45,6 +45,8 @@ export function ServerChatTranscript({
                                     threads.find(
                                         (summary) => summary.anchorMessageId === message.id
                                     ) ?? null;
+                                const humanAuthorUserId =
+                                    message.author.kind === 'human' ? message.author.userId : null;
 
                                 return (
                                     <MessageScrollerItem
@@ -73,14 +75,20 @@ export function ServerChatTranscript({
                                                 </button>
                                             ) : null}
                                             <div className="flex items-baseline gap-2">
-                                                <Button
-                                                    className="h-auto p-0 font-medium text-sm"
-                                                    onClick={() => onStartDm(message.authorUserId)}
-                                                    size="xs"
-                                                    variant="link"
-                                                >
-                                                    {shortUserId(message.authorUserId)}
-                                                </Button>
+                                                {humanAuthorUserId ? (
+                                                    <Button
+                                                        className="h-auto p-0 font-medium text-sm"
+                                                        onClick={() => onStartDm(humanAuthorUserId)}
+                                                        size="xs"
+                                                        variant="link"
+                                                    >
+                                                        {shortUserId(humanAuthorUserId)}
+                                                    </Button>
+                                                ) : (
+                                                    <span className="font-medium text-muted-foreground text-sm">
+                                                        Reminder
+                                                    </span>
+                                                )}
                                                 <time
                                                     className="text-muted-foreground text-xs"
                                                     dateTime={message.createdAt}

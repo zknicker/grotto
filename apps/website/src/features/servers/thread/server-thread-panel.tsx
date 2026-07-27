@@ -114,7 +114,11 @@ function ThreadMessage({ message }: { message: HostedChatMessage }) {
     return (
         <article className="flex min-w-0 flex-col gap-1">
             <div className="flex items-baseline gap-2">
-                <span className="font-medium text-sm">Human {message.authorUserId.slice(-6)}</span>
+                <span className="font-medium text-sm">
+                    {message.author.kind === 'human'
+                        ? `Human ${message.author.userId.slice(-6)}`
+                        : 'Reminder'}
+                </span>
                 <time className="text-muted-foreground text-xs" dateTime={message.createdAt}>
                     {new Date(message.createdAt).toLocaleTimeString([], {
                         hour: 'numeric',

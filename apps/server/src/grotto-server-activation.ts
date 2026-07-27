@@ -7,6 +7,7 @@ import { assertGrottoRevision, verifyGrottoRelease } from './grotto-release-veri
 const productionRoot = '/Users/zknicker/srv/grotto';
 const privilegedActivationHelper = '/usr/local/libexec/grotto/activate-grotto-server';
 const serverLabel = 'system/com.grotto.server';
+const serverPlist = '/Library/LaunchDaemons/com.grotto.server.plist';
 const serverHealthUrl = 'http://127.0.0.1:18791/healthz';
 const fileTypeMask = 0o17_0000;
 const directoryType = 0o04_0000;
@@ -17,12 +18,26 @@ interface ActivateGrottoReleaseInput {
     restartServer(): Promise<string | null> | string | null;
     serverHealthy(previousPid: string | null): Promise<boolean>;
     sourceRevision: string;
+    startServer(): Promise<ProductionServerActivation> | ProductionServerActivation;
+    stopServer(): Promise<void> | void;
 }
 
 interface ActivationPathStat {
     mode: number;
     uid: number;
 }
+
+interface LaunchctlResult {
+    exitCode: number;
+    stdout: string;
+}
+
+interface ProductionServerActivation {
+    introducedLabel: boolean;
+    previousPid: string | null;
+}
+
+type RunLaunchctl = (args: string[]) => LaunchctlResult;
 
 export async function activateGrottoRelease(input: ActivateGrottoReleaseInput) {
     assertGrottoRevision(input.sourceRevision);
@@ -33,8 +48,11 @@ export async function activateGrottoRelease(input: ActivateGrottoReleaseInput) {
     const previousRelease = await readCurrentRelease(deployRoot, currentPath);
 
     await switchCurrentRelease(deployRoot, currentPath, releaseRoot);
+    let introducedLabel = false;
     try {
-        const previousPid = await input.restartServer();
+        const activation = await input.startServer();
+        introducedLabel = activation.introducedLabel;
+        const { previousPid } = activation;
         if (!(await input.serverHealthy(previousPid))) {
             throw new Error('Activated Grotto Server did not become healthy.');
         }
@@ -43,6 +61,25 @@ export async function activateGrottoRelease(input: ActivateGrottoReleaseInput) {
             await switchCurrentRelease(deployRoot, currentPath, previousRelease);
             await input.restartServer();
         } else {
+            if (!introducedLabel) {
+                throw new Error(
+                    'Grotto Server activation failed without proving the Server label stopped; current remains on the failed release.',
+                    { cause: error }
+                );
+            }
+            try {
+                await input.stopServer();
+            } catch (stopError) {
+                throw new Error(
+                    'Grotto Server rollback could not stop the introduced Server label; current remains on the failed release.',
+                    {
+                        cause: new AggregateError(
+                            [error, stopError],
+                            'Activation and Server label stop both failed.'
+                        ),
+                    }
+                );
+            }
             await rm(currentPath, { force: true });
         }
         throw new Error('Grotto Server activation failed and rolled back.', { cause: error });
@@ -96,6 +133,31 @@ async function restartProductionServer() {
     return previousPid;
 }
 
+export async function startProductionServer(
+    launchctl: RunLaunchctl = runLaunchctl,
+    inspect: (path: string) => Promise<ActivationPathStat> = lstat
+) {
+    const service = launchctl(['print', serverLabel]);
+    if (service.exitCode === 0) {
+        assertLaunchctlSuccess(launchctl(['kickstart', '-k', serverLabel]));
+        return {
+            introducedLabel: false,
+            previousPid: parseServerPid(service.stdout),
+        };
+    }
+    if (service.exitCode !== 113) {
+        throw new Error(`launchctl failed with exit code ${service.exitCode}.`);
+    }
+
+    await assertProductionServerPlist(inspect);
+    assertLaunchctlSuccess(launchctl(['bootstrap', 'system', serverPlist]));
+    return { introducedLabel: true, previousPid: null };
+}
+
+export function stopProductionServer(launchctl: RunLaunchctl = runLaunchctl) {
+    assertLaunchctlSuccess(launchctl(['bootout', serverLabel]));
+}
+
 export async function waitForRestartedServerHealth(
     previousPid: string | null,
     probe = {
@@ -122,12 +184,38 @@ export async function assertPrivilegedActivationHelper(
         throw new Error('Grotto activation must run from the exact root-owned path.');
     }
 
-    const components = [
-        ['/usr/local', directoryType],
-        ['/usr/local/libexec', directoryType],
-        ['/usr/local/libexec/grotto', directoryType],
-        [privilegedActivationHelper, regularFileType],
-    ] as const;
+    await assertRootOwnedComponents(
+        [
+            ['/usr/local', directoryType],
+            ['/usr/local/libexec', directoryType],
+            ['/usr/local/libexec/grotto', directoryType],
+            [privilegedActivationHelper, regularFileType],
+        ],
+        inspect
+    );
+}
+
+function readProductionServerPid() {
+    const result = runLaunchctl(['print', serverLabel]);
+    assertLaunchctlSuccess(result);
+    return parseServerPid(result.stdout);
+}
+
+async function assertProductionServerPlist(inspect: (path: string) => Promise<ActivationPathStat>) {
+    await assertRootOwnedComponents(
+        [
+            ['/Library', directoryType],
+            ['/Library/LaunchDaemons', directoryType],
+            [serverPlist, regularFileType],
+        ],
+        inspect
+    );
+}
+
+async function assertRootOwnedComponents(
+    components: readonly (readonly [path: string, expectedType: number])[],
+    inspect: (path: string) => Promise<ActivationPathStat>
+) {
     for (const [path, expectedType] of components) {
         const stat = await inspect(path);
         if (
@@ -140,15 +228,25 @@ export async function assertPrivilegedActivationHelper(
     }
 }
 
-function readProductionServerPid() {
-    const result = Bun.spawnSync(['/bin/launchctl', 'print', serverLabel], {
+function runLaunchctl(args: string[]): LaunchctlResult {
+    const result = Bun.spawnSync(['/bin/launchctl', ...args], {
         stderr: 'pipe',
         stdout: 'pipe',
     });
+    return {
+        exitCode: result.exitCode,
+        stdout: result.stdout.toString(),
+    };
+}
+
+function assertLaunchctlSuccess(result: LaunchctlResult) {
     if (result.exitCode !== 0) {
         throw new Error(`launchctl failed with exit code ${result.exitCode}.`);
     }
-    return result.stdout.toString().match(/^\s*pid = (\d+)$/mu)?.[1] ?? null;
+}
+
+function parseServerPid(output: string) {
+    return output.match(/^\s*pid = (\d+)$/mu)?.[1] ?? null;
 }
 
 async function fetchProductionServerHealth() {
@@ -188,6 +286,8 @@ async function main() {
         restartServer: restartProductionServer,
         serverHealthy: waitForRestartedServerHealth,
         sourceRevision,
+        startServer: startProductionServer,
+        stopServer: stopProductionServer,
     });
     console.log(
         `Activated Grotto Server ${release.releaseId} (${release.sourceRevision}, ${release.contentDigest}).`

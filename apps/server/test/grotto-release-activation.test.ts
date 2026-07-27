@@ -36,6 +36,11 @@ test('atomically activates one verified release and restarts only the Server', a
             },
             serverHealthy: (previousPid) => Promise.resolve(previousPid === '101'),
             sourceRevision: nextRevision,
+            startServer: () => {
+                restarts += 1;
+                return { introducedLabel: false, previousPid: '101' };
+            },
+            stopServer: () => undefined,
         });
 
         expect(readlinkSync(join(root, 'current'))).toBe(next);
@@ -62,6 +67,11 @@ test('restores and restarts the previous release when local health fails', async
                 },
                 serverHealthy: () => Promise.resolve(false),
                 sourceRevision: nextRevision,
+                startServer: () => {
+                    restarts += 1;
+                    return { introducedLabel: false, previousPid: '101' };
+                },
+                stopServer: () => undefined,
             })
         ).rejects.toThrow('rolled back');
 
@@ -90,6 +100,11 @@ test('refuses activation when the current release cannot be verified', async () 
                 },
                 serverHealthy: () => Promise.resolve(true),
                 sourceRevision: nextRevision,
+                startServer: () => {
+                    restarts += 1;
+                    return { introducedLabel: false, previousPid: '101' };
+                },
+                stopServer: () => undefined,
             })
         ).rejects.toThrow();
 
@@ -113,6 +128,8 @@ test('refuses a cwd-dependent relative current release target', async () => {
                 restartServer: () => '101',
                 serverHealthy: () => Promise.resolve(true),
                 sourceRevision: nextRevision,
+                startServer: () => ({ introducedLabel: false, previousPid: '101' }),
+                stopServer: () => undefined,
             })
         ).rejects.toThrow('absolute release path');
     } finally {
@@ -148,7 +165,7 @@ test('rejects a privileged activation helper beneath a user-writable path', asyn
 
     await expect(
         assertPrivilegedActivationHelper(helperPath, async (path) =>
-            path === '/usr/local/libexec' ? { mode: 0o4_0775, uid: 0 } : secure()
+            path === '/usr/local/libexec' ? { mode: 0o4_0775, uid: 0 } : secure(path)
         )
     ).rejects.toThrow('root-owned and not writable');
     await expect(

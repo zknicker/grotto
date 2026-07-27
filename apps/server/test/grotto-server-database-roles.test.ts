@@ -1,6 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { spawnSync } from 'node:child_process';
+import { mkdtemp, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { SQL } from 'bun';
 import {
     createGrottoServerApplication,
@@ -17,6 +20,7 @@ let application: GrottoServerApplication;
 let clerk: ClerkTestIssuer;
 let cluster: PostgresCluster;
 let runtimeDatabaseUrl: string;
+let attachmentRoot: string;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
@@ -29,8 +33,10 @@ beforeAll(async () => {
     runtimeUrl.username = runtimeRole;
     runtimeDatabaseUrl = runtimeUrl.toString();
     clerk = await startClerkTestIssuer(appOrigin);
+    attachmentRoot = await mkdtemp(join(tmpdir(), 'grotto-role-attachments-'));
     application = await createGrottoServerApplication({
         appOrigin,
+        attachmentRoot,
         clerkIssuerUrl: clerk.url,
         databaseUrl: runtimeDatabaseUrl,
     });
@@ -42,6 +48,7 @@ afterAll(async () => {
     await clerk.close();
     await admin.close();
     await cluster.stop();
+    await rm(attachmentRoot, { force: true, recursive: true });
 });
 
 test('boots with a DML-only role that cannot create schema objects', async () => {

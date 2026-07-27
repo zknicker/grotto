@@ -1,5 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import Fastify from 'fastify';
 import { registerGrottoHealth } from '../src/grotto-health.ts';
 import {
@@ -15,13 +18,16 @@ let application: GrottoServerApplication;
 let clerk: ClerkTestIssuer;
 let cluster: PostgresCluster;
 let healthUrl: string;
+let attachmentRoot: string;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
     await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
     clerk = await startClerkTestIssuer(appOrigin);
+    attachmentRoot = await mkdtemp(join(tmpdir(), 'grotto-health-attachments-'));
     application = await createGrottoServerApplication({
         appOrigin,
+        attachmentRoot,
         clerkIssuerUrl: clerk.url,
         databaseUrl: cluster.databaseUrl,
     });
@@ -34,6 +40,7 @@ afterAll(async () => {
     await application.close();
     await clerk.close();
     await cluster.stop();
+    await rm(attachmentRoot, { force: true, recursive: true });
 });
 
 test('reports PostgreSQL failure without exposing connection details', async () => {

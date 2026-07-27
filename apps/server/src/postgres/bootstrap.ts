@@ -238,6 +238,57 @@ const schemaStatements = [
         ON chat_messages (server_id, chat_id, sequence);`,
     `CREATE INDEX chat_messages_search_idx
         ON chat_messages USING gin (search_vector);`,
+    `CREATE TABLE attachments (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT attachments_id_shape CHECK (id ~ '^att_[A-Za-z0-9_-]{16}$'),
+        server_id text NOT NULL,
+        chat_id text NOT NULL,
+        uploader_user_id text NOT NULL,
+        upload_nonce text NOT NULL,
+        filename text NOT NULL,
+        media_type text NOT NULL,
+        state text NOT NULL
+            CONSTRAINT attachments_state
+            CHECK (state IN ('pending', 'uploading', 'finalizing', 'ready', 'failed')),
+        attempt_id text,
+        staging_key text,
+        byte_size bigint
+            CONSTRAINT attachments_size
+            CHECK (byte_size IS NULL OR (byte_size >= 0 AND byte_size <= 52428800)),
+        sha256 text
+            CONSTRAINT attachments_sha256
+            CHECK (sha256 IS NULL OR sha256 ~ '^[a-f0-9]{64}$'),
+        failure_code text,
+        message_id text,
+        message_position integer,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        ready_at timestamptz,
+        failed_at timestamptz,
+        CONSTRAINT attachments_chat_fk
+            FOREIGN KEY (server_id, chat_id)
+            REFERENCES chats (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT attachments_uploader_membership_fk
+            FOREIGN KEY (server_id, uploader_user_id)
+            REFERENCES server_memberships (server_id, user_id),
+        CONSTRAINT attachments_message_fk
+            FOREIGN KEY (server_id, chat_id, message_id)
+            REFERENCES chat_messages (server_id, chat_id, id),
+        CONSTRAINT attachments_message_ready CHECK (
+            message_id IS NULL OR (
+                state = 'ready' AND message_position IS NOT NULL AND message_position >= 0
+            )
+        ),
+        CONSTRAINT attachments_failure_shape CHECK (
+            (state = 'failed') = (failure_code IS NOT NULL)
+        )
+    );`,
+    'CREATE UNIQUE INDEX attachments_server_id_key ON attachments (server_id, id);',
+    `CREATE UNIQUE INDEX attachments_uploader_nonce_key
+        ON attachments (server_id, uploader_user_id, upload_nonce);`,
+    `CREATE UNIQUE INDEX attachments_message_position_key
+        ON attachments (server_id, message_id, message_position)
+        WHERE message_id IS NOT NULL;`,
     `CREATE TABLE reminders (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,

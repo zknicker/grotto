@@ -1,5 +1,6 @@
 import type { HostedChatMessage } from '@tavern/api';
 import { and, eq, ne, sql } from 'drizzle-orm';
+import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -59,5 +60,11 @@ export async function searchHostedChatMessages(
         .orderBy(sql`${chatMessagesTable.createdAt} desc`, sql`${chatMessagesTable.id} desc`)
         .limit(input.limit);
 
-    return rows.map(toHostedChatMessage);
+    const attachments = await readMessageAttachments(
+        db,
+        input.serverId,
+        rows.map((message) => message.id)
+    );
+
+    return rows.map((message) => toHostedChatMessage(message, attachments.get(message.id) ?? []));
 }

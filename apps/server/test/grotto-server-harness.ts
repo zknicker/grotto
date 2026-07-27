@@ -1,4 +1,7 @@
+import { mkdtemp, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { SQL } from 'bun';
 import {
     createGrottoServerApplication,
@@ -36,6 +39,7 @@ function createClerkVerifiedEmails(): ClerkVerifiedEmails {
  */
 export interface GrottoServerHarness {
     appOrigin: string;
+    attachmentRoot: string;
     clerk: ClerkTestIssuer;
     clerkUsers: ClerkVerifiedEmails;
     close(): Promise<void>;
@@ -49,6 +53,7 @@ export const harnessAppOrigin = 'https://app.grotto.test';
 
 export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
     const cluster: PostgresCluster = await startPostgresCluster();
+    const attachmentRoot = await mkdtemp(join(tmpdir(), 'grotto-server-attachments-'));
     const clerkUsers = createClerkVerifiedEmails();
     let clerk: ClerkTestIssuer | null = null;
 
@@ -61,6 +66,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
         let application: GrottoServerApplication | null = null;
         const harness: GrottoServerHarness = {
             appOrigin: harnessAppOrigin,
+            attachmentRoot,
             clerk: issuer,
             clerkUsers,
             close: async () => {
@@ -69,6 +75,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
                 application = null;
                 await issuer.close();
                 await cluster.stop();
+                await rm(attachmentRoot, { force: true, recursive: true });
             },
             databaseUrl: cluster.databaseUrl,
             restart: async () => {
@@ -83,6 +90,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
         const startApplication = async () => {
             const next = await createGrottoServerApplication({
                 appOrigin: harnessAppOrigin,
+                attachmentRoot,
                 clerkIssuerUrl: issuer.url,
                 clerkUsers,
                 databaseUrl: cluster.databaseUrl,
@@ -97,6 +105,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
     } catch (error) {
         await clerk?.close();
         await cluster.stop();
+        await rm(attachmentRoot, { force: true, recursive: true });
         throw error;
     }
 }

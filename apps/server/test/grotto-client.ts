@@ -16,6 +16,7 @@ import type { GrottoServerHarness } from './grotto-server-harness.ts';
  * exactly as the App attaches it.
  */
 export interface GrottoClient {
+    clerkSessionToken: string | null;
     close(): void;
     trpc: TRPCClient<GrottoRouter>;
 }
@@ -38,6 +39,7 @@ export function createGrottoClient(
         clerkSessionToken ? { authorization: `Bearer ${clerkSessionToken}` } : {};
 
     return {
+        clerkSessionToken,
         close: () => wsClient.close(),
         trpc: createTRPCClient<GrottoRouter>({
             links: [

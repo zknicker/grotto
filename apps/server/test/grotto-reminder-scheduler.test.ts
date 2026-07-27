@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { eq, sql } from 'drizzle-orm';
 import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
@@ -23,14 +26,19 @@ const now = new Date('2026-07-26T14:00:00.000Z');
 let clerk: ClerkTestIssuer | null = null;
 let cluster: PostgresCluster | null = null;
 let connection: GrottoConnection | null = null;
+let attachmentRoot: string | null = null;
 
 afterEach(async () => {
     await connection?.close();
     await clerk?.close();
     await cluster?.stop();
+    if (attachmentRoot) {
+        await rm(attachmentRoot, { force: true, recursive: true });
+    }
     connection = null;
     clerk = null;
     cluster = null;
+    attachmentRoot = null;
 });
 
 describe('hosted reminder scheduler lifecycle', () => {
@@ -57,12 +65,14 @@ describe('hosted reminder scheduler lifecycle', () => {
         await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
         clerk = await startClerkTestIssuer(appOrigin);
         connection = await connectGrottoDatabase(cluster.databaseUrl);
+        attachmentRoot = await mkdtemp(join(tmpdir(), 'grotto-reminder-attachments-'));
         await seedOverdueReminder(connection);
         await connection.close();
         connection = null;
 
         const first = await createGrottoServerApplication({
             appOrigin,
+            attachmentRoot,
             clerkIssuerUrl: clerk.url,
             databaseUrl: cluster.databaseUrl,
             reminderClock: { now: () => now },
@@ -73,6 +83,7 @@ describe('hosted reminder scheduler lifecycle', () => {
 
         const restarted = await createGrottoServerApplication({
             appOrigin,
+            attachmentRoot,
             clerkIssuerUrl: clerk.url,
             databaseUrl: cluster.databaseUrl,
             reminderClock: { now: () => now },

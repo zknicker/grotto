@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { hostedAttachmentMetadataSchema } from './hosted-attachments.ts';
 import { hostedMessageTaskSchema } from './hosted-task-shared.ts';
 
 export const hostedIdSchema = z.string().trim().min(1);
@@ -11,9 +12,10 @@ export const hostedChatMessageAuthorSchema = z.discriminatedUnion('kind', [
 
 export const hostedChatMessageSchema = z
     .object({
+        attachments: z.array(hostedAttachmentMetadataSchema).default([]),
         author: hostedChatMessageAuthorSchema,
         chatId: hostedIdSchema,
-        content: z.string().min(1),
+        content: z.string().max(32_000),
         createdAt: hostedTimestampSchema,
         id: hostedIdSchema,
         nonce: z.string().trim().min(1).max(128),
@@ -40,13 +42,31 @@ export type HostedThreadSummary = z.infer<typeof hostedThreadSummarySchema>;
 
 export const hostedChatSendInputSchema = z
     .object({
+        attachmentIds: z.array(hostedIdSchema).default([]),
         chatId: hostedIdSchema,
-        content: z.string().trim().min(1).max(32_000),
+        content: z.string().trim().max(32_000),
         nonce: z.string().trim().min(1).max(128),
         serverId: hostedIdSchema,
         thread: z.object({ anchorMessageId: hostedIdSchema }).strict().optional(),
     })
-    .strict();
+    .strict()
+    .superRefine((input, context) => {
+        if (input.content.length === 0 && input.attachmentIds.length === 0) {
+            context.addIssue({
+                code: 'custom',
+                message: 'A hosted message needs text or an attachment.',
+                path: ['content'],
+            });
+        }
+
+        if (new Set(input.attachmentIds).size !== input.attachmentIds.length) {
+            context.addIssue({
+                code: 'custom',
+                message: 'Attachment ids must be unique.',
+                path: ['attachmentIds'],
+            });
+        }
+    });
 
 export type HostedChatSendInput = z.infer<typeof hostedChatSendInputSchema>;
 

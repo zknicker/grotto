@@ -21,6 +21,7 @@ async function start() {
 
     const application = await createGrottoServerApplication({
         appOrigin: env.APP_ORIGIN,
+        attachmentRoot: env.GROTTO_ATTACHMENT_ROOT,
         clerkApiUrl: env.CLERK_API_URL,
         clerkIssuerUrl: env.CLERK_ISSUER_URL,
         clerkSecretKey: env.CLERK_SECRET_KEY,
@@ -39,6 +40,7 @@ async function start() {
         logStartupDetail('🔒', 'Digest', release.contentDigest);
     }
     logStartupDetail('🐘', 'PostgreSQL', describeDatabaseUrl(env.GROTTO_DATABASE_URL));
+    logStartupDetail('📎', 'Attachments', env.GROTTO_ATTACHMENT_ROOT);
     logStartupDetail('🔑', 'Clerk', env.CLERK_ISSUER_URL);
     logStartupDetail(
         '✉️',

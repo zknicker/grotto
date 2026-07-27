@@ -15,6 +15,7 @@ test('hosted sends accept only client intent and never an authoritative actor', 
             serverId: 'srv_main',
         })
     ).toEqual({
+        attachmentIds: [],
         chatId: 'cht_all',
         content: 'Hello from the hosted Server.',
         nonce: 'send-1',
@@ -52,6 +53,7 @@ test('hosted reads derive the reader from the verified Clerk member', () => {
 
 test('hosted messages and durable events keep stable Server and Chat identity', () => {
     const message = hostedChatMessageSchema.parse({
+        attachments: [],
         author: { kind: 'human', userId: 'usr_human' },
         chatId: 'cht_all',
         content: 'Durable.',
@@ -89,4 +91,36 @@ test('hosted messages and durable events keep stable Server and Chat identity', 
             type: 'reminder.changed',
         })
     ).toMatchObject({ action: 'fired', reminderId: 'rem_one' });
+});
+
+test('hosted sends allow attachment-only messages but reject empty messages', () => {
+    expect(
+        hostedChatSendInputSchema.parse({
+            attachmentIds: ['att_one'],
+            chatId: 'cht_all',
+            content: '',
+            nonce: 'send-attachment',
+            serverId: 'srv_main',
+        })
+    ).toMatchObject({ attachmentIds: ['att_one'], content: '' });
+
+    expect(() =>
+        hostedChatSendInputSchema.parse({
+            attachmentIds: [],
+            chatId: 'cht_all',
+            content: '   ',
+            nonce: 'send-empty',
+            serverId: 'srv_main',
+        })
+    ).toThrow();
+
+    expect(() =>
+        hostedChatSendInputSchema.parse({
+            attachmentIds: ['att_one', 'att_one'],
+            chatId: 'cht_all',
+            content: 'Duplicate.',
+            nonce: 'send-duplicate',
+            serverId: 'srv_main',
+        })
+    ).toThrow();
 });

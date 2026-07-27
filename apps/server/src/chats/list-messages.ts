@@ -1,5 +1,6 @@
 import type { HostedChatMessage } from '@tavern/api';
 import { and, desc, eq, lt } from 'drizzle-orm';
+import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { listHostedMessageTaskMap } from '../tasks/task-shape.ts';
@@ -41,13 +42,13 @@ export async function listHostedChatMessages(
         .limit(input.limit + 1);
     const hasOlderMessages = newestFirst.length > input.limit;
     const messageRows = newestFirst.slice(0, input.limit).reverse();
-    const taskByMessageId = await listHostedMessageTaskMap(
-        db,
-        input.serverId,
-        messageRows.map((message) => message.id)
-    );
+    const messageIds = messageRows.map((message) => message.id);
+    const [attachmentsByMessageId, taskByMessageId] = await Promise.all([
+        readMessageAttachments(db, input.serverId, messageIds),
+        listHostedMessageTaskMap(db, input.serverId, messageIds),
+    ]);
     const messages = messageRows.map((message) => ({
-        ...toHostedChatMessage(message),
+        ...toHostedChatMessage(message, attachmentsByMessageId.get(message.id) ?? []),
         task: taskByMessageId.get(message.id) ?? null,
     }));
 

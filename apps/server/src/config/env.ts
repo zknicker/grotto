@@ -29,6 +29,10 @@ export function getDefaultDatabaseUrl() {
     return `postgres://127.0.0.1:5432/grotto${isTestEnvironment() ? '_test' : ''}`;
 }
 
+export function getDefaultGrottoAttachmentRoot() {
+    return join(os.homedir(), '.grotto', 'server', 'attachments');
+}
+
 export function getDefaultClerkIssuerUrl() {
     return 'https://clerk.grotto.sh';
 }
@@ -135,6 +139,11 @@ const envSchema = z
             .string()
             .min(1)
             .default(getDefaultDatabasePath())
+            .transform(resolveHomePath),
+        GROTTO_ATTACHMENT_ROOT: z
+            .string()
+            .min(1)
+            .default(getDefaultGrottoAttachmentRoot())
             .transform(resolveHomePath),
         GROTTO_DATABASE_URL: z.string().min(1).default(getDefaultDatabaseUrl()),
         GROTTO_RELEASE_MANIFEST: z.string().min(1).transform(resolveHomePath).optional(),

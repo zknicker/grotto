@@ -12,6 +12,7 @@ test('keeps an older task anchor available when the latest transcript page omits
 
 function message(id: string, sequence: number): HostedChatMessage {
     return {
+        attachments: [],
         author: { kind: 'human', userId: 'user_one' },
         chatId: 'chat_one',
         content: id,

@@ -1,4 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { SQL } from 'bun';
 import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
 import { startClerkTestIssuer } from './clerk-test-issuer.ts';
@@ -7,9 +10,11 @@ import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.t
 const appOrigin = 'https://app.grotto.test';
 let cluster: PostgresCluster;
 let observer: SQL;
+let attachmentRoot: string;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
+    attachmentRoot = await mkdtemp(join(tmpdir(), 'grotto-lifecycle-attachments-'));
     // One connection, so the observer's own pool cannot be mistaken for the
     // application's backends.
     observer = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -18,12 +23,14 @@ beforeAll(async () => {
 afterAll(async () => {
     await observer.close();
     await cluster.stop();
+    await rm(attachmentRoot, { force: true, recursive: true });
 });
 
 test('closes PostgreSQL when application construction fails', async () => {
     await expect(
         createGrottoServerApplication({
             appOrigin,
+            attachmentRoot,
             clerkIssuerUrl: 'not-a-clerk-instance',
             databaseUrl: cluster.databaseUrl,
         })
@@ -36,6 +43,7 @@ test('closes PostgreSQL when a started application shuts down', async () => {
     const clerk = await startClerkTestIssuer(appOrigin);
     const application = await createGrottoServerApplication({
         appOrigin,
+        attachmentRoot,
         clerkIssuerUrl: clerk.url,
         databaseUrl: cluster.databaseUrl,
     });
@@ -57,6 +65,7 @@ test('closes PostgreSQL when the Server cannot bind its port', async () => {
     });
     const application = await createGrottoServerApplication({
         appOrigin,
+        attachmentRoot,
         clerkIssuerUrl: clerk.url,
         databaseUrl: cluster.databaseUrl,
     });

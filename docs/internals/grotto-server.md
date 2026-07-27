@@ -1,11 +1,12 @@
 ---
-summary: The hosted Grotto Server's PostgreSQL ownership of collaboration, reminders, durable attention, and realtime, plus its direct App surface.
+summary: The hosted Grotto Server's PostgreSQL collaboration, reminders, durable attention, local attachment bytes, recovery, realtime, and direct App surface.
 read_when:
   - changing Grotto Server creation, slugs, membership, roles, or Channels
   - changing hosted PostgreSQL schema or Server authorization
   - changing reminder scheduler lifecycle or hosted Agent attention
   - changing the hosted Server / local sidecar application boundary
   - changing how Clerk authentication maps to a Grotto User
+  - changing hosted attachment storage, recovery, or inventory
 ---
 
 # Grotto Server
@@ -22,7 +23,7 @@ neither reaches into the other:
 
 | Application | Entrypoint | Serves | Storage |
 | --- | --- | --- | --- |
-| Hosted Grotto Server | `src/grotto-server.ts` | `grottoRouter` — the Server contract only, every operation Clerk-authenticated | PostgreSQL |
+| Hosted Grotto Server | `src/grotto-server.ts` | Server tRPC plus authorized streamed attachment upload/download | PostgreSQL plus the Server attachment root |
 | Local sidecar (pre-WS6) | `src/index.ts` | `appRouter`/`wsRouter` — the legacy local-owner contract | SQLite |
 
 The packaged desktop app launches the local sidecar with a `--database-path`
@@ -93,6 +94,7 @@ PostgreSQL owns the hosted collaboration tables
 | `chat_messages` | Immutable human or reminder-system messages ordered by per-Chat sequence and nonce |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `chat_events` | Durable message/read/task/reminder-change events ordered by PostgreSQL cursor |
+| `attachments` | Server/Chat-scoped metadata, upload state, content digest, and optional message association |
 | `message_tasks` | Lifecycle metadata keyed directly to one canonical hosted message |
 | `task_labels` / `message_task_labels` | Small Server task-label catalog and task links |
 | `reminders` / `reminder_commands` | Author-owned schedules and idempotent optimistic commands with original result snapshots |
@@ -135,6 +137,46 @@ future Computer-local path.
 Shutdown stops new ticks and awaits any in-flight tick before closing
 PostgreSQL. Pending attention is durable across shutdown but defines no
 transport or acknowledgment behavior.
+
+## Attachment storage and recovery
+
+`GROTTO_ATTACHMENT_ROOT` is the absolute Server-owned byte root. Startup creates
+it as `0700` and validates that the root and fixed layout directories are
+non-symlink directories:
+
+```text
+<root>/
+  servers/<sha256(server-id)>/
+    objects/<sha256(server-id + attachment-id)>
+    staging/<sha256(upload-attempt-id)>
+```
+
+Clients supply only opaque ids. Authorization resolves a PostgreSQL row before
+storage is touched; names, MIME types, URLs, and encoded separators never
+become paths. Leaf opens use `O_NOFOLLOW` and `fstat` where Node/Bun exposes
+them. Expected symlink or non-regular leaves fail closed. A same-UID local
+administrator racing path syscalls is outside this trust boundary.
+
+Uploads move through `pending → uploading → finalizing → ready` (or `failed`):
+
+1. Reserve metadata idempotently by Server, uploader, and client nonce.
+2. Claim one attempt; stream and hash into a private staging leaf; enforce 50
+   MiB independently of `Content-Length`; fsync the file.
+3. Commit byte count, hash, and `finalizing` in PostgreSQL.
+4. Atomically rename to the immutable object leaf and fsync both affected directories.
+5. Commit `ready`.
+
+Before the finalizing commit, failures remove the exact staging leaf and mark
+the row failed. After that commit, startup reconciliation verifies staged or
+renamed bytes against PostgreSQL, completes the rename when needed, and commits
+ready. Interrupted writes become failed; missing finalization bytes are
+recorded as failed; contradictory or substituted leaves stop startup. A lost
+success response retries idempotently against the ready row.
+
+Owner/Admin attachment inventory returns every attachment row, expected
+root-relative object/staging key, and every actual regular leaf for that
+Server. It never returns the absolute root. This is the cleanup and future
+Server-deletion seam; PRD-142 does not delete Servers.
 
 Membership revocation sets `server_memberships.revoked_at`; it does not delete
 the row. This keeps immutable message authors and historical DM pairs intact
@@ -239,7 +281,9 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 
 - `/s` lists the Servers this human can open and creates new ones.
 - `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, search,
-  and the hosted task Board/List.
+  attachments, and the hosted task Board/List. It reserves and streams local
+  files to the hosted Server, renders only attachment metadata in messages,
+  and performs authenticated downloads.
   An author already visible in the transcript is the entry point for their DM.
   Message replies open hidden child Threads in the resizable side pane; Threads
   never enter the hosted sidebar Chat list.

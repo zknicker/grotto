@@ -35,6 +35,8 @@ The App calls the hosted Server directly over typed tRPC:
 | `chat.events` | Durable event catch-up after a cursor |
 | `chat.onEvent` | Live durable-event notification; clients refetch exact resources |
 | `chat.publishComposition` / `chat.onComposition` | Best-effort, live-only composition state |
+| `attachment.reserve` | Idempotently allocate one Server/Chat-scoped attachment id |
+| `attachment.inventory` | Owner/Admin-only database and relative filesystem inventory |
 | `thread.get` | Parent and anchor ids for one authorized child Thread |
 | `thread.setFollow` | Persist the caller's ordinary Thread attention state |
 | `task.list` | Authorized Server task/message projections with parent Chat identity and current Thread summary |
@@ -57,21 +59,52 @@ live in [Grotto Server](../internals/grotto-server.md#membership).
 
 Message order is the positive per-Chat `sequence`, allocated while the Chat row
 is transactionally locked. `(server_id, chat_id, nonce)` is unique. Retrying
-the same actor and content returns the original message and event cursor;
-reusing the nonce for different content is a conflict. Messages have no update
-or delete procedure. A hosted message author is either the current human
-membership author or the explicit `system: "reminder"` author. The system shape
-exists only for canonical reminder receipts and is never represented as a
-human membership.
+the same actor, content, and ordered attachment ids returns the original
+message and event cursor; reusing the nonce for a different send is a conflict.
+An author is either the current human membership author or the explicit
+`system: "reminder"` author. The system shape exists only for canonical
+reminder receipts and is never represented as a human membership.
+
+Every attachment must be ready, uploaded by the author, unassociated, and in
+the same Server and Chat. Message creation, attachment association, and the
+`message.created` event commit in one PostgreSQL transaction. The normal
+message refetch carries attachment metadata; no separate attachment event is
+emitted. Messages have no update or delete procedure.
 
 Hosted human chat includes hidden child Threads with parent-derived
-authorization, per-human follows, reads, and parent unread rollup. It
-also owns chat-first tasks whose identity is one canonical message and whose
-work surface is that message's deterministic child Thread. Hosted reminders
-may author scheduled system messages, but remain a separate schedule contract.
-Hosted human chat intentionally excludes reactions, attachments, Agent
-execution, Computer transport, and general delivery queues.
-Those nouns must not be copied from the broader local Runtime contract below.
+authorization, per-human follows, reads, and parent unread rollup. It also owns
+chat-first tasks whose identity is one canonical message and whose work surface
+is that message's deterministic child Thread. Hosted reminders may author
+scheduled system messages, but remain a separate schedule contract. Hosted
+human chat intentionally excludes reactions, Agent execution, Computer
+transport, and general delivery queues.
+
+### Hosted attachments
+
+The App reserves metadata through tRPC, then streams bytes directly to the
+hosted Server:
+
+```http
+PUT /attachments/{serverId}/{attachmentId}
+Authorization: Bearer <Clerk session>
+Content-Type: application/octet-stream
+```
+
+The stream may omit `Content-Length`. When present it must be an exact
+nonnegative byte count no larger than 50 MiB; the Server also enforces the
+limit while streaming. Zero-byte attachments are valid. A partial,
+overflowing, or conflicting attempt never becomes ready.
+
+Authorized downloads use `GET` on the same URL. Responses include the stored
+media type and length, attachment disposition with UTF-8 filename encoding,
+`X-Content-Type-Options: nosniff`, and `Cache-Control: private, no-store`.
+Message and list payloads carry only `{ id, filename, mediaType, sizeBytes }`;
+they never carry file bytes or storage paths.
+
+Client values never name filesystem paths. The Server resolves the authorized
+PostgreSQL row first and derives fixed digest leaves beneath its private
+attachment root. Attachments are neither `ChatArtifact` records nor Agent
+workspace artifacts.
 
 Hosted direct mention piercing is narrow: an explicit immutable
 `[@Label](user://<grotto-user-id>)` reference to a parent participant contributes

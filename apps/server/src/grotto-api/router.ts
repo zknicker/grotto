@@ -1,3 +1,4 @@
+import { attachmentRouter } from './attachment/router.ts';
 import { chatRouter } from './chat/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { memberRouter } from './member/router.ts';
@@ -13,6 +14,7 @@ import { createRouter } from './trpc.ts';
  * on the local sidecar's router and are not reachable here.
  */
 export const grottoRouter = createRouter({
+    attachment: attachmentRouter,
     chat: chatRouter,
     invitation: invitationRouter,
     member: memberRouter,

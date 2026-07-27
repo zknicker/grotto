@@ -15,10 +15,12 @@ let application: GrottoServerApplication;
 let clerk: ClerkTestIssuer;
 let cluster: PostgresCluster;
 let staticAppRoot: string;
+let attachmentRoot: string;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
     clerk = await startClerkTestIssuer(appOrigin);
+    attachmentRoot = mkdtempSync(join(tmpdir(), 'grotto-production-attachments-'));
     staticAppRoot = mkdtempSync(join(tmpdir(), 'grotto-static-app-'));
     writeFileSync(
         join(staticAppRoot, 'index.html'),
@@ -29,6 +31,7 @@ beforeAll(async () => {
 
     application = await createGrottoServerApplication({
         appOrigin,
+        attachmentRoot,
         clerkIssuerUrl: clerk.url,
         databaseUrl: cluster.databaseUrl,
         staticAppRoot,
@@ -48,6 +51,7 @@ afterAll(async () => {
     await application.close();
     await clerk.close();
     await cluster.stop();
+    rmSync(attachmentRoot, { force: true, recursive: true });
     rmSync(staticAppRoot, { force: true, recursive: true });
 });
 

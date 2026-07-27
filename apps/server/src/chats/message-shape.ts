@@ -1,4 +1,4 @@
-import type { HostedChatMessage } from '@tavern/api';
+import type { HostedAttachmentMetadata, HostedChatMessage } from '@tavern/api';
 
 interface StoredChatMessage {
     authorUserId: string | null;
@@ -12,8 +12,12 @@ interface StoredChatMessage {
     systemAuthor: 'reminder' | null;
 }
 
-export function toHostedChatMessage(message: StoredChatMessage): HostedChatMessage {
+export function toHostedChatMessage(
+    message: StoredChatMessage,
+    attachments: HostedAttachmentMetadata[] = []
+): HostedChatMessage {
     return {
+        attachments,
         author:
             message.systemAuthor === 'reminder'
                 ? { kind: 'system', system: 'reminder' }

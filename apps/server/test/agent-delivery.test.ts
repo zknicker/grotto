@@ -113,12 +113,14 @@ async function seedAgent(): Promise<Seed> {
 function turnSummary(
     agentId: string,
     runId: string,
-    status: 'completed' | 'failed'
+    status: 'completed' | 'failed',
+    outputProduced: boolean = status === 'completed'
 ): HostedAgentTurnSummary {
     return {
         agentId,
         endedAt: new Date().toISOString(),
-        messageCount: 1,
+        messageCount: outputProduced ? 1 : 0,
+        outputProduced,
         runId,
         startedAt: new Date().toISOString(),
         status,
@@ -543,4 +545,98 @@ test('Stop revokes the run credential so it holds even without the socket', asyn
         .from(agentRunnerCredentialsTable)
         .where(eq(agentRunnerCredentialsTable.id, runnerId));
     expect(credential?.revokedAt).not.toBeNull();
+});
+
+test('a failed turn that produced output does not requeue its work', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'do a thing',
+        dedupeKey: 'msg-1',
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+
+    // The turn failed but already produced a durable send — requeuing would
+    // re-trigger that output, so the work is dropped, not requeued or replayed.
+    await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'failed', true));
+    expect(await countAllPending(seed.agentId)).toBe(0);
+    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
+});
+
+test('a resent run keeps the runtime and model frozen at first dispatch', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'work',
+        dedupeKey: 'msg-1',
+        serverId: seed.serverId,
+    });
+    const first = transport.framesOfType('start')[0];
+    expect(first).toMatchObject({ modelId: 'fake-model', runtimeId: 'fake' });
+    await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
+
+    // The Agent is reconfigured mid-flight; the in-flight run must not adopt it.
+    await connection.db
+        .update(agentsTable)
+        .set({ desiredModelId: 'new-model', desiredRuntimeId: 'new-runtime' })
+        .where(eq(agentsTable.id, seed.agentId));
+
+    await delivery.onComputerReconnect(seed.computerId);
+    const resent = transport.framesOfType('start')[1];
+    expect(resent?.runId).toBe(first?.runId);
+    expect(resent).toMatchObject({ modelId: 'fake-model', runtimeId: 'fake' });
+});
+
+test('bounds one drain and carries the overflow in a later run', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    // Three ~10k-char messages exceed the 24k drain budget, so the first run
+    // carries two and the third waits for the next.
+    const padding = 'x'.repeat(10_000);
+    for (let index = 1; index <= 3; index += 1) {
+        await connection.db.insert(agentPendingWorkTable).values({
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            content: `msg-${index}-${padding}`,
+            dedupeKey: `msg-${index}`,
+            id: createOpaqueId('apw'),
+            serverId: seed.serverId,
+            source: 'human',
+        });
+    }
+    await connection.db
+        .insert(agentDeliveryTable)
+        .values({ agentId: seed.agentId, serverId: seed.serverId });
+
+    await delivery.sweep();
+    const first = transport.framesOfType('start')[0];
+    expect(first?.prompt).toContain('msg-1-');
+    expect(first?.prompt).toContain('msg-2-');
+    expect(first?.prompt).not.toContain('msg-3-');
+    expect(first?.prompt.length).toBeLessThan(200_000);
+
+    await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, first?.runId ?? '', 'completed')
+    );
+    const second = transport.framesOfType('start')[1];
+    expect(second?.prompt).toContain('msg-3-');
+    expect(second?.prompt).not.toContain('msg-1-');
 });

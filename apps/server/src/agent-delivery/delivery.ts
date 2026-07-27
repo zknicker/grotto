@@ -38,6 +38,9 @@ export interface EnqueueInput {
 const maxDeliveryFailures = 5;
 const failureBackoffBaseMs = 5000;
 const failureBackoffCapMs = 60_000;
+/** Bounds one drain so the composed prompt stays well under command/env limits. */
+const maxDrainRows = 50;
+const maxDrainChars = 24_000;
 
 /**
  * Server-owned durable Agent delivery. All run, stop, and pending-inbox state
@@ -174,13 +177,21 @@ export class AgentDelivery {
                 await store.clearActiveRun(tx, summary.agentId);
                 return this.planDispatch(tx, summary.agentId);
             }
-            // A failed turn keeps its work (requeued) but does not re-drive
-            // immediately: repeated permanent failures back off and then degrade,
-            // so a broken runtime cannot tight-loop.
-            await store.requeuePendingForRun(tx, {
-                agentId: summary.agentId,
-                runId: summary.runId,
-            });
+            // A failed turn that produced model-visible output must not requeue
+            // its work — redelivering it would re-trigger that output. Only a
+            // failure with no output is safe to retry. Either way it does not
+            // re-drive immediately: repeated failures back off, then degrade.
+            if (summary.outputProduced) {
+                await store.deletePendingForRun(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                });
+            } else {
+                await store.requeuePendingForRun(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                });
+            }
             await store.clearActiveRun(tx, summary.agentId);
             const failures = state.consecutiveFailures + 1;
             await store.recordDeliveryFailure(tx, {
@@ -232,7 +243,10 @@ export class AgentDelivery {
         if (state.activeRunId && state.activeRunComputerId) {
             if (!state.acceptedAt || options?.resendActive) {
                 await store.markDispatched(tx, { agentId, runId: state.activeRunId });
-                return { computerId: state.activeRunComputerId, frame: startFrame(state, config) };
+                // Resend the run exactly as first dispatched: the runtime and
+                // model were frozen onto the run, so a mid-flight reconfigure
+                // never changes what an in-flight run launches with.
+                return { computerId: state.activeRunComputerId, frame: startFrame(state) };
             }
             const pending = await store.countQueuedPending(tx, agentId);
             if (pending > 0) {
@@ -247,19 +261,27 @@ export class AgentDelivery {
             return null;
         }
         const runId = createOpaqueId('run');
-        const claimed = await store.claimQueuedPendingForNextChat(tx, { agentId, runId });
+        const claimed = await store.claimQueuedPendingForNextChat(tx, {
+            agentId,
+            maxChars: maxDrainChars,
+            maxRows: maxDrainRows,
+            runId,
+        });
         const first = claimed[0];
         if (!first) {
             return null;
         }
         const chatId = first.chatId;
         const prompt = composeDrainPrompt(claimed);
+        // Freeze runtime/model onto the run so every resend uses these values.
         await store.beginActiveRun(tx, {
             agentId,
             chatId,
             computerId: config.computerId,
+            modelId: config.desiredModelId,
             prompt,
             runId,
+            runtimeId: config.desiredRuntimeId,
         });
         return {
             computerId: config.computerId,
@@ -304,14 +326,14 @@ function nextRetryAt(failures: number): Date {
     return new Date(Date.now() + backoff);
 }
 
-function startFrame(state: AgentDeliveryRow, config: ConfiguredAgent): HostedAgentCommand {
+function startFrame(state: AgentDeliveryRow): HostedAgentCommand {
     return {
         agentId: state.agentId,
         chatId: state.activeRunChatId ?? '',
-        modelId: config.desiredModelId,
+        modelId: state.activeRunModelId ?? '',
         prompt: state.activeRunPrompt ?? '',
         runId: state.activeRunId ?? '',
-        runtimeId: config.desiredRuntimeId,
+        runtimeId: state.activeRunRuntimeId ?? '',
         type: 'start',
     };
 }

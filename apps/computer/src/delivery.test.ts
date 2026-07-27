@@ -29,6 +29,7 @@ const summary: HostedAgentTurnFrame = {
     agentId: 'agt_x',
     endedAt: '2026-07-27T00:00:01.000Z',
     messageCount: 1,
+    outputProduced: true,
     runId: 'run_x',
     startedAt: '2026-07-27T00:00:00.000Z',
     status: 'completed',
@@ -37,20 +38,17 @@ const summary: HostedAgentTurnFrame = {
 };
 
 test('a fresh run with no marker launches', () => {
-    expect(decideStart(null, false)).toEqual({ kind: 'run' });
-});
-
-test('a duplicate frame for a live run is skipped, not relaunched', () => {
-    expect(decideStart(null, true)).toEqual({ kind: 'skip' });
+    expect(decideStart(null)).toEqual({ kind: 'run' });
 });
 
 test('a settled run replays its stored summary instead of re-running', () => {
     const marker: RunMarker = { status: 'settled', summary };
-    expect(decideStart(marker, false)).toEqual({ kind: 'replay', summary });
+    expect(decideStart(marker)).toEqual({ kind: 'replay', summary });
 });
 
-test('an accepted-but-unsettled run re-runs after a crash', () => {
-    expect(decideStart({ status: 'accepted' }, false)).toEqual({ kind: 'run' });
+test('an accepted-but-unsettled run recovers as failed, never re-runs', () => {
+    // A crash after acceptance must not rerun possibly-effectful work.
+    expect(decideStart({ status: 'accepted' })).toEqual({ kind: 'recover' });
 });
 
 test('run markers survive a Computer restart and drive idempotent replay', async () => {
@@ -69,11 +67,36 @@ test('run markers survive a Computer restart and drive idempotent replay', async
     // frame resolves to a replay, so the model never sees the run twice.
     const marker = await readRunMarker(dataRoot, { runId: 'run_x' }, serverId);
     expect(marker).toEqual({ status: 'settled', summary });
-    expect(decideStart(marker, false)).toEqual({ kind: 'replay', summary });
+    expect(decideStart(marker)).toEqual({ kind: 'replay', summary });
 });
 
 test('a missing marker reads as null', async () => {
     expect(await readRunMarker(dataRoot, { runId: 'run_absent' }, serverId)).toBeNull();
+});
+
+test('an interrupted (accepted-only) run recovers, then replays its terminal result', async () => {
+    // A crash leaves only an accepted marker: recovery, never rerun.
+    await writeRunMarker(dataRoot, { marker: { status: 'accepted' }, runId: 'run_x', serverId });
+    expect(decideStart(await readRunMarker(dataRoot, { runId: 'run_x' }, serverId))).toEqual({
+        kind: 'recover',
+    });
+
+    // Recovery reports a failed, interrupted turn and settles the marker, so a
+    // later redelivery replays that terminal result instead of recovering again.
+    const interrupted: HostedAgentTurnFrame = {
+        ...summary,
+        outputProduced: true,
+        status: 'failed',
+    };
+    await writeRunMarker(dataRoot, {
+        marker: { status: 'settled', summary: interrupted },
+        runId: 'run_x',
+        serverId,
+    });
+    expect(decideStart(await readRunMarker(dataRoot, { runId: 'run_x' }, serverId))).toEqual({
+        kind: 'replay',
+        summary: interrupted,
+    });
 });
 
 test('reserveRun admits a fresh run once and rejects a concurrent duplicate', () => {

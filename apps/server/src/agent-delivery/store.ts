@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentDeliveryTable, agentPendingWorkTable, agentsTable } from '../postgres/schema.ts';
@@ -8,7 +8,9 @@ export interface AgentDeliveryRow {
     activeRunChatId: string | null;
     activeRunComputerId: string | null;
     activeRunId: string | null;
+    activeRunModelId: string | null;
     activeRunPrompt: string | null;
+    activeRunRuntimeId: string | null;
     agentId: string;
     consecutiveFailures: number;
     retryAfter: Date | null;
@@ -134,13 +136,15 @@ export async function countQueuedPending(db: GrottoDatabase, agentId: string): P
 
 /**
  * Claims the queued work for one Agent's next chat into a run — never a mix of
- * chats. The oldest queued row picks the chat, and only that chat's queued rows
- * are claimed, so a run is bound to exactly one chat and other chats drain in
- * their own later runs. Returns the drained work, oldest first.
+ * chats, and never more than one drain can safely carry. The oldest queued row
+ * picks the chat; that chat's queued rows are claimed oldest-first up to
+ * `maxRows` and `maxChars` of content (always at least one, to make progress),
+ * so the composed prompt stays well under command/env limits and the rest drain
+ * in later runs. Returns the drained work, oldest first.
  */
 export async function claimQueuedPendingForNextChat(
     db: GrottoDatabase,
-    input: { agentId: string; runId: string }
+    input: { agentId: string; maxChars: number; maxRows: number; runId: string }
 ): Promise<PendingWorkRow[]> {
     const [next] = await db
         .select({ chatId: agentPendingWorkTable.chatId })
@@ -156,9 +160,14 @@ export async function claimQueuedPendingForNextChat(
     if (!next) {
         return [];
     }
-    const claimed = await db
-        .update(agentPendingWorkTable)
-        .set({ runId: input.runId })
+    const candidates = await db
+        .select({
+            chatId: agentPendingWorkTable.chatId,
+            content: agentPendingWorkTable.content,
+            id: agentPendingWorkTable.id,
+            source: agentPendingWorkTable.source,
+        })
+        .from(agentPendingWorkTable)
         .where(
             and(
                 eq(agentPendingWorkTable.agentId, input.agentId),
@@ -166,21 +175,44 @@ export async function claimQueuedPendingForNextChat(
                 isNull(agentPendingWorkTable.runId)
             )
         )
-        .returning({
-            chatId: agentPendingWorkTable.chatId,
-            content: agentPendingWorkTable.content,
-            createdAt: agentPendingWorkTable.createdAt,
-            id: agentPendingWorkTable.id,
-            source: agentPendingWorkTable.source,
-        });
-    return claimed
-        .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime())
-        .map(({ chatId, content, id, source }) => ({ chatId, content, id, source }));
+        .orderBy(agentPendingWorkTable.createdAt);
+
+    const chosen: PendingWorkRow[] = [];
+    let chars = 0;
+    for (const row of candidates) {
+        const nextChars = chars + row.content.length;
+        if (chosen.length > 0 && (chosen.length >= input.maxRows || nextChars > input.maxChars)) {
+            break;
+        }
+        chosen.push({ chatId: row.chatId, content: row.content, id: row.id, source: row.source });
+        chars = nextChars;
+    }
+    await db
+        .update(agentPendingWorkTable)
+        .set({ runId: input.runId })
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                inArray(
+                    agentPendingWorkTable.id,
+                    chosen.map((row) => row.id)
+                )
+            )
+        );
+    return chosen;
 }
 
 export async function beginActiveRun(
     db: GrottoDatabase,
-    input: { agentId: string; chatId: string; computerId: string; prompt: string; runId: string }
+    input: {
+        agentId: string;
+        chatId: string;
+        computerId: string;
+        modelId: string;
+        prompt: string;
+        runId: string;
+        runtimeId: string;
+    }
 ): Promise<void> {
     await db
         .update(agentDeliveryTable)
@@ -189,7 +221,9 @@ export async function beginActiveRun(
             activeRunChatId: input.chatId,
             activeRunComputerId: input.computerId,
             activeRunId: input.runId,
+            activeRunModelId: input.modelId,
             activeRunPrompt: input.prompt,
+            activeRunRuntimeId: input.runtimeId,
             dispatchedAt: new Date(),
             updatedAt: new Date(),
         })
@@ -236,7 +270,9 @@ export async function clearActiveRun(db: GrottoDatabase, agentId: string): Promi
             activeRunChatId: null,
             activeRunComputerId: null,
             activeRunId: null,
+            activeRunModelId: null,
             activeRunPrompt: null,
+            activeRunRuntimeId: null,
             dispatchedAt: null,
             updatedAt: new Date(),
         })

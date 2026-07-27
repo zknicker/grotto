@@ -384,6 +384,8 @@ const schemaStatements = [
         active_run_chat_id text,
         active_run_prompt text,
         active_run_computer_id text,
+        active_run_runtime_id text,
+        active_run_model_id text,
         accepted_at timestamptz,
         dispatched_at timestamptz,
         consecutive_failures integer NOT NULL DEFAULT 0
@@ -399,6 +401,8 @@ const schemaStatements = [
                 AND active_run_chat_id IS NULL
                 AND active_run_prompt IS NULL
                 AND active_run_computer_id IS NULL
+                AND active_run_runtime_id IS NULL
+                AND active_run_model_id IS NULL
                 AND accepted_at IS NULL
                 AND dispatched_at IS NULL
             )
@@ -407,6 +411,8 @@ const schemaStatements = [
                 AND active_run_chat_id IS NOT NULL
                 AND active_run_prompt IS NOT NULL
                 AND active_run_computer_id IS NOT NULL
+                AND active_run_runtime_id IS NOT NULL
+                AND active_run_model_id IS NOT NULL
             )
         )
     );`,

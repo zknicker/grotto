@@ -15,6 +15,7 @@ import { detectInventory } from './inventory.ts';
 import {
     type Attachment,
     type HostedAgentStartCommand,
+    type HostedAgentTurnFrame,
     parseNoticeCommand,
     parseStartCommand,
     parseStopCommand,
@@ -332,17 +333,32 @@ async function handleStartCommand(input: {
     socket: WebSocket;
 }): Promise<void> {
     const { attachment, command, controller, running, socket } = input;
-    const ack = () =>
-        socket.send(
-            JSON.stringify({ agentId: command.agentId, runId: command.runId, type: 'ack' })
-        );
+    const startedAt = new Date().toISOString();
+    const send = (frame: unknown) => socket.send(JSON.stringify(frame));
+    const ack = () => send({ agentId: command.agentId, runId: command.runId, type: 'ack' });
+    const settle = async (summary: HostedAgentTurnFrame) => {
+        send(summary);
+        await writeRunMarker(dataRoot, {
+            marker: { status: 'settled', summary },
+            runId: command.runId,
+            serverId: attachment.serverId,
+        });
+    };
 
     try {
         const marker = await readRunMarker(dataRoot, command, attachment.serverId);
-        const decision = decideStart(marker, false);
+        const decision = decideStart(marker);
         if (decision.kind === 'replay') {
             ack();
-            socket.send(JSON.stringify(decision.summary));
+            send(decision.summary);
+            return;
+        }
+        if (decision.kind === 'recover') {
+            // Crashed after accepting this run; never rerun possibly-effectful
+            // work. Report a failed, interrupted turn whose output is unknown, so
+            // the Server does not requeue and duplicate it.
+            ack();
+            await settle(interruptedTurn(command, startedAt));
             return;
         }
 
@@ -353,14 +369,24 @@ async function handleStartCommand(input: {
         });
         ack();
 
-        const summary = await runAgentLaunch({
-            attachment,
-            command,
-            dataRoot,
-            sendFrame: (payload) => socket.send(JSON.stringify(payload)),
-            serverOrigin,
-            signal: controller.signal,
-        });
+        let summary: HostedAgentTurnFrame;
+        try {
+            summary = await runAgentLaunch({
+                attachment,
+                command,
+                dataRoot,
+                sendFrame: send,
+                serverOrigin,
+                signal: controller.signal,
+            });
+        } catch (error) {
+            // A crash after the ack must still report a terminal turn, or the
+            // Server's in-flight run never settles. The launch failed before any
+            // managed send, so the work is safe to requeue (outputProduced false).
+            summary = launchCrashTurn(command, startedAt, error);
+            await settle(summary);
+            return;
+        }
         await writeRunMarker(dataRoot, {
             marker: { status: 'settled', summary },
             runId: command.runId,
@@ -369,6 +395,43 @@ async function handleStartCommand(input: {
     } finally {
         running.delete(command.runId);
     }
+}
+
+function interruptedTurn(
+    command: HostedAgentStartCommand,
+    startedAt: string
+): HostedAgentTurnFrame {
+    return {
+        agentId: command.agentId,
+        endedAt: new Date().toISOString(),
+        messageCount: 0,
+        // Output is unknown after a crash; assume it happened so the Server does
+        // not requeue and risk duplicating it.
+        outputProduced: true,
+        runId: command.runId,
+        startedAt,
+        status: 'failed',
+        summary: 'The Agent turn was interrupted and could not be resumed.',
+        type: 'turn',
+    };
+}
+
+function launchCrashTurn(
+    command: HostedAgentStartCommand,
+    startedAt: string,
+    error: unknown
+): HostedAgentTurnFrame {
+    return {
+        agentId: command.agentId,
+        endedAt: new Date().toISOString(),
+        messageCount: 0,
+        outputProduced: false,
+        runId: command.runId,
+        startedAt,
+        status: 'failed',
+        summary: `The Agent launch failed: ${error instanceof Error ? error.message : String(error)}`,
+        type: 'turn',
+    };
 }
 
 function hash(value: string) {

@@ -28,7 +28,9 @@ export const agentDeliveryTable = pgTable(
         activeRunChatId: text('active_run_chat_id'),
         activeRunComputerId: text('active_run_computer_id'),
         activeRunId: text('active_run_id'),
+        activeRunModelId: text('active_run_model_id'),
         activeRunPrompt: text('active_run_prompt'),
+        activeRunRuntimeId: text('active_run_runtime_id'),
         agentId: text('agent_id').primaryKey(),
         consecutiveFailures: integer('consecutive_failures').notNull().default(0),
         dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
@@ -52,6 +54,8 @@ export const agentDeliveryTable = pgTable(
                 and ${table.activeRunChatId} is null
                 and ${table.activeRunPrompt} is null
                 and ${table.activeRunComputerId} is null
+                and ${table.activeRunRuntimeId} is null
+                and ${table.activeRunModelId} is null
                 and ${table.acceptedAt} is null
                 and ${table.dispatchedAt} is null
             ) or (
@@ -59,6 +63,8 @@ export const agentDeliveryTable = pgTable(
                 and ${table.activeRunChatId} is not null
                 and ${table.activeRunPrompt} is not null
                 and ${table.activeRunComputerId} is not null
+                and ${table.activeRunRuntimeId} is not null
+                and ${table.activeRunModelId} is not null
             )`
         ),
     ]

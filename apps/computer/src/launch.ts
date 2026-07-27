@@ -47,6 +47,8 @@ export interface HostedAgentTurnFrame {
     agentId: string;
     endedAt: string;
     messageCount: number;
+    /** Whether the turn produced any durable send — governs safe requeue. */
+    outputProduced: boolean;
     runId: string;
     startedAt: string;
     status: 'completed' | 'failed';
@@ -266,6 +268,7 @@ function reportTurn(
         agentId: options.command.agentId,
         endedAt: new Date().toISOString(),
         messageCount: input.messageCount,
+        outputProduced: input.messageCount > 0,
         runId: options.command.runId,
         startedAt: input.startedAt,
         status: input.status,

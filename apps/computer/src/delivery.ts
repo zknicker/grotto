@@ -17,22 +17,25 @@ export interface RunMarker {
 
 export type StartDecision =
     | { kind: 'replay'; summary: HostedAgentTurnFrame }
-    | { kind: 'skip' }
+    | { kind: 'recover' }
     | { kind: 'run' };
 
 /**
- * Decides how a start command should be handled given the durable marker and
- * whether the run is already executing in this process:
+ * Decides how a start command should be handled given the durable marker (a
+ * duplicate frame for a live run is already deduped synchronously by
+ * {@link reserveRun}):
  * - a settled marker → replay its summary (the Server missed the turn frame),
- * - already running → skip (a duplicate frame mid-turn; the ack still resends),
- * - otherwise → run it fresh (no marker, or an `accepted` marker from a crash).
+ * - an `accepted` marker → recover: the Computer crashed after accepting this
+ *   run, so its output is unknown; it is never rerun (that could duplicate
+ *   effectful work) but reported as a failed, interrupted turn instead,
+ * - otherwise → run it fresh.
  */
-export function decideStart(marker: RunMarker | null, alreadyRunning: boolean): StartDecision {
+export function decideStart(marker: RunMarker | null): StartDecision {
     if (marker?.status === 'settled' && marker.summary) {
         return { kind: 'replay', summary: marker.summary };
     }
-    if (alreadyRunning) {
-        return { kind: 'skip' };
+    if (marker?.status === 'accepted') {
+        return { kind: 'recover' };
     }
     return { kind: 'run' };
 }

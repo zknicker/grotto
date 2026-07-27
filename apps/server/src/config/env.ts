@@ -146,6 +146,7 @@ const envSchema = z
             .default(getDefaultGrottoAttachmentRoot())
             .transform(resolveHomePath),
         GROTTO_DATABASE_URL: z.string().min(1).default(getDefaultDatabaseUrl()),
+        GROTTO_COMPUTER_RELEASE_MANIFEST_URL: z.string().url().optional(),
         GROTTO_RELEASE_MANIFEST: z.string().min(1).transform(resolveHomePath).optional(),
         GROTTO_SERVER_PORT: z.coerce
             .number()

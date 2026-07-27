@@ -1,5 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
-import type { HostedComputerInventory } from '@tavern/api';
+import {
+    type ComputerUpdateProgress,
+    computerProtocolVersion,
+    type HostedComputerInventory,
+} from '@tavern/api';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -157,11 +161,39 @@ export async function reportComputerHandshake(
     if (!computer) {
         throw new ComputerSetupDeniedError('Computer credential was rejected.');
     }
+    const { update, ...facts } = handshake;
     await db
         .update(computersTable)
-        .set({ ...handshake, lastConnectedAt: new Date() })
+        .set({
+            ...facts,
+            health:
+                handshake.protocolVersion === computerProtocolVersion
+                    ? handshake.health
+                    : 'update-required',
+            lastConnectedAt: new Date(),
+            updateDetail: update.detail,
+            updatePhase: update.phase,
+            updateTargetVersion: update.targetVersion,
+            updateUpdatedAt: new Date(update.updatedAt),
+        })
         .where(eq(computersTable.id, computer.id));
     return computer;
+}
+
+export async function reportComputerUpdateProgress(
+    db: GrottoDatabase,
+    computerId: string,
+    update: ComputerUpdateProgress
+) {
+    await db
+        .update(computersTable)
+        .set({
+            updateDetail: update.detail,
+            updatePhase: update.phase,
+            updateTargetVersion: update.targetVersion,
+            updateUpdatedAt: new Date(update.updatedAt),
+        })
+        .where(eq(computersTable.id, computerId));
 }
 
 /** Replaces a Computer's last-reported runtime/model inventory wholesale. */
@@ -203,6 +235,10 @@ export async function listServerComputers(
             productVersion: computersTable.productVersion,
             protocolVersion: computersTable.protocolVersion,
             reportedInventory: computersTable.reportedInventory,
+            updateDetail: computersTable.updateDetail,
+            updatePhase: computersTable.updatePhase,
+            updateTargetVersion: computersTable.updateTargetVersion,
+            updateUpdatedAt: computersTable.updateUpdatedAt,
         })
         .from(computersTable)
         .where(eq(computersTable.serverId, serverId))

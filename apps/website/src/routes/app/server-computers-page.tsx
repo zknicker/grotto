@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import { ComputerUpdateControls } from '../../features/servers/computer-update-controls.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
@@ -9,7 +10,10 @@ export function ServerComputersPage() {
     const server = useServer(slug);
     const computers = grottoTrpc.computer.list.useQuery(
         { serverId: server.data?.id ?? '' },
-        { enabled: Boolean(server.data) }
+        {
+            enabled: Boolean(server.data),
+            refetchInterval: 1000,
+        }
     );
     if (!server.data) {
         return null;
@@ -72,6 +76,7 @@ export function ServerComputersPage() {
                                     No runtimes reported yet.
                                 </p>
                             )}
+                            <ComputerUpdateControls computer={computer} serverId={server.data.id} />
                         </li>
                     ))}
                 </ul>

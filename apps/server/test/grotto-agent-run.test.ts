@@ -152,8 +152,10 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
 
     // Attaching the Computer and reconciling delivers the queued run exactly once.
     connections.register(computerId, {
+        ordinary: true,
         send: (frame) => frames.push(frame as (typeof frames)[number]),
         serverId,
+        updatePhase: 'idle',
     });
     await delivery.onComputerReconnect(computerId);
     const starts = () => frames.filter((frame) => frame.type === 'start');
@@ -219,7 +221,12 @@ test('a human DM send enqueues durable pending work atomically with the message'
 test('relays secrets online, persists only public state, and fails closed across Computers', async () => {
     const frames: unknown[] = [];
     const computers = new ComputerConnections();
-    computers.register(computerId, { send: (frame) => frames.push(frame), serverId });
+    computers.register(computerId, {
+        ordinary: true,
+        send: (frame) => frames.push(frame),
+        serverId,
+        updatePhase: 'idle',
+    });
     const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
     const created = await createHostedMcpConnection(connection.db, computers, member, {
         args: [],

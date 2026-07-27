@@ -26,6 +26,7 @@ export interface GrottoContext {
     clerkUsers: ClerkUsers;
     /** Live attachment sockets for MCP configuration delivery. */
     computerConnections: ComputerConnections;
+    computerReleaseManifestUrl: string;
     grottoDb: GrottoDatabase;
 }
 
@@ -36,6 +37,7 @@ export interface GrottoContextDependencies {
     clerkSessions: ClerkSessions;
     clerkUsers: ClerkUsers;
     computerConnections: ComputerConnections;
+    computerReleaseManifestUrl: string;
     grottoDb: GrottoDatabase;
 }
 

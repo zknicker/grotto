@@ -1,4 +1,4 @@
-import type { HostedComputerInventory } from '@tavern/api';
+import type { ComputerUpdatePhase, HostedComputerInventory } from '@tavern/api';
 import { sql } from 'drizzle-orm';
 import {
     check,
@@ -14,7 +14,7 @@ import {
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
 
-export type ComputerHealth = 'degraded' | 'healthy' | 'offline';
+export type ComputerHealth = 'degraded' | 'healthy' | 'offline' | 'update-required';
 
 export const computersTable = pgTable(
     'computers',
@@ -33,6 +33,10 @@ export const computersTable = pgTable(
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
+        updateDetail: text('update_detail'),
+        updatePhase: text('update_phase').notNull().default('idle').$type<ComputerUpdatePhase>(),
+        updateTargetVersion: text('update_target_version'),
+        updateUpdatedAt: timestamp('update_updated_at', { withTimezone: true }),
     },
     (table) => [
         uniqueIndex('computers_server_id_key').on(table.serverId, table.id),
@@ -44,6 +48,10 @@ export const computersTable = pgTable(
             name: 'computers_attacher_membership_fk',
         }),
         check('computers_id_shape', sql`${table.id} ~ '^cmp_[A-Za-z0-9_-]{16}$'`),
+        check(
+            'computers_update_phase',
+            sql`${table.updatePhase} in ('idle', 'checking', 'available', 'installing', 'waiting-for-agents', 'restarting', 'complete', 'failed')`
+        ),
     ]
 );
 

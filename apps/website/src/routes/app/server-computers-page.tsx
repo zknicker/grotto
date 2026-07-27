@@ -1,7 +1,10 @@
+import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Button } from '../../components/ui/primitives/button.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { HostedDeleteDialog } from './hosted-delete-dialog.tsx';
 
 /** Server settings inventory; status is supplied only by an authenticated Computer socket. */
 export function ServerComputersPage() {
@@ -11,6 +14,14 @@ export function ServerComputersPage() {
         { serverId: server.data?.id ?? '' },
         { enabled: Boolean(server.data) }
     );
+    const utils = grottoTrpc.useUtils();
+    const [removing, setRemoving] = React.useState<string | null>(null);
+    const remove = grottoTrpc.computer.remove.useMutation({
+        onSuccess: () => {
+            setRemoving(null);
+            void utils.computer.list.invalidate({ serverId: server.data?.id ?? '' });
+        },
+    });
     if (!server.data) {
         return null;
     }
@@ -72,12 +83,36 @@ export function ServerComputersPage() {
                                     No runtimes reported yet.
                                 </p>
                             )}
+                            <Button
+                                className="self-start"
+                                onClick={() => setRemoving(computer.id)}
+                                type="button"
+                                variant="destructive"
+                            >
+                                Remove Computer
+                            </Button>
                         </li>
                     ))}
                 </ul>
             ) : (
                 <p className="text-muted-foreground text-sm">No Computers attached.</p>
             )}
+            {removing ? (
+                <HostedDeleteDialog
+                    confirmation="REMOVE"
+                    description="This immediately revokes this Computer’s credential. It cannot be removed while any Agent is assigned to it."
+                    onConfirm={() =>
+                        remove.mutate({
+                            computerId: removing,
+                            confirmation: 'REMOVE',
+                            serverId: server.data.id,
+                        })
+                    }
+                    onOpenChange={(open) => !open && setRemoving(null)}
+                    pending={remove.isPending}
+                    title="Remove Computer"
+                />
+            ) : null}
         </main>
     );
 }

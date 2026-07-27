@@ -31,7 +31,13 @@ export async function mintRunnerCredential(db: GrottoDatabase, input: HostedRunn
     const [agent] = await db
         .select({ computerId: agentsTable.computerId })
         .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, computer.serverId), eq(agentsTable.id, input.agentId)))
+        .where(
+            and(
+                eq(agentsTable.serverId, computer.serverId),
+                eq(agentsTable.id, input.agentId),
+                isNull(agentsTable.retiredAt)
+            )
+        )
         .limit(1);
     if (!agent || agent.computerId !== computer.id) {
         throw new ComputerSetupDeniedError('That Agent is not assigned to this Computer.');

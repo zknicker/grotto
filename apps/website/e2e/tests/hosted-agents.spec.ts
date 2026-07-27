@@ -43,13 +43,29 @@ test('creates Cove after inventory is reported and fails closed on unreported co
 
     await page.goto('/s/agent-hq/agents');
     await expect(page.getByRole('heading', { name: 'Agents' })).toBeVisible();
-    await expect(page.getByText('Codex · GPT-5.6 Sol, GPT-5.6 Terra')).toBeVisible();
+    await expect(page.getByLabel('Runtime')).toHaveValue('codex');
+    await expect(page.getByLabel('Model')).toHaveValue('gpt-5.6-sol');
     // Guided creation offers Cove as the default first Agent.
     await expect(page.getByLabel('Name')).toHaveValue('Cove');
     await page.getByRole('button', { name: 'Create Agent' }).click();
 
     await expect(page.getByText('Cove')).toBeVisible();
     await expect(page.getByText('pending')).toBeVisible();
+
+    // Deletion requires the exact Agent name. Cancel leaves this isolated
+    // e2e Agent intact for the adjacent DM and contract assertions.
+    await page.getByRole('button', { name: 'Delete Agent' }).click();
+    const confirmation = page.getByRole('alertdialog');
+    await expect(confirmation).toContainText('permanently destroys');
+    const deleteButton = confirmation.getByRole('button', { name: 'Delete Agent' });
+    const nameField = confirmation.getByLabel(/Type Cove to confirm/iu);
+    await expect(deleteButton).toBeDisabled();
+    await nameField.fill('cove');
+    await expect(deleteButton).toBeDisabled();
+    await nameField.fill('Cove');
+    await expect(deleteButton).toBeEnabled();
+    await confirmation.getByRole('button', { name: 'Cancel' }).click();
+    await expect(confirmation).toBeHidden();
 
     // The DM appears as an ordinary Agent DM, not a special onboarding Channel.
     await page.goto('/s/agent-hq');

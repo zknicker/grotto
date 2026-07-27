@@ -6,6 +6,7 @@ import { ServerChat } from '../../features/servers/server-chat.tsx';
 import { ServerChatSearch } from '../../features/servers/server-chat-search.tsx';
 import {
     isServerRemindersPath,
+    serverComputersRoute,
     serverMembersRoute,
     serverRemindersRoute,
     serverRoute,
@@ -142,6 +143,14 @@ export function ServerPage() {
                     >
                         Members
                     </Link>
+                    {canOperateReminders ? (
+                        <Link
+                            className="text-muted-foreground text-sm hover:text-foreground"
+                            to={serverComputersRoute(server.data.slug)}
+                        >
+                            Computers
+                        </Link>
+                    ) : null}
                 </header>
                 {remindersOpen && canOperateReminders ? (
                     <HostedServerReminders serverId={server.data.id} />

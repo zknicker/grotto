@@ -1,0 +1,59 @@
+import { sql } from 'drizzle-orm';
+import { check, foreignKey, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { serverMembershipsTable } from './server-memberships.ts';
+import { serversTable } from './servers.ts';
+
+export type ComputerHealth = 'degraded' | 'healthy' | 'offline';
+
+export const computersTable = pgTable(
+    'computers',
+    {
+        architecture: text('architecture'),
+        attachedByUserId: text('attached_by_user_id').notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        credentialHash: text('credential_hash').notNull(),
+        health: text('health').notNull().default('offline').$type<ComputerHealth>(),
+        id: text('id').primaryKey(),
+        lastConnectedAt: timestamp('last_connected_at', { withTimezone: true }),
+        operatingSystem: text('operating_system'),
+        productVersion: text('product_version'),
+        protocolVersion: integer('protocol_version'),
+        serverId: text('server_id')
+            .notNull()
+            .references(() => serversTable.id, { onDelete: 'cascade' }),
+    },
+    (table) => [
+        uniqueIndex('computers_server_id_key').on(table.serverId, table.id),
+        uniqueIndex('computers_credential_hash_key').on(table.credentialHash),
+        index('computers_server_idx').on(table.serverId, table.createdAt),
+        foreignKey({
+            columns: [table.serverId, table.attachedByUserId],
+            foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
+            name: 'computers_attacher_membership_fk',
+        }),
+        check('computers_id_shape', sql`${table.id} ~ '^cmp_[A-Za-z0-9_-]{16}$'`),
+    ]
+);
+
+export const computerSetupApprovalsTable = pgTable(
+    'computer_setup_approvals',
+    {
+        approvalSecretHash: text('approval_secret_hash').notNull(),
+        approvedAt: timestamp('approved_at', { withTimezone: true }),
+        approvedByUserId: text('approved_by_user_id'),
+        computerId: text('computer_id').references(() => computersTable.id, { onDelete: 'cascade' }),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        credentialHash: text('credential_hash').notNull(),
+        expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+        id: text('id').primaryKey(),
+        serverId: text('server_id')
+            .notNull()
+            .references(() => serversTable.id, { onDelete: 'cascade' }),
+    },
+    (table) => [
+        uniqueIndex('computer_setup_approvals_secret_hash_key').on(table.approvalSecretHash),
+        uniqueIndex('computer_setup_approvals_computer_key').on(table.computerId),
+        index('computer_setup_approvals_server_idx').on(table.serverId, table.createdAt),
+        check('computer_setup_approvals_id_shape', sql`${table.id} ~ '^cap_[A-Za-z0-9_-]{16}$'`),
+    ]
+);

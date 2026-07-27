@@ -9,6 +9,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
  * PostgreSQL database.
  */
 export interface GrottoContext {
+    appOrigin: string;
     attachmentRoot: AttachmentRoot;
     clerkSessions: ClerkSessions;
     /**
@@ -23,6 +24,7 @@ export interface GrottoContext {
 }
 
 export interface GrottoContextDependencies {
+    appOrigin: string;
     attachmentRoot: AttachmentRoot;
     clerkSessions: ClerkSessions;
     clerkUsers: ClerkUsers;

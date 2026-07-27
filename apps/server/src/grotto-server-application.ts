@@ -4,6 +4,8 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { reconcileHostedAttachments } from './attachments/reconcile-attachments.ts';
+import { registerComputerRoutes } from './computers/routes.ts';
+import { startComputerAttachmentSocket } from './computers/socket.ts';
 import { createGrottoContextFactory } from './grotto-api/context.ts';
 import { grottoRouter } from './grotto-api/router.ts';
 import { startGrottoWebSocketServer } from './grotto-api/ws.ts';
@@ -67,6 +69,7 @@ export async function createGrottoServerApplication(
         await reconcileHostedAttachments(grotto.db, attachmentRoot);
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
         const createContext = createGrottoContextFactory({
+            appOrigin: options.appOrigin,
             attachmentRoot,
             clerkSessions,
             clerkUsers:
@@ -98,6 +101,7 @@ export async function createGrottoServerApplication(
             db: grotto.db,
             root: attachmentRoot,
         });
+        registerComputerRoutes(app, { appOrigin: options.appOrigin, db: grotto.db });
 
         await app.register(fastifyTRPCPlugin, {
             prefix: '/trpc',
@@ -113,6 +117,7 @@ export async function createGrottoServerApplication(
             createContext,
             isAllowedOrigin,
         });
+        const computerSocket = startComputerAttachmentSocket(startedApp.server, grotto.db);
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         reminderScheduler = createHostedReminderScheduler({
             clock: reminderClock,
@@ -140,6 +145,7 @@ export async function createGrottoServerApplication(
             closePromise ??= (async () => {
                 webSocketServer.broadcastReconnectNotification();
                 webSocketServer.close();
+                computerSocket.close();
                 startedApp.server.closeAllConnections();
                 await reminderScheduler?.close();
                 await startedApp.close();

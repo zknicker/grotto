@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.5 - 2026-07-27
+
+- Hosted Server startup now uses the provisioned production attachment root
+  when running under its restricted service account.
+
 ## v1.6.4 - 2026-07-27
 
 - Grotto now uses the hosted Server as the canonical collaboration system:

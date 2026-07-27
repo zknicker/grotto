@@ -83,7 +83,7 @@ PostgreSQL owns the hosted collaboration tables
 | --- | --- |
 | `users` | Grotto Users keyed by a unique `clerk_user_id` |
 | `servers` | Opaque id, address/display fields, and the commit-serialized Chat event cursor |
-| `server_memberships` | One human's standing access, Server role, stint start, and internal revocation marker |
+| `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
 | `chats` | Server-owned Channels, canonical sorted two-human DMs, and hidden child Threads |
 | `channel_participants` | One human's participation in one Channel |
@@ -108,7 +108,7 @@ DDL applied when the application starts, mirroring the SQLite bootstrap seam.
 history and no migration tooling.
 
 Membership revocation sets `server_memberships.revoked_at`; it does not delete
-the row. This keeps immutable message authors and canonical DM pairs intact
+the row. This keeps immutable message authors and historical DM pairs intact
 while every membership gate fails closed.
 
 ## Membership
@@ -141,7 +141,8 @@ than adding a second locking scheme.
 An invitation is email-bound, single-use, and expires seven days after it is
 issued. Grotto stores only the token's SHA-256 hash: `invitation.create`
 returns the raw token once, to the issuer, and no procedure ever reads it back.
-Grotto sends no email — delivery is manual.
+Creation and revocation lock the Server row, then reauthorize the Owner or
+Admin inside the transaction. Grotto sends no email — delivery is manual.
 
 `invitation.accept` commits one transaction. It locks the invitation row,
 refuses anything unknown, revoked, consumed, or lapsed with one indistinguishable
@@ -150,10 +151,14 @@ or resets the membership into a fresh Member stint joined to exactly `#all`.
 Concurrent acceptances of one token serialize on that row lock, so only the
 first commits.
 
-A returning human reuses their existing membership row — authored messages,
-attachments, reads, and DM pairs point at it — reset to `member` with a new
-`joined_at` and no prior Channel participation. Removal already cleared their
-`channel_participants` and `chat_reads`, so nothing carries across a stint.
+A returning human reuses their existing membership row because authored
+messages and historical DM pairs point at it. Acceptance resets it to `member`
+with a new `joined_at`, increments its `stint`, and joins only `#all`. A DM
+records both participants' stint numbers: the returning human cannot read the
+former DM or its Threads, while the peer who did not leave retains that
+history. Removal clears `channel_participants`, `chat_reads`, and
+`thread_follows`, and retires live composition state for every departed Chat
+including Threads.
 
 `CLERK_SECRET_KEY` authorizes the Clerk Backend API lookup that reads which of a
 human's addresses Clerk has verified; it is the only Grotto surface that reads a

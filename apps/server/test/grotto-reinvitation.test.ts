@@ -111,6 +111,80 @@ test('exactly one membership row is ever kept for a returning human', async () =
     expect(rows.total).toBe(1);
 });
 
+test('a returning human cannot reopen DM history from their former membership stint', async () => {
+    const returner = await signIn('user_return_dm', ['return-dm@grotto.test']);
+    await join(returner, 'return-dm@grotto.test');
+    const ownerUserId = await readUserId('user_return_owner');
+    const returnerUserId = await readUserId('user_return_dm');
+    const formerDm = await returner.trpc.chat.ensureDm.mutate({
+        peerUserId: ownerUserId,
+        serverId,
+    });
+    const anchor = await owner.trpc.chat.send.mutate({
+        chatId: formerDm.id,
+        content: 'Private history from the former stint',
+        nonce: 'return-dm-anchor',
+        serverId,
+    });
+    const reply = await returner.trpc.chat.send.mutate({
+        chatId: formerDm.id,
+        content: 'Former-stint Thread reply',
+        nonce: 'return-dm-thread',
+        serverId,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+
+    await owner.trpc.member.remove.mutate({
+        confirmation: slug,
+        serverId,
+        userId: returnerUserId,
+    });
+
+    // Removal preserves the collaboration history for the peer who still owns
+    // access to it.
+    await expect(
+        owner.trpc.chat.messages.query({ chatId: formerDm.id, serverId })
+    ).resolves.toMatchObject({
+        messages: [{ content: 'Private history from the former stint' }],
+    });
+    await expect(
+        owner.trpc.chat.messages.query({ chatId: reply.threadChatId as string, serverId })
+    ).resolves.toMatchObject({
+        messages: [{ content: 'Former-stint Thread reply' }],
+    });
+
+    await join(returner, 'return-dm@grotto.test');
+
+    const visibleAfterReturn = await returner.trpc.chat.list.query({ serverId });
+    expect(visibleAfterReturn.map((chat) => chat.id)).not.toContain(formerDm.id);
+    await expect(
+        returner.trpc.chat.messages.query({ chatId: formerDm.id, serverId })
+    ).rejects.toThrow(/participant/i);
+    await expect(
+        returner.trpc.chat.messages.query({
+            chatId: reply.threadChatId as string,
+            serverId,
+        })
+    ).rejects.toThrow(/participant/i);
+
+    const freshDm = await returner.trpc.chat.ensureDm.mutate({
+        peerUserId: ownerUserId,
+        serverId,
+    });
+    expect(freshDm.id).not.toBe(formerDm.id);
+    await expect(
+        returner.trpc.chat.messages.query({ chatId: freshDm.id, serverId })
+    ).resolves.toMatchObject({ messages: [] });
+
+    const preserved = await harness.sql`
+        select id from chats
+        where server_id = ${serverId}
+            and id in (${formerDm.id}, ${reply.threadChatId as string})
+        order by id
+    `;
+    expect(preserved).toHaveLength(2);
+});
+
 test('a revoked Server subscription stops delivering to a removed human', async () => {
     const watcher = await signIn('user_return_watcher', ['watcher@grotto.test']);
     await join(watcher, 'watcher@grotto.test');

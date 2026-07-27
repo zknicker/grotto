@@ -9,6 +9,7 @@ import {
     requireInvitationAuthority,
     toServerInvitation,
 } from './invitation-access.ts';
+import { lockServerRow } from './server-lock.ts';
 
 /**
  * Revocation is immediate and only applies to a live invitation. An already
@@ -20,23 +21,28 @@ export async function revokeServerInvitation(
     member: GrottoUser | null,
     input: { invitationId: string; serverId: string }
 ): Promise<ServerInvitation> {
-    const server = await requireInvitationAuthority(db, member, input.serverId);
-    const [revoked] = await db
-        .update(serverInvitationsTable)
-        .set({ revokedAt: sql`now()` })
-        .where(
-            and(
-                eq(serverInvitationsTable.serverId, server.id),
-                eq(serverInvitationsTable.id, input.invitationId),
-                isNull(serverInvitationsTable.acceptedAt),
-                isNull(serverInvitationsTable.revokedAt)
+    const revoked = await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
+        const server = await requireInvitationAuthority(tx, member, input.serverId);
+        const [invitation] = await tx
+            .update(serverInvitationsTable)
+            .set({ revokedAt: sql`now()` })
+            .where(
+                and(
+                    eq(serverInvitationsTable.serverId, server.id),
+                    eq(serverInvitationsTable.id, input.invitationId),
+                    isNull(serverInvitationsTable.acceptedAt),
+                    isNull(serverInvitationsTable.revokedAt)
+                )
             )
-        )
-        .returning(invitationColumns);
+            .returning(invitationColumns);
 
-    if (!revoked) {
-        throw new InvitationNotFoundError();
-    }
+        if (!invitation) {
+            throw new InvitationNotFoundError();
+        }
+
+        return invitation;
+    });
 
     return toServerInvitation(revoked);
 }

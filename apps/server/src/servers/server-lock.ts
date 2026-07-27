@@ -14,10 +14,9 @@ import { serversTable } from '../postgres/schema.ts';
  * (Server, then read markers) and a read marker (its own row, then the Server
  * event cursor) would otherwise form a deadlock cycle.
  *
- * Transactions that take it: message send, read marking, invitation acceptance,
- * role change, removal, and leaving. Creating a DM does not — it allocates no
- * event cursor and touches no read markers, so it cannot participate in either
- * hazard.
+ * Transactions that take it: message send, read marking, Thread following, DM
+ * creation, invitation creation/acceptance/revocation, role change, removal,
+ * and leaving.
  */
 export async function lockServerRow(
     tx: Pick<GrottoDatabase, 'execute'>,

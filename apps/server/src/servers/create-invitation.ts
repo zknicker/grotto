@@ -12,6 +12,7 @@ import {
     toServerInvitation,
 } from './invitation-access.ts';
 import { createInvitationToken, hashInvitationToken } from './invitation-token.ts';
+import { lockServerRow } from './server-lock.ts';
 
 /**
  * Seven days as an exact duration. `interval '7 days'` is calendar arithmetic
@@ -31,8 +32,6 @@ export async function createServerInvitation(
     member: GrottoUser | null,
     input: { email: string; serverId: string }
 ): Promise<CreatedServerInvitation> {
-    const server = await requireInvitationAuthority(db, member, input.serverId);
-
     if (!member) {
         throw new Error('An authorized Server member is required to invite.');
     }
@@ -41,6 +40,9 @@ export async function createServerInvitation(
 
     try {
         const invitation = await db.transaction(async (tx) => {
+            await lockServerRow(tx, input.serverId);
+            const server = await requireInvitationAuthority(tx, member, input.serverId);
+
             // A lapsed invitation must not hold the address hostage. Retiring it
             // here keeps the live-invitation index honest without letting an
             // expired row block a fresh invite.

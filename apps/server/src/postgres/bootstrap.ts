@@ -30,6 +30,8 @@ const schemaStatements = [
             CHECK (role IN ('owner', 'admin', 'member')),
         revoked_at timestamptz,
         joined_at timestamptz NOT NULL DEFAULT now(),
+        stint integer NOT NULL DEFAULT 1
+            CONSTRAINT server_memberships_positive_stint CHECK (stint > 0),
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
     `CREATE UNIQUE INDEX IF NOT EXISTS server_memberships_server_user_key
@@ -76,7 +78,9 @@ const schemaStatements = [
         kind text NOT NULL CONSTRAINT chats_kind CHECK (kind IN ('channel', 'dm', 'thread')),
         name text,
         is_all boolean NOT NULL DEFAULT false,
+        dm_member_one_stint integer,
         dm_member_one_user_id text,
+        dm_member_two_stint integer,
         dm_member_two_user_id text,
         parent_chat_id text,
         parent_chat_kind text,
@@ -90,7 +94,9 @@ const schemaStatements = [
             (
                 kind = 'channel'
                 AND name IS NOT NULL
+                AND dm_member_one_stint IS NULL
                 AND dm_member_one_user_id IS NULL
+                AND dm_member_two_stint IS NULL
                 AND dm_member_two_user_id IS NULL
                 AND parent_chat_id IS NULL
                 AND parent_chat_kind IS NULL
@@ -101,7 +107,9 @@ const schemaStatements = [
                 kind = 'dm'
                 AND name IS NULL
                 AND is_all = false
+                AND dm_member_one_stint IS NOT NULL
                 AND dm_member_one_user_id IS NOT NULL
+                AND dm_member_two_stint IS NOT NULL
                 AND dm_member_two_user_id IS NOT NULL
                 AND parent_chat_id IS NULL
                 AND parent_chat_kind IS NULL
@@ -112,7 +120,9 @@ const schemaStatements = [
                 kind = 'thread'
                 AND name IS NULL
                 AND is_all = false
+                AND dm_member_one_stint IS NULL
                 AND dm_member_one_user_id IS NULL
+                AND dm_member_two_stint IS NULL
                 AND dm_member_two_user_id IS NULL
                 AND parent_chat_id IS NOT NULL
                 AND parent_chat_kind IN ('channel', 'dm')
@@ -134,7 +144,13 @@ const schemaStatements = [
     `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_channel_name_key
         ON chats (server_id, name) WHERE kind = 'channel';`,
     `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_dm_pair_key
-        ON chats (server_id, dm_member_one_user_id, dm_member_two_user_id) WHERE kind = 'dm';`,
+        ON chats (
+            server_id,
+            dm_member_one_user_id,
+            dm_member_two_user_id,
+            dm_member_one_stint,
+            dm_member_two_stint
+        ) WHERE kind = 'dm';`,
     `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_thread_anchor_key
         ON chats (server_id, parent_chat_id, anchor_message_id) WHERE kind = 'thread';`,
     `CREATE UNIQUE INDEX IF NOT EXISTS chats_server_all_key

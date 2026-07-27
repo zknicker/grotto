@@ -62,7 +62,11 @@ server_invitations
 Every row carries `server_id`. Composite keys and foreign keys require related
 Chats, memberships, messages, reads, and events to belong to that same Server.
 Channels store participants in `channel_participants`; a DM stores its sorted
-two-User pair directly on `chats` and has no duplicate participant rows.
+two-User pair and both membership stint numbers directly on `chats` and has no
+duplicate participant rows. The pair plus both stints is unique. Visibility
+matches the reader's current stint, so reinvitation opens a fresh DM without
+granting the returning human its former DM or child-Thread history. The peer
+whose stint did not change retains that preserved history.
 Threads are `chats(kind = 'thread')` with deterministic identity, parent and
 anchor pointers, their own sequence, and no participant rows. Composite
 constraints bind the parent and anchor to the same Server and forbid a Thread
@@ -84,8 +88,9 @@ check.
 foreign keys point at it from `chats` (both DM sides), `channel_participants`,
 `chat_messages`, `chat_reads`, and `chat_events`. That row is the durable anchor
 of authored history, so membership is revoked and re-accepted in place, never
-deleted and re-inserted. `joined_at` stamps the current stint, which is what
-makes a returning human distinguishable from one who never left.
+deleted and re-inserted. `joined_at` stamps when the current stint began;
+`stint` increments on reinvitation and is the authorization generation private
+DM state records.
 
 `server_invitations` stores only a token's SHA-256 hash, unique across the
 table. A partial unique index on `(server_id, email)` where the invitation is
@@ -95,8 +100,10 @@ Expiry cannot join that predicate — index predicates must be immutable and
 Acceptance locks the invitation row, so one token yields exactly one membership
 under concurrency.
 
-Membership changes lock the `servers` row before counting Owners, which is what
-holds the last-Owner invariant across concurrent requests.
+Membership changes and membership-authorized durable writes lock the `servers`
+row before authorizing. That holds the last-Owner invariant and prevents a
+removed human from committing a message, read, DM, or invitation write after
+revocation.
 
 The hosted schema is fresh-bootstrap only. An incompatible development
 database must be recreated manually after operator approval; there is no

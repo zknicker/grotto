@@ -24,8 +24,11 @@ export interface AcceptedServerInvitation {
 
 /**
  * One transaction validates the invitation, consumes it, and commits the fresh
- * Member stint joined to exactly `#all`. The invitation row is locked first, so
- * concurrent acceptances of one token serialize and only the first commits.
+ * Member stint joined to exactly `#all`. A non-locking token lookup identifies
+ * the Server, then the transaction takes the Server row before the invitation
+ * row. Every membership-authorized write uses that order, avoiding an
+ * accept-versus-revoke deadlock while the invitation lock still makes the token
+ * single-use.
  *
  * The verified-email lookup happens before the transaction opens: it is an
  * outbound Clerk call, and holding a row lock across the network would let a
@@ -39,8 +42,19 @@ export async function acceptServerInvitation(
 ): Promise<AcceptedServerInvitation> {
     const verifiedEmails = await clerkUsers.readVerifiedEmails(clerkUserId);
     const tokenHash = hashInvitationToken(token);
+    const [located] = await db
+        .select({ serverId: serverInvitationsTable.serverId })
+        .from(serverInvitationsTable)
+        .where(eq(serverInvitationsTable.tokenHash, tokenHash))
+        .limit(1);
+
+    if (!located) {
+        throw new InvitationNotAcceptableError();
+    }
 
     return await db.transaction(async (tx) => {
+        await lockServerRow(tx, located.serverId);
+
         const [invitation] = await tx
             .select({
                 email: serverInvitationsTable.email,
@@ -49,18 +63,18 @@ export async function acceptServerInvitation(
                 serverId: serverInvitationsTable.serverId,
             })
             .from(serverInvitationsTable)
-            .where(eq(serverInvitationsTable.tokenHash, tokenHash))
+            .where(
+                and(
+                    eq(serverInvitationsTable.tokenHash, tokenHash),
+                    eq(serverInvitationsTable.serverId, located.serverId)
+                )
+            )
             .limit(1)
             .for('update');
 
         if (!invitation?.isLive) {
             throw new InvitationNotAcceptableError();
         }
-
-        // Server row before any membership or Channel write, matching every
-        // other hosted durable write. The invitation row is already locked, so
-        // this pair is always taken in the same order.
-        await lockServerRow(tx, invitation.serverId);
 
         if (!verifiedEmails.includes(invitation.email)) {
             throw new InvitationEmailMismatchError();
@@ -100,7 +114,12 @@ export async function acceptServerInvitation(
             // so a returning human reuses it as a brand-new Member stint.
             await tx
                 .update(serverMembershipsTable)
-                .set({ joinedAt: sql`now()`, revokedAt: null, role: 'member' })
+                .set({
+                    joinedAt: sql`now()`,
+                    revokedAt: null,
+                    role: 'member',
+                    stint: sql`${serverMembershipsTable.stint} + 1`,
+                })
                 .where(eq(serverMembershipsTable.id, standing.id));
         } else {
             await tx.insert(serverMembershipsTable).values({

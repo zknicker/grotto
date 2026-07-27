@@ -37,9 +37,9 @@ export interface RemoveServerMemberInput {
  * single transaction under the Server lock: the revocation, the personal work
  * they held, and the last-Owner check that guards it.
  *
- * The membership row is revoked rather than deleted. Authored messages, their
- * attachments, DM pairs, and read events all point at it, so deleting the row
- * would take collaboration history with it.
+ * The membership row is revoked rather than deleted. Authored messages, DM
+ * pairs, and read events point at it, so deleting the row would take
+ * collaboration history with it.
  */
 export async function removeServerMember(
     db: GrottoDatabase,

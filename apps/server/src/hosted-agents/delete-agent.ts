@@ -50,24 +50,30 @@ export async function deleteHostedAgent(
             eq(agentDeliveryTable.serverId, input.serverId),
             eq(agentDeliveryTable.agentId, agent.id)
         );
-        await tx.delete(agentRunnerCredentialsTable).where(
-            and(
-                eq(agentRunnerCredentialsTable.serverId, input.serverId),
-                eq(agentRunnerCredentialsTable.agentId, agent.id)
-            )
-        );
-        await tx.delete(agentPendingWorkTable).where(
-            and(
-                eq(agentPendingWorkTable.serverId, input.serverId),
-                eq(agentPendingWorkTable.agentId, agent.id)
-            )
-        );
-        await tx.delete(reminderAgentAttentionTable).where(
-            and(
-                eq(reminderAgentAttentionTable.serverId, input.serverId),
-                eq(reminderAgentAttentionTable.agentId, agent.id)
-            )
-        );
+        await tx
+            .delete(agentRunnerCredentialsTable)
+            .where(
+                and(
+                    eq(agentRunnerCredentialsTable.serverId, input.serverId),
+                    eq(agentRunnerCredentialsTable.agentId, agent.id)
+                )
+            );
+        await tx
+            .delete(agentPendingWorkTable)
+            .where(
+                and(
+                    eq(agentPendingWorkTable.serverId, input.serverId),
+                    eq(agentPendingWorkTable.agentId, agent.id)
+                )
+            );
+        await tx
+            .delete(reminderAgentAttentionTable)
+            .where(
+                and(
+                    eq(reminderAgentAttentionTable.serverId, input.serverId),
+                    eq(reminderAgentAttentionTable.agentId, agent.id)
+                )
+            );
         await tx
             .update(remindersTable)
             .set({ status: 'canceled', updatedAt: new Date() })
@@ -78,18 +84,22 @@ export async function deleteHostedAgent(
                     eq(remindersTable.status, 'scheduled')
                 )
             );
-        await tx.delete(channelAgentParticipantsTable).where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, input.serverId),
-                eq(channelAgentParticipantsTable.agentId, agent.id)
-            )
-        );
-        await tx.delete(agentMcpToolGrantsTable).where(
-            and(
-                eq(agentMcpToolGrantsTable.serverId, input.serverId),
-                eq(agentMcpToolGrantsTable.agentId, agent.id)
-            )
-        );
+        await tx
+            .delete(channelAgentParticipantsTable)
+            .where(
+                and(
+                    eq(channelAgentParticipantsTable.serverId, input.serverId),
+                    eq(channelAgentParticipantsTable.agentId, agent.id)
+                )
+            );
+        await tx
+            .delete(agentMcpToolGrantsTable)
+            .where(
+                and(
+                    eq(agentMcpToolGrantsTable.serverId, input.serverId),
+                    eq(agentMcpToolGrantsTable.agentId, agent.id)
+                )
+            );
         await tx.delete(agentDeliveryTable).where(owner);
         await tx
             .update(agentsTable)

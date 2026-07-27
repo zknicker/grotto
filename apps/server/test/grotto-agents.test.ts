@@ -213,7 +213,9 @@ test('retires an Agent immediately, preserves authored history, and then permits
     const chat = (await owner.trpc.chat.list.query({ serverId })).find(
         (entry) => entry.peerAgentId === agent.id
     );
-    if (!chat) throw new Error('Expected Agent DM.');
+    if (!chat) {
+        throw new Error('Expected Agent DM.');
+    }
 
     await harness.sql`
         insert into chat_messages (id, server_id, chat_id, author_agent_id, content, nonce, sequence)

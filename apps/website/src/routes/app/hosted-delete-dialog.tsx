@@ -37,7 +37,8 @@ export function HostedDeleteDialog({
                 </AlertDialogHeader>
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="hosted-delete-confirmation">
-                        Type <span className="font-medium text-foreground">{confirmation}</span> to confirm
+                        Type <span className="font-medium text-foreground">{confirmation}</span> to
+                        confirm
                     </Label>
                     <Input
                         autoComplete="off"
@@ -47,7 +48,9 @@ export function HostedDeleteDialog({
                     />
                 </div>
                 <AlertDialogFooter>
-                    <AlertDialogClose render={<Button type="button" variant="ghost" />}>Cancel</AlertDialogClose>
+                    <AlertDialogClose render={<Button type="button" variant="ghost" />}>
+                        Cancel
+                    </AlertDialogClose>
                     <Button
                         disabled={typed !== confirmation}
                         loading={pending}

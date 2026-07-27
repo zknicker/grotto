@@ -3,7 +3,12 @@ import type { HostedComputerInventory } from '@tavern/api';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentsTable, computerSetupApprovalsTable, computersTable, serversTable } from '../postgres/schema.ts';
+import {
+    agentsTable,
+    computerSetupApprovalsTable,
+    computersTable,
+    serversTable,
+} from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -220,7 +225,9 @@ export async function removeServerComputer(
         await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);
         if (!member || (server.role !== 'owner' && server.role !== 'admin')) {
-            throw new ComputerSetupDeniedError('Only a Server Owner or Admin can remove a Computer.');
+            throw new ComputerSetupDeniedError(
+                'Only a Server Owner or Admin can remove a Computer.'
+            );
         }
         if (input.confirmation !== 'REMOVE') {
             throw new ComputerSetupDeniedError('Type REMOVE to remove this Computer.');
@@ -228,15 +235,31 @@ export async function removeServerComputer(
         const [computer] = await tx
             .select({ id: computersTable.id })
             .from(computersTable)
-            .where(and(eq(computersTable.id, input.computerId), eq(computersTable.serverId, input.serverId)))
+            .where(
+                and(
+                    eq(computersTable.id, input.computerId),
+                    eq(computersTable.serverId, input.serverId)
+                )
+            )
             .limit(1);
-        if (!computer) throw new ComputerSetupDeniedError('That Computer no longer exists.');
+        if (!computer) {
+            throw new ComputerSetupDeniedError('That Computer no longer exists.');
+        }
         const [assigned] = await tx
             .select({ id: agentsTable.id })
             .from(agentsTable)
-            .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.computerId, computer.id)))
+            .where(
+                and(
+                    eq(agentsTable.serverId, input.serverId),
+                    eq(agentsTable.computerId, computer.id)
+                )
+            )
             .limit(1);
-        if (assigned) throw new ComputerSetupDeniedError('Delete every assigned Agent before removing this Computer.');
+        if (assigned) {
+            throw new ComputerSetupDeniedError(
+                'Delete every assigned Agent before removing this Computer.'
+            );
+        }
         await tx.delete(computersTable).where(eq(computersTable.id, computer.id));
         return { computerId: computer.id };
     });

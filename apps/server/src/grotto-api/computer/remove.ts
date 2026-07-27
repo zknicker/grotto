@@ -7,7 +7,11 @@ import { memberProcedure } from '../server/procedure.ts';
 export const removeComputerProcedure = memberProcedure
     .input(
         z
-            .object({ computerId: z.string().min(1), confirmation: z.string().trim(), serverId: serverIdSchema })
+            .object({
+                computerId: z.string().min(1),
+                confirmation: z.string().trim(),
+                serverId: serverIdSchema,
+            })
             .strict()
     )
     .mutation(async ({ ctx, input }) => {

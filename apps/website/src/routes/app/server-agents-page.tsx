@@ -260,55 +260,61 @@ function AgentList({
         return <p className="text-muted-foreground text-sm">No Agents yet.</p>;
     }
     return (
-        <ul className="divide-y divide-border rounded-lg border border-border">
-            {agents.map((agent) => (
-                <li className="flex flex-col gap-1 p-4" key={agent.id}>
-                    <div className="flex items-center justify-between gap-4">
-                        <p className="font-medium text-sm">
-                            {agent.displayName}{' '}
-                            <span className="text-muted-foreground">@{agent.handle}</span>
+        <>
+            <ul className="divide-y divide-border rounded-lg border border-border">
+                {agents.map((agent) => (
+                    <li className="flex flex-col gap-1 p-4" key={agent.id}>
+                        <div className="flex items-center justify-between gap-4">
+                            <p className="font-medium text-sm">
+                                {agent.displayName}{' '}
+                                <span className="text-muted-foreground">@{agent.handle}</span>
+                            </p>
+                            <AgentStatusBadge agent={agent} />
+                        </div>
+                        <p className="text-muted-foreground text-xs">
+                            Wants {agent.desiredRuntimeId} · {agent.desiredModelId}
+                            {agent.effectiveReportedAt
+                                ? ` · running ${agent.effectiveRuntimeId ?? '—'} · ${agent.effectiveModelId ?? '—'}`
+                                : ' · never reported'}
                         </p>
-                        <AgentStatusBadge agent={agent} />
-                    </div>
-                    <p className="text-muted-foreground text-xs">
-                        Wants {agent.desiredRuntimeId} · {agent.desiredModelId}
-                        {agent.effectiveReportedAt
-                            ? ` · running ${agent.effectiveRuntimeId ?? '—'} · ${agent.effectiveModelId ?? '—'}`
-                            : ' · never reported'}
-                    </p>
-                    {agent.status === 'degraded' ? (
-                        <p className="text-destructive text-xs">
-                            Missing: {agent.missingResources.join(', ')}
-                        </p>
-                    ) : null}
-                    <HostedAgentTools agent={agent} connections={connections} serverId={serverId} />
-                    <Button
-                        className="mt-2 self-start"
-                        onClick={() => setDeleting(agent)}
-                        type="button"
-                        variant="destructive"
-                    >
-                        Delete Agent
-                    </Button>
-                </li>
-            ))}
-        </ul>
-        {deleting ? (
-            <HostedDeleteDialog
-                confirmation={deleting.displayName}
-                description="This permanently destroys the Agent’s local workspace, skills, runtime state, queues, and vault when its Computer can be reached. Its authored collaboration history remains."
-                onConfirm={() =>
-                    remove.mutate({
-                        agentId: deleting.id,
-                        confirmation: deleting.displayName,
-                        serverId,
-                    })
-                }
-                onOpenChange={(open) => !open && setDeleting(null)}
-                pending={remove.isPending}
-                title="Delete Agent"
-            />
-        ) : null}
+                        {agent.status === 'degraded' ? (
+                            <p className="text-destructive text-xs">
+                                Missing: {agent.missingResources.join(', ')}
+                            </p>
+                        ) : null}
+                        <HostedAgentTools
+                            agent={agent}
+                            connections={connections}
+                            serverId={serverId}
+                        />
+                        <Button
+                            className="mt-2 self-start"
+                            onClick={() => setDeleting(agent)}
+                            type="button"
+                            variant="destructive"
+                        >
+                            Delete Agent
+                        </Button>
+                    </li>
+                ))}
+            </ul>
+            {deleting ? (
+                <HostedDeleteDialog
+                    confirmation={deleting.displayName}
+                    description="This permanently destroys the Agent’s local workspace, skills, runtime state, queues, and vault when its Computer can be reached. Its authored collaboration history remains."
+                    onConfirm={() =>
+                        remove.mutate({
+                            agentId: deleting.id,
+                            confirmation: deleting.displayName,
+                            serverId,
+                        })
+                    }
+                    onOpenChange={(open) => !open && setDeleting(null)}
+                    pending={remove.isPending}
+                    title="Delete Agent"
+                />
+            ) : null}
+        </>
     );
 }
 

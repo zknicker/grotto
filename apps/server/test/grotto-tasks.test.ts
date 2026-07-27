@@ -114,6 +114,51 @@ test('creates a task-message atomically and replays the same nonce idempotently'
     ]);
 });
 
+test('lists the task Thread summary and DM peer identity', async () => {
+    const server = await owner.trpc.server.create.mutate({
+        displayName: 'Task Thread Summary',
+        slug: 'task-thread-summary',
+    });
+    const peer = await addTaskPeer(server.id, server.channels[0].id);
+    const dm = await owner.trpc.chat.ensureDm.mutate({
+        peerUserId: peer.userId,
+        serverId: server.id,
+    });
+    const created = await owner.trpc.task.create.mutate({
+        chatId: dm.id,
+        content: 'Discuss this privately',
+        nonce: 'task-thread-summary-create',
+        serverId: server.id,
+    });
+    await owner.trpc.chat.send.mutate({
+        chatId: dm.id,
+        content: 'First task reply',
+        nonce: 'task-thread-summary-reply',
+        serverId: server.id,
+        thread: { anchorMessageId: created.task.messageId },
+    });
+    await owner.trpc.thread.setFollow.mutate({
+        follow: false,
+        serverId: server.id,
+        threadChatId: created.task.threadChatId,
+    });
+
+    await expect(owner.trpc.task.list.query({ serverId: server.id })).resolves.toMatchObject([
+        {
+            chatKind: 'dm',
+            chatName: null,
+            chatPeerUserId: peer.userId,
+            threadSummary: {
+                anchorMessageId: created.task.messageId,
+                followed: false,
+                replyCount: 1,
+                threadChatId: created.task.threadChatId,
+            },
+        },
+    ]);
+    peer.client.close();
+});
+
 test('rejects task creation in a Thread as a bad request', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Thread Create',
@@ -216,6 +261,34 @@ test('rejects a revoked assignee during task creation', async () => {
             serverId: server.id,
         })
     ).rejects.toMatchObject({ data: { code: 'BAD_REQUEST' } });
+    peer.client.close();
+});
+
+test('replays an existing task after its reserved assignee is revoked', async () => {
+    const server = await owner.trpc.server.create.mutate({
+        displayName: 'Task Create Replay Revoked',
+        slug: 'task-create-replay-revoked',
+    });
+    const chatId = server.channels[0].id;
+    const peer = await addTaskPeer(server.id, chatId);
+    const input = {
+        assigneeUserId: peer.userId,
+        chatId,
+        content: 'Replay this reservation',
+        nonce: 'task-create-replay-revoked-assignee',
+        serverId: server.id,
+    };
+    const created = await owner.trpc.task.create.mutate(input);
+    await harness.sql`
+        update server_memberships
+        set revoked_at = now()
+        where server_id = ${server.id} and user_id = ${peer.userId}
+    `;
+
+    await expect(owner.trpc.task.create.mutate(input)).resolves.toEqual({
+        ...created,
+        idempotent: true,
+    });
     peer.client.close();
 });
 

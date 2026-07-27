@@ -14,7 +14,11 @@ export function ServerChat({
     onOpenChat,
 }: {
     chat: HostedChat;
-    initialTask?: { message: HostedChatMessage; threadChatId: string };
+    initialTask?: {
+        message: HostedChatMessage;
+        summary: HostedThreadSummary;
+        threadChatId: string;
+    };
     onOpenChat: (chatId: string) => void;
 }) {
     const [threadSelection, setThreadSelection] = React.useState<{
@@ -25,7 +29,7 @@ export function ServerChat({
         initialTask
             ? {
                   anchor: initialTask.message,
-                  initialSummary: null,
+                  initialSummary: initialTask.summary,
                   initialThreadChatId: initialTask.threadChatId,
               }
             : null

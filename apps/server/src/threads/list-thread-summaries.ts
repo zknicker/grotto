@@ -12,7 +12,7 @@ import type { GrottoUser } from '../users/grotto-user.ts';
 export async function listHostedThreadSummaries(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: { anchorMessageIds: string[]; parentChatId: string; serverId: string }
+    input: { anchorMessageIds: string[]; parentChatId?: string; serverId: string }
 ): Promise<HostedThreadSummary[]> {
     if (!(member && input.anchorMessageIds.length > 0)) {
         return [];
@@ -28,7 +28,7 @@ export async function listHostedThreadSummaries(
             and(
                 eq(chatsTable.serverId, input.serverId),
                 eq(chatsTable.kind, 'thread'),
-                eq(chatsTable.parentChatId, input.parentChatId),
+                ...(input.parentChatId ? [eq(chatsTable.parentChatId, input.parentChatId)] : []),
                 inArray(chatsTable.anchorMessageId, input.anchorMessageIds)
             )
         );

@@ -21,6 +21,7 @@ export interface ServerTask {
     priority: TaskPriority;
     status: TaskStatus;
     threadChatId: string;
+    threadSummary: HostedTaskListItem['threadSummary'];
     title: string;
     updatedAt: string;
     version: number;
@@ -67,7 +68,9 @@ export function toServerTask(item: HostedTaskListItem): ServerTask {
         chatLabel:
             item.chatKind === 'channel'
                 ? `#${item.chatName ?? 'channel'}`
-                : `Direct · ${item.chatName ?? 'Human'}`,
+                : `Direct · ${
+                      item.chatPeerUserId ? `Human ${item.chatPeerUserId.slice(-6)}` : 'Human'
+                  }`,
         claimedAt: item.task.claimedAt,
         createdAt: item.task.createdAt,
         id: item.message.id,
@@ -77,6 +80,7 @@ export function toServerTask(item: HostedTaskListItem): ServerTask {
         priority: item.task.priority,
         status: item.task.status,
         threadChatId: item.task.threadChatId,
+        threadSummary: item.threadSummary,
         title: item.message.content,
         updatedAt: item.task.updatedAt,
         version: item.task.version,

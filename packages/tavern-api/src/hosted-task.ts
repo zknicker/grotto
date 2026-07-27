@@ -1,5 +1,9 @@
 import * as z from 'zod';
-import { hostedChatMessageSchema, hostedIdSchema } from './hosted-chat.ts';
+import {
+    hostedChatMessageSchema,
+    hostedIdSchema,
+    hostedThreadSummarySchema,
+} from './hosted-chat.ts';
 import {
     hostedMessageTaskSchema,
     hostedTaskLabelColors,
@@ -19,8 +23,10 @@ export const hostedTaskListItemSchema = z
     .object({
         chatKind: z.enum(['channel', 'dm']),
         chatName: z.string().nullable(),
+        chatPeerUserId: hostedIdSchema.nullable(),
         message: hostedChatMessageSchema,
         task: hostedMessageTaskSchema,
+        threadSummary: hostedThreadSummarySchema,
     })
     .strict();
 

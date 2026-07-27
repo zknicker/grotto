@@ -35,6 +35,7 @@ function taskItem(): HostedTaskListItem {
     return {
         chatKind: 'channel',
         chatName: 'all',
+        chatPeerUserId: null,
         message: {
             authorUserId: 'user_one',
             chatId: 'chat_one',
@@ -47,5 +48,13 @@ function taskItem(): HostedTaskListItem {
             task,
         },
         task,
+        threadSummary: {
+            anchorMessageId: 'message_one',
+            followed: false,
+            latestReplyAt: null,
+            replyCount: 0,
+            threadChatId: 'thread_one',
+            unreadCount: 0,
+        },
     };
 }

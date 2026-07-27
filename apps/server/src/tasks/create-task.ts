@@ -77,23 +77,6 @@ export async function createHostedTask(
         if (chat.kind !== 'channel' && chat.kind !== 'dm') {
             throw new UntaskableMessageError();
         }
-        if (input.assigneeUserId) {
-            const [active] = await tx
-                .select({ userId: serverMembershipsTable.userId })
-                .from(serverMembershipsTable)
-                .where(
-                    and(
-                        eq(serverMembershipsTable.serverId, input.serverId),
-                        eq(serverMembershipsTable.userId, input.assigneeUserId),
-                        isNull(serverMembershipsTable.revokedAt)
-                    )
-                )
-                .limit(1);
-            if (!(active && (await findHostedChatAccess(tx, input.assigneeUserId, input)))) {
-                throw new InvalidTaskAssigneeError();
-            }
-        }
-
         const [existing] = await tx
             .select()
             .from(chatMessagesTable)
@@ -114,6 +97,22 @@ export async function createHostedTask(
                 throw new ChatNonceConflictError();
             }
             return { events: [], idempotent: true, task };
+        }
+        if (input.assigneeUserId) {
+            const [active] = await tx
+                .select({ userId: serverMembershipsTable.userId })
+                .from(serverMembershipsTable)
+                .where(
+                    and(
+                        eq(serverMembershipsTable.serverId, input.serverId),
+                        eq(serverMembershipsTable.userId, input.assigneeUserId),
+                        isNull(serverMembershipsTable.revokedAt)
+                    )
+                )
+                .limit(1);
+            if (!(active && (await findHostedChatAccess(tx, input.assigneeUserId, input)))) {
+                throw new InvalidTaskAssigneeError();
+            }
         }
 
         const [numberedChat] = await tx

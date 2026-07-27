@@ -16,6 +16,7 @@ test('projects a hosted task from its canonical message', () => {
     expect(task.threadChatId).toBe('thread_one');
     expect(task.chatLabel).toBe('#all');
     expect(task.claimedAt).toBeNull();
+    expect(task.threadSummary.replyCount).toBe(3);
 });
 
 test('filters hosted tasks by lifecycle and text without a second content store', () => {
@@ -106,10 +107,22 @@ test('offers both Channels and DMs as task creation work surfaces', () => {
     ]);
 });
 
+test('identifies a DM task by its peer', () => {
+    expect(
+        toServerTask({
+            ...item(),
+            chatKind: 'dm',
+            chatName: null,
+            chatPeerUserId: 'user_peer',
+        }).chatLabel
+    ).toBe('Direct · Human r_peer');
+});
+
 function item(): HostedTaskListItem {
     return {
         chatKind: 'channel',
         chatName: 'all',
+        chatPeerUserId: null,
         message: {
             authorUserId: 'user_one',
             chatId: 'chat_one',
@@ -135,6 +148,14 @@ function item(): HostedTaskListItem {
             threadChatId: 'thread_one',
             updatedAt: '2026-07-26T12:00:00.000Z',
             version: 1,
+        },
+        threadSummary: {
+            anchorMessageId: 'message_one',
+            followed: false,
+            latestReplyAt: '2026-07-26T12:05:00.000Z',
+            replyCount: 3,
+            threadChatId: 'thread_one',
+            unreadCount: 2,
         },
     };
 }

@@ -131,6 +131,7 @@ export function ServerPage() {
                             selectedTask
                                 ? {
                                       message: selectedTask.message,
+                                      summary: selectedTask.threadSummary,
                                       threadChatId: selectedTask.threadChatId,
                                   }
                                 : undefined

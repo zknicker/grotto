@@ -58,75 +58,97 @@ jobs:
             exit 1
           fi
 
-          deploy_ref="refs/grotto-deploy/tags/${REQUESTED_VERSION}"
-          git fetch --no-tags origin "refs/tags/${REQUESTED_VERSION}:${deploy_ref}"
-          if [[ "$(git cat-file -t "${deploy_ref}")" != "tag" ]]; then
+          tag_ref_state="$(
+            gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${REQUESTED_VERSION}" \
+              --jq '[.object.type, .object.sha] | @tsv'
+          )"
+          IFS=$'\t' read -r tag_ref_type tag_object_sha <<<"${tag_ref_state}"
+          if [[ "${tag_ref_type}" != "tag" || ! "${tag_object_sha}" =~ ^[0-9a-f]{40}$ ]]; then
             echo "release tag must be annotated" >&2
             exit 1
           fi
-          revision="$(git rev-parse "${deploy_ref}^{commit}")"
-          if [[ ! "${revision}" =~ ^[0-9a-f]{40}$ ]]; then
+
+          tag_state="$(
+            gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag_object_sha}" \
+              --jq '[.tag, .object.type, .object.sha] | @tsv'
+          )"
+          IFS=$'\t' read -r annotated_tag target_type revision <<<"${tag_state}"
+          if [[ "${annotated_tag}" != "${REQUESTED_VERSION}" || "${target_type}" != "commit" || ! "${revision}" =~ ^[0-9a-f]{40}$ ]]; then
             echo "release tag did not resolve to a full commit" >&2
             exit 1
           fi
 
-          git reset --hard "${revision}"
-          if [[ "$(git rev-parse HEAD)" != "${revision}" ]]; then
-            echo "long-lived checkout did not reach the release commit" >&2
+          product_version="${REQUESTED_VERSION#v}"
+          release_id="${product_version}+git.${revision:0:12}"
+          archive_name="grotto-server-${release_id}-aarch64-apple-darwin.tar.gz"
+          archive_asset_id="$(
+            gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${REQUESTED_VERSION}" \
+              --jq ".assets[] | select(.name == \"${archive_name}\") | .id"
+          )"
+          checksum_asset_id="$(
+            gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${REQUESTED_VERSION}" \
+              --jq ".assets[] | select(.name == \"${archive_name}.sha256\") | .id"
+          )"
+          if [[ ! "${archive_asset_id}" =~ ^[0-9]+$ || ! "${checksum_asset_id}" =~ ^[0-9]+$ ]]; then
+            echo "published release must contain the exact Grotto Server archive and checksum" >&2
             exit 1
           fi
 
           {
+            echo "GROTTO_ARCHIVE_ASSET_ID=${archive_asset_id}"
+            echo "GROTTO_ARCHIVE_NAME=${archive_name}"
+            echo "GROTTO_CHECKSUM_ASSET_ID=${checksum_asset_id}"
             echo "GROTTO_RELEASE_MODE=${REQUESTED_MODE}"
             echo "GROTTO_RELEASE_VERSION=${REQUESTED_VERSION}"
             echo "GROTTO_SOURCE_REVISION=${revision}"
           } >>"${GITHUB_ENV}"
 
-      - name: Verify product version
-        working-directory: /Users/zknicker/srv/grotto
-        run: |
-          set -euo pipefail
-          product_version="$(
-            bun --no-env-file -e 'process.stdout.write(require("./apps/website/package.json").version)'
-          )"
-          test "${product_version}" = "${GROTTO_RELEASE_VERSION#v}"
-
-      - name: Verify release metadata
-        if: env.GROTTO_RELEASE_MODE == 'deploy'
-        working-directory: /Users/zknicker/srv/grotto
-        run: |
-          set -euo pipefail
-          bun --no-env-file run release:check -- --expect-version "${GROTTO_RELEASE_VERSION#v}"
-
-      - name: Install build dependencies
-        if: env.GROTTO_RELEASE_MODE == 'deploy'
-        working-directory: /Users/zknicker/srv/grotto
-        run: bun --no-env-file install --frozen-lockfile
-
       - name: Verify private PostgreSQL
-        working-directory: /Users/zknicker/srv/grotto
         run: |
           set -euo pipefail
           docker volume inspect grotto_postgres_data >/dev/null
-          postgres_status="$(
-            docker compose -p grotto --env-file .env -f compose.yml \
-              ps --status running postgres
-          )"
-          grep -q 'grotto-postgres' <<<"${postgres_status}"
           test "$(docker inspect --format '{{.State.Health.Status}}' grotto-postgres)" = "healthy"
 
-      - name: Deploy release
+      - name: Deploy downloaded release
         if: env.GROTTO_RELEASE_MODE == 'deploy'
-        working-directory: /Users/zknicker/srv/grotto
         run: |
-          bun --no-env-file run deploy:grotto-server -- \
+          set -euo pipefail
+          deploy_temp="$(/usr/bin/mktemp -d "${RUNNER_TEMP}/grotto-server-deploy.XXXXXX")"
+          cleanup() {
+            /usr/bin/trash "${deploy_temp}"
+          }
+          trap 'cleanup' EXIT
+
+          archive_path="${deploy_temp}/${GROTTO_ARCHIVE_NAME}"
+          checksum_path="${archive_path}.sha256"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/assets/${GROTTO_ARCHIVE_ASSET_ID}" \
+            --header "Accept: application/octet-stream" >"${archive_path}"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/assets/${GROTTO_CHECKSUM_ASSET_ID}" \
+            --header "Accept: application/octet-stream" >"${checksum_path}"
+          (
+            cd "${deploy_temp}"
+            /usr/bin/shasum -a 256 -c "${GROTTO_ARCHIVE_NAME}.sha256"
+          )
+
+          /bin/mkdir "${deploy_temp}/operation"
+          /usr/bin/tar -xzf "${archive_path}" \
+            -C "${deploy_temp}/operation" \
+            ./bin/grotto-server-deploy
+          test -f "${deploy_temp}/operation/bin/grotto-server-deploy"
+          test ! -L "${deploy_temp}/operation/bin/grotto-server-deploy"
+          test -x "${deploy_temp}/operation/bin/grotto-server-deploy"
+          "${deploy_temp}/operation/bin/grotto-server-deploy" \
+            install \
+            "${archive_path}" \
             "${GROTTO_RELEASE_VERSION}" \
-            deploy \
+            "${GROTTO_SOURCE_REVISION}"
+          /usr/bin/sudo -n /usr/local/libexec/grotto/activate-grotto-server \
             "${GROTTO_SOURCE_REVISION}"
 
       - name: Activate installed release
         if: env.GROTTO_RELEASE_MODE == 'activate'
         run: |
+          test -d "${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}"
           /usr/bin/sudo -n /usr/local/libexec/grotto/activate-grotto-server \
             "${GROTTO_SOURCE_REVISION}"
 
@@ -137,7 +159,11 @@ jobs:
             /usr/bin/curl --fail --silent --show-error --max-time 8 \
               http://127.0.0.1:18791/healthz
           )"
-          test "${response}" = '{"status":"ok"}'
+          health_status="$(
+            /usr/bin/python3 -c 'import json, sys; print(json.load(sys.stdin)["status"])' \
+              <<<"${response}"
+          )"
+          test "${health_status}" = "ok"
 
       - name: Notify Discord
         if: always()

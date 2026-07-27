@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { runAgentCli } from './agent-cli.ts';
 import { detectInventory } from './inventory.ts';
 import { type Attachment, parseStartCommand, runAgentLaunch } from './launch.ts';
+import { type AttachmentMcpConnection, AttachmentMcpRuntime } from './mcp-runtime.ts';
 
 interface SetupResponse {
     approvalId: string;
@@ -363,6 +364,7 @@ function escapeXml(value: string) {
 }
 
 async function connect(attachment: Attachment) {
+    const mcp = new AttachmentMcpRuntime(join(dataRoot, 'servers', attachment.serverId, 'mcp'));
     const socketUrl = new URL('/computer/attachment', attachment.serverOrigin);
     socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(socketUrl);
@@ -379,6 +381,34 @@ async function connect(attachment: Attachment) {
                 resolve();
                 return;
             }
+            const mcpConnection = parseMcpUpsert(frame);
+            if (mcpConnection) {
+                void mcp
+                    .upsert(mcpConnection)
+                    .then(async () => {
+                        socket.send(
+                            JSON.stringify({
+                                connectionId: mcpConnection.id,
+                                tools: await mcp.listTools(mcpConnection.id),
+                                type: 'mcp-inventory',
+                            })
+                        );
+                    })
+                    .catch((error) => {
+                        console.error(error instanceof Error ? error.message : error);
+                    });
+                return;
+            }
+            const mcpGrant = parseMcpGrant(frame);
+            if (mcpGrant) {
+                mcp.setGrant(mcpGrant);
+                return;
+            }
+            const mcpGrants = parseMcpGrants(frame);
+            if (mcpGrants) {
+                mcp.replaceAllGrants(mcpGrants);
+                return;
+            }
             const command = parseStartCommand(frame);
             if (command) {
                 // One isolated launch per typed start. The Server enforces one
@@ -387,6 +417,7 @@ async function connect(attachment: Attachment) {
                     attachment,
                     command,
                     dataRoot,
+                    mcpRuntime: mcp,
                     sendFrame: (payload) => socket.send(JSON.stringify(payload)),
                     serverOrigin: attachment.serverOrigin,
                 }).catch((error) => {
@@ -409,6 +440,89 @@ async function connect(attachment: Attachment) {
             );
         });
     });
+}
+
+function parseMcpGrants(frame: unknown) {
+    if (
+        typeof frame !== 'object' ||
+        frame === null ||
+        !('type' in frame) ||
+        frame.type !== 'mcp-grants' ||
+        !('grants' in frame) ||
+        !Array.isArray(frame.grants)
+    ) {
+        return null;
+    }
+    const grants = frame.grants.filter(
+        (grant): grant is { agentId: string; connectionId: string; toolName: string } =>
+            typeof grant === 'object' &&
+            grant !== null &&
+            'agentId' in grant &&
+            typeof grant.agentId === 'string' &&
+            'connectionId' in grant &&
+            typeof grant.connectionId === 'string' &&
+            'toolName' in grant &&
+            typeof grant.toolName === 'string'
+    );
+    return grants.length === frame.grants.length ? grants : null;
+}
+
+function parseMcpGrant(frame: unknown) {
+    if (
+        typeof frame !== 'object' ||
+        frame === null ||
+        !('type' in frame) ||
+        frame.type !== 'mcp-grant' ||
+        !('grant' in frame) ||
+        typeof frame.grant !== 'object' ||
+        frame.grant === null
+    ) {
+        return null;
+    }
+    const grant = frame.grant as Record<string, unknown>;
+    if (
+        typeof grant.agentId !== 'string' ||
+        typeof grant.connectionId !== 'string' ||
+        typeof grant.toolName !== 'string' ||
+        typeof grant.enabled !== 'boolean'
+    ) {
+        return null;
+    }
+    return grant as {
+        agentId: string;
+        connectionId: string;
+        enabled: boolean;
+        toolName: string;
+    };
+}
+
+function parseMcpUpsert(frame: unknown): AttachmentMcpConnection | null {
+    if (
+        typeof frame !== 'object' ||
+        frame === null ||
+        !('type' in frame) ||
+        frame.type !== 'mcp-upsert' ||
+        !('connection' in frame) ||
+        typeof frame.connection !== 'object' ||
+        frame.connection === null
+    ) {
+        return null;
+    }
+    const connection = frame.connection as Record<string, unknown>;
+    if (
+        typeof connection.id !== 'string' ||
+        typeof connection.name !== 'string' ||
+        !(typeof connection.command === 'string' || connection.command === null) ||
+        !(typeof connection.url === 'string' || connection.url === null) ||
+        !Array.isArray(connection.args) ||
+        typeof connection.env !== 'object' ||
+        connection.env === null ||
+        typeof connection.headers !== 'object' ||
+        connection.headers === null
+    ) {
+        return null;
+    }
+    return connection as unknown as AttachmentMcpConnection;
 }
 
 function hash(value: string) {

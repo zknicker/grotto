@@ -2,7 +2,9 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { type Attachment, type HostedAgentStartCommand, runAgentLaunch } from './launch.ts';
+import { AttachmentMcpRuntime } from './mcp-runtime.ts';
 
 type FakeServer = ReturnType<typeof Bun.serve>;
 
@@ -18,6 +20,9 @@ interface FakeServerState {
 
 let state: FakeServerState;
 let dataRoot: string;
+const deterministicMcp = fileURLToPath(
+    new URL('./test-fixtures/deterministic-mcp.ts', import.meta.url)
+);
 
 beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'grotto-launch-'));
@@ -89,6 +94,7 @@ test('runs a deterministic Agent launch that lands a durable hosted message', as
         attachment,
         command,
         dataRoot,
+        mcpRuntime: new AttachmentMcpRuntime(join(dataRoot, 'servers', 'srv_launchtest', 'mcp')),
         sendFrame: (frame) => turnFrames.push(frame as Record<string, unknown>),
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
@@ -152,10 +158,70 @@ test('reports a failed turn when the runtime is not installed', async () => {
             type: 'start',
         },
         dataRoot,
+        mcpRuntime: new AttachmentMcpRuntime(join(dataRoot, 'servers', 'srv_launchtest', 'mcp')),
         sendFrame: (frame) => turnFrames.push(frame as Record<string, unknown>),
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
 
     expect(state.mintCount).toBe(0);
     expect(turnFrames[0]).toMatchObject({ messageCount: 0, status: 'failed' });
+});
+
+test('the deterministic Agent invokes a granted MCP tool and cannot invoke it ungranted', async () => {
+    const attachment: Attachment = {
+        computerId: 'cmp_launchtest0000000',
+        credential: 'launch-test-credential',
+        serverOrigin: `http://127.0.0.1:${state.server.port}`,
+        serverId: 'srv_launchtest',
+        slug: 'launch-test',
+    };
+    const connectionId = 'mcp_1234567890123456';
+    const mcpRuntime = new AttachmentMcpRuntime(
+        join(dataRoot, 'servers', attachment.serverId, 'mcp')
+    );
+    await mcpRuntime.upsert({
+        args: [deterministicMcp],
+        command: process.execPath,
+        env: { MCP_PREFIX: 'agent' },
+        headers: {},
+        id: connectionId,
+        name: 'Deterministic',
+        url: null,
+    });
+    const base: HostedAgentStartCommand = {
+        agentId: 'agt_launchtest',
+        chatId: 'cht_test',
+        modelId: 'fake-model',
+        prompt: `[mcp=${connectionId}/echo] {"value":"granted"}`,
+        runId: 'run_mcp_granted',
+        runtimeId: 'fake',
+        type: 'start',
+    };
+    mcpRuntime.replaceAgentGrants(base.agentId, [
+        { agentId: base.agentId, connectionId, toolName: 'echo' },
+    ]);
+    const frames: Record<string, unknown>[] = [];
+    await runAgentLaunch({
+        attachment,
+        command: base,
+        dataRoot,
+        mcpRuntime,
+        sendFrame: (frame) => frames.push(frame as Record<string, unknown>),
+        serverOrigin: `http://127.0.0.1:${state.server.port}`,
+    });
+    expect(state.sends.at(-1)?.content).toContain('agent:granted');
+    expect(frames.at(-1)).toMatchObject({ status: 'completed' });
+
+    mcpRuntime.replaceAgentGrants(base.agentId, []);
+    await runAgentLaunch({
+        attachment,
+        command: { ...base, runId: 'run_mcp_ungranted' },
+        dataRoot,
+        mcpRuntime,
+        sendFrame: (frame) => frames.push(frame as Record<string, unknown>),
+        serverOrigin: `http://127.0.0.1:${state.server.port}`,
+    });
+    expect(state.sends).toHaveLength(1);
+    expect(frames.at(-1)).toMatchObject({ status: 'failed' });
+    await mcpRuntime.close();
 });

@@ -3,6 +3,7 @@ import { attachmentRouter } from './attachment/router.ts';
 import { chatRouter } from './chat/router.ts';
 import { computerRouter } from './computer/router.ts';
 import { invitationRouter } from './invitation/router.ts';
+import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
 import { reminderRouter } from './reminder/router.ts';
 import { serverRouter } from './server/router.ts';
@@ -22,6 +23,7 @@ export const grottoRouter = createRouter({
     computer: computerRouter,
     invitation: invitationRouter,
     member: memberRouter,
+    mcp: mcpRouter,
     reminder: reminderRouter,
     server: serverRouter,
     task: taskRouter,

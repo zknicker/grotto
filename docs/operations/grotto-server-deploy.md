@@ -26,13 +26,16 @@ The self-hosted `Deploy Grotto Server` workflow:
 1. accepts the published release event, or a manual exact published `vX.Y.Z`
    with mode `deploy` or `activate`
 2. rejects drafts, prereleases, lightweight tags, branches, and arbitrary SHAs
-3. resolves the tag to a full commit SHA and makes the long-lived checkout match
-   it without `git clean`
-4. asserts `apps/website/package.json` is the tag's product version
+3. resolves the annotated tag to a full commit SHA through the authenticated
+   GitHub API
+4. in `deploy` mode, requires the exact Server archive and sidecar whose
+   version and short SHA match that release
 5. verifies the existing private PostgreSQL service without starting,
    recreating, migrating, or bootstrapping it
-6. builds and installs an immutable full-SHA release, or verifies and activates
-   an already installed release
+6. in `deploy` mode, downloads and checksum-verifies those two assets, extracts
+   only the compiled deploy operation, and uses it to verify and install the
+   immutable full-SHA release; `activate` verifies the installed release through
+   the activation helper and skips asset download and installation
 7. switches `current`, bootstraps the exact root-owned Server plist when its
    label is not loaded, otherwise restarts only `com.grotto.server`, and proves
    local health
@@ -46,17 +49,22 @@ directory is `releases/<full-sourceRevision>`. `release.json`, the artifact
 checksum, startup logs, and activation output carry the product version, full
 revision, and content digest. Public `/healthz` does not.
 
-The checkout root is `/Users/zknicker/srv/grotto` itself. The host-local `.env`
-supplies the non-secret `VITE_CLERK_PUBLISHABLE_KEY` at build time. The workflow
-starts the deploy program with Bun's automatic env loading disabled, then parses
-only that named value; it does not source or print the file. PostgreSQL and
-runtime secrets do not enter the build, Actions inputs, environment, or output.
+The trusted macOS publisher supplies the non-secret
+`VITE_CLERK_PUBLISHABLE_KEY` and builds the Server artifact once as part of
+`release:publish`. The mini never parses a build environment, installs Bun
+dependencies, resets its checkout, or rebuilds the Server. PostgreSQL and
+runtime secrets do not enter the artifact, Actions inputs, environment, or
+output.
 
 The Apple Silicon archive and SHA-256 file are built under
-`apps/server/release/`. It contains the compiled Server operations, hosted App,
-four Grotto launchd jobs, one narrow activation sudoers rule, shared Colima boot
-assets, and safe configuration examples. A manual `activate` never rebuilds or
-reinterprets an artifact. Urgent production changes require a patch release.
+`apps/server/release/`, verified by the publisher, and attached to the GitHub
+Release. The archive contains the compiled deploy operation, Server operations,
+hosted App, four Grotto launchd jobs, one narrow activation sudoers rule, shared
+Colima boot assets, and safe configuration examples. The mini verifies the
+outer checksum before extracting or executing the deploy operation, which then
+verifies the internal manifest and release identity before atomic installation.
+A manual `activate` never downloads, rebuilds, or reinterprets an artifact.
+Urgent production changes require a patch release.
 
 ## Host and container ownership
 
@@ -263,9 +271,9 @@ secret source, and rollback release before changing the host.
     these privileged assets. Reinstall the helper through this operator gate
     before deploying a release that changes its validation contract.
 11. Manually dispatch the exact published `vX.Y.Z` in `deploy` mode. This seeds
-    the first immutable release through the same build, install, helper-owned
-    Server bootstrap, health, and rollback path used by later published
-    releases.
+    the first immutable release through the same download, verification,
+    install, helper-owned Server bootstrap, health, and rollback path used by
+    later published releases.
 12. Inject `backup.env`, `monitor.env`, restic key, and Tunnel credential.
 13. Create the named `grotto-production` Tunnel and confirm its config routes
    only to `127.0.0.1:18791`.

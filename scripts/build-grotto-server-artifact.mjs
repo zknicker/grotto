@@ -45,6 +45,14 @@ for (const [name, source] of binaries) {
         path.join(stageRoot, 'bin', name),
     ]);
 }
+run('bun', [
+    'build',
+    'scripts/deploy-grotto-server.ts',
+    '--compile',
+    '--compile-autoload-package-json',
+    '--outfile',
+    path.join(stageRoot, 'bin', 'grotto-server-deploy'),
+]);
 
 run(
     'bun',

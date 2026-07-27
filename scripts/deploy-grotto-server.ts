@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { createHash } from 'node:crypto';
-import { createReadStream, readFileSync } from 'node:fs';
+import { createReadStream } from 'node:fs';
 import { chmod, lstat, mkdir, mkdtemp, readFile, rename, rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import {
@@ -10,43 +10,36 @@ import {
 } from '../apps/server/src/grotto-release-verification.ts';
 
 const productionRoot = '/Users/zknicker/srv/grotto';
-const activationHelper = '/usr/local/libexec/grotto/activate-grotto-server';
 const versionTagPattern = /^v(\d+\.\d+\.\d+)$/u;
 
 interface InstallGrottoReleaseInput {
     artifactPath: string;
     deployRoot: string;
+    productVersion: string;
     sourceRevision: string;
 }
 
-export function readGrottoBuildValue(envPath: string, key: string) {
-    if (!/^[A-Z][A-Z0-9_]*$/u.test(key)) {
-        throw new Error('Grotto build value name must be an environment identifier.');
-    }
-
-    const values = readFileSync(envPath, 'utf8')
-        .split(/\r?\n/u)
-        .map((line) => line.trim())
-        .filter((line) => !line.startsWith('#'))
-        .filter((line) => line.startsWith(`${key}=`))
-        .map((line) => stripMatchingQuotes(line.slice(key.length + 1).trim()));
-
-    if (values.length !== 1 || !values[0]) {
-        throw new Error(`${key} must appear exactly once with a nonempty value in ${envPath}.`);
-    }
-    return values[0];
-}
-
 export function parseGrottoDeployArguments(args: string[]) {
-    const [versionTag, mode, sourceRevision, ...extra] = args.filter(
+    const [operation, artifactPath, versionTag, sourceRevision, ...extra] = args.filter(
         (argument) => argument !== '--'
     );
     const versionMatch = versionTag?.match(versionTagPattern);
-    if (!(versionMatch && mode === 'deploy' && sourceRevision) || extra.length) {
-        throw new Error('Usage: deploy:grotto-server vX.Y.Z deploy FULL_GIT_SHA');
+    if (
+        !(
+            operation === 'install' &&
+            artifactPath &&
+            versionMatch &&
+            sourceRevision &&
+            !extra.length
+        )
+    ) {
+        throw new Error(
+            'Usage: grotto-server-deploy install ARTIFACT_PATH vX.Y.Z FULL_GIT_SHA'
+        );
     }
     assertGrottoRevision(sourceRevision);
     return {
+        artifactPath,
         productVersion: versionMatch[1],
         sourceRevision,
         versionTag,
@@ -65,6 +58,9 @@ export async function installGrottoRelease(input: InstallGrottoReleaseInput) {
     try {
         run('/usr/bin/tar', ['-xzf', input.artifactPath, '-C', candidateRoot]);
         const candidate = await verifyGrottoRelease(candidateRoot, input.sourceRevision);
+        if (candidate.productVersion !== input.productVersion) {
+            throw new Error('Grotto release product version does not match the published tag.');
+        }
         await chmod(candidateRoot, 0o755);
 
         if (await pathExists(releaseRoot)) {
@@ -85,40 +81,16 @@ export async function installGrottoRelease(input: InstallGrottoReleaseInput) {
 }
 
 async function main() {
-    const { productVersion, sourceRevision } = parseGrottoDeployArguments(process.argv.slice(2));
-
-    const websitePackage = JSON.parse(
-        await readFile(join(import.meta.dir, '../apps/website/package.json'), 'utf8')
-    ) as { version: string };
-    if (websitePackage.version !== productVersion) {
-        throw new Error('Published tag does not match the Grotto product version.');
-    }
-
-    const publishableKey = readGrottoBuildValue(
-        join(productionRoot, '.env'),
-        'VITE_CLERK_PUBLISHABLE_KEY'
+    const { artifactPath, productVersion, sourceRevision } = parseGrottoDeployArguments(
+        process.argv.slice(2)
     );
-    run('bun', ['--no-env-file', 'run', 'build:grotto-server-artifact'], {
-        cwd: join(import.meta.dir, '..'),
-        env: {
-            ...process.env,
-            GROTTO_SOURCE_REVISION: sourceRevision,
-            VITE_CLERK_PUBLISHABLE_KEY: publishableKey,
-        },
-        stdio: 'inherit',
-    });
-
-    const releaseId = `${websitePackage.version}+git.${sourceRevision.slice(0, 12)}`;
-    await installGrottoRelease({
-        artifactPath: join(
-            import.meta.dir,
-            `../apps/server/release/grotto-server-${releaseId}-aarch64-apple-darwin.tar.gz`
-        ),
+    const releaseRoot = await installGrottoRelease({
+        artifactPath,
         deployRoot: productionRoot,
+        productVersion,
         sourceRevision,
     });
-
-    run('/usr/bin/sudo', ['-n', activationHelper, sourceRevision], { stdio: 'inherit' });
+    console.log(`Installed verified Grotto Server release at ${releaseRoot}.`);
 }
 
 async function verifyArtifactChecksum(artifactPath: string) {
@@ -155,23 +127,11 @@ async function sha256(path: string) {
     return hash.digest('hex');
 }
 
-function stripMatchingQuotes(value: string) {
-    const first = value[0];
-    return first && first === value.at(-1) && (first === '"' || first === "'")
-        ? value.slice(1, -1)
-        : value;
-}
-
-function run(
-    command: string,
-    args: string[],
-    options: { cwd?: string; env?: NodeJS.ProcessEnv; stdio?: 'inherit' } = {}
-) {
+function run(command: string, args: string[], cwd?: string) {
     const result = Bun.spawnSync([command, ...args], {
-        cwd: options.cwd,
-        env: options.env,
-        stderr: options.stdio ?? 'pipe',
-        stdout: options.stdio ?? 'pipe',
+        cwd,
+        stderr: 'pipe',
+        stdout: 'pipe',
     });
     if (result.exitCode !== 0) {
         throw new Error(`${basename(command)} failed with exit code ${result.exitCode}.`);

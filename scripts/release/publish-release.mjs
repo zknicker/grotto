@@ -5,6 +5,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { findGrottoServerReleaseAssets } from './grotto-server-release-assets.mjs';
 import { fail, isSemver, readFlagValue, readJson, readText, repoRoot } from './release-utils.mjs';
 
 const argv = process.argv.slice(2);
@@ -23,6 +24,7 @@ const allowedDirtyPaths = new Set([
 ]);
 const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
 const runtimeBundleDir = path.join(repoRoot, 'apps', 'website', 'electron-dist', 'runtime');
+const serverReleaseRoot = path.join(repoRoot, 'apps', 'server', 'release');
 
 const main = async () => {
     const version = await readReleaseVersion();
@@ -33,20 +35,32 @@ const main = async () => {
     run('bun', ['run', 'release:check']);
     if (publishRuntime) {
         await assertRuntimeReleaseVersion(version);
+    }
+
+    const releasePaths = readReleaseDirtyPaths();
+    stageReleasePaths(releasePaths);
+    commitReleaseIfNeeded(tagName);
+    const sourceRevision = readSourceRevision();
+    run('bun', ['run', 'build:grotto-server-artifact'], {
+        env: { ...process.env, GROTTO_SOURCE_REVISION: sourceRevision },
+    });
+
+    if (publishRuntime) {
         run('bun', ['run', 'release:build-runtime-artifact']);
     }
     process.env.TAVERN_RELEASE_INCLUDE_RUNTIME = publishRuntime ? '1' : '0';
     run('bun', ['run', 'publish:desktop']);
     run('bun', ['run', 'release:check-desktop-artifacts']);
 
-    const releasePaths = readReleaseDirtyPaths();
-    stageReleasePaths(releasePaths);
-    commitReleaseIfNeeded(tagName);
+    const notesPath = await writeReleaseNotes(version);
+    const artifacts = await findReleaseArtifacts({
+        includeRuntime: publishRuntime,
+        sourceRevision,
+        version,
+    });
+
     createTag(tagName);
     pushRelease({ pushBranch, tagName });
-
-    const notesPath = await writeReleaseNotes(version);
-    const artifacts = await findReleaseArtifacts({ includeRuntime: publishRuntime, version });
     createGithubRelease({ artifacts, notesPath, tagName });
     if (publishRuntime) {
         run('bun', ['run', 'release:publish-homebrew-formula']);
@@ -63,7 +77,7 @@ function printUsage() {
             'Usage: bun run release:publish [-- --push-branch main]',
             '       bun run release:publish -- --runtime',
             '',
-            'Builds, notarizes, publishes desktop artifacts, commits release metadata,',
+            'Builds the hosted Server plus signed desktop artifacts, notarizes the app,',
             'pushes the release commit and tag, and creates the GitHub Release.',
             'Pass --runtime to also build/publish the Runtime tarball and Homebrew formula.',
         ].join('\n')
@@ -157,6 +171,14 @@ function createTag(tagName) {
     run('git', ['tag', '-a', tagName, '-m', tagName]);
 }
 
+function readSourceRevision() {
+    const sourceRevision = runCapture('git', ['rev-parse', 'HEAD']).trim();
+    if (!/^[0-9a-f]{40}$/u.test(sourceRevision)) {
+        fail('release source revision must be a full lowercase Git SHA');
+    }
+    return sourceRevision;
+}
+
 function pushRelease({ pushBranch, tagName }) {
     run('git', ['push', 'origin', `HEAD:${pushBranch}`]);
     run('git', ['push', 'origin', tagName]);
@@ -191,10 +213,15 @@ function extractReleaseNotes(changelog, version) {
     return notes;
 }
 
-async function findReleaseArtifacts({ includeRuntime, version }) {
+async function findReleaseArtifacts({ includeRuntime, sourceRevision, version }) {
     const artifacts = [
         ...(await findDesktopArtifacts(version)),
         path.join(bundleRoot, 'latest-mac.yml'),
+        ...(await findGrottoServerReleaseAssets({
+            releaseRoot: serverReleaseRoot,
+            sourceRevision,
+            version,
+        })),
         ...(includeRuntime ? await findRuntimeArtifacts(version) : []),
     ];
 
@@ -249,10 +276,10 @@ function createGithubRelease({ artifacts, notesPath, tagName }) {
     ]);
 }
 
-function run(command, args) {
+function run(command, args, options = {}) {
     const result = spawnSync(command, args, {
         cwd: repoRoot,
-        env: process.env,
+        env: options.env ?? process.env,
         stdio: 'inherit',
     });
 

@@ -87,6 +87,17 @@ export const hostedCreateAgentInputSchema = z
 
 export type HostedCreateAgentInput = z.infer<typeof hostedCreateAgentInputSchema>;
 
+/** Deletion retires the Server record but preserves authored collaboration history. */
+export const hostedDeleteAgentInputSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        confirmation: z.string().trim().min(1).max(80),
+        serverId: hostedIdSchema,
+    })
+    .strict();
+
+export type HostedDeleteAgentInput = z.infer<typeof hostedDeleteAgentInputSchema>;
+
 /** Runtime/model may change; the Computer assignment never does, so it is absent here. */
 export const hostedConfigureAgentInputSchema = z
     .object({

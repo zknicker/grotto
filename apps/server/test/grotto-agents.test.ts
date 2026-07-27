@@ -208,6 +208,61 @@ test('shows pending, then applied, then degraded as effective state is reported'
     expect(refreshed[0]?.status).toBe('pending');
 });
 
+test('retires an Agent immediately, preserves authored history, and then permits Computer removal', async () => {
+    const [agent] = await owner.trpc.agent.list.query({ serverId });
+    const chat = (await owner.trpc.chat.list.query({ serverId })).find(
+        (entry) => entry.peerAgentId === agent.id
+    );
+    if (!chat) throw new Error('Expected Agent DM.');
+
+    await harness.sql`
+        insert into chat_messages (id, server_id, chat_id, author_agent_id, content, nonce, sequence)
+        values ('msg_agent_tombstone', ${serverId}, ${chat.id}, ${agent.id}, 'Keep this history.', 'tombstone', 1)
+    `;
+
+    await expect(
+        owner.trpc.computer.remove.mutate({
+            computerId: computerA,
+            confirmation: 'REMOVE',
+            serverId,
+        })
+    ).rejects.toThrow(/Delete every assigned Agent/i);
+    await expect(
+        owner.trpc.agent.delete.mutate({
+            agentId: agent.id,
+            confirmation: 'wrong name',
+            serverId,
+        })
+    ).rejects.toThrow(/Type the Agent name exactly/i);
+
+    await owner.trpc.agent.delete.mutate({
+        agentId: agent.id,
+        confirmation: agent.displayName,
+        serverId,
+    });
+
+    expect(await owner.trpc.agent.list.query({ serverId })).toEqual([]);
+    const retired = (await harness.sql`
+        select computer_id, retired_at from agents where id = ${agent.id}
+    `) as { computer_id: string | null; retired_at: Date | null }[];
+    expect(retired[0]).toMatchObject({ computer_id: null });
+    expect(retired[0]?.retired_at).toBeTruthy();
+    const history = (await harness.sql`
+        select author_agent_id, content from chat_messages where id = 'msg_agent_tombstone'
+    `) as { author_agent_id: string; content: string }[];
+    expect(history).toEqual([{ author_agent_id: agent.id, content: 'Keep this history.' }]);
+
+    await owner.trpc.computer.remove.mutate({
+        computerId: computerA,
+        confirmation: 'REMOVE',
+        serverId,
+    });
+    const gone = (await harness.sql`select id from computers where id = ${computerA}`) as {
+        id: string;
+    }[];
+    expect(gone).toEqual([]);
+});
+
 async function insertComputer(
     computerServerId: string,
     computerId: string,

@@ -1,0 +1,18 @@
+import { hostedDeleteAgentInputSchema } from '@tavern/api';
+import { TRPCError } from '@trpc/server';
+import { AgentDeleteDeniedError } from '../../hosted-agents/agent-config-errors.ts';
+import { deleteHostedAgent } from '../../hosted-agents/delete-agent.ts';
+import { memberProcedure } from '../server/procedure.ts';
+
+export const deleteAgentProcedure = memberProcedure
+    .input(hostedDeleteAgentInputSchema)
+    .mutation(async ({ ctx, input }) => {
+        try {
+            return await deleteHostedAgent(ctx.grottoDb, ctx.member, input);
+        } catch (cause) {
+            if (cause instanceof AgentDeleteDeniedError) {
+                throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });
+            }
+            throw cause;
+        }
+    });

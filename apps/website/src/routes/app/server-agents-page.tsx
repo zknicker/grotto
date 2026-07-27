@@ -9,6 +9,7 @@ import { serverRoute } from '../../features/servers/server-routes.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { HostedAgentTools } from './hosted-agent-tools.tsx';
+import { HostedDeleteDialog } from './hosted-delete-dialog.tsx';
 
 interface ReportedComputer {
     id: string;
@@ -246,6 +247,15 @@ function AgentList({
     connections: HostedMcpConnection[];
     serverId: string;
 }) {
+    const utils = grottoTrpc.useUtils();
+    const [deleting, setDeleting] = React.useState<HostedAgent | null>(null);
+    const remove = grottoTrpc.agent.delete.useMutation({
+        onSuccess: () => {
+            setDeleting(null);
+            void utils.agent.list.invalidate({ serverId });
+            void utils.computer.list.invalidate({ serverId });
+        },
+    });
     if (agents.length === 0) {
         return <p className="text-muted-foreground text-sm">No Agents yet.</p>;
     }
@@ -272,9 +282,33 @@ function AgentList({
                         </p>
                     ) : null}
                     <HostedAgentTools agent={agent} connections={connections} serverId={serverId} />
+                    <Button
+                        className="mt-2 self-start"
+                        onClick={() => setDeleting(agent)}
+                        type="button"
+                        variant="destructive"
+                    >
+                        Delete Agent
+                    </Button>
                 </li>
             ))}
         </ul>
+        {deleting ? (
+            <HostedDeleteDialog
+                confirmation={deleting.displayName}
+                description="This permanently destroys the Agent’s local workspace, skills, runtime state, queues, and vault when its Computer can be reached. Its authored collaboration history remains."
+                onConfirm={() =>
+                    remove.mutate({
+                        agentId: deleting.id,
+                        confirmation: deleting.displayName,
+                        serverId,
+                    })
+                }
+                onOpenChange={(open) => !open && setDeleting(null)}
+                pending={remove.isPending}
+                title="Delete Agent"
+            />
+        ) : null}
     );
 }
 

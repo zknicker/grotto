@@ -7,8 +7,24 @@ export function visibleHostedChats(userId: string): SQL {
         (
             ${chatsTable.kind} = 'dm'
             and (
-                ${chatsTable.dmMemberOneUserId} = ${userId}
-                or ${chatsTable.dmMemberTwoUserId} = ${userId}
+                (
+                    ${chatsTable.dmMemberOneUserId} = ${userId}
+                    and exists (
+                        select 1 from server_memberships membership
+                        where membership.server_id = ${chatsTable.serverId}
+                            and membership.user_id = ${userId}
+                            and membership.stint = ${chatsTable.dmMemberOneStint}
+                    )
+                )
+                or (
+                    ${chatsTable.dmMemberTwoUserId} = ${userId}
+                    and exists (
+                        select 1 from server_memberships membership
+                        where membership.server_id = ${chatsTable.serverId}
+                            and membership.user_id = ${userId}
+                            and membership.stint = ${chatsTable.dmMemberTwoStint}
+                    )
+                )
             )
         )
         or exists (
@@ -29,8 +45,24 @@ export function visibleHostedChats(userId: string): SQL {
                         (
                             parent.kind = 'dm'
                             and (
-                                parent.dm_member_one_user_id = ${userId}
-                                or parent.dm_member_two_user_id = ${userId}
+                                (
+                                    parent.dm_member_one_user_id = ${userId}
+                                    and exists (
+                                        select 1 from server_memberships membership
+                                        where membership.server_id = parent.server_id
+                                            and membership.user_id = ${userId}
+                                            and membership.stint = parent.dm_member_one_stint
+                                    )
+                                )
+                                or (
+                                    parent.dm_member_two_user_id = ${userId}
+                                    and exists (
+                                        select 1 from server_memberships membership
+                                        where membership.server_id = parent.server_id
+                                            and membership.user_id = ${userId}
+                                            and membership.stint = parent.dm_member_two_stint
+                                    )
+                                )
                             )
                         )
                         or exists (

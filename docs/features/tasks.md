@@ -40,6 +40,8 @@ membership and parent-Chat participation remain the sole access authority.
 Task lists, eligible assignees, messages with task projections, task events, and Thread reads all
 apply the same hosted Server and parent-Chat authorization. Revoked members and humans who lose
 parent-Chat access cannot continue reading or mutating the task.
+Removing a member releases their claims and assignments. Reinvitation does not restore those
+links or access to task Threads from the former membership stint.
 
 ## App and realtime
 

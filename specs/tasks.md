@@ -23,8 +23,8 @@ Thread, and durable events in one transaction.
 
 - Any authorized parent-Chat participant can create/promote a task and update status, priority,
   or task labels using `expectedVersion`.
-- Claim is self-only. The first transaction holding the membership, Chat, and task locks wins;
-  a second claimant cannot acquire ownership at the same version.
+- Claim is self-only. Task writes lock the Server before membership, Chat, and task rows. The
+  first valid claimant wins; a second claimant cannot acquire ownership at the same version.
 - Only the current assignee can unclaim.
 - Server Owners and Admins can reserve or clear assignment. A human assignee must have active
   Server membership and parent-Chat access.
@@ -32,6 +32,8 @@ Thread, and durable events in one transaction.
   catalog entries.
 - Revoked Server membership, lost parent-Chat access, cross-Server ids, and stale versions fail
   closed.
+- Removal releases that human's claims and assignments with versioned `task.updated` events.
+  Reinvitation starts a new membership stint and restores no private task or Thread authority.
 
 Assignee and status are independent. Claiming an unassigned `todo` task moves it to
 `in_progress`; unclaiming preserves status. Done tasks cannot be claimed or unclaimed.

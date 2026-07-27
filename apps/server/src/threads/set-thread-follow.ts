@@ -4,6 +4,7 @@ import { requireChatAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, threadFollowsTable } from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 
 export async function setHostedThreadFollow(
@@ -12,6 +13,8 @@ export async function setHostedThreadFollow(
     input: { follow: boolean; serverId: string; threadChatId: string }
 ) {
     return await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
+
         const thread = await requireChatAccess(tx, member, {
             chatId: input.threadChatId,
             serverId: input.serverId,

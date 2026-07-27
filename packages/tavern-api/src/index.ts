@@ -56,6 +56,7 @@ export type TavernUpsertResponseRequest = TavernApiSchema<'UpsertResponseRequest
 export * from './agent-appearance.ts';
 export * from './development-chat-demos.ts';
 export * from './hosted-chat.ts';
+export * from './hosted-membership.ts';
 export * from './hosted-task.ts';
 export * from './hosted-task-shared.ts';
 export * from './rich-references.ts';

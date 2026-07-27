@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import { ensureHostedThread } from '../threads/ensure-thread.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { insertHostedTaskEvent } from './task-events.ts';
@@ -28,6 +29,7 @@ export async function promoteHostedMessageTask(
     input: { messageId: string; serverId: string }
 ): Promise<{ event: HostedDurableEvent | null; idempotent: boolean; task: HostedMessageTask }> {
     return await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
         if (!member) {
             throw new TaskMessageNotFoundError();
         }

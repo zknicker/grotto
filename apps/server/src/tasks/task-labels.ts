@@ -6,6 +6,7 @@ import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, taskLabelsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 
 export class TaskLabelConflictError extends Error {
@@ -45,6 +46,7 @@ export async function createHostedTaskLabel(
     input: { name: string; serverId: string }
 ): Promise<{ event: HostedDurableEvent; label: HostedTaskLabel }> {
     return await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
         await requireServerMembership(tx, member, input.serverId);
         const [existing] = await tx
             .select({
@@ -114,6 +116,7 @@ export async function updateHostedTaskLabel(
 ): Promise<{ event: HostedDurableEvent; label: HostedTaskLabel }> {
     try {
         return await db.transaction(async (tx) => {
+            await lockServerRow(tx, input.serverId);
             const server = await requireServerMembership(tx, member, input.serverId);
             if (server.role !== 'owner' && server.role !== 'admin') {
                 throw new TaskLabelAdminRequiredError();
@@ -156,6 +159,7 @@ export async function deleteHostedTaskLabel(
     input: { labelId: string; serverId: string }
 ): Promise<{ event: HostedDurableEvent }> {
     return await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);
         if (server.role !== 'owner' && server.role !== 'admin') {
             throw new TaskLabelAdminRequiredError();

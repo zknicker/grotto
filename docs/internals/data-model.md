@@ -60,12 +60,17 @@ thread_follows
 message_tasks
 task_labels
 message_task_labels
+server_invitations
 ```
 
 Every row carries `server_id`. Composite keys and foreign keys require related
 Chats, memberships, messages, reads, and events to belong to that same Server.
 Channels store participants in `channel_participants`; a DM stores its sorted
-two-User pair directly on `chats` and has no duplicate participant rows.
+two-User pair and both membership stint numbers directly on `chats` and has no
+duplicate participant rows. The pair plus both stints is unique. Visibility
+matches the reader's current stint, so reinvitation opens a fresh DM without
+granting the returning human its former DM or child-Thread history. The peer
+whose stint did not change retains that preserved history.
 Threads are `chats(kind = 'thread')` with deterministic identity, parent and
 anchor pointers, their own sequence, and no participant rows. Composite
 constraints bind the parent and anchor to the same Server and forbid a Thread
@@ -81,7 +86,28 @@ derived search state queried through its GIN index, not a second message store.
 `servers.last_chat_event_cursor` allocates commit-ordered event cursors while
 the Server row is locked. `server_memberships.revoked_at` preserves historical
 author and DM foreign keys while excluding the human from every current access
-check; no member-management API is part of this slice.
+check.
+
+`server_memberships` is unique by `(server_id, user_id)`, and six composite
+foreign keys point at it from `chats` (both DM sides), `channel_participants`,
+`chat_messages`, `chat_reads`, and `chat_events`. That row is the durable anchor
+of authored history, so membership is revoked and re-accepted in place, never
+deleted and re-inserted. `joined_at` stamps when the current stint began;
+`stint` increments on reinvitation and is the authorization generation private
+DM state records.
+
+`server_invitations` stores only a token's SHA-256 hash, unique across the
+table. A partial unique index on `(server_id, email)` where the invitation is
+neither revoked nor accepted allows at most one live invitation per address.
+Expiry cannot join that predicate — index predicates must be immutable and
+`now()` is not — so issuing a fresh invitation first retires a lapsed one.
+Acceptance locks the invitation row, so one token yields exactly one membership
+under concurrency.
+
+Membership changes and membership-authorized durable writes lock the `servers`
+row before authorizing. That holds the last-Owner invariant and prevents a
+removed human from committing a message, read, DM, task, or invitation write
+after revocation.
 
 `message_tasks` has one row per promoted canonical message. Composite
 constraints bind its Server, parent Chat, message, human assignee, and task-label
@@ -90,7 +116,10 @@ canonical message id and authorized through its parent Chat.
 `chats.last_task_number` is locked for monotonic per-Chat numbering.
 `message_tasks.version` is the compare-and-write boundary for claim, unclaim,
 assignment, status, priority, and label changes. Task content remains only in
-`chat_messages`.
+`chat_messages`. Membership removal clears claims and assignments under the
+same Server lock, advances each affected task version, and writes exact
+`task.updated` events. A returning membership stint does not recover those
+links or qualify for its former DM tasks.
 
 `task_labels` is a Server-scoped task catalog, and `message_task_labels` is its
 only join table. These tables do not form a generic taxonomy. Task mutations

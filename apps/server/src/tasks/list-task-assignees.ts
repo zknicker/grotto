@@ -1,5 +1,5 @@
 import type { HostedTaskAssignee } from '@tavern/api';
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNull, or } from 'drizzle-orm';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { channelParticipantsTable, serverMembershipsTable } from '../postgres/schema.ts';
@@ -57,10 +57,22 @@ export async function listHostedTaskAssignees(
                       and(
                           eq(serverMembershipsTable.serverId, input.serverId),
                           isNull(serverMembershipsTable.revokedAt),
-                          inArray(serverMembershipsTable.userId, [
-                              chat.dmMemberOneUserId as string,
-                              chat.dmMemberTwoUserId as string,
-                          ])
+                          or(
+                              and(
+                                  eq(
+                                      serverMembershipsTable.userId,
+                                      chat.dmMemberOneUserId as string
+                                  ),
+                                  eq(serverMembershipsTable.stint, chat.dmMemberOneStint as number)
+                              ),
+                              and(
+                                  eq(
+                                      serverMembershipsTable.userId,
+                                      chat.dmMemberTwoUserId as string
+                                  ),
+                                  eq(serverMembershipsTable.stint, chat.dmMemberTwoStint as number)
+                              )
+                          )
                       )
                   )
                   .orderBy(asc(serverMembershipsTable.userId));

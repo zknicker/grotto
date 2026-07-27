@@ -13,6 +13,7 @@ import {
     serverMembershipsTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import { ensureHostedThread } from '../threads/ensure-thread.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { InvalidTaskAssigneeError, TaskAdminRequiredError } from './assign-task.ts';
@@ -39,6 +40,7 @@ export async function createHostedTask(
     }
 ): Promise<CreateHostedTaskResult> {
     return await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
         if (!member) {
             throw new HostedTaskNotFoundError();
         }

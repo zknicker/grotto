@@ -84,6 +84,7 @@ test('creates no Computer or Agent alongside the Server', async () => {
         'chats',
         'message_task_labels',
         'message_tasks',
+        'server_invitations',
         'server_memberships',
         'servers',
         'task_labels',

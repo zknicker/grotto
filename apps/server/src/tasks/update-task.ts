@@ -2,6 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTaskLabelsTable, messageTasksTable } from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import {
     type HostedTaskMutationResult,
@@ -27,6 +28,7 @@ export async function updateHostedTask(
     }
 ): Promise<HostedTaskMutationResult> {
     return await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
         if (!member) {
             throw new HostedTaskNotFoundError();
         }

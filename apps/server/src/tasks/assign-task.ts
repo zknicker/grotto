@@ -3,6 +3,7 @@ import { findHostedChatAccess, requireChatAccess } from '../chats/chat-access.ts
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTasksTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import {
     type HostedTaskMutationResult,
@@ -37,6 +38,7 @@ export async function assignHostedTask(
     }
 ): Promise<HostedTaskMutationResult> {
     return await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
         if (!member) {
             throw new HostedTaskNotFoundError();
         }

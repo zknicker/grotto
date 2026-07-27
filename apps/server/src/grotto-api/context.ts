@@ -1,6 +1,7 @@
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
+import type { HostedMcpOAuthRelay } from '../hosted-mcp/oauth-relay.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
 import type { ClerkUsers } from '../identity/clerk-users.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -27,6 +28,7 @@ export interface GrottoContext {
     /** Live attachment sockets for MCP configuration delivery. */
     computerConnections: ComputerConnections;
     grottoDb: GrottoDatabase;
+    mcpOAuthRelay: HostedMcpOAuthRelay;
 }
 
 export interface GrottoContextDependencies {
@@ -37,6 +39,7 @@ export interface GrottoContextDependencies {
     clerkUsers: ClerkUsers;
     computerConnections: ComputerConnections;
     grottoDb: GrottoDatabase;
+    mcpOAuthRelay: HostedMcpOAuthRelay;
 }
 
 interface ContextCarrier {

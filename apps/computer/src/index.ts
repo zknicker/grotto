@@ -400,10 +400,15 @@ async function connect(attachment: Attachment) {
                 void mcp
                     .upsert(mcpConnection)
                     .then(async () => {
+                        const connected = await mcp.isConnected(mcpConnection.id);
                         socket.send(
                             JSON.stringify({
+                                accountLabel: connected
+                                    ? (await mcp.discover(mcpConnection.id)).accountLabel
+                                    : null,
+                                connected,
                                 connectionId: mcpConnection.id,
-                                tools: await mcp.listTools(mcpConnection.id),
+                                tools: connected ? await mcp.listTools(mcpConnection.id) : [],
                                 type: 'mcp-inventory',
                             })
                         );
@@ -411,6 +416,107 @@ async function connect(attachment: Attachment) {
                     .catch((error) => {
                         console.error(error instanceof Error ? error.message : error);
                     });
+                return;
+            }
+            const oauthStart = parseMcpOAuthStart(frame);
+            if (oauthStart) {
+                void mcp
+                    .startOAuth(oauthStart)
+                    .then((result) => {
+                        socket.send(
+                            JSON.stringify({
+                                requestId: oauthStart.requestId,
+                                result,
+                                type: 'mcp-oauth-started',
+                            })
+                        );
+                    })
+                    .catch(() => {
+                        socket.send(
+                            JSON.stringify({
+                                error: 'MCP OAuth could not start.',
+                                requestId: oauthStart.requestId,
+                                type: 'mcp-oauth-started',
+                            })
+                        );
+                    });
+                return;
+            }
+            const oauthComplete = parseMcpOAuthComplete(frame);
+            if (oauthComplete) {
+                void mcp
+                    .completeOAuth(oauthComplete)
+                    .then((discovery) => {
+                        socket.send(
+                            JSON.stringify({
+                                accountLabel: discovery.accountLabel,
+                                connected: true,
+                                connectionId: oauthComplete.connectionId,
+                                tools: discovery.tools,
+                                type: 'mcp-inventory',
+                            })
+                        );
+                        socket.send(
+                            JSON.stringify({
+                                requestId: oauthComplete.requestId,
+                                type: 'mcp-oauth-completed',
+                            })
+                        );
+                    })
+                    .catch(() => {
+                        socket.send(
+                            JSON.stringify({
+                                error: 'MCP OAuth did not complete.',
+                                requestId: oauthComplete.requestId,
+                                type: 'mcp-oauth-completed',
+                            })
+                        );
+                    });
+                return;
+            }
+            const mcpControl = parseMcpControl(frame);
+            if (mcpControl) {
+                const operation =
+                    mcpControl.type === 'mcp-delete'
+                        ? mcp.delete(mcpControl.connectionId).then(() => null)
+                        : mcpControl.type === 'mcp-disconnect'
+                          ? mcp.disconnect(mcpControl.connectionId).then(() => [])
+                          : mcp.discover(mcpControl.connectionId);
+                void operation
+                    .then((discovery) => {
+                        if (discovery) {
+                            socket.send(
+                                JSON.stringify({
+                                    accountLabel:
+                                        'accountLabel' in discovery ? discovery.accountLabel : null,
+                                    connected: mcpControl.type === 'mcp-refresh',
+                                    connectionId: mcpControl.connectionId,
+                                    tools: 'tools' in discovery ? discovery.tools : discovery,
+                                    type: 'mcp-inventory',
+                                })
+                            );
+                        }
+                    })
+                    .catch(() => undefined);
+                return;
+            }
+            const mcpHeaders = parseMcpHeaders(frame);
+            if (mcpHeaders) {
+                void mcp
+                    .replaceHeaders(mcpHeaders.connectionId, mcpHeaders.headers)
+                    .then(() => mcp.discover(mcpHeaders.connectionId))
+                    .then((discovery) => {
+                        socket.send(
+                            JSON.stringify({
+                                accountLabel: discovery.accountLabel,
+                                connected: true,
+                                connectionId: mcpHeaders.connectionId,
+                                tools: discovery.tools,
+                                type: 'mcp-inventory',
+                            })
+                        );
+                    })
+                    .catch(() => undefined);
                 return;
             }
             const mcpGrant = parseMcpGrant(frame);
@@ -668,9 +774,16 @@ function parseMcpUpsert(frame: unknown): AttachmentMcpConnection | null {
     if (
         typeof connection.id !== 'string' ||
         typeof connection.name !== 'string' ||
+        !['headers', 'none', 'oauth'].includes(String(connection.auth)) ||
         !(typeof connection.command === 'string' || connection.command === null) ||
         !(typeof connection.url === 'string' || connection.url === null) ||
         !Array.isArray(connection.args) ||
+        !Array.isArray(connection.oauthScopes) ||
+        !(
+            connection.preset === null ||
+            connection.preset === 'google-calendar' ||
+            connection.preset === 'merchbase'
+        ) ||
         typeof connection.env !== 'object' ||
         connection.env === null ||
         typeof connection.headers !== 'object' ||
@@ -679,6 +792,90 @@ function parseMcpUpsert(frame: unknown): AttachmentMcpConnection | null {
         return null;
     }
     return connection as unknown as AttachmentMcpConnection;
+}
+
+function parseMcpOAuthStart(frame: unknown) {
+    if (!isFrame(frame, 'mcp-oauth-start')) {
+        return null;
+    }
+    const value = frame as Record<string, unknown>;
+    if (
+        typeof value.requestId !== 'string' ||
+        typeof value.connectionId !== 'string' ||
+        typeof value.redirectUrl !== 'string' ||
+        typeof value.routingState !== 'string' ||
+        typeof value.allowAuthorizationServerOrigin !== 'boolean'
+    ) {
+        return null;
+    }
+    return value as {
+        allowAuthorizationServerOrigin: boolean;
+        connectionId: string;
+        redirectUrl: string;
+        requestId: string;
+        routingState: string;
+    };
+}
+
+function parseMcpOAuthComplete(frame: unknown) {
+    if (!isFrame(frame, 'mcp-oauth-complete')) {
+        return null;
+    }
+    const value = frame as Record<string, unknown>;
+    if (
+        typeof value.requestId !== 'string' ||
+        typeof value.connectionId !== 'string' ||
+        typeof value.redirectUrl !== 'string' ||
+        typeof value.state !== 'string' ||
+        typeof value.code !== 'string'
+    ) {
+        return null;
+    }
+    return value as {
+        code: string;
+        connectionId: string;
+        redirectUrl: string;
+        requestId: string;
+        state: string;
+    };
+}
+
+function isFrame(frame: unknown, type: string) {
+    return typeof frame === 'object' && frame !== null && 'type' in frame && frame.type === type;
+}
+
+function parseMcpControl(frame: unknown) {
+    if (
+        typeof frame !== 'object' ||
+        frame === null ||
+        !('type' in frame) ||
+        !['mcp-delete', 'mcp-disconnect', 'mcp-refresh'].includes(String(frame.type)) ||
+        !('connectionId' in frame) ||
+        typeof frame.connectionId !== 'string'
+    ) {
+        return null;
+    }
+    return frame as {
+        connectionId: string;
+        type: 'mcp-delete' | 'mcp-disconnect' | 'mcp-refresh';
+    };
+}
+
+function parseMcpHeaders(frame: unknown) {
+    if (!isFrame(frame, 'mcp-replace-headers')) {
+        return null;
+    }
+    const value = frame as Record<string, unknown>;
+    if (
+        typeof value.connectionId !== 'string' ||
+        typeof value.headers !== 'object' ||
+        value.headers === null ||
+        Array.isArray(value.headers) ||
+        !Object.values(value.headers).every((header) => typeof header === 'string')
+    ) {
+        return null;
+    }
+    return value as { connectionId: string; headers: Record<string, string> };
 }
 
 function hash(value: string) {

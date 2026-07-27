@@ -9,14 +9,17 @@ import {
 } from '../../../components/ui/dialog.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
 import { Spinner } from '../../../components/ui/spinner.tsx';
-import { type McpConnectionTool, trpc } from '../../../lib/trpc.tsx';
 import {
     ConnectionDestructiveDialog,
     ConnectionMenu,
     type McpDestructiveAction,
 } from './mcp-connection-actions.tsx';
 import { McpHeaderCredentialsDialog } from './mcp-header-credentials-dialog.tsx';
-import { connectionSummary, type McpConnection } from './mcp-server-shared.ts';
+import {
+    connectionSummary,
+    type McpConnection,
+    type McpConnectionTool,
+} from './mcp-server-shared.ts';
 
 export function McpConnectionDetailDialog({
     connection,
@@ -30,6 +33,9 @@ export function McpConnectionDetailDialog({
     open,
     saving,
     startingOAuthId,
+    tools,
+    toolsError,
+    toolsPending,
 }: {
     connection: McpConnection | null;
     onAddAccount: (connection: McpConnection) => void;
@@ -42,15 +48,13 @@ export function McpConnectionDetailDialog({
     open: boolean;
     saving: boolean;
     startingOAuthId: string | null;
+    tools: McpConnectionTool[] | null;
+    toolsError: string | null;
+    toolsPending: boolean;
 }) {
     const [destructiveAction, setDestructiveAction] = useState<McpDestructiveAction | null>(null);
     const [editingHeaders, setEditingHeaders] = useState(false);
     const [pendingHeaders, setPendingHeaders] = useState<Record<string, string> | null>(null);
-    const tools = trpc.mcp.connectionTools.useQuery(
-        { connectionId: connection?.id ?? '' },
-        { enabled: Boolean(connection?.connected && open), retry: false }
-    );
-
     if (!connection) {
         return null;
     }
@@ -82,9 +86,7 @@ export function McpConnectionDetailDialog({
                                 onDelete={() => setDestructiveAction('delete')}
                                 onDisconnect={() => setDestructiveAction('disconnect')}
                                 onRefresh={() => {
-                                    void onRefresh(connection)
-                                        .then(() => tools.refetch())
-                                        .catch(() => undefined);
+                                    void onRefresh(connection).catch(() => undefined);
                                 }}
                             />
                         </div>
@@ -135,14 +137,14 @@ export function McpConnectionDetailDialog({
                                         Agents only receive tools granted from their Tools tab.
                                     </p>
                                 </div>
-                                {tools.isFetching ? <Spinner className="size-4" /> : null}
+                                {toolsPending ? <Spinner className="size-4" /> : null}
                             </div>
                             <div className="overflow-hidden rounded-xl border border-border/70">
                                 <ToolList
                                     connection={connection}
-                                    error={tools.error?.message ?? null}
-                                    pending={tools.isPending}
-                                    tools={tools.data?.tools ?? null}
+                                    error={toolsError}
+                                    pending={toolsPending}
+                                    tools={tools}
                                 />
                             </div>
                         </section>

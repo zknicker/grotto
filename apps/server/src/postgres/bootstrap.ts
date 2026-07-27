@@ -144,17 +144,21 @@ const schemaStatements = [
     `CREATE TABLE mcp_connections (
         id text PRIMARY KEY NOT NULL
             CONSTRAINT mcp_connections_id_shape CHECK (id ~ '^mcp_[A-Za-z0-9_-]{16}$'),
+        account_label text,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         computer_id text NOT NULL,
         name text NOT NULL,
         transport text NOT NULL
             CONSTRAINT mcp_connections_transport CHECK (transport IN ('http', 'stdio')),
         auth text NOT NULL
-            CONSTRAINT mcp_connections_auth CHECK (auth IN ('none', 'headers')),
+            CONSTRAINT mcp_connections_auth CHECK (auth IN ('none', 'headers', 'oauth')),
         url text,
         command text,
         args text[] NOT NULL,
+        connected boolean NOT NULL,
         header_names text[] NOT NULL,
+        preset text CONSTRAINT mcp_connections_preset
+            CHECK (preset IS NULL OR preset IN ('google-calendar', 'merchbase')),
         tools text[] NOT NULL,
         created_at timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT mcp_connections_computer_fk

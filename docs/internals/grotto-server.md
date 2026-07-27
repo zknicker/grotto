@@ -88,10 +88,10 @@ PostgreSQL owns the hosted collaboration tables
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
 | `computers` / `computer_setup_approvals` | Server-scoped Computer credentials (hash only), one-use expiring browser approvals, and the last authenticated handshake facts |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
-| `chats` | Server-owned Channels, canonical sorted two-human DMs, and hidden child Threads |
+| `chats` | Server-owned Channels, canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and hidden child Threads |
 | `channel_participants` | One human's participation in one Channel |
 | `thread_follows` | Per-human Thread attention; never membership |
-| `agents` / `channel_agent_participants` | Minimal hosted Agent identity and Channel access required by reminder authorship |
+| `agents` / `channel_agent_participants` | Hosted Agent identity, immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, and Channel access for reminder authorship |
 | `chat_messages` | Immutable human or reminder-system messages ordered by per-Chat sequence and nonce |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `chat_events` | Durable message/read/task/reminder-change events ordered by PostgreSQL cursor |
@@ -127,6 +127,28 @@ health. This slice records those facts; it does not apply a version policy.
 Only Owners and Admins can approve or view Computers. The Server never opens
 an inbound Computer connection and never receives a human login session from a
 Computer.
+
+## Agent configuration
+
+A Computer's attachment socket reports a sanitized runtime/model inventory —
+ids and labels only, never provider credentials — stored on
+`computers.reported_inventory` and replaced wholesale on each report. Creating
+an Agent (`agent.create`, Owner/Admin) binds it to exactly one attached
+Computer plus a runtime and model that exist in that Computer's last-reported
+inventory, then opens the ordinary Owner↔Agent DM; there is no onboarding
+Channel. The Server owns that **desired** configuration; the Computer reports
+**effective** state. `agent.configure` changes desired runtime/model on the
+same Computer — the assignment is immutable and absent from the input — and
+validates only against that Computer's inventory, so desired edits saved while
+the Computer is offline still fail closed on a cross-Computer or unreported
+reference. A referenced runtime or model that is absent is rejected; the Server
+never substitutes another. `agent.list` derives status per Agent: `pending`
+until a reported effective snapshot matches desired, `applied` once it matches
+with nothing missing, and `degraded` when the Computer reports missing local
+resources. Effective reports (`record-agent-effective-state`) only touch rows
+whose `computer_id` is the reporting Computer, so cross-Computer effective
+claims update nothing. See
+[Agent desired and effective configuration](../../specs/agent-desired-effective-config.md).
 
 `apps/server/src/postgres/bootstrap.ts` is the schema of record — fresh-schema
 DDL applied by the explicit bootstrap command before the application starts.

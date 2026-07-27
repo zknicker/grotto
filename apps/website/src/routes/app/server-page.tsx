@@ -6,6 +6,7 @@ import { ServerChat } from '../../features/servers/server-chat.tsx';
 import { ServerChatSearch } from '../../features/servers/server-chat-search.tsx';
 import {
     isServerRemindersPath,
+    serverAgentsRoute,
     serverComputersRoute,
     serverMembersRoute,
     serverRemindersRoute,
@@ -18,6 +19,7 @@ import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
 import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
+import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
 /** One Grotto server opened at `/s/<slug>` with its `#all` Channel. */
 export function ServerPage() {
@@ -30,6 +32,11 @@ export function ServerPage() {
     const server = useServer(slug);
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
+    const agents = grottoTrpc.agent.list.useQuery(
+        { serverId: server.data?.id ?? '' },
+        { enabled: Boolean(server.data) }
+    );
+    const agentHandles = new Map((agents.data ?? []).map((agent) => [agent.id, agent.handle]));
     const remindersOpen = isServerRemindersPath(location.pathname, slug);
 
     useServerChatEvents(server.data?.id);
@@ -87,7 +94,9 @@ export function ServerPage() {
                         const name =
                             chat.kind === 'channel'
                                 ? `#${chat.name}`
-                                : `Direct · Human ${chat.peerUserId?.slice(-6) ?? ''}`;
+                                : chat.peerAgentId
+                                  ? `Direct · @${agentHandles.get(chat.peerAgentId) ?? 'agent'}`
+                                  : `Direct · Human ${chat.peerUserId?.slice(-6) ?? ''}`;
 
                         return (
                             <Button
@@ -143,6 +152,14 @@ export function ServerPage() {
                     >
                         Members
                     </Link>
+                    {canOperateReminders ? (
+                        <Link
+                            className="text-muted-foreground text-sm hover:text-foreground"
+                            to={serverAgentsRoute(server.data.slug)}
+                        >
+                            Agents
+                        </Link>
+                    ) : null}
                     {canOperateReminders ? (
                         <Link
                             className="text-muted-foreground text-sm hover:text-foreground"

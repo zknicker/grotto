@@ -3,6 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
+import { detectInventory } from './inventory.ts';
 
 interface Attachment {
     computerId: string;
@@ -28,10 +29,12 @@ async function main(args: string[]) {
         return;
     }
     if (command === 'start') {
-        await Promise.all((await listAttachments()).map(async (attachment) => {
-            await validate(attachment);
-            await connect(attachment);
-        }));
+        await Promise.all(
+            (await listAttachments()).map(async (attachment) => {
+                await validate(attachment);
+                await connect(attachment);
+            })
+        );
         return;
     }
     if (command !== 'setup' || !target?.startsWith('/')) {
@@ -52,7 +55,12 @@ async function main(args: string[]) {
     });
     approvalSecrets.set(started.approvalId, approvalSecretFromUrl(started.approvalUrl));
     console.log(`Approve this Computer in your browser: ${started.approvalUrl}`);
-    const attachment = await waitForApproval(started.approvalId, started.serverId, credential, slug);
+    const attachment = await waitForApproval(
+        started.approvalId,
+        started.serverId,
+        credential,
+        slug
+    );
     await writeAttachment(attachment);
     await connect(attachment);
     console.log(`Grotto Computer attached to /${slug}.`);
@@ -68,8 +76,12 @@ async function findAttachment(slug: string): Promise<Attachment | null> {
     }
     for (const id of ids) {
         try {
-            const attachment = JSON.parse(await readFile(join(root, id, 'attachment.json'), 'utf8')) as Attachment;
-            if (attachment.slug === slug) return attachment;
+            const attachment = JSON.parse(
+                await readFile(join(root, id, 'attachment.json'), 'utf8')
+            ) as Attachment;
+            if (attachment.slug === slug) {
+                return attachment;
+            }
         } catch {
             // An incomplete attachment is never adopted.
         }
@@ -88,7 +100,9 @@ async function listAttachments() {
     const attachments = await Promise.all(
         ids.map(async (id) => {
             try {
-                return JSON.parse(await readFile(join(root, id, 'attachment.json'), 'utf8')) as Attachment;
+                return JSON.parse(
+                    await readFile(join(root, id, 'attachment.json'), 'utf8')
+                ) as Attachment;
             } catch {
                 return null;
             }
@@ -104,18 +118,34 @@ async function validate(attachment: Attachment) {
     });
 }
 
-async function waitForApproval(approvalId: string, serverId: string, credential: string, slug: string) {
+async function waitForApproval(
+    approvalId: string,
+    serverId: string,
+    credential: string,
+    slug: string
+) {
     for (;;) {
         const response = await fetch(
-            new URL(`/computer/setup/${approvalId}?secret=${encodeURIComponent(readApprovalSecret())}`, serverOrigin)
+            new URL(
+                `/computer/setup/${approvalId}?secret=${encodeURIComponent(readApprovalSecret())}`,
+                serverOrigin
+            )
         );
         if (!response.ok) {
             const payload = (await response.json()) as { error?: string };
             throw new Error(payload.error ?? 'Computer approval was rejected.');
         }
-        const status = (await response.json()) as { computerId?: string; status: 'approved' | 'pending' };
+        const status = (await response.json()) as {
+            computerId?: string;
+            status: 'approved' | 'pending';
+        };
         if (status.status === 'approved' && status.computerId) {
-            return { computerId: status.computerId, credential, serverId, slug } satisfies Attachment;
+            return {
+                computerId: status.computerId,
+                credential,
+                serverId,
+                slug,
+            } satisfies Attachment;
         }
         await Bun.sleep(1000);
     }
@@ -135,13 +165,17 @@ async function request<Response>(path: string, body: object): Promise<Response> 
         method: 'POST',
     });
     const payload = (await response.json()) as Response & { error?: string };
-    if (!response.ok) throw new Error(payload.error ?? 'Computer request was rejected.');
+    if (!response.ok) {
+        throw new Error(payload.error ?? 'Computer request was rejected.');
+    }
     return payload;
 }
 
 function approvalSecretFromUrl(approvalUrl: string) {
     const secret = new URL(approvalUrl).searchParams.get('secret');
-    if (!secret) throw new Error('Server returned an invalid Computer approval URL.');
+    if (!secret) {
+        throw new Error('Server returned an invalid Computer approval URL.');
+    }
     return secret;
 }
 
@@ -159,12 +193,24 @@ async function installResidentService() {
     const plistPath = join(agentsRoot, 'com.grotto.computer.plist');
     await mkdir(agentsRoot, { recursive: true });
     await mkdir(dataRoot, { mode: 0o700, recursive: true });
-    await writeFile(plistPath, launchdPlist(process.execPath, process.argv[1] ?? ''), { mode: 0o600 });
+    await writeFile(plistPath, launchdPlist(process.execPath, process.argv[1] ?? ''), {
+        mode: 0o600,
+    });
     const domain = `gui/${userInfo().uid}`;
-    const existing = Bun.spawnSync(['/bin/launchctl', 'bootout', domain, plistPath], { stderr: 'ignore', stdout: 'ignore' });
-    if (existing.exitCode !== 0 && existing.exitCode !== 3) throw new Error('Could not replace Grotto Computer service.');
-    const loaded = Bun.spawnSync(['/bin/launchctl', 'bootstrap', domain, plistPath], { stderr: 'ignore', stdout: 'ignore' });
-    if (loaded.exitCode !== 0) throw new Error('Could not start Grotto Computer service.');
+    const existing = Bun.spawnSync(['/bin/launchctl', 'bootout', domain, plistPath], {
+        stderr: 'ignore',
+        stdout: 'ignore',
+    });
+    if (existing.exitCode !== 0 && existing.exitCode !== 3) {
+        throw new Error('Could not replace Grotto Computer service.');
+    }
+    const loaded = Bun.spawnSync(['/bin/launchctl', 'bootstrap', domain, plistPath], {
+        stderr: 'ignore',
+        stdout: 'ignore',
+    });
+    if (loaded.exitCode !== 0) {
+        throw new Error('Could not start Grotto Computer service.');
+    }
 }
 
 export function launchdPlist(runtime: string, entrypoint: string) {
@@ -173,7 +219,11 @@ export function launchdPlist(runtime: string, entrypoint: string) {
 }
 
 function escapeXml(value: string) {
-    return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
 }
 
 async function connect(attachment: Attachment) {
@@ -181,11 +231,17 @@ async function connect(attachment: Attachment) {
     socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(socketUrl);
     await new Promise<void>((resolve, reject) => {
-        socket.addEventListener('error', () => reject(new Error('Computer attachment socket failed.')));
+        socket.addEventListener('error', () =>
+            reject(new Error('Computer attachment socket failed.'))
+        );
         socket.addEventListener('message', (event) => {
             const response = JSON.parse(String(event.data)) as { type?: string };
-            if (response.type !== 'accepted') return;
-            if (process.env.GROTTO_COMPUTER_ONESHOT === '1') socket.close();
+            if (response.type !== 'accepted') {
+                return;
+            }
+            if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
+                socket.close();
+            }
             resolve();
         });
         socket.addEventListener('open', () => {
@@ -194,6 +250,7 @@ async function connect(attachment: Attachment) {
                     architecture: arch(),
                     credential: attachment.credential,
                     health: 'healthy',
+                    inventory: detectInventory(),
                     operatingSystem: platform(),
                     productVersion: '1.0.0',
                     protocolVersion: 1,

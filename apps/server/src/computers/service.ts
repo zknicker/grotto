@@ -1,8 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
+import type { HostedComputerInventory } from '@tavern/api';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { computersTable, computerSetupApprovalsTable, serversTable } from '../postgres/schema.ts';
+import { computerSetupApprovalsTable, computersTable, serversTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import type { ComputerHandshake } from './contracts.ts';
@@ -20,7 +21,10 @@ export function hashComputerSecret(value: string) {
     return createHash('sha256').update(value).digest('hex');
 }
 
-export async function beginComputerSetup(db: GrottoDatabase, input: { credentialHash: string; slug: string }) {
+export async function beginComputerSetup(
+    db: GrottoDatabase,
+    input: { credentialHash: string; slug: string }
+) {
     const [server] = await db
         .select({ id: serversTable.id })
         .from(serversTable)
@@ -62,7 +66,11 @@ export async function readComputerSetupStatus(
         throw new ComputerSetupDeniedError('Computer approval expired. Run setup again.');
     }
     return approval.computerId
-        ? { computerId: approval.computerId, serverId: approval.serverId, status: 'approved' as const }
+        ? {
+              computerId: approval.computerId,
+              serverId: approval.serverId,
+              status: 'approved' as const,
+          }
         : { status: 'pending' as const };
 }
 
@@ -87,7 +95,9 @@ export async function approveComputerSetup(
         }
         const server = await requireServerMembership(tx, member, approval.serverId);
         if (server.role !== 'owner' && server.role !== 'admin') {
-            throw new ComputerSetupDeniedError('Only a Server Owner or Admin can attach a Computer.');
+            throw new ComputerSetupDeniedError(
+                'Only a Server Owner or Admin can attach a Computer.'
+            );
         }
         if (!member) {
             throw new ComputerSetupDeniedError('Sign in to attach a Computer.');
@@ -102,7 +112,12 @@ export async function approveComputerSetup(
         await tx
             .update(computerSetupApprovalsTable)
             .set({ approvedAt: new Date(), approvedByUserId: member.id, computerId })
-            .where(and(eq(computerSetupApprovalsTable.id, approval.id), isNull(computerSetupApprovalsTable.computerId)));
+            .where(
+                and(
+                    eq(computerSetupApprovalsTable.id, approval.id),
+                    isNull(computerSetupApprovalsTable.computerId)
+                )
+            );
         return { computerId, serverId: approval.serverId };
     });
 }
@@ -122,7 +137,9 @@ export async function validateComputerCredential(
         )
         .limit(1);
     if (!computer) {
-        throw new ComputerSetupDeniedError('Computer credential was rejected. Open the App to manage this attachment.');
+        throw new ComputerSetupDeniedError(
+            'Computer credential was rejected. Open the App to manage this attachment.'
+        );
     }
     return computer;
 }
@@ -145,6 +162,18 @@ export async function reportComputerHandshake(
         .set({ ...handshake, lastConnectedAt: new Date() })
         .where(eq(computersTable.id, computer.id));
     return computer;
+}
+
+/** Replaces a Computer's last-reported runtime/model inventory wholesale. */
+export async function recordComputerInventory(
+    db: GrottoDatabase,
+    computerId: string,
+    inventory: HostedComputerInventory
+) {
+    await db
+        .update(computersTable)
+        .set({ reportedInventory: inventory })
+        .where(eq(computersTable.id, computerId));
 }
 
 export async function markComputerOffline(db: GrottoDatabase, computerId: string) {
@@ -173,6 +202,7 @@ export async function listServerComputers(
             operatingSystem: computersTable.operatingSystem,
             productVersion: computersTable.productVersion,
             protocolVersion: computersTable.protocolVersion,
+            reportedInventory: computersTable.reportedInventory,
         })
         .from(computersTable)
         .where(eq(computersTable.serverId, serverId))

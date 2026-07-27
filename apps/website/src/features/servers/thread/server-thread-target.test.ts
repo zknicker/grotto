@@ -13,6 +13,7 @@ test('hosted Thread targets preserve non-canonical opaque anchor ids', () => {
                 lastMessageSequence: 1,
                 name: 'all',
                 participantUserIds: [],
+                peerAgentId: null,
                 peerUserId: null,
                 serverId: 'srv_one',
                 unreadCount: 0,

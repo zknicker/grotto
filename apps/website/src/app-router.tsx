@@ -81,6 +81,13 @@ export function createAppRouter() {
                             ),
                         },
                         {
+                            path: 's/:slug/agents',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/server-agents-page.tsx'),
+                                'ServerAgentsPage'
+                            ),
+                        },
+                        {
                             path: 's/:slug/reminders',
                             lazy: lazyRoute(
                                 () => import('./routes/app/server-page.tsx'),

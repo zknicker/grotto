@@ -80,6 +80,7 @@ export const hostedChatSchema = z
         lastMessageSequence: z.number().int().nonnegative(),
         name: z.string().min(1).nullable(),
         participantUserIds: z.array(hostedIdSchema),
+        peerAgentId: hostedIdSchema.nullable(),
         peerUserId: hostedIdSchema.nullable(),
         serverId: hostedIdSchema,
         unreadCount: z.number().int().nonnegative(),

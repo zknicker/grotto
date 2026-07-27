@@ -3,6 +3,7 @@ summary: Hosted PostgreSQL collaboration plus Runtime execution chat, app cache,
 read_when:
   - changing SQLite tables, ids, sync invariants, or runtime transcript storage
   - changing hosted PostgreSQL Chats, messages, reads, search, or event recovery
+  - changing hosted task, assignment, task-label, or task-event storage
   - changing chat/session/message identity, event recovery, or sync semantics
 ---
 
@@ -40,7 +41,7 @@ delivery, and the product timeline.
 | Runtime SQLite           | Tavern Runtime                             | Canonical chat model, automation delivery, agent seats, Agent sessions, inbox delivery cursors, cursor-backed events, read markers, runtime metadata |
 | App SQLite               | Tavern App                                 | Client cache, app-shell preferences, and presentation state                                                                       |
 | Agent execution evidence | Tavern Runtime                             | Sessions, turns, tools, model calls, transcripts, and files                                                                       |
-| Hosted PostgreSQL        | Grotto Server                              | Users, Servers, memberships, Channels, DMs, human messages, reads, search index, and durable collaboration events                  |
+| Hosted PostgreSQL        | Grotto Server                              | Users, Servers, memberships, Channels, DMs, human messages, chat-first tasks, reads, search index, and durable collaboration events |
 
 Runtime SQLite is the product source of truth for chat. App SQLite can cache for
 fast UI, but reconnect and hard reload recover from Runtime history and cursors.
@@ -56,6 +57,9 @@ chat_messages
 chat_reads
 chat_events
 thread_follows
+message_tasks
+task_labels
+message_task_labels
 ```
 
 Every row carries `server_id`. Composite keys and foreign keys require related
@@ -78,6 +82,20 @@ derived search state queried through its GIN index, not a second message store.
 the Server row is locked. `server_memberships.revoked_at` preserves historical
 author and DM foreign keys while excluding the human from every current access
 check; no member-management API is part of this slice.
+
+`message_tasks` has one row per promoted canonical message. Composite
+constraints bind its Server, parent Chat, message, human assignee, and task-label
+links to the same tenant. The deterministic child Thread id is derived from the
+canonical message id and authorized through its parent Chat.
+`chats.last_task_number` is locked for monotonic per-Chat numbering.
+`message_tasks.version` is the compare-and-write boundary for claim, unclaim,
+assignment, status, priority, and label changes. Task content remains only in
+`chat_messages`.
+
+`task_labels` is a Server-scoped task catalog, and `message_task_labels` is its
+only join table. These tables do not form a generic taxonomy. Task mutations
+write `task.created`, `task.updated`, or `task.label.updated` events in the
+same transaction; task and label reads remain the recovery source.
 
 The hosted schema is fresh-bootstrap only. An incompatible development
 database must be recreated manually after operator approval; there is no

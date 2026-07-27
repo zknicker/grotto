@@ -146,6 +146,16 @@ website. It proves `/s/*` does not launch or query the local sidecar, Runtime,
 Computer, or Agent process; an adjacent local-route assertion proves ordinary
 routes still mount their local boundary.
 
+Hosted chat-first tasks use the same isolated lane:
+
+```bash
+TAVERN_E2E_HOSTED_ONLY=1 bun e2e/run-playwright.ts e2e/tests/hosted-tasks.spec.ts
+```
+
+It proves create, claim, unclaim, lifecycle metadata, human assignment,
+task-label editing, reconnect catch-up, and parent-Chat authorization against
+real PostgreSQL.
+
 ## Runtime Adapter Contracts
 
 When changing executor routes, event projection, chat behavior, or delivery

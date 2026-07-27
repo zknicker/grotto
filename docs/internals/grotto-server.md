@@ -89,7 +89,9 @@ PostgreSQL owns the hosted collaboration tables
 | `thread_follows` | Per-human Thread attention; never membership |
 | `chat_messages` | Immutable human messages ordered by per-Chat sequence and nonce |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
-| `chat_events` | Durable message/read events ordered by PostgreSQL cursor |
+| `chat_events` | Durable message/read/task events ordered by PostgreSQL cursor |
+| `message_tasks` | Lifecycle metadata keyed directly to one canonical hosted message |
+| `task_labels` / `message_task_labels` | Small Server task-label catalog and task links |
 
 Every relationship and every authorization check uses the opaque Server id. The
 slug is only the human-facing address at `/s/<slug>`; it never moves, and no
@@ -132,6 +134,9 @@ Server query, mutation, and subscription resolves membership through it:
 - `chat.*` resolves current membership and Chat participation before every
   read or write. Thread access resolves through the parent Channel or DM.
   Durable and composition subscriptions recheck that access for each event delivery.
+- `task.*` resolves current membership and parent-Chat access. Assignment also
+  requires Owner/Admin authority and filters targets to active humans with that
+  same parent-Chat access. Versioned writes serialize against the task row.
 - Durable delivery skips inaccessible Chats without ending the Server feed.
   Revoked Server membership ends delivery.
 
@@ -141,10 +146,13 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 ## App surface
 
 - `/s` lists the Servers this human can open and creates new ones.
-- `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, and search.
+- `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, search,
+  and the hosted task Board/List.
   An author already visible in the transcript is the entry point for their DM.
   Message replies open hidden child Threads in the resizable side pane; Threads
   never enter the hosted sidebar Chat list.
+  Task rows open the canonical message's existing child Thread. Task controls
+  call the hosted API directly; durable task events own exact cache invalidation.
 
 These routes are a separate top-level route-tree branch and run on their own
 client — `apps/website/src/lib/grotto-server.tsx`

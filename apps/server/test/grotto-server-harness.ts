@@ -1,6 +1,9 @@
 import type { AddressInfo } from 'node:net';
 import { SQL } from 'bun';
-import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
+import {
+    createGrottoServerApplication,
+    type GrottoServerApplication,
+} from '../src/grotto-server-application.ts';
 import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -14,6 +17,7 @@ export interface GrottoServerHarness {
     clerk: ClerkTestIssuer;
     close(): Promise<void>;
     databaseUrl: string;
+    restart(): Promise<void>;
     sql: SQL;
     url: URL;
 }
@@ -27,31 +31,42 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
     try {
         clerk = await startClerkTestIssuer(harnessAppOrigin);
 
-        const application = await createGrottoServerApplication({
-            appOrigin: harnessAppOrigin,
-            clerkIssuerUrl: clerk.url,
-            databaseUrl: cluster.databaseUrl,
-        });
-
-        await application.app.listen({ host: '127.0.0.1', port: 0 });
-
-        const { port } = application.app.server.address() as AddressInfo;
         const issuer = clerk;
         const sql = new SQL({ url: cluster.databaseUrl });
-
-        return {
+        let application: GrottoServerApplication | null = null;
+        const harness: GrottoServerHarness = {
             appOrigin: harnessAppOrigin,
             clerk: issuer,
             close: async () => {
                 await sql.close();
-                await application.close();
+                await application?.close();
+                application = null;
                 await issuer.close();
                 await cluster.stop();
             },
             databaseUrl: cluster.databaseUrl,
+            restart: async () => {
+                await application?.close();
+                application = null;
+                await startApplication();
+            },
             sql,
-            url: new URL(`http://127.0.0.1:${port}`),
+            url: new URL('http://127.0.0.1'),
         };
+
+        const startApplication = async () => {
+            const next = await createGrottoServerApplication({
+                appOrigin: harnessAppOrigin,
+                clerkIssuerUrl: issuer.url,
+                databaseUrl: cluster.databaseUrl,
+            });
+            await next.app.listen({ host: '127.0.0.1', port: 0 });
+            application = next;
+            const { port } = next.app.server.address() as AddressInfo;
+            harness.url = new URL(`http://127.0.0.1:${port}`);
+        };
+        await startApplication();
+        return harness;
     } catch (error) {
         await clerk?.close();
         await cluster.stop();

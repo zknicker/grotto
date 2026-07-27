@@ -14,6 +14,7 @@ export interface AgentApiRequest {
     body?: unknown;
     method?: 'GET' | 'POST';
     query?: Record<string, boolean | number | string | undefined>;
+    signal?: AbortSignal;
 }
 
 export interface AgentApiRequester {
@@ -42,7 +43,9 @@ export class AgentApiClient implements AgentApiRequester {
                     ...(input.body === undefined ? {} : { 'content-type': 'application/json' }),
                 },
                 method: input.method ?? 'GET',
-                signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+                signal: input.signal
+                    ? AbortSignal.any([input.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)])
+                    : AbortSignal.timeout(REQUEST_TIMEOUT_MS),
             });
         } catch {
             throw serverFailure();

@@ -2,6 +2,7 @@ import type { HostedChatMessage } from '@tavern/api';
 import { and, desc, eq, lt } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
+import { listHostedMessageTaskMap } from '../tasks/task-shape.ts';
 import { listHostedThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
@@ -39,7 +40,16 @@ export async function listHostedChatMessages(
         .orderBy(desc(chatMessagesTable.sequence))
         .limit(input.limit + 1);
     const hasOlderMessages = newestFirst.length > input.limit;
-    const messages = newestFirst.slice(0, input.limit).reverse().map(toHostedChatMessage);
+    const messageRows = newestFirst.slice(0, input.limit).reverse();
+    const taskByMessageId = await listHostedMessageTaskMap(
+        db,
+        input.serverId,
+        messageRows.map((message) => message.id)
+    );
+    const messages = messageRows.map((message) => ({
+        ...toHostedChatMessage(message),
+        task: taskByMessageId.get(message.id) ?? null,
+    }));
 
     return {
         messages,

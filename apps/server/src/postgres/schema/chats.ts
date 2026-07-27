@@ -25,6 +25,7 @@ export const chatsTable = pgTable(
         kind: text('kind').notNull().$type<'channel' | 'dm' | 'thread'>(),
         lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),
         lastMessageSequence: integer('last_message_sequence').notNull().default(0),
+        lastTaskNumber: integer('last_task_number').notNull().default(0),
         name: text('name'),
         anchorMessageId: text('anchor_message_id'),
         parentChatId: text('parent_chat_id'),
@@ -62,6 +63,7 @@ export const chatsTable = pgTable(
             name: 'chats_thread_parent_fk',
         }),
         check('chats_nonnegative_sequence', sql`${table.lastMessageSequence} >= 0`),
+        check('chats_nonnegative_task_number', sql`${table.lastTaskNumber} >= 0`),
         check('chats_kind', sql`${table.kind} in ('channel', 'dm', 'thread')`),
         check(
             'chats_shape',

@@ -1,5 +1,7 @@
 import { chatRouter } from './chat/router.ts';
 import { serverRouter } from './server/router.ts';
+import { taskRouter } from './task/router.ts';
+import { taskLabelRouter } from './task-label/router.ts';
 import { threadRouter } from './thread/router.ts';
 import { createRouter } from './trpc.ts';
 
@@ -10,6 +12,8 @@ import { createRouter } from './trpc.ts';
 export const grottoRouter = createRouter({
     chat: chatRouter,
     server: serverRouter,
+    task: taskRouter,
+    taskLabel: taskLabelRouter,
     thread: threadRouter,
 });
 

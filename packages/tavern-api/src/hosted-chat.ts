@@ -1,4 +1,5 @@
-import { z } from 'zod';
+import * as z from 'zod';
+import { hostedMessageTaskSchema } from './hosted-task-shared.ts';
 
 export const hostedIdSchema = z.string().trim().min(1);
 const hostedTimestampSchema = z.iso.datetime({ offset: true });
@@ -13,6 +14,7 @@ export const hostedChatMessageSchema = z
         nonce: z.string().trim().min(1).max(128),
         sequence: z.number().int().positive(),
         serverId: hostedIdSchema,
+        task: hostedMessageTaskSchema.nullable().optional(),
     })
     .strict();
 
@@ -206,10 +208,40 @@ export const hostedThreadFollowUpdatedEventSchema = z
     })
     .strict();
 
+export const hostedTaskChangedEventSchema = z
+    .object({
+        chatId: hostedIdSchema,
+        createdAt: hostedTimestampSchema,
+        cursor: z.string().regex(/^[1-9]\d*$/u),
+        id: hostedIdSchema,
+        messageId: hostedIdSchema,
+        parentChatId: z.null(),
+        sequence: z.number().int().positive(),
+        serverId: hostedIdSchema,
+        type: z.enum(['task.created', 'task.updated']),
+    })
+    .strict();
+
+export const hostedTaskLabelChangedEventSchema = z
+    .object({
+        chatId: z.null(),
+        createdAt: hostedTimestampSchema,
+        cursor: z.string().regex(/^[1-9]\d*$/u),
+        id: hostedIdSchema,
+        labelId: hostedIdSchema,
+        parentChatId: z.null(),
+        sequence: z.literal(0),
+        serverId: hostedIdSchema,
+        type: z.literal('task.label.updated'),
+    })
+    .strict();
+
 export const hostedDurableEventSchema = z.discriminatedUnion('type', [
     hostedMessageCreatedEventSchema,
     hostedChatReadEventSchema,
     hostedThreadFollowUpdatedEventSchema,
+    hostedTaskChangedEventSchema,
+    hostedTaskLabelChangedEventSchema,
 ]);
 
 export type HostedDurableEvent = z.infer<typeof hostedDurableEventSchema>;

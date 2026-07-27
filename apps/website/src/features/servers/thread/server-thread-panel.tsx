@@ -13,6 +13,7 @@ import { serverThreadTitles } from './server-thread-target.ts';
 export function ServerThreadPanel({
     anchor,
     chat,
+    initialThreadChatId,
     onClose,
     onViewInChannel,
     summary,
@@ -20,13 +21,15 @@ export function ServerThreadPanel({
 }: {
     anchor: HostedChatMessage;
     chat: HostedChat;
+    initialThreadChatId?: string;
     onClose: () => void;
     onViewInChannel: () => void;
     summary: HostedThreadSummary | null;
     takeover: boolean;
 }) {
     const [createdThreadChatId, setCreatedThreadChatId] = React.useState<string | null>(null);
-    const threadChatId = summary?.threadChatId ?? createdThreadChatId ?? undefined;
+    const threadChatId =
+        summary?.threadChatId ?? createdThreadChatId ?? initialThreadChatId ?? undefined;
     const messages = useServerThreadMessages(chat.serverId, threadChatId);
     const replies = messages.messages;
     const lastSequence = replies.at(-1)?.sequence ?? 0;

@@ -1,4 +1,5 @@
 import type { SQL } from 'bun';
+import { taskSchemaStatements } from './task-bootstrap.ts';
 
 /**
  * Fresh-schema setup for the hosted Grotto server, mirroring the SQLite
@@ -48,6 +49,8 @@ const schemaStatements = [
         anchor_message_id text,
         last_message_sequence integer NOT NULL DEFAULT 0
             CONSTRAINT chats_nonnegative_sequence CHECK (last_message_sequence >= 0),
+        last_task_number integer NOT NULL DEFAULT 0
+            CONSTRAINT chats_nonnegative_task_number CHECK (last_task_number >= 0),
         last_activity_at timestamptz,
         created_at timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT chats_server_id_kind_unique UNIQUE (server_id, id, kind),
@@ -189,13 +192,15 @@ const schemaStatements = [
             FOREIGN KEY (server_id, reader_user_id)
             REFERENCES server_memberships (server_id, user_id) ON DELETE CASCADE
     );`,
+    ...taskSchemaStatements,
     `CREATE TABLE IF NOT EXISTS chat_events (
         cursor bigint NOT NULL CONSTRAINT chat_events_positive_cursor CHECK (cursor > 0),
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL,
-        chat_id text NOT NULL,
+        chat_id text,
         event_type text NOT NULL,
         message_id text,
+        label_id text,
         reader_user_id text,
         sequence integer NOT NULL,
         created_at timestamptz NOT NULL DEFAULT now(),
@@ -211,21 +216,43 @@ const schemaStatements = [
         CONSTRAINT chat_events_shape CHECK (
             (
                 event_type = 'message.created'
+                AND chat_id IS NOT NULL
                 AND message_id IS NOT NULL
+                AND label_id IS NULL
+                AND reader_user_id IS NULL
+                AND sequence > 0
+            )
+            OR (
+                event_type IN ('task.created', 'task.updated')
+                AND chat_id IS NOT NULL
+                AND message_id IS NOT NULL
+                AND label_id IS NULL
                 AND reader_user_id IS NULL
                 AND sequence > 0
             )
             OR (
                 event_type = 'chat.read'
+                AND chat_id IS NOT NULL
                 AND message_id IS NULL
+                AND label_id IS NULL
                 AND reader_user_id IS NOT NULL
                 AND sequence >= 0
             )
             OR (
                 event_type = 'thread.follow.updated'
+                AND chat_id IS NOT NULL
                 AND message_id IS NULL
+                AND label_id IS NULL
                 AND reader_user_id IS NOT NULL
                 AND sequence >= 0
+            )
+            OR (
+                event_type = 'task.label.updated'
+                AND chat_id IS NULL
+                AND message_id IS NULL
+                AND label_id IS NOT NULL
+                AND reader_user_id IS NULL
+                AND sequence = 0
             )
         )
     );`,

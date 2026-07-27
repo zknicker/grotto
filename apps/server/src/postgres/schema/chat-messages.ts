@@ -40,6 +40,7 @@ export const chatMessagesTable = pgTable(
             table.sequence
         ),
         uniqueIndex('chat_messages_chat_nonce_key').on(table.serverId, table.chatId, table.nonce),
+        uniqueIndex('chat_messages_chat_id_key').on(table.serverId, table.chatId, table.id),
         foreignKey({
             columns: [table.serverId, table.chatId],
             foreignColumns: [chatsTable.serverId, chatsTable.id],

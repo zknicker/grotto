@@ -23,6 +23,7 @@ export async function listHostedChatEvents(
             createdAt: chatEventsTable.createdAt,
             cursor: chatEventsTable.cursor,
             id: chatEventsTable.id,
+            labelId: chatEventsTable.labelId,
             messageId: chatEventsTable.messageId,
             parentChatId: chatsTable.parentChatId,
             sequence: chatEventsTable.sequence,
@@ -30,7 +31,7 @@ export async function listHostedChatEvents(
             type: chatEventsTable.type,
         })
         .from(chatEventsTable)
-        .innerJoin(
+        .leftJoin(
             chatsTable,
             and(
                 eq(chatsTable.serverId, chatEventsTable.serverId),
@@ -42,16 +43,23 @@ export async function listHostedChatEvents(
                 eq(chatEventsTable.serverId, input.serverId),
                 gt(chatEventsTable.cursor, BigInt(input.afterCursor)),
                 or(
-                    eq(chatEventsTable.type, 'message.created'),
+                    eq(chatEventsTable.type, 'task.label.updated'),
                     and(
                         or(
-                            eq(chatEventsTable.type, 'chat.read'),
-                            eq(chatEventsTable.type, 'thread.follow.updated')
+                            eq(chatEventsTable.type, 'message.created'),
+                            eq(chatEventsTable.type, 'task.created'),
+                            eq(chatEventsTable.type, 'task.updated'),
+                            and(
+                                or(
+                                    eq(chatEventsTable.type, 'chat.read'),
+                                    eq(chatEventsTable.type, 'thread.follow.updated')
+                                ),
+                                eq(chatEventsTable.readerUserId, member.id)
+                            )
                         ),
-                        eq(chatEventsTable.readerUserId, member.id)
+                        visibleHostedChats(member.id)
                     )
-                ),
-                visibleHostedChats(member.id)
+                )
             )
         )
         .orderBy(chatEventsTable.cursor)
@@ -59,30 +67,60 @@ export async function listHostedChatEvents(
 
     return rows.map((event) => {
         const common = {
-            chatId: event.chatId,
             createdAt: event.createdAt.toISOString(),
             cursor: event.cursor.toString(),
             id: event.id,
-            parentChatId: event.parentChatId,
-            sequence: event.sequence,
             serverId: event.serverId,
         };
+
+        if (event.type === 'task.label.updated') {
+            return {
+                ...common,
+                chatId: null,
+                labelId: event.labelId as string,
+                parentChatId: null,
+                sequence: 0 as const,
+                type: 'task.label.updated' as const,
+            };
+        }
 
         if (event.type === 'message.created') {
             return {
                 ...common,
+                chatId: event.chatId as string,
                 messageId: event.messageId as string,
+                parentChatId: event.parentChatId,
+                sequence: event.sequence,
                 type: 'message.created' as const,
             };
         }
 
+        if (event.type === 'task.created' || event.type === 'task.updated') {
+            return {
+                ...common,
+                chatId: event.chatId as string,
+                messageId: event.messageId as string,
+                parentChatId: null,
+                sequence: event.sequence,
+                type: event.type,
+            };
+        }
+
         if (event.type === 'chat.read') {
-            return { ...common, type: 'chat.read' as const };
+            return {
+                ...common,
+                chatId: event.chatId as string,
+                parentChatId: event.parentChatId,
+                sequence: event.sequence,
+                type: 'chat.read' as const,
+            };
         }
 
         return {
             ...common,
+            chatId: event.chatId as string,
             parentChatId: event.parentChatId as string,
+            sequence: event.sequence,
             type: 'thread.follow.updated' as const,
         };
     });

@@ -76,7 +76,7 @@ export class ComputerConnections implements DeliveryTransport {
 
     sendMcpGrant(computerId: string, grant: unknown): boolean {
         const computer = this.attached.get(computerId);
-        if (!(this.isOnline(computerId) && computer)) {
+        if (!computer?.ordinary) {
             return false;
         }
         computer.send({ grant, type: 'mcp-grant' });

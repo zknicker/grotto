@@ -55,8 +55,9 @@ test('waiting for Agents closes admission until reconnect completes', () => {
     connections.setUpdatePhase(computerId, 'waiting-for-agents');
     expect(connections.send(computerId, start)).toBe(false);
     expect(connections.send(computerId, stop)).toBe(true);
+    expect(connections.sendMcpGrant(computerId, { enabled: false })).toBe(true);
 
     connections.setUpdatePhase(computerId, 'complete');
     expect(connections.send(computerId, start)).toBe(true);
-    expect(frames).toEqual([start, stop, start]);
+    expect(frames).toEqual([start, stop, { grant: { enabled: false }, type: 'mcp-grant' }, start]);
 });

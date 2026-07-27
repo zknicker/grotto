@@ -21,7 +21,7 @@ const main = async () => {
     const sidecarPath = path.join(appPath, 'Contents', 'Resources', 'bin', 'grotto-server');
 
     await assertDirectory(appPath, 'Grotto.app');
-    await assertSidecarVersion(sidecarPath, version);
+    await assertDoesNotExist(sidecarPath, 'retired grotto-server sidecar');
     await assertFileHasContent(dmgPath, path.basename(dmgPath));
     await assertFileHasContent(zipPath, path.basename(zipPath));
 
@@ -85,17 +85,9 @@ async function assertFileHasContent(filePath, label) {
     }
 }
 
-async function assertSidecarVersion(filePath, version) {
-    await assertFileHasContent(filePath, 'grotto-server sidecar');
-    const binary = await readFile(filePath);
-    const versionPatterns = [
-        Buffer.from(`version: "${version}"`),
-        Buffer.from(`"version":"${version}"`),
-        Buffer.from(`"version": "${version}"`),
-    ];
-
-    if (!versionPatterns.some((pattern) => binary.includes(pattern))) {
-        fail(`grotto-server sidecar does not embed app version ${version}`);
+async function assertDoesNotExist(filePath, label) {
+    if (await exists(filePath)) {
+        fail(`${label} must not be packaged`);
     }
 }
 

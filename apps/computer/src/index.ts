@@ -3,14 +3,9 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
+import { runAgentCli } from './agent-cli.ts';
 import { detectInventory } from './inventory.ts';
-
-interface Attachment {
-    computerId: string;
-    credential: string;
-    serverId: string;
-    slug: string;
-}
+import { type Attachment, parseStartCommand, runAgentLaunch } from './launch.ts';
 
 interface SetupResponse {
     approvalId: string;
@@ -23,6 +18,12 @@ const serverOrigin = process.env.GROTTO_SERVER_ORIGIN ?? 'https://grotto.sh';
 
 async function main(args: string[]) {
     const [command, target] = args;
+    // The embedded Agent CLI. The managed `grotto` wrapper re-executes this
+    // entrypoint; it is a separate command surface, not a separate artifact.
+    if (command === '__agent') {
+        process.exitCode = await runAgentCli(args.slice(1));
+        return;
+    }
     if (command === 'install') {
         await installResidentService();
         console.log('Grotto Computer resident service installed.');
@@ -235,14 +236,28 @@ async function connect(attachment: Attachment) {
             reject(new Error('Computer attachment socket failed.'))
         );
         socket.addEventListener('message', (event) => {
-            const response = JSON.parse(String(event.data)) as { type?: string };
-            if (response.type !== 'accepted') {
+            const frame = JSON.parse(String(event.data)) as { type?: string };
+            if (frame.type === 'accepted') {
+                if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
+                    socket.close();
+                }
+                resolve();
                 return;
             }
-            if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
-                socket.close();
+            const command = parseStartCommand(frame);
+            if (command) {
+                // One isolated launch per typed start. The Server enforces one
+                // in-flight run per Agent, so a launch here is always the owner.
+                void runAgentLaunch({
+                    attachment,
+                    command,
+                    dataRoot,
+                    sendFrame: (payload) => socket.send(JSON.stringify(payload)),
+                    serverOrigin,
+                }).catch((error) => {
+                    console.error(error instanceof Error ? error.message : error);
+                });
             }
-            resolve();
         });
         socket.addEventListener('open', () => {
             socket.send(

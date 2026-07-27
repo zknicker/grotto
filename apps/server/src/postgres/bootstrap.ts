@@ -281,6 +281,7 @@ const schemaStatements = [
         sequence integer NOT NULL CONSTRAINT chat_messages_positive_sequence
             CHECK (sequence > 0),
         author_user_id text,
+        author_agent_id text,
         system_author text,
         content text NOT NULL,
         nonce text NOT NULL,
@@ -292,10 +293,15 @@ const schemaStatements = [
         CONSTRAINT chat_messages_author_membership_fk
             FOREIGN KEY (server_id, author_user_id)
             REFERENCES server_memberships (server_id, user_id),
+        CONSTRAINT chat_messages_author_agent_fk
+            FOREIGN KEY (server_id, author_agent_id)
+            REFERENCES agents (server_id, id),
         CONSTRAINT chat_messages_author_shape CHECK (
-            (author_user_id IS NOT NULL AND system_author IS NULL)
+            (author_user_id IS NOT NULL AND author_agent_id IS NULL AND system_author IS NULL)
             OR
-            (author_user_id IS NULL AND system_author = 'reminder')
+            (author_agent_id IS NOT NULL AND author_user_id IS NULL AND system_author IS NULL)
+            OR
+            (author_user_id IS NULL AND author_agent_id IS NULL AND system_author = 'reminder')
         )
     );`,
     'CREATE UNIQUE INDEX chat_messages_server_id_key ON chat_messages (server_id, id);',
@@ -309,6 +315,63 @@ const schemaStatements = [
         ON chat_messages (server_id, chat_id, sequence);`,
     `CREATE INDEX chat_messages_search_idx
         ON chat_messages USING gin (search_vector);`,
+    // Per-launch runner authority. A Computer mints one scoped credential per
+    // Agent launch from its Computer credential; the Agent process never sees
+    // it. The row is revoked when the launch ends, so a stale token fails
+    // closed. Only the hash is stored — the token value never touches the DB.
+    `CREATE TABLE agent_runner_credentials (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT agent_runner_credentials_id_shape CHECK (id ~ '^arc_[A-Za-z0-9_-]{16}$'),
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        computer_id text NOT NULL,
+        agent_id text NOT NULL,
+        chat_id text NOT NULL,
+        run_id text NOT NULL,
+        token_hash text NOT NULL UNIQUE
+            CONSTRAINT agent_runner_credentials_token_hash_shape CHECK (token_hash ~ '^[a-f0-9]{64}$'),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        revoked_at timestamptz,
+        CONSTRAINT agent_runner_credentials_computer_fk
+            FOREIGN KEY (server_id, computer_id)
+            REFERENCES computers (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_runner_credentials_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_runner_credentials_chat_fk
+            FOREIGN KEY (server_id, chat_id)
+            REFERENCES chats (server_id, id) ON DELETE CASCADE
+    );`,
+    `CREATE INDEX agent_runner_credentials_agent_idx
+        ON agent_runner_credentials (server_id, agent_id, created_at DESC);`,
+    // Compact turn activity. Durable collaboration and this summary live
+    // Server-side; the raw transcript, logs, and workspace stay Computer-local
+    // behind the authorized live relay and never land here.
+    `CREATE TABLE agent_turns (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT agent_turns_id_shape CHECK (id ~ '^atn_[A-Za-z0-9_-]{16}$'),
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        agent_id text NOT NULL,
+        computer_id text NOT NULL,
+        run_id text NOT NULL,
+        status text NOT NULL
+            CONSTRAINT agent_turns_status CHECK (status IN ('completed', 'failed')),
+        message_count integer NOT NULL DEFAULT 0
+            CONSTRAINT agent_turns_message_count CHECK (message_count >= 0),
+        summary text NOT NULL,
+        started_at timestamptz NOT NULL,
+        ended_at timestamptz NOT NULL,
+        reported_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT agent_turns_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_turns_computer_fk
+            FOREIGN KEY (server_id, computer_id)
+            REFERENCES computers (server_id, id) ON DELETE CASCADE
+    );`,
+    `CREATE UNIQUE INDEX agent_turns_run_key
+        ON agent_turns (server_id, agent_id, run_id);`,
+    `CREATE INDEX agent_turns_agent_idx
+        ON agent_turns (server_id, agent_id, reported_at DESC);`,
     `CREATE TABLE attachments (
         id text PRIMARY KEY NOT NULL
             CONSTRAINT attachments_id_shape CHECK (id ~ '^att_[A-Za-z0-9_-]{16}$'),

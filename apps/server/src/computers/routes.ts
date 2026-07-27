@@ -1,16 +1,18 @@
+import { hostedRunnerMintRequestSchema, hostedRunnerRevokeRequestSchema } from '@tavern/api';
 import type { FastifyInstance } from 'fastify';
+import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     beginComputerSetupSchema,
     computerSetupStatusSchema,
     validateComputerCredentialSchema,
 } from './contracts.ts';
+import { mintRunnerCredential, revokeRunnerCredential } from './runner-credentials.ts';
 import {
     beginComputerSetup,
     ComputerSetupDeniedError,
     readComputerSetupStatus,
     validateComputerCredential,
 } from './service.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
 
 export function registerComputerRoutes(
     app: FastifyInstance,
@@ -23,7 +25,11 @@ export function registerComputerRoutes(
             const approvalUrl = new URL('/computer/approve', options.appOrigin);
             approvalUrl.searchParams.set('approval', setup.approvalId);
             approvalUrl.searchParams.set('secret', setup.secret);
-            return { approvalId: setup.approvalId, approvalUrl: approvalUrl.toString(), serverId: setup.serverId };
+            return {
+                approvalId: setup.approvalId,
+                approvalUrl: approvalUrl.toString(),
+                serverId: setup.serverId,
+            };
         } catch (cause) {
             return setupError(reply, cause);
         }
@@ -48,9 +54,28 @@ export function registerComputerRoutes(
             return setupError(reply, cause);
         }
     });
+    app.post('/computer/runner/mint', async (request, reply) => {
+        try {
+            const input = hostedRunnerMintRequestSchema.parse(request.body);
+            return await mintRunnerCredential(options.db, input);
+        } catch (cause) {
+            return setupError(reply, cause);
+        }
+    });
+    app.post('/computer/runner/revoke', async (request, reply) => {
+        try {
+            const input = hostedRunnerRevokeRequestSchema.parse(request.body);
+            return await revokeRunnerCredential(options.db, input);
+        } catch (cause) {
+            return setupError(reply, cause);
+        }
+    });
 }
 
-function setupError(reply: { code(statusCode: number): { send(payload: unknown): unknown } }, cause: unknown) {
+function setupError(
+    reply: { code(statusCode: number): { send(payload: unknown): unknown } },
+    cause: unknown
+) {
     const message = cause instanceof Error ? cause.message : 'Computer request was rejected.';
     const status = cause instanceof ComputerSetupDeniedError ? 403 : 400;
     return reply.code(status).send({ error: message });

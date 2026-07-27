@@ -29,6 +29,7 @@ export async function searchHostedChatMessages(
 
     const rows = await db
         .select({
+            authorAgentId: chatMessagesTable.authorAgentId,
             authorUserId: chatMessagesTable.authorUserId,
             chatId: chatMessagesTable.chatId,
             content: chatMessagesTable.content,

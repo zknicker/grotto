@@ -75,9 +75,10 @@ Hosted human chat includes hidden child Threads with parent-derived
 authorization, per-human follows, reads, and parent unread rollup. It also owns
 chat-first tasks whose identity is one canonical message and whose work surface
 is that message's deterministic child Thread. Hosted reminders may author
-scheduled system messages, but remain a separate schedule contract. Hosted
-human chat intentionally excludes reactions, Agent execution, Computer
-transport, and general delivery queues.
+scheduled system messages, but remain a separate schedule contract. Agents
+author durable messages through the scoped runner surface below, never through
+`chat.send`; `chat.send` stays human-only. Hosted human chat intentionally
+excludes reactions and general delivery queues.
 
 ### Hosted attachments
 
@@ -132,6 +133,57 @@ Every fire transaction appends its visible system receipt before the paired
 `reminder.changed` event, records the fire, and creates concrete
 `reminder_agent_attention`. Script content is opaque and never returned by the
 operator procedures or executed by the Server.
+
+## Hosted Agent Execution
+
+A managed Agent runs on its assigned Computer and speaks back through the
+scoped runner surface. The boundary follows ADR 0019: the Server owns durable
+collaboration and compact activity; the Computer owns isolated execution and
+raw traces.
+
+- **Typed start.** The Server sends a `start` command down the Computer's
+  attachment socket (`{ type: 'start', agentId, chatId, runId, runtimeId,
+  modelId, prompt }`). A new top-level human DM message wakes the seated Agent
+  if its Computer is online; hosted collaboration never waits on a Computer.
+  The Server admits one in-flight run per Agent, so a launch never
+  double-starts an Agent's single session.
+- **Runner authority (least credentials).** Before spawning the Agent, the
+  Computer mints a per-launch runner credential from its Computer credential:
+
+  ```http
+  POST /computer/runner/mint    { credentialHash, agentId, runId, chatId }
+                                → { runnerId, runnerToken }
+  POST /computer/runner/revoke  { credentialHash, runnerId }
+  ```
+
+  The runner credential is scoped to one Agent, run, and collaboration chat.
+  Only its hash is stored, and it is revoked when the launch ends. The Computer
+  keeps it behind a loopback proxy; the Agent process receives only a
+  per-launch local proxy token.
+
+- **Agent output.** The embedded managed `grotto` wrapper is the Agent's only
+  collaboration output channel. `grotto message send` reaches the Computer's
+  loopback proxy with the local proxy token; the proxy forwards to the hosted
+  Server with the runner credential:
+
+  ```http
+  POST /api/agent/messages/send   { target, content, nonce }
+                                → { state: "sent", receipt }
+  ```
+
+  The runner credential fixes the author and channel, so the route trusts
+  neither an agent id nor a chat id from the body: it writes one durable
+  Agent-authored message into the runner's bound chat and records the requested
+  `target` for fidelity. Sends are idempotent by `(chat, nonce)`. A missing,
+  bogus, or revoked token fails closed with `401`.
+
+- **Compact activity.** After a launch settles the Computer reports a `turn`
+  summary over the attachment socket (`{ type: 'turn', agentId, runId, status,
+  messageCount, summary, startedAt, endedAt }`), persisted to `agent_turns`
+  keyed by run. Raw transcripts, logs, and workspace files stay Computer-local
+  behind the authorized live relay and never enter Server storage. No provider,
+  runner, or proxy secret enters Agent env, output, traces, or Server
+  diagnostics.
 
 ## Local Runtime Contract (pre-cutover)
 

@@ -11,6 +11,12 @@ interface Attachment {
     slug: string;
 }
 
+interface SetupResponse {
+    approvalId: string;
+    approvalUrl: string;
+    serverId: string;
+}
+
 const dataRoot = process.env.GROTTO_COMPUTER_DATA_ROOT ?? join(homedir(), '.grotto', 'computer');
 const serverOrigin = process.env.GROTTO_SERVER_ORIGIN ?? 'https://grotto.sh';
 
@@ -40,10 +46,11 @@ async function main(args: string[]) {
         return;
     }
     const credential = randomBytes(32).toString('base64url');
-    const started = await request('/computer/setup', {
+    const started = await request<SetupResponse>('/computer/setup', {
         credentialHash: hash(credential),
         slug,
     });
+    approvalSecrets.set(started.approvalId, approvalSecretFromUrl(started.approvalUrl));
     console.log(`Approve this Computer in your browser: ${started.approvalUrl}`);
     const attachment = await waitForApproval(started.approvalId, started.serverId, credential, slug);
     await writeAttachment(attachment);
@@ -102,7 +109,10 @@ async function waitForApproval(approvalId: string, serverId: string, credential:
         const response = await fetch(
             new URL(`/computer/setup/${approvalId}?secret=${encodeURIComponent(readApprovalSecret())}`, serverOrigin)
         );
-        if (!response.ok) throw new Error((await response.json()).error ?? 'Computer approval was rejected.');
+        if (!response.ok) {
+            const payload = (await response.json()) as { error?: string };
+            throw new Error(payload.error ?? 'Computer approval was rejected.');
+        }
         const status = (await response.json()) as { computerId?: string; status: 'approved' | 'pending' };
         if (status.status === 'approved' && status.computerId) {
             return { computerId: status.computerId, credential, serverId, slug } satisfies Attachment;
@@ -118,15 +128,14 @@ async function waitForApproval(approvalId: string, serverId: string, credential:
 
 const approvalSecrets = new Map<string, string>();
 
-async function request(path: string, body: object) {
+async function request<Response>(path: string, body: object): Promise<Response> {
     const response = await fetch(new URL(path, serverOrigin), {
         body: JSON.stringify(body),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
     });
-    const payload = await response.json();
+    const payload = (await response.json()) as Response & { error?: string };
     if (!response.ok) throw new Error(payload.error ?? 'Computer request was rejected.');
-    if (path === '/computer/setup') approvalSecrets.set(payload.approvalId, approvalSecretFromUrl(payload.approvalUrl));
     return payload;
 }
 

@@ -1,8 +1,8 @@
 ---
-summary: Build, install, supervise, monitor, back up, restore, cut over, and roll back the single-node Grotto Server at grotto.sh.
+summary: Build, install, supervise, back up, restore, cut over, and roll back the single-node Grotto Server at grotto.sh.
 read_when:
   - deploying or operating the hosted Grotto Server
-  - changing grotto.sh ingress, PostgreSQL roles, backups, restores, or health monitoring
+  - changing grotto.sh ingress, PostgreSQL roles, backups, or restores
   - preparing a Grotto Server release artifact
 ---
 
@@ -76,7 +76,6 @@ traversal and read/write access their job needs:
 | `_grotto_server` | `data/attachments` | `current`, `config/server.env` |
 | `_grotto_backup` | `data/backup-staging`, `data/backup-state` | attachment tree, `current`, `config/backup.env`, restic key |
 | `_grotto_tunnel` | no application state | `config/cloudflared.yml`, Tunnel credential |
-| `_grotto_monitor` | no application state | `current`, `config/monitor.env` |
 
 Host-only state lives under `/Users/zknicker/srv/grotto`: `.env`,
 `database-roles.env`, `compose.yml`, `config/`, `data/`, `logs/`, `releases/`,
@@ -103,8 +102,8 @@ PostgreSQL 16.14 Alpine digest, container
 `grotto-postgres`, named volume `grotto_postgres_data`, and
 `127.0.0.1:5438:5432`. Do not add the database to Tailscale Serve or Funnel.
 Administration uses SSH and local loopback. Install PostgreSQL 16 client tools
-for the host backup, restore, and monitor programs without enabling a host
-PostgreSQL service.
+for the host backup and restore programs without enabling a host PostgreSQL
+service.
 
 Create `data/attachments/.backup-sentinel` with random, non-secret content
 before the first backup. PRD-142 owns attachment APIs; this deployment only
@@ -163,12 +162,10 @@ to an ordinary Grotto release rollback. The no-reboot installation check proves
 the daemon can run the existing healthy profile, but full no-login boot recovery
 remains unproven until the separately approved reboot drill.
 
-Install the four plists in `apps/server/launchd/` as system daemons. The Server
+Install the three plists in `apps/server/launchd/` as system daemons. The Server
 and named `grotto-production` Tunnel use `RunAtLoad` and `KeepAlive`. Tunnel
 metrics bind to `127.0.0.1:20242`; the shared existing tunnel already owns
-`20241`. Backup runs at 00:15, 06:15, 12:15, and 18:15 local time. Monitor runs
-every minute and requires the explicit PostgreSQL endpoint
-`127.0.0.1:5438`.
+`20241`. Backup runs at 00:15, 06:15, 12:15, and 18:15 local time.
 
 Installing the Server plist does not load it before the next boot. Run the
 initial deployment before rebooting so the privileged activation helper owns
@@ -182,17 +179,7 @@ of stopping that label. Later activations retain the exact previous-release
 rollback.
 
 The Server returns only `{"status":"ok"}` or the redacted
-`postgres_unavailable` code. The monitor classifies:
-
-- `server_unreachable`
-- `postgres_unavailable`
-- `tunnel_unavailable`
-- `public_route_unavailable`
-
-Exact private Healthchecks.io ping URLs are injected in `monitor.env`; they are
-never logged. Local service, PostgreSQL, Tunnel readiness, and public route are
-probed independently. A PostgreSQL-backed 503 from the Server remains a
-PostgreSQL failure, not a Server-process failure.
+`postgres_unavailable` code.
 
 ## Off-machine backup
 
@@ -273,7 +260,7 @@ secret source, and rollback release before changing the host.
     the first immutable release through the same download, verification,
     install, helper-owned Server bootstrap, health, and rollback path used by
     later published releases.
-12. Inject `backup.env`, `monitor.env`, restic key, and Tunnel credential.
+12. Inject `backup.env`, restic key, and Tunnel credential.
 13. Create the named `grotto-production` Tunnel and confirm its config routes
    only to `127.0.0.1:18791`.
 14. Verify the helper-loaded Server through the local App, `/healthz`,
@@ -281,7 +268,7 @@ secret source, and rollback release before changing the host.
 15. Load the Tunnel, approve the `grotto.sh` DNS route, then verify canonical
     sign-in, Server creation, and reopen from a remote client.
 16. Run backup and the isolated restore drill; record evidence.
-17. Reboot once and prove PostgreSQL, Server, Tunnel, monitor, canonical flow,
+17. Reboot once and prove PostgreSQL, Server, Tunnel, canonical flow,
     and backup schedule recovered.
 
 Each step needs the operator's explicit approval before the corresponding

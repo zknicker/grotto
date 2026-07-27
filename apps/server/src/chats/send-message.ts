@@ -4,6 +4,12 @@ import type {
     HostedDurableEvent,
 } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
+import {
+    associateMessageAttachments,
+    attachmentMetadata,
+    readMessageAttachments,
+    requireMessageAttachments,
+} from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
@@ -31,6 +37,9 @@ export async function sendHostedChatMessage(
 ): Promise<SendHostedChatMessageResult> {
     return await db.transaction(async (tx) => {
         await requireChatAccess(tx, member, input);
+        if (!member) {
+            throw new Error('A message author is required.');
+        }
 
         await tx.execute(sql`
             select id from chats
@@ -69,7 +78,18 @@ export async function sendHostedChatMessage(
             .limit(1);
 
         if (existing) {
-            if (existing.authorUserId !== member?.id || existing.content !== input.content) {
+            const existingAttachments =
+                (await readMessageAttachments(tx, input.serverId, [existing.id])).get(
+                    existing.id
+                ) ?? [];
+            if (
+                existing.authorUserId !== member.id ||
+                existing.content !== input.content ||
+                !sameIds(
+                    existingAttachments.map((attachment) => attachment.id),
+                    input.attachmentIds
+                )
+            ) {
                 throw new ChatNonceConflictError();
             }
 
@@ -78,11 +98,12 @@ export async function sendHostedChatMessage(
                 receipt: {
                     eventCursor: existing.eventCursor.toString(),
                     idempotent: true,
-                    message: toHostedChatMessage(existing),
+                    message: toHostedChatMessage(existing, existingAttachments),
                 },
             };
         }
 
+        const attachments = await requireMessageAttachments(tx, member, input);
         const [updatedChat] = await tx
             .update(chatsTable)
             .set({
@@ -92,7 +113,7 @@ export async function sendHostedChatMessage(
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
             .returning({ sequence: chatsTable.lastMessageSequence });
 
-        if (!(updatedChat && member)) {
+        if (!updatedChat) {
             throw new Error('Failed to allocate the Chat message sequence.');
         }
 
@@ -108,6 +129,8 @@ export async function sendHostedChatMessage(
                 serverId: input.serverId,
             })
             .returning();
+
+        await associateMessageAttachments(tx, attachments, message.id);
 
         const eventCursor = await allocateHostedEventCursor(tx, input.serverId);
         const [event] = await tx
@@ -141,8 +164,12 @@ export async function sendHostedChatMessage(
             receipt: {
                 eventCursor: event.cursor.toString(),
                 idempotent: false,
-                message: toHostedChatMessage(message),
+                message: toHostedChatMessage(message, attachmentMetadata(attachments)),
             },
         };
     });
+}
+
+function sameIds(left: string[], right: string[]) {
+    return left.length === right.length && left.every((id, index) => id === right[index]);
 }

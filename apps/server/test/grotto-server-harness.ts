@@ -1,4 +1,7 @@
+import { mkdtemp, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { SQL } from 'bun';
 import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
 import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
@@ -11,6 +14,7 @@ import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.t
  */
 export interface GrottoServerHarness {
     appOrigin: string;
+    attachmentRoot: string;
     clerk: ClerkTestIssuer;
     close(): Promise<void>;
     databaseUrl: string;
@@ -22,6 +26,7 @@ export const harnessAppOrigin = 'https://app.grotto.test';
 
 export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
     const cluster: PostgresCluster = await startPostgresCluster();
+    const attachmentRoot = await mkdtemp(join(tmpdir(), 'grotto-server-attachments-'));
     let clerk: ClerkTestIssuer | null = null;
 
     try {
@@ -29,6 +34,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
 
         const application = await createGrottoServerApplication({
             appOrigin: harnessAppOrigin,
+            attachmentRoot,
             clerkIssuerUrl: clerk.url,
             databaseUrl: cluster.databaseUrl,
         });
@@ -41,12 +47,14 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
 
         return {
             appOrigin: harnessAppOrigin,
+            attachmentRoot,
             clerk: issuer,
             close: async () => {
                 await sql.close();
                 await application.close();
                 await issuer.close();
                 await cluster.stop();
+                await rm(attachmentRoot, { force: true, recursive: true });
             },
             databaseUrl: cluster.databaseUrl,
             sql,
@@ -55,6 +63,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
     } catch (error) {
         await clerk?.close();
         await cluster.stop();
+        await rm(attachmentRoot, { force: true, recursive: true });
         throw error;
     }
 }

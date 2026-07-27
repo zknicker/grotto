@@ -1,4 +1,6 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startClerkTestIssuer } from '../../server/test/clerk-test-issuer.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';
@@ -12,6 +14,7 @@ import { clerkSessionFile, e2eClerkUserId, e2ePeerClerkUserId } from './support/
 const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const stateDirectory = fileURLToPath(new URL('../../../.context/e2e/', import.meta.url));
 const clerkSessionPath = clerkSessionFile();
+const attachmentRoot = mkdtempSync(join(tmpdir(), 'grotto-e2e-attachments-'));
 // The browser is the frontend that asks Clerk for the session, so it is the
 // authorized party the Server binds to.
 const appOrigin = process.env.APP_ORIGIN ?? 'http://127.0.0.1:3101';
@@ -24,6 +27,7 @@ const clerk = await startClerkTestIssuer(appOrigin);
 
 process.once('exit', () => {
     rmSync(clerkSessionPath, { force: true });
+    rmSync(attachmentRoot, { force: true, recursive: true });
     void cluster.stop();
 });
 process.once('SIGTERM', () => {
@@ -46,6 +50,7 @@ process.env.NODE_ENV = 'test';
 process.env.APP_ORIGIN = appOrigin;
 process.env.CLERK_ISSUER_URL = clerk.url;
 process.env.DATABASE_URL = cluster.databaseUrl;
+process.env.GROTTO_ATTACHMENT_ROOT = attachmentRoot;
 
 process.chdir(workspaceRoot);
 
@@ -62,5 +67,6 @@ async function shutdown() {
     await clerk.close();
     await cluster.stop();
     rmSync(clerkSessionPath, { force: true });
+    rmSync(attachmentRoot, { force: true, recursive: true });
     process.exit(0);
 }

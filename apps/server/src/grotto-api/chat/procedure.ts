@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server';
+import { AttachmentAssociationError } from '../../attachments/message-attachments.ts';
 import { ChatAccessDeniedError, ChatNotFoundError } from '../../chats/chat-access.ts';
 import { DmPeerNotFoundError, InvalidDmPeerError } from '../../chats/ensure-dm.ts';
 import { ChatNonceConflictError } from '../../chats/send-message.ts';
@@ -22,6 +23,10 @@ export const chatProcedure = memberProcedure.use(async ({ next }) => {
     }
 
     if (cause instanceof ChatNonceConflictError) {
+        throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
+    }
+
+    if (cause instanceof AttachmentAssociationError) {
         throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 

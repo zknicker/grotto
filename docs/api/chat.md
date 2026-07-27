@@ -34,6 +34,8 @@ The App calls the hosted Server directly over typed tRPC:
 | `chat.events` | Durable event catch-up after a cursor |
 | `chat.onEvent` | Live durable-event notification; clients refetch exact resources |
 | `chat.publishComposition` / `chat.onComposition` | Best-effort, live-only composition state |
+| `attachment.reserve` | Idempotently allocate one Server/Chat-scoped attachment id |
+| `attachment.inventory` | Owner/Admin-only database and relative filesystem inventory |
 
 Every input carries `serverId`; the Server derives the actor or reader from the
 verified Clerk User and current Server membership. Channel access comes from
@@ -46,13 +48,44 @@ directory or member-management surface in this slice.
 
 Message order is the positive per-Chat `sequence`, allocated while the Chat row
 is transactionally locked. `(server_id, chat_id, nonce)` is unique. Retrying
-the same actor and content returns the original message and event cursor;
-reusing the nonce for different content is a conflict. Messages have no update
-or delete procedure.
+the same actor, content, and ordered attachment ids returns the original
+message and event cursor; reusing the nonce for a different send is a conflict.
+Every attachment must be ready, uploaded by the author, unassociated, and in
+the same Server and Chat. Message creation, attachment association, and the
+`message.created` event commit in one PostgreSQL transaction. The normal
+message refetch carries attachment metadata; no separate attachment event is
+emitted. Messages have no update or delete procedure.
 
 Hosted human chat intentionally excludes Threads, reactions, tasks, reminders,
-attachments, Agent execution, delivery queues, and Computer wake behavior.
-Those nouns must not be copied from the broader local Runtime contract below.
+Agent execution, delivery queues, and Computer wake behavior. Those nouns must
+not be copied from the broader local Runtime contract below.
+
+### Hosted attachments
+
+The App reserves metadata through tRPC, then streams bytes directly to the
+hosted Server:
+
+```http
+PUT /attachments/{serverId}/{attachmentId}
+Authorization: Bearer <Clerk session>
+Content-Type: application/octet-stream
+```
+
+The stream may omit `Content-Length`. When present it must be an exact
+nonnegative byte count no larger than 50 MiB; the Server also enforces the
+limit while streaming. Zero-byte attachments are valid. A partial,
+overflowing, or conflicting attempt never becomes ready.
+
+Authorized downloads use `GET` on the same URL. Responses include the stored
+media type and length, attachment disposition with UTF-8 filename encoding,
+`X-Content-Type-Options: nosniff`, and `Cache-Control: private, no-store`.
+Message and list payloads carry only `{ id, filename, mediaType, sizeBytes }`;
+they never carry file bytes or storage paths.
+
+Client values never name filesystem paths. The Server resolves the authorized
+PostgreSQL row first and derives fixed digest leaves beneath its private
+attachment root. Attachments are neither `ChatArtifact` records nor Agent
+workspace artifacts.
 
 ## Local Runtime Contract (pre-cutover)
 

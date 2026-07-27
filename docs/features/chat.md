@@ -19,6 +19,12 @@ and [Agent Inbox](../../specs/inbox.md).
   The timeline carries conversation units only — messages, artifacts,
   notices, thread anchors — and nothing turn-shaped. See
   [chat-timeline](../../specs/chat-timeline.md).
+* **Hosted attachments.** A human can attach local files to a hosted Server
+  message. The App streams bytes directly to that Server, publishes the ready
+  attachment and message atomically, renders filename/type/size metadata, and
+  downloads through an authenticated Server request. Attachment bytes never
+  ride message-list payloads and never pass through a Computer or Agent
+  workspace. Hosted attachments are not Chat artifacts.
 * **Composition bubble.** While an agent's send is in flight, a provisional
   bubble renders at the target chat, swapped for the durable message once it
   commits, retracted on a freshness hold, and TTL-faded if the send is

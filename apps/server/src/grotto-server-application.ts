@@ -1,6 +1,9 @@
 import cors from '@fastify/cors';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { openAttachmentRoot } from './attachments/attachment-root.ts';
+import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
+import { reconcileHostedAttachments } from './attachments/reconcile-attachments.ts';
 import { createGrottoContextFactory } from './grotto-api/context.ts';
 import { grottoRouter } from './grotto-api/router.ts';
 import { startGrottoWebSocketServer } from './grotto-api/ws.ts';
@@ -15,6 +18,8 @@ import { connectGrottoDatabase } from './postgres/connection.ts';
  */
 export interface GrottoServerApplicationOptions {
     appOrigin: string;
+    /** Absolute private root for Server-owned attachment bytes. */
+    attachmentRoot: string;
     /** Origin of the Clerk instance that authenticates humans. */
     clerkIssuerUrl: string;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
@@ -35,8 +40,12 @@ export async function createGrottoServerApplication(
     let app: FastifyInstance | null = null;
 
     try {
+        const attachmentRoot = await openAttachmentRoot(options.attachmentRoot);
+        await reconcileHostedAttachments(grotto.db, attachmentRoot);
+        const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
         const createContext = createGrottoContextFactory({
-            clerkSessions: createClerkSessions(options.clerkIssuerUrl, options.appOrigin),
+            attachmentRoot,
+            clerkSessions,
             grottoDb: grotto.db,
         });
         const isAllowedOrigin = (origin: string | undefined) =>
@@ -48,10 +57,17 @@ export async function createGrottoServerApplication(
         });
 
         await app.register(cors, {
+            credentials: true,
+            methods: ['GET', 'HEAD', 'POST', 'PUT'],
             origin: (origin, callback) => {
                 callback(null, isAllowedOrigin(origin));
             },
-            credentials: true,
+        });
+
+        await registerAttachmentRoutes(app, {
+            clerkSessions,
+            db: grotto.db,
+            root: attachmentRoot,
         });
 
         await app.register(fastifyTRPCPlugin, {

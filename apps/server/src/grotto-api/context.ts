@@ -1,3 +1,4 @@
+import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 
@@ -7,6 +8,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
  * PostgreSQL database.
  */
 export interface GrottoContext {
+    attachmentRoot: AttachmentRoot;
     clerkSessions: ClerkSessions;
     /**
      * Clerk session token presented by the App. HTTP requests carry it as an
@@ -18,6 +20,7 @@ export interface GrottoContext {
 }
 
 export interface GrottoContextDependencies {
+    attachmentRoot: AttachmentRoot;
     clerkSessions: ClerkSessions;
     grottoDb: GrottoDatabase;
 }

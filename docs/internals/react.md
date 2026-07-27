@@ -33,6 +33,9 @@ architecture work, use the `react-best-practices` skill alongside this doc.
 * Hosted Chat hooks keep messages, lists, reads, and search in React Query.
   Durable reconnect events trigger cursor catch-up plus exact invalidation;
   composition events stay component-local and are discarded on unmount.
+  Selected attachment `File` objects stay composer-local; durable messages
+  retain only hosted metadata, and authenticated byte transfer stays in
+  focused Server attachment hooks.
 
 ## Queries
 

@@ -34,6 +34,7 @@ export const chatMessagesTable = pgTable(
     },
     (table) => [
         uniqueIndex('chat_messages_server_id_key').on(table.serverId, table.id),
+        uniqueIndex('chat_messages_server_chat_id_key').on(table.serverId, table.chatId, table.id),
         uniqueIndex('chat_messages_chat_sequence_key').on(
             table.serverId,
             table.chatId,

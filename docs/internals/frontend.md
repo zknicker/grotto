@@ -35,7 +35,9 @@ capability lives; keep route and feature folders for page assembly.
 * Keep feature folders for page-specific orchestration and local state.
 * Keep `/s/*` in the hosted route-tree branch. It may mount the hosted tRPC
   provider and Server hooks, but not the local Command menu, Runtime gates,
-  sidecar hooks, or Electron IPC.
+  sidecar hooks, or Electron IPC. Hosted attachment hooks reserve metadata over
+  tRPC and upload/download bytes directly against the hosted origin with a
+  fresh Clerk token; never convert bytes into message query data.
 * Move chat workflow orchestration, optimistic reconciliation, and event cache
   handling into `hooks/chats`. Chat feature components should receive ids,
   narrow view models, and command callbacks.

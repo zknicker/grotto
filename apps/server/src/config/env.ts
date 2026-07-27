@@ -29,6 +29,10 @@ export function getDefaultDatabaseUrl() {
     return `postgres://127.0.0.1:5432/grotto${isTestEnvironment() ? '_test' : ''}`;
 }
 
+export function getDefaultGrottoAttachmentRoot() {
+    return join(os.homedir(), '.grotto', 'server', 'attachments');
+}
+
 export function getDefaultClerkIssuerUrl() {
     return 'https://clerk.grotto.sh';
 }
@@ -131,6 +135,11 @@ const envSchema = z.object({
     CLERK_SECRET_KEY: z.string().min(1).optional(),
     DATABASE_PATH: z.string().min(1).default(getDefaultDatabasePath()).transform(resolveHomePath),
     DATABASE_URL: z.string().min(1).default(getDefaultDatabaseUrl()),
+    GROTTO_ATTACHMENT_ROOT: z
+        .string()
+        .min(1)
+        .default(getDefaultGrottoAttachmentRoot())
+        .transform(resolveHomePath),
     GROTTO_SERVER_PORT: z.coerce.number().int().positive().default(getDefaultGrottoServerPort()),
     DEV_CLERK_SIGN_IN_USER_ID: z.string().min(1).optional(),
     TAVERN_RUNTIME_URL: z.string().url().optional(),

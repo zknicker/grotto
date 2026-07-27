@@ -1,0 +1,96 @@
+import { useMutation } from '@tanstack/react-query';
+import type { HostedAttachmentUploadResult } from '@tavern/api';
+import { getClerkSessionToken } from '../../lib/clerk.tsx';
+import { getGrottoServerOrigin, grottoTrpc } from '../../lib/grotto-server.tsx';
+
+export const hostedAttachmentMaxSizeBytes = 52_428_800;
+
+export function useUploadServerAttachment() {
+    const reserve = grottoTrpc.attachment.reserve.useMutation();
+
+    return useMutation({
+        mutationFn: async ({
+            chatId,
+            file,
+            nonce,
+            serverId,
+        }: {
+            chatId: string;
+            file: File;
+            nonce: string;
+            serverId: string;
+        }) => {
+            if (file.size > hostedAttachmentMaxSizeBytes) {
+                throw new Error(`${file.name} exceeds the 50 MiB attachment limit.`);
+            }
+
+            const reservation = await reserve.mutateAsync({
+                chatId,
+                filename: file.name,
+                mediaType: file.type || 'application/octet-stream',
+                nonce,
+                serverId,
+            });
+            const token = await getClerkSessionToken();
+            if (!token) {
+                throw new Error('Sign in to upload attachments.');
+            }
+
+            const response = await fetch(
+                new URL(
+                    `/attachments/${serverId}/${reservation.attachmentId}`,
+                    getGrottoServerOrigin()
+                ),
+                {
+                    body: file,
+                    headers: {
+                        authorization: `Bearer ${token}`,
+                        'content-type': 'application/octet-stream',
+                    },
+                    method: 'PUT',
+                }
+            );
+            const body = await response.json();
+            if (!response.ok) {
+                throw new Error(readError(body, `Could not upload ${file.name}.`));
+            }
+            return readUploadResult(body).attachment;
+        },
+    });
+}
+
+function readUploadResult(value: unknown): HostedAttachmentUploadResult {
+    if (
+        typeof value !== 'object' ||
+        value === null ||
+        !('attachment' in value) ||
+        typeof value.attachment !== 'object' ||
+        value.attachment === null ||
+        !('id' in value.attachment) ||
+        !('filename' in value.attachment) ||
+        !('mediaType' in value.attachment) ||
+        !('sizeBytes' in value.attachment) ||
+        typeof value.attachment.id !== 'string' ||
+        typeof value.attachment.filename !== 'string' ||
+        typeof value.attachment.mediaType !== 'string' ||
+        typeof value.attachment.sizeBytes !== 'number' ||
+        !('idempotent' in value) ||
+        typeof value.idempotent !== 'boolean'
+    ) {
+        throw new Error('The Server returned an invalid attachment upload response.');
+    }
+
+    return value as HostedAttachmentUploadResult;
+}
+
+function readError(value: unknown, fallback: string) {
+    if (
+        typeof value === 'object' &&
+        value !== null &&
+        'error' in value &&
+        typeof value.error === 'string'
+    ) {
+        return value.error;
+    }
+    return fallback;
+}

@@ -39,10 +39,26 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     await composer.fill('Second durable human message');
     await page.getByRole('button', { name: 'Send' }).click();
 
+    const fileChooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Add attachments' }).click();
+    await (await fileChooser).setFiles({
+        buffer: Buffer.from('hosted attachment bytes'),
+        mimeType: 'text/plain',
+        name: 'hosted-note.txt',
+    });
+    await expect(page.getByText('hosted-note.txt')).toBeVisible();
+    await page.getByRole('button', { name: 'Send' }).click();
+    const downloadButton = page.getByRole('button', { name: 'Download hosted-note.txt' });
+    await expect(downloadButton).toBeVisible();
+    const download = page.waitForEvent('download');
+    await downloadButton.click();
+    expect((await download).suggestedFilename()).toBe('hosted-note.txt');
+
     const messages = page.locator('[data-hosted-message-sequence]');
-    await expect(messages).toHaveCount(2);
+    await expect(messages).toHaveCount(3);
     await expect(messages.nth(0)).toHaveAttribute('data-hosted-message-sequence', '1');
     await expect(messages.nth(1)).toHaveAttribute('data-hosted-message-sequence', '2');
+    await expect(messages.nth(2)).toHaveAttribute('data-hosted-message-sequence', '3');
 
     await page.getByPlaceholder('Search messages').fill('First durable');
     await page.getByRole('button', { name: 'Search' }).click();

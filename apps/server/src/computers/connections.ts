@@ -1,11 +1,13 @@
-import type { HostedAgentCommand } from '@tavern/api';
+import type { ComputerUpdatePhase, HostedAgentCommand, SignedComputerRelease } from '@tavern/api';
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 
 interface AttachedComputer {
     disconnect?(): void;
+    ordinary: boolean;
     send(frame: unknown): void;
     serverId: string;
+    updatePhase: ComputerUpdatePhase;
 }
 
 type McpOAuthStartResult =
@@ -47,7 +49,11 @@ export class ComputerConnections implements DeliveryTransport {
     }
 
     isOnline(computerId: string): boolean {
-        return this.attached.has(computerId);
+        const computer = this.attached.get(computerId);
+        return Boolean(
+            computer?.ordinary &&
+                !['waiting-for-agents', 'restarting'].includes(computer.updatePhase)
+        );
     }
 
     /** Sends cleanup to every online Computer for a Server, then disconnects it without waiting. */
@@ -76,7 +82,7 @@ export class ComputerConnections implements DeliveryTransport {
     /** Sends a typed frame to the Computer, reporting whether it was online. */
     send(computerId: string, frame: HostedAgentCommand): boolean {
         const computer = this.attached.get(computerId);
-        if (!computer) {
+        if (!(computer?.ordinary && (frame.type === 'stop' || this.isOnline(computerId)))) {
             return false;
         }
         computer.send(frame);
@@ -85,7 +91,7 @@ export class ComputerConnections implements DeliveryTransport {
 
     sendMcpConnection(computerId: string, connection: unknown): boolean {
         const computer = this.attached.get(computerId);
-        if (!computer) {
+        if (!(this.isOnline(computerId) && computer)) {
             return false;
         }
         computer.send({ connection, type: 'mcp-upsert' });
@@ -94,19 +100,35 @@ export class ComputerConnections implements DeliveryTransport {
 
     sendMcpGrant(computerId: string, grant: unknown): boolean {
         const computer = this.attached.get(computerId);
-        if (!computer) {
+        if (!computer?.ordinary) {
             return false;
         }
         computer.send({ grant, type: 'mcp-grant' });
         return true;
     }
+    setUpdatePhase(computerId: string, updatePhase: ComputerUpdatePhase): void {
+        const computer = this.attached.get(computerId);
+        if (computer) {
+            computer.updatePhase = updatePhase;
+        }
+    }
+
+    sendUpdate(computerId: string, release: SignedComputerRelease): boolean {
+        const computer = this.attached.get(computerId);
+        if (!computer) {
+            return false;
+        }
+        computer.send({ release, type: 'update' });
+        return true;
+    }
+
     sendMcpHeaders(
         computerId: string,
         connectionId: string,
         headers: Record<string, string>
     ): boolean {
         const attached = this.attached.get(computerId);
-        if (!attached) {
+        if (!(attached && this.isOnline(computerId))) {
             return false;
         }
         attached.send({ connectionId, headers, type: 'mcp-replace-headers' });
@@ -119,7 +141,7 @@ export class ComputerConnections implements DeliveryTransport {
         connectionId: string
     ): boolean {
         const attached = this.attached.get(computerId);
-        if (!attached) {
+        if (!(attached && this.isOnline(computerId))) {
             return false;
         }
         attached.send({ connectionId, type });
@@ -175,7 +197,7 @@ export class ComputerConnections implements DeliveryTransport {
         frame: Record<string, unknown>
     ): Promise<Result> {
         const attached = this.attached.get(computerId);
-        if (!attached) {
+        if (!(attached && this.isOnline(computerId))) {
             return Promise.reject(new Error('The selected Computer must be online.'));
         }
         const requestId = createOpaqueId('req');

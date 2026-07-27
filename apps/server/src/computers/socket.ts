@@ -1,6 +1,9 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
 import {
+    computerBootstrapHelloSchema,
+    computerProtocolVersion,
+    computerUpdateProgressFrameSchema,
     hostedAgentDeliveryAckSchema,
     hostedAgentEffectiveStateSchema,
     hostedAgentTurnSummarySchema,
@@ -15,22 +18,13 @@ import { recordHostedMcpInventory } from '../hosted-mcp/state.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentMcpToolGrantsTable, mcpConnectionsTable } from '../postgres/schema.ts';
 import type { ComputerConnections } from './connections.ts';
-import { computerHandshakeSchema } from './contracts.ts';
 import {
     hashComputerSecret,
     markComputerOffline,
     recordComputerInventory,
     reportComputerHandshake,
+    reportComputerUpdateProgress,
 } from './service.ts';
-
-const helloSchema = z
-    .object({
-        credential: z.string().min(32),
-        inventory: hostedComputerInventorySchema.optional(),
-        type: z.literal('hello'),
-    })
-    .extend(computerHandshakeSchema.shape)
-    .strict();
 
 /** Ongoing report of last-reported inventory and per-Agent effective state. */
 const reportSchema = z
@@ -89,13 +83,14 @@ export function startComputerAttachmentSocket(
     server.on('upgrade', onUpgrade);
     socketServer.on('connection', (socket) => {
         let computerId: string | null = null;
+        let ordinary = false;
         socket.on('message', async (raw) => {
             if (computerId) {
-                await ingestReport(db, connections, delivery, computerId, raw.toString());
+                await ingestReport(db, connections, delivery, computerId, ordinary, raw.toString());
                 return;
             }
             try {
-                const hello = helloSchema.parse(JSON.parse(raw.toString()));
+                const hello = computerBootstrapHelloSchema.parse(JSON.parse(raw.toString()));
                 const computer = await reportComputerHandshake(
                     db,
                     hashComputerSecret(hello.credential),
@@ -106,14 +101,23 @@ export function startComputerAttachmentSocket(
                     return;
                 }
                 computerId = computer.id;
+                ordinary = hello.protocolVersion === computerProtocolVersion;
                 sockets.set(computer.id, socket);
                 connections.register(computer.id, {
                     disconnect: () => socket.close(4000, 'Server deleted'),
+                    ordinary,
                     send: (frame) => socket.send(JSON.stringify(frame)),
                     serverId: computer.serverId,
+                    updatePhase: hello.update.phase,
                 });
-                if (hello.inventory) {
-                    await recordComputerInventory(db, computer.id, hello.inventory);
+                socket.send(
+                    JSON.stringify({
+                        mode: ordinary ? 'ordinary' : 'update-required',
+                        type: 'bootstrap-accepted',
+                    })
+                );
+                if (!ordinary) {
+                    return;
                 }
                 const grants = await db
                     .select({
@@ -128,7 +132,6 @@ export function startComputerAttachmentSocket(
                     )
                     .where(eq(mcpConnectionsTable.computerId, computer.id));
                 socket.send(JSON.stringify({ grants, type: 'mcp-grants' }));
-                socket.send(JSON.stringify({ computerId: computer.id, type: 'accepted' }));
                 // Idempotent reconnect: resend unacknowledged deliveries and drain
                 // any pending inbox for this Computer's Agents.
                 void delivery.onComputerReconnect(computer.id).catch(() => undefined);
@@ -160,12 +163,23 @@ async function ingestReport(
     connections: ComputerConnections,
     delivery: AgentDelivery,
     computerId: string,
+    ordinary: boolean,
     raw: string
 ) {
     let frame: unknown;
     try {
         frame = JSON.parse(raw);
     } catch {
+        return;
+    }
+
+    const update = computerUpdateProgressFrameSchema.safeParse(frame);
+    if (update.success) {
+        connections.setUpdatePhase(computerId, update.data.update.phase);
+        await reportComputerUpdateProgress(db, computerId, update.data.update);
+        return;
+    }
+    if (!ordinary) {
         return;
     }
 

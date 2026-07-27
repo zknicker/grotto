@@ -3,6 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
+import computerPackage from '../package.json' with { type: 'json' };
 import { runAgentCli } from './agent-cli.ts';
 import {
     decideStart,
@@ -24,6 +25,20 @@ import {
     runAgentLaunch,
 } from './launch.ts';
 import { type AttachmentMcpConnection, AttachmentMcpRuntime } from './mcp-runtime.ts';
+import {
+    admitActiveRun,
+    progress,
+    readProductionRelease,
+    readUpdateProgress,
+    runSignedUpdate,
+    writeUpdateProgress,
+} from './update.ts';
+import {
+    computerBootstrapProtocolVersion,
+    computerProtocolVersion,
+    parseBootstrapAccepted,
+    parseComputerUpdateCommand,
+} from './update-contract.ts';
 
 interface SetupResponse {
     approvalId: string;
@@ -47,7 +62,18 @@ async function main(args: string[]) {
         console.log('Grotto Computer resident service installed.');
         return;
     }
+    if (command === 'upgrade') {
+        const release = await readProductionRelease();
+        await runSignedUpdate({
+            dataRoot,
+            release,
+            restart: restartAfterUpdate,
+        });
+        return;
+    }
     if (command === 'start') {
+        await recoverInterruptedUpdate();
+        await finishRestart();
         await rm(stoppedPath(), { force: true });
         await startAttachments(target);
         if (process.env.GROTTO_COMPUTER_RESIDENT === '1') {
@@ -81,7 +107,9 @@ async function main(args: string[]) {
         return;
     }
     if (command !== 'setup' || !target?.startsWith('/')) {
-        throw new Error('Usage: grotto-computer <install|start|stop|restart|setup /server-slug>');
+        throw new Error(
+            'Usage: grotto-computer <install|upgrade|start|stop|restart|setup /server-slug>'
+        );
     }
     const slug = target.slice(1);
     const current = await findAttachment(slug);
@@ -329,6 +357,14 @@ async function installResidentService() {
     const plistPath = join(agentsRoot, 'com.grotto.computer.plist');
     await mkdir(agentsRoot, { recursive: true });
     await mkdir(dataRoot, { mode: 0o700, recursive: true });
+    const updatePublicKey = process.env.GROTTO_COMPUTER_UPDATE_PUBLIC_KEY;
+    if (updatePublicKey) {
+        await writeFile(
+            join(dataRoot, 'update-public-key.pem'),
+            updatePublicKey.replaceAll('\\n', '\n'),
+            { mode: 0o600 }
+        );
+    }
     await writeFile(plistPath, launchdPlist(process.execPath, process.argv[1] ?? ''), {
         mode: 0o600,
     });
@@ -364,6 +400,47 @@ async function stopResidentService() {
     }
 }
 
+async function restartAfterUpdate() {
+    for (const attachment of await listAttachments()) {
+        try {
+            const pid = Number.parseInt(await readFile(runnerPath(attachment), 'utf8'), 10);
+            if (pid !== process.pid && Number.isSafeInteger(pid) && pid > 0) {
+                process.kill(pid, 'SIGTERM');
+            }
+        } catch {
+            // A missing runner is already ready for the resident restart.
+        }
+        await rm(runnerPath(attachment), { force: true });
+    }
+    await installResidentService();
+}
+
+async function finishRestart() {
+    const current = await readUpdateProgress(dataRoot);
+    if (current.phase !== 'restarting') {
+        return;
+    }
+    await writeUpdateProgress(
+        dataRoot,
+        progress('complete', current.targetVersion, 'Grotto Computer updated successfully.')
+    );
+}
+
+export async function recoverInterruptedUpdate(root = dataRoot) {
+    const current = await readUpdateProgress(root);
+    if (!['installing', 'waiting-for-agents'].includes(current.phase)) {
+        return;
+    }
+    await writeUpdateProgress(
+        root,
+        progress(
+            'failed',
+            current.targetVersion,
+            'Update was interrupted. Retry in Settings or run grotto-computer upgrade locally.'
+        )
+    );
+}
+
 export function launchdPlist(runtime: string, entrypoint: string) {
     const escaped = [runtime, entrypoint, 'start', dataRoot].map(escapeXml);
     return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.grotto.computer</string><key>ProgramArguments</key><array><string>${escaped[0]}</string><string>${escaped[1]}</string><string>${escaped[2]}</string></array><key>EnvironmentVariables</key><dict><key>GROTTO_COMPUTER_DATA_ROOT</key><string>${escaped[3]}</string><key>GROTTO_COMPUTER_RESIDENT</key><string>1</string></dict><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
@@ -394,6 +471,18 @@ async function connect(attachment: Attachment) {
         );
         return operation;
     };
+    let lastProgress = JSON.stringify(await readUpdateProgress(dataRoot));
+    const progressTimer = setInterval(() => {
+        void readUpdateProgress(dataRoot).then((update) => {
+            const serialized = JSON.stringify(update);
+            if (serialized === lastProgress || socket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+            lastProgress = serialized;
+            socket.send(JSON.stringify({ type: 'update-progress', update }));
+        });
+    }, 500);
+    socket.addEventListener('close', () => clearInterval(progressTimer));
     await new Promise<void>((resolve, reject) => {
         socket.addEventListener('error', () =>
             reject(new Error('Computer attachment socket failed.'))
@@ -418,11 +507,32 @@ async function connect(attachment: Attachment) {
             if (deleting) {
                 return;
             }
-            if (frame.type === 'accepted') {
+            const bootstrap = parseBootstrapAccepted(frame);
+            if (bootstrap) {
+                if (bootstrap.mode === 'ordinary') {
+                    socket.send(
+                        JSON.stringify({
+                            agents: [],
+                            inventory: detectInventory(),
+                            type: 'report',
+                        })
+                    );
+                }
                 if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
                     socket.close();
                 }
                 resolve();
+                return;
+            }
+            const update = parseComputerUpdateCommand(frame);
+            if (update) {
+                void runSignedUpdate({
+                    dataRoot,
+                    release: update.release,
+                    restart: restartAfterUpdate,
+                }).catch((error) => {
+                    console.error(error instanceof Error ? error.message : error);
+                });
                 return;
             }
             const mcpConnection = parseMcpUpsert(frame);
@@ -606,33 +716,47 @@ async function connect(attachment: Attachment) {
                     return;
                 }
                 void trackWriter(
-                    handleStartCommand({
-                        attachment,
-                        command,
-                        controller,
-                        mcpRuntime: mcp,
-                        running,
-                        socket,
-                    }).catch((error) => {
-                        running.delete(command.runId);
-                        console.error(error instanceof Error ? error.message : error);
-                    })
+                    admitActiveRun(dataRoot, command.runId)
+                        .then((clearActiveRun) => {
+                            if (!clearActiveRun) {
+                                running.delete(command.runId);
+                                return;
+                            }
+                            return handleStartCommand({
+                                attachment,
+                                clearActiveRun,
+                                command,
+                                controller,
+                                mcpRuntime: mcp,
+                                running,
+                                socket,
+                            });
+                        })
+                        .catch((error) => {
+                            running.delete(command.runId);
+                            console.error(error instanceof Error ? error.message : error);
+                        })
                 );
             }
         });
         socket.addEventListener('open', () => {
-            socket.send(
-                JSON.stringify({
-                    architecture: arch(),
-                    credential: attachment.credential,
-                    health: 'healthy',
-                    inventory: detectInventory(),
-                    operatingSystem: platform(),
-                    productVersion: '1.0.0',
-                    protocolVersion: 1,
-                    type: 'hello',
-                })
-            );
+            void readUpdateProgress(dataRoot).then((update) => {
+                lastProgress = JSON.stringify(update);
+                socket.send(
+                    JSON.stringify({
+                        architecture: arch(),
+                        bootstrapProtocolVersion: computerBootstrapProtocolVersion,
+                        credential: attachment.credential,
+                        health: 'healthy',
+                        operatingSystem: platform(),
+                        productVersion:
+                            process.env.GROTTO_COMPUTER_PRODUCT_VERSION ?? computerPackage.version,
+                        protocolVersion: computerProtocolVersion,
+                        type: 'bootstrap',
+                        update,
+                    })
+                );
+            });
         });
     });
 }
@@ -648,11 +772,12 @@ async function handleStartCommand(input: {
     attachment: Attachment;
     command: HostedAgentStartCommand;
     controller: AbortController;
+    clearActiveRun: () => Promise<void>;
     mcpRuntime: AttachmentMcpRuntime;
     running: Map<string, AbortController>;
     socket: WebSocket;
 }): Promise<void> {
-    const { attachment, command, controller, mcpRuntime, running, socket } = input;
+    const { attachment, clearActiveRun, command, controller, mcpRuntime, running, socket } = input;
     const startedAt = new Date().toISOString();
     const send = (frame: unknown) => socket.send(JSON.stringify(frame));
     const ack = () => send({ agentId: command.agentId, runId: command.runId, type: 'ack' });
@@ -714,6 +839,7 @@ async function handleStartCommand(input: {
             serverId: attachment.serverId,
         });
     } finally {
+        await clearActiveRun();
         running.delete(command.runId);
     }
 }

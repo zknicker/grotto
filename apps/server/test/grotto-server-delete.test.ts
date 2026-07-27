@@ -138,12 +138,16 @@ test('sends cleanup only to online Computers for the deleted Server and does not
         disconnect: () => {
             disconnected = true;
         },
+        ordinary: true,
         send: (frame) => frames.push(frame),
         serverId,
+        updatePhase: 'idle',
     });
     connections.register('cmp_other', {
+        ordinary: true,
         send: (frame) => frames.push(frame),
         serverId: 'srv_other000000000',
+        updatePhase: 'idle',
     });
 
     expect(connections.cleanupServer(serverId)).toBe(1);
@@ -159,10 +163,12 @@ test('a closing Computer socket cannot block asynchronous deletion', () => {
         disconnect: () => {
             throw new Error('already closed');
         },
+        ordinary: true,
         send: () => {
             throw new Error('socket closing');
         },
         serverId,
+        updatePhase: 'idle',
     });
 
     expect(connections.cleanupServer(serverId)).toBe(0);

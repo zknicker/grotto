@@ -15,7 +15,7 @@ test('promotes only published Grotto versions or an explicit published-version c
             deploy: {
                 permissions: { contents: string };
                 steps: { run?: string; uses?: string; with?: Record<string, unknown> }[];
-                'runs-on': string;
+                'runs-on': string[];
             };
         };
         on: {
@@ -54,7 +54,7 @@ test('promotes only published Grotto versions or an explicit published-version c
 
     const job = workflow.jobs.deploy;
     const commands = job.steps.flatMap((step) => step.run ?? []).join('\n');
-    expect(job['runs-on']).toBe('self-hosted');
+    expect(job['runs-on']).toEqual(['self-hosted', 'grotto']);
     expect(job.permissions).toEqual({ contents: 'read' });
     expect(source).toContain('/Users/zknicker/srv/grotto');
     expect(commands).toContain('refs/tags/');

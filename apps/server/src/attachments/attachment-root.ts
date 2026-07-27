@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { type FileHandle, lstat, mkdir, open, readdir, rename, unlink } from 'node:fs/promises';
+import { type FileHandle, lstat, mkdir, open, readdir, rename, rm, unlink } from 'node:fs/promises';
 import { isAbsolute, join, relative } from 'node:path';
 
 const serverIdPattern = /^srv_[A-Za-z0-9_-]{16}$/u;
@@ -8,6 +8,8 @@ const attachmentIdPattern = /^att_[A-Za-z0-9_-]{16}$/u;
 const stagingKeyPattern = /^upl_[A-Za-z0-9_-]{16}$/u;
 
 export interface AttachmentRoot {
+    /** Holds a Server write open so deletion cannot race its filesystem work. */
+    beginServerWrite(serverId: string): () => void;
     createStagingFile(serverId: string, stagingKey: string): Promise<FileHandle>;
     discardStagingFile(serverId: string, stagingKey: string): Promise<void>;
     finalize(serverId: string, attachmentId: string, stagingKey: string): Promise<void>;
@@ -16,6 +18,8 @@ export interface AttachmentRoot {
     openObject(serverId: string, attachmentId: string): Promise<FileHandle>;
     openStagingFile(serverId: string, stagingKey: string): Promise<FileHandle>;
     path: string;
+    /** Removes one Server's whole attachment subtree. Idempotent when absent. */
+    purgeServer(serverId: string): Promise<void>;
     stagingKey(serverId: string, stagingKey: string): string;
 }
 
@@ -38,42 +42,77 @@ export async function openAttachmentRoot(
     await mkdir(serversPath, { mode: 0o700, recursive: true });
     await requirePrivateDirectory(serversPath, 'attachment servers directory');
 
+    const activeServerWrites = new Map<string, number>();
+    const deletingServers = new Set<string>();
+    const serverWriteWaiters = new Map<string, Set<() => void>>();
     const attachmentRoot: AttachmentRoot = {
+        beginServerWrite(serverId) {
+            requireId(serverId, serverIdPattern, 'Server');
+            if (deletingServers.has(serverId)) {
+                throw new Error('This Server attachment root is being deleted.');
+            }
+            activeServerWrites.set(serverId, (activeServerWrites.get(serverId) ?? 0) + 1);
+            let released = false;
+            return () => {
+                if (released) {
+                    return;
+                }
+                released = true;
+                const remaining = (activeServerWrites.get(serverId) ?? 1) - 1;
+                if (remaining > 0) {
+                    activeServerWrites.set(serverId, remaining);
+                    return;
+                }
+                activeServerWrites.delete(serverId);
+                for (const resolve of serverWriteWaiters.get(serverId) ?? []) {
+                    resolve();
+                }
+                serverWriteWaiters.delete(serverId);
+            };
+        },
         async createStagingFile(serverId, stagingKey) {
-            const paths = await ensureServerLayout(rootPath, serverId);
-            requireId(stagingKey, stagingKeyPattern, 'staging');
-            return await openRegularLeaf(join(paths.staging, digest(stagingKey)), true);
+            return await withServerWrite(attachmentRoot, serverId, async () => {
+                const paths = await ensureServerLayout(rootPath, serverId);
+                requireId(stagingKey, stagingKeyPattern, 'staging');
+                return await openRegularLeaf(join(paths.staging, digest(stagingKey)), true);
+            });
         },
         async discardStagingFile(serverId, stagingKey) {
-            const paths = await ensureServerLayout(rootPath, serverId);
-            requireId(stagingKey, stagingKeyPattern, 'staging');
-            if (await unlinkRegularLeaf(join(paths.staging, digest(stagingKey)))) {
-                await syncDirectory(paths.staging);
-            }
+            await withServerWrite(attachmentRoot, serverId, async () => {
+                const paths = await ensureServerLayout(rootPath, serverId);
+                requireId(stagingKey, stagingKeyPattern, 'staging');
+                if (await unlinkRegularLeaf(join(paths.staging, digest(stagingKey)))) {
+                    await syncDirectory(paths.staging);
+                }
+            });
         },
         async finalize(serverId, attachmentId, stagingKey) {
-            const paths = await ensureServerLayout(rootPath, serverId);
-            requireId(attachmentId, attachmentIdPattern, 'attachment');
-            requireId(stagingKey, stagingKeyPattern, 'staging');
-            const stagingPath = join(paths.staging, digest(stagingKey));
-            const objectPath = join(paths.objects, digest(`${serverId}\0${attachmentId}`));
-            await requireRegularLeaf(stagingPath);
-            await requireAbsentLeaf(objectPath);
-            await rename(stagingPath, objectPath);
-            await failureInjection?.afterRename?.();
-            await syncDirectory(paths.objects);
-            await syncDirectory(paths.staging);
+            await withServerWrite(attachmentRoot, serverId, async () => {
+                const paths = await ensureServerLayout(rootPath, serverId);
+                requireId(attachmentId, attachmentIdPattern, 'attachment');
+                requireId(stagingKey, stagingKeyPattern, 'staging');
+                const stagingPath = join(paths.staging, digest(stagingKey));
+                const objectPath = join(paths.objects, digest(`${serverId}\0${attachmentId}`));
+                await requireRegularLeaf(stagingPath);
+                await requireAbsentLeaf(objectPath);
+                await rename(stagingPath, objectPath);
+                await failureInjection?.afterRename?.();
+                await syncDirectory(paths.objects);
+                await syncDirectory(paths.staging);
+            });
         },
         async listKeys(serverId) {
-            const paths = await ensureServerLayout(rootPath, serverId);
-            return {
-                objectKeys: (await listRegularLeafNames(paths.objects)).map((name) =>
-                    relative(rootPath, join(paths.objects, name))
-                ),
-                stagingKeys: (await listRegularLeafNames(paths.staging)).map((name) =>
-                    relative(rootPath, join(paths.staging, name))
-                ),
-            };
+            return await withServerWrite(attachmentRoot, serverId, async () => {
+                const paths = await ensureServerLayout(rootPath, serverId);
+                return {
+                    objectKeys: (await listRegularLeafNames(paths.objects)).map((name) =>
+                        relative(rootPath, join(paths.objects, name))
+                    ),
+                    stagingKeys: (await listRegularLeafNames(paths.staging)).map((name) =>
+                        relative(rootPath, join(paths.staging, name))
+                    ),
+                };
+            });
         },
         objectKey(serverId, attachmentId) {
             requireId(serverId, serverIdPattern, 'Server');
@@ -90,19 +129,38 @@ export async function openAttachmentRoot(
             );
         },
         async openObject(serverId, attachmentId) {
-            const paths = await ensureServerLayout(rootPath, serverId);
-            requireId(attachmentId, attachmentIdPattern, 'attachment');
-            return await openRegularLeaf(
-                join(paths.objects, digest(`${serverId}\0${attachmentId}`)),
-                false
-            );
+            return await withServerWrite(attachmentRoot, serverId, async () => {
+                const paths = await ensureServerLayout(rootPath, serverId);
+                requireId(attachmentId, attachmentIdPattern, 'attachment');
+                return await openRegularLeaf(
+                    join(paths.objects, digest(`${serverId}\0${attachmentId}`)),
+                    false
+                );
+            });
         },
         async openStagingFile(serverId, stagingKey) {
-            const paths = await ensureServerLayout(rootPath, serverId);
-            requireId(stagingKey, stagingKeyPattern, 'staging');
-            return await openRegularLeaf(join(paths.staging, digest(stagingKey)), false);
+            return await withServerWrite(attachmentRoot, serverId, async () => {
+                const paths = await ensureServerLayout(rootPath, serverId);
+                requireId(stagingKey, stagingKeyPattern, 'staging');
+                return await openRegularLeaf(join(paths.staging, digest(stagingKey)), false);
+            });
         },
         path: rootPath,
+        async purgeServer(serverId) {
+            requireId(serverId, serverIdPattern, 'Server');
+            deletingServers.add(serverId);
+            await waitForServerWrites(serverId, activeServerWrites, serverWriteWaiters);
+            await requirePrivateDirectory(rootPath, 'attachment root');
+            await requirePrivateDirectory(serversPath, 'attachment servers directory');
+            const serverPath = join(serversPath, digest(serverId));
+            if (
+                !(await requirePrivateDirectoryIfPresent(serverPath, 'attachment Server directory'))
+            ) {
+                return;
+            }
+            await rm(serverPath, { force: true, recursive: true });
+            await syncDirectory(serversPath);
+        },
         stagingKey(serverId, stagingKey) {
             requireId(serverId, serverIdPattern, 'Server');
             requireId(stagingKey, stagingKeyPattern, 'staging');
@@ -116,6 +174,34 @@ export async function openAttachmentRoot(
     return attachmentRoot;
 }
 
+async function withServerWrite<Result>(
+    root: AttachmentRoot,
+    serverId: string,
+    operation: () => Promise<Result>
+) {
+    const release = root.beginServerWrite(serverId);
+    try {
+        return await operation();
+    } finally {
+        release();
+    }
+}
+
+async function waitForServerWrites(
+    serverId: string,
+    activeWrites: Map<string, number>,
+    waiters: Map<string, Set<() => void>>
+) {
+    if (!activeWrites.has(serverId)) {
+        return;
+    }
+    await new Promise<void>((resolve) => {
+        const serverWaiters = waiters.get(serverId) ?? new Set();
+        serverWaiters.add(resolve);
+        waiters.set(serverId, serverWaiters);
+    });
+}
+
 async function requirePrivateDirectory(path: string, label: string) {
     const stat = await lstat(path);
 
@@ -127,6 +213,18 @@ async function requirePrivateDirectory(path: string, label: string) {
     }
     if ((stat.mode & 0o777) !== 0o700) {
         throw new Error(`The ${label} must have mode 0700.`);
+    }
+}
+
+async function requirePrivateDirectoryIfPresent(path: string, label: string) {
+    try {
+        await requirePrivateDirectory(path, label);
+        return true;
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return false;
+        }
+        throw error;
     }
 }
 

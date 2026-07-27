@@ -18,7 +18,11 @@ export async function listAccessibleServers(
         .from(serverMembershipsTable)
         .innerJoin(serversTable, eq(serversTable.id, serverMembershipsTable.serverId))
         .where(
-            and(eq(serverMembershipsTable.userId, userId), isNull(serverMembershipsTable.revokedAt))
+            and(
+                eq(serverMembershipsTable.userId, userId),
+                isNull(serverMembershipsTable.revokedAt),
+                isNull(serversTable.deletedAt)
+            )
         )
         .orderBy(asc(serversTable.createdAt));
 }

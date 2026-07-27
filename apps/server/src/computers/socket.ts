@@ -108,6 +108,7 @@ export function startComputerAttachmentSocket(
                 computerId = computer.id;
                 sockets.set(computer.id, socket);
                 connections.register(computer.id, {
+                    disconnect: () => socket.close(4000, 'Server deleted'),
                     send: (frame) => socket.send(JSON.stringify(frame)),
                     serverId: computer.serverId,
                 });

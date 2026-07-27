@@ -85,6 +85,25 @@ test('fails closed when an expected staging or object leaf is substituted', asyn
     await expect(root.openObject(serverId, attachmentId)).rejects.toThrow();
 });
 
+test('quiesces active writes before purge and rejects later layout recreation', async () => {
+    const parent = await temporaryDirectory();
+    const root = await openAttachmentRoot(join(parent, 'attachments'));
+    const serverId = 'srv_1234567890abcdef';
+    const release = root.beginServerWrite(serverId);
+    let purged = false;
+    const purge = root.purgeServer(serverId).then(() => {
+        purged = true;
+    });
+
+    await Bun.sleep(0);
+    expect(purged).toBe(false);
+    release();
+    await purge;
+
+    expect(() => root.beginServerWrite(serverId)).toThrow(/being deleted/i);
+    await expect(root.listKeys(serverId)).rejects.toThrow(/being deleted/i);
+});
+
 async function temporaryDirectory() {
     const root = await mkdtemp(join(tmpdir(), 'grotto-attachment-root-'));
     roots.push(root);

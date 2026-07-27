@@ -13,6 +13,7 @@ export * from './schema/computers.ts';
 export * from './schema/mcp.ts';
 export * from './schema/message-tasks.ts';
 export * from './schema/reminders.ts';
+export * from './schema/server-deletions.ts';
 export * from './schema/server-invitations.ts';
 export * from './schema/server-memberships.ts';
 export * from './schema/servers.ts';

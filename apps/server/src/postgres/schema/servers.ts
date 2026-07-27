@@ -5,11 +5,17 @@ import { bigint, check, pgTable, text, timestamp, uniqueIndex } from 'drizzle-or
  * A Grotto server: an opaque id every relationship points at, a globally
  * unique immutable slug used only as the human-facing address, and an
  * editable display name.
+ *
+ * `deletedAt` is the tombstone an Owner sets when deleting the Server: it
+ * disables every membership gate immediately while the asynchronous purge
+ * cascades away the rows and local attachment bytes. It is never cleared —
+ * deletion has no restore path.
  */
 export const serversTable = pgTable(
     'servers',
     {
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        deletedAt: timestamp('deleted_at', { withTimezone: true }),
         displayName: text('display_name').notNull(),
         id: text('id').primaryKey(),
         lastChatEventCursor: bigint('last_chat_event_cursor', { mode: 'bigint' })

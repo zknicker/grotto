@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { runAgentCli } from './agent-cli.ts';
 import {
     decideStart,
+    purgeServerPartition,
     readRunMarker,
     reserveRun,
     writePendingNotice,
@@ -17,6 +18,7 @@ import {
     type HostedAgentStartCommand,
     type HostedAgentTurnFrame,
     parseNoticeCommand,
+    parseServerDeleteCommand,
     parseStartCommand,
     parseStopCommand,
     runAgentLaunch,
@@ -382,12 +384,40 @@ async function connect(attachment: Attachment) {
     const socket = new WebSocket(socketUrl);
     // Live runs in this process, keyed by run so a Stop can kill the right child.
     const running = new Map<string, AbortController>();
+    const pendingWriters = new Set<Promise<unknown>>();
+    let deleting = false;
+    const trackWriter = <Result>(operation: Promise<Result>) => {
+        pendingWriters.add(operation);
+        operation.then(
+            () => pendingWriters.delete(operation),
+            () => pendingWriters.delete(operation)
+        );
+        return operation;
+    };
     await new Promise<void>((resolve, reject) => {
         socket.addEventListener('error', () =>
             reject(new Error('Computer attachment socket failed.'))
         );
         socket.addEventListener('message', (event) => {
             const frame = JSON.parse(String(event.data)) as { type?: string };
+            if (parseServerDeleteCommand(frame)) {
+                deleting = true;
+                socket.close();
+                for (const controller of running.values()) {
+                    controller.abort();
+                }
+                void mcp
+                    .close()
+                    .catch(() => undefined)
+                    .then(() => purgeServerPartition(dataRoot, attachment.serverId, pendingWriters))
+                    .catch((error) => {
+                        console.error(error instanceof Error ? error.message : error);
+                    });
+                return;
+            }
+            if (deleting) {
+                return;
+            }
             if (frame.type === 'accepted') {
                 if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
                     socket.close();
@@ -397,81 +427,87 @@ async function connect(attachment: Attachment) {
             }
             const mcpConnection = parseMcpUpsert(frame);
             if (mcpConnection) {
-                void mcp
-                    .upsert(mcpConnection)
-                    .then(async () => {
-                        const connected = await mcp.isConnected(mcpConnection.id);
-                        socket.send(
-                            JSON.stringify({
-                                accountLabel: connected
-                                    ? (await mcp.discover(mcpConnection.id)).accountLabel
-                                    : null,
-                                connected,
-                                connectionId: mcpConnection.id,
-                                tools: connected ? await mcp.listTools(mcpConnection.id) : [],
-                                type: 'mcp-inventory',
-                            })
-                        );
-                    })
-                    .catch((error) => {
-                        console.error(error instanceof Error ? error.message : error);
-                    });
+                void trackWriter(
+                    mcp
+                        .upsert(mcpConnection)
+                        .then(async () => {
+                            const connected = await mcp.isConnected(mcpConnection.id);
+                            socket.send(
+                                JSON.stringify({
+                                    accountLabel: connected
+                                        ? (await mcp.discover(mcpConnection.id)).accountLabel
+                                        : null,
+                                    connected,
+                                    connectionId: mcpConnection.id,
+                                    tools: connected ? await mcp.listTools(mcpConnection.id) : [],
+                                    type: 'mcp-inventory',
+                                })
+                            );
+                        })
+                        .catch((error) => {
+                            console.error(error instanceof Error ? error.message : error);
+                        })
+                );
                 return;
             }
             const oauthStart = parseMcpOAuthStart(frame);
             if (oauthStart) {
-                void mcp
-                    .startOAuth(oauthStart)
-                    .then((result) => {
-                        socket.send(
-                            JSON.stringify({
-                                requestId: oauthStart.requestId,
-                                result,
-                                type: 'mcp-oauth-started',
-                            })
-                        );
-                    })
-                    .catch(() => {
-                        socket.send(
-                            JSON.stringify({
-                                error: 'MCP OAuth could not start.',
-                                requestId: oauthStart.requestId,
-                                type: 'mcp-oauth-started',
-                            })
-                        );
-                    });
+                void trackWriter(
+                    mcp
+                        .startOAuth(oauthStart)
+                        .then((result) => {
+                            socket.send(
+                                JSON.stringify({
+                                    requestId: oauthStart.requestId,
+                                    result,
+                                    type: 'mcp-oauth-started',
+                                })
+                            );
+                        })
+                        .catch(() => {
+                            socket.send(
+                                JSON.stringify({
+                                    error: 'MCP OAuth could not start.',
+                                    requestId: oauthStart.requestId,
+                                    type: 'mcp-oauth-started',
+                                })
+                            );
+                        })
+                );
                 return;
             }
             const oauthComplete = parseMcpOAuthComplete(frame);
             if (oauthComplete) {
-                void mcp
-                    .completeOAuth(oauthComplete)
-                    .then((discovery) => {
-                        socket.send(
-                            JSON.stringify({
-                                accountLabel: discovery.accountLabel,
-                                connected: true,
-                                connectionId: oauthComplete.connectionId,
-                                tools: discovery.tools,
-                                type: 'mcp-inventory',
-                            })
-                        );
-                        socket.send(
-                            JSON.stringify({
-                                requestId: oauthComplete.requestId,
-                                type: 'mcp-oauth-completed',
-                            })
-                        );
-                    })
-                    .catch(() => {
-                        socket.send(
-                            JSON.stringify({
-                                error: 'MCP OAuth did not complete.',
-                                requestId: oauthComplete.requestId,
-                                type: 'mcp-oauth-completed',
-                            })
-                        );
-                    });
+                void trackWriter(
+                    mcp
+                        .completeOAuth(oauthComplete)
+                        .then((discovery) => {
+                            socket.send(
+                                JSON.stringify({
+                                    accountLabel: discovery.accountLabel,
+                                    connected: true,
+                                    connectionId: oauthComplete.connectionId,
+                                    tools: discovery.tools,
+                                    type: 'mcp-inventory',
+                                })
+                            );
+                            socket.send(
+                                JSON.stringify({
+                                    requestId: oauthComplete.requestId,
+                                    type: 'mcp-oauth-completed',
+                                })
+                            );
+                        })
+                        .catch(() => {
+                            socket.send(
+                                JSON.stringify({
+                                    error: 'MCP OAuth did not complete.',
+                                    requestId: oauthComplete.requestId,
+                                    type: 'mcp-oauth-completed',
+                                })
+                            );
+                        })
+                );
                 return;
             }
             const mcpControl = parseMcpControl(frame);
@@ -482,41 +518,47 @@ async function connect(attachment: Attachment) {
                         : mcpControl.type === 'mcp-disconnect'
                           ? mcp.disconnect(mcpControl.connectionId).then(() => [])
                           : mcp.discover(mcpControl.connectionId);
-                void operation
-                    .then((discovery) => {
-                        if (discovery) {
-                            socket.send(
-                                JSON.stringify({
-                                    accountLabel:
-                                        'accountLabel' in discovery ? discovery.accountLabel : null,
-                                    connected: mcpControl.type === 'mcp-refresh',
-                                    connectionId: mcpControl.connectionId,
-                                    tools: 'tools' in discovery ? discovery.tools : discovery,
-                                    type: 'mcp-inventory',
-                                })
-                            );
-                        }
-                    })
-                    .catch(() => undefined);
+                void trackWriter(
+                    operation
+                        .then((discovery) => {
+                            if (discovery) {
+                                socket.send(
+                                    JSON.stringify({
+                                        accountLabel:
+                                            'accountLabel' in discovery
+                                                ? discovery.accountLabel
+                                                : null,
+                                        connected: mcpControl.type === 'mcp-refresh',
+                                        connectionId: mcpControl.connectionId,
+                                        tools: 'tools' in discovery ? discovery.tools : discovery,
+                                        type: 'mcp-inventory',
+                                    })
+                                );
+                            }
+                        })
+                        .catch(() => undefined)
+                );
                 return;
             }
             const mcpHeaders = parseMcpHeaders(frame);
             if (mcpHeaders) {
-                void mcp
-                    .replaceHeaders(mcpHeaders.connectionId, mcpHeaders.headers)
-                    .then(() => mcp.discover(mcpHeaders.connectionId))
-                    .then((discovery) => {
-                        socket.send(
-                            JSON.stringify({
-                                accountLabel: discovery.accountLabel,
-                                connected: true,
-                                connectionId: mcpHeaders.connectionId,
-                                tools: discovery.tools,
-                                type: 'mcp-inventory',
-                            })
-                        );
-                    })
-                    .catch(() => undefined);
+                void trackWriter(
+                    mcp
+                        .replaceHeaders(mcpHeaders.connectionId, mcpHeaders.headers)
+                        .then(() => mcp.discover(mcpHeaders.connectionId))
+                        .then((discovery) => {
+                            socket.send(
+                                JSON.stringify({
+                                    accountLabel: discovery.accountLabel,
+                                    connected: true,
+                                    connectionId: mcpHeaders.connectionId,
+                                    tools: discovery.tools,
+                                    type: 'mcp-inventory',
+                                })
+                            );
+                        })
+                        .catch(() => undefined)
+                );
                 return;
             }
             const mcpGrant = parseMcpGrant(frame);
@@ -536,13 +578,15 @@ async function connect(attachment: Attachment) {
             }
             const notice = parseNoticeCommand(frame);
             if (notice) {
-                void writePendingNotice(dataRoot, {
-                    agentId: notice.agentId,
-                    pending: notice.pending,
-                    serverId: attachment.serverId,
-                }).catch((error) => {
-                    console.error(error instanceof Error ? error.message : error);
-                });
+                void trackWriter(
+                    writePendingNotice(dataRoot, {
+                        agentId: notice.agentId,
+                        pending: notice.pending,
+                        serverId: attachment.serverId,
+                    }).catch((error) => {
+                        console.error(error instanceof Error ? error.message : error);
+                    })
+                );
                 return;
             }
             const command = parseStartCommand(frame);
@@ -561,17 +605,19 @@ async function connect(attachment: Attachment) {
                     );
                     return;
                 }
-                void handleStartCommand({
-                    attachment,
-                    command,
-                    controller,
-                    mcpRuntime: mcp,
-                    running,
-                    socket,
-                }).catch((error) => {
-                    running.delete(command.runId);
-                    console.error(error instanceof Error ? error.message : error);
-                });
+                void trackWriter(
+                    handleStartCommand({
+                        attachment,
+                        command,
+                        controller,
+                        mcpRuntime: mcp,
+                        running,
+                        socket,
+                    }).catch((error) => {
+                        running.delete(command.runId);
+                        console.error(error instanceof Error ? error.message : error);
+                    })
+                );
             }
         });
         socket.addEventListener('open', () => {

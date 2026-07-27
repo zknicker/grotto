@@ -40,6 +40,19 @@ export async function uploadHostedAttachment(
     root: AttachmentRoot,
     input: UploadInput
 ): Promise<HostedAttachmentUploadResult> {
+    const releaseServerWrite = root.beginServerWrite(input.serverId);
+    try {
+        return await uploadHostedAttachmentOperation(db, root, input);
+    } finally {
+        releaseServerWrite();
+    }
+}
+
+async function uploadHostedAttachmentOperation(
+    db: GrottoDatabase,
+    root: AttachmentRoot,
+    input: UploadInput
+): Promise<HostedAttachmentUploadResult> {
     const attachment = await findAttachment(db, input.serverId, input.attachmentId);
 
     if (!attachment) {

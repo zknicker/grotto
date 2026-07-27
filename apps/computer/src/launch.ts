@@ -44,6 +44,11 @@ export interface HostedAgentNoticeCommand {
     type: 'notice';
 }
 
+/** Server-scoped instruction to erase this attachment's local partition. */
+export interface HostedServerDeleteCommand {
+    type: 'server-delete';
+}
+
 /** The compact turn summary the Computer pushes up after a launch settles. */
 export interface HostedAgentTurnFrame {
     agentId: string;
@@ -295,6 +300,12 @@ export function parseNoticeCommand(frame: unknown): HostedAgentNoticeCommand | n
         runId: frame.runId,
         type: 'notice',
     };
+}
+
+export function parseServerDeleteCommand(frame: unknown): HostedServerDeleteCommand | null {
+    return isRecord(frame) && frame.type === 'server-delete' && Object.keys(frame).length === 1
+        ? { type: 'server-delete' }
+        : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

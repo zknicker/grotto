@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { ServerSlugTakenError } from '../../servers/create-server.ts';
+import { ServerDeleteDeniedError } from '../../servers/delete-server.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../../servers/server-access.ts';
 import { findUserByClerkId } from '../../users/grotto-user.ts';
 import { humanProcedure } from '../trpc.ts';
@@ -27,6 +28,10 @@ export const serverProcedure = humanProcedure.use(async ({ next }) => {
 
     if (cause instanceof ServerSlugTakenError) {
         throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
+    }
+
+    if (cause instanceof ServerDeleteDeniedError) {
+        throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });
     }
 
     throw result.error;

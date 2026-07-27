@@ -104,6 +104,7 @@ export function startComputerAttachmentSocket(
                 ordinary = hello.protocolVersion === computerProtocolVersion;
                 sockets.set(computer.id, socket);
                 connections.register(computer.id, {
+                    disconnect: () => socket.close(4000, 'Server deleted'),
                     ordinary,
                     send: (frame) => socket.send(JSON.stringify(frame)),
                     serverId: computer.serverId,

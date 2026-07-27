@@ -20,9 +20,23 @@ const schemaStatements = [
         last_chat_event_cursor bigint NOT NULL DEFAULT 0
             CONSTRAINT servers_nonnegative_chat_event_cursor
             CHECK (last_chat_event_cursor >= 0),
+        deleted_at timestamptz,
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
     'CREATE UNIQUE INDEX servers_slug_key ON servers (slug);',
+    `CREATE TABLE server_deletions (
+        id text PRIMARY KEY
+            CONSTRAINT server_deletions_id_shape CHECK (id ~ '^sdl_[A-Za-z0-9_-]{16}$'),
+        server_id text NOT NULL,
+        requested_by_user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        status text NOT NULL
+            CONSTRAINT server_deletions_status CHECK (status IN ('pending', 'completed', 'failed')),
+        error text,
+        completed_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now()
+    );`,
+    `CREATE INDEX server_deletions_requester_idx
+        ON server_deletions (requested_by_user_id, created_at);`,
     `CREATE TABLE server_memberships (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,

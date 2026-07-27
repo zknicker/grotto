@@ -38,7 +38,7 @@ export async function beginComputerSetup(
     const [server] = await db
         .select({ id: serversTable.id })
         .from(serversTable)
-        .where(eq(serversTable.slug, input.slug))
+        .where(and(eq(serversTable.slug, input.slug), isNull(serversTable.deletedAt)))
         .limit(1);
     if (!server) {
         throw new ComputerSetupDeniedError('No Grotto server exists at that address.');

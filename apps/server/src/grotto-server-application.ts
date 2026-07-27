@@ -29,6 +29,7 @@ import {
     type ReminderSchedulerTimers,
 } from './reminders/reminder-scheduler.ts';
 import { tickHostedReminders } from './reminders/scheduler.ts';
+import { purgeDeletedServers } from './servers/delete-server.ts';
 
 /**
  * The hosted Grotto Server. It serves only the Grotto Server contract over
@@ -76,6 +77,7 @@ export async function createGrottoServerApplication(
     try {
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot);
         await reconcileHostedAttachments(grotto.db, attachmentRoot);
+        await purgeDeletedServers(grotto.db, attachmentRoot);
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
         const computerConnections = new ComputerConnections();
         const agentDelivery = new AgentDelivery(grotto.db, computerConnections);

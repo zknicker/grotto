@@ -3,6 +3,7 @@ import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 
 interface AttachedComputer {
+    disconnect?(): void;
     ordinary: boolean;
     send(frame: unknown): void;
     serverId: string;
@@ -53,6 +54,29 @@ export class ComputerConnections implements DeliveryTransport {
             computer?.ordinary &&
                 !['waiting-for-agents', 'restarting'].includes(computer.updatePhase)
         );
+    }
+
+    /** Sends cleanup to every online Computer for a Server, then disconnects it without waiting. */
+    cleanupServer(serverId: string): number {
+        let sent = 0;
+        for (const [computerId, computer] of this.attached) {
+            if (computer.serverId !== serverId) {
+                continue;
+            }
+            this.unregister(computerId);
+            try {
+                computer.send({ type: 'server-delete' });
+                sent += 1;
+            } catch {
+                // Closing sockets and offline Computers never delay Server deletion.
+            }
+            try {
+                computer.disconnect?.();
+            } catch {
+                // The credential is already revoked; disconnect is best-effort.
+            }
+        }
+        return sent;
     }
 
     /** Sends a typed frame to the Computer, reporting whether it was online. */

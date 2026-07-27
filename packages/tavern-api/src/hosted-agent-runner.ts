@@ -55,11 +55,21 @@ export const hostedAgentNoticeCommandSchema = z
 
 export type HostedAgentNoticeCommand = z.infer<typeof hostedAgentNoticeCommandSchema>;
 
+/** Best-effort instruction to erase this Server attachment's Computer-local state. */
+export const hostedServerDeleteCommandSchema = z
+    .object({
+        type: z.literal('server-delete'),
+    })
+    .strict();
+
+export type HostedServerDeleteCommand = z.infer<typeof hostedServerDeleteCommandSchema>;
+
 /** Every typed frame the Server sends down a Computer attachment socket. */
 export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
     hostedAgentStartCommandSchema,
     hostedAgentStopCommandSchema,
     hostedAgentNoticeCommandSchema,
+    hostedServerDeleteCommandSchema,
 ]);
 
 export type HostedAgentCommand = z.infer<typeof hostedAgentCommandSchema>;

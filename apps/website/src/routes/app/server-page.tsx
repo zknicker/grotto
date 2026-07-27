@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/primitives/button.tsx';
+import { DeleteServerDialog } from '../../features/servers/delete-server-dialog.tsx';
 import { HostedServerReminders } from '../../features/servers/reminders/hosted-server-reminders.tsx';
 import { ServerChat } from '../../features/servers/server-chat.tsx';
 import { ServerChatSearch } from '../../features/servers/server-chat-search.tsx';
@@ -12,6 +13,7 @@ import {
     serverMembersRoute,
     serverRemindersRoute,
     serverRoute,
+    serversRoute,
 } from '../../features/servers/server-routes.ts';
 import { ServerSwitcher } from '../../features/servers/server-switcher.tsx';
 import type { ServerTask } from '../../features/servers/tasks/server-task-presentation.ts';
@@ -30,6 +32,7 @@ export function ServerPage() {
     const [selectedChatId, setSelectedChatId] = React.useState<string | null>(null);
     const [surface, setSurface] = React.useState<'chat' | 'tasks'>('chat');
     const [taskToOpen, setTaskToOpen] = React.useState<ServerTask | null>(null);
+    const [deleteOpen, setDeleteOpen] = React.useState(false);
     const server = useServer(slug);
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
@@ -39,6 +42,9 @@ export function ServerPage() {
     );
     const agentHandles = new Map((agents.data ?? []).map((agent) => [agent.id, agent.handle]));
     const remindersOpen = isServerRemindersPath(location.pathname, slug);
+    const deleteServer = grottoTrpc.server.delete.useMutation({
+        onSuccess: () => navigate(serversRoute),
+    });
 
     useServerChatEvents(server.data?.id);
 
@@ -177,6 +183,11 @@ export function ServerPage() {
                             Computers
                         </Link>
                     ) : null}
+                    {server.data.role === 'owner' ? (
+                        <Button onClick={() => setDeleteOpen(true)} size="sm" variant="destructive">
+                            Delete Server
+                        </Button>
+                    ) : null}
                 </header>
                 {remindersOpen && canOperateReminders ? (
                     <HostedServerReminders serverId={server.data.id} />
@@ -221,6 +232,15 @@ export function ServerPage() {
                     </>
                 )}
             </main>
+            <DeleteServerDialog
+                displayName={server.data.displayName}
+                onConfirm={(confirmation) =>
+                    deleteServer.mutate({ confirmation, serverId: server.data.id })
+                }
+                onOpenChange={setDeleteOpen}
+                open={deleteOpen}
+                slug={server.data.slug}
+            />
         </div>
     );
 }

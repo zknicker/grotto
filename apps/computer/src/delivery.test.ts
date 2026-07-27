@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
     decideStart,
     noticePath,
+    purgeServerPartition,
     type RunMarker,
     readRunMarker,
     reserveRun,
@@ -12,7 +13,7 @@ import {
     writeRunMarker,
 } from './delivery.ts';
 import type { HostedAgentTurnFrame } from './launch.ts';
-import { parseNoticeCommand } from './launch.ts';
+import { parseNoticeCommand, parseServerDeleteCommand } from './launch.ts';
 
 let dataRoot: string;
 const serverId = 'srv_deliverytest0000';
@@ -125,6 +126,27 @@ test('a content-free notice parses and is recorded for the running turn', async 
     );
     // Content-free: only a count is recorded, never message content.
     expect(written).toEqual({ pending: 3 });
+});
+
+test('a Server deletion command is exact and content-free', () => {
+    expect(parseServerDeleteCommand({ type: 'server-delete' })).toEqual({
+        type: 'server-delete',
+    });
+    expect(parseServerDeleteCommand({ serverId, type: 'server-delete' })).toBeNull();
+});
+
+test('Server cleanup waits for local writers before removing their partition', async () => {
+    let releaseWriter: () => void = () => {};
+    const writer = new Promise<void>((resolve) => {
+        releaseWriter = resolve;
+    }).then(() => mkdir(join(dataRoot, 'servers', serverId), { recursive: true }));
+    const purge = purgeServerPartition(dataRoot, serverId, [writer]);
+
+    releaseWriter();
+    await purge;
+    await expect(lstat(join(dataRoot, 'servers', serverId))).rejects.toMatchObject({
+        code: 'ENOENT',
+    });
 });
 
 test('parseNoticeCommand fails closed on a malformed frame', () => {

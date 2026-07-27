@@ -44,7 +44,7 @@ export async function requireServerMembership(
                 isNull(serverMembershipsTable.revokedAt)
             )
         )
-        .where(eq(serversTable.id, serverId))
+        .where(and(eq(serversTable.id, serverId), isNull(serversTable.deletedAt)))
         .limit(1);
 
     if (!server) {
@@ -67,7 +67,7 @@ export async function openServerBySlug(
     const [found] = await db
         .select({ id: serversTable.id })
         .from(serversTable)
-        .where(eq(serversTable.slug, slug))
+        .where(and(eq(serversTable.slug, slug), isNull(serversTable.deletedAt)))
         .limit(1);
 
     if (!found) {

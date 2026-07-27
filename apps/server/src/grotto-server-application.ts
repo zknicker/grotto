@@ -2,6 +2,8 @@ import cors from '@fastify/cors';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { registerAgentApiRoutes } from './agent-api/routes.ts';
+import { AgentDelivery } from './agent-delivery/delivery.ts';
+import { startDeliveryRetrySweep } from './agent-delivery/retry-sweep.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { reconcileHostedAttachments } from './attachments/reconcile-attachments.ts';
@@ -71,7 +73,9 @@ export async function createGrottoServerApplication(
         await reconcileHostedAttachments(grotto.db, attachmentRoot);
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
         const computerConnections = new ComputerConnections();
+        const agentDelivery = new AgentDelivery(grotto.db, computerConnections);
         const createContext = createGrottoContextFactory({
+            agentDelivery,
             appOrigin: options.appOrigin,
             attachmentRoot,
             clerkSessions,
@@ -81,7 +85,6 @@ export async function createGrottoServerApplication(
                     apiUrl: options.clerkApiUrl,
                     secretKey: options.clerkSecretKey,
                 }),
-            computerConnections,
             grottoDb: grotto.db,
         });
         const isAllowedOrigin = (origin: string | undefined) =>
@@ -125,8 +128,10 @@ export async function createGrottoServerApplication(
         const computerSocket = startComputerAttachmentSocket(
             startedApp.server,
             grotto.db,
-            computerConnections
+            computerConnections,
+            agentDelivery
         );
+        const deliveryRetrySweep = startDeliveryRetrySweep(agentDelivery);
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         reminderScheduler = createHostedReminderScheduler({
             clock: reminderClock,
@@ -154,6 +159,7 @@ export async function createGrottoServerApplication(
             closePromise ??= (async () => {
                 webSocketServer.broadcastReconnectNotification();
                 webSocketServer.close();
+                deliveryRetrySweep.close();
                 computerSocket.close();
                 startedApp.server.closeAllConnections();
                 await reminderScheduler?.close();

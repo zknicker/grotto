@@ -76,6 +76,29 @@ export async function revokeRunnerCredential(db: GrottoDatabase, input: HostedRu
     return { revoked: true };
 }
 
+/**
+ * Revokes every live runner credential for one run. A human Stop calls this
+ * durably, so the credential dies even when the Computer is offline: a Computer
+ * that never got the Stop frame — or that restarts and re-runs the killed turn —
+ * can no longer speak as the Agent, and the Stop stays effective.
+ */
+export async function revokeRunnerCredentialsForRun(
+    db: GrottoDatabase,
+    input: { agentId: string; runId: string; serverId: string }
+): Promise<void> {
+    await db
+        .update(agentRunnerCredentialsTable)
+        .set({ revokedAt: new Date() })
+        .where(
+            and(
+                eq(agentRunnerCredentialsTable.serverId, input.serverId),
+                eq(agentRunnerCredentialsTable.agentId, input.agentId),
+                eq(agentRunnerCredentialsTable.runId, input.runId),
+                isNull(agentRunnerCredentialsTable.revokedAt)
+            )
+        );
+}
+
 /** Resolves a runner token to its bound Agent, chat, and Server. Fails closed. */
 export async function resolveRunnerCredential(
     db: GrottoDatabase,

@@ -4,8 +4,22 @@ import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { runAgentCli } from './agent-cli.ts';
+import {
+    decideStart,
+    readRunMarker,
+    reserveRun,
+    writePendingNotice,
+    writeRunMarker,
+} from './delivery.ts';
 import { detectInventory } from './inventory.ts';
-import { type Attachment, parseStartCommand, runAgentLaunch } from './launch.ts';
+import {
+    type Attachment,
+    type HostedAgentStartCommand,
+    parseNoticeCommand,
+    parseStartCommand,
+    parseStopCommand,
+    runAgentLaunch,
+} from './launch.ts';
 
 interface SetupResponse {
     approvalId: string;
@@ -231,6 +245,8 @@ async function connect(attachment: Attachment) {
     const socketUrl = new URL('/computer/attachment', serverOrigin);
     socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(socketUrl);
+    // Live runs in this process, keyed by run so a Stop can kill the right child.
+    const running = new Map<string, AbortController>();
     await new Promise<void>((resolve, reject) => {
         socket.addEventListener('error', () =>
             reject(new Error('Computer attachment socket failed.'))
@@ -244,19 +260,44 @@ async function connect(attachment: Attachment) {
                 resolve();
                 return;
             }
-            const command = parseStartCommand(frame);
-            if (command) {
-                // One isolated launch per typed start. The Server enforces one
-                // in-flight run per Agent, so a launch here is always the owner.
-                void runAgentLaunch({
-                    attachment,
-                    command,
-                    dataRoot,
-                    sendFrame: (payload) => socket.send(JSON.stringify(payload)),
-                    serverOrigin,
+            const stop = parseStopCommand(frame);
+            if (stop) {
+                running.get(stop.runId)?.abort();
+                return;
+            }
+            const notice = parseNoticeCommand(frame);
+            if (notice) {
+                void writePendingNotice(dataRoot, {
+                    agentId: notice.agentId,
+                    pending: notice.pending,
+                    serverId: attachment.serverId,
                 }).catch((error) => {
                     console.error(error instanceof Error ? error.message : error);
                 });
+                return;
+            }
+            const command = parseStartCommand(frame);
+            if (command) {
+                // Reserve the run synchronously, before any async marker I/O, so a
+                // duplicate start frame that arrives mid-launch is deduped here
+                // instead of racing into a second concurrent child.
+                const controller = reserveRun(running, command.runId);
+                if (!controller) {
+                    socket.send(
+                        JSON.stringify({
+                            agentId: command.agentId,
+                            runId: command.runId,
+                            type: 'ack',
+                        })
+                    );
+                    return;
+                }
+                void handleStartCommand({ attachment, command, controller, running, socket }).catch(
+                    (error) => {
+                        running.delete(command.runId);
+                        console.error(error instanceof Error ? error.message : error);
+                    }
+                );
             }
         });
         socket.addEventListener('open', () => {
@@ -274,6 +315,60 @@ async function connect(attachment: Attachment) {
             );
         });
     });
+}
+
+/**
+ * Handles one start command idempotently. The run is already reserved in
+ * `running` (synchronously, by the caller), so only one launch per run can exist.
+ * Local acceptance (the durable marker plus the ack) is recorded before any model
+ * work, so a dropped ack or a Computer restart resolves against the marker: a
+ * settled run replays its summary and only a genuinely fresh run launches.
+ */
+async function handleStartCommand(input: {
+    attachment: Attachment;
+    command: HostedAgentStartCommand;
+    controller: AbortController;
+    running: Map<string, AbortController>;
+    socket: WebSocket;
+}): Promise<void> {
+    const { attachment, command, controller, running, socket } = input;
+    const ack = () =>
+        socket.send(
+            JSON.stringify({ agentId: command.agentId, runId: command.runId, type: 'ack' })
+        );
+
+    try {
+        const marker = await readRunMarker(dataRoot, command, attachment.serverId);
+        const decision = decideStart(marker, false);
+        if (decision.kind === 'replay') {
+            ack();
+            socket.send(JSON.stringify(decision.summary));
+            return;
+        }
+
+        await writeRunMarker(dataRoot, {
+            marker: { status: 'accepted' },
+            runId: command.runId,
+            serverId: attachment.serverId,
+        });
+        ack();
+
+        const summary = await runAgentLaunch({
+            attachment,
+            command,
+            dataRoot,
+            sendFrame: (payload) => socket.send(JSON.stringify(payload)),
+            serverOrigin,
+            signal: controller.signal,
+        });
+        await writeRunMarker(dataRoot, {
+            marker: { status: 'settled', summary },
+            runId: command.runId,
+            serverId: attachment.serverId,
+        });
+    } finally {
+        running.delete(command.runId);
+    }
 }
 
 function hash(value: string) {

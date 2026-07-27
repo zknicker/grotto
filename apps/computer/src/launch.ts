@@ -27,6 +27,33 @@ export interface HostedAgentStartCommand {
     type: 'start';
 }
 
+/** Server→Computer command to terminate the named in-flight run. */
+export interface HostedAgentStopCommand {
+    agentId: string;
+    runId: string;
+    type: 'stop';
+}
+
+/** Content-free Server→Computer notice that a busy Agent has queued work. */
+export interface HostedAgentNoticeCommand {
+    agentId: string;
+    pending: number;
+    runId: string;
+    type: 'notice';
+}
+
+/** The compact turn summary the Computer pushes up after a launch settles. */
+export interface HostedAgentTurnFrame {
+    agentId: string;
+    endedAt: string;
+    messageCount: number;
+    runId: string;
+    startedAt: string;
+    status: 'completed' | 'failed';
+    summary: string;
+    type: 'turn';
+}
+
 export interface RunAgentLaunchOptions {
     attachment: Attachment;
     command: HostedAgentStartCommand;
@@ -34,6 +61,8 @@ export interface RunAgentLaunchOptions {
     /** Pushes the compact turn summary up the attachment socket. */
     sendFrame(frame: unknown): void;
     serverOrigin: string;
+    /** Aborts the launch — a human Stop kills the live child through this. */
+    signal?: AbortSignal;
 }
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
@@ -47,7 +76,9 @@ const computerEntry = resolve(moduleDir, 'index.ts');
  * durable hosted message. Raw traces stay in the local runtime directory; only
  * a compact summary is reported to the Server.
  */
-export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<void> {
+export async function runAgentLaunch(
+    options: RunAgentLaunchOptions
+): Promise<HostedAgentTurnFrame> {
     const startedAt = new Date().toISOString();
     const { command } = options;
     const agentRoot = join(
@@ -69,26 +100,24 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<vo
 
     const runtimeCommand = resolveRuntimeCommand(command.runtimeId);
     if (!runtimeCommand) {
-        reportTurn(options, {
+        return reportTurn(options, {
             messageCount: 0,
             startedAt,
             status: 'failed',
             summary: `Runtime "${command.runtimeId}" is not installed.`,
         });
-        return;
     }
 
     let runner: { runnerId: string; runnerToken: string };
     try {
         runner = await mintRunner(options);
     } catch (error) {
-        reportTurn(options, {
+        return reportTurn(options, {
             messageCount: 0,
             startedAt,
             status: 'failed',
             summary: `Runner authority mint failed: ${messageOf(error)}`,
         });
-        return;
     }
 
     const proxyToken = randomBytes(32).toString('base64url');
@@ -116,6 +145,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<vo
     try {
         const child = Bun.spawn(runtimeCommand, {
             cwd: dirs.workspace,
+            signal: options.signal,
             env: {
                 ...process.env,
                 GROTTO_AGENT_ID: command.agentId,
@@ -146,7 +176,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<vo
         proxy.close();
     }
 
-    reportTurn(options, {
+    return reportTurn(options, {
         messageCount: proxy.sendCount(),
         startedAt,
         status,
@@ -182,6 +212,43 @@ export function parseStartCommand(frame: unknown): HostedAgentStartCommand | nul
     };
 }
 
+/** Validates a Server→Computer frame as a stop command. Fails closed to null. */
+export function parseStopCommand(frame: unknown): HostedAgentStopCommand | null {
+    if (
+        !isRecord(frame) ||
+        frame.type !== 'stop' ||
+        typeof frame.agentId !== 'string' ||
+        frame.agentId.length === 0 ||
+        typeof frame.runId !== 'string' ||
+        frame.runId.length === 0
+    ) {
+        return null;
+    }
+    return { agentId: frame.agentId, runId: frame.runId, type: 'stop' };
+}
+
+/** Validates a Server→Computer frame as a content-free notice. Fails closed to null. */
+export function parseNoticeCommand(frame: unknown): HostedAgentNoticeCommand | null {
+    if (
+        !isRecord(frame) ||
+        frame.type !== 'notice' ||
+        typeof frame.agentId !== 'string' ||
+        frame.agentId.length === 0 ||
+        typeof frame.runId !== 'string' ||
+        frame.runId.length === 0 ||
+        typeof frame.pending !== 'number' ||
+        !Number.isFinite(frame.pending)
+    ) {
+        return null;
+    }
+    return {
+        agentId: frame.agentId,
+        pending: frame.pending,
+        runId: frame.runId,
+        type: 'notice',
+    };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
 }
@@ -194,8 +261,8 @@ function reportTurn(
         status: 'completed' | 'failed';
         summary: string;
     }
-): void {
-    options.sendFrame({
+): HostedAgentTurnFrame {
+    const frame: HostedAgentTurnFrame = {
         agentId: options.command.agentId,
         endedAt: new Date().toISOString(),
         messageCount: input.messageCount,
@@ -204,7 +271,9 @@ function reportTurn(
         status: input.status,
         summary: input.summary,
         type: 'turn',
-    });
+    };
+    options.sendFrame(frame);
+    return frame;
 }
 
 function resolveRuntimeCommand(runtimeId: string): string[] | null {

@@ -131,6 +131,14 @@ test('keeps production state and credentials inside the canonical srv root', () 
     expect(source).not.toContain('/var/log/grotto-server');
 });
 
+test('starts the hosted Server with its provisioned attachment root', () => {
+    const runServer = readFileSync(join(serverRoot, 'operations', 'run-server'), 'utf8');
+
+    expect(runServer).toContain(
+        'export GROTTO_ATTACHMENT_ROOT=/Users/zknicker/srv/grotto/data/attachments'
+    );
+});
+
 test('ships one narrow activation privilege rule without automatic installation', () => {
     const sudoers = readFileSync(
         join(hostServicesRoot, 'grotto-server-activation.sudoers'),

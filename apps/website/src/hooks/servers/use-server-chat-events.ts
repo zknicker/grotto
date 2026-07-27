@@ -27,6 +27,16 @@ export function useServerChatEvents(serverId: string | undefined) {
             if (targets.invalidateSearch) {
                 invalidations.push(utils.chat.search.invalidate({ serverId }));
             }
+            if (targets.invalidateTasks) {
+                invalidations.push(
+                    utils.task.list.invalidate({ serverId }, { refetchType: 'all' })
+                );
+            }
+            if (targets.invalidateTaskLabels) {
+                invalidations.push(
+                    utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' })
+                );
+            }
             invalidations.push(
                 ...[...new Set([...targets.messageChatIds, ...targets.parentChatIds])].map(
                     (chatId) => utils.chat.messages.invalidate({ chatId, serverId })
@@ -35,7 +45,14 @@ export function useServerChatEvents(serverId: string | undefined) {
 
             await Promise.all(invalidations);
         },
-        [serverId, utils.chat.list, utils.chat.messages, utils.chat.search]
+        [
+            serverId,
+            utils.chat.list,
+            utils.chat.messages,
+            utils.chat.search,
+            utils.task.list,
+            utils.taskLabel.list,
+        ]
     );
 
     const refetchServerChatSnapshot = React.useCallback(async () => {
@@ -47,8 +64,17 @@ export function useServerChatEvents(serverId: string | undefined) {
             utils.chat.list.invalidate({ serverId }),
             utils.chat.messages.invalidate({ serverId }),
             utils.chat.search.invalidate({ serverId }),
+            utils.task.list.invalidate({ serverId }, { refetchType: 'all' }),
+            utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' }),
         ]);
-    }, [serverId, utils.chat.list, utils.chat.messages, utils.chat.search]);
+    }, [
+        serverId,
+        utils.chat.list,
+        utils.chat.messages,
+        utils.chat.search,
+        utils.task.list,
+        utils.taskLabel.list,
+    ]);
 
     const catchUp = React.useCallback(async () => {
         if (serverId === undefined) {

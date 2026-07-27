@@ -3,6 +3,8 @@ import { invitationRouter } from './invitation/router.ts';
 import { memberRouter } from './member/router.ts';
 import { reminderRouter } from './reminder/router.ts';
 import { serverRouter } from './server/router.ts';
+import { taskRouter } from './task/router.ts';
+import { taskLabelRouter } from './task-label/router.ts';
 import { threadRouter } from './thread/router.ts';
 import { createRouter } from './trpc.ts';
 
@@ -16,6 +18,8 @@ export const grottoRouter = createRouter({
     member: memberRouter,
     reminder: reminderRouter,
     server: serverRouter,
+    task: taskRouter,
+    taskLabel: taskLabelRouter,
     thread: threadRouter,
 });
 

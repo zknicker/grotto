@@ -185,6 +185,109 @@ test('a returning human cannot reopen DM history from their former membership st
     expect(preserved).toHaveLength(2);
 });
 
+test('removal clears task ownership and reinvitation restores no task authority', async () => {
+    const returner = await signIn('user_return_tasks', ['return-tasks@grotto.test']);
+    await join(returner, 'return-tasks@grotto.test');
+    const ownerUserId = await readUserId('user_return_owner');
+    const returnerUserId = await readUserId('user_return_tasks');
+    const shared = await owner.trpc.task.create.mutate({
+        chatId: allChatId,
+        content: 'Shared task from the former stint',
+        nonce: 'return-task-shared',
+        serverId,
+    });
+    const claimed = await returner.trpc.task.claim.mutate({
+        expectedVersion: shared.task.version,
+        messageId: shared.task.messageId,
+        serverId,
+    });
+    const formerDm = await returner.trpc.chat.ensureDm.mutate({
+        peerUserId: ownerUserId,
+        serverId,
+    });
+    const privateTask = await owner.trpc.task.create.mutate({
+        assigneeUserId: returnerUserId,
+        chatId: formerDm.id,
+        content: 'Private task from the former stint',
+        nonce: 'return-task-private',
+        serverId,
+    });
+
+    await owner.trpc.member.remove.mutate({
+        confirmation: slug,
+        serverId,
+        userId: returnerUserId,
+    });
+
+    const tasksAfterRemoval = await owner.trpc.task.list.query({ serverId });
+    for (const messageId of [shared.task.messageId, privateTask.task.messageId]) {
+        expect(
+            tasksAfterRemoval.find((item) => item.task.messageId === messageId)?.task
+        ).toMatchObject({
+            assigneeUserId: null,
+            claimedAt: null,
+        });
+    }
+    expect(
+        tasksAfterRemoval.find((item) => item.task.messageId === shared.task.messageId)?.task
+            .version
+    ).toBe(claimed.task.version + 1);
+
+    await expect(returner.trpc.task.list.query({ serverId })).rejects.toThrow(/not a member/i);
+    await expect(
+        returner.trpc.task.create.mutate({
+            chatId: allChatId,
+            content: 'Forbidden after removal',
+            nonce: 'return-task-forbidden-create',
+            serverId,
+        })
+    ).rejects.toThrow(/not a member/i);
+    await expect(
+        returner.trpc.task.promote.mutate({
+            messageId: shared.task.messageId,
+            serverId,
+        })
+    ).rejects.toThrow(/not a member/i);
+    await expect(
+        returner.trpc.task.claim.mutate({
+            expectedVersion: claimed.task.version + 1,
+            messageId: shared.task.messageId,
+            serverId,
+        })
+    ).rejects.toThrow(/not a member/i);
+    await expect(
+        returner.trpc.task.update.mutate({
+            expectedVersion: claimed.task.version + 1,
+            messageId: shared.task.messageId,
+            patch: { priority: 'urgent' },
+            serverId,
+        })
+    ).rejects.toThrow(/not a member/i);
+
+    await join(returner, 'return-tasks@grotto.test');
+
+    const returnedTasks = await returner.trpc.task.list.query({ serverId });
+    expect(returnedTasks.map((item) => item.task.messageId)).toContain(shared.task.messageId);
+    expect(returnedTasks.map((item) => item.task.messageId)).not.toContain(
+        privateTask.task.messageId
+    );
+    expect(
+        returnedTasks.find((item) => item.task.messageId === shared.task.messageId)?.task
+    ).toMatchObject({ assigneeUserId: null, claimedAt: null });
+    await expect(
+        returner.trpc.chat.messages.query({
+            chatId: privateTask.task.threadChatId,
+            serverId,
+        })
+    ).rejects.toThrow(/participant/i);
+    await expect(
+        owner.trpc.task.assignees.query({
+            messageId: privateTask.task.messageId,
+            serverId,
+        })
+    ).resolves.not.toContainEqual(expect.objectContaining({ userId: returnerUserId }));
+});
+
 test('a revoked Server subscription stops delivering to a removed human', async () => {
     const watcher = await signIn('user_return_watcher', ['watcher@grotto.test']);
     await join(watcher, 'watcher@grotto.test');

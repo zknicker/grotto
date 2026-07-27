@@ -1,43 +1,81 @@
 ---
-summary: Chat-first tasks — messages promoted with task metadata, claim-before-work, board/list lenses, priorities, and labels.
+summary: Hosted chat-first tasks — canonical messages with Server-owned lifecycle metadata, Thread work surfaces, and board/list lenses.
 read_when:
-  - changing task promotion, claiming, statuses, priorities, or labels
-  - changing the Tasks rail view, a conversation's Tasks tab, task chips, or task receipts
-  - changing the agent task CLI or task envelope suffixes
+  - changing task promotion, claiming, assignment, statuses, priorities, or labels
+  - changing hosted task authorization, events, or Thread work surfaces
+  - changing the App task board/list or managed task CLI contract
 ---
 
 # Tasks
 
-A task is a chat message promoted with task metadata. The message is the task: its body is the
-title (verbatim), its thread is the work surface, and the board, list, and filters are lenses
-over the same task-messages — there is no separate tracker.
+A task is a canonical hosted Chat message promoted with task metadata. The message body is the
+task title verbatim, its existing child Thread is the work surface, and board/list views are
+lenses over the same message. Tavern does not keep a second task conversation or content store.
 
-## In the box
+## Lifecycle
 
-* **Promotion, two paths.** Compose-time ("As Task" checkbox or ⌘⇧↵ in the composer;
-  `grotto task create` for agents) and after-the-fact conversion (right-click → Convert to
-  Task; `grotto task claim --message-id` for agents). Each path writes its own quiet receipt
-  line in the conversation.
-* **Numbers per conversation.** Tasks render as `#N` chips on their origin message; clicking
-  the chip opens the status dropdown.
-* **Statuses.** `todo → in_progress → in_review → done`, plus reversible `closed`. Status
-  colors: orange, blue, purple, green, gray.
-* **Claim before work.** Claiming is the concurrency lock. Agents must claim (by number or
-  message id) before working; a claim held by someone else fails closed. Assignee is
-  independent of status and clears on unclaim.
-* **Priority and labels.** Lens metadata set from the app (none/urgent/high/medium/low; shared
-  label catalog with palette colors, inline creation, and rename/recolor/delete management).
-* **Board and List.** One component family: the global Tasks rail view is the unscoped
-  instance; every channel and DM gets a Chat | Tasks | Files tab whose Tasks view pins the
-  conversation filter. Board shows horizontally scrolling status columns; List shows stacked
-  groups; done/closed default collapsed. Creator/Assignee/Channel popovers carry "me"
-  shortcuts. DM tasks appear in the global view.
-* **Agent surface.** CLI family `grotto task list|create|claim|unclaim|update`; task-messages
-  carry a `[task #N status=… assignee=@handle]` suffix in agent envelopes and history lines.
+- A human can atomically create a message as a task or idempotently promote an existing top-level
+  Channel or DM message.
+- Each parent Chat allocates monotonic task numbers while its Chat row is locked.
+- Status is `todo`, `in_progress`, `in_review`, `done`, or reversible `closed`.
+- Priority is `none`, `urgent`, `high`, `medium`, or `low`.
+- Labels come from one small Server task-label catalog. Members can create labels; Owners and
+  Admins can rename, recolor, or delete them.
+- Claiming is the concurrency lock. The first valid claim owns the task and advances its version;
+  competing claims at the same version fail without double ownership.
+- Owners and Admins can reserve a task for an active human Server member who can open the parent
+  Chat. Only the current assignee can unclaim.
+- Done tasks cannot be claimed or unclaimed.
 
-## Boundary
+Every lifecycle mutation after creation carries `expectedVersion`. Stale assignment or metadata
+writes fail and the App waits for Server state rather than inventing durable optimistic task
+records.
 
-Tavern Runtime owns task metadata, numbering, claim rules, receipts, and the agent task CLI.
-The app renders lenses and mutates through the server's task procedures. Dropped by design:
-epics, dependencies, scheduled dates (anchor a reminder on the task message instead), and task
-dispatch — see `specs/tasks.md`.
+## Work surface and authorization
+
+Promotion creates or resolves the deterministic hosted child Thread anchored to the canonical
+message. Opening a task opens that Thread. The Thread has no independent membership: Server
+membership and parent-Chat participation remain the sole access authority.
+
+Task lists, eligible assignees, messages with task projections, task events, and Thread reads all
+apply the same hosted Server and parent-Chat authorization. Revoked members and humans who lose
+parent-Chat access cannot continue reading or mutating the task.
+Removing a member releases their claims and assignments. Reinvitation does not restore those
+links or access to task Threads from the former membership stint.
+
+## App and realtime
+
+The hosted `/s/<slug>` App surface provides Board and List lenses with create, claim, unclaim,
+assignment, status, priority, and task-label controls. Loading, empty, filtered-empty, and
+authorization failures are explicit. Opening a row returns to its message and Thread.
+
+Concrete durable events (`task.created`, `task.updated`, and `task.label.updated`) notify the App.
+The hosted realtime hook owns exact task-list, label-catalog, and affected-message invalidation;
+cursor catch-up applies the same invalidations after reconnect.
+
+There is no task calendar, due date, or `scheduledFor` field. Scheduling belongs to reminders, not
+tasks.
+
+## Managed CLI boundary
+
+The hosted managed-CLI boundary defines `task list|create|claim|unclaim|update` parser, wire, and
+client behavior through a framed, injected task peer. The peer client is not activated by the
+production CLI yet. Its contract handles partial/malformed frames, protocol errors, stdout/stderr
+separation, cancellation, and cleanup without adding Agent identity, credentials, unauthenticated
+Server routes, a Runtime proxy, or execution transport. Production activation belongs to the
+loopback runner-authority work, not hosted task state.
+
+## Local Runtime tasks
+
+The existing local Runtime task surface remains available before hosted managed-CLI activation.
+It stores task metadata beside Runtime SQLite messages, numbers tasks per conversation, exposes
+`grotto task list|create|claim|unclaim|update` over the local agent API, appends task envelope
+suffixes for agents, and may write its existing quiet task receipts. Those local receipts and
+transport are not part of hosted Server task state.
+
+## Deliberate exclusions
+
+Hosted tasks do not emit system receipt messages. State is visible through the task row, its
+durable task events, and its Thread. Also excluded: task scheduling, attachments, deletion,
+Agent assignment/execution, inbox/outbox delivery, dependencies, epics, generic workflow
+machinery, and generic taxonomy infrastructure.

@@ -28,6 +28,11 @@ export const onChatEventProcedure = chatProcedure
                 continue;
             }
 
+            if (event.type === 'task.label.updated') {
+                yield hostedDurableEventSchema.parse(event);
+                continue;
+            }
+
             const chat = await findHostedChatAccess(ctx.grottoDb, ctx.member.id, {
                 chatId: event.chatId,
                 serverId: event.serverId,

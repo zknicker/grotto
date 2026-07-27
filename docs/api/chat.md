@@ -37,6 +37,12 @@ The App calls the hosted Server directly over typed tRPC:
 | `chat.publishComposition` / `chat.onComposition` | Best-effort, live-only composition state |
 | `thread.get` | Parent and anchor ids for one authorized child Thread |
 | `thread.setFollow` | Persist the caller's ordinary Thread attention state |
+| `task.list` | Authorized Server task/message projections with parent Chat identity and current Thread summary |
+| `task.create` / `task.promote` | Atomically create a task-message or idempotently promote one canonical message |
+| `task.claim` / `task.unclaim` | Versioned self-ownership transitions |
+| `task.assign` / `task.assignees` | Admin assignment and task-scoped eligible-human options |
+| `task.update` | Versioned status, priority, and label mutation |
+| `taskLabel.list/create/update/delete` | Shared task-specific Server label catalog |
 
 Every input carries `serverId`; the Server derives the actor or reader from the
 verified Clerk User and current Server membership. Channel access comes from
@@ -60,8 +66,11 @@ human membership.
 
 Hosted human chat includes hidden child Threads with parent-derived
 authorization, per-human follows, reads, and parent unread rollup. It
-intentionally excludes reactions, tasks, attachments, Agent execution,
-Computer transport, and general delivery queues.
+also owns chat-first tasks whose identity is one canonical message and whose
+work surface is that message's deterministic child Thread. Hosted reminders
+may author scheduled system messages, but remain a separate schedule contract.
+Hosted human chat intentionally excludes reactions, attachments, Agent
+execution, Computer transport, and general delivery queues.
 Those nouns must not be copied from the broader local Runtime contract below.
 
 Hosted direct mention piercing is narrow: an explicit immutable

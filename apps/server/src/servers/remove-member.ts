@@ -6,6 +6,7 @@ import {
 import { and, eq, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable } from '../postgres/schema.ts';
+import { clearHostedTaskAssignments } from '../tasks/clear-task-assignments.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import {
     findCurrentMembership,
@@ -22,6 +23,7 @@ export interface RemovedServerMember {
     /** Chats the human just lost, so live surfaces can drop volatile state. */
     departedChatIds: string[];
     serverId: string;
+    taskEvents: Awaited<ReturnType<typeof clearHostedTaskAssignments>>;
     userId: string;
 }
 
@@ -91,8 +93,9 @@ export async function removeServerMember(
                 )
             );
 
+        const taskEvents = await clearHostedTaskAssignments(tx, server.id, target.userId);
         const departedChatIds = await clearHostedPersonalWork(tx, server.id, target.userId);
 
-        return { departedChatIds, serverId: server.id, userId: target.userId };
+        return { departedChatIds, serverId: server.id, taskEvents, userId: target.userId };
     });
 }

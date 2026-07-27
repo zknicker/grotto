@@ -21,7 +21,9 @@ test('catch-up keeps a private cursor while a newer live event advances shared s
             return fetchCount === 1 ? await firstFetch.promise : [];
         },
         onEvents: async (events) => {
-            refetched.push(...events.map((event) => event.chatId));
+            refetched.push(
+                ...events.flatMap((event) => (event.chatId === null ? [] : [event.chatId]))
+            );
         },
     });
 
@@ -51,8 +53,58 @@ test('read and follow events refetch only their parent summaries', () => {
         ])
     ).toEqual({
         invalidateSearch: false,
+        invalidateTaskLabels: false,
+        invalidateTasks: false,
         messageChatIds: [],
         parentChatIds: ['chat_parent'],
+    });
+});
+
+test('task events refetch the task list and only the affected message chat', () => {
+    expect(
+        hostedEventRefetchTargets([
+            {
+                chatId: 'chat_one',
+                createdAt: '2026-07-26T12:00:00.000Z',
+                cursor: '3',
+                id: 'event_3',
+                messageId: 'message_3',
+                parentChatId: null,
+                sequence: 8,
+                serverId: 'server_one',
+                type: 'task.updated',
+            },
+        ])
+    ).toEqual({
+        invalidateSearch: false,
+        invalidateTaskLabels: false,
+        invalidateTasks: true,
+        messageChatIds: ['chat_one'],
+        parentChatIds: [],
+    });
+});
+
+test('task label events refetch the task catalog and task list without chat snapshots', () => {
+    expect(
+        hostedEventRefetchTargets([
+            {
+                chatId: null,
+                createdAt: '2026-07-26T12:00:00.000Z',
+                cursor: '4',
+                id: 'event_4',
+                labelId: 'label_one',
+                parentChatId: null,
+                sequence: 0,
+                serverId: 'server_one',
+                type: 'task.label.updated',
+            },
+        ])
+    ).toEqual({
+        invalidateSearch: false,
+        invalidateTaskLabels: true,
+        invalidateTasks: true,
+        messageChatIds: [],
+        parentChatIds: [],
     });
 });
 

@@ -92,7 +92,9 @@ PostgreSQL owns the hosted collaboration tables
 | `agents` / `channel_agent_participants` | Minimal hosted Agent identity and Channel access required by reminder authorship |
 | `chat_messages` | Immutable human or reminder-system messages ordered by per-Chat sequence and nonce |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
-| `chat_events` | Durable message/read/reminder-change events ordered by PostgreSQL cursor |
+| `chat_events` | Durable message/read/task/reminder-change events ordered by PostgreSQL cursor |
+| `message_tasks` | Lifecycle metadata keyed directly to one canonical hosted message |
+| `task_labels` / `message_task_labels` | Small Server task-label catalog and task links |
 | `reminders` / `reminder_commands` | Author-owned schedules and idempotent optimistic commands with original result snapshots |
 | `reminder_fires` | One durable row per logical scheduled fire |
 | `reminder_agent_attention` | One unacknowledged fire snapshot for the owning Agent |
@@ -220,6 +222,13 @@ Server query, mutation, and subscription resolves membership through it:
 - `chat.*` resolves current membership and Chat participation before every
   read or write. Thread access resolves through the parent Channel or DM.
   Durable and composition subscriptions recheck that access for each event delivery.
+- `task.*` resolves current membership and parent-Chat access. Assignment also
+  requires Owner/Admin authority and filters targets to active humans with that
+  same parent-Chat access and membership stint. Task writes lock the Server
+  before authorizing, then serialize versioned changes against the task row.
+- Membership removal releases the departing human's task claims and
+  assignments with durable task events. Reinvitation restores neither those
+  links nor private task/Thread access from the former stint.
 - Durable delivery skips inaccessible Chats without ending the Server feed.
   Revoked Server membership ends delivery.
 
@@ -229,10 +238,13 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 ## App surface
 
 - `/s` lists the Servers this human can open and creates new ones.
-- `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, and search.
+- `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, search,
+  and the hosted task Board/List.
   An author already visible in the transcript is the entry point for their DM.
   Message replies open hidden child Threads in the resizable side pane; Threads
   never enter the hosted sidebar Chat list.
+  Task rows open the canonical message's existing child Thread. Task controls
+  call the hosted API directly; durable task events own exact cache invalidation.
 - `/s/<slug>/members` manages humans and invitations.
 - `/invite/<token>` is where an invited human accepts. It sits outside the
   `/s/<slug>` branch because a Server address may itself be `invite` or `join`.

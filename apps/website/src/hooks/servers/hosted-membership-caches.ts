@@ -8,6 +8,8 @@ export interface HostedServerCaches {
     invitation: { list: ClearableCache };
     member: { list: ClearableCache };
     server: { bySlug: ClearableCache; list: ClearableCache };
+    task: { assignees: ClearableCache; list: ClearableCache };
+    taskLabel: { list: ClearableCache };
 }
 
 /**
@@ -31,5 +33,8 @@ export function cachesClearedOnMembershipLoss(utils: HostedServerCaches): Cleara
         utils.chat.list,
         utils.chat.messages,
         utils.chat.search,
+        utils.task.list,
+        utils.task.assignees,
+        utils.taskLabel.list,
     ];
 }

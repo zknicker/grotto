@@ -11,6 +11,8 @@ import {
     serverRoute,
 } from '../../features/servers/server-routes.ts';
 import { ServerSwitcher } from '../../features/servers/server-switcher.tsx';
+import type { ServerTask } from '../../features/servers/tasks/server-task-presentation.ts';
+import { ServerTasksSurface } from '../../features/servers/tasks/server-tasks-surface.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
 import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
@@ -22,6 +24,8 @@ export function ServerPage() {
     const location = useLocation();
     const navigate = useNavigate();
     const [selectedChatId, setSelectedChatId] = React.useState<string | null>(null);
+    const [surface, setSurface] = React.useState<'chat' | 'tasks'>('chat');
+    const [taskToOpen, setTaskToOpen] = React.useState<ServerTask | null>(null);
     const server = useServer(slug);
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
@@ -46,9 +50,12 @@ export function ServerPage() {
         chats.data?.find((chat) => chat.id === selectedChatId) ??
         chats.data?.find((chat) => chat.isAll) ??
         chats.data?.[0];
+    const selectedTask = taskToOpen?.message.serverId === server.data.id ? taskToOpen : null;
     const canOperateReminders = server.data.role === 'owner' || server.data.role === 'admin';
     const openChat = (chatId: string) => {
         setSelectedChatId(chatId);
+        setSurface('chat');
+        setTaskToOpen(null);
         navigate(serverRoute(server.data.slug));
     };
 
@@ -60,6 +67,18 @@ export function ServerPage() {
                 </p>
                 <ServerSwitcher servers={servers.data ?? []} />
                 <div className="flex flex-col gap-1">
+                    <Button
+                        className="justify-start"
+                        onClick={() => {
+                            setSurface('tasks');
+                            setTaskToOpen(null);
+                            navigate(serverRoute(server.data.slug));
+                        }}
+                        size="sm"
+                        variant={!remindersOpen && surface === 'tasks' ? 'secondary' : 'ghost'}
+                    >
+                        Tasks
+                    </Button>
                     <p className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
                         Chats
                     </p>
@@ -76,7 +95,9 @@ export function ServerPage() {
                                 onClick={() => openChat(chat.id)}
                                 size="sm"
                                 variant={
-                                    !remindersOpen && chat.id === selectedChat?.id
+                                    !remindersOpen &&
+                                    surface === 'chat' &&
+                                    chat.id === selectedChat?.id
                                         ? 'secondary'
                                         : 'ghost'
                                 }
@@ -131,13 +152,34 @@ export function ServerPage() {
                             Reminder schedules and fire logs are available only to Server operators.
                         </p>
                     </div>
+                ) : surface === 'tasks' ? (
+                    <ServerTasksSurface
+                        chats={chats.data ?? []}
+                        onOpenTask={(task) => {
+                            setSelectedChatId(task.chatId);
+                            setTaskToOpen(task);
+                            setSurface('chat');
+                        }}
+                        role={server.data.role}
+                        serverId={server.data.id}
+                        viewerUserId={server.data.viewerUserId}
+                    />
                 ) : (
                     <>
                         <ServerChatSearch onOpenChat={openChat} serverId={server.data.id} />
                         {selectedChat ? (
                             <ServerChat
                                 chat={selectedChat}
-                                key={selectedChat.id}
+                                initialTask={
+                                    selectedTask
+                                        ? {
+                                              message: selectedTask.message,
+                                              summary: selectedTask.threadSummary,
+                                              threadChatId: selectedTask.threadChatId,
+                                          }
+                                        : undefined
+                                }
+                                key={`${selectedChat.id}:${selectedTask?.id ?? ''}`}
                                 onOpenChat={openChat}
                             />
                         ) : null}

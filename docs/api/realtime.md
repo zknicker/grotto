@@ -39,9 +39,9 @@ from durable `chat_events`.
 
 ## Hosted Server Realtime
 
-`chat.send`, an advancing `chat.markRead`, `thread.setFollow`, and reminder
-mutations insert their durable event in the same PostgreSQL transaction as the
-owned row. `chat.events` lists accessible
+`chat.send`, an advancing `chat.markRead`, `thread.setFollow`, task mutations,
+and reminder mutations insert their durable event in the same PostgreSQL
+transaction as the owned row. `chat.events` lists accessible
 events after a cursor in ascending order. `chat.onEvent` does not replay; it
 notifies the App after commit. On subscription start or reconnect, the App
 seeds a new in-memory cursor from `chat.eventHead` and refetches the Server Chat
@@ -50,7 +50,9 @@ cursor. Live delivery can advance in parallel without skipping the catch-up
 window. Thread events carry the child Chat id and nullable parent Chat id.
 Message events invalidate the exact message query, its parent summary when
 present, the Chat list, and Server search; read/follow events invalidate the
-parent summary and Chat list.
+parent summary and Chat list. `task.created` and `task.updated` invalidate the
+Server task list and affected parent-Chat message snapshot.
+`task.label.updated` invalidates the task-label catalog and task list.
 
 The Server row owns the next durable cursor. Event transactions increment that
 counter while holding the Server row lock, then insert `chat_events` before
@@ -73,7 +75,8 @@ cursor, and are never replayed. The subscriber's Chat access is rechecked for
 every delivery.
 
 Hosted durable event kinds are `message.created`, `chat.read`, the
-reader-private `thread.follow.updated`, and `reminder.changed`.
+reader-private `thread.follow.updated`, `task.created`, `task.updated`, and
+`task.label.updated`, plus `reminder.changed`.
 
 Reminder scheduling, update, snooze, cancel, and fire append
 `reminder.changed` to the same per-Server cursor. A fire appends

@@ -5,16 +5,29 @@ const mcpConnectionIdSchema = z
     .string()
     .regex(/^mcp_[A-Za-z0-9_-]{16}$/u, 'Invalid MCP connection id.');
 const toolNameSchema = z.string().trim().min(1).max(200);
+export const hostedMcpPresetSchema = z.enum(['google-calendar', 'merchbase']);
+
+export const hostedMcpGrantSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        connectionId: mcpConnectionIdSchema,
+        toolName: toolNameSchema,
+    })
+    .strict();
 
 export const hostedMcpConnectionSchema = z
     .object({
+        accountLabel: z.string().trim().min(1).max(200).nullable(),
         args: z.array(z.string()).max(50),
-        auth: z.enum(['headers', 'none']),
+        auth: z.enum(['headers', 'none', 'oauth']),
         command: z.string().nullable(),
         computerId: hostedIdSchema,
+        connected: z.boolean(),
+        grants: z.array(hostedMcpGrantSchema),
         headerNames: z.array(z.string()).max(50),
         id: mcpConnectionIdSchema,
         name: z.string().trim().min(1).max(100),
+        preset: hostedMcpPresetSchema.nullable(),
         serverId: hostedIdSchema,
         status: z.enum(['online', 'pending']),
         tools: z.array(toolNameSchema),
@@ -26,17 +39,24 @@ export const hostedMcpConnectionSchema = z
 export const hostedMcpConnectionCreateSchema = z
     .object({
         args: z.array(z.string().trim().min(1)).max(50).default([]),
+        auth: z.enum(['headers', 'none', 'oauth']).default('none'),
         command: z.string().trim().min(1).max(500).optional(),
         computerId: hostedIdSchema,
         env: z.record(z.string().trim().min(1), z.string().max(4000)).default({}),
         headers: z.record(z.string().trim().min(1), z.string().max(8000)).default({}),
         name: z.string().trim().min(1).max(100),
+        oauthClientId: z.string().trim().min(1).max(1000).optional(),
+        oauthClientSecret: z.string().max(4000).optional(),
+        oauthScopes: z.array(z.string().trim().min(1).max(500)).max(100).default([]),
         serverId: hostedIdSchema,
         url: z.string().url().max(2000).optional(),
     })
     .strict()
     .refine((value) => Boolean(value.command) !== Boolean(value.url), {
         message: 'Provide either a URL or a command.',
+    })
+    .refine((value) => value.command === undefined || value.auth !== 'oauth', {
+        message: 'OAuth is only available for HTTP connections.',
     })
     .superRefine((value, context) => {
         if (!value.url) {
@@ -53,18 +73,67 @@ export const hostedMcpConnectionCreateSchema = z
         if (url.username || url.password) {
             context.addIssue({ code: 'custom', message: 'MCP URLs cannot contain credentials.' });
         }
+        if (value.oauthClientSecret && !value.oauthClientId) {
+            context.addIssue({
+                code: 'custom',
+                message: 'An OAuth client secret requires a client ID.',
+            });
+        }
+        if (
+            value.auth !== 'oauth' &&
+            (value.oauthClientId || value.oauthClientSecret || value.oauthScopes.length > 0)
+        ) {
+            context.addIssue({
+                code: 'custom',
+                message: 'OAuth client settings require OAuth authentication.',
+            });
+        }
     });
+
+export const hostedMcpPresetAccountCreateSchema = z
+    .object({
+        computerId: hostedIdSchema,
+        name: z.string().trim().min(1).max(100),
+        preset: hostedMcpPresetSchema,
+        serverId: hostedIdSchema,
+    })
+    .strict();
+
+export const hostedMcpOAuthStartSchema = z
+    .object({
+        allowAuthorizationServerOrigin: z.boolean().default(false),
+        connectionId: mcpConnectionIdSchema,
+        redirectUrl: z.string().url().max(2000),
+        serverId: hostedIdSchema,
+    })
+    .strict();
+
+export const hostedMcpOAuthStartResultSchema = z.discriminatedUnion('status', [
+    z
+        .object({
+            authorizationUrl: z.string().url(),
+            status: z.literal('ready'),
+        })
+        .strict(),
+    z
+        .object({
+            authorizationServerOrigin: z.string().url(),
+            status: z.literal('trust-required'),
+        })
+        .strict(),
+]);
 
 export const hostedMcpConnectionListInputSchema = z.object({ serverId: hostedIdSchema }).strict();
 export const hostedMcpConnectionListSchema = z.array(hostedMcpConnectionSchema);
-
-export const hostedMcpGrantSchema = z
-    .object({
-        agentId: hostedIdSchema,
-        connectionId: mcpConnectionIdSchema,
-        toolName: toolNameSchema,
+export const hostedMcpConnectionInputSchema = z
+    .object({ connectionId: mcpConnectionIdSchema, serverId: hostedIdSchema })
+    .strict();
+export const hostedMcpHeadersUpdateSchema = hostedMcpConnectionInputSchema
+    .extend({
+        headers: z.record(z.string().trim().min(1), z.string().max(8000)),
     })
     .strict();
+
 export const hostedMcpGrantInputSchema = hostedMcpGrantSchema.extend({
     enabled: z.boolean(),
     serverId: hostedIdSchema,
@@ -73,3 +142,7 @@ export const hostedMcpGrantInputSchema = hostedMcpGrantSchema.extend({
 export type HostedMcpConnection = z.infer<typeof hostedMcpConnectionSchema>;
 export type HostedMcpConnectionCreate = z.infer<typeof hostedMcpConnectionCreateSchema>;
 export type HostedMcpGrant = z.infer<typeof hostedMcpGrantSchema>;
+export type HostedMcpOAuthStart = z.infer<typeof hostedMcpOAuthStartSchema>;
+export type HostedMcpOAuthStartResult = z.infer<typeof hostedMcpOAuthStartResultSchema>;
+export type HostedMcpPreset = z.infer<typeof hostedMcpPresetSchema>;
+export type HostedMcpPresetAccountCreate = z.infer<typeof hostedMcpPresetAccountCreateSchema>;

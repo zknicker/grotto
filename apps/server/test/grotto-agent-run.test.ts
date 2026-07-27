@@ -2,12 +2,12 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
 import { recordAgentTurnSummary } from '../src/hosted-agents/record-agent-turn.ts';
+import { createHostedMcpConnection } from '../src/hosted-mcp/service.ts';
 import {
-    createHostedMcpConnection,
     listHostedMcpConnections,
     recordHostedMcpInventory,
     setHostedMcpGrant,
-} from '../src/hosted-mcp/service.ts';
+} from '../src/hosted-mcp/state.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
@@ -230,10 +230,12 @@ test('relays secrets online, persists only public state, and fails closed across
     const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
     const created = await createHostedMcpConnection(connection.db, computers, member, {
         args: [],
+        auth: 'headers',
         computerId,
         env: {},
         headers: { Authorization: 'Bearer attachment-secret' },
         name: 'Deterministic',
+        oauthScopes: [],
         serverId,
         url: 'http://127.0.0.1:9999/mcp',
     });
@@ -255,6 +257,8 @@ test('relays secrets online, persists only public state, and fails closed across
     expect(JSON.stringify(rows)).not.toContain('attachment-secret');
 
     await recordHostedMcpInventory(connection.db, computerId, {
+        accountLabel: 'Fixture account',
+        connected: true,
         connectionId: created.id,
         tools: ['echo'],
     });
@@ -280,10 +284,11 @@ test('relays secrets online, persists only public state, and fails closed across
     const otherConnectionId = 'mcp_abcdefghijklmnop';
     await harness.sql`
         insert into mcp_connections
-            (id, server_id, computer_id, name, transport, auth, url, command, args, header_names, tools)
+            (id, server_id, computer_id, name, transport, auth, url, command, args,
+             connected, header_names, preset, tools)
         values
             (${otherConnectionId}, ${serverId}, ${otherComputerId}, 'Other', 'stdio', 'none',
-             null, 'other-mcp', ARRAY[]::text[], ARRAY[]::text[], ARRAY['echo'])
+             null, 'other-mcp', ARRAY[]::text[], true, ARRAY[]::text[], null, ARRAY['echo'])
     `;
     await expect(
         setHostedMcpGrant(connection.db, computers, member, {
@@ -302,6 +307,7 @@ test('relays secrets online, persists only public state, and fails closed across
         serverId
     );
     expect(offline.find((item) => item.id === created.id)).toMatchObject({
+        grants: [{ agentId, connectionId: created.id, toolName: 'echo' }],
         status: 'pending',
         tools: ['echo'],
     });

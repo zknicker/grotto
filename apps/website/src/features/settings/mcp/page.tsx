@@ -17,6 +17,7 @@ import {
 } from '../../../components/ui/settings-row.tsx';
 import { toastManager } from '../../../components/ui/toast.tsx';
 import { withSavingToast } from '../../../lib/saving-toast.ts';
+import { trpc } from '../../../lib/trpc.tsx';
 import { McpConnectionDetailDialog } from './mcp-connection-detail-dialog.tsx';
 import { ConnectionFilters, ConnectionRow } from './mcp-connection-list.tsx';
 import { McpConnectionFormDrawer } from './mcp-server-form.tsx';
@@ -38,6 +39,10 @@ export function McpSettingsPage() {
     } | null>(null);
     const selectedConnection =
         state.connections.find((connection) => connection.id === selectedId) ?? null;
+    const tools = trpc.mcp.connectionTools.useQuery(
+        { connectionId: selectedConnection?.id ?? '' },
+        { enabled: Boolean(selectedConnection?.connected), retry: false }
+    );
     const filteredConnections = visibleConnections(state.connections, filter);
 
     const startOAuth = async (
@@ -175,6 +180,9 @@ export function McpSettingsPage() {
                 open={selectedConnection !== null}
                 saving={state.isSaving}
                 startingOAuthId={state.startingOAuthId}
+                tools={tools.data?.tools ?? null}
+                toolsError={tools.error?.message ?? null}
+                toolsPending={tools.isFetching}
             />
             {isAddOpen ? (
                 <McpConnectionFormDrawer

@@ -1,6 +1,23 @@
-import type { McpConnectionListOutput, McpConnectionSaveInput } from '../../../lib/trpc.tsx';
+import type { McpConnectionListOutput } from '../../../lib/trpc.tsx';
 
 export type McpConnection = McpConnectionListOutput['connections'][number];
+export interface McpConnectionTool {
+    description: string;
+    name: string;
+    title: string | null;
+}
+export interface McpConnectionSaveInput {
+    args?: string[];
+    auth: 'headers' | 'none' | 'oauth';
+    command?: string;
+    env?: Record<string, string>;
+    headers?: Record<string, string>;
+    name: string;
+    oauthClientId?: string;
+    oauthClientSecret?: string;
+    oauthScopes?: string[];
+    url?: string;
+}
 export type McpConnectionFilter = 'all' | 'connected' | 'not-connected';
 export type McpConnectionTransport = 'http' | 'stdio';
 

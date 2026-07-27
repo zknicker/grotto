@@ -1,4 +1,12 @@
-import { foreignKey, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+    boolean,
+    foreignKey,
+    pgTable,
+    primaryKey,
+    text,
+    timestamp,
+    uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { computersTable } from './computers.ts';
 import { serversTable } from './servers.ts';
@@ -6,14 +14,17 @@ import { serversTable } from './servers.ts';
 export const mcpConnectionsTable = pgTable(
     'mcp_connections',
     {
+        accountLabel: text('account_label'),
         args: text('args').array().notNull(),
-        auth: text('auth').notNull().$type<'headers' | 'none'>(),
+        auth: text('auth').notNull().$type<'headers' | 'none' | 'oauth'>(),
         command: text('command'),
         computerId: text('computer_id').notNull(),
+        connected: boolean('connected').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         headerNames: text('header_names').array().notNull(),
         id: text('id').primaryKey(),
         name: text('name').notNull(),
+        preset: text('preset').$type<'google-calendar' | 'merchbase' | null>(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),

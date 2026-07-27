@@ -1,24 +1,31 @@
-import type { HostedMcpConnection, HostedMcpConnectionCreate, HostedMcpGrant } from '@tavern/api';
-import { and, asc, eq } from 'drizzle-orm';
+import type {
+    HostedMcpConnection,
+    HostedMcpConnectionCreate,
+    HostedMcpOAuthStart,
+    HostedMcpOAuthStartResult,
+    HostedMcpPreset,
+} from '@tavern/api';
+import { and, eq } from 'drizzle-orm';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentMcpToolGrantsTable,
-    agentsTable,
     computersTable,
     mcpConnectionsTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-
-export class HostedMcpDeniedError extends Error {}
+import { HostedMcpDeniedError } from './errors.ts';
+import type { HostedMcpOAuthRelay } from './oauth-relay.ts';
+import { clearHostedMcpIdentity, shapeHostedMcpConnection } from './state.ts';
 
 export async function createHostedMcpConnection(
     db: GrottoDatabase,
     connections: ComputerConnections,
     member: GrottoUser | null,
-    input: HostedMcpConnectionCreate
+    input: HostedMcpConnectionCreate,
+    preset: HostedMcpPreset | null = null
 ): Promise<HostedMcpConnection> {
     const access = await requireServerMembership(db, member, input.serverId);
     if (!member || (access.role !== 'owner' && access.role !== 'admin')) {
@@ -41,23 +48,33 @@ export async function createHostedMcpConnection(
     const id = createOpaqueId('mcp');
     const secretConnection = {
         args: input.args,
+        auth: input.auth,
         command: input.command ?? null,
         env: input.env,
         headers: input.headers,
         id,
         name: input.name,
+        oauthClientId: input.oauthClientId,
+        oauthClientSecret: input.oauthClientSecret,
+        oauthScopes: input.oauthScopes,
+        preset,
         url: input.url ?? null,
     };
     const [row] = await db
         .insert(mcpConnectionsTable)
         .values({
+            accountLabel: null,
             args: input.args,
-            auth: Object.keys(input.headers).length > 0 ? 'headers' : 'none',
+            auth: input.auth,
             command: input.command ?? null,
             computerId: computer.id,
+            connected:
+                input.auth === 'none' ||
+                (input.auth === 'headers' && Object.keys(input.headers).length > 0),
             headerNames: Object.keys(input.headers).sort(),
             id,
             name: input.name,
+            preset,
             serverId: input.serverId,
             tools: [],
             transport: input.command ? 'stdio' : 'http',
@@ -71,108 +88,196 @@ export async function createHostedMcpConnection(
         await db.delete(mcpConnectionsTable).where(eq(mcpConnectionsTable.id, id));
         throw new HostedMcpDeniedError('The selected Computer went offline.');
     }
-    return shape(row, connections);
+    return shapeHostedMcpConnection(row, connections);
 }
 
-export async function listHostedMcpConnections(
+export async function startHostedMcpOAuth(
     db: GrottoDatabase,
     connections: ComputerConnections,
+    relay: HostedMcpOAuthRelay,
     member: GrottoUser | null,
-    serverId: string
-): Promise<HostedMcpConnection[]> {
-    await requireServerMembership(db, member, serverId);
-    const rows = await db
-        .select()
-        .from(mcpConnectionsTable)
-        .where(eq(mcpConnectionsTable.serverId, serverId))
-        .orderBy(asc(mcpConnectionsTable.name));
-    return rows.map((row) => shape(row, connections));
-}
-
-export async function setHostedMcpGrant(
-    db: GrottoDatabase,
-    connections: ComputerConnections,
-    member: GrottoUser | null,
-    input: HostedMcpGrant & { enabled: boolean; serverId: string }
-): Promise<HostedMcpGrant> {
+    input: HostedMcpOAuthStart
+): Promise<HostedMcpOAuthStartResult> {
     const access = await requireServerMembership(db, member, input.serverId);
     if (!member || (access.role !== 'owner' && access.role !== 'admin')) {
-        throw new HostedMcpDeniedError('Only a Server Owner or Admin can change tool grants.');
+        throw new HostedMcpDeniedError('Only a Server Owner or Admin can connect an account.');
     }
-    const [scope] = await db
+    const [connection] = await db
         .select({
-            agentComputerId: agentsTable.computerId,
-            connectionComputerId: mcpConnectionsTable.computerId,
-            tools: mcpConnectionsTable.tools,
+            auth: mcpConnectionsTable.auth,
+            computerId: mcpConnectionsTable.computerId,
         })
-        .from(agentsTable)
-        .innerJoin(
-            mcpConnectionsTable,
+        .from(mcpConnectionsTable)
+        .where(
             and(
-                eq(mcpConnectionsTable.serverId, agentsTable.serverId),
+                eq(mcpConnectionsTable.serverId, input.serverId),
                 eq(mcpConnectionsTable.id, input.connectionId)
             )
         )
-        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .limit(1);
-    if (
-        !scope?.agentComputerId ||
-        scope.agentComputerId !== scope.connectionComputerId ||
-        !scope.tools.includes(input.toolName)
-    ) {
-        throw new HostedMcpDeniedError('The Agent and tool must belong to the same Computer.');
+    if (!connection || connection.auth !== 'oauth') {
+        throw new HostedMcpDeniedError('This OAuth connection was not found.');
     }
-    const key = {
-        agentId: input.agentId,
+    if (!connections.isOnline(connection.computerId)) {
+        throw new HostedMcpDeniedError(
+            'The selected Computer is offline. Bring it online and try again.'
+        );
+    }
+    const result = await relay.start({
+        allowAuthorizationServerOrigin: input.allowAuthorizationServerOrigin,
+        computerId: connection.computerId,
         connectionId: input.connectionId,
-        serverId: input.serverId,
-        toolName: input.toolName,
-    };
-    if (input.enabled) {
-        await db.insert(agentMcpToolGrantsTable).values(key).onConflictDoNothing();
-    } else {
-        await db
+        redirectUrl: input.redirectUrl,
+    });
+    if (result.status === 'ready') {
+        await clearHostedMcpIdentity(db, input.serverId, input.connectionId);
+    }
+    return result;
+}
+
+export async function disconnectHostedMcpConnection(
+    db: GrottoDatabase,
+    connections: ComputerConnections,
+    member: GrottoUser | null,
+    input: { connectionId: string; serverId: string }
+): Promise<HostedMcpConnection> {
+    const connection = await requireOperableConnection(db, connections, member, input);
+    if (!connections.sendMcpControl(connection.computerId, 'mcp-disconnect', input.connectionId)) {
+        throw new HostedMcpDeniedError('The selected Computer went offline.');
+    }
+    await db.transaction(async (tx) => {
+        await tx
             .delete(agentMcpToolGrantsTable)
             .where(
                 and(
                     eq(agentMcpToolGrantsTable.serverId, input.serverId),
-                    eq(agentMcpToolGrantsTable.agentId, input.agentId),
-                    eq(agentMcpToolGrantsTable.connectionId, input.connectionId),
-                    eq(agentMcpToolGrantsTable.toolName, input.toolName)
+                    eq(agentMcpToolGrantsTable.connectionId, input.connectionId)
                 )
             );
-    }
-    connections.sendMcpGrant(scope.connectionComputerId, {
-        agentId: input.agentId,
-        connectionId: input.connectionId,
-        enabled: input.enabled,
-        toolName: input.toolName,
+        await tx
+            .update(mcpConnectionsTable)
+            .set({ accountLabel: null, connected: false, tools: [] })
+            .where(
+                and(
+                    eq(mcpConnectionsTable.serverId, input.serverId),
+                    eq(mcpConnectionsTable.id, input.connectionId)
+                )
+            );
     });
-    return key;
+    return shapeHostedMcpConnection(
+        { ...connection, accountLabel: null, connected: false, tools: [] },
+        connections
+    );
 }
 
-export async function recordHostedMcpInventory(
+export async function deleteHostedMcpConnection(
     db: GrottoDatabase,
-    computerId: string,
-    input: { connectionId: string; tools: string[] }
-): Promise<void> {
+    connections: ComputerConnections,
+    member: GrottoUser | null,
+    input: { connectionId: string; serverId: string }
+): Promise<HostedMcpConnection> {
+    const connection = await requireOperableConnection(db, connections, member, input);
+    if (connection.preset) {
+        throw new HostedMcpDeniedError('Built-in preset connections cannot be deleted.');
+    }
+    if (!connections.sendMcpControl(connection.computerId, 'mcp-delete', input.connectionId)) {
+        throw new HostedMcpDeniedError('The selected Computer went offline.');
+    }
     await db
-        .update(mcpConnectionsTable)
-        .set({ tools: [...new Set(input.tools)].sort() })
+        .delete(mcpConnectionsTable)
         .where(
             and(
-                eq(mcpConnectionsTable.id, input.connectionId),
-                eq(mcpConnectionsTable.computerId, computerId)
+                eq(mcpConnectionsTable.serverId, input.serverId),
+                eq(mcpConnectionsTable.id, input.connectionId)
             )
         );
+    return shapeHostedMcpConnection(connection, connections);
 }
 
-function shape(
-    row: typeof mcpConnectionsTable.$inferSelect,
-    connections: ComputerConnections
-): HostedMcpConnection {
-    return {
-        ...row,
-        status: connections.isOnline(row.computerId) ? 'online' : 'pending',
-    };
+export async function refreshHostedMcpConnection(
+    db: GrottoDatabase,
+    connections: ComputerConnections,
+    member: GrottoUser | null,
+    input: { connectionId: string; serverId: string }
+): Promise<HostedMcpConnection> {
+    const connection = await requireOperableConnection(db, connections, member, input);
+    if (!connections.sendMcpControl(connection.computerId, 'mcp-refresh', input.connectionId)) {
+        throw new HostedMcpDeniedError('The selected Computer went offline.');
+    }
+    return shapeHostedMcpConnection(connection, connections);
+}
+
+export async function replaceHostedMcpHeaders(
+    db: GrottoDatabase,
+    connections: ComputerConnections,
+    member: GrottoUser | null,
+    input: { connectionId: string; headers: Record<string, string>; serverId: string }
+): Promise<HostedMcpConnection> {
+    const connection = await requireOperableConnection(db, connections, member, input);
+    if (connection.auth !== 'headers') {
+        throw new HostedMcpDeniedError('This MCP connection does not use header credentials.');
+    }
+    if (!connections.sendMcpHeaders(connection.computerId, input.connectionId, input.headers)) {
+        throw new HostedMcpDeniedError('The selected Computer went offline.');
+    }
+    await db.transaction(async (tx) => {
+        await tx
+            .delete(agentMcpToolGrantsTable)
+            .where(
+                and(
+                    eq(agentMcpToolGrantsTable.serverId, input.serverId),
+                    eq(agentMcpToolGrantsTable.connectionId, input.connectionId)
+                )
+            );
+        await tx
+            .update(mcpConnectionsTable)
+            .set({
+                accountLabel: null,
+                connected: false,
+                headerNames: Object.keys(input.headers).sort(),
+                tools: [],
+            })
+            .where(eq(mcpConnectionsTable.id, input.connectionId));
+    });
+    return shapeHostedMcpConnection(
+        {
+            ...connection,
+            accountLabel: null,
+            connected: false,
+            headerNames: Object.keys(input.headers).sort(),
+            tools: [],
+        },
+        connections
+    );
+}
+
+async function requireOperableConnection(
+    db: GrottoDatabase,
+    connections: ComputerConnections,
+    member: GrottoUser | null,
+    input: { connectionId: string; serverId: string }
+) {
+    const access = await requireServerMembership(db, member, input.serverId);
+    if (!member || (access.role !== 'owner' && access.role !== 'admin')) {
+        throw new HostedMcpDeniedError('Only a Server Owner or Admin can change a connection.');
+    }
+    const [row] = await db
+        .select()
+        .from(mcpConnectionsTable)
+        .where(
+            and(
+                eq(mcpConnectionsTable.serverId, input.serverId),
+                eq(mcpConnectionsTable.id, input.connectionId)
+            )
+        )
+        .limit(1);
+    if (!row) {
+        throw new HostedMcpDeniedError('The MCP connection was not found.');
+    }
+    if (!connections.isOnline(row.computerId)) {
+        throw new HostedMcpDeniedError(
+            'The selected Computer is offline. Bring it online and try again.'
+        );
+    }
+    return row;
 }

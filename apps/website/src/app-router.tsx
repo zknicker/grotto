@@ -81,6 +81,13 @@ export function createAppRouter() {
                             ),
                         },
                         {
+                            path: 's/:slug/connections',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/server-connections-page.tsx'),
+                                'ServerConnectionsPage'
+                            ),
+                        },
+                        {
                             path: 's/:slug/agents',
                             lazy: lazyRoute(
                                 () => import('./routes/app/server-agents-page.tsx'),

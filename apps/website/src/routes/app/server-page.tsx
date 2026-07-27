@@ -8,6 +8,7 @@ import {
     isServerRemindersPath,
     serverAgentsRoute,
     serverComputersRoute,
+    serverConnectionsRoute,
     serverMembersRoute,
     serverRemindersRoute,
     serverRoute,
@@ -158,6 +159,14 @@ export function ServerPage() {
                             to={serverAgentsRoute(server.data.slug)}
                         >
                             Agents
+                        </Link>
+                    ) : null}
+                    {canOperateReminders ? (
+                        <Link
+                            className="text-muted-foreground text-sm hover:text-foreground"
+                            to={serverConnectionsRoute(server.data.slug)}
+                        >
+                            Connections
                         </Link>
                     ) : null}
                     {canOperateReminders ? (

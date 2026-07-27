@@ -9,7 +9,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/sh</string>
-        <string>/opt/grotto-server/current/operations/run-server</string>
+        <string>/Users/zknicker/srv/grotto/current/operations/run-server</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -18,8 +18,8 @@
     <key>ThrottleInterval</key>
     <integer>10</integer>
     <key>StandardOutPath</key>
-    <string>/var/log/grotto-server/server.log</string>
+    <string>/Users/zknicker/srv/grotto/logs/server.log</string>
     <key>StandardErrorPath</key>
-    <string>/var/log/grotto-server/server.error.log</string>
+    <string>/Users/zknicker/srv/grotto/logs/server.error.log</string>
 </dict>
 </plist>

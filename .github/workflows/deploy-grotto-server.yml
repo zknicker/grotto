@@ -1,0 +1,149 @@
+name: Deploy Grotto Server
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published Grotto version (vX.Y.Z)
+        required: true
+        type: string
+      mode:
+        description: Production action
+        required: true
+        type: choice
+        options:
+          - deploy
+          - activate
+
+concurrency:
+  group: grotto-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy published Grotto version
+    runs-on: self-hosted
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GROTTO_DEPLOY_ROOT: /Users/zknicker/srv/grotto
+    steps:
+      - name: Resolve published version
+        working-directory: /Users/zknicker/srv/grotto
+        env:
+          REQUESTED_MODE: ${{ github.event_name == 'release' && 'deploy' || inputs.mode }}
+          REQUESTED_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${REQUESTED_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must be an exact vX.Y.Z release tag" >&2
+            exit 1
+          fi
+          if [[ "${REQUESTED_MODE}" != "deploy" && "${REQUESTED_MODE}" != "activate" ]]; then
+            echo "mode must be deploy or activate" >&2
+            exit 1
+          fi
+
+          release_state="$(
+            gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${REQUESTED_VERSION}" \
+              --jq '[.tag_name, .draft, .prerelease, .published_at] | @tsv'
+          )"
+          IFS=$'\t' read -r published_tag draft prerelease published_at <<<"${release_state}"
+          if [[ "${published_tag}" != "${REQUESTED_VERSION}" || "${draft}" != "false" || "${prerelease}" != "false" || -z "${published_at}" || "${published_at}" == "null" ]]; then
+            echo "version must name a published, non-prerelease GitHub Release" >&2
+            exit 1
+          fi
+
+          deploy_ref="refs/grotto-deploy/tags/${REQUESTED_VERSION}"
+          git fetch --no-tags origin "refs/tags/${REQUESTED_VERSION}:${deploy_ref}"
+          if [[ "$(git cat-file -t "${deploy_ref}")" != "tag" ]]; then
+            echo "release tag must be annotated" >&2
+            exit 1
+          fi
+          revision="$(git rev-parse "${deploy_ref}^{commit}")"
+          if [[ ! "${revision}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release tag did not resolve to a full commit" >&2
+            exit 1
+          fi
+
+          git reset --hard "${revision}"
+          if [[ "$(git rev-parse HEAD)" != "${revision}" ]]; then
+            echo "long-lived checkout did not reach the release commit" >&2
+            exit 1
+          fi
+
+          {
+            echo "GROTTO_RELEASE_MODE=${REQUESTED_MODE}"
+            echo "GROTTO_RELEASE_VERSION=${REQUESTED_VERSION}"
+            echo "GROTTO_SOURCE_REVISION=${revision}"
+          } >>"${GITHUB_ENV}"
+
+      - name: Verify product version
+        working-directory: /Users/zknicker/srv/grotto
+        run: |
+          set -euo pipefail
+          product_version="$(
+            bun --no-env-file -e 'process.stdout.write(require("./apps/website/package.json").version)'
+          )"
+          test "${product_version}" = "${GROTTO_RELEASE_VERSION#v}"
+
+      - name: Verify release metadata
+        if: env.GROTTO_RELEASE_MODE == 'deploy'
+        working-directory: /Users/zknicker/srv/grotto
+        run: |
+          set -euo pipefail
+          bun --no-env-file run release:check -- --expect-version "${GROTTO_RELEASE_VERSION#v}"
+
+      - name: Install build dependencies
+        if: env.GROTTO_RELEASE_MODE == 'deploy'
+        working-directory: /Users/zknicker/srv/grotto
+        run: bun --no-env-file install --frozen-lockfile
+
+      - name: Verify private PostgreSQL
+        working-directory: /Users/zknicker/srv/grotto
+        run: |
+          set -euo pipefail
+          docker volume inspect grotto_postgres_data >/dev/null
+          postgres_status="$(
+            docker compose -p grotto --env-file .env -f compose.yml \
+              ps --status running postgres
+          )"
+          grep -q 'grotto-postgres' <<<"${postgres_status}"
+          test "$(docker inspect --format '{{.State.Health.Status}}' grotto-postgres)" = "healthy"
+
+      - name: Deploy release
+        if: env.GROTTO_RELEASE_MODE == 'deploy'
+        working-directory: /Users/zknicker/srv/grotto
+        run: |
+          bun --no-env-file run deploy:grotto-server -- \
+            "${GROTTO_RELEASE_VERSION}" \
+            deploy \
+            "${GROTTO_SOURCE_REVISION}"
+
+      - name: Activate installed release
+        if: env.GROTTO_RELEASE_MODE == 'activate'
+        run: |
+          /usr/bin/sudo -n /usr/local/libexec/grotto/activate-grotto-server \
+            "${GROTTO_SOURCE_REVISION}"
+
+      - name: Prove local Server health
+        run: |
+          set -euo pipefail
+          response="$(
+            /usr/bin/curl --fail --silent --show-error --max-time 8 \
+              http://127.0.0.1:18791/healthz
+          )"
+          test "${response}" = '{"status":"ok"}'
+
+      - name: Notify Discord
+        if: always()
+        continue-on-error: true
+        uses: merchbaseco/captainhook/.github/actions/deploy-notify@v1
+        with:
+          discord-webhook-url: ${{ secrets.DISCORD_DEPLOY_WEBHOOK_URL }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          job-status: ${{ job.status }}

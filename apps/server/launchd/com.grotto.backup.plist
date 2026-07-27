@@ -9,7 +9,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/sh</string>
-        <string>/opt/grotto-server/current/operations/run-backup</string>
+        <string>/Users/zknicker/srv/grotto/current/operations/run-backup</string>
     </array>
     <key>StartCalendarInterval</key>
     <array>
@@ -19,8 +19,8 @@
         <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>15</integer></dict>
     </array>
     <key>StandardOutPath</key>
-    <string>/var/log/grotto-server/backup.log</string>
+    <string>/Users/zknicker/srv/grotto/logs/backup.log</string>
     <key>StandardErrorPath</key>
-    <string>/var/log/grotto-server/backup.error.log</string>
+    <string>/Users/zknicker/srv/grotto/logs/backup.error.log</string>
 </dict>
 </plist>

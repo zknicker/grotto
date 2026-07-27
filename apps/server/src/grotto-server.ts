@@ -1,4 +1,5 @@
 import { env } from './config/env.ts';
+import { readGrottoReleaseIdentity } from './grotto-release-identity.ts';
 import {
     createGrottoServerApplication,
     type GrottoServerApplication,
@@ -14,6 +15,9 @@ import {
 
 async function start() {
     logStartupBanner('🟠 Grotto Server', 'Booting the hosted Grotto Server');
+    const release = env.GROTTO_RELEASE_MANIFEST
+        ? readGrottoReleaseIdentity(env.GROTTO_RELEASE_MANIFEST)
+        : null;
 
     const application = await createGrottoServerApplication({
         appOrigin: env.APP_ORIGIN,
@@ -29,6 +33,11 @@ async function start() {
     registerShutdown(application);
 
     logStartupSection('Grotto Server');
+    if (release) {
+        logStartupDetail('🏷️', 'Product', release.productVersion);
+        logStartupDetail('🧭', 'Revision', release.sourceRevision);
+        logStartupDetail('🔒', 'Digest', release.contentDigest);
+    }
     logStartupDetail('🐘', 'PostgreSQL', describeDatabaseUrl(env.GROTTO_DATABASE_URL));
     logStartupDetail('🔑', 'Clerk', env.CLERK_ISSUER_URL);
     logStartupDetail(

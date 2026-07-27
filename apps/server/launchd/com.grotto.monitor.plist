@@ -9,13 +9,13 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/sh</string>
-        <string>/opt/grotto-server/current/operations/run-monitor</string>
+        <string>/Users/zknicker/srv/grotto/current/operations/run-monitor</string>
     </array>
     <key>StartInterval</key>
     <integer>60</integer>
     <key>StandardOutPath</key>
-    <string>/var/log/grotto-server/monitor.log</string>
+    <string>/Users/zknicker/srv/grotto/logs/monitor.log</string>
     <key>StandardErrorPath</key>
-    <string>/var/log/grotto-server/monitor.error.log</string>
+    <string>/Users/zknicker/srv/grotto/logs/monitor.error.log</string>
 </dict>
 </plist>

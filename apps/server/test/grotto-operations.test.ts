@@ -38,7 +38,7 @@ test('shell-sourced backup and restore examples preserve credential paths', asyn
             [
                 '/bin/sh',
                 '-c',
-                '. "$1"; test "$RESTIC_PASSWORD_FILE" = "/Library/Application Support/Grotto/Server/restic-password"',
+                '. "$1"; test "$RESTIC_PASSWORD_FILE" = "/Users/zknicker/srv/grotto/config/restic-password"',
                 'sh',
                 `${configRoot}${name}`,
             ],

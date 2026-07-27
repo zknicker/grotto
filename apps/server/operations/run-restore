@@ -2,6 +2,6 @@
 set -eu
 umask 077
 set -a
-. "/Library/Application Support/Grotto/Server/restore.env"
+. "/Users/zknicker/srv/grotto/config/restore.env"
 set +a
-exec /opt/grotto-server/current/bin/grotto-server-restore
+exec /Users/zknicker/srv/grotto/current/bin/grotto-server-restore

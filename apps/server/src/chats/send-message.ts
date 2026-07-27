@@ -12,7 +12,15 @@ import {
 } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import {
+    chatEventsTable,
+    chatMessagesTable,
+    chatsTable,
+    threadFollowsTable,
+} from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
+import { ensureHostedThread } from '../threads/ensure-thread.ts';
+import { autoFollowHostedThreadMentions } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
 import { requireChatAccess } from './chat-access.ts';
@@ -22,6 +30,13 @@ export class ChatNonceConflictError extends Error {
     constructor() {
         super('That message nonce already belongs to a different send.');
         this.name = 'ChatNonceConflictError';
+    }
+}
+
+export class DirectThreadSendError extends Error {
+    constructor() {
+        super('Thread replies require their parent Chat and anchor message.');
+        this.name = 'DirectThreadSendError';
     }
 }
 
@@ -36,14 +51,34 @@ export async function sendHostedChatMessage(
     input: HostedChatSendInput
 ): Promise<SendHostedChatMessageResult> {
     return await db.transaction(async (tx) => {
-        await requireChatAccess(tx, member, input);
+        // Server row first, then authorize: a send that started before a removal
+        // must re-read membership behind it rather than commit past it.
+        await lockServerRow(tx, input.serverId);
+
+        const thread = input.thread
+            ? await ensureHostedThread(tx, member, {
+                  anchorMessageId: input.thread.anchorMessageId,
+                  parentChatId: input.chatId,
+                  serverId: input.serverId,
+              })
+            : null;
+        const writeChatId = thread?.id ?? input.chatId;
+
+        const writeChat = await requireChatAccess(tx, member, {
+            chatId: writeChatId,
+            serverId: input.serverId,
+        });
         if (!member) {
             throw new Error('A message author is required.');
         }
 
+        if (!input.thread && writeChat.kind === 'thread') {
+            throw new DirectThreadSendError();
+        }
+
         await tx.execute(sql`
             select id from chats
-            where server_id = ${input.serverId} and id = ${input.chatId}
+            where server_id = ${input.serverId} and id = ${writeChatId}
             for update
         `);
 
@@ -58,6 +93,7 @@ export async function sendHostedChatMessage(
                 nonce: chatMessagesTable.nonce,
                 sequence: chatMessagesTable.sequence,
                 serverId: chatMessagesTable.serverId,
+                systemAuthor: chatMessagesTable.systemAuthor,
             })
             .from(chatMessagesTable)
             .innerJoin(
@@ -71,7 +107,7 @@ export async function sendHostedChatMessage(
             .where(
                 and(
                     eq(chatMessagesTable.serverId, input.serverId),
-                    eq(chatMessagesTable.chatId, input.chatId),
+                    eq(chatMessagesTable.chatId, writeChatId),
                     eq(chatMessagesTable.nonce, input.nonce)
                 )
             )
@@ -99,18 +135,23 @@ export async function sendHostedChatMessage(
                     eventCursor: existing.eventCursor.toString(),
                     idempotent: true,
                     message: toHostedChatMessage(existing, existingAttachments),
+                    threadChatId: thread?.id ?? null,
                 },
             };
         }
 
-        const attachments = await requireMessageAttachments(tx, member, input);
+        const attachments = await requireMessageAttachments(tx, member, {
+            attachmentIds: input.attachmentIds,
+            chatId: writeChatId,
+            serverId: input.serverId,
+        });
         const [updatedChat] = await tx
             .update(chatsTable)
             .set({
                 lastActivityAt: sql`now()`,
                 lastMessageSequence: sql`${chatsTable.lastMessageSequence} + 1`,
             })
-            .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
+            .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, writeChatId)))
             .returning({ sequence: chatsTable.lastMessageSequence });
 
         if (!updatedChat) {
@@ -121,7 +162,7 @@ export async function sendHostedChatMessage(
             .insert(chatMessagesTable)
             .values({
                 authorUserId: member.id,
-                chatId: input.chatId,
+                chatId: writeChatId,
                 content: input.content,
                 id: createOpaqueId('msg'),
                 nonce: input.nonce,
@@ -131,12 +172,35 @@ export async function sendHostedChatMessage(
             .returning();
 
         await associateMessageAttachments(tx, attachments, message.id);
+        if (thread) {
+            await tx
+                .insert(threadFollowsTable)
+                .values({
+                    serverId: input.serverId,
+                    threadChatId: thread.id,
+                    userId: member.id,
+                })
+                .onConflictDoUpdate({
+                    set: { followed: true, updatedAt: sql`now()` },
+                    target: [
+                        threadFollowsTable.serverId,
+                        threadFollowsTable.threadChatId,
+                        threadFollowsTable.userId,
+                    ],
+                });
+            await autoFollowHostedThreadMentions(tx, {
+                content: input.content,
+                parentChatId: thread.parentChatId,
+                serverId: input.serverId,
+                threadChatId: thread.id,
+            });
+        }
 
         const eventCursor = await allocateHostedEventCursor(tx, input.serverId);
         const [event] = await tx
             .insert(chatEventsTable)
             .values({
-                chatId: input.chatId,
+                chatId: writeChatId,
                 cursor: eventCursor,
                 id: createOpaqueId('evt'),
                 messageId: message.id,
@@ -157,6 +221,7 @@ export async function sendHostedChatMessage(
                 cursor: event.cursor.toString(),
                 id: event.id,
                 messageId: message.id,
+                parentChatId: thread?.parentChatId ?? null,
                 sequence: message.sequence,
                 serverId: message.serverId,
                 type: 'message.created',
@@ -165,6 +230,7 @@ export async function sendHostedChatMessage(
                 eventCursor: event.cursor.toString(),
                 idempotent: false,
                 message: toHostedChatMessage(message, attachmentMetadata(attachments)),
+                threadChatId: thread?.id ?? null,
             },
         };
     });

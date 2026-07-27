@@ -66,6 +66,29 @@ export function createAppRouter() {
                                 'ServerPage'
                             ),
                         },
+                        {
+                            path: 's/:slug/members',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/server-members-page.tsx'),
+                                'ServerMembersPage'
+                            ),
+                        },
+                        {
+                            path: 's/:slug/reminders',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/server-page.tsx'),
+                                'ServerPage'
+                            ),
+                        },
+                        {
+                            // A Server address may itself be `join` or `invite`,
+                            // so an invitation token cannot live under `s/:slug`.
+                            path: 'invite/:token',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/accept-invitation-page.tsx'),
+                                'AcceptInvitationPage'
+                            ),
+                        },
                     ],
                 },
             ],

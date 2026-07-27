@@ -202,9 +202,9 @@ inbox. Human **Start** resumes the current session and drains that work.
 
 - **No migration or compatibility code, ever.** Every issue ships the clean end-state. Cutover
   on the deployed system is manual, coordinated live with the operator before anything
-  destructive; expect to trash existing data where rebuilding is cheaper. Exception: database
-  *schema* changes use the ORM's normal migration tooling (the hosted grotto.sh DB uses real
-  migrations from day one).
+  destructive; expect to trash existing data where rebuilding is cheaper. The hosted
+  PostgreSQL schema is fresh-bootstrap only; incompatible databases are manually recreated
+  after operator approval.
 - **Every issue names its manual-cutover checklist** and waits for operator approval on
   destructive steps.
 - Raft's AX conventions are program-wide law: stderr `Error:` / `Code:` / `Next action:`;
@@ -281,13 +281,13 @@ inbox. Human **Start** resumes the current session and drains that work.
   `grotto reminder schedule/list/snooze/update/cancel/log` with Raft semantics: author-owned,
   anchored to a message/thread, observable (receipts + fires as system messages in the anchored
   surface), snoozable, recurring cadences (`every:15m`, `daily@09:00`, `weekly:mon,fri@09:00`).
-  Schedules are server-owned (fire while the computer is off; wake the runtime). Grotto
-  extension: an optional script payload (`--script`) runs locally at fire time — empty output =
-  quiet tick (logged, no wake), output wakes the owning agent — preserving zero-token watchdog
-  economics. Cron agent-turn mode is replaced by conversational reminders; system-event mode is
-  subsumed (a reminder fire *is* a scheduled system message); the Automations page becomes a
-  Reminders operator view (read-mostly; cancel, don't silently edit). Existing agent-turn
-  automations convert manually at cutover.
+  Schedules are hosted Server-owned: they fire while the Computer is offline, append the visible
+  system receipt, and queue durable pending Agent attention. An optional script payload
+  (`--script`) is opaque delivery data for later Computer-local execution; the Server never
+  interprets or executes it, and its fire is still visible. Cron agent-turn mode is replaced by
+  conversational reminders; system-event mode is subsumed (a reminder fire *is* a scheduled
+  system message); the Automations page becomes a Reminders operator view (read-mostly; cancel,
+  don't silently edit). Existing agent-turn automations convert manually at cutover.
 - **D5 — Zero engine tools.** The engine exposes only the runtime's native shell. Everything is
   a CLI on PATH: `grotto` (message/inbox/server/channel/thread/task/attachment/profile/reminder/
   skill) plus per-plugin CLI wrappers with runtime-held credentials (Raft's `integration env/
@@ -510,7 +510,7 @@ teach-at-point-of-use everywhere.
 | task | `list` `create` `claim` `unclaim` `update` | D8 model; board/priority/labels are app lenses |
 | attachment | `upload` `view` | |
 | profile | `show` `update` | self-edited descriptions |
-| reminder | `schedule` `list` `snooze` `update` `cancel` `log` | server-owned schedules; `--script` quiet-tick payload |
+| reminder | `schedule` `list` `snooze` `update` `cancel` `log` | Server-owned schedules; `--script` is opaque Computer execution data |
 | skill | `list` `view` `create` `patch` `write-file` | replaces `skills_*` tools |
 
 Not copied: `agent login`/`bridge` (external agents, WS6 era), `mention pending/notify/add`
@@ -664,7 +664,7 @@ deployment, so intermediate brokenness is not a constraint.
   the last pre-flip main sha (pin it in the WS5 kickoff when the flip merges).
 - **WS6 — grotto.sh server split.** Move the chat surface to the single-node Mac mini Server,
   local PostgreSQL, and local attachment filesystem behind Cloudflare Tunnel (with asynchronous
-  off-machine backup and a tested restore procedure); use Drizzle migrations; extract Grotto
+  off-machine backup and a tested restore procedure); use fresh-schema Drizzle bootstrap; extract Grotto
   Computer as the machine service (inline-authorized setup, wake delivery,
   lifecycle); Clerk human authentication; Grotto Owner/Admin/Member roles and Server-owned,
   email-bound, seven-day, single-use invites that always create Members; confirmed human removal

@@ -3,6 +3,8 @@ import { and, desc, eq, lt } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
+import { listHostedMessageTaskMap } from '../tasks/task-shape.ts';
+import { listHostedThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
 import { toHostedChatMessage } from './message-shape.ts';
@@ -16,7 +18,11 @@ export async function listHostedChatMessages(
         limit: number;
         serverId: string;
     }
-): Promise<{ messages: HostedChatMessage[]; nextBeforeSequence: number | null }> {
+): Promise<{
+    messages: HostedChatMessage[];
+    nextBeforeSequence: number | null;
+    threads: Awaited<ReturnType<typeof listHostedThreadSummaries>>;
+}> {
     await requireChatAccess(db, member, input);
 
     const predicates = [
@@ -35,18 +41,24 @@ export async function listHostedChatMessages(
         .orderBy(desc(chatMessagesTable.sequence))
         .limit(input.limit + 1);
     const hasOlderMessages = newestFirst.length > input.limit;
-    const selected = newestFirst.slice(0, input.limit).reverse();
-    const attachments = await readMessageAttachments(
-        db,
-        input.serverId,
-        selected.map((message) => message.id)
-    );
-    const messages = selected.map((message) =>
-        toHostedChatMessage(message, attachments.get(message.id) ?? [])
-    );
+    const messageRows = newestFirst.slice(0, input.limit).reverse();
+    const messageIds = messageRows.map((message) => message.id);
+    const [attachmentsByMessageId, taskByMessageId] = await Promise.all([
+        readMessageAttachments(db, input.serverId, messageIds),
+        listHostedMessageTaskMap(db, input.serverId, messageIds),
+    ]);
+    const messages = messageRows.map((message) => ({
+        ...toHostedChatMessage(message, attachmentsByMessageId.get(message.id) ?? []),
+        task: taskByMessageId.get(message.id) ?? null,
+    }));
 
     return {
         messages,
         nextBeforeSequence: hasOlderMessages ? (messages[0]?.sequence ?? null) : null,
+        threads: await listHostedThreadSummaries(db, member, {
+            anchorMessageIds: messages.map((message) => message.id),
+            parentChatId: input.chatId,
+            serverId: input.serverId,
+        }),
     };
 }

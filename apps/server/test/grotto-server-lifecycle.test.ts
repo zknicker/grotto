@@ -59,7 +59,7 @@ test('closes PostgreSQL when a started application shuts down', async () => {
 test('closes PostgreSQL when the Server cannot bind its port', async () => {
     const clerk = await startClerkTestIssuer(appOrigin);
     const occupied = Bun.listen({
-        hostname: '0.0.0.0',
+        hostname: '127.0.0.1',
         port: 0,
         socket: { data: () => undefined },
     });

@@ -34,6 +34,7 @@ export async function createServer(
     input: CreateServerInput
 ): Promise<ServerDetail> {
     const server = { displayName: input.displayName, id: createOpaqueId('srv'), slug: input.slug };
+    let viewerUserId = '';
     const channel = {
         id: createOpaqueId('cht'),
         isAll: true,
@@ -45,6 +46,7 @@ export async function createServer(
     try {
         await db.transaction(async (tx) => {
             const owner = await ensureUserByClerkId(tx, input.clerkUserId);
+            viewerUserId = owner.id;
 
             await tx.insert(serversTable).values(server);
             await tx.insert(serverMembershipsTable).values({
@@ -72,5 +74,6 @@ export async function createServer(
         id: server.id,
         role: 'owner',
         slug: server.slug,
+        viewerUserId,
     };
 }

@@ -1,7 +1,11 @@
 import type { HostedDurableEvent } from '@tavern/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
-import { laterHostedEventCursor, walkHostedEventCatchUp } from './server-chat-event-cursor.ts';
+import {
+    hostedEventRefetchTargets,
+    laterHostedEventCursor,
+    walkHostedEventCatchUp,
+} from './server-chat-event-cursor.ts';
 
 export function useServerChatEvents(serverId: string | undefined) {
     const utils = grottoTrpc.useUtils();
@@ -17,20 +21,38 @@ export function useServerChatEvents(serverId: string | undefined) {
                 return;
             }
 
-            const messageEvents = events.filter((event) => event.type === 'message.created');
-            const chatIds = [...new Set(messageEvents.map((event) => event.chatId))];
+            const targets = hostedEventRefetchTargets(events);
             const invalidations: Promise<unknown>[] = [utils.chat.list.invalidate({ serverId })];
 
-            if (messageEvents.length > 0) {
+            if (targets.invalidateSearch) {
+                invalidations.push(utils.chat.search.invalidate({ serverId }));
+            }
+            if (targets.invalidateTasks) {
                 invalidations.push(
-                    utils.chat.search.invalidate({ serverId }),
-                    ...chatIds.map((chatId) => utils.chat.messages.invalidate({ chatId, serverId }))
+                    utils.task.list.invalidate({ serverId }, { refetchType: 'all' })
                 );
             }
+            if (targets.invalidateTaskLabels) {
+                invalidations.push(
+                    utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' })
+                );
+            }
+            invalidations.push(
+                ...[...new Set([...targets.messageChatIds, ...targets.parentChatIds])].map(
+                    (chatId) => utils.chat.messages.invalidate({ chatId, serverId })
+                )
+            );
 
             await Promise.all(invalidations);
         },
-        [serverId, utils.chat.list, utils.chat.messages, utils.chat.search]
+        [
+            serverId,
+            utils.chat.list,
+            utils.chat.messages,
+            utils.chat.search,
+            utils.task.list,
+            utils.taskLabel.list,
+        ]
     );
 
     const refetchServerChatSnapshot = React.useCallback(async () => {
@@ -42,8 +64,17 @@ export function useServerChatEvents(serverId: string | undefined) {
             utils.chat.list.invalidate({ serverId }),
             utils.chat.messages.invalidate({ serverId }),
             utils.chat.search.invalidate({ serverId }),
+            utils.task.list.invalidate({ serverId }, { refetchType: 'all' }),
+            utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' }),
         ]);
-    }, [serverId, utils.chat.list, utils.chat.messages, utils.chat.search]);
+    }, [
+        serverId,
+        utils.chat.list,
+        utils.chat.messages,
+        utils.chat.search,
+        utils.task.list,
+        utils.taskLabel.list,
+    ]);
 
     const catchUp = React.useCallback(async () => {
         if (serverId === undefined) {

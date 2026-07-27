@@ -1,5 +1,5 @@
 import type { HostedChatMessage } from '@tavern/api';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
@@ -37,6 +37,7 @@ export async function searchHostedChatMessages(
             nonce: chatMessagesTable.nonce,
             sequence: chatMessagesTable.sequence,
             serverId: chatMessagesTable.serverId,
+            systemAuthor: chatMessagesTable.systemAuthor,
         })
         .from(chatMessagesTable)
         .innerJoin(
@@ -49,6 +50,7 @@ export async function searchHostedChatMessages(
         .where(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),
+                ne(chatsTable.kind, 'thread'),
                 input.chatId ? eq(chatMessagesTable.chatId, input.chatId) : undefined,
                 sql`${chatMessagesTable.searchVector}
                     @@ websearch_to_tsquery('simple', ${input.query})`,

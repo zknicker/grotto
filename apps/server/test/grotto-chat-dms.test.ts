@@ -125,14 +125,17 @@ test('opening an existing DM returns its current peer identity and unread count'
         nonce: 'dm-unread',
         serverId: ownerServerId,
     });
+    if (sent.message.author.kind !== 'human') {
+        throw new Error('A human DM send must retain its human author.');
+    }
     const reopened = await peer.trpc.chat.ensureDm.mutate({
-        peerUserId: sent.message.authorUserId,
+        peerUserId: sent.message.author.userId,
         serverId: ownerServerId,
     });
 
     expect(reopened).toMatchObject({
         id: dm.id,
-        peerUserId: sent.message.authorUserId,
+        peerUserId: sent.message.author.userId,
         unreadCount: 1,
     });
 });

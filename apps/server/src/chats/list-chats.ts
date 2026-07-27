@@ -1,8 +1,9 @@
 import type { HostedChat } from '@tavern/api';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
+import { readHostedThreadAttentionCounts } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { visibleHostedChats } from './chat-visibility.ts';
 
@@ -22,7 +23,7 @@ export async function listHostedChats(
             createdAt: chatsTable.createdAt,
             id: chatsTable.id,
             isAll: chatsTable.isAll,
-            kind: chatsTable.kind,
+            kind: sql<'channel' | 'dm'>`${chatsTable.kind}`,
             lastActivityAt: chatsTable.lastActivityAt,
             lastMessageSequence: chatsTable.lastMessageSequence,
             name: chatsTable.name,
@@ -60,7 +61,10 @@ export async function listHostedChats(
                     from chat_messages message
                     where message.server_id = "chats"."server_id"
                         and message.chat_id = "chats"."id"
-                        and message.author_user_id <> ${member.id}
+                        and (
+                            message.author_user_id is null
+                            or message.author_user_id <> ${member.id}
+                        )
                         and message.sequence > coalesce(
                             (
                                 select read.sequence
@@ -75,12 +79,25 @@ export async function listHostedChats(
             `,
         })
         .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, serverId), visibleHostedChats(member.id)))
+        .where(
+            and(
+                eq(chatsTable.serverId, serverId),
+                ne(chatsTable.kind, 'thread'),
+                visibleHostedChats(member.id)
+            )
+        )
         .orderBy(sql`${chatsTable.lastActivityAt} desc nulls last`, chatsTable.createdAt);
+
+    const threadAttentionCounts = await readHostedThreadAttentionCounts(db, {
+        parentChatIds: rows.map((chat) => chat.id),
+        readerUserId: member.id,
+        serverId,
+    });
 
     return rows.map((chat) => ({
         ...chat,
         createdAt: chat.createdAt.toISOString(),
         lastActivityAt: chat.lastActivityAt?.toISOString() ?? null,
+        unreadCount: chat.unreadCount + (threadAttentionCounts.get(chat.id) ?? 0),
     }));
 }

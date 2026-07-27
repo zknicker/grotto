@@ -3,6 +3,7 @@ import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
 export function useMarkServerChatReadOnView(input: {
     chatId: string | undefined;
+    enabled?: boolean;
     sequence: number | undefined;
     serverId: string | undefined;
 }) {
@@ -13,7 +14,10 @@ export function useMarkServerChatReadOnView(input: {
     const mutate = mutation.mutate;
     const lastMarkedRef = React.useRef<string | null>(null);
     const viewKey =
-        input.chatId !== undefined && input.sequence !== undefined && input.serverId !== undefined
+        (input.enabled ?? true) &&
+        input.chatId !== undefined &&
+        input.sequence !== undefined &&
+        input.serverId !== undefined
             ? `${input.serverId}:${input.chatId}:${input.sequence}`
             : null;
 

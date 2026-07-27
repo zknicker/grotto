@@ -36,11 +36,19 @@ interface SelectedAttachment {
 export function ServerChatComposer({
     chatId,
     chatName,
+    compositionChatId,
+    onThreadCreated,
+    placeholder,
     serverId,
+    thread,
 }: {
     chatId: string;
     chatName: string;
+    compositionChatId: string | undefined;
+    onThreadCreated?: (threadChatId: string) => void;
+    placeholder?: string;
     serverId: string;
+    thread?: { anchorMessageId: string };
 }) {
     const [draft, setDraft] = React.useState('');
     const [attachments, setAttachments] = React.useState<SelectedAttachment[]>([]);
@@ -49,17 +57,17 @@ export function ServerChatComposer({
     const fileInput = React.useRef<HTMLInputElement>(null);
     const send = useSendServerChatMessage();
     const upload = useUploadServerAttachment();
-    const composition = useServerChatComposition(serverId, chatId);
+    const composition = useServerChatComposition(serverId, compositionChatId);
     const publishComposition = composition.publish.mutate;
 
     React.useEffect(() => {
-        if (draft.length === 0) {
+        if (draft.length === 0 || compositionChatId === undefined) {
             return;
         }
 
         const timeout = window.setTimeout(() => {
             publishComposition({
-                chatId,
+                chatId: compositionChatId,
                 compositionId,
                 serverId,
                 text: draft,
@@ -67,13 +75,20 @@ export function ServerChatComposer({
         }, 150);
 
         return () => window.clearTimeout(timeout);
-    }, [chatId, compositionId, draft, publishComposition, serverId]);
+    }, [compositionChatId, compositionId, draft, publishComposition, serverId]);
 
     React.useEffect(
         () => () => {
-            publishComposition({ chatId, compositionId, serverId, text: null });
+            if (compositionChatId) {
+                publishComposition({
+                    chatId: compositionChatId,
+                    compositionId,
+                    serverId,
+                    text: null,
+                });
+            }
         },
-        [chatId, compositionId, publishComposition, serverId]
+        [compositionChatId, compositionId, publishComposition, serverId]
     );
 
     const handleSubmit = async (event: React.FormEvent) => {
@@ -93,20 +108,31 @@ export function ServerChatComposer({
                 upload.mutateAsync({ chatId, file, nonce, serverId })
             )
         );
-        await send.mutateAsync({
+        const receipt = await send.mutateAsync({
             attachmentIds: uploaded.map((attachment) => attachment.id),
             chatId,
             content,
             nonce: crypto.randomUUID(),
             serverId,
+            thread,
         });
+        if (receipt.threadChatId) {
+            onThreadCreated?.(receipt.threadChatId);
+        }
         setDraft('');
         setAttachments([]);
         setAttachmentError(null);
         if (fileInput.current) {
             fileInput.current.value = '';
         }
-        publishComposition({ chatId, compositionId, serverId, text: null });
+        if (compositionChatId) {
+            publishComposition({
+                chatId: compositionChatId,
+                compositionId,
+                serverId,
+                text: null,
+            });
+        }
     };
 
     const isPending = send.isPending || upload.isPending;
@@ -157,50 +183,54 @@ export function ServerChatComposer({
                     <PromptInputTextarea
                         aria-label={`Message ${chatName}`}
                         onChange={(event) => setDraft(event.target.value)}
-                        placeholder={`Message ${chatName}`}
+                        placeholder={placeholder ?? `Message ${chatName}`}
                         value={draft}
                     />
                 </PromptInputBody>
                 <PromptInputFooter>
                     <PromptInputTools>
-                        <input
-                            className="sr-only"
-                            multiple
-                            onChange={(event) => {
-                                const files = Array.from(event.target.files ?? []);
-                                const oversized = files.find(
-                                    (file) => file.size > hostedAttachmentMaxSizeBytes
-                                );
-                                if (oversized) {
-                                    setAttachmentError(
-                                        `${oversized.name} exceeds the 50 MiB attachment limit.`
-                                    );
-                                    event.target.value = '';
-                                    return;
-                                }
-                                setAttachmentError(null);
-                                setAttachments((current) => [
-                                    ...current,
-                                    ...files.map((file) => ({
-                                        file,
-                                        nonce: crypto.randomUUID(),
-                                    })),
-                                ]);
-                            }}
-                            ref={fileInput}
-                            type="file"
-                        />
-                        <PromptInputButton
-                            aria-label="Add attachments"
-                            disabled={isPending}
-                            onClick={() => fileInput.current?.click()}
-                            size="icon-xs"
-                            tooltip="Add attachments"
-                            type="button"
-                            variant="ghost"
-                        >
-                            <Icon className="size-4" icon={Attachment01Icon} />
-                        </PromptInputButton>
+                        {thread ? null : (
+                            <>
+                                <input
+                                    className="sr-only"
+                                    multiple
+                                    onChange={(event) => {
+                                        const files = Array.from(event.target.files ?? []);
+                                        const oversized = files.find(
+                                            (file) => file.size > hostedAttachmentMaxSizeBytes
+                                        );
+                                        if (oversized) {
+                                            setAttachmentError(
+                                                `${oversized.name} exceeds the 50 MiB attachment limit.`
+                                            );
+                                            event.target.value = '';
+                                            return;
+                                        }
+                                        setAttachmentError(null);
+                                        setAttachments((current) => [
+                                            ...current,
+                                            ...files.map((file) => ({
+                                                file,
+                                                nonce: crypto.randomUUID(),
+                                            })),
+                                        ]);
+                                    }}
+                                    ref={fileInput}
+                                    type="file"
+                                />
+                                <PromptInputButton
+                                    aria-label="Add attachments"
+                                    disabled={isPending}
+                                    onClick={() => fileInput.current?.click()}
+                                    size="icon-xs"
+                                    tooltip="Add attachments"
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    <Icon className="size-4" icon={Attachment01Icon} />
+                                </PromptInputButton>
+                            </>
+                        )}
                     </PromptInputTools>
                     <PromptInputActions>
                         <PromptInputSubmit

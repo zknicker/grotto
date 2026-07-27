@@ -22,11 +22,14 @@ export class ChatAccessDeniedError extends Error {
 }
 
 export interface AccessibleChat {
+    dmMemberOneStint: number | null;
     dmMemberOneUserId: string | null;
+    dmMemberTwoStint: number | null;
     dmMemberTwoUserId: string | null;
     id: string;
-    kind: 'channel' | 'dm';
+    kind: 'channel' | 'dm' | 'thread';
     lastMessageSequence: number;
+    parentChatId: string | null;
     serverId: string;
 }
 
@@ -67,11 +70,14 @@ export async function findHostedChatAccess(
 ): Promise<AccessibleChat | null> {
     const [chat] = await db
         .select({
+            dmMemberOneStint: chatsTable.dmMemberOneStint,
             dmMemberOneUserId: chatsTable.dmMemberOneUserId,
+            dmMemberTwoStint: chatsTable.dmMemberTwoStint,
             dmMemberTwoUserId: chatsTable.dmMemberTwoUserId,
             id: chatsTable.id,
             kind: chatsTable.kind,
             lastMessageSequence: chatsTable.lastMessageSequence,
+            parentChatId: chatsTable.parentChatId,
             serverId: chatsTable.serverId,
         })
         .from(chatsTable)
@@ -86,11 +92,14 @@ export async function findHostedChatAccess(
 
     return chat
         ? {
+              dmMemberOneStint: chat.dmMemberOneStint,
               dmMemberOneUserId: chat.dmMemberOneUserId,
+              dmMemberTwoStint: chat.dmMemberTwoStint,
               dmMemberTwoUserId: chat.dmMemberTwoUserId,
               id: chat.id,
               kind: chat.kind,
               lastMessageSequence: chat.lastMessageSequence,
+              parentChatId: chat.parentChatId,
               serverId: chat.serverId,
           }
         : null;

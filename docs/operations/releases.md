@@ -54,11 +54,44 @@ as **Required Runtime** even if the HTTP/API shape is unchanged.
 6. Run `bun run release:publish` from macOS with signing, notarization, updater,
    S3, and GitHub auth configured.
 
-`release:publish` builds the signed desktop app, notarizes it, creates Electron
-updater metadata (`latest-mac.yml`), uploads the DMG, updater zip, blockmaps,
-and metadata to `TAVERN_RELEASE_S3_URI`, verifies each S3 object is visible,
-commits release metadata, pushes `main`, pushes the version tag, and creates the
-GitHub Release.
+`release:publish` commits release metadata first so the future tag commit has a
+stable full SHA. It builds the hosted Server and hosted App artifact once with
+that SHA, verifies its archive and sidecar, then builds and notarizes the signed
+desktop app. It uploads the desktop updater files to
+`TAVERN_RELEASE_S3_URI`, pushes `main` and the version tag, and creates the
+GitHub Release with the desktop files plus the Server archive and sidecar.
+
+## Hosted Server Promotion
+
+The hosted Server and hosted web App use the same product version as
+`apps/website`. They are one atomic production artifact; there is no separate
+Server SemVer.
+
+Publishing the annotated `vX.Y.Z` GitHub Release triggers the production
+deployment. A push to `main` does not. The deploy resolves that immutable tag to
+its full commit SHA, downloads only the matching Server archive and sidecar
+through the authenticated GitHub Release API, verifies them, installs the
+release under that full SHA, then atomically activates it. The mini does not
+install JavaScript dependencies or rebuild release source. Human-facing
+identity is `X.Y.Z`; deploy, rollback, audit, and artifact identity use the full
+source SHA and content digest.
+
+The `Deploy Grotto Server` Actions workflow is the only manual promotion
+surface. It accepts an exact existing published, non-draft, non-prerelease
+`vX.Y.Z` and either:
+
+* `deploy`: download, verify, install, and activate that published artifact
+* `activate`: verify and switch to that already installed release without a
+  download or rebuild
+
+`activate` validates the published tag and the already-installed release; it
+does not require release assets. This preserves rollback to an installed
+transitional release whose GitHub Release predates hosted Server assets.
+
+It does not accept branches, `main`, arbitrary SHAs, draft releases, or
+prereleases. Cut an annotated patch release for an urgent fix. The Computer and
+optional Runtime remain separate operator-triggered release streams under their
+existing rules.
 
 ## Runtime Release Flow
 
@@ -77,11 +110,12 @@ Use this lane only when the Runtime package must ship.
    artifact before publish.
 8. Run `bun run release:publish -- --runtime` from macOS.
 
-`release:publish -- --runtime` builds the Runtime artifact, builds the signed
-desktop app, notarizes it, creates updater metadata, uploads desktop updater
-artifacts and Runtime tarballs to `TAVERN_RELEASE_S3_URI`, verifies each S3
-object is visible, commits release metadata, pushes `main`, pushes the version
-tag, creates the GitHub Release, and updates the Homebrew tap formula.
+`release:publish -- --runtime` also builds and verifies the hosted Server
+artifact for the same tag, builds the Runtime artifact and signed desktop app,
+notarizes it, creates updater metadata, uploads desktop updater artifacts and
+Runtime tarballs to `TAVERN_RELEASE_S3_URI`, verifies each S3 object is visible,
+pushes `main` and the version tag, creates the GitHub Release, and updates the
+Homebrew tap formula.
 
 Runtime artifacts include the Runtime CLI, assets, schemas, and bundled
 resources required by the local service.
@@ -178,12 +212,15 @@ packaging. The compiled `Assets.car` provides the layered Liquid Glass app icon
 on macOS 26, and `AppIcon.icns` remains the fallback icon for older macOS
 versions and Electron's DMG/app bundle path.
 
-Grotto ships two production artifacts:
+Grotto releases publish these production artifacts:
 
 * `Grotto.app` (`build.grotto.desktop`) is the desktop client plus its local app backend. Desktop release files use the
   `Grotto_<version>_<arch>` prefix.
+* `grotto-server-<version>+git.<short-sha>-aarch64-apple-darwin.tar.gz`
+  contains the hosted Server and hosted App. Its sidecar travels with it as a
+  GitHub Release asset.
 * `grotto-runtime-<version>-<target>.tar.gz` is the always-on Runtime server for
-  a Mac mini or other host.
+  a Mac mini or other host when the release includes Runtime.
 
 The desktop app connects to the configured Runtime URL. Runtime deployment and
 Homebrew service management live in [Runtime Deployment](runtime-deploy.md).
@@ -198,8 +235,7 @@ Required release environment:
 
 * `TAVERN_RELEASE_BASE_URL`
 * `TAVERN_RELEASE_S3_URI`
-* `TAVERN_GOOGLE_OAUTH_CLIENT_ID`
-* `TAVERN_GOOGLE_OAUTH_CLIENT_SECRET`
+* `VITE_CLERK_PUBLISHABLE_KEY` for the hosted App inside the Server artifact
 * `TAVERN_HOMEBREW_TAP_REPO` defaults to `zknicker/homebrew-grotto`
 * `TAVERN_HOMEBREW_TAP_DIR` optionally points to a local tap checkout
 * `CSC_NAME` or `CSC_LINK` + `CSC_KEY_PASSWORD`
@@ -207,5 +243,9 @@ Required release environment:
 * `APPLE_PASSWORD` is accepted as a compatibility alias for
   `APPLE_APP_SPECIFIC_PASSWORD`
 * `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+
+Runtime releases additionally require `TAVERN_GOOGLE_OAUTH_CLIENT_ID` and
+`TAVERN_GOOGLE_OAUTH_CLIENT_SECRET` for the Runtime artifact. App-only releases
+do not.
 
 The GitHub Release step uses `gh`; run `gh auth status` before publishing.

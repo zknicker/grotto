@@ -1,16 +1,17 @@
 ---
-summary: Hosted human chat plus the local Runtime chat contract for messages, reads, search, events, execution, and delivery.
+summary: Hosted collaboration and reminder receipts plus the local Runtime chat contract for messages, reads, search, events, execution, and delivery.
 read_when:
   - changing chat messages, artifacts, receipts, history, or timeline recovery
+  - changing hosted reminder receipts, operator procedures, or attention snapshots
   - changing how agent runtimes, bots, webhooks, or local tools send chat work into Tavern
   - changing the agent-token CLI surface, inbox delivery, or agent-scoped stop
 ---
 
 # Chat API
 
-The Chat API has a hosted human collaboration surface and a local Runtime
+The Chat API has a hosted collaboration surface and a local Runtime
 execution surface. The hosted surface is canonical for Server Channels, DMs,
-human messages, reads, search, and durable events. It does not require a
+human and reminder-system messages, reads, search, and durable events. It does not require a
 Computer.
 
 Agent runtimes have sessions and turns. Chat apps have messages and responses.
@@ -18,47 +19,65 @@ Tavern Runtime exposes agent responses, response activity,
 artifacts, receipts, history, and events. Execution identity rides along as
 metadata.
 
-## Hosted Human Chat
+## Hosted Chat
 
 The App calls the hosted Server directly over typed tRPC:
 
 | Procedure | Contract |
 | --- | --- |
 | `chat.list` | Accessible Channels and DMs with Server-owned unread counts |
-| `chat.ensureDm` | Resolve or create the caller's sorted two-human DM pair |
+| `chat.ensureDm` | Resolve or create the sorted two-human DM for both current membership stints |
 | `chat.messages` | Stable sequence page for one authorized Chat |
-| `chat.send` | Immutable message create with a required client nonce |
+| `chat.send` | Immutable message create; optional anchor target creates/posts to a child Thread |
 | `chat.markRead` | Monotonic reader-derived high-water mark |
-| `chat.search` | PostgreSQL full-text search across accessible Chats |
+| `chat.search` | PostgreSQL full-text search across accessible top-level Chats |
 | `chat.eventHead` | Current per-Server durable cursor for first subscription |
 | `chat.events` | Durable event catch-up after a cursor |
 | `chat.onEvent` | Live durable-event notification; clients refetch exact resources |
 | `chat.publishComposition` / `chat.onComposition` | Best-effort, live-only composition state |
 | `attachment.reserve` | Idempotently allocate one Server/Chat-scoped attachment id |
 | `attachment.inventory` | Owner/Admin-only database and relative filesystem inventory |
+| `thread.get` | Parent and anchor ids for one authorized child Thread |
+| `thread.setFollow` | Persist the caller's ordinary Thread attention state |
+| `task.list` | Authorized Server task/message projections with parent Chat identity and current Thread summary |
+| `task.create` / `task.promote` | Atomically create a task-message or idempotently promote one canonical message |
+| `task.claim` / `task.unclaim` | Versioned self-ownership transitions |
+| `task.assign` / `task.assignees` | Admin assignment and task-scoped eligible-human options |
+| `task.update` | Versioned status, priority, and label mutation |
+| `taskLabel.list/create/update/delete` | Shared task-specific Server label catalog |
 
 Every input carries `serverId`; the Server derives the actor or reader from the
 verified Clerk User and current Server membership. Channel access comes from
-`channel_participants`. A DM's sorted two-User pair on `chats` is its sole
-membership truth.
+`channel_participants`. A DM records the sorted two-User pair plus each
+membership's current stint. A returning human cannot reopen a DM or child
+Thread from a former stint; the peer who never left retains that history.
 
-Each DM names the other human with `peerUserId`. The App can open a DM from an
-author already visible in an accessible transcript; there is no member
-directory or member-management surface in this slice.
+Each DM names the other human with `peerUserId`. The App opens a DM from an
+author already visible in an accessible transcript; the member directory is a
+management surface and starts no Chats. Invitation and membership procedures
+live in [Grotto Server](../internals/grotto-server.md#membership).
 
 Message order is the positive per-Chat `sequence`, allocated while the Chat row
 is transactionally locked. `(server_id, chat_id, nonce)` is unique. Retrying
 the same actor, content, and ordered attachment ids returns the original
 message and event cursor; reusing the nonce for a different send is a conflict.
+An author is either the current human membership author or the explicit
+`system: "reminder"` author. The system shape exists only for canonical
+reminder receipts and is never represented as a human membership.
+
 Every attachment must be ready, uploaded by the author, unassociated, and in
 the same Server and Chat. Message creation, attachment association, and the
 `message.created` event commit in one PostgreSQL transaction. The normal
 message refetch carries attachment metadata; no separate attachment event is
 emitted. Messages have no update or delete procedure.
 
-Hosted human chat intentionally excludes Threads, reactions, tasks, reminders,
-Agent execution, delivery queues, and Computer wake behavior. Those nouns must
-not be copied from the broader local Runtime contract below.
+Hosted human chat includes hidden child Threads with parent-derived
+authorization, per-human follows, reads, and parent unread rollup. It also owns
+chat-first tasks whose identity is one canonical message and whose work surface
+is that message's deterministic child Thread. Hosted reminders may author
+scheduled system messages, but remain a separate schedule contract. Hosted
+human chat intentionally excludes reactions, Agent execution, Computer
+transport, and general delivery queues.
 
 ### Hosted attachments
 
@@ -86,6 +105,33 @@ Client values never name filesystem paths. The Server resolves the authorized
 PostgreSQL row first and derives fixed digest leaves beneath its private
 attachment root. Attachments are neither `ChatArtifact` records nor Agent
 workspace artifacts.
+
+Hosted direct mention piercing is narrow: an explicit immutable
+`[@Label](user://<grotto-user-id>)` reference to a parent participant contributes
+that one unread reply to the parent badge after explicit unfollow. It does not
+re-follow. Bare `@text` is inert; no parallel mention index is stored.
+
+## Hosted Reminders
+
+The reminder operator surface is typed tRPC backed directly by PostgreSQL:
+
+| Procedure | Authority and contract |
+| --- | --- |
+| `reminder.list` | Owner/Admin filtered schedule snapshots; script content redacted |
+| `reminder.runs` | Owner/Admin fire log for one reminder in the Server |
+| `reminder.cancel` | Owner/Admin idempotent cancel with expected version |
+| `reminder.changes` | Owner/Admin durable `reminder.changed` catch-up after a cursor |
+| `reminder.onEvent` | Owner/Admin post-commit live change notification |
+
+Agent-authored schedule/list/log/update/snooze/cancel operations are hosted
+domain functions. Agent authentication, Computer delivery, execution, and
+attention acknowledgment are later transport work, not hosted human APIs in
+this slice.
+
+Every fire transaction appends its visible system receipt before the paired
+`reminder.changed` event, records the fire, and creates concrete
+`reminder_agent_attention`. Script content is opaque and never returned by the
+operator procedures or executed by the Server.
 
 ## Local Runtime Contract (pre-cutover)
 

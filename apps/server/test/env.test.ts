@@ -5,6 +5,7 @@ import {
     getDefaultAppOrigin,
     getDefaultDatabasePath,
     getDefaultServerPort,
+    parseEnvironment,
 } from '../src/config/env.ts';
 
 test('getDefaultAppOrigin uses the Tavern website port when present', () => {
@@ -90,6 +91,25 @@ test('getDefaultDatabasePath uses a temp database during tests', () => {
     } finally {
         restoreEnvironmentVariable('NODE_ENV', previousNodeEnv);
     }
+});
+
+test('hosted releases require a real Clerk secret before opening the Server', () => {
+    const hosted = {
+        ...process.env,
+        CLERK_SECRET_KEY: undefined,
+        GROTTO_RELEASE_MANIFEST: '/tmp/grotto-release.json',
+        NODE_ENV: 'test',
+    };
+
+    assert.throws(() => parseEnvironment(hosted), /CLERK_SECRET_KEY/u);
+    assert.throws(
+        () => parseEnvironment({ ...hosted, CLERK_SECRET_KEY: 'INJECT_ON_HOST' }),
+        /CLERK_SECRET_KEY/u
+    );
+    assert.equal(
+        parseEnvironment({ ...hosted, CLERK_SECRET_KEY: 'sk_test_fixture' }).CLERK_SECRET_KEY,
+        'sk_test_fixture'
+    );
 });
 
 function restoreEnvironmentVariable(key: string, value: string | undefined) {

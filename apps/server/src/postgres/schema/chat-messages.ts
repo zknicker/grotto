@@ -20,7 +20,7 @@ const tsvector = customType<{ data: string }>({
 export const chatMessagesTable = pgTable(
     'chat_messages',
     {
-        authorUserId: text('author_user_id').notNull(),
+        authorUserId: text('author_user_id'),
         chatId: text('chat_id').notNull(),
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -31,16 +31,17 @@ export const chatMessagesTable = pgTable(
         ),
         sequence: integer('sequence').notNull(),
         serverId: text('server_id').notNull(),
+        systemAuthor: text('system_author').$type<'reminder'>(),
     },
     (table) => [
         uniqueIndex('chat_messages_server_id_key').on(table.serverId, table.id),
-        uniqueIndex('chat_messages_server_chat_id_key').on(table.serverId, table.chatId, table.id),
         uniqueIndex('chat_messages_chat_sequence_key').on(
             table.serverId,
             table.chatId,
             table.sequence
         ),
         uniqueIndex('chat_messages_chat_nonce_key').on(table.serverId, table.chatId, table.nonce),
+        uniqueIndex('chat_messages_chat_id_key').on(table.serverId, table.chatId, table.id),
         foreignKey({
             columns: [table.serverId, table.chatId],
             foreignColumns: [chatsTable.serverId, chatsTable.id],
@@ -52,6 +53,14 @@ export const chatMessagesTable = pgTable(
             name: 'chat_messages_author_membership_fk',
         }),
         check('chat_messages_positive_sequence', sql`${table.sequence} > 0`),
+        check(
+            'chat_messages_author_shape',
+            sql`(
+                (${table.authorUserId} is not null and ${table.systemAuthor} is null)
+                or
+                (${table.authorUserId} is null and ${table.systemAuthor} = 'reminder')
+            )`
+        ),
         index('chat_messages_chat_sequence_idx').on(table.serverId, table.chatId, table.sequence),
         index('chat_messages_search_idx').using('gin', table.searchVector),
     ]

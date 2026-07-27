@@ -23,13 +23,17 @@ export async function listHostedChatEvents(
             createdAt: chatEventsTable.createdAt,
             cursor: chatEventsTable.cursor,
             id: chatEventsTable.id,
+            labelId: chatEventsTable.labelId,
             messageId: chatEventsTable.messageId,
+            parentChatId: chatsTable.parentChatId,
+            reminderAction: chatEventsTable.reminderAction,
+            reminderId: chatEventsTable.reminderId,
             sequence: chatEventsTable.sequence,
             serverId: chatEventsTable.serverId,
             type: chatEventsTable.type,
         })
         .from(chatEventsTable)
-        .innerJoin(
+        .leftJoin(
             chatsTable,
             and(
                 eq(chatsTable.serverId, chatEventsTable.serverId),
@@ -41,13 +45,24 @@ export async function listHostedChatEvents(
                 eq(chatEventsTable.serverId, input.serverId),
                 gt(chatEventsTable.cursor, BigInt(input.afterCursor)),
                 or(
-                    eq(chatEventsTable.type, 'message.created'),
+                    eq(chatEventsTable.type, 'task.label.updated'),
+                    eq(chatEventsTable.type, 'reminder.changed'),
                     and(
-                        eq(chatEventsTable.type, 'chat.read'),
-                        eq(chatEventsTable.readerUserId, member.id)
+                        or(
+                            eq(chatEventsTable.type, 'message.created'),
+                            eq(chatEventsTable.type, 'task.created'),
+                            eq(chatEventsTable.type, 'task.updated'),
+                            and(
+                                or(
+                                    eq(chatEventsTable.type, 'chat.read'),
+                                    eq(chatEventsTable.type, 'thread.follow.updated')
+                                ),
+                                eq(chatEventsTable.readerUserId, member.id)
+                            )
+                        ),
+                        visibleHostedChats(member.id)
                     )
-                ),
-                visibleHostedChats(member.id)
+                )
             )
         )
         .orderBy(chatEventsTable.cursor)
@@ -55,16 +70,78 @@ export async function listHostedChatEvents(
 
     return rows.map((event) => {
         const common = {
-            chatId: event.chatId,
             createdAt: event.createdAt.toISOString(),
             cursor: event.cursor.toString(),
             id: event.id,
-            sequence: event.sequence,
             serverId: event.serverId,
         };
 
-        return event.type === 'message.created'
-            ? { ...common, messageId: event.messageId as string, type: 'message.created' as const }
-            : { ...common, type: 'chat.read' as const };
+        if (event.type === 'task.label.updated') {
+            return {
+                ...common,
+                chatId: null,
+                labelId: event.labelId as string,
+                parentChatId: null,
+                sequence: 0 as const,
+                type: 'task.label.updated' as const,
+            };
+        }
+
+        if (event.type === 'message.created') {
+            return {
+                ...common,
+                chatId: event.chatId as string,
+                messageId: event.messageId as string,
+                parentChatId: event.parentChatId,
+                sequence: event.sequence,
+                type: 'message.created' as const,
+            };
+        }
+
+        if (event.type === 'task.created' || event.type === 'task.updated') {
+            return {
+                ...common,
+                chatId: event.chatId as string,
+                messageId: event.messageId as string,
+                parentChatId: null,
+                sequence: event.sequence,
+                type: event.type,
+            };
+        }
+
+        if (event.type === 'chat.read') {
+            return {
+                ...common,
+                chatId: event.chatId as string,
+                parentChatId: event.parentChatId,
+                sequence: event.sequence,
+                type: 'chat.read' as const,
+            };
+        }
+
+        if (event.type === 'reminder.changed') {
+            return {
+                ...common,
+                action: event.reminderAction as
+                    | 'canceled'
+                    | 'fired'
+                    | 'scheduled'
+                    | 'snoozed'
+                    | 'updated',
+                chatId: event.chatId as string,
+                parentChatId: event.parentChatId,
+                reminderId: event.reminderId as string,
+                sequence: event.sequence,
+                type: 'reminder.changed' as const,
+            };
+        }
+
+        return {
+            ...common,
+            chatId: event.chatId as string,
+            parentChatId: event.parentChatId as string,
+            sequence: event.sequence,
+            type: 'thread.follow.updated' as const,
+        };
     });
 }

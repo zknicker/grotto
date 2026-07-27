@@ -26,9 +26,18 @@ brew services start postgresql@16
 createdb grotto
 ```
 
-`DATABASE_URL` defaults to `postgres://127.0.0.1:5432/grotto`; set it in the
-root `.env` to point elsewhere. The Server sets up its fresh schema at startup,
-so an empty database needs no other setup.
+`GROTTO_DATABASE_URL` defaults to `postgres://127.0.0.1:5432/grotto`; set it in
+the root `.env` to point elsewhere. Bootstrap a fresh schema explicitly before
+starting the hosted Server:
+
+```bash
+GROTTO_DATABASE_BOOTSTRAP_URL=postgres://127.0.0.1:5432/grotto \
+GROTTO_DATABASE_RUNTIME_ROLE="$(whoami)" \
+bun run --filter @tavern/server bootstrap:grotto
+```
+
+Runtime startup checks PostgreSQL but never runs DDL. The bootstrap is for an
+empty database only; there is no migration or adoption path.
 
 The hosted Server is its own process, separate from the local sidecar:
 
@@ -37,7 +46,10 @@ bun run --filter @tavern/server dev:grotto
 ```
 
 Point the App at it with `VITE_GROTTO_SERVER_ORIGIN` (default port `8090`) so
-the `/s` routes reach it. `bun run dev` starts the local sidecar only.
+the `/s` routes reach it. A packaged desktop build that issues invitations also
+needs `VITE_GROTTO_APP_ORIGIN`, the browser-reachable App origin used in the
+manual link; keep it equal to the Server's `APP_ORIGIN`. Web development falls
+back to the current browser origin. `bun run dev` starts the local sidecar only.
 
 The dev stack uses worktree-isolated development state by default:
 

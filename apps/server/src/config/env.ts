@@ -129,24 +129,52 @@ if (envPath) {
 
 applyCliOverrides(process.argv.slice(2));
 
-const envSchema = z.object({
-    APP_ORIGIN: z.string().url().default(getDefaultAppOrigin()),
-    CLERK_ISSUER_URL: z.string().url().default(getDefaultClerkIssuerUrl()),
-    CLERK_SECRET_KEY: z.string().min(1).optional(),
-    DATABASE_PATH: z.string().min(1).default(getDefaultDatabasePath()).transform(resolveHomePath),
-    DATABASE_URL: z.string().min(1).default(getDefaultDatabaseUrl()),
-    GROTTO_ATTACHMENT_ROOT: z
-        .string()
-        .min(1)
-        .default(getDefaultGrottoAttachmentRoot())
-        .transform(resolveHomePath),
-    GROTTO_SERVER_PORT: z.coerce.number().int().positive().default(getDefaultGrottoServerPort()),
-    DEV_CLERK_SIGN_IN_USER_ID: z.string().min(1).optional(),
-    TAVERN_RUNTIME_URL: z.string().url().optional(),
-    SERVER_PORT: z.coerce.number().int().positive().default(getDefaultServerPort()),
-});
+const envSchema = z
+    .object({
+        APP_ORIGIN: z.string().url().default(getDefaultAppOrigin()),
+        CLERK_API_URL: z.string().url().optional(),
+        CLERK_ISSUER_URL: z.string().url().default(getDefaultClerkIssuerUrl()),
+        CLERK_SECRET_KEY: z.string().min(1).optional(),
+        DATABASE_PATH: z
+            .string()
+            .min(1)
+            .default(getDefaultDatabasePath())
+            .transform(resolveHomePath),
+        GROTTO_ATTACHMENT_ROOT: z
+            .string()
+            .min(1)
+            .default(getDefaultGrottoAttachmentRoot())
+            .transform(resolveHomePath),
+        GROTTO_DATABASE_URL: z.string().min(1).default(getDefaultDatabaseUrl()),
+        GROTTO_RELEASE_MANIFEST: z.string().min(1).transform(resolveHomePath).optional(),
+        GROTTO_SERVER_PORT: z.coerce
+            .number()
+            .int()
+            .positive()
+            .default(getDefaultGrottoServerPort()),
+        GROTTO_STATIC_APP_ROOT: z.string().min(1).transform(resolveHomePath).optional(),
+        DEV_CLERK_SIGN_IN_USER_ID: z.string().min(1).optional(),
+        TAVERN_RUNTIME_URL: z.string().url().optional(),
+        SERVER_PORT: z.coerce.number().int().positive().default(getDefaultServerPort()),
+    })
+    .superRefine((value, context) => {
+        if (
+            value.GROTTO_RELEASE_MANIFEST &&
+            (!value.CLERK_SECRET_KEY || value.CLERK_SECRET_KEY === 'INJECT_ON_HOST')
+        ) {
+            context.addIssue({
+                code: 'custom',
+                message: 'CLERK_SECRET_KEY is required for a hosted Grotto release.',
+                path: ['CLERK_SECRET_KEY'],
+            });
+        }
+    });
 
-export const env = envSchema.parse(process.env);
+export function parseEnvironment(values: NodeJS.ProcessEnv) {
+    return envSchema.parse(values);
+}
+
+export const env = parseEnvironment(process.env);
 
 function applyCliOverrides(args: string[]) {
     for (let index = 0; index < args.length; index += 1) {

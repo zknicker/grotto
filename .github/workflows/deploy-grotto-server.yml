@@ -1,0 +1,172 @@
+name: Deploy Grotto Server
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published Grotto version (vX.Y.Z)
+        required: true
+        type: string
+      mode:
+        description: Production action
+        required: true
+        type: choice
+        options:
+          - deploy
+          - activate
+
+concurrency:
+  group: grotto-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy published Grotto version
+    runs-on: [self-hosted, grotto]
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GROTTO_DEPLOY_ROOT: /Users/zknicker/srv/grotto
+    steps:
+      - name: Resolve published version
+        working-directory: /Users/zknicker/srv/grotto
+        env:
+          REQUESTED_MODE: ${{ github.event_name == 'release' && 'deploy' || inputs.mode }}
+          REQUESTED_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${REQUESTED_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must be an exact vX.Y.Z release tag" >&2
+            exit 1
+          fi
+          if [[ "${REQUESTED_MODE}" != "deploy" && "${REQUESTED_MODE}" != "activate" ]]; then
+            echo "mode must be deploy or activate" >&2
+            exit 1
+          fi
+
+          release_state="$(
+            gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${REQUESTED_VERSION}" \
+              --jq '[.tag_name, .draft, .prerelease, .published_at] | @tsv'
+          )"
+          IFS=$'\t' read -r published_tag draft prerelease published_at <<<"${release_state}"
+          if [[ "${published_tag}" != "${REQUESTED_VERSION}" || "${draft}" != "false" || "${prerelease}" != "false" || -z "${published_at}" || "${published_at}" == "null" ]]; then
+            echo "version must name a published, non-prerelease GitHub Release" >&2
+            exit 1
+          fi
+
+          tag_ref_state="$(
+            gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${REQUESTED_VERSION}" \
+              --jq '[.object.type, .object.sha] | @tsv'
+          )"
+          IFS=$'\t' read -r tag_ref_type tag_object_sha <<<"${tag_ref_state}"
+          if [[ "${tag_ref_type}" != "tag" || ! "${tag_object_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release tag must be annotated" >&2
+            exit 1
+          fi
+
+          tag_state="$(
+            gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag_object_sha}" \
+              --jq '[.tag, .object.type, .object.sha] | @tsv'
+          )"
+          IFS=$'\t' read -r annotated_tag target_type revision <<<"${tag_state}"
+          if [[ "${annotated_tag}" != "${REQUESTED_VERSION}" || "${target_type}" != "commit" || ! "${revision}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release tag did not resolve to a full commit" >&2
+            exit 1
+          fi
+
+          {
+            echo "GROTTO_RELEASE_MODE=${REQUESTED_MODE}"
+            echo "GROTTO_RELEASE_VERSION=${REQUESTED_VERSION}"
+            echo "GROTTO_SOURCE_REVISION=${revision}"
+          } >>"${GITHUB_ENV}"
+
+      - name: Verify private PostgreSQL
+        run: |
+          set -euo pipefail
+          docker volume inspect grotto_postgres_data >/dev/null
+          test "$(docker inspect --format '{{.State.Health.Status}}' grotto-postgres)" = "healthy"
+
+      - name: Deploy downloaded release
+        if: env.GROTTO_RELEASE_MODE == 'deploy'
+        run: |
+          set -euo pipefail
+          deploy_temp="$(/usr/bin/mktemp -d "${RUNNER_TEMP}/grotto-server-deploy.XXXXXX")"
+          cleanup() {
+            /usr/bin/trash "${deploy_temp}"
+          }
+          trap 'cleanup' EXIT
+
+          product_version="${GROTTO_RELEASE_VERSION#v}"
+          release_id="${product_version}+git.${GROTTO_SOURCE_REVISION:0:12}"
+          archive_name="grotto-server-${release_id}-aarch64-apple-darwin.tar.gz"
+          archive_asset_id="$(
+            gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GROTTO_RELEASE_VERSION}" \
+              --jq ".assets[] | select(.name == \"${archive_name}\") | .id"
+          )"
+          checksum_asset_id="$(
+            gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GROTTO_RELEASE_VERSION}" \
+              --jq ".assets[] | select(.name == \"${archive_name}.sha256\") | .id"
+          )"
+          if [[ ! "${archive_asset_id}" =~ ^[0-9]+$ || ! "${checksum_asset_id}" =~ ^[0-9]+$ ]]; then
+            echo "published release must contain the exact Grotto Server archive and checksum" >&2
+            exit 1
+          fi
+
+          archive_path="${deploy_temp}/${archive_name}"
+          checksum_path="${archive_path}.sha256"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/assets/${archive_asset_id}" \
+            --header "Accept: application/octet-stream" >"${archive_path}"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/assets/${checksum_asset_id}" \
+            --header "Accept: application/octet-stream" >"${checksum_path}"
+          (
+            cd "${deploy_temp}"
+            /usr/bin/shasum -a 256 -c "${archive_name}.sha256"
+          )
+
+          /bin/mkdir "${deploy_temp}/operation"
+          /usr/bin/tar -xzf "${archive_path}" \
+            -C "${deploy_temp}/operation" \
+            ./bin/grotto-server-deploy
+          test -f "${deploy_temp}/operation/bin/grotto-server-deploy"
+          test ! -L "${deploy_temp}/operation/bin/grotto-server-deploy"
+          test -x "${deploy_temp}/operation/bin/grotto-server-deploy"
+          "${deploy_temp}/operation/bin/grotto-server-deploy" \
+            install \
+            "${archive_path}" \
+            "${GROTTO_RELEASE_VERSION}" \
+            "${GROTTO_SOURCE_REVISION}"
+          /usr/bin/sudo -n /usr/local/libexec/grotto/activate-grotto-server \
+            "${GROTTO_SOURCE_REVISION}"
+
+      - name: Activate installed release
+        if: env.GROTTO_RELEASE_MODE == 'activate'
+        run: |
+          test -d "${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}"
+          /usr/bin/sudo -n /usr/local/libexec/grotto/activate-grotto-server \
+            "${GROTTO_SOURCE_REVISION}"
+
+      - name: Prove local Server health
+        run: |
+          set -euo pipefail
+          response="$(
+            /usr/bin/curl --fail --silent --show-error --max-time 8 \
+              http://127.0.0.1:18791/healthz
+          )"
+          health_status="$(
+            /usr/bin/python3 -c 'import json, sys; print(json.load(sys.stdin)["status"])' \
+              <<<"${response}"
+          )"
+          test "${health_status}" = "ok"
+
+      - name: Notify Discord
+        if: always()
+        continue-on-error: true
+        uses: merchbaseco/captainhook/.github/actions/deploy-notify@v1
+        with:
+          discord-webhook-url: ${{ secrets.DISCORD_DEPLOY_WEBHOOK_URL }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          job-status: ${{ job.status }}

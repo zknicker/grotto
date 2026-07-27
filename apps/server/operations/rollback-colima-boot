@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+
+label="com.merchbaseco.colima-autostart"
+user_name="zknicker"
+agent="/Users/zknicker/Library/LaunchAgents/${label}.plist"
+daemon="/Library/LaunchDaemons/${label}.plist"
+
+if [ "$(/usr/bin/id -u)" -ne 0 ]; then
+    echo "rollback-colima-boot requires root." >&2
+    exit 1
+fi
+
+user_uid=$(/usr/bin/id -u "$user_name")
+if /bin/launchctl print "system/${label}" >/dev/null 2>&1; then
+    /bin/launchctl bootout system "$daemon"
+fi
+if [ -f "$daemon" ]; then
+    /bin/rm -f "$daemon"
+fi
+
+/bin/launchctl enable gui/${user_uid}/${label}
+if /bin/launchctl print "gui/${user_uid}" >/dev/null 2>&1 && [ -f "$agent" ]; then
+    if ! /bin/launchctl print "gui/${user_uid}/${label}" >/dev/null 2>&1; then
+        /bin/launchctl bootstrap gui/${user_uid} "$agent"
+    fi
+    echo "Restored login-scoped Colima supervision."
+else
+    echo "Removed system supervision; the preserved LaunchAgent will load at next login."
+fi

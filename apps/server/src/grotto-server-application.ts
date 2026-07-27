@@ -7,9 +7,19 @@ import { reconcileHostedAttachments } from './attachments/reconcile-attachments.
 import { createGrottoContextFactory } from './grotto-api/context.ts';
 import { grottoRouter } from './grotto-api/router.ts';
 import { startGrottoWebSocketServer } from './grotto-api/ws.ts';
+import { registerGrottoHealth } from './grotto-health.ts';
+import { registerGrottoStaticApp } from './grotto-static-app.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
+import { type ClerkUsers, createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectGrottoDatabase } from './postgres/connection.ts';
+import type { ReminderClock } from './reminders/reminder-model.ts';
+import {
+    createHostedReminderScheduler,
+    type HostedReminderScheduler,
+    type ReminderSchedulerTimers,
+} from './reminders/reminder-scheduler.ts';
+import { tickHostedReminders } from './reminders/scheduler.ts';
 
 /**
  * The hosted Grotto Server. It serves only the Grotto Server contract over
@@ -20,10 +30,22 @@ export interface GrottoServerApplicationOptions {
     appOrigin: string;
     /** Absolute private root for Server-owned attachment bytes. */
     attachmentRoot: string;
+    /** Clerk Backend API origin; defaults to Clerk's production endpoint. */
+    clerkApiUrl?: string;
     /** Origin of the Clerk instance that authenticates humans. */
     clerkIssuerUrl: string;
+    /** Clerk secret for the verified-email lookup invitations depend on. */
+    clerkSecretKey?: string;
+    /** Overrides the Clerk verified-email boundary; tests stand in for it. */
+    clerkUsers?: ClerkUsers;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
     databaseUrl: string;
+    /** Controlled time seam for deterministic reminder lifecycle tests. */
+    reminderClock?: ReminderClock;
+    /** Timer seam; production uses the process interval. */
+    reminderSchedulerTimers?: ReminderSchedulerTimers;
+    /** Built hosted App assets. Omit only when another process serves the App in development. */
+    staticAppRoot?: string;
 }
 
 export interface GrottoServerApplication {
@@ -38,6 +60,7 @@ export async function createGrottoServerApplication(
 ): Promise<GrottoServerApplication> {
     const grotto = await connectGrottoDatabase(options.databaseUrl);
     let app: FastifyInstance | null = null;
+    let reminderScheduler: HostedReminderScheduler | null = null;
 
     try {
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot);
@@ -46,6 +69,12 @@ export async function createGrottoServerApplication(
         const createContext = createGrottoContextFactory({
             attachmentRoot,
             clerkSessions,
+            clerkUsers:
+                options.clerkUsers ??
+                createClerkUsers({
+                    apiUrl: options.clerkApiUrl,
+                    secretKey: options.clerkSecretKey,
+                }),
             grottoDb: grotto.db,
         });
         const isAllowedOrigin = (origin: string | undefined) =>
@@ -79,30 +108,52 @@ export async function createGrottoServerApplication(
             },
         });
 
-        app.get('/healthz', async () => ({
-            status: 'ok',
-        }));
-
         const startedApp = app;
         const webSocketServer = startGrottoWebSocketServer(startedApp.server, {
             createContext,
             isAllowedOrigin,
         });
+        const reminderClock = options.reminderClock ?? { now: () => new Date() };
+        reminderScheduler = createHostedReminderScheduler({
+            clock: reminderClock,
+            tick: () => tickHostedReminders(grotto.db, reminderClock),
+            timers: options.reminderSchedulerTimers,
+        });
+        await reminderScheduler.start();
 
-        const close = async () => {
-            webSocketServer.broadcastReconnectNotification();
-            webSocketServer.close();
-            startedApp.server.closeAllConnections();
-            await startedApp.close();
-            await grotto.close();
+        registerGrottoHealth(app, grotto.health, 5000, () => {
+            return (
+                reminderScheduler?.health() ?? {
+                    consecutiveFailures: 1,
+                    lastSuccessfulTickAt: null,
+                    status: 'degraded' as const,
+                }
+            );
+        });
+
+        if (options.staticAppRoot) {
+            await registerGrottoStaticApp(app, options.staticAppRoot);
+        }
+
+        let closePromise: Promise<void> | null = null;
+        const close = () => {
+            closePromise ??= (async () => {
+                webSocketServer.broadcastReconnectNotification();
+                webSocketServer.close();
+                startedApp.server.closeAllConnections();
+                await reminderScheduler?.close();
+                await startedApp.close();
+                await grotto.close();
+            })();
+            return closePromise;
         };
 
         return {
             app: startedApp,
             close,
-            listen: async (port: number) => {
+            listen: async (port) => {
                 try {
-                    await startedApp.listen({ host: '0.0.0.0', port });
+                    await startedApp.listen({ host: '127.0.0.1', port });
                 } catch (cause) {
                     // A failed bind leaves the application and its PostgreSQL
                     // pool open; the bind error is the useful one.
@@ -113,6 +164,7 @@ export async function createGrottoServerApplication(
         };
     } catch (cause) {
         // The original failure is the useful one; teardown must not mask it.
+        await reminderScheduler?.close().catch(() => undefined);
         await app?.close().catch(() => undefined);
         await grotto.close().catch(() => undefined);
         throw cause;

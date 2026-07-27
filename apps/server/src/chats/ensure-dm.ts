@@ -1,9 +1,10 @@
 import type { HostedChat } from '@tavern/api';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { listHostedChats } from './list-chats.ts';
 
@@ -26,60 +27,75 @@ export async function ensureHostedDm(
     member: GrottoUser | null,
     input: { peerUserId: string; serverId: string }
 ): Promise<HostedChat> {
-    await requireServerMembership(db, member, input.serverId);
+    const chatId = await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
+        await requireServerMembership(tx, member, input.serverId);
 
-    if (!member || member.id === input.peerUserId) {
-        throw new InvalidDmPeerError();
-    }
+        if (!member || member.id === input.peerUserId) {
+            throw new InvalidDmPeerError();
+        }
 
-    const [peer] = await db
-        .select({ userId: serverMembershipsTable.userId })
-        .from(serverMembershipsTable)
-        .where(
-            and(
-                eq(serverMembershipsTable.serverId, input.serverId),
-                eq(serverMembershipsTable.userId, input.peerUserId),
-                isNull(serverMembershipsTable.revokedAt)
+        const standings = await tx
+            .select({
+                stint: serverMembershipsTable.stint,
+                userId: serverMembershipsTable.userId,
+            })
+            .from(serverMembershipsTable)
+            .where(
+                and(
+                    eq(serverMembershipsTable.serverId, input.serverId),
+                    inArray(serverMembershipsTable.userId, [member.id, input.peerUserId]),
+                    isNull(serverMembershipsTable.revokedAt)
+                )
+            );
+        const actorStanding = standings.find((standing) => standing.userId === member.id);
+        const peerStanding = standings.find((standing) => standing.userId === input.peerUserId);
+
+        if (!(actorStanding && peerStanding)) {
+            throw new DmPeerNotFoundError();
+        }
+
+        const [memberOne, memberTwo] = [actorStanding, peerStanding].sort((left, right) =>
+            left.userId < right.userId ? -1 : 1
+        );
+
+        await tx
+            .insert(chatsTable)
+            .values({
+                dmMemberOneStint: memberOne.stint,
+                dmMemberOneUserId: memberOne.userId,
+                dmMemberTwoStint: memberTwo.stint,
+                dmMemberTwoUserId: memberTwo.userId,
+                id: createOpaqueId('cht'),
+                kind: 'dm',
+                serverId: input.serverId,
+            })
+            .onConflictDoNothing();
+
+        const [chat] = await tx
+            .select({ id: chatsTable.id })
+            .from(chatsTable)
+            .where(
+                and(
+                    eq(chatsTable.serverId, input.serverId),
+                    eq(chatsTable.kind, 'dm'),
+                    eq(chatsTable.dmMemberOneUserId, memberOne.userId),
+                    eq(chatsTable.dmMemberTwoUserId, memberTwo.userId),
+                    eq(chatsTable.dmMemberOneStint, memberOne.stint),
+                    eq(chatsTable.dmMemberTwoStint, memberTwo.stint)
+                )
             )
-        )
-        .limit(1);
+            .limit(1);
 
-    if (!peer) {
-        throw new DmPeerNotFoundError();
-    }
+        if (!chat) {
+            throw new Error('Failed to resolve the DM after creating it.');
+        }
 
-    const [memberOneUserId, memberTwoUserId] = [member.id, peer.userId].sort();
-
-    await db
-        .insert(chatsTable)
-        .values({
-            dmMemberOneUserId: memberOneUserId,
-            dmMemberTwoUserId: memberTwoUserId,
-            id: createOpaqueId('cht'),
-            kind: 'dm',
-            serverId: input.serverId,
-        })
-        .onConflictDoNothing();
-
-    const [chat] = await db
-        .select()
-        .from(chatsTable)
-        .where(
-            and(
-                eq(chatsTable.serverId, input.serverId),
-                eq(chatsTable.kind, 'dm'),
-                eq(chatsTable.dmMemberOneUserId, memberOneUserId),
-                eq(chatsTable.dmMemberTwoUserId, memberTwoUserId)
-            )
-        )
-        .limit(1);
-
-    if (!chat) {
-        throw new Error('Failed to resolve the DM after creating it.');
-    }
+        return chat.id;
+    });
 
     const visibleChat = (await listHostedChats(db, member, input.serverId)).find(
-        (candidate) => candidate.id === chat.id
+        (candidate) => candidate.id === chatId
     );
 
     if (!visibleChat) {

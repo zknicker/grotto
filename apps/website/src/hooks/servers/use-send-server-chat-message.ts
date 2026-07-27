@@ -4,13 +4,16 @@ export function useSendServerChatMessage() {
     const utils = grottoTrpc.useUtils();
 
     return grottoTrpc.chat.send.useMutation({
-        onSuccess: async (_, input) => {
+        onSuccess: async (result, input) => {
+            const chatIds = [input.chatId, ...(result.threadChatId ? [result.threadChatId] : [])];
             await Promise.all([
                 utils.chat.list.invalidate({ serverId: input.serverId }),
-                utils.chat.messages.invalidate({
-                    chatId: input.chatId,
-                    serverId: input.serverId,
-                }),
+                ...chatIds.map((chatId) =>
+                    utils.chat.messages.invalidate({
+                        chatId,
+                        serverId: input.serverId,
+                    })
+                ),
                 utils.chat.search.invalidate(),
             ]);
         },

@@ -4,6 +4,7 @@ import { serversTable } from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import type { ServerSummary } from './contracts.ts';
 import { requireServerMembership } from './server-access.ts';
+import { lockServerRow } from './server-lock.ts';
 
 /** Renames a Grotto server. The slug is its permanent address and never moves. */
 export async function renameServer(
@@ -11,12 +12,15 @@ export async function renameServer(
     member: GrottoUser | null,
     input: { displayName: string; serverId: string }
 ): Promise<ServerSummary> {
-    const server = await requireServerMembership(db, member, input.serverId);
+    return await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
+        const server = await requireServerMembership(tx, member, input.serverId);
 
-    await db
-        .update(serversTable)
-        .set({ displayName: input.displayName })
-        .where(eq(serversTable.id, server.id));
+        await tx
+            .update(serversTable)
+            .set({ displayName: input.displayName })
+            .where(eq(serversTable.id, server.id));
 
-    return { ...server, displayName: input.displayName };
+        return { ...server, displayName: input.displayName };
+    });
 }

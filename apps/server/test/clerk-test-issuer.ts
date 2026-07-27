@@ -18,6 +18,11 @@ export interface ClerkTestIssuer {
      * on the same Clerk instance.
      */
     mintSessionToken(clerkUserId: string, claims?: Record<string, unknown>): Promise<string>;
+    /**
+     * Stands in for the Clerk Backend API's verified-email lookup, so the
+     * hosted Server can run its real invitation boundary against this issuer.
+     */
+    setVerifiedEmails(clerkUserId: string, emails: string[]): void;
     url: string;
 }
 
@@ -31,10 +36,28 @@ export async function startClerkTestIssuer(appOrigin: string): Promise<ClerkTest
     const jwk = await exportJWK(publicKey as KeyObject);
     const jwks = JSON.stringify({ keys: [{ ...jwk, alg: 'RS256', kid: keyId, use: 'sig' }] });
 
+    const verifiedEmails = new Map<string, string[]>();
     const server = createServer((request, response) => {
         if (request.url === '/.well-known/jwks.json') {
             response.writeHead(200, { 'content-type': 'application/json' });
             response.end(jwks);
+            return;
+        }
+
+        const lookup = request.url?.match(/^\/v1\/users\/([^/?]+)$/u);
+
+        if (lookup) {
+            const clerkUserId = decodeURIComponent(lookup[1]);
+            response.writeHead(200, { 'content-type': 'application/json' });
+            response.end(
+                JSON.stringify({
+                    email_addresses: (verifiedEmails.get(clerkUserId) ?? []).map((email) => ({
+                        email_address: email,
+                        verification: { status: 'verified' },
+                    })),
+                    id: clerkUserId,
+                })
+            );
             return;
         }
 
@@ -74,6 +97,9 @@ export async function startClerkTestIssuer(appOrigin: string): Promise<ClerkTest
                 .setIssuedAt()
                 .setExpirationTime(`${tokenLifetimeSeconds}s`)
                 .sign(privateKey);
+        },
+        setVerifiedEmails(clerkUserId, emails) {
+            verifiedEmails.set(clerkUserId, emails);
         },
         url,
     };

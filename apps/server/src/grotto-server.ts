@@ -1,4 +1,5 @@
 import { env } from './config/env.ts';
+import { readGrottoReleaseIdentity } from './grotto-release-identity.ts';
 import {
     createGrottoServerApplication,
     type GrottoServerApplication,
@@ -14,12 +15,18 @@ import {
 
 async function start() {
     logStartupBanner('🟠 Grotto Server', 'Booting the hosted Grotto Server');
+    const release = env.GROTTO_RELEASE_MANIFEST
+        ? readGrottoReleaseIdentity(env.GROTTO_RELEASE_MANIFEST)
+        : null;
 
     const application = await createGrottoServerApplication({
         appOrigin: env.APP_ORIGIN,
         attachmentRoot: env.GROTTO_ATTACHMENT_ROOT,
+        clerkApiUrl: env.CLERK_API_URL,
         clerkIssuerUrl: env.CLERK_ISSUER_URL,
-        databaseUrl: env.DATABASE_URL,
+        clerkSecretKey: env.CLERK_SECRET_KEY,
+        databaseUrl: env.GROTTO_DATABASE_URL,
+        staticAppRoot: env.GROTTO_STATIC_APP_ROOT,
     });
 
     await application.listen(env.GROTTO_SERVER_PORT);
@@ -27,12 +34,24 @@ async function start() {
     registerShutdown(application);
 
     logStartupSection('Grotto Server');
-    logStartupDetail('🐘', 'PostgreSQL', describeDatabaseUrl(env.DATABASE_URL));
+    if (release) {
+        logStartupDetail('🏷️', 'Product', release.productVersion);
+        logStartupDetail('🧭', 'Revision', release.sourceRevision);
+        logStartupDetail('🔒', 'Digest', release.contentDigest);
+    }
+    logStartupDetail('🐘', 'PostgreSQL', describeDatabaseUrl(env.GROTTO_DATABASE_URL));
     logStartupDetail('📎', 'Attachments', env.GROTTO_ATTACHMENT_ROOT);
     logStartupDetail('🔑', 'Clerk', env.CLERK_ISSUER_URL);
+    logStartupDetail(
+        '✉️',
+        'Invitations',
+        env.CLERK_SECRET_KEY
+            ? 'verified-email lookup configured'
+            : 'disabled — set CLERK_SECRET_KEY to accept invitations'
+    );
     logStartupDetail('🌐', 'App origin', env.APP_ORIGIN);
-    logStartupDetail('📡', 'HTTP', `http://localhost:${env.GROTTO_SERVER_PORT}`);
-    logStartupDetail('🔌', 'WebSocket', `ws://localhost:${env.GROTTO_SERVER_PORT}/trpc`);
+    logStartupDetail('📡', 'HTTP', `http://127.0.0.1:${env.GROTTO_SERVER_PORT}`);
+    logStartupDetail('🔌', 'WebSocket', `ws://127.0.0.1:${env.GROTTO_SERVER_PORT}/trpc`);
     logStartupComplete('Grotto Server is ready');
 }
 

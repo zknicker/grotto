@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+
+if [ "$#" -ne 1 ]; then
+    echo "Usage: launchctl-service-disabled LABEL" >&2
+    exit 2
+fi
+
+label=$1
+/usr/bin/awk -v label="$label" '
+    index($0, "\"" label "\"") &&
+        $0 ~ /=>[[:space:]]*(disabled|true)([[:space:]]|$)/ {
+        found = 1
+    }
+    END {
+        exit found ? 0 : 1
+    }
+'

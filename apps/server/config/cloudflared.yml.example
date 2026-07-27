@@ -1,0 +1,5 @@
+credentials-file: /Users/zknicker/srv/grotto/config/cloudflared-credentials.json
+ingress:
+  - hostname: grotto.sh
+    service: http://127.0.0.1:18791
+  - service: http_status:404

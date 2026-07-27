@@ -83,8 +83,13 @@ test('creates no Computer or Agent alongside the Server', async () => {
         'chat_messages',
         'chat_reads',
         'chats',
+        'message_task_labels',
+        'message_tasks',
+        'server_invitations',
         'server_memberships',
         'servers',
+        'task_labels',
+        'thread_follows',
         'users',
     ]);
 });

@@ -1,6 +1,7 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
 import {
+    hostedAgentDeliveryAckSchema,
     hostedAgentEffectiveStateSchema,
     hostedAgentTurnSummarySchema,
     hostedComputerInventorySchema,
@@ -8,8 +9,8 @@ import {
 import { eq } from 'drizzle-orm';
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { recordAgentEffectiveState } from '../hosted-agents/record-agent-effective-state.ts';
-import { recordAgentTurnSummary } from '../hosted-agents/record-agent-turn.ts';
 import { recordHostedMcpInventory } from '../hosted-mcp/service.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentMcpToolGrantsTable, mcpConnectionsTable } from '../postgres/schema.ts';
@@ -52,7 +53,8 @@ const mcpInventorySchema = z
 export function startComputerAttachmentSocket(
     server: Server,
     db: GrottoDatabase,
-    connections: ComputerConnections
+    connections: ComputerConnections,
+    delivery: AgentDelivery
 ) {
     const sockets = new Map<string, import('ws').WebSocket>();
     const socketServer = new WebSocketServer({ noServer: true });
@@ -70,7 +72,7 @@ export function startComputerAttachmentSocket(
         let computerId: string | null = null;
         socket.on('message', async (raw) => {
             if (computerId) {
-                await ingestReport(db, connections, computerId, raw.toString());
+                await ingestReport(db, delivery, computerId, raw.toString());
                 return;
             }
             try {
@@ -107,6 +109,9 @@ export function startComputerAttachmentSocket(
                     .where(eq(mcpConnectionsTable.computerId, computer.id));
                 socket.send(JSON.stringify({ grants, type: 'mcp-grants' }));
                 socket.send(JSON.stringify({ computerId: computer.id, type: 'accepted' }));
+                // Idempotent reconnect: resend unacknowledged deliveries and drain
+                // any pending inbox for this Computer's Agents.
+                void delivery.onComputerReconnect(computer.id).catch(() => undefined);
             } catch {
                 socket.close(4403, 'Computer credential was rejected.');
             }
@@ -132,7 +137,7 @@ export function startComputerAttachmentSocket(
 
 async function ingestReport(
     db: GrottoDatabase,
-    connections: ComputerConnections,
+    delivery: AgentDelivery,
     computerId: string,
     raw: string
 ) {
@@ -143,10 +148,17 @@ async function ingestReport(
         return;
     }
 
+    const ack = hostedAgentDeliveryAckSchema.safeParse(frame);
+    if (ack.success) {
+        await delivery.onAck(ack.data);
+        return;
+    }
+
     const turn = hostedAgentTurnSummarySchema.safeParse(frame);
     if (turn.success) {
-        await recordAgentTurnSummary(db, computerId, turn.data);
-        connections.finishRun(turn.data.agentId);
+        // Delivery records the durable summary and drains the next turn; a
+        // duplicate frame for an already-settled run is a no-op.
+        await delivery.onTurnSettled(computerId, turn.data);
         return;
     }
 

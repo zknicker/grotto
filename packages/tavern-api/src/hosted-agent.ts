@@ -109,6 +109,29 @@ export const hostedAgentListInputSchema = z.object({ serverId: hostedIdSchema })
 
 export const hostedAgentListSchema = z.array(hostedAgentSchema);
 
+/** Targets one Agent for a delivery control action or read. */
+export const hostedAgentDeliveryControlInputSchema = z
+    .object({ agentId: hostedIdSchema, serverId: hostedIdSchema })
+    .strict();
+
+export type HostedAgentDeliveryControlInput = z.infer<typeof hostedAgentDeliveryControlInputSchema>;
+
+/**
+ * The Server-owned delivery state for one Agent. `stopped` is the persisted
+ * human Stop flag, `running` is whether a turn is in flight, and `pending` is
+ * how many queued inbox units await the next turn.
+ */
+export const hostedAgentDeliveryStateSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        pending: z.number().int().nonnegative(),
+        running: z.boolean(),
+        stopped: z.boolean(),
+    })
+    .strict();
+
+export type HostedAgentDeliveryState = z.infer<typeof hostedAgentDeliveryStateSchema>;
+
 /**
  * One Agent's Computer-reported effective state. A null runtime or model means
  * the Computer could not resolve the desired resource; `missingResources`

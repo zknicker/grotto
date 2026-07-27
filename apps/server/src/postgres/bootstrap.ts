@@ -408,6 +408,75 @@ const schemaStatements = [
         ON agent_turns (server_id, agent_id, run_id);`,
     `CREATE INDEX agent_turns_agent_idx
         ON agent_turns (server_id, agent_id, reported_at DESC);`,
+    // Durable per-Agent delivery state: the human Stop flag and the single
+    // in-flight run. One row per Agent is the serialization boundary — a run is
+    // owned per Agent, never per Computer. A null accepted_at on an active run
+    // is an unacknowledged delivery the retry sweep resends.
+    `CREATE TABLE agent_delivery (
+        agent_id text PRIMARY KEY NOT NULL,
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        stopped boolean NOT NULL DEFAULT false,
+        active_run_id text,
+        active_run_chat_id text,
+        active_run_prompt text,
+        active_run_computer_id text,
+        active_run_runtime_id text,
+        active_run_model_id text,
+        accepted_at timestamptz,
+        dispatched_at timestamptz,
+        consecutive_failures integer NOT NULL DEFAULT 0
+            CONSTRAINT agent_delivery_nonnegative_failures CHECK (consecutive_failures >= 0),
+        retry_after timestamptz,
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT agent_delivery_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_delivery_active_run CHECK (
+            (
+                active_run_id IS NULL
+                AND active_run_chat_id IS NULL
+                AND active_run_prompt IS NULL
+                AND active_run_computer_id IS NULL
+                AND active_run_runtime_id IS NULL
+                AND active_run_model_id IS NULL
+                AND accepted_at IS NULL
+                AND dispatched_at IS NULL
+            )
+            OR (
+                active_run_id IS NOT NULL
+                AND active_run_chat_id IS NOT NULL
+                AND active_run_prompt IS NOT NULL
+                AND active_run_computer_id IS NOT NULL
+                AND active_run_runtime_id IS NOT NULL
+                AND active_run_model_id IS NOT NULL
+            )
+        )
+    );`,
+    // The durable pending inbox. A queued unit of work has a null run_id; a
+    // drain stamps queued rows with the run that will carry them. A settled run
+    // deletes its rows; a failed or stopped run clears the stamp to requeue.
+    `CREATE TABLE agent_pending_work (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT agent_pending_work_id_shape CHECK (id ~ '^apw_[A-Za-z0-9_-]{16}$'),
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        agent_id text NOT NULL,
+        chat_id text NOT NULL,
+        content text NOT NULL,
+        source text NOT NULL DEFAULT 'human',
+        dedupe_key text NOT NULL,
+        run_id text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT agent_pending_work_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_pending_work_chat_fk
+            FOREIGN KEY (server_id, chat_id)
+            REFERENCES chats (server_id, id) ON DELETE CASCADE
+    );`,
+    `CREATE UNIQUE INDEX agent_pending_work_dedupe_key
+        ON agent_pending_work (server_id, agent_id, dedupe_key);`,
+    `CREATE INDEX agent_pending_work_queue_idx
+        ON agent_pending_work (server_id, agent_id, created_at);`,
     `CREATE TABLE attachments (
         id text PRIMARY KEY NOT NULL
             CONSTRAINT attachments_id_shape CHECK (id ~ '^att_[A-Za-z0-9_-]{16}$'),

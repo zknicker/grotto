@@ -1,5 +1,6 @@
 // Typed query surface for the tables `bootstrap.ts` creates.
 
+export * from './schema/agent-delivery.ts';
 export * from './schema/agent-runner-credentials.ts';
 export * from './schema/agent-turns.ts';
 export * from './schema/agents.ts';

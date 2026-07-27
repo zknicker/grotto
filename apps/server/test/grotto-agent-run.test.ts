@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
 import { recordAgentTurnSummary } from '../src/hosted-agents/record-agent-turn.ts';
 import {
@@ -134,45 +135,85 @@ test('rejects a runner mint for an Agent on another Computer', async () => {
     expect(response.status).toBe(403);
 });
 
-test('startAgentTurn sends one typed start and enforces one in-flight run', async () => {
-    const frames: { modelId: string; runtimeId: string; type: string }[] = [];
+test('durable delivery sends one typed start, serializes per Agent, and needs an online Computer', async () => {
+    const frames: { modelId?: string; runId?: string; runtimeId?: string; type: string }[] = [];
     const connections = new ComputerConnections();
+    const delivery = new AgentDelivery(connection.db, connections);
+
+    // Offline: the message is queued durably but nothing reaches the wire.
+    await delivery.deliver({
+        agentId,
+        chatId: dmChatId,
+        content: 'first',
+        dedupeKey: 'run_deliver_1',
+        serverId,
+    });
+    expect(frames).toHaveLength(0);
+
+    // Attaching the Computer and reconciling delivers the queued run exactly once.
     connections.register(computerId, {
         send: (frame) => frames.push(frame as (typeof frames)[number]),
         serverId,
     });
-
-    const first = await connections.startAgentTurn(connection.db, {
-        agentId,
-        chatId: dmChatId,
-        prompt: 'p',
-    });
-    expect(first.started).toBe(true);
-    expect(frames).toHaveLength(1);
+    await delivery.onComputerReconnect(computerId);
+    const starts = () => frames.filter((frame) => frame.type === 'start');
+    expect(starts()).toHaveLength(1);
     expect(frames[0]).toMatchObject({ modelId: 'gpt-5.6-sol', runtimeId: 'codex', type: 'start' });
+    const runId = frames[0]?.runId ?? '';
+    await delivery.onAck({ agentId, runId });
 
-    const busy = await connections.startAgentTurn(connection.db, {
+    // Busy: a second message queues and notices, never a second concurrent start.
+    await delivery.deliver({
         agentId,
         chatId: dmChatId,
-        prompt: 'p',
+        content: 'second',
+        dedupeKey: 'run_deliver_2',
+        serverId,
     });
-    expect(busy).toEqual({ reason: 'busy', started: false });
+    expect(starts()).toHaveLength(1);
+    expect(frames.some((frame) => frame.type === 'notice')).toBe(true);
 
-    connections.finishRun(agentId);
-    const resumed = await connections.startAgentTurn(connection.db, {
+    // The safe boundary: settling the run drains the queued work into the next.
+    await delivery.onTurnSettled(computerId, {
         agentId,
-        chatId: dmChatId,
-        prompt: 'p',
+        endedAt: '2026-07-27T00:00:01.000Z',
+        messageCount: 0,
+        outputProduced: false,
+        runId,
+        startedAt: '2026-07-27T00:00:00.000Z',
+        status: 'completed',
+        summary: 'ok',
+        type: 'turn',
     });
-    expect(resumed.started).toBe(true);
+    expect(starts()).toHaveLength(2);
+});
 
-    const offline = new ComputerConnections();
-    const offlineResult = await offline.startAgentTurn(connection.db, {
-        agentId,
+test('a human DM send enqueues durable pending work atomically with the message', async () => {
+    // The Agent's Computer is offline in this harness, so nothing reaches the
+    // wire — but a committed human message must still leave durable pending work.
+    const before = (await harness.sql`
+        select count(*)::int as n from agent_pending_work
+        where server_id = ${serverId} and agent_id = ${agentId}
+    `) as { n: number }[];
+
+    await owner.trpc.chat.send.mutate({
         chatId: dmChatId,
-        prompt: 'p',
+        content: 'Durable delivery, please.',
+        nonce: 'human_wake_1',
+        serverId,
     });
-    expect(offlineResult).toEqual({ reason: 'offline', started: false });
+
+    const after = (await harness.sql`
+        select content from agent_pending_work
+        where server_id = ${serverId} and agent_id = ${agentId}
+        order by created_at desc limit 1
+    `) as { content: string }[];
+    const count = (await harness.sql`
+        select count(*)::int as n from agent_pending_work
+        where server_id = ${serverId} and agent_id = ${agentId}
+    `) as { n: number }[];
+    expect(count[0]?.n).toBe((before[0]?.n ?? 0) + 1);
+    expect(after[0]?.content).toBe('Durable delivery, please.');
 });
 
 test('relays secrets online, persists only public state, and fails closed across Computers', async () => {
@@ -264,6 +305,7 @@ test('records a compact turn summary and fails closed on cross-Computer claims',
         agentId,
         endedAt: '2026-07-27T00:00:01.000Z',
         messageCount: 1,
+        outputProduced: true,
         runId: 'run_turn_1',
         startedAt: '2026-07-27T00:00:00.000Z',
         status: 'completed' as const,

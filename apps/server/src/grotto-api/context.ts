@@ -1,3 +1,4 @@
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
@@ -10,6 +11,8 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
  * PostgreSQL database.
  */
 export interface GrottoContext {
+    /** Server-owned durable Agent delivery: pending inbox, runs, and Stop state. */
+    agentDelivery: AgentDelivery;
     appOrigin: string;
     attachmentRoot: AttachmentRoot;
     clerkSessions: ClerkSessions;
@@ -21,12 +24,13 @@ export interface GrottoContext {
     clerkSessionToken: string | null;
     /** Verified-email lookup, used only by the invitation boundary. */
     clerkUsers: ClerkUsers;
-    /** Live Computer attachment sockets, used to wake an Agent's assigned Computer. */
+    /** Live attachment sockets for MCP configuration delivery. */
     computerConnections: ComputerConnections;
     grottoDb: GrottoDatabase;
 }
 
 export interface GrottoContextDependencies {
+    agentDelivery: AgentDelivery;
     appOrigin: string;
     attachmentRoot: AttachmentRoot;
     clerkSessions: ClerkSessions;

@@ -9,6 +9,10 @@ export function serverMembersRoute(slug: string) {
     return `${serverRoute(slug)}/members`;
 }
 
+export function serverRemindersRoute(slug: string) {
+    return `${serverRoute(slug)}/reminders`;
+}
+
 /**
  * Invitations live outside `/s/:slug` on purpose: a Server address may itself
  * be `join` or `invite`, so nesting the token under the slug branch would be

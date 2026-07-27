@@ -1,0 +1,111 @@
+import { createHash } from 'node:crypto';
+import { createTRPCClient, httpLink } from '@trpc/client';
+import { WebSocket } from 'ws';
+import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
+import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { expect, test } from '../support/test.ts';
+
+const computerCredential = 'agent-e2e-credential-0000000000000000';
+const inventory = {
+    runtimes: [
+        {
+            id: 'codex',
+            label: 'Codex',
+            models: [
+                { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
+                { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
+            ],
+        },
+    ],
+};
+
+test('creates Cove after inventory is reported and fails closed on unreported config', async ({
+    page,
+}) => {
+    await signInAsClerkHuman(page);
+    await page.goto('/s');
+    await page.getByLabel('Name').fill('Agent HQ');
+    await page.getByLabel('Address').fill('agent-hq');
+    await page.getByRole('button', { name: 'Create Server' }).click();
+
+    const session = readClerkSessionFixture();
+    const owner = hostedClient(session.token);
+    const setup = await owner.computer.begin.mutate({
+        credentialHash: createHash('sha256').update(computerCredential).digest('hex'),
+        slug: 'agent-hq',
+    });
+    await page.goto(setup.approvalUrl);
+    await page.getByRole('button', { name: 'Approve Computer' }).click();
+    await expect(page.getByText('Approved. Return to Grotto Computer.')).toBeVisible();
+
+    // The Computer reports its sanitized inventory over its attachment socket.
+    await reportInventory();
+
+    await page.goto('/s/agent-hq/agents');
+    await expect(page.getByRole('heading', { name: 'Agents' })).toBeVisible();
+    await expect(page.getByText('Codex · GPT-5.6 Sol, GPT-5.6 Terra')).toBeVisible();
+    // Guided creation offers Cove as the default first Agent.
+    await expect(page.getByLabel('Name')).toHaveValue('Cove');
+    await page.getByRole('button', { name: 'Create Agent' }).click();
+
+    await expect(page.getByText('Cove')).toBeVisible();
+    await expect(page.getByText('pending')).toBeVisible();
+
+    // The DM appears as an ordinary Agent DM, not a special onboarding Channel.
+    await page.goto('/s/agent-hq');
+    await expect(page.getByRole('button', { name: 'Direct · @cove' })).toBeVisible();
+
+    // Cross-Computer / unreported references fail closed at the contract.
+    const [computer] = await owner.computer.list.query({ serverId: setup.serverId });
+    await expect(
+        owner.agent.create.mutate({
+            computerId: computer.id,
+            displayName: 'Ghost',
+            handle: 'ghost',
+            modelId: 'gpt-9-unreported',
+            role: 'member',
+            runtimeId: 'codex',
+            serverId: setup.serverId,
+        })
+    ).rejects.toThrow(/does not report the model/iu);
+});
+
+function reportInventory() {
+    return new Promise<void>((resolve, reject) => {
+        const socket = new WebSocket(
+            `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
+        );
+        socket.on('error', reject);
+        socket.on('message', (raw) => {
+            if (JSON.parse(raw.toString()).type === 'accepted') {
+                socket.close();
+                resolve();
+            }
+        });
+        socket.on('open', () => {
+            socket.send(
+                JSON.stringify({
+                    architecture: 'arm64',
+                    credential: computerCredential,
+                    health: 'healthy',
+                    inventory,
+                    operatingSystem: 'darwin',
+                    productVersion: '1.0.0',
+                    protocolVersion: 1,
+                    type: 'hello',
+                })
+            );
+        });
+    });
+}
+
+function hostedClient(token: string) {
+    return createTRPCClient<GrottoRouter>({
+        links: [
+            httpLink({
+                headers: { authorization: `Bearer ${token}` },
+                url: `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/trpc`,
+            }),
+        ],
+    });
+}

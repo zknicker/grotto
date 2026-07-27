@@ -1,5 +1,16 @@
+import type { HostedComputerInventory } from '@tavern/api';
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+    check,
+    foreignKey,
+    index,
+    integer,
+    jsonb,
+    pgTable,
+    text,
+    timestamp,
+    uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
 
@@ -18,6 +29,7 @@ export const computersTable = pgTable(
         operatingSystem: text('operating_system'),
         productVersion: text('product_version'),
         protocolVersion: integer('protocol_version'),
+        reportedInventory: jsonb('reported_inventory').$type<HostedComputerInventory>(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -41,7 +53,9 @@ export const computerSetupApprovalsTable = pgTable(
         approvalSecretHash: text('approval_secret_hash').notNull(),
         approvedAt: timestamp('approved_at', { withTimezone: true }),
         approvedByUserId: text('approved_by_user_id'),
-        computerId: text('computer_id').references(() => computersTable.id, { onDelete: 'cascade' }),
+        computerId: text('computer_id').references(() => computersTable.id, {
+            onDelete: 'cascade',
+        }),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         credentialHash: text('credential_hash').notNull(),
         expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),

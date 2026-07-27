@@ -30,10 +30,10 @@ export async function listHostedChats(
             participantUserIds: sql<string[]>`
                 case
                     when ${chatsTable.kind} = 'dm'
-                        then array[
+                        then array_remove(array[
                             ${chatsTable.dmMemberOneUserId},
                             ${chatsTable.dmMemberTwoUserId}
-                        ]::text[]
+                        ], null)::text[]
                     else array(
                         select participant.user_id
                         from channel_participants participant
@@ -43,9 +43,15 @@ export async function listHostedChats(
                     )
                 end
             `,
+            peerAgentId: sql<string | null>`
+                case
+                    when ${chatsTable.kind} = 'dm' then ${chatsTable.dmAgentId}
+                    else null
+                end
+            `,
             peerUserId: sql<string | null>`
                 case
-                    when ${chatsTable.kind} = 'dm'
+                    when ${chatsTable.kind} = 'dm' and ${chatsTable.dmAgentId} is null
                         then case
                             when ${chatsTable.dmMemberOneUserId} = ${member.id}
                                 then ${chatsTable.dmMemberTwoUserId}

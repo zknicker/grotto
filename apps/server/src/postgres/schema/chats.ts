@@ -18,6 +18,7 @@ export const chatsTable = pgTable(
     'chats',
     {
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        dmAgentId: text('dm_agent_id'),
         dmMemberOneStint: integer('dm_member_one_stint'),
         dmMemberOneUserId: text('dm_member_one_user_id'),
         dmMemberTwoStint: integer('dm_member_two_stint'),
@@ -51,6 +52,9 @@ export const chatsTable = pgTable(
                 table.dmMemberTwoStint
             )
             .where(sql`${table.kind} = 'dm'`),
+        uniqueIndex('chats_server_agent_dm_key')
+            .on(table.serverId, table.dmMemberOneUserId, table.dmMemberOneStint, table.dmAgentId)
+            .where(sql`${table.kind} = 'dm' and ${table.dmAgentId} is not null`),
         uniqueIndex('chats_server_all_key').on(table.serverId).where(sql`${table.isAll} = true`),
         uniqueIndex('chats_server_thread_anchor_key')
             .on(table.serverId, table.parentChatId, table.anchorMessageId)
@@ -79,6 +83,7 @@ export const chatsTable = pgTable(
                 (
                     ${table.kind} = 'channel'
                     and ${table.name} is not null
+                    and ${table.dmAgentId} is null
                     and ${table.dmMemberOneStint} is null
                     and ${table.dmMemberOneUserId} is null
                     and ${table.dmMemberTwoStint} is null
@@ -94,17 +99,28 @@ export const chatsTable = pgTable(
                     and ${table.isAll} = false
                     and ${table.dmMemberOneStint} is not null
                     and ${table.dmMemberOneUserId} is not null
-                    and ${table.dmMemberTwoStint} is not null
-                    and ${table.dmMemberTwoUserId} is not null
                     and ${table.parentChatId} is null
                     and ${table.parentChatKind} is null
                     and ${table.anchorMessageId} is null
-                    and ${table.dmMemberOneUserId} < ${table.dmMemberTwoUserId}
+                    and (
+                        (
+                            ${table.dmAgentId} is null
+                            and ${table.dmMemberTwoStint} is not null
+                            and ${table.dmMemberTwoUserId} is not null
+                            and ${table.dmMemberOneUserId} < ${table.dmMemberTwoUserId}
+                        )
+                        or (
+                            ${table.dmAgentId} is not null
+                            and ${table.dmMemberTwoStint} is null
+                            and ${table.dmMemberTwoUserId} is null
+                        )
+                    )
                 )
                 or (
                     ${table.kind} = 'thread'
                     and ${table.name} is null
                     and ${table.isAll} = false
+                    and ${table.dmAgentId} is null
                     and ${table.dmMemberOneStint} is null
                     and ${table.dmMemberOneUserId} is null
                     and ${table.dmMemberTwoStint} is null

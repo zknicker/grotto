@@ -1,3 +1,4 @@
+import { agentRouter } from './agent/router.ts';
 import { attachmentRouter } from './attachment/router.ts';
 import { chatRouter } from './chat/router.ts';
 import { computerRouter } from './computer/router.ts';
@@ -15,6 +16,7 @@ import { createRouter } from './trpc.ts';
  * on the local sidecar's router and are not reachable here.
  */
 export const grottoRouter = createRouter({
+    agent: agentRouter,
     attachment: attachmentRouter,
     chat: chatRouter,
     computer: computerRouter,

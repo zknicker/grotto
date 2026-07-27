@@ -50,6 +50,7 @@ const schemaStatements = [
         protocol_version integer,
         operating_system text,
         architecture text,
+        reported_inventory jsonb,
         health text NOT NULL DEFAULT 'offline'
             CONSTRAINT computers_health CHECK (health IN ('offline', 'healthy', 'degraded')),
         last_connected_at timestamptz,
@@ -120,8 +121,22 @@ const schemaStatements = [
         display_name text NOT NULL,
         home_timezone text NOT NULL,
         role text NOT NULL CONSTRAINT agents_role CHECK (role IN ('admin', 'member')),
+        computer_id text,
+        desired_runtime_id text,
+        desired_model_id text,
+        effective_runtime_id text,
+        effective_model_id text,
+        effective_reported_at timestamptz,
+        effective_missing jsonb,
         retired_at timestamptz,
-        created_at timestamptz NOT NULL DEFAULT now()
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT agents_computer_fk
+            FOREIGN KEY (server_id, computer_id)
+            REFERENCES computers (server_id, id),
+        CONSTRAINT agents_configuration CHECK (
+            (computer_id IS NULL AND desired_runtime_id IS NULL AND desired_model_id IS NULL)
+            OR (computer_id IS NOT NULL AND desired_runtime_id IS NOT NULL AND desired_model_id IS NOT NULL)
+        )
     );`,
     'CREATE UNIQUE INDEX agents_server_id_key ON agents (server_id, id);',
     `CREATE UNIQUE INDEX agents_server_handle_key
@@ -136,6 +151,7 @@ const schemaStatements = [
         dm_member_one_user_id text,
         dm_member_two_stint integer,
         dm_member_two_user_id text,
+        dm_agent_id text,
         parent_chat_id text,
         parent_chat_kind text,
         anchor_message_id text,
@@ -154,6 +170,7 @@ const schemaStatements = [
                 AND dm_member_one_user_id IS NULL
                 AND dm_member_two_stint IS NULL
                 AND dm_member_two_user_id IS NULL
+                AND dm_agent_id IS NULL
                 AND parent_chat_id IS NULL
                 AND parent_chat_kind IS NULL
                 AND anchor_message_id IS NULL
@@ -165,12 +182,22 @@ const schemaStatements = [
                 AND is_all = false
                 AND dm_member_one_stint IS NOT NULL
                 AND dm_member_one_user_id IS NOT NULL
-                AND dm_member_two_stint IS NOT NULL
-                AND dm_member_two_user_id IS NOT NULL
                 AND parent_chat_id IS NULL
                 AND parent_chat_kind IS NULL
                 AND anchor_message_id IS NULL
-                AND dm_member_one_user_id < dm_member_two_user_id
+                AND (
+                    (
+                        dm_agent_id IS NULL
+                        AND dm_member_two_stint IS NOT NULL
+                        AND dm_member_two_user_id IS NOT NULL
+                        AND dm_member_one_user_id < dm_member_two_user_id
+                    )
+                    OR (
+                        dm_agent_id IS NOT NULL
+                        AND dm_member_two_stint IS NULL
+                        AND dm_member_two_user_id IS NULL
+                    )
+                )
             )
             OR (
                 kind = 'thread'
@@ -180,6 +207,7 @@ const schemaStatements = [
                 AND dm_member_one_user_id IS NULL
                 AND dm_member_two_stint IS NULL
                 AND dm_member_two_user_id IS NULL
+                AND dm_agent_id IS NULL
                 AND parent_chat_id IS NOT NULL
                 AND parent_chat_kind IN ('channel', 'dm')
                 AND anchor_message_id IS NOT NULL
@@ -193,7 +221,10 @@ const schemaStatements = [
             REFERENCES server_memberships (server_id, user_id),
         CONSTRAINT chats_thread_parent_fk
             FOREIGN KEY (server_id, parent_chat_id, parent_chat_kind)
-            REFERENCES chats (server_id, id, kind)
+            REFERENCES chats (server_id, id, kind),
+        CONSTRAINT chats_dm_agent_fk
+            FOREIGN KEY (server_id, dm_agent_id)
+            REFERENCES agents (server_id, id)
     );`,
     'CREATE UNIQUE INDEX chats_server_id_key ON chats (server_id, id);',
     'CREATE UNIQUE INDEX chats_server_id_kind_key ON chats (server_id, id, kind);',

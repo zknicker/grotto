@@ -33,7 +33,6 @@ const binaries = [
     ['grotto-server-bootstrap', 'grotto-server-bootstrap.ts'],
     ['grotto-server-backup', 'grotto-server-backup.ts'],
     ['grotto-server-restore', 'grotto-server-restore.ts'],
-    ['grotto-server-monitor', 'grotto-server-monitor.ts'],
 ];
 for (const [name, source] of binaries) {
     run('bun', [
@@ -91,7 +90,6 @@ for (const operation of [
     'rollback-colima-boot',
     'run-server',
     'run-backup',
-    'run-monitor',
     'run-restore',
 ]) {
     await fs.chmod(path.join(stageRoot, 'operations', operation), 0o755);

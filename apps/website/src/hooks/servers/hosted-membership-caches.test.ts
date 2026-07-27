@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-    cachesClearedOnMembershipLoss,
-    type HostedServerCaches,
-} from './hosted-membership-caches.ts';
+import { cachesClearedOnMembershipLoss } from './hosted-membership-caches.ts';
 
 /**
  * Every hosted cache named here has its data dropped when membership ends.
@@ -11,7 +8,7 @@ import {
  * indefinitely offline — which for Server data means a removed human keeps
  * seeing it.
  */
-function hostedCaches(): HostedServerCaches {
+function hostedCaches() {
     const cache = () => ({ reset: () => undefined });
 
     return {
@@ -19,6 +16,8 @@ function hostedCaches(): HostedServerCaches {
         invitation: { list: cache() },
         member: { list: cache() },
         server: { bySlug: cache(), list: cache() },
+        task: { assignees: cache(), list: cache() },
+        taskLabel: { list: cache() },
     };
 }
 
@@ -34,11 +33,14 @@ test('losing membership clears every hosted cache that names the Server', () => 
         utils.chat.list,
         utils.chat.messages,
         utils.chat.search,
+        utils.task.list,
+        utils.task.assignees,
+        utils.taskLabel.list,
     ]) {
         assert.ok(cleared.has(cache));
     }
 
-    assert.equal(cleared.size, 7);
+    assert.equal(cleared.size, 10);
 });
 
 test('the Server list is cleared, not merely refreshed', () => {

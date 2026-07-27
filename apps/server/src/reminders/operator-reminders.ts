@@ -145,7 +145,7 @@ export async function listOperatorReminderChanges(
         .limit(input.limit);
     return rows.map((row) => ({
         action: row.action as 'canceled' | 'fired' | 'scheduled' | 'snoozed' | 'updated',
-        chatId: row.chatId,
+        chatId: row.chatId as string,
         createdAt: row.createdAt.toISOString(),
         cursor: row.cursor.toString(),
         id: row.id,

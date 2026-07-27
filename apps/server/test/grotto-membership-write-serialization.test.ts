@@ -190,6 +190,48 @@ test('Thread follow queued behind removal reauthorizes before it writes', async 
     member.client.close();
 });
 
+test('task claim queued behind removal reauthorizes before it writes', async () => {
+    const member = await addMember('task-claim');
+    const created = await owner.trpc.task.create.mutate({
+        chatId: allChatId,
+        content: 'Claim only while membership is current',
+        nonce: 'task-claim-membership-serialization',
+        serverId,
+    });
+    let removal: Promise<unknown> = Promise.resolve();
+    let claim: Promise<unknown> = Promise.resolve();
+
+    await whileServerRowIsHeld(async () => {
+        removal = remove(member.userId);
+        await Bun.sleep(120);
+        claim = member.client.trpc.task.claim.mutate({
+            expectedVersion: created.task.version,
+            messageId: created.task.messageId,
+            serverId,
+        });
+        await Bun.sleep(120);
+    });
+
+    const [removalResult, claimResult] = await Promise.allSettled([removal, claim]);
+    expect(removalResult).toMatchObject({ status: 'fulfilled' });
+    expect(claimResult).toMatchObject({ status: 'rejected' });
+    if (claimResult.status === 'rejected') {
+        expect(claimResult.reason).toHaveProperty(
+            'message',
+            expect.stringMatching(/not a member/i)
+        );
+    }
+    const listed = (await owner.trpc.task.list.query({ serverId })).find(
+        (candidate) => candidate.task.messageId === created.task.messageId
+    );
+    expect(listed?.task).toMatchObject({
+        assigneeUserId: null,
+        claimedAt: null,
+        version: created.task.version,
+    });
+    member.client.close();
+});
+
 async function addAdmin(label: string) {
     const member = await addMember(label);
     await owner.trpc.member.changeRole.mutate({

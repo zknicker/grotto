@@ -2,7 +2,9 @@
 summary: Hosted PostgreSQL collaboration and reminders plus Runtime execution chat, app cache, FTS, and storage invariants.
 read_when:
   - changing SQLite tables, ids, sync invariants, or runtime transcript storage
-  - changing hosted PostgreSQL Chats, messages, reminders, Agent attention, or event recovery
+  - changing hosted PostgreSQL Chats, messages, reads, search, or event recovery
+  - changing hosted task, assignment, task-label, or task-event storage
+  - changing hosted reminder, Agent attention, or reminder-event storage
   - changing chat/session/message identity, event recovery, or sync semantics
 ---
 
@@ -41,7 +43,7 @@ delivery, and the product timeline.
 | Runtime SQLite           | Tavern Runtime                             | Canonical chat model, automation delivery, agent seats, Agent sessions, inbox delivery cursors, cursor-backed events, read markers, runtime metadata |
 | App SQLite               | Tavern App                                 | Client cache, app-shell preferences, and presentation state                                                                       |
 | Agent execution evidence | Tavern Runtime                             | Sessions, turns, tools, model calls, transcripts, and files                                                                       |
-| Hosted PostgreSQL        | Grotto Server                              | Users, Servers, memberships, Channels, Threads, messages, reminder schedules/fires/attention, search, and durable collaboration events |
+| Hosted PostgreSQL        | Grotto Server                              | Users, Servers, memberships, Channels, DMs, Threads, messages, chat-first tasks, reminder schedules/fires/attention, reads, search, and durable collaboration events |
 
 Runtime SQLite is the product source of truth for chat. App SQLite can cache for
 fast UI, but reconnect and hard reload recover from Runtime history and cursors.
@@ -59,6 +61,9 @@ chat_messages
 chat_reads
 chat_events
 thread_follows
+message_tasks
+task_labels
+message_task_labels
 server_invitations
 reminders
 reminder_commands
@@ -109,8 +114,25 @@ under concurrency.
 
 Membership changes and membership-authorized durable writes lock the `servers`
 row before authorizing. That holds the last-Owner invariant and prevents a
-removed human from committing a message, read, DM, or invitation write after
-revocation.
+removed human from committing a message, read, DM, task, or invitation write
+after revocation.
+
+`message_tasks` has one row per promoted canonical message. Composite
+constraints bind its Server, parent Chat, message, human assignee, and task-label
+links to the same tenant. The deterministic child Thread id is derived from the
+canonical message id and authorized through its parent Chat.
+`chats.last_task_number` is locked for monotonic per-Chat numbering.
+`message_tasks.version` is the compare-and-write boundary for claim, unclaim,
+assignment, status, priority, and label changes. Task content remains only in
+`chat_messages`. Membership removal clears claims and assignments under the
+same Server lock, advances each affected task version, and writes exact
+`task.updated` events. A returning membership stint does not recover those
+links or qualify for its former DM tasks.
+
+`task_labels` is a Server-scoped task catalog, and `message_task_labels` is its
+only join table. These tables do not form a generic taxonomy. Task mutations
+write `task.created`, `task.updated`, or `task.label.updated` events in the
+same transaction; task and label reads remain the recovery source.
 
 Hosted Agent rows are deliberately narrower than the target Agent product:
 identity, role, home timezone, retirement, and Channel participation exist so

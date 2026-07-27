@@ -35,6 +35,7 @@ export interface ServerChannel {
 
 export interface ServerDetail extends ServerSummary {
     channels: ServerChannel[];
+    viewerUserId: string;
 }
 
 /** The Channel every Grotto server creates for its whole membership. */

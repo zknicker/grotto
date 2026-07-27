@@ -87,6 +87,7 @@ export async function openServerBySlug(
             id: channel.id,
             name: requireChannelName(channel.name),
         })),
+        viewerUserId: member?.id ?? '',
     };
 }
 

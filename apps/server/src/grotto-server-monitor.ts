@@ -2,13 +2,11 @@ import { runGrottoMonitor } from './grotto-monitor.ts';
 
 try {
     const codes = await runGrottoMonitor({
-        backupSuccessFile: required('GROTTO_BACKUP_SUCCESS_FILE'),
         pgIsReadyCommand: required('GROTTO_PG_ISREADY_COMMAND'),
         postgresDatabase: required('GROTTO_HEALTH_POSTGRES_DATABASE'),
         postgresHost: required('GROTTO_HEALTH_POSTGRES_HOST'),
         postgresPort: required('GROTTO_HEALTH_POSTGRES_PORT'),
         probes: {
-            backupPingUrl: process.env.GROTTO_HEALTH_BACKUP_PING_URL,
             postgresPingUrl: process.env.GROTTO_HEALTH_POSTGRES_PING_URL,
             publicPingUrl: process.env.GROTTO_HEALTH_PUBLIC_PING_URL,
             publicUrl: required('GROTTO_HEALTH_PUBLIC_URL'),

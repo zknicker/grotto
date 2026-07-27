@@ -76,7 +76,7 @@ traversal and read/write access their job needs:
 | `_grotto_server` | `data/attachments` | `current`, `config/server.env` |
 | `_grotto_backup` | `data/backup-staging`, `data/backup-state` | attachment tree, `current`, `config/backup.env`, restic key |
 | `_grotto_tunnel` | no application state | `config/cloudflared.yml`, Tunnel credential |
-| `_grotto_monitor` | no application state | `current`, `config/monitor.env`, backup success timestamp |
+| `_grotto_monitor` | no application state | `current`, `config/monitor.env` |
 
 Host-only state lives under `/Users/zknicker/srv/grotto`: `.env`,
 `database-roles.env`, `compose.yml`, `config/`, `data/`, `logs/`, `releases/`,
@@ -188,12 +188,11 @@ The Server returns only `{"status":"ok"}` or the redacted
 - `postgres_unavailable`
 - `tunnel_unavailable`
 - `public_route_unavailable`
-- `backup_stale`
 
 Exact private Healthchecks.io ping URLs are injected in `monitor.env`; they are
-never logged. Local service, PostgreSQL, Tunnel readiness, public route, and
-the backup success timestamp are probed independently. A PostgreSQL-backed 503
-from the Server remains a PostgreSQL failure, not a Server-process failure.
+never logged. Local service, PostgreSQL, Tunnel readiness, and public route are
+probed independently. A PostgreSQL-backed 503 from the Server remains a
+PostgreSQL failure, not a Server-process failure.
 
 ## Off-machine backup
 

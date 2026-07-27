@@ -36,6 +36,24 @@ export class ComputerConnections {
         return this.attached.has(computerId);
     }
 
+    sendMcpConnection(computerId: string, connection: unknown): boolean {
+        const attached = this.attached.get(computerId);
+        if (!attached) {
+            return false;
+        }
+        attached.send({ connection, type: 'mcp-upsert' });
+        return true;
+    }
+
+    sendMcpGrant(computerId: string, grant: unknown): boolean {
+        const attached = this.attached.get(computerId);
+        if (!attached) {
+            return false;
+        }
+        attached.send({ grant, type: 'mcp-grant' });
+        return true;
+    }
+
     finishRun(agentId: string): void {
         this.activeRuns.delete(agentId);
     }

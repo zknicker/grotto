@@ -141,6 +141,42 @@ const schemaStatements = [
     'CREATE UNIQUE INDEX agents_server_id_key ON agents (server_id, id);',
     `CREATE UNIQUE INDEX agents_server_handle_key
         ON agents (server_id, lower(handle));`,
+    `CREATE TABLE mcp_connections (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT mcp_connections_id_shape CHECK (id ~ '^mcp_[A-Za-z0-9_-]{16}$'),
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        computer_id text NOT NULL,
+        name text NOT NULL,
+        transport text NOT NULL
+            CONSTRAINT mcp_connections_transport CHECK (transport IN ('http', 'stdio')),
+        auth text NOT NULL
+            CONSTRAINT mcp_connections_auth CHECK (auth IN ('none', 'headers')),
+        url text,
+        command text,
+        args text[] NOT NULL,
+        header_names text[] NOT NULL,
+        tools text[] NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT mcp_connections_computer_fk
+            FOREIGN KEY (server_id, computer_id)
+            REFERENCES computers (server_id, id),
+        CONSTRAINT mcp_connections_endpoint CHECK ((url IS NULL) <> (command IS NULL))
+    );`,
+    'CREATE UNIQUE INDEX mcp_connections_server_id_key ON mcp_connections (server_id, id);',
+    `CREATE TABLE agent_mcp_tool_grants (
+        server_id text NOT NULL,
+        agent_id text NOT NULL,
+        connection_id text NOT NULL,
+        tool_name text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (server_id, agent_id, connection_id, tool_name),
+        CONSTRAINT agent_mcp_tool_grants_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_mcp_tool_grants_connection_fk
+            FOREIGN KEY (server_id, connection_id)
+            REFERENCES mcp_connections (server_id, id) ON DELETE CASCADE
+    );`,
     `CREATE TABLE chats (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,

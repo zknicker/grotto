@@ -5,11 +5,14 @@ import {
     hostedAgentTurnSummarySchema,
     hostedComputerInventorySchema,
 } from '@tavern/api';
+import { eq } from 'drizzle-orm';
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 import { recordAgentEffectiveState } from '../hosted-agents/record-agent-effective-state.ts';
 import { recordAgentTurnSummary } from '../hosted-agents/record-agent-turn.ts';
+import { recordHostedMcpInventory } from '../hosted-mcp/service.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import { agentMcpToolGrantsTable, mcpConnectionsTable } from '../postgres/schema.ts';
 import type { ComputerConnections } from './connections.ts';
 import { computerHandshakeSchema } from './contracts.ts';
 import {
@@ -34,6 +37,14 @@ const reportSchema = z
         agents: z.array(hostedAgentEffectiveStateSchema).max(500).default([]),
         inventory: hostedComputerInventorySchema.optional(),
         type: z.literal('report'),
+    })
+    .strict();
+
+const mcpInventorySchema = z
+    .object({
+        connectionId: z.string().regex(/^mcp_[A-Za-z0-9_-]{16}$/u),
+        tools: z.array(z.string().trim().min(1).max(200)).max(1000),
+        type: z.literal('mcp-inventory'),
     })
     .strict();
 
@@ -82,6 +93,19 @@ export function startComputerAttachmentSocket(
                 if (hello.inventory) {
                     await recordComputerInventory(db, computer.id, hello.inventory);
                 }
+                const grants = await db
+                    .select({
+                        agentId: agentMcpToolGrantsTable.agentId,
+                        connectionId: agentMcpToolGrantsTable.connectionId,
+                        toolName: agentMcpToolGrantsTable.toolName,
+                    })
+                    .from(agentMcpToolGrantsTable)
+                    .innerJoin(
+                        mcpConnectionsTable,
+                        eq(mcpConnectionsTable.id, agentMcpToolGrantsTable.connectionId)
+                    )
+                    .where(eq(mcpConnectionsTable.computerId, computer.id));
+                socket.send(JSON.stringify({ grants, type: 'mcp-grants' }));
                 socket.send(JSON.stringify({ computerId: computer.id, type: 'accepted' }));
             } catch {
                 socket.close(4403, 'Computer credential was rejected.');
@@ -123,6 +147,12 @@ async function ingestReport(
     if (turn.success) {
         await recordAgentTurnSummary(db, computerId, turn.data);
         connections.finishRun(turn.data.agentId);
+        return;
+    }
+
+    const mcpInventory = mcpInventorySchema.safeParse(frame);
+    if (mcpInventory.success) {
+        await recordHostedMcpInventory(db, computerId, mcpInventory.data);
         return;
     }
 

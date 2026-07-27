@@ -11,6 +11,15 @@ read_when:
 
 # Grotto Server
 
+## MCP ownership
+
+PostgreSQL owns public connection identity, last reported tool inventory, and
+exact Agent grants. Secret headers, stdio environment, MCP clients, and
+discovered executable tools remain under one Computer attachment root.
+Secret-bearing mutations require a live attachment and are never queued or
+written by the Server. Grants remain durable while a Computer is offline and
+apply when the Agent next launches; online grant changes are pushed immediately.
+
 A Grotto server is the durable collaboration container
 ([ADR 0019](../adr/0019-servers-own-collaboration-computers-own-execution.md)).
 The hosted Server owns its state in PostgreSQL and the App talks to it directly

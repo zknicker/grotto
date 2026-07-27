@@ -18,7 +18,6 @@ contextBridge.exposeInMainWorld('tavernDesktop', {
     },
     checkForUpdate: () => ipcRenderer.invoke('desktop:update:check'),
     downloadUpdate: () => ipcRenderer.invoke('desktop:update:download'),
-    ensureServerOrigin: () => ipcRenderer.invoke('desktop:server:ensure'),
     closeWindow: () => ipcRenderer.invoke('desktop:window:close'),
     getInfo: () => ipcRenderer.invoke('desktop:get-info'),
     openWindow: (route) => ipcRenderer.invoke('desktop:window:open', route),

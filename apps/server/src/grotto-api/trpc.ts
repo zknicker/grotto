@@ -1,10 +1,22 @@
+import { appProtocolVersion } from '@tavern/api';
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { GrottoContext } from './context.ts';
 
 const t = initTRPC.context<GrottoContext>().create();
 
 export const createRouter = t.router;
-export const computerProcedure = t.procedure;
+const appProcedure = t.procedure.use(({ ctx, next }) => {
+    if (ctx.appProtocol.productVersion && ctx.appProtocol.protocolVersion === appProtocolVersion) {
+        return next();
+    }
+
+    throw new TRPCError({
+        code: 'PRECONDITION_FAILED',
+        message: 'Update required: this Grotto App no longer matches the Server protocol.',
+    });
+});
+
+export const computerProcedure = appProcedure;
 
 /**
  * Verifies the Clerk session and carries its external subject for this request
@@ -14,7 +26,7 @@ export const computerProcedure = t.procedure;
  * User is part of Server creation's transaction, never a side effect of
  * reading.
  */
-export const humanProcedure = t.procedure.use(async ({ ctx, next }) => {
+export const humanProcedure = appProcedure.use(async ({ ctx, next }) => {
     if (!ctx.clerkSessionToken) {
         throw unauthorized();
     }

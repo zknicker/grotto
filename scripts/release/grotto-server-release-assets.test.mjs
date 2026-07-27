@@ -15,8 +15,7 @@ test('returns only the checksum-verified Server assets for the exact release rev
         await rm(releaseRoot, { force: true, recursive: true });
     });
 
-    const artifactName =
-        'grotto-server-1.7.0+git.0123456789ab-aarch64-apple-darwin.tar.gz';
+    const artifactName = 'grotto-server-1.7.0+git.0123456789ab-aarch64-apple-darwin.tar.gz';
     const artifactPath = path.join(releaseRoot, artifactName);
     const artifact = Buffer.from('verified Server artifact');
     await writeFile(artifactPath, artifact);

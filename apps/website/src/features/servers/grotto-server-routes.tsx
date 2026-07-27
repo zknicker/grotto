@@ -4,8 +4,7 @@ import { SignInGate } from '../auth/sign-in-gate.tsx';
 import { HostedServerEventListeners } from './hosted-server-event-listeners.tsx';
 
 /**
- * Grotto server routes talk straight to the hosted Server, so they run on the
- * hosted client rather than the pre-WS6 local sidecar's.
+ * Grotto server routes talk straight to the hosted Server.
  */
 export function GrottoServerRoutes() {
     return (

@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
 import { createWSClient, httpLink, splitLink, wsLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import * as React from 'react';
 import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
+import { UpdateRequiredGate } from '../features/servers/update-required-gate.tsx';
 import { getClerkSessionToken } from './clerk.tsx';
 import { watchGrottoSession } from './grotto-session-refresh.ts';
 import { queryClientDefaultOptions } from './query-policy.ts';
@@ -21,6 +23,8 @@ export type ServerSummary = GrottoOutputs['server']['list'][number];
 export type ServerDetail = GrottoOutputs['server']['bySlug'];
 
 const sessionWatchIntervalMs = 30_000;
+// Provenance only; the build injects the App package version (see vite.config).
+const productVersion = import.meta.env.VITE_GROTTO_PRODUCT_VERSION ?? '0.0.0-dev';
 
 export function getGrottoServerOrigin(): string {
     return resolveGrottoServerOrigin(
@@ -92,7 +96,7 @@ export function GrottoServerProvider({ children }: React.PropsWithChildren) {
                 key={connection.generation}
                 queryClient={queryClient}
             >
-                {children}
+                <UpdateRequiredGate queryClient={queryClient}>{children}</UpdateRequiredGate>
             </grottoTrpc.Provider>
         </QueryClientProvider>
     );
@@ -109,7 +113,11 @@ function createGrottoConnection(generation: number) {
     const wsClient = createWSClient({
         connectionParams: async () => {
             const token = await getClerkSessionToken();
-            return token ? { clerkSessionToken: token } : {};
+            return {
+                appProtocolVersion: String(appProtocolVersion),
+                ...(token ? { clerkSessionToken: token } : {}),
+                productVersion,
+            };
         },
         url: socketUrl.toString(),
     });
@@ -122,7 +130,11 @@ function createGrottoConnection(generation: number) {
                     false: httpLink({
                         headers: async () => {
                             const token = await getClerkSessionToken();
-                            return token ? { authorization: `Bearer ${token}` } : {};
+                            return {
+                                [appProtocolHeaders.productVersion]: productVersion,
+                                [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
+                                ...(token ? { authorization: `Bearer ${token}` } : {}),
+                            };
                         },
                         methodOverride: 'POST',
                         url: httpUrl,

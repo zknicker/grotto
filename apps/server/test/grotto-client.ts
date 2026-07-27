@@ -1,3 +1,4 @@
+import { appProtocolHeaders, appProtocolVersion } from '@tavern/api';
 import {
     createTRPCClient,
     createWSClient,
@@ -21,10 +22,17 @@ export interface GrottoClient {
     trpc: TRPCClient<GrottoRouter>;
 }
 
+export interface GrottoClientOptions {
+    /** Declared App protocol version; defaults to the exact current version. */
+    protocolVersion?: number;
+}
+
 export function createGrottoClient(
     harness: GrottoServerHarness,
-    clerkSessionToken: string | null = null
+    clerkSessionToken: string | null = null,
+    options: GrottoClientOptions = {}
 ): GrottoClient {
+    const declaredProtocolVersion = options.protocolVersion ?? appProtocolVersion;
     const httpUrl = new URL('/trpc', harness.url).toString();
     const socketUrl = new URL('/trpc', harness.url);
 
@@ -32,11 +40,18 @@ export function createGrottoClient(
 
     const wsClient = createWSClient({
         WebSocket: createOriginWebSocket(harness.appOrigin),
-        connectionParams: () => (clerkSessionToken ? { clerkSessionToken } : {}),
+        connectionParams: () => ({
+            appProtocolVersion: String(declaredProtocolVersion),
+            ...(clerkSessionToken ? { clerkSessionToken } : {}),
+            productVersion: 'test',
+        }),
         url: socketUrl.toString(),
     });
-    const headers = () =>
-        clerkSessionToken ? { authorization: `Bearer ${clerkSessionToken}` } : {};
+    const headers = () => ({
+        [appProtocolHeaders.productVersion]: 'test',
+        [appProtocolHeaders.protocolVersion]: String(declaredProtocolVersion),
+        ...(clerkSessionToken ? { authorization: `Bearer ${clerkSessionToken}` } : {}),
+    });
 
     return {
         clerkSessionToken,

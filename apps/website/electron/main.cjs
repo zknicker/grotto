@@ -11,8 +11,7 @@ const {
     webContents,
 } = require('electron');
 const path = require('node:path');
-const { spawn, execFile, spawnSync } = require('node:child_process');
-const { existsSync } = require('node:fs');
+const { execFile } = require('node:child_process');
 const electronUpdater = require('electron-updater');
 const { registerClerkAuth } = require('./clerk-auth.cjs');
 const { registerEditContextMenuHandlers } = require('./edit-context-menu.cjs');
@@ -29,9 +28,6 @@ for (const stream of [process.stdout, process.stderr]) {
     });
 }
 
-const desktopServerOrigin = 'http://127.0.0.1:3180';
-const sidecarStartupDeadlineMs = 10_000;
-const sidecarStartupPollMs = 200;
 const updateCheckIntervalMs = 10 * 60 * 1000;
 const openDevtoolsMenuId = 'open-devtools';
 // Matches --topbar-height in the renderer so the traffic lights center in
@@ -47,8 +43,6 @@ const useMockUpdater = !app.isPackaged && process.env.TAVERN_ELECTRON_UPDATER_MO
 
 const windows = new Set();
 let mainWindow = null;
-let serverProcess = null;
-let serverReadyPromise = null;
 let updateCheckInterval = null;
 let availableDesktopUpdateVersion = null;
 const newWindowOffsetPx = 36;
@@ -206,16 +200,6 @@ function registerIpcHandlers() {
         version: app.getVersion(),
     }));
 
-    ipcMain.handle('desktop:server:ensure', async () => {
-        if (!app.isPackaged) {
-            return '';
-        }
-
-        serverReadyPromise ??= startDesktopServer();
-        await serverReadyPromise;
-        return desktopServerOrigin;
-    });
-
     ipcMain.handle('desktop:window:start-drag', () => undefined);
 
     ipcMain.handle('desktop:window:open', (event, route) => {
@@ -335,97 +319,6 @@ function sendUpdateStatus(status) {
     }
 }
 
-async function startDesktopServer() {
-    const serverPath = getServerPath();
-    if (!existsSync(serverPath)) {
-        throw new Error(`Grotto desktop backend is missing: ${serverPath}`);
-    }
-
-    cleanupDesktopServerPort();
-
-    serverProcess = spawn(
-        serverPath,
-        [
-            '--app-origin',
-            'file://',
-            '--database-path',
-            path.join(app.getPath('home'), '.grotto', 'grotto.sqlite'),
-            '--server-port',
-            '3180',
-        ],
-        { stdio: 'ignore' }
-    );
-
-    serverProcess.once('exit', () => {
-        serverProcess = null;
-        serverReadyPromise = null;
-    });
-
-    await waitForSidecarHealth();
-}
-
-function cleanupDesktopServerPort() {
-    const result = spawnSync('lsof', ['-nP', '-t', '-iTCP:3180', '-sTCP:LISTEN'], {
-        encoding: 'utf8',
-    });
-
-    if (result.status !== 0 || !result.stdout.trim()) {
-        return;
-    }
-
-    const stalePids = result.stdout.split(/\s+/u).filter(Boolean);
-
-    for (const pid of stalePids) {
-        if (pid === String(process.pid)) {
-            continue;
-        }
-
-        const command = readProcessCommand(pid);
-        if (command.includes('grotto-server')) {
-            process.kill(Number(pid), 'SIGTERM');
-        }
-    }
-
-    const deadline = Date.now() + 3000;
-    while (Date.now() < deadline) {
-        const remaining = spawnSync('lsof', ['-nP', '-t', '-iTCP:3180', '-sTCP:LISTEN'], {
-            encoding: 'utf8',
-        });
-        if (remaining.status !== 0 || !remaining.stdout.trim()) {
-            return;
-        }
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
-    }
-
-    for (const pid of stalePids) {
-        if (pid !== String(process.pid)) {
-            process.kill(Number(pid), 'SIGKILL');
-        }
-    }
-}
-
-function getServerPath() {
-    const executableName = process.platform === 'win32' ? 'grotto-server.exe' : 'grotto-server';
-    return path.join(process.resourcesPath, 'bin', executableName);
-}
-
-async function waitForSidecarHealth() {
-    const deadline = Date.now() + sidecarStartupDeadlineMs;
-
-    while (Date.now() < deadline) {
-        try {
-            const response = await fetch(`${desktopServerOrigin}/healthz`);
-            if (response.ok) {
-                return;
-            }
-        } catch {}
-
-        await new Promise((resolve) => setTimeout(resolve, sidecarStartupPollMs));
-    }
-
-    throw new Error('Grotto desktop backend did not become healthy in time.');
-}
-
 function cleanupDevPortsOnce() {
     if (app.isPackaged) {
         return;
@@ -469,14 +362,6 @@ function killProcessesListeningOnPort(port) {
     });
 }
 
-function readProcessCommand(pid) {
-    const result = spawnSync('ps', ['-p', pid, '-o', 'command='], {
-        encoding: 'utf8',
-    });
-
-    return typeof result.stdout === 'string' ? result.stdout.trim() : '';
-}
-
 function getErrorMessage(error) {
     if (error instanceof Error && error.message) {
         return error.message;
@@ -507,7 +392,4 @@ app.on('before-quit', () => {
     }
 
     cleanupDevPortsOnce();
-    if (serverProcess && !serverProcess.killed) {
-        serverProcess.kill('SIGKILL');
-    }
 });

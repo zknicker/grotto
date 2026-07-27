@@ -82,9 +82,7 @@ test('promotes only published Grotto versions or an explicit published-version c
     expect(deployCommands).toContain('/bin/grotto-server-deploy');
     expect(activateCommands).not.toContain('/releases/assets/');
     expect(activateCommands).not.toContain('grotto-server-');
-    expect(activateCommands).toContain(
-        '${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}'
-    );
+    expect(activateCommands).toContain('${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}');
     expect(commands).toContain('/usr/bin/sudo -n /usr/local/libexec/grotto/activate-grotto-server');
     expect(deployCommands.indexOf('/usr/bin/shasum -a 256 -c')).toBeLessThan(
         deployCommands.indexOf('./bin/grotto-server-deploy')

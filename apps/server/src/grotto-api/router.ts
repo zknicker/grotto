@@ -13,8 +13,7 @@ import { threadRouter } from './thread/router.ts';
 import { createRouter } from './trpc.ts';
 
 /**
- * The whole hosted Grotto Server contract. Pre-WS6 local-owner procedures stay
- * on the local sidecar's router and are not reachable here.
+ * The whole hosted Grotto Server contract.
  */
 export const grottoRouter = createRouter({
     agent: agentRouter,

@@ -1,0 +1,55 @@
+import { isElectronDesktopApp } from './desktop-bridge.ts';
+
+/**
+ * The hosted Server admits only an App that declares the exact
+ * `appProtocolVersion`. When it does not, every hosted procedure and each
+ * subscription start fails closed with this one tRPC code before any product
+ * data is served. It is the App's single typed "update required" signal.
+ */
+const updateRequiredTrpcCode = 'PRECONDITION_FAILED';
+
+/** How the App resolves an update-required signal for the current shell. */
+export type UpdateRequiredMode = 'desktop-update' | 'reload';
+
+/**
+ * A stale hosted browser tab reloads to fetch the current App; an older
+ * packaged desktop App cannot reload into a new contract and must install a
+ * desktop update instead.
+ */
+export function updateRequiredMode(): UpdateRequiredMode {
+    return isElectronDesktopApp() ? 'desktop-update' : 'reload';
+}
+
+/** True when a tRPC error is the hosted Server's protocol-mismatch rejection. */
+export function isUpdateRequiredError(error: unknown): boolean {
+    return readTrpcCode(error) === updateRequiredTrpcCode;
+}
+
+function readTrpcCode(error: unknown): string | null {
+    const record = asRecord(error);
+
+    return (
+        readNestedString(record, ['data', 'code']) ??
+        readNestedString(record, ['shape', 'data', 'code']) ??
+        null
+    );
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : null;
+}
+
+function readNestedString(
+    source: Record<string, unknown> | null,
+    path: readonly string[]
+): string | null {
+    let current: unknown = source;
+
+    for (const key of path) {
+        current = asRecord(current)?.[key];
+    }
+
+    return typeof current === 'string' ? current : null;
+}

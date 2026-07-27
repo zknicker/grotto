@@ -26,10 +26,6 @@ module.exports = {
     ],
     extraResources: [
         {
-            from: 'electron/resources/bin/grotto-server',
-            to: 'bin/grotto-server',
-        },
-        {
             from: 'electron/generated-icons/Assets.car',
             to: 'Assets.car',
         },
@@ -37,7 +33,6 @@ module.exports = {
     mac: {
         // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder artifact macros are literal strings.
         artifactName: '${productName}_${version}_${arch}.${ext}',
-        binaries: ['Contents/Resources/bin/grotto-server'],
         category: 'public.app-category.productivity',
         darkModeSupport: true,
         entitlements: 'electron/Entitlements.plist',

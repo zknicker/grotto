@@ -1,3 +1,4 @@
+import { appProtocolHeaders } from '@tavern/api';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
@@ -15,6 +16,8 @@ export interface GrottoContext {
     /** Server-owned durable Agent delivery: pending inbox, runs, and Stop state. */
     agentDelivery: AgentDelivery;
     appOrigin: string;
+    /** App provenance and exact wire-contract declaration for this request. */
+    appProtocol: { productVersion: string | null; protocolVersion: number | null };
     attachmentRoot: AttachmentRoot;
     clerkSessions: ClerkSessions;
     /**
@@ -52,8 +55,36 @@ interface ContextCarrier {
 export function createGrottoContextFactory(dependencies: GrottoContextDependencies) {
     return (opts?: ContextCarrier): GrottoContext => ({
         ...dependencies,
+        appProtocol: readAppProtocol(opts),
         clerkSessionToken: readClerkSessionToken(opts),
     });
+}
+
+function readAppProtocol(opts?: ContextCarrier) {
+    const connection = opts?.info?.connectionParams;
+    const headers = opts?.req?.headers;
+    const productVersion =
+        connection?.productVersion ?? readHeader(headers, appProtocolHeaders.productVersion);
+    const rawProtocolVersion =
+        connection?.appProtocolVersion ?? readHeader(headers, appProtocolHeaders.protocolVersion);
+    const protocolVersion =
+        typeof rawProtocolVersion === 'string' && /^\d+$/u.test(rawProtocolVersion)
+            ? Number(rawProtocolVersion)
+            : null;
+
+    return {
+        productVersion:
+            typeof productVersion === 'string' && productVersion ? productVersion : null,
+        protocolVersion,
+    };
+}
+
+function readHeader(
+    headers: Record<string, string | string[] | undefined> | undefined,
+    name: string
+) {
+    const value = headers?.[name];
+    return Array.isArray(value) ? value[0] : value;
 }
 
 function readClerkSessionToken(opts?: ContextCarrier) {

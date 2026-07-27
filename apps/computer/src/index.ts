@@ -4,8 +4,23 @@ import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promise
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { runAgentCli } from './agent-cli.ts';
+import {
+    decideStart,
+    readRunMarker,
+    reserveRun,
+    writePendingNotice,
+    writeRunMarker,
+} from './delivery.ts';
 import { detectInventory } from './inventory.ts';
-import { type Attachment, parseStartCommand, runAgentLaunch } from './launch.ts';
+import {
+    type Attachment,
+    type HostedAgentStartCommand,
+    type HostedAgentTurnFrame,
+    parseNoticeCommand,
+    parseStartCommand,
+    parseStopCommand,
+    runAgentLaunch,
+} from './launch.ts';
 import { type AttachmentMcpConnection, AttachmentMcpRuntime } from './mcp-runtime.ts';
 
 interface SetupResponse {
@@ -175,10 +190,7 @@ async function readAttachment(serverId: string | undefined): Promise<Attachment 
 async function validate(attachment: Attachment) {
     await request(
         '/computer/validate',
-        {
-            credentialHash: hash(attachment.credential),
-            serverId: attachment.serverId,
-        },
+        { credentialHash: hash(attachment.credential), serverId: attachment.serverId },
         attachment.serverOrigin
     );
 }
@@ -368,6 +380,8 @@ async function connect(attachment: Attachment) {
     const socketUrl = new URL('/computer/attachment', attachment.serverOrigin);
     socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(socketUrl);
+    // Live runs in this process, keyed by run so a Stop can kill the right child.
+    const running = new Map<string, AbortController>();
     await new Promise<void>((resolve, reject) => {
         socket.addEventListener('error', () =>
             reject(new Error('Computer attachment socket failed.'))
@@ -515,18 +529,47 @@ async function connect(attachment: Attachment) {
                 mcp.replaceAllGrants(mcpGrants);
                 return;
             }
+            const stop = parseStopCommand(frame);
+            if (stop) {
+                running.get(stop.runId)?.abort();
+                return;
+            }
+            const notice = parseNoticeCommand(frame);
+            if (notice) {
+                void writePendingNotice(dataRoot, {
+                    agentId: notice.agentId,
+                    pending: notice.pending,
+                    serverId: attachment.serverId,
+                }).catch((error) => {
+                    console.error(error instanceof Error ? error.message : error);
+                });
+                return;
+            }
             const command = parseStartCommand(frame);
             if (command) {
-                // One isolated launch per typed start. The Server enforces one
-                // in-flight run per Agent, so a launch here is always the owner.
-                void runAgentLaunch({
+                // Reserve the run synchronously, before any async marker I/O, so a
+                // duplicate start frame that arrives mid-launch is deduped here
+                // instead of racing into a second concurrent child.
+                const controller = reserveRun(running, command.runId);
+                if (!controller) {
+                    socket.send(
+                        JSON.stringify({
+                            agentId: command.agentId,
+                            runId: command.runId,
+                            type: 'ack',
+                        })
+                    );
+                    return;
+                }
+                void handleStartCommand({
                     attachment,
                     command,
-                    dataRoot,
+                    controller,
                     mcpRuntime: mcp,
-                    sendFrame: (payload) => socket.send(JSON.stringify(payload)),
-                    serverOrigin: attachment.serverOrigin,
+                    running,
+                    socket,
                 }).catch((error) => {
+                    running.delete(command.runId);
                     console.error(error instanceof Error ? error.message : error);
                 });
             }
@@ -546,6 +589,124 @@ async function connect(attachment: Attachment) {
             );
         });
     });
+}
+
+/**
+ * Handles one start command idempotently. The run is already reserved in
+ * `running` (synchronously, by the caller), so only one launch per run can exist.
+ * Local acceptance (the durable marker plus the ack) is recorded before any model
+ * work, so a dropped ack or a Computer restart resolves against the marker: a
+ * settled run replays its summary and only a genuinely fresh run launches.
+ */
+async function handleStartCommand(input: {
+    attachment: Attachment;
+    command: HostedAgentStartCommand;
+    controller: AbortController;
+    mcpRuntime: AttachmentMcpRuntime;
+    running: Map<string, AbortController>;
+    socket: WebSocket;
+}): Promise<void> {
+    const { attachment, command, controller, mcpRuntime, running, socket } = input;
+    const startedAt = new Date().toISOString();
+    const send = (frame: unknown) => socket.send(JSON.stringify(frame));
+    const ack = () => send({ agentId: command.agentId, runId: command.runId, type: 'ack' });
+    const settle = async (summary: HostedAgentTurnFrame) => {
+        send(summary);
+        await writeRunMarker(dataRoot, {
+            marker: { status: 'settled', summary },
+            runId: command.runId,
+            serverId: attachment.serverId,
+        });
+    };
+
+    try {
+        const marker = await readRunMarker(dataRoot, command, attachment.serverId);
+        const decision = decideStart(marker);
+        if (decision.kind === 'replay') {
+            ack();
+            send(decision.summary);
+            return;
+        }
+        if (decision.kind === 'recover') {
+            // Crashed after accepting this run; never rerun possibly-effectful
+            // work. Report a failed, interrupted turn whose output is unknown, so
+            // the Server does not requeue and duplicate it.
+            ack();
+            await settle(interruptedTurn(command, startedAt));
+            return;
+        }
+
+        await writeRunMarker(dataRoot, {
+            marker: { status: 'accepted' },
+            runId: command.runId,
+            serverId: attachment.serverId,
+        });
+        ack();
+
+        let summary: HostedAgentTurnFrame;
+        try {
+            summary = await runAgentLaunch({
+                attachment,
+                command,
+                dataRoot,
+                mcpRuntime,
+                sendFrame: send,
+                serverOrigin,
+                signal: controller.signal,
+            });
+        } catch (error) {
+            // A crash after the ack must still report a terminal turn, or the
+            // Server's in-flight run never settles. The launch failed before any
+            // managed send, so the work is safe to requeue (outputProduced false).
+            summary = launchCrashTurn(command, startedAt, error);
+            await settle(summary);
+            return;
+        }
+        await writeRunMarker(dataRoot, {
+            marker: { status: 'settled', summary },
+            runId: command.runId,
+            serverId: attachment.serverId,
+        });
+    } finally {
+        running.delete(command.runId);
+    }
+}
+
+function interruptedTurn(
+    command: HostedAgentStartCommand,
+    startedAt: string
+): HostedAgentTurnFrame {
+    return {
+        agentId: command.agentId,
+        endedAt: new Date().toISOString(),
+        messageCount: 0,
+        // Output is unknown after a crash; assume it happened so the Server does
+        // not requeue and risk duplicating it.
+        outputProduced: true,
+        runId: command.runId,
+        startedAt,
+        status: 'failed',
+        summary: 'The Agent turn was interrupted and could not be resumed.',
+        type: 'turn',
+    };
+}
+
+function launchCrashTurn(
+    command: HostedAgentStartCommand,
+    startedAt: string,
+    error: unknown
+): HostedAgentTurnFrame {
+    return {
+        agentId: command.agentId,
+        endedAt: new Date().toISOString(),
+        messageCount: 0,
+        outputProduced: false,
+        runId: command.runId,
+        startedAt,
+        status: 'failed',
+        summary: `The Agent launch failed: ${error instanceof Error ? error.message : String(error)}`,
+        type: 'turn',
+    };
 }
 
 function parseMcpGrants(frame: unknown) {
@@ -594,12 +755,7 @@ function parseMcpGrant(frame: unknown) {
     ) {
         return null;
     }
-    return grant as {
-        agentId: string;
-        connectionId: string;
-        enabled: boolean;
-        toolName: string;
-    };
+    return grant as { agentId: string; connectionId: string; enabled: boolean; toolName: string };
 }
 
 function parseMcpUpsert(frame: unknown): AttachmentMcpConnection | null {

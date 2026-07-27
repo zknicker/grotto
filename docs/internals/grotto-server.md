@@ -101,6 +101,8 @@ PostgreSQL owns the hosted collaboration tables
 | `channel_participants` | One human's participation in one Channel |
 | `thread_follows` | Per-human Thread attention; never membership |
 | `agents` / `channel_agent_participants` | Hosted Agent identity, immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, and Channel access for reminder authorship |
+| `agent_delivery` / `agent_pending_work` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the durable pending inbox drained into runs |
+| `agent_turns` | Compact per-run turn summary reported by a Computer after a launch settles |
 | `chat_messages` | Immutable human or reminder-system messages ordered by per-Chat sequence and nonce |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `chat_events` | Durable message/read/task/reminder-change events ordered by PostgreSQL cursor |
@@ -163,6 +165,47 @@ claims update nothing. See
 DDL applied by the explicit bootstrap command before the application starts.
 `schema.ts` describes the same tables for typed queries. Runtime has table DML
 authority but no DDL authority. There is no migration history or tooling.
+
+## Durable Agent delivery
+
+The Server owns Agent delivery durably (`apps/server/src/agent-delivery/`), so
+work survives socket loss, a Server or Computer restart, a busy turn, and a
+persistent human Stop without losing or duplicating model-visible work. A human
+DM message enqueues one `agent_pending_work` row **inside the same transaction
+that commits the message**, so a committed message can never leave its wake
+unqueued; the send never dispatches a turn itself, and the wire nudge afterwards
+is best-effort because the retry sweep and reconnect recover it. `agent_delivery`
+holds one row per Agent — the Stop flag plus the single in-flight run — and is
+the serialization boundary: one Agent runs one turn at a time while different
+Agents on one Computer dispatch concurrently, with no Computer-wide queue.
+
+A dispatch, taken under the Server row lock, drains one chat's queued rows —
+never a mix of chats — into a run bound to that chat, freezes its prompt, and
+sends a typed `start` down the Computer's attachment socket; other chats drain in
+their own later runs. The Computer replies with a content-free `ack` (local
+acceptance, not model visibility). An unacknowledged run is what the retry sweep
+resends; a reconnecting Computer additionally has every in-flight run resent —
+acknowledged or not — because it may have lost its live turn. Resends always
+reuse the same `run_id`, so duplicate delivery is idempotent: the Computer
+reserves a run synchronously before any marker I/O and dedupes against a
+restart-durable per-run marker under `~/.grotto/computer`, replaying a settled
+run's stored summary instead of re-running it. A busy Agent accumulates queued
+work and receives a content-free `notice` (a count only), recorded in the running
+turn's runtime directory; that work becomes model-visible only at the next safe
+boundary, when the turn settles and the Server drains it into a fresh run. A
+completed turn deletes its claimed rows; a failed or Stopped turn requeues them,
+so nothing is lost. A failed turn does not re-drive immediately — repeated
+failures back off (`retry_after`) and then degrade (`consecutive_failures`
+reaches its cap), so a broken runtime cannot tight-loop; fresh human intent
+(a new message or Start) clears the backoff.
+
+Human Stop/Start (`agent.stop` / `agent.start`, Owner/Admin) is persistent: Stop
+sets the durable flag, **revokes the live run's runner credential so the Stop
+holds even when the Computer is offline or restarts and re-runs the turn**, kills
+the live turn with a best-effort `stop` frame, requeues its work, and suppresses
+further wakes while work keeps accumulating; Start clears the flag and any backoff
+and drains the pending inbox into the current session. `agent.deliveryState` reads
+the Stop flag, whether a turn is running, and the queued count.
 
 ## Reminder scheduler
 

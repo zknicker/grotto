@@ -24,6 +24,62 @@ export const hostedAgentStartCommandSchema = z
 export type HostedAgentStartCommand = z.infer<typeof hostedAgentStartCommandSchema>;
 
 /**
+ * Terminates the named in-flight run on the Computer. A human Stop persists
+ * Server-side and rides this frame down to kill the live turn; the Computer
+ * kills the run's child process and reports nothing model-visible.
+ */
+export const hostedAgentStopCommandSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        runId: hostedIdSchema,
+        type: z.literal('stop'),
+    })
+    .strict();
+
+export type HostedAgentStopCommand = z.infer<typeof hostedAgentStopCommandSchema>;
+
+/**
+ * A content-free notice: work landed for a busy Agent. It carries only the
+ * pending count, never message content — the queued work becomes model-visible
+ * only at the next safe boundary, when the current run settles and the Server
+ * drains the pending inbox into a fresh turn.
+ */
+export const hostedAgentNoticeCommandSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        pending: z.number().int().nonnegative().max(100_000),
+        runId: hostedIdSchema,
+        type: z.literal('notice'),
+    })
+    .strict();
+
+export type HostedAgentNoticeCommand = z.infer<typeof hostedAgentNoticeCommandSchema>;
+
+/** Every typed frame the Server sends down a Computer attachment socket. */
+export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
+    hostedAgentStartCommandSchema,
+    hostedAgentStopCommandSchema,
+    hostedAgentNoticeCommandSchema,
+]);
+
+export type HostedAgentCommand = z.infer<typeof hostedAgentCommandSchema>;
+
+/**
+ * The Computer's local-acceptance acknowledgement for a start command. An ack
+ * means the Computer durably accepted the delivery, not that a model has seen
+ * the work: it lets the Server stop retrying the delivery while the turn runs.
+ */
+export const hostedAgentDeliveryAckSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        runId: hostedIdSchema,
+        type: z.literal('ack'),
+    })
+    .strict();
+
+export type HostedAgentDeliveryAck = z.infer<typeof hostedAgentDeliveryAckSchema>;
+
+/**
  * A Computer mints a per-launch runner credential from its Computer credential
  * before spawning the Agent. The credential is scoped to exactly one Agent,
  * run, and collaboration chat, so a leaked runner token can only speak as that
@@ -97,6 +153,13 @@ export const hostedAgentTurnSummarySchema = z
         agentId: hostedIdSchema,
         endedAt: hostedTimestampSchema,
         messageCount: z.number().int().nonnegative().max(10_000),
+        /**
+         * Whether the turn produced model-visible output (any durable send).
+         * A failed turn that produced output must not have its work requeued —
+         * doing so would re-trigger the output. A recovered, interrupted run
+         * reports this true conservatively, since its output is unknown.
+         */
+        outputProduced: z.boolean(),
         runId: hostedIdSchema,
         startedAt: hostedTimestampSchema,
         status: hostedAgentTurnStatusSchema,

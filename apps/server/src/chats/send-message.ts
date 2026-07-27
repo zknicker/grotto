@@ -4,6 +4,7 @@ import type {
     HostedDurableEvent,
 } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
@@ -24,6 +25,7 @@ import { autoFollowHostedThreadMentions } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
 import { requireChatAccess } from './chat-access.ts';
+import { readDmAgentId } from './dm-agent.ts';
 import { toHostedChatMessage } from './message-shape.ts';
 
 export class ChatNonceConflictError extends Error {
@@ -43,12 +45,15 @@ export class DirectThreadSendError extends Error {
 export interface SendHostedChatMessageResult {
     event: HostedDurableEvent | null;
     receipt: HostedChatMessageReceipt;
+    /** The seated DM Agent whose pending inbox this send enqueued, if any. */
+    wake: { agentId: string; serverId: string } | null;
 }
 
 export async function sendHostedChatMessage(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: HostedChatSendInput
+    input: HostedChatSendInput,
+    agentDelivery: AgentDelivery
 ): Promise<SendHostedChatMessageResult> {
     return await db.transaction(async (tx) => {
         // Server row first, then authorize: a send that started before a removal
@@ -138,6 +143,7 @@ export async function sendHostedChatMessage(
                     message: toHostedChatMessage(existing, existingAttachments),
                     threadChatId: thread?.id ?? null,
                 },
+                wake: null,
             };
         }
 
@@ -215,6 +221,25 @@ export async function sendHostedChatMessage(
                 id: chatEventsTable.id,
             });
 
+        // Enqueue the seated DM Agent's pending work in this same transaction, so
+        // a committed message can never leave its wake unqueued. The wire
+        // dispatch is the caller's separate, recoverable step.
+        let wake: SendHostedChatMessageResult['wake'] = null;
+        if (!thread && writeChat.kind === 'dm') {
+            const agentId = await readDmAgentId(tx, input.serverId, writeChatId);
+            if (agentId) {
+                await agentDelivery.enqueue(tx, {
+                    agentId,
+                    chatId: writeChatId,
+                    content: input.content,
+                    dedupeKey: message.id,
+                    serverId: input.serverId,
+                    source: 'human',
+                });
+                wake = { agentId, serverId: input.serverId };
+            }
+        }
+
         return {
             event: {
                 chatId: message.chatId,
@@ -233,6 +258,7 @@ export async function sendHostedChatMessage(
                 message: toHostedChatMessage(message, attachmentMetadata(attachments)),
                 threadChatId: thread?.id ?? null,
             },
+            wake,
         };
     });
 }

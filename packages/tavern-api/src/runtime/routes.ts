@@ -17,6 +17,7 @@ export const agentRuntimeRoutes = {
     agentModel: (id: string) => `/agents/${id}/model`,
     agentName: (id: string) => `/agents/${id}/name`,
     agentInbox: (id: string) => `/agents/${id}/inbox`,
+    agentRestart: (id: string) => `/agents/${id}/restart`,
     agentStop: (id: string) => `/agents/${id}/stop`,
     agentThinkingDefault: (id: string) => `/agents/${id}/thinking-default`,
     agentWebSettings: (id: string) => `/agents/${id}/web-settings`,

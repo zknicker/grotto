@@ -38,3 +38,21 @@ export function useAgentSessionReset() {
         },
     });
 }
+
+/**
+ * Restart lifecycle action (specs/sessions.md): resume the current session
+ * unchanged — no rotation, no token change, no receipt. Refreshes the
+ * read-only session view and activity so the resumed state shows.
+ */
+export function useAgentRestart() {
+    const utils = trpc.useUtils();
+
+    return trpc.agent.restart.useMutation({
+        onSuccess: async () => {
+            await Promise.all([
+                utils.agent.session.invalidate().catch(() => undefined),
+                utils.agent.activity.invalidate().catch(() => undefined),
+            ]);
+        },
+    });
+}

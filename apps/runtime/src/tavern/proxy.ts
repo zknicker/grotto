@@ -4,6 +4,7 @@ import {
     agentRuntimeAgentStopResultSchema,
     agentRuntimeArchiveAgentSchema,
     agentRuntimeCreateAgentSchema,
+    agentRuntimeRestartAgentResultSchema,
     agentRuntimeRoutes,
     agentRuntimeSkillListSchema,
     agentRuntimeSkillSchema,
@@ -31,7 +32,7 @@ import {
 } from '../models/selection-service.ts';
 import { createRuntimeAgent } from './agent-create.ts';
 import { readAgentInboxVisibility } from './agent-inbox-api.ts';
-import { stopAgentTurn, stopAgentTurns } from './agent-turn-runner.ts';
+import { restartAgent, stopAgentTurn, stopAgentTurns } from './agent-turn-runner.ts';
 import {
     deleteStoredAgent,
     getStoredAgent,
@@ -131,6 +132,10 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
         const agentId = segments[1];
         const stopped = await stopAgentTurns(agentId);
         return agentRuntimeAgentStopResultSchema.parse({ agentId, stopped });
+    }
+    if (method === 'POST' && segments[0] === 'agents' && segments[1] && segments[2] === 'restart') {
+        const { session, stopped } = await restartAgent(segments[1]);
+        return agentRuntimeRestartAgentResultSchema.parse({ session, stopped });
     }
     if (method === 'GET' && segments[0] === 'agents' && segments[1] && segments[2] === 'inbox') {
         return agentRuntimeAgentInboxSchema.parse(readAgentInboxVisibility(segments[1]));

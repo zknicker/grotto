@@ -1,6 +1,14 @@
 import { expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+    existsSync,
+    mkdirSync,
+    mkdtempSync,
+    readFileSync,
+    rmSync,
+    statSync,
+    writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import {
@@ -56,6 +64,7 @@ test('installs one immutable full-revision release and refuses changed content',
             sourceRevision,
         });
         expect(installed).toBe(join(root, 'releases', sourceRevision));
+        expect(statSync(installed).mode & 0o777).toBe(0o755);
         expect(readFileSync(join(installed, 'bin/grotto-server'), 'utf8')).toBe('first');
 
         expect(

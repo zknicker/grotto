@@ -2,7 +2,7 @@
 
 import { createHash } from 'node:crypto';
 import { createReadStream, readFileSync } from 'node:fs';
-import { lstat, mkdir, mkdtemp, readFile, rename, rm } from 'node:fs/promises';
+import { chmod, lstat, mkdir, mkdtemp, readFile, rename, rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import {
     assertGrottoRevision,
@@ -65,6 +65,7 @@ export async function installGrottoRelease(input: InstallGrottoReleaseInput) {
     try {
         run('/usr/bin/tar', ['-xzf', input.artifactPath, '-C', candidateRoot]);
         const candidate = await verifyGrottoRelease(candidateRoot, input.sourceRevision);
+        await chmod(candidateRoot, 0o755);
 
         if (await pathExists(releaseRoot)) {
             const existing = await verifyGrottoRelease(releaseRoot, input.sourceRevision);

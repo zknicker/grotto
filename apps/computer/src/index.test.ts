@@ -57,6 +57,7 @@ test('setup stores only a Server credential and reruns by validation', async () 
         >;
         expect(attachment).toMatchObject({
             computerId: 'cmp_1234567890123456',
+            serverOrigin: `http://127.0.0.1:${peer.port}`,
             serverId: 'srv_test',
             slug: 'hq',
         });
@@ -65,7 +66,7 @@ test('setup stores only a Server credential and reruns by validation', async () 
 
         await runCli(environment);
         expect(requests.filter((request) => request === 'POST /computer/setup')).toHaveLength(1);
-        expect(requests.filter((request) => request === 'POST /computer/validate')).toHaveLength(1);
+        expect(requests.filter((request) => request === 'POST /computer/validate')).toHaveLength(3);
     } finally {
         peer.stop(true);
         await rm(dataRoot, { force: true, recursive: true });

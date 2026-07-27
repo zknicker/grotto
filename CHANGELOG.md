@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.4 - 2026-07-27
+
+- Grotto now uses the hosted Server as the canonical collaboration system:
+  desktop and web Apps connect directly through exact-versioned HTTP and
+  WebSocket contracts while attached Grotto Computers own private Agent
+  execution, workspaces, skills, model access, and MCP credentials.
+- Hosted Servers now support Computer attachment and lifecycle, Agent creation
+  and repair, durable delivery, isolated skills and MCP connections, signed
+  Computer updates, and explicit Agent, Computer, and Server deletion.
+- The desktop App no longer ships or starts the retired local Runtime sidecar
+  or canonical local database. This release requires the documented fresh
+  hosted cutover; old local state is not migrated or adopted.
+
 ## v1.6.3 - 2026-07-27
 
 - Hosted Grotto adds Clerk sign-in, Server creation and reopen, durable human

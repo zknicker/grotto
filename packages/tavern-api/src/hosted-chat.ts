@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const hostedIdSchema = z.string().trim().min(1);
+export const hostedIdSchema = z.string().trim().min(1);
 const hostedTimestampSchema = z.iso.datetime({ offset: true });
 
 export const hostedChatMessageSchema = z
@@ -18,12 +18,26 @@ export const hostedChatMessageSchema = z
 
 export type HostedChatMessage = z.infer<typeof hostedChatMessageSchema>;
 
+export const hostedThreadSummarySchema = z
+    .object({
+        anchorMessageId: hostedIdSchema,
+        followed: z.boolean(),
+        latestReplyAt: hostedTimestampSchema.nullable(),
+        replyCount: z.number().int().nonnegative(),
+        threadChatId: hostedIdSchema,
+        unreadCount: z.number().int().nonnegative(),
+    })
+    .strict();
+
+export type HostedThreadSummary = z.infer<typeof hostedThreadSummarySchema>;
+
 export const hostedChatSendInputSchema = z
     .object({
         chatId: hostedIdSchema,
         content: z.string().trim().min(1).max(32_000),
         nonce: z.string().trim().min(1).max(128),
         serverId: hostedIdSchema,
+        thread: z.object({ anchorMessageId: hostedIdSchema }).strict().optional(),
     })
     .strict();
 
@@ -63,6 +77,7 @@ export const hostedChatMessageReceiptSchema = z
         eventCursor: z.string().regex(/^[1-9]\d*$/u),
         idempotent: z.boolean(),
         message: hostedChatMessageSchema,
+        threadChatId: hostedIdSchema.nullable(),
     })
     .strict();
 
@@ -81,6 +96,40 @@ export const hostedChatMessagePageSchema = z
     .object({
         messages: z.array(hostedChatMessageSchema),
         nextBeforeSequence: z.number().int().positive().nullable(),
+        threads: z.array(hostedThreadSummarySchema),
+    })
+    .strict();
+
+export const hostedThreadFollowInputSchema = z
+    .object({
+        follow: z.boolean(),
+        serverId: hostedIdSchema,
+        threadChatId: hostedIdSchema,
+    })
+    .strict();
+
+export const hostedThreadContextInputSchema = z
+    .object({
+        serverId: hostedIdSchema,
+        threadChatId: hostedIdSchema,
+    })
+    .strict();
+
+export const hostedThreadContextSchema = z
+    .object({
+        anchorMessageId: hostedIdSchema,
+        parentChatId: hostedIdSchema,
+        serverId: hostedIdSchema,
+        threadChatId: hostedIdSchema,
+    })
+    .strict();
+
+export const hostedThreadFollowReceiptSchema = z
+    .object({
+        eventCursor: z.string().regex(/^[1-9]\d*$/u),
+        followed: z.boolean(),
+        serverId: hostedIdSchema,
+        threadChatId: hostedIdSchema,
     })
     .strict();
 
@@ -124,6 +173,7 @@ export const hostedMessageCreatedEventSchema = z
         cursor: z.string().regex(/^[1-9]\d*$/u),
         id: hostedIdSchema,
         messageId: hostedIdSchema,
+        parentChatId: hostedIdSchema.nullable(),
         sequence: z.number().int().positive(),
         serverId: hostedIdSchema,
         type: z.literal('message.created'),
@@ -136,15 +186,30 @@ export const hostedChatReadEventSchema = z
         createdAt: hostedTimestampSchema,
         cursor: z.string().regex(/^[1-9]\d*$/u),
         id: hostedIdSchema,
+        parentChatId: hostedIdSchema.nullable(),
         sequence: z.number().int().nonnegative(),
         serverId: hostedIdSchema,
         type: z.literal('chat.read'),
     })
     .strict();
 
+export const hostedThreadFollowUpdatedEventSchema = z
+    .object({
+        chatId: hostedIdSchema,
+        createdAt: hostedTimestampSchema,
+        cursor: z.string().regex(/^[1-9]\d*$/u),
+        id: hostedIdSchema,
+        parentChatId: hostedIdSchema,
+        sequence: z.number().int().nonnegative(),
+        serverId: hostedIdSchema,
+        type: z.literal('thread.follow.updated'),
+    })
+    .strict();
+
 export const hostedDurableEventSchema = z.discriminatedUnion('type', [
     hostedMessageCreatedEventSchema,
     hostedChatReadEventSchema,
+    hostedThreadFollowUpdatedEventSchema,
 ]);
 
 export type HostedDurableEvent = z.infer<typeof hostedDurableEventSchema>;

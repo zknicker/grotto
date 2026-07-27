@@ -55,12 +55,23 @@ channel_participants
 chat_messages
 chat_reads
 chat_events
+thread_follows
+server_invitations
 ```
 
 Every row carries `server_id`. Composite keys and foreign keys require related
 Chats, memberships, messages, reads, and events to belong to that same Server.
 Channels store participants in `channel_participants`; a DM stores its sorted
-two-User pair directly on `chats` and has no duplicate participant rows.
+two-User pair and both membership stint numbers directly on `chats` and has no
+duplicate participant rows. The pair plus both stints is unique. Visibility
+matches the reader's current stint, so reinvitation opens a fresh DM without
+granting the returning human its former DM or child-Thread history. The peer
+whose stint did not change retains that preserved history.
+Threads are `chats(kind = 'thread')` with deterministic identity, parent and
+anchor pointers, their own sequence, and no participant rows. Composite
+constraints bind the parent and anchor to the same Server and forbid a Thread
+parent. `thread_follows` stores attention only; every access check resolves the
+parent Chat.
 
 `chats.last_message_sequence` is locked and incremented in the message
 transaction. `chat_messages` is unique by `(server_id, chat_id, sequence)` and
@@ -71,11 +82,37 @@ derived search state queried through its GIN index, not a second message store.
 `servers.last_chat_event_cursor` allocates commit-ordered event cursors while
 the Server row is locked. `server_memberships.revoked_at` preserves historical
 author and DM foreign keys while excluding the human from every current access
-check; no member-management API is part of this slice.
+check.
+
+`server_memberships` is unique by `(server_id, user_id)`, and six composite
+foreign keys point at it from `chats` (both DM sides), `channel_participants`,
+`chat_messages`, `chat_reads`, and `chat_events`. That row is the durable anchor
+of authored history, so membership is revoked and re-accepted in place, never
+deleted and re-inserted. `joined_at` stamps when the current stint began;
+`stint` increments on reinvitation and is the authorization generation private
+DM state records.
+
+`server_invitations` stores only a token's SHA-256 hash, unique across the
+table. A partial unique index on `(server_id, email)` where the invitation is
+neither revoked nor accepted allows at most one live invitation per address.
+Expiry cannot join that predicate — index predicates must be immutable and
+`now()` is not — so issuing a fresh invitation first retires a lapsed one.
+Acceptance locks the invitation row, so one token yields exactly one membership
+under concurrency.
+
+Membership changes and membership-authorized durable writes lock the `servers`
+row before authorizing. That holds the last-Owner invariant and prevents a
+removed human from committing a message, read, DM, or invitation write after
+revocation.
 
 The hosted schema is fresh-bootstrap only. An incompatible development
 database must be recreated manually after operator approval; there is no
 migration runner, compatibility view, or fallback path.
+
+Hosted parent unread count is top-level unread plus unread replies by others in
+followed Threads. For an explicitly unfollowed Thread, only an unread explicit
+`user://` reference to the reader contributes, once, without changing the
+follow row. Thread reads use the ordinary per-Chat `chat_reads` high-water mark.
 
 The channel relay writes durable chat records and dispatches through the
 agent's current global Agent session. It does not keep a private outbox,
@@ -817,6 +854,8 @@ are derived state, not the source of truth.
 - Hosted actor and reader ids come from verified Clerk identity plus current
   Server membership, never browser authority.
 - Hosted durable events notify; cursor catch-up and exact query refetch recover.
+- Hosted Threads are hidden child Chats with parent-derived authorization and
+  parent unread rollup.
 - Hosted composition events are volatile and never persisted or replayed.
 - Tavern Runtime chat history is canonical product state.
 - Channels and DMs are durable chat rooms; Tavern App does not model pinned

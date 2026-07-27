@@ -3,6 +3,7 @@ import { and, eq, lt, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatReadsTable, chatsTable } from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
 import { requireChatAccess } from './chat-access.ts';
@@ -18,6 +19,11 @@ export async function markHostedChatRead(
     input: { chatId: string; sequence: number; serverId: string }
 ): Promise<MarkHostedChatReadResult> {
     return await db.transaction(async (tx) => {
+        // Server row first, then authorize. Removal takes the Server row and
+        // then deletes read markers; without this order a read marker would hold
+        // its own row while waiting for the Server event cursor, and the two
+        // would deadlock.
+        await lockServerRow(tx, input.serverId);
         await requireChatAccess(tx, member, input);
 
         if (!member) {
@@ -25,7 +31,10 @@ export async function markHostedChatRead(
         }
 
         const [chat] = await tx
-            .select({ lastMessageSequence: chatsTable.lastMessageSequence })
+            .select({
+                lastMessageSequence: chatsTable.lastMessageSequence,
+                parentChatId: chatsTable.parentChatId,
+            })
             .from(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
             .limit(1);
@@ -134,6 +143,7 @@ export async function markHostedChatRead(
                 createdAt: event.createdAt.toISOString(),
                 cursor: event.cursor.toString(),
                 id: event.id,
+                parentChatId: chat.parentChatId,
                 sequence,
                 serverId: input.serverId,
                 type: 'chat.read',

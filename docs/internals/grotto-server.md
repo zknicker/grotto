@@ -83,9 +83,11 @@ PostgreSQL owns the hosted collaboration tables
 | --- | --- |
 | `users` | Grotto Users keyed by a unique `clerk_user_id` |
 | `servers` | Opaque id, address/display fields, and the commit-serialized Chat event cursor |
-| `server_memberships` | One human's standing access, Server role, and internal revocation marker |
-| `chats` | Server-owned Channels and canonical sorted two-human DMs |
+| `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
+| `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
+| `chats` | Server-owned Channels, canonical sorted two-human DMs, and hidden child Threads |
 | `channel_participants` | One human's participation in one Channel |
+| `thread_follows` | Per-human Thread attention; never membership |
 | `chat_messages` | Immutable human messages ordered by per-Chat sequence and nonce |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `chat_events` | Durable message/read events ordered by PostgreSQL cursor |
@@ -106,9 +108,69 @@ DDL applied by the explicit bootstrap command before the application starts.
 authority but no DDL authority. There is no migration history or tooling.
 
 Membership revocation sets `server_memberships.revoked_at`; it does not delete
-the row. This keeps immutable message authors and canonical DM pairs intact
-while every membership gate fails closed. There is no invite, removal, or
-member-management procedure in this slice.
+the row. This keeps immutable message authors and historical DM pairs intact
+while every membership gate fails closed.
+
+## Membership
+
+Humans hold Member, Admin, or Owner. A Server may have several Owners and must
+always keep one. One rule decides every change and is shared by the Server and
+the App as `resolveServerMemberAuthority` in `@tavern/api`:
+
+- Owners and Admins issue and revoke invitations.
+- An Admin manages Members, including promoting one to Admin. An Admin never
+  acts on a peer Admin or an Owner.
+- Only an Owner grants or revokes Owner.
+- Anyone may step down; nobody promotes themselves.
+- The last Owner cannot be removed, demoted, or leave.
+
+Granting authority and taking access away both require the human to type the
+Server's immutable slug: every elevation (Member to Admin, and Member or Admin
+to Owner), plus removal, leaving, and revoking Owner. Stepping an Admin down to
+Member is the one ordinary confirmation — it grants nothing and costs no
+access. The Server verifies that confirmation inside the same transaction; the
+App's copy is presentation.
+
+Every remove, demote, and leave locks the `servers` row before counting Owners,
+so two Owners racing to unseat each other serialize and exactly one commits.
+That reuses the row which already serializes durable Chat event cursors rather
+than adding a second locking scheme.
+
+## Invitations
+
+An invitation is email-bound, single-use, and expires seven days after it is
+issued. Grotto stores only the token's SHA-256 hash: `invitation.create`
+returns the raw token once, to the issuer, and no procedure ever reads it back.
+Creation and revocation lock the Server row, then reauthorize the Owner or
+Admin inside the transaction. Grotto sends no email — delivery is manual.
+
+`invitation.accept` commits one transaction. It locks the invitation row,
+refuses anything unknown, revoked, consumed, or lapsed with one indistinguishable
+answer, requires a Clerk-verified email equal to the bound address, then creates
+or resets the membership into a fresh Member stint joined to exactly `#all`.
+Concurrent acceptances of one token serialize on that row lock, so only the
+first commits.
+
+A returning human reuses their existing membership row because authored
+messages and historical DM pairs point at it. Acceptance resets it to `member`
+with a new `joined_at`, increments its `stint`, and joins only `#all`. A DM
+records both participants' stint numbers: the returning human cannot read the
+former DM or its Threads, while the peer who did not leave retains that
+history. Removal clears `channel_participants`, `chat_reads`, and
+`thread_follows`, and retires live composition state for every departed Chat
+including Threads.
+
+`CLERK_SECRET_KEY` authorizes the Clerk Backend API lookup that reads which of a
+human's addresses Clerk has verified; it is the only Grotto surface that reads a
+human's addresses. Without it the Server still runs and invitations simply
+cannot be accepted. `CLERK_API_URL` overrides the Clerk Backend origin for a
+non-production instance.
+
+The one address Grotto stores is `server_invitations.email`, the address an
+invitation is bound to, supplied by the Owner or Admin who issued it. It is a
+target for that invitation, never an identity: Clerk alone decides which
+addresses a human has verified, `users` holds no email, and an accepted
+invitation copies nothing onto the membership.
 
 ## Creation
 
@@ -129,8 +191,8 @@ Server query, mutation, and subscription resolves membership through it:
 - `server.onUpdate` checks membership in middleware, so a non-member is refused
   at subscription registration and never reaches event delivery.
 - `chat.*` resolves current membership and Chat participation before every
-  read or write. Durable and composition subscriptions recheck that access for
-  each event delivery.
+  read or write. Thread access resolves through the parent Channel or DM.
+  Durable and composition subscriptions recheck that access for each event delivery.
 - Durable delivery skips inaccessible Chats without ending the Server feed.
   Revoked Server membership ends delivery.
 
@@ -142,6 +204,13 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 - `/s` lists the Servers this human can open and creates new ones.
 - `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, and search.
   An author already visible in the transcript is the entry point for their DM.
+  Message replies open hidden child Threads in the resizable side pane; Threads
+  never enter the hosted sidebar Chat list.
+- `/s/<slug>/members` manages humans and invitations.
+- `/invite/<token>` is where an invited human accepts. It sits outside the
+  `/s/<slug>` branch because a Server address may itself be `invite` or `join`.
+  Manual links use `VITE_GROTTO_APP_ORIGIN` when configured, so a packaged App
+  never exposes its private `file:` URL; that origin must match `APP_ORIGIN`.
 
 These routes are a separate top-level route-tree branch and run on their own
 client — `apps/website/src/lib/grotto-server.tsx` — using the browser's same
@@ -162,6 +231,11 @@ tolerated.
 Live durable notifications and composition are process-local signals.
 PostgreSQL cursors heal durable notification loss on reconnect; composition is
 intentionally best-effort and disappears instead of replaying.
+
+Thread message and follow notifications retain the existing durable event row
+shape. The public event adds only `parentChatId`, nullable for top-level Chats,
+so the App can refetch the child and its exact parent summary without carrying
+anchor or message content in the event.
 
 ## Production
 

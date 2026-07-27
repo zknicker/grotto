@@ -24,6 +24,7 @@ export async function listHostedChatEvents(
             cursor: chatEventsTable.cursor,
             id: chatEventsTable.id,
             messageId: chatEventsTable.messageId,
+            parentChatId: chatsTable.parentChatId,
             sequence: chatEventsTable.sequence,
             serverId: chatEventsTable.serverId,
             type: chatEventsTable.type,
@@ -43,7 +44,10 @@ export async function listHostedChatEvents(
                 or(
                     eq(chatEventsTable.type, 'message.created'),
                     and(
-                        eq(chatEventsTable.type, 'chat.read'),
+                        or(
+                            eq(chatEventsTable.type, 'chat.read'),
+                            eq(chatEventsTable.type, 'thread.follow.updated')
+                        ),
                         eq(chatEventsTable.readerUserId, member.id)
                     )
                 ),
@@ -59,12 +63,27 @@ export async function listHostedChatEvents(
             createdAt: event.createdAt.toISOString(),
             cursor: event.cursor.toString(),
             id: event.id,
+            parentChatId: event.parentChatId,
             sequence: event.sequence,
             serverId: event.serverId,
         };
 
-        return event.type === 'message.created'
-            ? { ...common, messageId: event.messageId as string, type: 'message.created' as const }
-            : { ...common, type: 'chat.read' as const };
+        if (event.type === 'message.created') {
+            return {
+                ...common,
+                messageId: event.messageId as string,
+                type: 'message.created' as const,
+            };
+        }
+
+        if (event.type === 'chat.read') {
+            return { ...common, type: 'chat.read' as const };
+        }
+
+        return {
+            ...common,
+            parentChatId: event.parentChatId as string,
+            type: 'thread.follow.updated' as const,
+        };
     });
 }

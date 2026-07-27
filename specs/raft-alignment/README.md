@@ -202,9 +202,9 @@ inbox. Human **Start** resumes the current session and drains that work.
 
 - **No migration or compatibility code, ever.** Every issue ships the clean end-state. Cutover
   on the deployed system is manual, coordinated live with the operator before anything
-  destructive; expect to trash existing data where rebuilding is cheaper. Exception: database
-  *schema* changes use the ORM's normal migration tooling (the hosted grotto.sh DB uses real
-  migrations from day one).
+  destructive; expect to trash existing data where rebuilding is cheaper. The hosted
+  PostgreSQL schema is fresh-bootstrap only; incompatible databases are manually recreated
+  after operator approval.
 - **Every issue names its manual-cutover checklist** and waits for operator approval on
   destructive steps.
 - Raft's AX conventions are program-wide law: stderr `Error:` / `Code:` / `Next action:`;
@@ -664,7 +664,7 @@ deployment, so intermediate brokenness is not a constraint.
   the last pre-flip main sha (pin it in the WS5 kickoff when the flip merges).
 - **WS6 — grotto.sh server split.** Move the chat surface to the single-node Mac mini Server,
   local PostgreSQL, and local attachment filesystem behind Cloudflare Tunnel (with asynchronous
-  off-machine backup and a tested restore procedure); use Drizzle migrations; extract Grotto
+  off-machine backup and a tested restore procedure); use fresh-schema Drizzle bootstrap; extract Grotto
   Computer as the machine service (inline-authorized setup, wake delivery,
   lifecycle); Clerk human authentication; Grotto Owner/Admin/Member roles and Server-owned,
   email-bound, seven-day, single-use invites that always create Members; confirmed human removal

@@ -1,9 +1,30 @@
 import type { AddressInfo } from 'node:net';
 import { SQL } from 'bun';
 import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
+import type { ClerkUsers } from '../src/identity/clerk-users.ts';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+
+/**
+ * Clerk's verified-email lookup is a real network boundary, so it is the one
+ * thing these tests stand in for. Everything else — PostgreSQL, transactions,
+ * token verification — is real.
+ */
+export interface ClerkVerifiedEmails extends ClerkUsers {
+    setVerifiedEmails(clerkUserId: string, emails: string[]): void;
+}
+
+function createClerkVerifiedEmails(): ClerkVerifiedEmails {
+    const byClerkUserId = new Map<string, string[]>();
+
+    return {
+        readVerifiedEmails: (clerkUserId) => Promise.resolve(byClerkUserId.get(clerkUserId) ?? []),
+        setVerifiedEmails: (clerkUserId, emails) => {
+            byClerkUserId.set(clerkUserId, emails);
+        },
+    };
+}
 
 /**
  * Boots the hosted Grotto Server against a throwaway PostgreSQL cluster and a
@@ -13,6 +34,7 @@ import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.t
 export interface GrottoServerHarness {
     appOrigin: string;
     clerk: ClerkTestIssuer;
+    clerkUsers: ClerkVerifiedEmails;
     close(): Promise<void>;
     databaseUrl: string;
     sql: SQL;
@@ -23,6 +45,7 @@ export const harnessAppOrigin = 'https://app.grotto.test';
 
 export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
     const cluster: PostgresCluster = await startPostgresCluster();
+    const clerkUsers = createClerkVerifiedEmails();
     let clerk: ClerkTestIssuer | null = null;
 
     try {
@@ -32,6 +55,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
         const application = await createGrottoServerApplication({
             appOrigin: harnessAppOrigin,
             clerkIssuerUrl: clerk.url,
+            clerkUsers,
             databaseUrl: cluster.databaseUrl,
         });
 
@@ -44,6 +68,7 @@ export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
         return {
             appOrigin: harnessAppOrigin,
             clerk: issuer,
+            clerkUsers,
             close: async () => {
                 await sql.close();
                 await application.close();

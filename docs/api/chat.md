@@ -25,24 +25,28 @@ The App calls the hosted Server directly over typed tRPC:
 | Procedure | Contract |
 | --- | --- |
 | `chat.list` | Accessible Channels and DMs with Server-owned unread counts |
-| `chat.ensureDm` | Resolve or create the caller's sorted two-human DM pair |
+| `chat.ensureDm` | Resolve or create the sorted two-human DM for both current membership stints |
 | `chat.messages` | Stable sequence page for one authorized Chat |
-| `chat.send` | Immutable message create with a required client nonce |
+| `chat.send` | Immutable message create; optional anchor target creates/posts to a child Thread |
 | `chat.markRead` | Monotonic reader-derived high-water mark |
-| `chat.search` | PostgreSQL full-text search across accessible Chats |
+| `chat.search` | PostgreSQL full-text search across accessible top-level Chats |
 | `chat.eventHead` | Current per-Server durable cursor for first subscription |
 | `chat.events` | Durable event catch-up after a cursor |
 | `chat.onEvent` | Live durable-event notification; clients refetch exact resources |
 | `chat.publishComposition` / `chat.onComposition` | Best-effort, live-only composition state |
+| `thread.get` | Parent and anchor ids for one authorized child Thread |
+| `thread.setFollow` | Persist the caller's ordinary Thread attention state |
 
 Every input carries `serverId`; the Server derives the actor or reader from the
 verified Clerk User and current Server membership. Channel access comes from
-`channel_participants`. A DM's sorted two-User pair on `chats` is its sole
-membership truth.
+`channel_participants`. A DM records the sorted two-User pair plus each
+membership's current stint. A returning human cannot reopen a DM or child
+Thread from a former stint; the peer who never left retains that history.
 
-Each DM names the other human with `peerUserId`. The App can open a DM from an
-author already visible in an accessible transcript; there is no member
-directory or member-management surface in this slice.
+Each DM names the other human with `peerUserId`. The App opens a DM from an
+author already visible in an accessible transcript; the member directory is a
+management surface and starts no Chats. Invitation and membership procedures
+live in [Grotto Server](../internals/grotto-server.md#membership).
 
 Message order is the positive per-Chat `sequence`, allocated while the Chat row
 is transactionally locked. `(server_id, chat_id, nonce)` is unique. Retrying
@@ -50,9 +54,16 @@ the same actor and content returns the original message and event cursor;
 reusing the nonce for different content is a conflict. Messages have no update
 or delete procedure.
 
-Hosted human chat intentionally excludes Threads, reactions, tasks, reminders,
-attachments, Agent execution, delivery queues, and Computer wake behavior.
+Hosted human chat includes hidden child Threads with parent-derived
+authorization, per-human follows, reads, and parent unread rollup. It
+intentionally excludes reactions, tasks, reminders, attachments, Agent
+execution, delivery queues, and Computer wake behavior.
 Those nouns must not be copied from the broader local Runtime contract below.
+
+Hosted direct mention piercing is narrow: an explicit immutable
+`[@Label](user://<grotto-user-id>)` reference to a parent participant contributes
+that one unread reply to the parent badge after explicit unfollow. It does not
+re-follow. Bare `@text` is inert; no parallel mention index is stored.
 
 ## Local Runtime Contract (pre-cutover)
 

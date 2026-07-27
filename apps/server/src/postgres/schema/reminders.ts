@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
     check,
     foreignKey,
+    index,
     integer,
     jsonb,
     pgTable,
@@ -37,6 +38,9 @@ export const remindersTable = pgTable(
     },
     (table) => [
         uniqueIndex('reminders_server_id_key').on(table.serverId, table.id),
+        index('reminders_due_idx')
+            .on(table.fireAt, table.id)
+            .where(sql`${table.status} = 'scheduled'`),
         foreignKey({
             columns: [table.serverId, table.ownerAgentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],

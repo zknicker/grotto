@@ -11,6 +11,7 @@ import {
     type ReminderClock,
     ReminderCommandConflictError,
     requireActiveAgent,
+    requireAgentAnchor,
     toHostedReminder,
 } from './reminder-model.ts';
 
@@ -38,6 +39,12 @@ export async function cancelHostedReminder(
         await lockReminderCommand(tx, input.serverId, 'agent', agentId, input.commandId);
         const existing = await readExistingCommand(tx, input, agentId, fingerprint);
         if (existing) {
+            await requireAgentAnchor(tx, {
+                agentId,
+                anchorChatId: existing.anchorChatId,
+                anchorMessageId: existing.anchorMessageId,
+                serverId: input.serverId,
+            });
             return { event: null, idempotent: true, reminder: existing };
         }
         const [reminder] = await tx
@@ -55,6 +62,12 @@ export async function cancelHostedReminder(
         if (!reminder) {
             throw new Error('The reminder is not owned by this Agent.');
         }
+        await requireAgentAnchor(tx, {
+            agentId,
+            anchorChatId: reminder.anchorChatId,
+            anchorMessageId: reminder.anchorMessageId,
+            serverId: input.serverId,
+        });
         if (reminder.version !== input.expectedVersion) {
             throw new ReminderVersionConflictError(reminder.version);
         }

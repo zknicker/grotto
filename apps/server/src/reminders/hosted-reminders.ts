@@ -237,5 +237,15 @@ export async function listHostedReminders(
             )
         )
         .orderBy(asc(remindersTable.fireAt), asc(remindersTable.id));
+    await Promise.all(
+        rows.map(({ reminder }) =>
+            requireAgentAnchor(db, {
+                agentId: input.actor.agentId,
+                anchorChatId: reminder.anchorChatId,
+                anchorMessageId: reminder.anchorMessageId,
+                serverId: input.serverId,
+            })
+        )
+    );
     return rows.map(({ agent, reminder }) => toHostedReminder(reminder, agent.handle));
 }

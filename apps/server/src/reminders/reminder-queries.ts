@@ -5,7 +5,7 @@ import {
     reminderFiresTable,
     remindersTable,
 } from '../postgres/schema.ts';
-import { requireActiveAgent } from './reminder-model.ts';
+import { requireActiveAgent, requireAgentAnchor } from './reminder-model.ts';
 
 export interface HostedReminderFire {
     firedAt: string;
@@ -91,7 +91,10 @@ async function requireOwnedReminder(
 ) {
     await requireActiveAgent(db, serverId, agentId);
     const [reminder] = await db
-        .select({ id: remindersTable.id })
+        .select({
+            anchorChatId: remindersTable.anchorChatId,
+            anchorMessageId: remindersTable.anchorMessageId,
+        })
         .from(remindersTable)
         .where(
             and(
@@ -104,4 +107,10 @@ async function requireOwnedReminder(
     if (!reminder) {
         throw new Error('The reminder is not owned by this Agent.');
     }
+    await requireAgentAnchor(db, {
+        agentId,
+        anchorChatId: reminder.anchorChatId,
+        anchorMessageId: reminder.anchorMessageId,
+        serverId,
+    });
 }

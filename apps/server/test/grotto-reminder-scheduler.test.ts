@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import {
@@ -33,6 +33,23 @@ afterEach(async () => {
 });
 
 describe('hosted reminder scheduler lifecycle', () => {
+    test('fresh schema indexes the global scheduled-due scan', async () => {
+        cluster = await startPostgresCluster();
+        connection = await connectGrottoDatabase(cluster.databaseUrl);
+
+        const result = await connection.db.execute(sql`
+            select indexdef
+            from pg_indexes
+            where schemaname = 'public'
+              and tablename = 'reminders'
+              and indexname = 'reminders_due_idx'
+        `);
+
+        expect(result).toHaveLength(1);
+        expect(result[0]?.indexdef).toContain('(fire_at, id)');
+        expect(result[0]?.indexdef).toContain("WHERE (status = 'scheduled'::text)");
+    });
+
     test('recovers one overdue fire on startup and does not burst after restart', async () => {
         cluster = await startPostgresCluster();
         clerk = await startClerkTestIssuer(appOrigin);

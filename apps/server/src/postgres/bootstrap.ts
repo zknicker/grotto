@@ -269,6 +269,8 @@ const schemaStatements = [
             REFERENCES chat_messages (server_id, id)
     );`,
     'CREATE UNIQUE INDEX IF NOT EXISTS reminders_server_id_key ON reminders (server_id, id);',
+    `CREATE INDEX IF NOT EXISTS reminders_due_idx
+        ON reminders (fire_at, id) WHERE status = 'scheduled';`,
     `CREATE TABLE IF NOT EXISTS reminder_commands (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,

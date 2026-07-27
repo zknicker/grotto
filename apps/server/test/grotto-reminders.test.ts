@@ -521,6 +521,45 @@ describe('hosted reminders', () => {
         expect(results[0]?.reminder).toEqual(results[1]?.reminder);
     });
 
+    test('rejects an update whose recurrence cannot produce a supported future date', async () => {
+        const scheduled = await scheduleHostedReminder(
+            connection.db,
+            agentId,
+            {
+                anchorChatId: chatId,
+                anchorMessageId,
+                commandId: 'reminder-command-overflow-schedule',
+                fireAt: new Date('2026-07-30T14:00:00.000Z'),
+                serverId,
+                title: 'Keep a valid cadence',
+            },
+            { now: () => new Date('2026-07-29T12:00:00.000Z') }
+        );
+
+        await expect(
+            updateHostedReminder(
+                connection.db,
+                agentId,
+                {
+                    commandId: 'reminder-command-overflow-update',
+                    expectedVersion: 1,
+                    reminderId: scheduled.reminder.id,
+                    repeat: 'every:100000000d',
+                    serverId,
+                },
+                { now: () => new Date('2026-07-29T13:00:00.000Z') }
+            )
+        ).rejects.toThrow('supported date range');
+
+        const [persisted] = await listHostedReminders(connection.db, {
+            actor: { agentId, kind: 'agent' },
+            serverId,
+        }).then((reminders) =>
+            reminders.filter((reminder) => reminder.id === scheduled.reminder.id)
+        );
+        expect(persisted).toMatchObject({ repeat: null, version: 1 });
+    });
+
     test('does not resurrect a fired reminder without a new future fire time', async () => {
         const scheduled = await scheduleHostedReminder(
             connection.db,
@@ -726,6 +765,32 @@ describe('hosted reminders', () => {
                 {
                     commandId: 'removed-agent-snooze',
                     duration: '1h',
+                    expectedVersion: 1,
+                    reminderId: scheduled.reminder.id,
+                    serverId,
+                },
+                { now: () => new Date('2026-07-31T12:30:00.000Z') }
+            )
+        ).rejects.toThrow(/access the anchor Chat/i);
+        await expect(
+            listHostedReminders(connection.db, {
+                actor: { agentId: removedAgentId, kind: 'agent' },
+                serverId,
+            })
+        ).rejects.toThrow(/access the anchor Chat/i);
+        await expect(
+            listHostedReminderFires(connection.db, {
+                actor: { agentId: removedAgentId, kind: 'agent' },
+                reminderId: scheduled.reminder.id,
+                serverId,
+            })
+        ).rejects.toThrow(/access the anchor Chat/i);
+        await expect(
+            cancelHostedReminder(
+                connection.db,
+                removedAgentId,
+                {
+                    commandId: 'removed-agent-cancel',
                     expectedVersion: 1,
                     reminderId: scheduled.reminder.id,
                     serverId,

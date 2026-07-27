@@ -4,7 +4,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { reminderCommandsTable, remindersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { parseReminderRepeat, parseReminderSnooze } from './cadence.ts';
+import { nextReminderFireAt, parseReminderRepeat, parseReminderSnooze } from './cadence.ts';
 import {
     lockReminderCommand,
     type ReminderCommandInput,
@@ -29,6 +29,13 @@ interface UpdateHostedReminderInput extends ReminderCommandInput {
 
 interface SnoozeHostedReminderInput extends ReminderCommandInput {
     duration: string;
+}
+
+interface ReminderRescheduleValues {
+    fireAt?: Date;
+    repeat?: string | null;
+    script?: string | null;
+    title?: string;
 }
 
 export async function updateHostedReminder(
@@ -91,7 +98,7 @@ async function applyReschedule(
         fingerprint: string;
         now: Date;
         requestedFireAt: Date | undefined;
-        values: Partial<typeof remindersTable.$inferInsert>;
+        values: ReminderRescheduleValues;
     }
 ) {
     const result = await db.transaction(async (tx) => {
@@ -145,6 +152,19 @@ async function applyReschedule(
         if (reminder.status === 'fired' && change.values.fireAt === undefined) {
             throw new Error('A fired reminder needs a new future fire time.');
         }
+        const effectiveRepeat =
+            change.values.repeat === undefined ? reminder.repeat : change.values.repeat;
+        if (effectiveRepeat) {
+            const repeat = parseReminderRepeat(effectiveRepeat);
+            if (!repeat) {
+                throw new Error('Reminder repeat does not use the supported grammar.');
+            }
+            nextReminderFireAt(
+                repeat,
+                (change.values.fireAt ?? reminder.fireAt).getTime(),
+                reminder.timezone
+            );
+        }
         const [updated] = await tx
             .update(remindersTable)
             .set({
@@ -196,7 +216,7 @@ async function applyReschedule(
 }
 
 function validatedUpdate(input: UpdateHostedReminderInput) {
-    const values: Partial<typeof remindersTable.$inferInsert> = {};
+    const values: ReminderRescheduleValues = {};
     if (input.title !== undefined) {
         const title = input.title.trim();
         if (title.length === 0 || title.length > 300) {

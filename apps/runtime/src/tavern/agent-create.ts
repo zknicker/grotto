@@ -10,7 +10,12 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { AgentArchetypeId } from '@tavern/api';
-import { tavernAgentSkillId, visualsSkillId } from '../agent-engine/skill-library.ts';
+import {
+    agentSkillsDir,
+    seedManagedSkills,
+    tavernAgentSkillId,
+    visualsSkillId,
+} from '../agent-engine/skill-library.ts';
 import { AGENT_HOME } from '../config.ts';
 import { getDb } from '../db/connection.ts';
 import type { Database } from '../db/sqlite.ts';
@@ -53,6 +58,9 @@ export async function createRuntimeAgent(input: CreateRuntimeAgentInput) {
         db: input.db,
     });
     await fs.mkdir(agent.workspaceFolder, { recursive: true });
+    // Seed the Agent's own canonical skill library so its first turn resolves
+    // the managed skills from its isolated directory, never a shared one.
+    await seedManagedSkills({ skillsDir: agentSkillsDir(agent.id) });
     await seedAgentWorkspace({
         agentName: agent.name,
         archetype: input.archetype ?? null,

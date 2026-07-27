@@ -62,11 +62,22 @@ curator uses the Deep model category to consolidate overlapping agent-authored
 skills into class-level skills, archive absorbed or irrelevant packages, and
 record an audited curation report.
 
-At execution time, Runtime resolves the agent's enabled skill ids against the
-installed skill library. Agents receive matching skill bundles through the AI
-SDK `HarnessAgent` `skills` setting. Missing assigned skills are stale settings
-and are ignored instead of failing unrelated chat work. Runtime does not copy
-assigned skill content into `system` instructions.
+Each agent owns one canonical, writable skill library on disk, isolated per
+agent. Agent authoring, listing, deletion, and harness injection all resolve to
+that single directory, so an agent's harness never inherits the operator's
+global skills or another agent's library. At execution time Runtime reads the
+agent's own library and passes exactly those bundles through the AI SDK
+`HarnessAgent` `skills` setting. Missing skills are ignored instead of failing
+unrelated chat work, and Runtime does not copy skill content into `system`
+instructions. Imports and edits affect the next turn without interrupting an
+active one; there is no mid-turn reload.
+
+Agents manage their own library through `grotto skill`: `list`, `view`,
+`create`, `patch`, `write-file`, and `delete`. Deletion is strict — it removes
+only that agent's own copy of the skill, names the agent and skill, and never
+touches an import source or another agent's library. An operator can import one
+independent copy of a host-source bundle into a single agent's library while its
+Computer is online; the copy is thereafter mutable and unsynchronized.
 
 Agent-authored and hub-installed skill updates are explicit agent or user work.
 Tavern refreshes seeded skills as managed artifacts; durable custom doctrine

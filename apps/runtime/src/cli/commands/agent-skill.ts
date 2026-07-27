@@ -2,6 +2,7 @@ import { type AgentApiRequester, createAgentApiClient } from '../agent-api-clien
 import {
     agentSkillChangeResponseSchema,
     agentSkillCreateResponseSchema,
+    agentSkillDeleteResponseSchema,
     agentSkillListResponseSchema,
     agentSkillViewResponseSchema,
 } from '../agent-api-schemas.ts';
@@ -85,6 +86,15 @@ export const SKILL_SUBCOMMANDS: SubCommand[] = [
         run: (args) => runSkillWriteFile(args, defaultDeps()),
         summary: 'Write a support file from stdin with hash checking',
         usage: 'grotto skill write-file <skillId> --file-path <path> [--hash <hash>] < file',
+    },
+    {
+        examples: ['grotto skill delete release-checks'],
+        flags: [],
+        name: 'delete',
+        positionals: ['<skillId>'],
+        run: (args) => runSkillDelete(args, defaultDeps()),
+        summary: 'Delete a skill from your library; this cannot be undone',
+        usage: 'grotto skill delete <skillId>',
     },
 ];
 
@@ -180,6 +190,19 @@ export async function runSkillWriteFile(args: ParsedArgs, deps: SkillDeps): Prom
     );
     deps.write(
         `Wrote ${response.change.path}. New hash: ${response.change.afterHash}. Changes take effect next session.\n`
+    );
+    return 0;
+}
+
+export async function runSkillDelete(args: ParsedArgs, deps: SkillDeps): Promise<number> {
+    const skillId = requireSkillId(args);
+    const response = await deps.client.request(
+        `/api/agent/skills/${encodeURIComponent(skillId)}`,
+        agentSkillDeleteResponseSchema,
+        { method: 'DELETE' }
+    );
+    deps.write(
+        `Deleted ${response.deleted.skillId} from your library. Changes take effect next session.\n`
     );
     return 0;
 }

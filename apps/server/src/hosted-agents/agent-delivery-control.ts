@@ -1,5 +1,5 @@
 import type { HostedAgentDeliveryControlInput, HostedAgentDeliveryState } from '@tavern/api';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { countQueuedPending, readDeliveryState } from '../agent-delivery/store.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
@@ -55,7 +55,13 @@ async function requireAgent(
     const [agent] = await db
         .select({ id: agentsTable.id })
         .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
+        .where(
+            and(
+                eq(agentsTable.serverId, input.serverId),
+                eq(agentsTable.id, input.agentId),
+                isNull(agentsTable.retiredAt)
+            )
+        )
         .limit(1);
     if (!agent) {
         throw new AgentConfigDeniedError('No Agent exists with that id.');

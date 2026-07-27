@@ -50,8 +50,9 @@ export function listAgentActivity(
     return entries.sort((left, right) => (left.at < right.at ? 1 : -1)).slice(0, limit);
 }
 
-// Manual resets land a durable system receipt in the agent's built-in DM
-// (specs/sessions.md); the full-vs-session distinction rides the text.
+// Session rotations land a durable system receipt in the agent's built-in DM
+// (specs/sessions.md); the reason rides metadata so the feed reads intent
+// directly instead of parsing display text.
 function newSessionEntries(
     agentId: string,
     limit: number,
@@ -64,7 +65,8 @@ function newSessionEntries(
     }
     const rows = db
         .prepare(
-            `SELECT content, created_at
+            `SELECT created_at,
+                    json_extract(metadata_json, '$.runtime.reason') AS reason
              FROM chat_messages
              WHERE chat_id = $chatId
                AND role = 'system'
@@ -73,23 +75,26 @@ function newSessionEntries(
              LIMIT $limit`
         )
         .all(namedParams({ chatId: dm.id, limit })) as {
-        content: string;
         created_at: string;
+        reason: null | string;
     }[];
 
     return rows.map((row) => ({
         at: row.created_at,
-        detail: resetReason(row.content),
+        detail: resetReasonLabel(row.reason),
         kind: 'new_session' as const,
         turnId: null,
     }));
 }
 
-function resetReason(noticeText: null | string) {
-    if (noticeText?.startsWith('Started completely fresh')) {
+function resetReasonLabel(reason: null | string) {
+    if (reason === 'full') {
         return 'full reset';
     }
-    if (noticeText?.startsWith('Started a fresh session')) {
+    if (reason === 'recovery') {
+        return 'recovery';
+    }
+    if (reason === 'session') {
         return 'manual reset';
     }
     return null;

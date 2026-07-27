@@ -1,6 +1,5 @@
 import { StopIcon } from '@hugeicons-pro/core-solid-rounded';
 import { Cancel01Icon, Message01Icon, RefreshIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResolvedThemeOptional } from '../../../components/theme-provider.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -8,7 +7,9 @@ import { Button } from '../../../components/ui/primitives/button.tsx';
 import { Tooltip } from '../../../components/ui/tooltip.tsx';
 import { useAgentChatList } from '../../../hooks/agents/use-agent-chats.ts';
 import { useStopAgent } from '../../../hooks/agents/use-agent-inbox.ts';
+import { useAgentRestart } from '../../../hooks/agents/use-agent-session.ts';
 import { appRoutes } from '../../../lib/app-routes.ts';
+import { withSaveErrorToast } from '../../../lib/saving-toast.ts';
 import type { AgentListOutput } from '../../../lib/trpc.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { resolveAgentInk } from '../../agents/agent-color-presets.ts';
@@ -16,7 +17,6 @@ import { AgentFace } from '../../chats/agent-face.tsx';
 import { resolveDmPresenceLabel, useAgentPresenceEntry } from '../../chats/agent-presence.tsx';
 import { getActiveRunIds } from '../../chats/chat-active-runs.ts';
 import { selectMostRecentAgentChat } from './agent-chat-selection.ts';
-import { RestartAgentDialog } from './restart-agent-dialog.tsx';
 
 type Agent = AgentListOutput['agents'][number];
 
@@ -37,7 +37,7 @@ export function AgentProfileHeader({
     const directChat = selectMostRecentAgentChat(chatsQuery.data, 'direct');
     const presence = useAgentPresenceEntry(agent.id);
     const stopAgent = useStopAgent();
-    const [restartOpen, setRestartOpen] = useState(false);
+    const restartAgent = useAgentRestart();
     // Presence carries no chat anchor (specs/presence.md): busy always reads
     // as a plain "Working…", regardless of which chat this profile hosts.
     const presenceLabel = presence
@@ -47,74 +47,79 @@ export function AgentProfileHeader({
         : 'Status unavailable';
 
     return (
-        <>
-            <header
-                className={cn(
-                    'flex shrink-0 items-center justify-between gap-4 border-[var(--content-card-border)] border-b',
-                    variant === 'page' ? 'px-6 py-4' : 'px-4 py-3'
-                )}
-            >
-                <div className="flex min-w-0 items-center gap-3">
-                    <span
-                        aria-hidden="true"
-                        className="flex size-14 shrink-0 items-center justify-center"
-                    >
-                        <AgentFace
-                            animate={presence?.state === 'busy'}
-                            dark={dark}
-                            head={agent.effectiveCharacter}
-                            ink={resolveAgentInk(dark, agent.effectivePrimaryColor)}
-                            size={variant === 'page' ? 52 : 44}
-                        />
-                    </span>
-                    <div className="min-w-0">
-                        <h1 className="truncate font-bold text-foreground text-xl">{agent.name}</h1>
-                        {agent.bio ? (
-                            <p className="truncate text-muted-foreground text-sm">{agent.bio}</p>
-                        ) : null}
-                        <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-meta text-muted-foreground">
-                            <span
-                                aria-hidden="true"
-                                className={cn(
-                                    'size-2 shrink-0 rounded-full',
-                                    presence?.state === 'busy'
-                                        ? 'bg-warning'
-                                        : presence
-                                          ? 'bg-success'
-                                          : 'bg-muted-foreground'
-                                )}
-                            />
-                            <span className="truncate">{presenceLabel}</span>
-                        </span>
-                    </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                    <ActionButton
-                        disabled={!directChat}
-                        icon={Message01Icon}
-                        label={directChat ? 'Message' : 'No direct message chat yet'}
-                        onClick={() => directChat && navigate(appRoutes.chat(directChat.id))}
+        <header
+            className={cn(
+                'flex shrink-0 items-center justify-between gap-4 border-[var(--content-card-border)] border-b',
+                variant === 'page' ? 'px-6 py-4' : 'px-4 py-3'
+            )}
+        >
+            <div className="flex min-w-0 items-center gap-3">
+                <span
+                    aria-hidden="true"
+                    className="flex size-14 shrink-0 items-center justify-center"
+                >
+                    <AgentFace
+                        animate={presence?.state === 'busy'}
+                        dark={dark}
+                        head={agent.effectiveCharacter}
+                        ink={resolveAgentInk(dark, agent.effectivePrimaryColor)}
+                        size={variant === 'page' ? 52 : 44}
                     />
-                    {/* Stop lives on agent presence (I1): it stops the
-                        running turn and clears the queued backlog. */}
-                    <ActionButton
-                        disabled={presence?.state !== 'busy' || stopAgent.isPending}
-                        icon={StopIcon}
-                        label={presence?.state === 'busy' ? 'Stop' : 'Agent is not working'}
-                        onClick={() => stopAgent.mutate({ agentId: agent.id })}
-                    />
-                    <ActionButton
-                        icon={RefreshIcon}
-                        label="Restart"
-                        onClick={() => setRestartOpen(true)}
-                    />
-                    {onClose ? (
-                        <ActionButton icon={Cancel01Icon} label="Close" onClick={onClose} />
+                </span>
+                <div className="min-w-0">
+                    <h1 className="truncate font-bold text-foreground text-xl">{agent.name}</h1>
+                    {agent.bio ? (
+                        <p className="truncate text-muted-foreground text-sm">{agent.bio}</p>
                     ) : null}
+                    <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-meta text-muted-foreground">
+                        <span
+                            aria-hidden="true"
+                            className={cn(
+                                'size-2 shrink-0 rounded-full',
+                                presence?.state === 'busy'
+                                    ? 'bg-warning'
+                                    : presence
+                                      ? 'bg-success'
+                                      : 'bg-muted-foreground'
+                            )}
+                        />
+                        <span className="truncate">{presenceLabel}</span>
+                    </span>
                 </div>
-            </header>
-            <RestartAgentDialog agent={agent} onOpenChange={setRestartOpen} open={restartOpen} />
-        </>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+                <ActionButton
+                    disabled={!directChat}
+                    icon={Message01Icon}
+                    label={directChat ? 'Message' : 'No direct message chat yet'}
+                    onClick={() => directChat && navigate(appRoutes.chat(directChat.id))}
+                />
+                {/* Stop lives on agent presence (I1): it stops the
+                        running turn and clears the queued backlog. */}
+                <ActionButton
+                    disabled={presence?.state !== 'busy' || stopAgent.isPending}
+                    icon={StopIcon}
+                    label={presence?.state === 'busy' ? 'Stop' : 'Agent is not working'}
+                    onClick={() => stopAgent.mutate({ agentId: agent.id })}
+                />
+                {/* Restart resumes the current session unchanged (no
+                        rotation, no receipt): it interrupts a stuck turn and
+                        re-drives the session. */}
+                <ActionButton
+                    disabled={restartAgent.isPending}
+                    icon={RefreshIcon}
+                    label="Restart"
+                    onClick={() =>
+                        withSaveErrorToast(() =>
+                            restartAgent.mutateAsync({ agentId: agent.id })
+                        ).catch(() => undefined)
+                    }
+                />
+                {onClose ? (
+                    <ActionButton icon={Cancel01Icon} label="Close" onClick={onClose} />
+                ) : null}
+            </div>
+        </header>
     );
 }
 

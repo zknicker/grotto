@@ -1175,6 +1175,15 @@ export const agentRuntimeResetAgentSessionResultSchema = z.object({
     session: agentRuntimeAgentSessionSchema,
 });
 
+// Restart (specs/sessions.md): restart the executor and resume the current
+// session unchanged. Unlike a reset it rotates neither the session generation
+// nor the agent token, and lands no receipt. `stopped` reports whether a live
+// turn was interrupted; `session` is the resumed current session.
+export const agentRuntimeRestartAgentResultSchema = z.object({
+    session: agentRuntimeAgentSessionSchema,
+    stopped: z.boolean(),
+});
+
 // Agent presence (specs/presence.md): one agent-scoped busy/idle fact,
 // projected from the turn queue. Busy anchors to the running turn's chat
 // (or the oldest queued chat mid-drain); chatTitle is presentation sugar so
@@ -2010,6 +2019,7 @@ export type AgentRuntimeResetAgentSession = z.infer<typeof agentRuntimeResetAgen
 export type AgentRuntimeResetAgentSessionResult = z.infer<
     typeof agentRuntimeResetAgentSessionResultSchema
 >;
+export type AgentRuntimeRestartAgentResult = z.infer<typeof agentRuntimeRestartAgentResultSchema>;
 export type AgentRuntimeSession = z.infer<typeof agentRuntimeSessionSchema>;
 export type AgentRuntimeSessionList = z.infer<typeof agentRuntimeSessionListSchema>;
 export type AgentRuntimeSessionLink = z.infer<typeof agentRuntimeSessionLinkSchema>;

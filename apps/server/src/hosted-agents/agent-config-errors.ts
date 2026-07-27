@@ -9,3 +9,10 @@ export class AgentConfigDeniedError extends Error {
         this.name = 'AgentConfigDeniedError';
     }
 }
+
+export class AgentDeleteDeniedError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'AgentDeleteDeniedError';
+    }
+}

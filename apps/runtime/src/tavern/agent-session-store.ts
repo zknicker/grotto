@@ -10,8 +10,9 @@ import { resolveAgentModelSelection } from '../models/selection-service';
 
 // One global session per agent spanning all its chats (specs/sessions.md,
 // ADR 0011). Chats are routing surfaces; per-chat seen cursors live in the
-// seen ledger (seen-ledger.ts). Sessions rotate only on model switch,
-// manual reset, or the long-idle safety valve (session-freshness.ts).
+// seen ledger (seen-ledger.ts). Sessions never rotate on age or idleness —
+// only on a runtime/model switch, a manual reset (agent-session-reset.ts), or
+// automatic resume recovery (agent-turn-runner.ts).
 
 interface AgentSessionRow {
     agent_id: string;

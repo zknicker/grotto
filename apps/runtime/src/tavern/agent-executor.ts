@@ -17,6 +17,25 @@ export interface AgentExecutorResult {
     contextTokens: number | null;
 }
 
+/**
+ * The executor could not resume the session's stored runtime state — it is
+ * missing or the engine rejected replay. Runtime owns the response: it rotates
+ * the agent session generation and cold-starts once (specs/sessions.md). The
+ * executor never silently continues on a stale generation.
+ */
+export class AgentSessionResumeRejectedError extends Error {
+    constructor(
+        readonly agentSessionId: string,
+        options?: { cause?: unknown }
+    ) {
+        super(
+            `Agent session ${agentSessionId} could not resume its stored runtime state.`,
+            options
+        );
+        this.name = 'AgentSessionResumeRejectedError';
+    }
+}
+
 export interface AgentExecutor {
     /**
      * Deliver a user-visible text into a running turn's engine session.

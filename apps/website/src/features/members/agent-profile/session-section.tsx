@@ -49,7 +49,7 @@ export function AgentSessionSection({ agent }: { agent: AgentListOutput['agents'
                 <Separator />
 
                 <SettingsRow
-                    description="Fresh context that also wipes the agent's workspace."
+                    description="Fresh context that also wipes the workspace, MEMORY.md, and skills back to factory. Identity, history, and configuration are kept."
                     title="Full reset"
                     trailingWidth="intrinsic"
                 >
@@ -97,8 +97,9 @@ function FullResetDialog({
                 <div className="grid gap-4 px-6 pb-6">
                     <p className="text-muted-foreground text-sm leading-relaxed">
                         Fully reset this agent? This starts a fresh session and wipes the
-                        agent&apos;s workspace. Workspace files cannot be recovered; memory
-                        persists.
+                        agent&apos;s workspace, MEMORY.md, and skills back to factory defaults.
+                        These cannot be recovered. Identity, chat history, model configuration, and
+                        connections are kept.
                     </p>
                     {resetSession.error ? (
                         <Alert variant="error">

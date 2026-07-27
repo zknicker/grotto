@@ -1,40 +1,80 @@
 # Reminders
 
-The only scheduling primitive (D4 in `specs/raft-alignment/README.md`; the cron/automations
-product is retired). A reminder is an author-owned, persistent, observable, snoozable,
-updatable, cancelable wake-up signal anchored to a message.
+Reminders are the only scheduling primitive (D4 in
+`specs/raft-alignment/README.md`; the cron/automations product is retired). A
+reminder is an author-owned, persistent, observable, snoozable, updatable, and
+cancelable wake anchored to a message in a Channel or Thread.
 
-## Model
+## Hosted model
 
-- `reminders` (runtime SQLite): `rem_*` id, `owner_agent_id`, `title`, anchor chat + message,
-  `fire_at_ms`, optional `repeat` cadence, optional `script`, status
-  `scheduled | fired | canceled`. `reminder_runs` records every fire, including quiet ticks
-  (`outcome fired|quiet|error`, output, exit code, stderr, fire message id).
-- Cadences: `every:15m|every:2h|every:1d`, `daily@HH:MM`, `weekly:mon,fri@HH:MM` — wall-clock
-  cadences resolve in the home timezone. Late fires (runtime was off) fire once and advance
-  from now, never a burst.
-- Schedules are server-owned: the runtime scheduler ticks every 15s; nothing depends on the
-  owning agent's process staying alive.
+- The Grotto Server stores reminders, idempotent commands, fire logs, visible
+  system receipts, durable change events, and pending Agent attention in
+  PostgreSQL. Every relationship carries `server_id`; composite foreign keys
+  keep the Agent, anchor Chat, anchor message, receipt, fire, and attention in
+  one Server.
+- The narrow hosted `agents` and `channel_agent_participants` rows provide only
+  reminder authorship and Channel/Thread authorization. Agent creation,
+  configuration, Computer assignment, execution, and transport are separate
+  work.
+- Each `reminder_agent_attention` row is one durable, unacknowledged fire
+  snapshot. Every logical fire retains a distinct row until a later
+  acknowledgment contract exists. The table is not an outbox and defines no
+  drain, retry, transport, or acknowledgment protocol.
+- Fresh schema only. Existing Runtime reminder history is not imported or
+  adopted, and there is no compatibility path.
+
+## Schedules and authority
+
+- Repeat grammar is exactly `every:<positive>[mhd]`, `daily@HH:MM`, or
+  `weekly:<comma-separated days>@HH:MM`. Snooze grammar is
+  `<positive>[mhd]`. Wall-clock cadences use the author's home timezone,
+  including DST.
+- A delayed Server fires one overdue logical slot, then recurring schedules
+  advance from the current time. Missed slots never burst.
+- An active Agent may schedule, list, inspect logs, snooze, update, or cancel
+  only its own reminders and only while it can access the anchor. Owner and
+  Admin operators may list all Server reminders, inspect fire logs, and
+  cancel. Ordinary Members and cross-Server callers cannot.
+- Losing anchor access or retiring an Agent cancels each still-scheduled
+  reminder when the scheduler next considers it due. That cancellation removes
+  the reminder's unacknowledged attention snapshots; historical fire rows and
+  visible receipts remain.
+- Commands carry an idempotency key and expected version. A repeated identical
+  command returns its original result; reused input conflicts. PostgreSQL row
+  locks serialize mutation/fire races.
 
 ## Fire semantics
 
-- Fire = a `🔔 Reminder: <title>` system message (`sys_reminder`) in the anchored surface plus a
-  wake for the owner ONLY — the fire pierces the owner's mutes (your own alarm ignores
-  attention state) and never enters ordinary delivery for other agents. Everyone else sees the
-  fire only by reading the surface: wake ownership does not transfer.
-- Scheduling posts a quiet receipt in the anchored surface
-  (`🔔 @owner scheduled a reminder: "…" (fires …)`); receipts wake nobody.
-- `--script` payloads run in the owner's workspace at fire time at zero model cost (60s cap,
-  16KB output cap): empty stdout = quiet tick (run row only, no message, no wake); output rides
-  the fire message and wakes the owner. Non-zero exits record `error`; output still earns the
-  wake.
+The single-node hosted scheduler checks every 15 seconds and once immediately
+at startup. A logical fire is unique by reminder and scheduled time. In one
+transaction it:
 
-## Surfaces
+1. appends `🔔 Reminder: <title>` with the explicit reminder system author in
+   the anchored Channel or Thread;
+2. records the fire;
+3. queues the owning Agent's attention snapshot;
+4. advances or completes the reminder; and
+5. appends commit-ordered `message.created` and `reminder.changed` events.
 
-- Agent CLI family 8 (`reminder schedule|list|snooze|update|cancel|log`) over
-  `/api/agent/reminders/*`. Schedule requires an anchor `--message-id` the caller can see;
-  update changes exactly one field; snooze pushes `--by 30m|2h|1d` from now.
-- App: the Reminders rail view is a read-mostly cross-agent operator index (ported automations
-  page anatomy: status/agent filter sidebar, rows, run-history drawer ≈ `reminder log`) whose
-  only mutation is Cancel — reminders are created and edited conversationally. The agent
-  profile Reminders tab shows that agent's reminders read-only.
+This transaction happens while the Agent's Computer may be offline. Every
+fire, including a script reminder, has the visible receipt and attention
+snapshot.
+
+An optional script is opaque UTF-8 delivery data limited to 16,384 bytes.
+The Server stores and snapshots it but never interprets or executes it. A later
+Computer-local delivery path owns any execution and model-turn suppression;
+this contract does not define that transport.
+
+## Surfaces and lifecycle
+
+- The hosted Reminders route is an Owner/Admin operator view backed directly by
+  `reminder.list`, `reminder.runs`, and `reminder.cancel`. It keeps script
+  contents redacted and recovers changes through durable
+  `reminder.changed` cursor catch-up plus live notifications.
+- Agent reminder verbs are the hosted domain contract. Computer attachment,
+  Agent CLI delivery, local script execution, and attention acknowledgment are
+  not implemented by this slice.
+- Scheduler health reports only `healthy`, `degraded`, or `stopped` plus safe
+  timestamps. Errors are redacted. One malformed reminder degrades the tick but
+  does not block other due reminders. Shutdown stops new ticks and waits for an
+  in-flight transaction.

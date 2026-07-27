@@ -37,6 +37,7 @@ function taskItem(): HostedTaskListItem {
         chatName: 'all',
         chatPeerUserId: null,
         message: {
+            attachments: [],
             author: { kind: 'human', userId: 'user_one' },
             chatId: 'chat_one',
             content: 'Task',

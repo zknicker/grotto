@@ -77,7 +77,9 @@ test('creates no Computer or Agent alongside the Server', async () => {
 
     expect(created.channels).toHaveLength(1);
     await expect(readTableNames()).resolves.toEqual([
+        'agents',
         'attachments',
+        'channel_agent_participants',
         'channel_participants',
         'chat_events',
         'chat_messages',
@@ -85,6 +87,10 @@ test('creates no Computer or Agent alongside the Server', async () => {
         'chats',
         'message_task_labels',
         'message_tasks',
+        'reminder_agent_attention',
+        'reminder_commands',
+        'reminder_fires',
+        'reminders',
         'server_invitations',
         'server_memberships',
         'servers',

@@ -8,6 +8,13 @@ import { createClerkSessions } from './identity/clerk-sessions.ts';
 import { type ClerkUsers, createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectGrottoDatabase } from './postgres/connection.ts';
+import type { ReminderClock } from './reminders/reminder-model.ts';
+import {
+    createHostedReminderScheduler,
+    type HostedReminderScheduler,
+    type ReminderSchedulerTimers,
+} from './reminders/reminder-scheduler.ts';
+import { tickHostedReminders } from './reminders/scheduler.ts';
 
 /**
  * The hosted Grotto Server. It serves only the Grotto Server contract over
@@ -26,6 +33,10 @@ export interface GrottoServerApplicationOptions {
     clerkUsers?: ClerkUsers;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
     databaseUrl: string;
+    /** Controlled time seam for deterministic reminder lifecycle tests. */
+    reminderClock?: ReminderClock;
+    /** Timer seam; production uses the process interval. */
+    reminderSchedulerTimers?: ReminderSchedulerTimers;
 }
 
 export interface GrottoServerApplication {
@@ -40,6 +51,7 @@ export async function createGrottoServerApplication(
 ): Promise<GrottoServerApplication> {
     const grotto = await connectGrottoDatabase(options.databaseUrl);
     let app: FastifyInstance | null = null;
+    let reminderScheduler: HostedReminderScheduler | null = null;
 
     try {
         const createContext = createGrottoContextFactory({
@@ -76,22 +88,42 @@ export async function createGrottoServerApplication(
             },
         });
 
-        app.get('/healthz', async () => ({
-            status: 'ok',
-        }));
-
         const startedApp = app;
         const webSocketServer = startGrottoWebSocketServer(startedApp.server, {
             createContext,
             isAllowedOrigin,
         });
+        const reminderClock = options.reminderClock ?? { now: () => new Date() };
+        reminderScheduler = createHostedReminderScheduler({
+            clock: reminderClock,
+            tick: () => tickHostedReminders(grotto.db, reminderClock),
+            timers: options.reminderSchedulerTimers,
+        });
+        await reminderScheduler.start();
 
-        const close = async () => {
-            webSocketServer.broadcastReconnectNotification();
-            webSocketServer.close();
-            startedApp.server.closeAllConnections();
-            await startedApp.close();
-            await grotto.close();
+        app.get('/healthz', async () => {
+            const reminders = reminderScheduler?.health() ?? {
+                consecutiveFailures: 1,
+                lastSuccessfulTickAt: null,
+                status: 'degraded' as const,
+            };
+            return {
+                reminders,
+                status: reminders.status === 'healthy' ? 'ok' : 'degraded',
+            };
+        });
+
+        let closePromise: Promise<void> | null = null;
+        const close = () => {
+            closePromise ??= (async () => {
+                webSocketServer.broadcastReconnectNotification();
+                webSocketServer.close();
+                startedApp.server.closeAllConnections();
+                await reminderScheduler?.close();
+                await startedApp.close();
+                await grotto.close();
+            })();
+            return closePromise;
         };
 
         return {
@@ -110,6 +142,7 @@ export async function createGrottoServerApplication(
         };
     } catch (cause) {
         // The original failure is the useful one; teardown must not mask it.
+        await reminderScheduler?.close().catch(() => undefined);
         await app?.close().catch(() => undefined);
         await grotto.close().catch(() => undefined);
         throw cause;

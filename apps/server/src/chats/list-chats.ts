@@ -61,7 +61,10 @@ export async function listHostedChats(
                     from chat_messages message
                     where message.server_id = "chats"."server_id"
                         and message.chat_id = "chats"."id"
-                        and message.author_user_id <> ${member.id}
+                        and (
+                            message.author_user_id is null
+                            or message.author_user_id <> ${member.id}
+                        )
                         and message.sequence > coalesce(
                             (
                                 select read.sequence

@@ -25,6 +25,8 @@ export async function listHostedChatEvents(
             id: chatEventsTable.id,
             messageId: chatEventsTable.messageId,
             parentChatId: chatsTable.parentChatId,
+            reminderAction: chatEventsTable.reminderAction,
+            reminderId: chatEventsTable.reminderId,
             sequence: chatEventsTable.sequence,
             serverId: chatEventsTable.serverId,
             type: chatEventsTable.type,
@@ -43,6 +45,7 @@ export async function listHostedChatEvents(
                 gt(chatEventsTable.cursor, BigInt(input.afterCursor)),
                 or(
                     eq(chatEventsTable.type, 'message.created'),
+                    eq(chatEventsTable.type, 'reminder.changed'),
                     and(
                         or(
                             eq(chatEventsTable.type, 'chat.read'),
@@ -78,6 +81,20 @@ export async function listHostedChatEvents(
 
         if (event.type === 'chat.read') {
             return { ...common, type: 'chat.read' as const };
+        }
+
+        if (event.type === 'reminder.changed') {
+            return {
+                ...common,
+                action: event.reminderAction as
+                    | 'canceled'
+                    | 'fired'
+                    | 'scheduled'
+                    | 'snoozed'
+                    | 'updated',
+                reminderId: event.reminderId as string,
+                type: 'reminder.changed' as const,
+            };
         }
 
         return {

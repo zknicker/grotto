@@ -89,14 +89,16 @@ export async function ensureHostedThread(
         throw new InvalidThreadAnchorError();
     }
 
-    await db
-        .insert(threadFollowsTable)
-        .values({
-            serverId: input.serverId,
-            threadChatId,
-            userId: anchor.authorUserId,
-        })
-        .onConflictDoNothing();
+    if (anchor.authorUserId) {
+        await db
+            .insert(threadFollowsTable)
+            .values({
+                serverId: input.serverId,
+                threadChatId,
+                userId: anchor.authorUserId,
+            })
+            .onConflictDoNothing();
+    }
 
     return { id: threadChatId, parentChatId: input.parentChatId };
 }

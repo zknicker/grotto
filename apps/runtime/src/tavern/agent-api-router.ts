@@ -44,6 +44,7 @@ import {
     agentSkillPatchRequestSchema,
     agentSkillWriteFileRequestSchema,
     createAgentAuthoredSkill,
+    deleteAgentSkill,
     listAgentSkills,
     patchAgentSkill,
     viewAgentSkill,
@@ -135,6 +136,11 @@ async function route(
     if (request.method === 'GET' && skillMatch?.[1]) {
         return json(
             await viewAgentSkill(agentId, decodeURIComponent(skillMatch[1]), options.skillsDir)
+        );
+    }
+    if (request.method === 'DELETE' && skillMatch?.[1]) {
+        return json(
+            await deleteAgentSkill(agentId, decodeURIComponent(skillMatch[1]), options.skillsDir)
         );
     }
     if (request.method === 'POST' && url.pathname === '/api/agent/skills/create') {

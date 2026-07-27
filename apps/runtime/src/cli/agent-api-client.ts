@@ -12,7 +12,7 @@ const errorResponseSchema = z.object({
 
 export interface AgentApiRequest {
     body?: unknown;
-    method?: 'GET' | 'POST';
+    method?: 'DELETE' | 'GET' | 'POST';
     query?: Record<string, boolean | number | string | undefined>;
     signal?: AbortSignal;
 }

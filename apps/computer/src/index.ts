@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { runAgentCli } from './agent-cli.ts';
@@ -31,22 +31,46 @@ async function main(args: string[]) {
         return;
     }
     if (command === 'start') {
-        await Promise.all(
-            (await listAttachments()).map(async (attachment) => {
-                await validate(attachment);
-                await connect(attachment);
-            })
-        );
+        await rm(stoppedPath(), { force: true });
+        await startAttachments(target);
+        if (process.env.GROTTO_COMPUTER_RESIDENT === '1') {
+            await new Promise<never>(() => undefined);
+        }
+        return;
+    }
+    if (command === 'stop') {
+        if (target) {
+            await stopAttachment(await requiredAttachment(target));
+            return;
+        }
+        await writeFile(stoppedPath(), '', { mode: 0o600 });
+        await Promise.all((await listAttachments()).map(stopAttachment));
+        await stopResidentService();
+        return;
+    }
+    if (command === 'restart') {
+        const attachment = await requiredAttachment(target);
+        await stopAttachment(attachment);
+        await startAttachment(attachment);
+        return;
+    }
+    if (command === 'run') {
+        const attachment = await readAttachment(target);
+        if (!attachment) {
+            throw new Error('This Server is not attached to this Grotto Computer.');
+        }
+        await validate(attachment);
+        await connect(attachment);
         return;
     }
     if (command !== 'setup' || !target?.startsWith('/')) {
-        throw new Error('Usage: grotto-computer <install|start|setup /server-slug>');
+        throw new Error('Usage: grotto-computer <install|start|stop|restart|setup /server-slug>');
     }
     const slug = target.slice(1);
     const current = await findAttachment(slug);
     if (current) {
         await validate(current);
-        await connect(current);
+        await startAttachment(current);
         console.log(`Grotto Computer resumed /${slug}.`);
         return;
     }
@@ -64,8 +88,30 @@ async function main(args: string[]) {
         slug
     );
     await writeAttachment(attachment);
-    await connect(attachment);
+    await startAttachment(attachment);
     console.log(`Grotto Computer attached to /${slug}.`);
+}
+
+async function startAttachments(target: string | undefined) {
+    if (await isStopped()) {
+        return;
+    }
+    if (target) {
+        await startAttachment(await requiredAttachment(target));
+        return;
+    }
+    await Promise.all((await listAttachments()).map(startAttachment));
+}
+
+async function requiredAttachment(target: string | undefined) {
+    if (!target?.startsWith('/')) {
+        throw new Error('Choose a Server as /server-slug.');
+    }
+    const attachment = await findAttachment(target.slice(1));
+    if (!attachment) {
+        throw new Error(`This Grotto Computer is not attached to ${target}.`);
+    }
+    return attachment;
 }
 
 async function findAttachment(slug: string): Promise<Attachment | null> {
@@ -113,11 +159,28 @@ async function listAttachments() {
     return attachments.filter((attachment): attachment is Attachment => attachment !== null);
 }
 
+async function readAttachment(serverId: string | undefined): Promise<Attachment | null> {
+    if (!(serverId && /^[A-Za-z0-9_-]+$/u.test(serverId))) {
+        return null;
+    }
+    try {
+        return JSON.parse(
+            await readFile(join(dataRoot, 'servers', serverId, 'attachment.json'), 'utf8')
+        ) as Attachment;
+    } catch {
+        return null;
+    }
+}
+
 async function validate(attachment: Attachment) {
-    await request('/computer/validate', {
-        credentialHash: hash(attachment.credential),
-        serverId: attachment.serverId,
-    });
+    await request(
+        '/computer/validate',
+        {
+            credentialHash: hash(attachment.credential),
+            serverId: attachment.serverId,
+        },
+        attachment.serverOrigin
+    );
 }
 
 async function waitForApproval(
@@ -145,6 +208,7 @@ async function waitForApproval(
             return {
                 computerId: status.computerId,
                 credential,
+                serverOrigin,
                 serverId,
                 slug,
             } satisfies Attachment;
@@ -160,8 +224,12 @@ async function waitForApproval(
 
 const approvalSecrets = new Map<string, string>();
 
-async function request<Response>(path: string, body: object): Promise<Response> {
-    const response = await fetch(new URL(path, serverOrigin), {
+async function request<Response>(
+    path: string,
+    body: object,
+    origin = serverOrigin
+): Promise<Response> {
+    const response = await fetch(new URL(path, origin), {
         body: JSON.stringify(body),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
@@ -190,6 +258,58 @@ async function writeAttachment(attachment: Attachment) {
     await rename(temporary, destination);
 }
 
+function stoppedPath() {
+    return join(dataRoot, 'stopped');
+}
+
+async function isStopped() {
+    try {
+        await readFile(stoppedPath());
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function startAttachment(attachment: Attachment) {
+    if (await isRunnerAlive(attachment)) {
+        return;
+    }
+    const child = Bun.spawn([process.execPath, process.argv[1] ?? '', 'run', attachment.serverId], {
+        env: { ...process.env, GROTTO_COMPUTER_DATA_ROOT: dataRoot },
+        stderr: 'inherit',
+        stdin: 'ignore',
+        stdout: 'inherit',
+    });
+    await writeFile(runnerPath(attachment), `${child.pid}\n`, { mode: 0o600 });
+}
+
+async function stopAttachment(attachment: Attachment) {
+    try {
+        const pid = Number.parseInt(await readFile(runnerPath(attachment), 'utf8'), 10);
+        if (Number.isSafeInteger(pid) && pid > 0) {
+            process.kill(pid, 'SIGTERM');
+        }
+    } catch {
+        // A stopped or stale runner is already isolated from the other attachments.
+    }
+    await rm(runnerPath(attachment), { force: true });
+}
+
+function runnerPath(attachment: Attachment) {
+    return join(dataRoot, 'servers', attachment.serverId, 'runner.pid');
+}
+
+async function isRunnerAlive(attachment: Attachment) {
+    try {
+        const pid = Number.parseInt(await readFile(runnerPath(attachment), 'utf8'), 10);
+        process.kill(pid, 0);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 async function installResidentService() {
     const agentsRoot = join(homedir(), 'Library', 'LaunchAgents');
     const plistPath = join(agentsRoot, 'com.grotto.computer.plist');
@@ -215,9 +335,24 @@ async function installResidentService() {
     }
 }
 
+async function stopResidentService() {
+    if (platform() !== 'darwin') {
+        return;
+    }
+    const result = Bun.spawnSync([
+        '/bin/launchctl',
+        'bootout',
+        `gui/${userInfo().uid}`,
+        join(homedir(), 'Library', 'LaunchAgents', 'com.grotto.computer.plist'),
+    ]);
+    if (result.exitCode !== 0 && result.exitCode !== 3) {
+        throw new Error('Could not stop Grotto Computer service.');
+    }
+}
+
 export function launchdPlist(runtime: string, entrypoint: string) {
     const escaped = [runtime, entrypoint, 'start', dataRoot].map(escapeXml);
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.grotto.computer</string><key>ProgramArguments</key><array><string>${escaped[0]}</string><string>${escaped[1]}</string><string>${escaped[2]}</string></array><key>EnvironmentVariables</key><dict><key>GROTTO_COMPUTER_DATA_ROOT</key><string>${escaped[3]}</string></dict><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.grotto.computer</string><key>ProgramArguments</key><array><string>${escaped[0]}</string><string>${escaped[1]}</string><string>${escaped[2]}</string></array><key>EnvironmentVariables</key><dict><key>GROTTO_COMPUTER_DATA_ROOT</key><string>${escaped[3]}</string><key>GROTTO_COMPUTER_RESIDENT</key><string>1</string></dict><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
 }
 
 function escapeXml(value: string) {
@@ -230,7 +365,7 @@ function escapeXml(value: string) {
 
 async function connect(attachment: Attachment) {
     const mcp = new AttachmentMcpRuntime(join(dataRoot, 'servers', attachment.serverId, 'mcp'));
-    const socketUrl = new URL('/computer/attachment', serverOrigin);
+    const socketUrl = new URL('/computer/attachment', attachment.serverOrigin);
     socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(socketUrl);
     await new Promise<void>((resolve, reject) => {
@@ -284,7 +419,7 @@ async function connect(attachment: Attachment) {
                     dataRoot,
                     mcpRuntime: mcp,
                     sendFrame: (payload) => socket.send(JSON.stringify(payload)),
-                    serverOrigin,
+                    serverOrigin: attachment.serverOrigin,
                 }).catch((error) => {
                     console.error(error instanceof Error ? error.message : error);
                 });

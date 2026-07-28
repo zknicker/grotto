@@ -21,17 +21,11 @@ export function registerHostedMcpOAuthCallback(
     });
 }
 
-function callbackCopy(status: 'complete' | 'expired' | 'failed' | 'offline') {
+function callbackCopy(status: 'complete' | 'expired' | 'failed') {
     if (status === 'complete') {
         return {
             message: 'You can close this window and return to Grotto.',
             title: 'Connection complete',
-        };
-    }
-    if (status === 'offline') {
-        return {
-            message: 'Return to Grotto, bring the selected Computer online, and try again.',
-            title: 'Computer offline',
         };
     }
     if (status === 'failed') {

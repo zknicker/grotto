@@ -10,6 +10,7 @@ import {
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { agentsTable } from './agents.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
@@ -19,10 +20,12 @@ export const messageTasksTable = pgTable(
     'message_tasks',
     {
         assigneeUserId: text('assignee_user_id'),
+        assigneeAgentId: text('assignee_agent_id'),
         chatId: text('chat_id').notNull(),
         claimedAt: timestamp('claimed_at', { withTimezone: true }),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-        createdByUserId: text('created_by_user_id').notNull(),
+        createdByAgentId: text('created_by_agent_id'),
+        createdByUserId: text('created_by_user_id'),
         messageId: text('message_id').notNull(),
         number: integer('number').notNull(),
         origin: text('origin').notNull().$type<'composed' | 'converted'>(),
@@ -61,10 +64,28 @@ export const messageTasksTable = pgTable(
             name: 'message_tasks_creator_membership_fk',
         }),
         foreignKey({
+            columns: [table.serverId, table.createdByAgentId],
+            foreignColumns: [agentsTable.serverId, agentsTable.id],
+            name: 'message_tasks_creator_agent_fk',
+        }),
+        foreignKey({
             columns: [table.serverId, table.assigneeUserId],
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
             name: 'message_tasks_assignee_membership_fk',
         }),
+        foreignKey({
+            columns: [table.serverId, table.assigneeAgentId],
+            foreignColumns: [agentsTable.serverId, agentsTable.id],
+            name: 'message_tasks_assignee_agent_fk',
+        }),
+        check(
+            'message_tasks_creator_shape',
+            sql`num_nonnulls(${table.createdByUserId}, ${table.createdByAgentId}) = 1`
+        ),
+        check(
+            'message_tasks_assignee_shape',
+            sql`num_nonnulls(${table.assigneeUserId}, ${table.assigneeAgentId}) <= 1`
+        ),
         check('message_tasks_positive_number', sql`${table.number} > 0`),
         check('message_tasks_positive_version', sql`${table.version} > 0`),
         check(
@@ -78,7 +99,7 @@ export const messageTasksTable = pgTable(
         check('message_tasks_origin', sql`${table.origin} in ('composed', 'converted')`),
         check(
             'message_tasks_claim_shape',
-            sql`${table.claimedAt} is null or ${table.assigneeUserId} is not null`
+            sql`${table.claimedAt} is null or num_nonnulls(${table.assigneeUserId}, ${table.assigneeAgentId}) = 1`
         ),
         index('message_tasks_chat_status_idx').on(table.serverId, table.chatId, table.status),
     ]

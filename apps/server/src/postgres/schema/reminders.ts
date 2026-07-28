@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+    boolean,
     check,
     foreignKey,
     index,
@@ -116,6 +117,9 @@ export const reminderFiresTable = pgTable(
     {
         firedAt: timestamp('fired_at', { withTimezone: true }).notNull(),
         id: text('id').primaryKey(),
+        scriptExitCode: integer('script_exit_code'),
+        scriptOutput: text('script_output'),
+        scriptTimedOut: boolean('script_timed_out').notNull().default(false),
         receiptMessageId: text('receipt_message_id').notNull(),
         reminderId: text('reminder_id').notNull(),
         scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),
@@ -140,6 +144,10 @@ export const reminderFiresTable = pgTable(
             foreignColumns: [chatMessagesTable.serverId, chatMessagesTable.id],
             name: 'reminder_fires_receipt_fk',
         }),
+        check(
+            'reminder_fires_script_output_size',
+            sql`${table.scriptOutput} is null or octet_length(${table.scriptOutput}) <= 65536`
+        ),
     ]
 );
 

@@ -35,6 +35,21 @@ test('missing App protocol fails closed', async () => {
     expect((await request(null)).status).toBe(412);
 });
 
+test('development mode still requires a Clerk session', async () => {
+    const previous = process.env.TAVERN_DEV_STACK;
+    process.env.TAVERN_DEV_STACK = '1';
+
+    try {
+        expect((await request(appProtocolVersion)).status).toBe(401);
+    } finally {
+        if (previous === undefined) {
+            process.env.TAVERN_DEV_STACK = undefined;
+        } else {
+            process.env.TAVERN_DEV_STACK = previous;
+        }
+    }
+});
+
 // The App runs subscriptions over the tRPC WebSocket, where the version arrives
 // in connectionParams. The same exact-equality gate must fail closed there
 // before any subscription is served.

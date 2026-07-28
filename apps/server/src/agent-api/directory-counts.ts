@@ -1,0 +1,80 @@
+import { and, count, eq, ilike, isNull } from 'drizzle-orm';
+import type { ResolvedRunner } from '../computers/runner-credentials.ts';
+import type { GrottoDatabase } from '../postgres/connection.ts';
+import {
+    agentsTable,
+    channelAgentParticipantsTable,
+    chatsTable,
+    serverMembershipsTable,
+} from '../postgres/schema.ts';
+import type { AgentDirectoryQuery } from './directory.ts';
+
+export async function countAgentDirectory(
+    db: GrottoDatabase,
+    runner: ResolvedRunner,
+    input: AgentDirectoryQuery
+) {
+    const [channels, agents, humans] = await Promise.all([
+        countChannels(db, runner, input),
+        countAgents(db, runner, input),
+        countHumans(db, runner),
+    ]);
+    return { agents, channels, humans };
+}
+
+async function countChannels(
+    db: GrottoDatabase,
+    runner: ResolvedRunner,
+    input: AgentDirectoryQuery
+) {
+    const [row] = await db
+        .select({ total: count() })
+        .from(chatsTable)
+        .leftJoin(
+            channelAgentParticipantsTable,
+            and(
+                eq(channelAgentParticipantsTable.serverId, chatsTable.serverId),
+                eq(channelAgentParticipantsTable.chatId, chatsTable.id),
+                eq(channelAgentParticipantsTable.agentId, runner.agentId)
+            )
+        )
+        .where(
+            and(
+                eq(chatsTable.serverId, runner.serverId),
+                eq(chatsTable.kind, 'channel'),
+                input.joined ? eq(channelAgentParticipantsTable.agentId, runner.agentId) : undefined
+            )
+        );
+    return Number(row?.total ?? 0);
+}
+
+async function countAgents(db: GrottoDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
+    const [row] = await db
+        .select({ total: count() })
+        .from(agentsTable)
+        .where(
+            and(
+                eq(agentsTable.serverId, runner.serverId),
+                isNull(agentsTable.retiredAt),
+                input.query ? ilike(agentsTable.handle, `%${escapeLike(input.query)}%`) : undefined
+            )
+        );
+    return Number(row?.total ?? 0);
+}
+
+async function countHumans(db: GrottoDatabase, runner: ResolvedRunner) {
+    const [row] = await db
+        .select({ total: count() })
+        .from(serverMembershipsTable)
+        .where(
+            and(
+                eq(serverMembershipsTable.serverId, runner.serverId),
+                isNull(serverMembershipsTable.revokedAt)
+            )
+        );
+    return Number(row?.total ?? 0);
+}
+
+function escapeLike(value: string) {
+    return value.replaceAll(/[\\%_]/gu, '\\$&');
+}

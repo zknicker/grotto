@@ -21,14 +21,19 @@ export interface AgentDeliveryRow {
 export interface PendingWorkRow {
     chatId: string;
     content: string;
+    createdAt: Date;
+    dedupeKey: string;
     id: string;
     source: string;
 }
 
 export interface AgentDispatchConfig {
+    agentDescription: string | null;
+    agentName: string;
     computerId: string | null;
     desiredModelId: string | null;
     desiredRuntimeId: string | null;
+    homeTimezone: string;
 }
 
 /** The Agent's assigned Computer and desired runtime/model, or nulls when unconfigured. */
@@ -38,9 +43,12 @@ export async function readAgentDispatchConfig(
 ): Promise<AgentDispatchConfig | null> {
     const [row] = await db
         .select({
+            agentDescription: agentsTable.description,
+            agentName: agentsTable.handle,
             computerId: agentsTable.computerId,
             desiredModelId: agentsTable.desiredModelId,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
+            homeTimezone: agentsTable.homeTimezone,
         })
         .from(agentsTable)
         .where(eq(agentsTable.id, agentId))
@@ -135,35 +143,21 @@ export async function countQueuedPending(db: GrottoDatabase, agentId: string): P
 }
 
 /**
- * Claims the queued work for one Agent's next chat into a run — never a mix of
- * chats, and never more than one drain can safely carry. The oldest queued row
- * picks the chat; that chat's queued rows are claimed oldest-first up to
- * `maxRows` and `maxChars` of content (always at least one, to make progress),
- * so the composed prompt stays well under command/env limits and the rest drain
- * in later runs. Returns the drained work, oldest first.
+ * Claims the Agent's next bounded inbox drain across every target. The oldest
+ * queued rows are claimed up to `maxRows` and `maxChars` (always at least one),
+ * preserving the floating-session contract instead of hiding work behind one
+ * launch chat.
  */
 export async function claimQueuedPendingForNextChat(
     db: GrottoDatabase,
     input: { agentId: string; maxChars: number; maxRows: number; runId: string }
 ): Promise<PendingWorkRow[]> {
-    const [next] = await db
-        .select({ chatId: agentPendingWorkTable.chatId })
-        .from(agentPendingWorkTable)
-        .where(
-            and(
-                eq(agentPendingWorkTable.agentId, input.agentId),
-                isNull(agentPendingWorkTable.runId)
-            )
-        )
-        .orderBy(agentPendingWorkTable.createdAt)
-        .limit(1);
-    if (!next) {
-        return [];
-    }
     const candidates = await db
         .select({
             chatId: agentPendingWorkTable.chatId,
             content: agentPendingWorkTable.content,
+            createdAt: agentPendingWorkTable.createdAt,
+            dedupeKey: agentPendingWorkTable.dedupeKey,
             id: agentPendingWorkTable.id,
             source: agentPendingWorkTable.source,
         })
@@ -171,7 +165,6 @@ export async function claimQueuedPendingForNextChat(
         .where(
             and(
                 eq(agentPendingWorkTable.agentId, input.agentId),
-                eq(agentPendingWorkTable.chatId, next.chatId),
                 isNull(agentPendingWorkTable.runId)
             )
         )
@@ -184,7 +177,7 @@ export async function claimQueuedPendingForNextChat(
         if (chosen.length > 0 && (chosen.length >= input.maxRows || nextChars > input.maxChars)) {
             break;
         }
-        chosen.push({ chatId: row.chatId, content: row.content, id: row.id, source: row.source });
+        chosen.push(row);
         chars = nextChars;
     }
     await db
@@ -200,6 +193,49 @@ export async function claimQueuedPendingForNextChat(
             )
         );
     return chosen;
+}
+
+export async function listPendingForRun(
+    db: GrottoDatabase,
+    input: { agentId: string; runId: string }
+): Promise<PendingWorkRow[]> {
+    return await db
+        .select({
+            chatId: agentPendingWorkTable.chatId,
+            content: agentPendingWorkTable.content,
+            createdAt: agentPendingWorkTable.createdAt,
+            dedupeKey: agentPendingWorkTable.dedupeKey,
+            id: agentPendingWorkTable.id,
+            source: agentPendingWorkTable.source,
+        })
+        .from(agentPendingWorkTable)
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                eq(agentPendingWorkTable.runId, input.runId)
+            )
+        )
+        .orderBy(agentPendingWorkTable.createdAt);
+}
+
+export async function listQueuedPending(
+    db: GrottoDatabase,
+    agentId: string,
+    limit: number
+): Promise<PendingWorkRow[]> {
+    return await db
+        .select({
+            chatId: agentPendingWorkTable.chatId,
+            content: agentPendingWorkTable.content,
+            createdAt: agentPendingWorkTable.createdAt,
+            dedupeKey: agentPendingWorkTable.dedupeKey,
+            id: agentPendingWorkTable.id,
+            source: agentPendingWorkTable.source,
+        })
+        .from(agentPendingWorkTable)
+        .where(and(eq(agentPendingWorkTable.agentId, agentId), isNull(agentPendingWorkTable.runId)))
+        .orderBy(agentPendingWorkTable.createdAt)
+        .limit(limit);
 }
 
 export async function beginActiveRun(
@@ -336,9 +372,21 @@ export async function requeuePendingForRun(
 export async function listComputerAgents(
     db: GrottoDatabase,
     computerId: string
-): Promise<{ agentId: string; serverId: string }[]> {
+): Promise<
+    {
+        agentId: string;
+        desiredModelId: string | null;
+        desiredRuntimeId: string | null;
+        serverId: string;
+    }[]
+> {
     const rows = await db
-        .select({ agentId: agentsTable.id, serverId: agentsTable.serverId })
+        .select({
+            agentId: agentsTable.id,
+            desiredModelId: agentsTable.desiredModelId,
+            desiredRuntimeId: agentsTable.desiredRuntimeId,
+            serverId: agentsTable.serverId,
+        })
         .from(agentsTable)
         .where(eq(agentsTable.computerId, computerId));
     return rows;

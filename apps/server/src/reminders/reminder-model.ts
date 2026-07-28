@@ -101,6 +101,7 @@ export async function requireAgentAnchor(
     const [anchor] = await db
         .select({
             chatKind: chatsTable.kind,
+            dmAgentId: chatsTable.dmAgentId,
             messageId: chatMessagesTable.id,
             parentChatId: chatsTable.parentChatId,
         })
@@ -123,6 +124,9 @@ export async function requireAgentAnchor(
     const accessChatId = anchor?.chatKind === 'thread' ? anchor.parentChatId : input.anchorChatId;
     if (!(anchor && accessChatId)) {
         throw new ReminderAnchorAccessError('The reminder anchor is not a message in this Server.');
+    }
+    if (anchor.chatKind === 'dm' && anchor.dmAgentId === input.agentId) {
+        return anchor;
     }
     const [access] = await db
         .select({ agentId: channelAgentParticipantsTable.agentId })

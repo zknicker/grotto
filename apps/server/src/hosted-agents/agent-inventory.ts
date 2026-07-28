@@ -5,6 +5,7 @@ import { computersTable } from '../postgres/schema.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
 
 interface AssignedComputer {
+    health: 'degraded' | 'healthy' | 'offline' | 'update-required';
     inventory: HostedComputerInventory | null;
 }
 
@@ -18,7 +19,10 @@ export async function resolveAssignedComputer(
     input: { computerId: string; serverId: string }
 ): Promise<AssignedComputer> {
     const [computer] = await db
-        .select({ inventory: computersTable.reportedInventory })
+        .select({
+            health: computersTable.health,
+            inventory: computersTable.reportedInventory,
+        })
         .from(computersTable)
         .where(
             and(
@@ -32,7 +36,7 @@ export async function resolveAssignedComputer(
         throw new AgentConfigDeniedError('That Computer is not attached to this Server.');
     }
 
-    return { inventory: computer.inventory ?? null };
+    return { health: computer.health, inventory: computer.inventory ?? null };
 }
 
 /**

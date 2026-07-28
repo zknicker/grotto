@@ -2,7 +2,7 @@ import type { HostedAgent } from '@tavern/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { agentsTable, chatsTable } from '../postgres/schema.ts';
+import { agentDeliveryTable, agentsTable, chatsTable, computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { type ConfiguredAgentRow, toHostedAgent } from './agent-shape.ts';
@@ -22,8 +22,12 @@ export async function listHostedAgents(
     const agentDm = alias(chatsTable, 'agent_dm');
     const rows = await db
         .select({
+            activeRunId: agentDeliveryTable.activeRunId,
             computerId: agentsTable.computerId,
+            computerHealth: computersTable.health,
+            consecutiveFailures: agentDeliveryTable.consecutiveFailures,
             createdAt: agentsTable.createdAt,
+            description: agentsTable.description,
             desiredModelId: agentsTable.desiredModelId,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
             displayName: agentsTable.displayName,
@@ -36,6 +40,7 @@ export async function listHostedAgents(
             id: agentsTable.id,
             role: agentsTable.role,
             serverId: agentsTable.serverId,
+            stopped: agentDeliveryTable.stopped,
         })
         .from(agentsTable)
         .leftJoin(
@@ -47,6 +52,14 @@ export async function listHostedAgents(
                 eq(agentDm.kind, 'dm')
             )
         )
+        .innerJoin(
+            computersTable,
+            and(
+                eq(computersTable.serverId, agentsTable.serverId),
+                eq(computersTable.id, agentsTable.computerId)
+            )
+        )
+        .leftJoin(agentDeliveryTable, eq(agentDeliveryTable.agentId, agentsTable.id))
         .where(
             and(
                 eq(agentsTable.serverId, serverId),
@@ -56,5 +69,12 @@ export async function listHostedAgents(
         )
         .orderBy(agentsTable.createdAt);
 
-    return rows.map((row) => toHostedAgent(row satisfies ConfiguredAgentRow));
+    return rows.map((row) =>
+        toHostedAgent({
+            ...row,
+            activeRunId: row.activeRunId ?? null,
+            consecutiveFailures: row.consecutiveFailures ?? 0,
+            stopped: row.stopped ?? false,
+        } satisfies ConfiguredAgentRow)
+    );
 }

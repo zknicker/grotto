@@ -1,9 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import type { HostedMcpOAuthStartResult } from '@tavern/api';
-import type { ComputerConnections } from '../computers/connections.ts';
+import { eq } from 'drizzle-orm';
+import type { GrottoDatabase } from '../postgres/connection.ts';
+import { mcpConnectionsTable } from '../postgres/schema.ts';
+import { completeHostedMcpAuthorization, startHostedMcpAuthorization } from './oauth.ts';
+import type { HostedMcpRuntime } from './runtime.ts';
 
 interface OAuthAttempt {
-    computerId: string;
     connectionId: string;
     expiresAt: number;
     redirectUrl: string;
@@ -12,22 +15,21 @@ interface OAuthAttempt {
 export type HostedMcpOAuthCallbackResult =
     | { status: 'complete' }
     | { status: 'expired' }
-    | { status: 'failed' }
-    | { status: 'offline' };
+    | { status: 'failed' };
 
-/** One live OAuth handoff. Routing state and callback codes never reach durable storage. */
+/** Server-local OAuth state. Callback codes and credentials never leave Server custody. */
 export class HostedMcpOAuthRelay {
     private readonly attempts = new Map<string, OAuthAttempt>();
 
     constructor(
-        private readonly connections: ComputerConnections,
+        private readonly db: GrottoDatabase,
+        private readonly runtime: HostedMcpRuntime,
         private readonly now: () => number = Date.now,
         private readonly ttlMs = 5 * 60_000
     ) {}
 
     async start(input: {
         allowAuthorizationServerOrigin: boolean;
-        computerId: string;
         connectionId: string;
         redirectUrl: string;
     }): Promise<HostedMcpOAuthStartResult> {
@@ -35,25 +37,22 @@ export class HostedMcpOAuthRelay {
         this.removeExpired();
         const routingState = randomBytes(32).toString('base64url');
         this.attempts.set(routingState, {
-            computerId: input.computerId,
             connectionId: input.connectionId,
             expiresAt: this.now() + this.ttlMs,
             redirectUrl: input.redirectUrl,
         });
         try {
-            const result = await this.connections.requestMcpOAuthStart(input.computerId, {
-                allowAuthorizationServerOrigin: input.allowAuthorizationServerOrigin,
-                connectionId: input.connectionId,
-                redirectUrl: input.redirectUrl,
+            const result = await startHostedMcpAuthorization(this.runtime, {
+                ...input,
                 routingState,
             });
             if (result.status !== 'ready') {
                 this.attempts.delete(routingState);
             }
             return result;
-        } catch (error) {
+        } catch (cause) {
             this.attempts.delete(routingState);
-            throw error;
+            throw cause;
         }
     }
 
@@ -63,24 +62,26 @@ export class HostedMcpOAuthRelay {
         if (!attempt || attempt.expiresAt <= this.now()) {
             return { status: 'expired' };
         }
-        if (!this.connections.isOnline(attempt.computerId)) {
-            return { status: 'offline' };
-        }
         try {
-            await this.connections.requestMcpOAuthComplete(attempt.computerId, {
+            await completeHostedMcpAuthorization(this.runtime, {
                 code,
                 connectionId: attempt.connectionId,
                 redirectUrl: attempt.redirectUrl,
                 state,
             });
+            await this.runtime.closeConnection(attempt.connectionId);
+            const discovery = await this.runtime.discover(attempt.connectionId);
+            await this.db
+                .update(mcpConnectionsTable)
+                .set({
+                    accountLabel: discovery.accountLabel,
+                    connected: true,
+                    tools: [...new Set(discovery.tools)].sort(),
+                })
+                .where(eq(mcpConnectionsTable.id, attempt.connectionId));
             return { status: 'complete' };
-        } catch (error) {
-            return {
-                status:
-                    error instanceof Error && error.message.includes('offline')
-                        ? 'offline'
-                        : 'failed',
-            };
+        } catch {
+            return { status: 'failed' };
         }
     }
 

@@ -18,6 +18,7 @@ import { registerGrottoHealth } from './grotto-health.ts';
 import { registerGrottoStaticApp } from './grotto-static-app.ts';
 import { registerHostedMcpOAuthCallback } from './hosted-mcp/oauth-callback-route.ts';
 import { HostedMcpOAuthRelay } from './hosted-mcp/oauth-relay.ts';
+import { HostedMcpRuntime } from './hosted-mcp/runtime.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
 import { type ClerkUsers, createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
@@ -80,7 +81,8 @@ export async function createGrottoServerApplication(
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
         const computerConnections = new ComputerConnections();
         const agentDelivery = new AgentDelivery(grotto.db, computerConnections);
-        const mcpOAuthRelay = new HostedMcpOAuthRelay(computerConnections);
+        const mcpRuntime = new HostedMcpRuntime(grotto.db);
+        const mcpOAuthRelay = new HostedMcpOAuthRelay(grotto.db, mcpRuntime);
         const createContext = createGrottoContextFactory({
             agentDelivery,
             appOrigin: options.appOrigin,
@@ -97,6 +99,7 @@ export async function createGrottoServerApplication(
                 options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
             grottoDb: grotto.db,
             mcpOAuthRelay,
+            mcpRuntime,
         });
         const isAllowedOrigin = (origin: string | undefined) =>
             isAllowedAppOrigin(origin, options.appOrigin);
@@ -120,7 +123,12 @@ export async function createGrottoServerApplication(
             root: attachmentRoot,
         });
         registerComputerRoutes(app, { appOrigin: options.appOrigin, db: grotto.db });
-        registerAgentApiRoutes(app, { db: grotto.db });
+        registerAgentApiRoutes(app, {
+            agentDelivery,
+            attachmentRoot,
+            db: grotto.db,
+            mcpRuntime,
+        });
         registerHostedMcpOAuthCallback(app, mcpOAuthRelay);
 
         await app.register(fastifyTRPCPlugin, {
@@ -147,7 +155,7 @@ export async function createGrottoServerApplication(
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         reminderScheduler = createHostedReminderScheduler({
             clock: reminderClock,
-            tick: () => tickHostedReminders(grotto.db, reminderClock),
+            tick: () => tickHostedReminders(grotto.db, reminderClock, agentDelivery),
             timers: options.reminderSchedulerTimers,
         });
         await reminderScheduler.start();
@@ -175,6 +183,7 @@ export async function createGrottoServerApplication(
                 computerSocket.close();
                 startedApp.server.closeAllConnections();
                 await reminderScheduler?.close();
+                await mcpRuntime.close();
                 await startedApp.close();
                 await grotto.close();
             })();

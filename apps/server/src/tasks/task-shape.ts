@@ -60,10 +60,12 @@ export function toHostedMessageTaskWithLabels(
     labels: HostedTaskLabel[] = []
 ): HostedMessageTask {
     return {
+        assigneeAgentId: row.assigneeAgentId,
         assigneeUserId: row.assigneeUserId,
         chatId: row.chatId,
         claimedAt: row.claimedAt?.toISOString() ?? null,
         createdAt: row.createdAt.toISOString(),
+        createdByAgentId: row.createdByAgentId,
         createdByUserId: row.createdByUserId,
         labels,
         messageId: row.messageId,

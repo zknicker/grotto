@@ -1,8 +1,12 @@
-import type { HostedAgent, HostedAgentStatus } from '@tavern/api';
+import type { HostedAgent, HostedAgentAvailability, HostedAgentStatus } from '@tavern/api';
 
 export interface ConfiguredAgentRow {
+    activeRunId: string | null;
+    computerHealth: 'degraded' | 'healthy' | 'offline' | 'update-required';
     computerId: string | null;
+    consecutiveFailures: number;
     createdAt: Date;
+    description: string | null;
     desiredModelId: string | null;
     desiredRuntimeId: string | null;
     displayName: string;
@@ -15,6 +19,7 @@ export interface ConfiguredAgentRow {
     id: string;
     role: 'admin' | 'member';
     serverId: string;
+    stopped: boolean;
 }
 
 /**
@@ -38,6 +43,22 @@ export function deriveAgentStatus(row: ConfiguredAgentRow): HostedAgentStatus {
     return matches ? 'applied' : 'pending';
 }
 
+export function deriveAgentAvailability(row: ConfiguredAgentRow): HostedAgentAvailability {
+    if (row.computerHealth !== 'healthy') {
+        return 'offline';
+    }
+    if (row.stopped) {
+        return 'stopped';
+    }
+    if (row.activeRunId) {
+        return 'working';
+    }
+    if (row.consecutiveFailures > 0) {
+        return 'error';
+    }
+    return 'idle';
+}
+
 /** Projects a configured Agent row into its public contract for one viewer. */
 export function toHostedAgent(row: ConfiguredAgentRow): HostedAgent {
     if (!(row.computerId && row.desiredRuntimeId && row.desiredModelId)) {
@@ -45,8 +66,10 @@ export function toHostedAgent(row: ConfiguredAgentRow): HostedAgent {
     }
 
     return {
+        availability: deriveAgentAvailability(row),
         computerId: row.computerId,
         createdAt: row.createdAt.toISOString(),
+        description: row.description,
         desiredModelId: row.desiredModelId,
         desiredRuntimeId: row.desiredRuntimeId,
         displayName: row.displayName,

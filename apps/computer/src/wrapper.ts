@@ -26,7 +26,8 @@ export async function writeGrottoWrapper(input: {
     const script = [
         '#!/bin/sh',
         `export GROTTO_AGENT_ID=${shellQuote(input.identity.agentId)}`,
-        `export GROTTO_SERVER_URL=${shellQuote(input.identity.serverUrl)}`,
+        `export GROTTO_SERVER_URL=${shellQuote(input.identity.proxyUrl)}`,
+        `export GROTTO_AGENT_TOKEN_FILE=${shellQuote(input.identity.proxyTokenFile)}`,
         `export GROTTO_AGENT_PROXY_URL=${shellQuote(input.identity.proxyUrl)}`,
         `export GROTTO_AGENT_PROXY_TOKEN_FILE=${shellQuote(input.identity.proxyTokenFile)}`,
         `exec ${command} "$@"`,

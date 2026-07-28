@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
     check,
     foreignKey,
+    integer,
     jsonb,
     pgTable,
     primaryKey,
@@ -25,6 +26,7 @@ export const agentsTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         desiredModelId: text('desired_model_id'),
         desiredRuntimeId: text('desired_runtime_id'),
+        description: text('description'),
         displayName: text('display_name').notNull(),
         effectiveMissing: jsonb('effective_missing').$type<string[]>(),
         effectiveModelId: text('effective_model_id'),
@@ -35,6 +37,7 @@ export const agentsTable = pgTable(
         id: text('id').primaryKey(),
         retiredAt: timestamp('retired_at', { withTimezone: true }),
         role: text('role').notNull().$type<'admin' | 'member'>(),
+        sessionGeneration: integer('session_generation').notNull().default(1),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -48,6 +51,7 @@ export const agentsTable = pgTable(
             name: 'agents_computer_fk',
         }),
         check('agents_role', sql`${table.role} in ('admin', 'member')`),
+        check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
         check(
             'agents_configuration',
             sql`(

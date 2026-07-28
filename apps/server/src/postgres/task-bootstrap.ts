@@ -20,20 +20,26 @@ export const taskSchemaStatements = [
         status text NOT NULL DEFAULT 'todo' CONSTRAINT message_tasks_status
             CHECK (status IN ('todo', 'in_progress', 'in_review', 'done', 'closed')),
         assignee_user_id text,
+        assignee_agent_id text,
         claimed_at timestamptz,
         priority text NOT NULL DEFAULT 'none' CONSTRAINT message_tasks_priority
             CHECK (priority IN ('none', 'urgent', 'high', 'medium', 'low')),
         origin text NOT NULL CONSTRAINT message_tasks_origin
             CHECK (origin IN ('composed', 'converted')),
-        created_by_user_id text NOT NULL,
+        created_by_user_id text,
+        created_by_agent_id text,
         version integer NOT NULL DEFAULT 1
             CONSTRAINT message_tasks_positive_version CHECK (version > 0),
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY (server_id, message_id),
         CONSTRAINT message_tasks_chat_number_key UNIQUE (server_id, chat_id, number),
+        CONSTRAINT message_tasks_creator_shape
+            CHECK (num_nonnulls(created_by_user_id, created_by_agent_id) = 1),
+        CONSTRAINT message_tasks_assignee_shape
+            CHECK (num_nonnulls(assignee_user_id, assignee_agent_id) <= 1),
         CONSTRAINT message_tasks_claim_shape
-            CHECK (claimed_at IS NULL OR assignee_user_id IS NOT NULL),
+            CHECK (claimed_at IS NULL OR num_nonnulls(assignee_user_id, assignee_agent_id) = 1),
         CONSTRAINT message_tasks_chat_fk
             FOREIGN KEY (server_id, chat_id)
             REFERENCES chats (server_id, id) ON DELETE CASCADE,
@@ -45,7 +51,13 @@ export const taskSchemaStatements = [
             REFERENCES server_memberships (server_id, user_id),
         CONSTRAINT message_tasks_assignee_membership_fk
             FOREIGN KEY (server_id, assignee_user_id)
-            REFERENCES server_memberships (server_id, user_id)
+            REFERENCES server_memberships (server_id, user_id),
+        CONSTRAINT message_tasks_creator_agent_fk
+            FOREIGN KEY (server_id, created_by_agent_id)
+            REFERENCES agents (server_id, id),
+        CONSTRAINT message_tasks_assignee_agent_fk
+            FOREIGN KEY (server_id, assignee_agent_id)
+            REFERENCES agents (server_id, id)
     );`,
     `CREATE INDEX message_tasks_chat_status_idx
         ON message_tasks (server_id, chat_id, status);`,

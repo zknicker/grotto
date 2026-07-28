@@ -1,9 +1,10 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readlink, rm, symlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { AttachmentMcpRuntime } from './mcp-runtime.ts';
+import { type NoticeSinkRegistrar, runHarnessTurn } from './harness/executor.ts';
 import { startLoopbackProxy } from './proxy.ts';
+import { createServerMcpTools } from './server-mcp-tools.ts';
 import { writeGrottoWrapper } from './wrapper.ts';
 
 export interface Attachment {
@@ -20,13 +21,30 @@ export interface Attachment {
  * package, keeping the Computer artifact self-contained.
  */
 export interface HostedAgentStartCommand {
+    /** Server-owned Agent facts the Computer composes into the system prompt. */
+    agentDescription?: string;
     agentId: string;
+    agentName?: string;
     chatId: string;
+    homeTimezone?: string;
+    inbox?: HostedAgentInboxItem[];
     modelId: string;
     prompt: string;
     runId: string;
     runtimeId: string;
     type: 'start';
+    webAccess?: 'fetch-only' | 'search' | 'search-only';
+}
+
+export interface HostedAgentInboxItem {
+    chatId: string;
+    content: string;
+    createdAt: string;
+    id: string;
+    senderHandle: string;
+    senderType: 'agent' | 'human' | 'system';
+    sequence: number;
+    target: string;
 }
 
 /** Server→Computer command to terminate the named in-flight run. */
@@ -36,7 +54,14 @@ export interface HostedAgentStopCommand {
     type: 'stop';
 }
 
-/** Content-free Server→Computer notice that a busy Agent has queued work. */
+/** Server→Computer command to rotate one Agent's local execution state. */
+export interface HostedAgentResetCommand {
+    agentId: string;
+    kind: 'full' | 'session';
+    type: 'agent-reset';
+}
+
+/** Server→Computer notice that a busy Agent has queued work. */
 export interface HostedAgentNoticeCommand {
     agentId: string;
     pending: number;
@@ -67,7 +92,10 @@ export interface RunAgentLaunchOptions {
     attachment: Attachment;
     command: HostedAgentStartCommand;
     dataRoot: string;
-    mcpRuntime: AttachmentMcpRuntime;
+    /** Commits the Server ack immediately before the runtime accepts the prompt. */
+    onRuntimeReady?(): Promise<void>;
+    /** Registers the live harness input used for content-free busy notices. */
+    registerNoticeSink?: NoticeSinkRegistrar;
     /** Pushes the compact turn summary up the attachment socket. */
     sendFrame(frame: unknown): void;
     serverOrigin: string;
@@ -81,10 +109,11 @@ const computerEntry = resolve(moduleDir, 'index.ts');
 
 /**
  * Runs one Agent launch: isolated logical home/workspace/skills/runtime, a
- * Computer-minted scoped runner credential kept behind a loopback proxy, the
- * managed `grotto` wrapper on PATH, and a deterministic runtime that produces a
- * durable hosted message. Raw traces stay in the local runtime directory; only
- * a compact summary is reported to the Server.
+ * Computer-minted scoped runner credential kept behind a loopback proxy, and the
+ * managed `grotto` wrapper on PATH as the Agent's sole output channel. Real
+ * runtimes drive the `@ai-sdk/harness` Codex/Claude/Pi executor with the Agent's
+ * one persistent session; the `fake` lane runs the deterministic real-CLI turn.
+ * Raw traces stay in the local runtime directory; only a compact summary leaves.
  */
 export async function runAgentLaunch(
     options: RunAgentLaunchOptions
@@ -107,9 +136,9 @@ export async function runAgentLaunch(
     await Promise.all(
         Object.values(dirs).map((dir) => mkdir(dir, { mode: 0o700, recursive: true }))
     );
+    await ensureNativeSkillLinks(dirs.home, dirs.skills);
 
-    const runtimeCommand = resolveRuntimeCommand(command.runtimeId);
-    if (!runtimeCommand) {
+    if (!isRuntimeRunnable(command.runtimeId)) {
         return reportTurn(options, {
             messageCount: 0,
             startedAt,
@@ -130,11 +159,15 @@ export async function runAgentLaunch(
         });
     }
 
-    const proxyToken = randomBytes(32).toString('base64url');
+    const proxyToken = `grta_${randomBytes(32).toString('base64url')}`;
     const proxy = startLoopbackProxy({
+        agentId: command.agentId,
+        dataRoot: options.dataRoot,
         proxyToken,
         runnerToken: runner.runnerToken,
+        serverId: options.attachment.serverId,
         serverOrigin: options.serverOrigin,
+        skillsDir: dirs.skills,
     });
     const tokenFile = join(dirs.runtime, 'proxy-token');
     const binDir = join(dirs.runtime, 'bin');
@@ -150,44 +183,40 @@ export async function runAgentLaunch(
             serverUrl: options.serverOrigin,
         },
     });
-    const mcpEndpoint = startMcpEndpoint(options.mcpRuntime, command.agentId, proxyToken);
+    // The Agent's only reachable authority is the loopback proxy token; the
+    // managed `grotto` wrapper on PATH is its sole output channel.
+    const agentEnv: Record<string, string> = {
+        GROTTO_AGENT_ID: command.agentId,
+        GROTTO_AGENT_PROXY_TOKEN_FILE: tokenFile,
+        GROTTO_AGENT_PROXY_URL: proxy.url,
+        GROTTO_AGENT_TOKEN_FILE: tokenFile,
+        GROTTO_SERVER_URL: options.serverOrigin,
+        GROTTO_WRAPPER: wrapperPath,
+        PATH: `${binDir}:${process.env.PATH ?? ''}`,
+    };
 
     let status: 'completed' | 'failed' = 'failed';
     try {
-        const child = Bun.spawn(runtimeCommand, {
-            cwd: dirs.workspace,
-            signal: options.signal,
-            env: {
-                ...process.env,
-                GROTTO_AGENT_ID: command.agentId,
-                GROTTO_AGENT_PROXY_TOKEN_FILE: tokenFile,
-                GROTTO_AGENT_PROXY_URL: proxy.url,
-                GROTTO_MCP_URL: mcpEndpoint.url,
-                GROTTO_MCP_TOKEN: proxyToken,
-                GROTTO_SERVER_URL: options.serverOrigin,
-                GROTTO_TURN_PROMPT: command.prompt,
-                GROTTO_WRAPPER: wrapperPath,
-                HOME: dirs.home,
-                PATH: `${binDir}:${process.env.PATH ?? ''}`,
-            },
-            stderr: 'pipe',
-            stdout: 'pipe',
-        });
-        const [out, err, exitCode] = await Promise.all([
-            new Response(child.stdout).text(),
-            new Response(child.stderr).text(),
-            child.exited,
-        ]);
-        // Raw traces are Computer-local; only the compact summary leaves.
-        await writeFile(join(dirs.runtime, `turn-${command.runId}.log`), `${out}${err}`, {
-            mode: 0o600,
-        });
-        status = exitCode === 0 ? 'completed' : 'failed';
+        await options.onRuntimeReady?.();
+        status =
+            command.runtimeId === 'fake'
+                ? await runFakeRuntime({ agentEnv, command, dirs, signal: options.signal })
+                : await runRealRuntime({
+                      agentEnv,
+                      agentRoot,
+                      command,
+                      dirs,
+                      registerNoticeSink: options.registerNoticeSink,
+                      tools: await createServerMcpTools({
+                          proxyToken,
+                          proxyUrl: proxy.url,
+                      }),
+                      signal: options.signal,
+                  });
     } finally {
         await revokeRunner(options, runner.runnerId).catch(() => undefined);
         await rm(tokenFile, { force: true });
         proxy.close();
-        mcpEndpoint.close();
     }
 
     return reportTurn(options, {
@@ -201,43 +230,27 @@ export async function runAgentLaunch(
     });
 }
 
-function startMcpEndpoint(runtime: AttachmentMcpRuntime, agentId: string, token: string) {
-    const server = Bun.serve({
-        async fetch(request) {
-            if (request.headers.get('authorization') !== `Bearer ${token}`) {
-                return Response.json({ error: 'MCP authority was rejected.' }, { status: 401 });
+async function ensureNativeSkillLinks(homeDir: string, skillsDir: string) {
+    for (const nativeDir of ['.agents', '.claude']) {
+        const parent = join(homeDir, nativeDir);
+        const target = join(parent, 'skills');
+        await mkdir(parent, { mode: 0o700, recursive: true });
+        try {
+            await symlink(skillsDir, target, 'dir');
+        } catch (cause) {
+            if (
+                !(
+                    cause &&
+                    typeof cause === 'object' &&
+                    'code' in cause &&
+                    cause.code === 'EEXIST' &&
+                    (await readlink(target)) === skillsDir
+                )
+            ) {
+                throw cause;
             }
-            try {
-                const body = (await request.json()) as {
-                    args?: unknown;
-                    connectionId?: string;
-                    toolName?: string;
-                };
-                if (!(body.connectionId && body.toolName)) {
-                    return Response.json({ error: 'Invalid MCP invocation.' }, { status: 400 });
-                }
-                return Response.json({
-                    result: await runtime.invoke({
-                        agentId,
-                        args: body.args ?? {},
-                        connectionId: body.connectionId,
-                        toolName: body.toolName,
-                    }),
-                });
-            } catch (error) {
-                return Response.json(
-                    { error: error instanceof Error ? error.message : String(error) },
-                    { status: 403 }
-                );
-            }
-        },
-        hostname: '127.0.0.1',
-        port: 0,
-    });
-    return {
-        close: () => server.stop(true),
-        url: `http://127.0.0.1:${server.port}`,
-    };
+        }
+    }
 }
 
 /** Validates a Server→Computer frame as a launch command. Fails closed to null. */
@@ -254,14 +267,33 @@ export function parseStartCommand(frame: unknown): HostedAgentStartCommand | nul
     if (typeof frame.prompt !== 'string') {
         return null;
     }
+    const inbox = parseInbox(frame.inbox);
+    if (!inbox) {
+        return null;
+    }
+    for (const field of ['agentDescription', 'agentName', 'homeTimezone'] as const) {
+        if (frame[field] !== undefined && typeof frame[field] !== 'string') {
+            return null;
+        }
+    }
+    const webAccess = ['fetch-only', 'search', 'search-only'].includes(frame.webAccess as string)
+        ? (frame.webAccess as 'fetch-only' | 'search' | 'search-only')
+        : undefined;
     return {
         agentId: frame.agentId as string,
+        ...(typeof frame.agentDescription === 'string'
+            ? { agentDescription: frame.agentDescription }
+            : {}),
+        ...(typeof frame.agentName === 'string' ? { agentName: frame.agentName } : {}),
         chatId: frame.chatId as string,
+        ...(typeof frame.homeTimezone === 'string' ? { homeTimezone: frame.homeTimezone } : {}),
+        inbox,
         modelId: frame.modelId as string,
         prompt: frame.prompt as string,
         runId: frame.runId as string,
         runtimeId: frame.runtimeId as string,
         type: 'start',
+        ...(webAccess ? { webAccess } : {}),
     };
 }
 
@@ -278,6 +310,42 @@ export function parseStopCommand(frame: unknown): HostedAgentStopCommand | null 
         return null;
     }
     return { agentId: frame.agentId, runId: frame.runId, type: 'stop' };
+}
+
+/** Validates a Server→Computer reset command. Fails closed to null. */
+export function parseResetCommand(frame: unknown): HostedAgentResetCommand | null {
+    if (
+        !isRecord(frame) ||
+        frame.type !== 'agent-reset' ||
+        typeof frame.agentId !== 'string' ||
+        frame.agentId.length === 0 ||
+        !['full', 'session'].includes(frame.kind as string)
+    ) {
+        return null;
+    }
+    return {
+        agentId: frame.agentId,
+        kind: frame.kind as 'full' | 'session',
+        type: 'agent-reset',
+    };
+}
+
+/** Applies reset semantics inside exactly one Server/Agent filesystem partition. */
+export async function resetAgentState(input: {
+    agentId: string;
+    dataRoot: string;
+    kind: 'full' | 'session';
+    serverId: string;
+}): Promise<void> {
+    const agentRoot = join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId);
+    if (input.kind === 'full') {
+        await rm(agentRoot, { force: true, recursive: true });
+        return;
+    }
+    await Promise.all([
+        rm(join(agentRoot, 'session.json'), { force: true }),
+        rm(join(agentRoot, '.agent-runs'), { force: true, recursive: true }),
+    ]);
 }
 
 /** Validates a Server→Computer frame as a content-free notice. Fails closed to null. */
@@ -300,6 +368,31 @@ export function parseNoticeCommand(frame: unknown): HostedAgentNoticeCommand | n
         runId: frame.runId,
         type: 'notice',
     };
+}
+
+function parseInbox(value: unknown): HostedAgentInboxItem[] | null {
+    if (!Array.isArray(value) || value.length > 100) {
+        return null;
+    }
+    const inbox: HostedAgentInboxItem[] = [];
+    for (const item of value) {
+        if (
+            !(
+                isRecord(item) &&
+                ['chatId', 'content', 'createdAt', 'id', 'senderHandle', 'target'].every(
+                    (field) => typeof item[field] === 'string' && item[field].length > 0
+                ) &&
+                ['agent', 'human', 'system'].includes(item.senderType as string)
+            ) ||
+            typeof item.sequence !== 'number' ||
+            !Number.isInteger(item.sequence) ||
+            item.sequence < 1
+        ) {
+            return null;
+        }
+        inbox.push(item as unknown as HostedAgentInboxItem);
+    }
+    return inbox;
 }
 
 export function parseServerDeleteCommand(frame: unknown): HostedServerDeleteCommand | null {
@@ -336,14 +429,109 @@ function reportTurn(
     return frame;
 }
 
-function resolveRuntimeCommand(runtimeId: string): string[] | null {
-    // WS6 ships one deterministic runtime for the execution slice; real
-    // executors resolve their PATH CLIs here as they land.
-    if (runtimeId === 'fake') {
-        return [process.execPath, fakeRuntimePath];
-    }
-    return null;
+interface RuntimeExecutionInput {
+    agentEnv: Record<string, string>;
+    command: HostedAgentStartCommand;
+    dirs: { home: string; runtime: string; skills: string; workspace: string };
+    registerNoticeSink?: NoticeSinkRegistrar;
+    signal?: AbortSignal;
 }
+
+/**
+ * The deterministic real-harness lane: the real managed `grotto` CLI reaches the
+ * Server through the loopback proxy, but the model is a local stub — no network
+ * model call. It exercises the genuine output path for tests and the dev stack.
+ */
+async function runFakeRuntime(input: RuntimeExecutionInput): Promise<'completed' | 'failed'> {
+    const child = Bun.spawn([process.execPath, fakeRuntimePath], {
+        cwd: input.dirs.workspace,
+        env: {
+            ...process.env,
+            ...input.agentEnv,
+            GROTTO_TURN_PROMPT: input.command.prompt,
+            HOME: input.dirs.home,
+        },
+        signal: input.signal,
+        stderr: 'pipe',
+        stdout: 'pipe',
+    });
+    const [out, err, exitCode] = await Promise.all([
+        new Response(child.stdout).text(),
+        new Response(child.stderr).text(),
+        child.exited,
+    ]);
+    await writeTrace(input, `${out}${err}`);
+    return exitCode === 0 ? 'completed' : 'failed';
+}
+
+/**
+ * Drives a real `@ai-sdk/harness` executor (Codex/Claude Code/Pi) for the turn.
+ * The Agent's replies leave exclusively through `grotto message send`, so a
+ * completed turn is one whose harness stream settled without error; durable send
+ * counting stays on the loopback proxy.
+ */
+async function runRealRuntime(
+    input: RuntimeExecutionInput & {
+        agentRoot: string;
+        tools: import('@ai-sdk/provider-utils').ToolSet;
+    }
+): Promise<'completed' | 'failed'> {
+    const { command } = input;
+    try {
+        await runHarnessTurn({
+            agentId: command.agentId,
+            // The Server owns the Agent handle/description; sensible defaults keep
+            // the managed contract intact when a facet is omitted.
+            agentName: command.agentName ?? command.agentId,
+            agentRoot: input.agentRoot,
+            env: input.agentEnv,
+            homeDir: input.dirs.home,
+            homeTimezone: command.homeTimezone ?? 'UTC',
+            initialRole: command.agentDescription ?? null,
+            modelId: command.modelId,
+            prompt: command.prompt,
+            registerNoticeSink: input.registerNoticeSink,
+            runtimeId: command.runtimeId,
+            signal: input.signal,
+            skillsDir: input.dirs.skills,
+            webAccess: command.webAccess ?? null,
+            workspaceDir: input.dirs.workspace,
+            tools: input.tools,
+        });
+        await writeTrace(input, 'Harness turn completed.\n');
+        return 'completed';
+    } catch (error) {
+        await writeTrace(input, `Harness turn failed: ${messageOf(error)}\n`);
+        return 'failed';
+    }
+}
+
+async function writeTrace(input: RuntimeExecutionInput, content: string) {
+    // Raw traces are Computer-local; only the compact summary leaves.
+    await writeFile(join(input.dirs.runtime, `turn-${input.command.runId}.log`), content, {
+        mode: 0o600,
+    });
+}
+
+/**
+ * The runtimes the Computer can execute — kept in lockstep with the ids
+ * `inventory.ts` advertises, so what a Server is offered and what the Computer
+ * runs never diverge. `fake` is the always-available deterministic lane; the
+ * real runtimes require their host CLI (native provider login lives there).
+ */
+function isRuntimeRunnable(runtimeId: string): boolean {
+    if (runtimeId === 'fake') {
+        return true;
+    }
+    const cli = runtimeCli[runtimeId];
+    return cli ? Bun.which(cli) !== null : false;
+}
+
+const runtimeCli: Record<string, string> = {
+    'claude-code': 'claude',
+    codex: 'codex',
+    pi: 'pi',
+};
 
 function computerEntrypoint(): { args: string[]; executable: string } {
     // Resolved from this module, not argv, so the wrapper always re-executes

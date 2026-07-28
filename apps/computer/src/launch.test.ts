@@ -1,10 +1,17 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { type Attachment, type HostedAgentStartCommand, runAgentLaunch } from './launch.ts';
-import { AttachmentMcpRuntime } from './mcp-runtime.ts';
+import type { HarnessAgent } from '@ai-sdk/harness/agent';
+import type { ToolSet } from '@ai-sdk/provider-utils';
+import { setHarnessAgentFactoryForTesting } from './harness/executor.ts';
+import {
+    type Attachment,
+    type HostedAgentStartCommand,
+    parseResetCommand,
+    resetAgentState,
+    runAgentLaunch,
+} from './launch.ts';
 
 type FakeServer = ReturnType<typeof Bun.serve>;
 
@@ -20,10 +27,6 @@ interface FakeServerState {
 
 let state: FakeServerState;
 let dataRoot: string;
-const deterministicMcp = fileURLToPath(
-    new URL('./test-fixtures/deterministic-mcp.ts', import.meta.url)
-);
-
 beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'grotto-launch-'));
     const server = Bun.serve({
@@ -43,15 +46,54 @@ beforeEach(async () => {
                     (await request.json()) as { content: string; nonce: string; target: string }
                 );
                 return Response.json({
-                    receipt: {
-                        chatId: 'cht_test',
-                        idempotent: false,
-                        messageId: 'msg_test',
+                    message: {
+                        attachments: [],
+                        author: {
+                            id: 'agt_launchtest',
+                            kind: 'agent',
+                            label: 'Launch',
+                            metadata: {},
+                        },
+                        chat_id: 'cht_test',
+                        content: state.sends.at(-1)?.content ?? '',
+                        created_at: new Date().toISOString(),
+                        deleted_at: null,
+                        delivery_id: null,
+                        id: 'msg_test',
+                        metadata: {},
+                        nonce: state.sends.at(-1)?.nonce ?? 'nonce',
+                        role: 'assistant',
+                        sender: {
+                            description: null,
+                            handle: 'launch',
+                            type: 'agent',
+                        },
                         sequence: 1,
-                        target: 'dm:@operator',
                     },
+                    recentUnread: [],
                     state: 'sent',
                 });
+            }
+            if (url.pathname === '/api/agent/mcp/tools') {
+                return Response.json({
+                    tools: [
+                        {
+                            description: 'Echo through Server',
+                            inputSchema: {
+                                additionalProperties: false,
+                                properties: { value: { type: 'string' } },
+                                required: ['value'],
+                                type: 'object',
+                            },
+                            name: 'mcp__server__echo',
+                            title: 'Echo',
+                        },
+                    ],
+                });
+            }
+            if (url.pathname === '/api/agent/mcp/invoke') {
+                const body = (await request.json()) as { args: { value: string } };
+                return Response.json({ result: `server:${body.args.value}` });
             }
             return new Response('not found', { status: 404 });
         },
@@ -94,7 +136,6 @@ test('runs a deterministic Agent launch that lands a durable hosted message', as
         attachment,
         command,
         dataRoot,
-        mcpRuntime: new AttachmentMcpRuntime(join(dataRoot, 'servers', 'srv_launchtest', 'mcp')),
         sendFrame: (frame) => turnFrames.push(frame as Record<string, unknown>),
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
@@ -130,6 +171,10 @@ test('runs a deterministic Agent launch that lands a durable hosted message', as
     for (const dir of ['home', 'skills', 'workspace', 'runtime']) {
         expect((await stat(join(agentRoot, dir))).isDirectory()).toBe(true);
     }
+    const canonicalSkills = await realpath(join(agentRoot, 'skills'));
+    for (const nativeRoot of ['.agents', '.claude']) {
+        expect(await realpath(join(agentRoot, 'home', nativeRoot, 'skills'))).toBe(canonicalSkills);
+    }
 
     // The per-launch proxy token is swept at launch end; the raw trace stays
     // local and carries no runner secret.
@@ -154,11 +199,10 @@ test('reports a failed turn when the runtime is not installed', async () => {
             modelId: 'gpt',
             prompt: 'x',
             runId: 'run_missing',
-            runtimeId: 'codex',
+            runtimeId: 'unsupported-runtime',
             type: 'start',
         },
         dataRoot,
-        mcpRuntime: new AttachmentMcpRuntime(join(dataRoot, 'servers', 'srv_launchtest', 'mcp')),
         sendFrame: (frame) => turnFrames.push(frame as Record<string, unknown>),
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
@@ -167,7 +211,7 @@ test('reports a failed turn when the runtime is not installed', async () => {
     expect(turnFrames[0]).toMatchObject({ messageCount: 0, status: 'failed' });
 });
 
-test('the deterministic Agent invokes a granted MCP tool and cannot invoke it ungranted', async () => {
+test('the launch injects Server-owned MCP tools into the real Harness boundary', async () => {
     const attachment: Attachment = {
         computerId: 'cmp_launchtest0000000',
         credential: 'launch-test-credential',
@@ -175,56 +219,98 @@ test('the deterministic Agent invokes a granted MCP tool and cannot invoke it un
         serverId: 'srv_launchtest',
         slug: 'launch-test',
     };
-    const connectionId = 'mcp_1234567890123456';
-    const mcpRuntime = new AttachmentMcpRuntime(
-        join(dataRoot, 'servers', attachment.serverId, 'mcp')
-    );
-    await mcpRuntime.upsert({
-        args: [deterministicMcp],
-        auth: 'none',
-        command: process.execPath,
-        env: { MCP_PREFIX: 'agent' },
-        headers: {},
-        id: connectionId,
-        name: 'Deterministic',
-        oauthScopes: [],
-        preset: null,
-        url: null,
-    });
     const base: HostedAgentStartCommand = {
         agentId: 'agt_launchtest',
         chatId: 'cht_test',
-        modelId: 'fake-model',
-        prompt: `[mcp=${connectionId}/echo] {"value":"granted"}`,
+        modelId: 'gpt-5.6-sol',
+        prompt: 'Use the granted tool.',
         runId: 'run_mcp_granted',
-        runtimeId: 'fake',
+        runtimeId: 'codex',
         type: 'start',
     };
-    mcpRuntime.replaceAgentGrants(base.agentId, [
-        { agentId: base.agentId, connectionId, toolName: 'echo' },
-    ]);
-    const frames: Record<string, unknown>[] = [];
-    await runAgentLaunch({
-        attachment,
-        command: base,
-        dataRoot,
-        mcpRuntime,
-        sendFrame: (frame) => frames.push(frame as Record<string, unknown>),
-        serverOrigin: `http://127.0.0.1:${state.server.port}`,
+    let tools: ToolSet = {};
+    let invocationResult: unknown;
+    const restore = setHarnessAgentFactoryForTesting((input) => {
+        tools = input.tools;
+        return {
+            createSession: (async () => ({
+                destroy: async () => undefined,
+                sessionId: 'mcp-session',
+                stop: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
+            })) as unknown as HarnessAgent['createSession'],
+            stream: (async () => {
+                const [visibleName] = Object.keys(input.tools);
+                invocationResult = await input.tools[visibleName ?? '']?.execute?.(
+                    { value: 'granted' },
+                    {
+                        abortSignal: new AbortController().signal,
+                        context: undefined,
+                        messages: [],
+                        toolCallId: 'tool-call',
+                    }
+                );
+                return {
+                    fullStream: (async function* () {
+                        yield {
+                            type: 'finish-step',
+                            usage: { inputTokens: { total: 1 }, outputTokens: { total: 1 } },
+                        };
+                    })(),
+                };
+            }) as unknown as HarnessAgent['stream'],
+        };
     });
-    expect(state.sends.at(-1)?.content).toContain('agent:granted');
-    expect(frames.at(-1)).toMatchObject({ status: 'completed' });
+    try {
+        await runAgentLaunch({
+            attachment,
+            command: base,
+            dataRoot,
+            sendFrame: () => undefined,
+            serverOrigin: `http://127.0.0.1:${state.server.port}`,
+        });
+        const [visibleName] = Object.keys(tools);
+        expect(visibleName).toBe('mcp__server__echo');
+        expect(invocationResult).toBe('server:granted');
+    } finally {
+        restore();
+    }
+});
 
-    mcpRuntime.replaceAgentGrants(base.agentId, []);
-    await runAgentLaunch({
-        attachment,
-        command: { ...base, runId: 'run_mcp_ungranted' },
+test('session and full reset preserve only the intended Agent-local state', async () => {
+    const agentRoot = join(dataRoot, 'servers', 'srv_reset', 'agents', 'agt_reset');
+    await Promise.all(
+        ['home', 'skills', 'workspace', 'runtime', '.agent-runs'].map((dir) =>
+            mkdir(join(agentRoot, dir), { recursive: true })
+        )
+    );
+    await Promise.all([
+        writeFile(join(agentRoot, 'session.json'), '{}'),
+        writeFile(join(agentRoot, '.agent-runs', 'old-run'), 'state'),
+        writeFile(join(agentRoot, 'workspace', 'kept.txt'), 'kept'),
+    ]);
+
+    expect(
+        parseResetCommand({ agentId: 'agt_reset', kind: 'session', type: 'agent-reset' })
+    ).toEqual({ agentId: 'agt_reset', kind: 'session', type: 'agent-reset' });
+    expect(parseResetCommand({ agentId: 'agt_reset', kind: 'unknown', type: 'agent-reset' })).toBe(
+        null
+    );
+
+    await resetAgentState({
+        agentId: 'agt_reset',
         dataRoot,
-        mcpRuntime,
-        sendFrame: (frame) => frames.push(frame as Record<string, unknown>),
-        serverOrigin: `http://127.0.0.1:${state.server.port}`,
+        kind: 'session',
+        serverId: 'srv_reset',
     });
-    expect(state.sends).toHaveLength(1);
-    expect(frames.at(-1)).toMatchObject({ status: 'failed' });
-    await mcpRuntime.close();
+    await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
+    await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
+    expect(await readFile(join(agentRoot, 'workspace', 'kept.txt'), 'utf8')).toBe('kept');
+
+    await resetAgentState({
+        agentId: 'agt_reset',
+        dataRoot,
+        kind: 'full',
+        serverId: 'srv_reset',
+    });
+    await expect(stat(agentRoot)).rejects.toThrow();
 });

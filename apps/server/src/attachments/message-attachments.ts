@@ -52,15 +52,56 @@ export async function requireMessageAttachments(
     return ordered as (typeof attachmentsTable.$inferSelect & { byteSize: number })[];
 }
 
+export async function requireAgentMessageAttachments(
+    db: AttachmentReader,
+    agentId: string,
+    input: { attachmentIds: string[]; chatId: string; serverId: string }
+) {
+    if (input.attachmentIds.length === 0) {
+        return [];
+    }
+    const rows = await db
+        .select()
+        .from(attachmentsTable)
+        .where(
+            and(
+                eq(attachmentsTable.serverId, input.serverId),
+                inArray(attachmentsTable.id, input.attachmentIds)
+            )
+        );
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    const ordered = input.attachmentIds.map((id) => byId.get(id));
+    if (
+        ordered.some(
+            (attachment) =>
+                !attachment ||
+                attachment.state !== 'ready' ||
+                attachment.messageId !== null ||
+                attachment.uploaderAgentId !== agentId ||
+                attachment.byteSize === null ||
+                (attachment.chatId !== null && attachment.chatId !== input.chatId)
+        )
+    ) {
+        throw new AttachmentAssociationError();
+    }
+    return ordered as (typeof attachmentsTable.$inferSelect & { byteSize: number })[];
+}
+
 export async function associateMessageAttachments(
     db: AttachmentWriter,
     attachments: (typeof attachmentsTable.$inferSelect)[],
-    messageId: string
+    messageId: string,
+    chatId?: string
 ) {
     for (const [position, attachment] of attachments.entries()) {
         const [associated] = await db
             .update(attachmentsTable)
-            .set({ messageId, messagePosition: position, updatedAt: new Date() })
+            .set({
+                chatId: attachment.chatId ?? chatId,
+                messageId,
+                messagePosition: position,
+                updatedAt: new Date(),
+            })
             .where(
                 and(
                     eq(attachmentsTable.serverId, attachment.serverId),

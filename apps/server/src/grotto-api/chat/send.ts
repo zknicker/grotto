@@ -20,11 +20,11 @@ export const sendChatMessageProcedure = chatProcedure
         // The pending work was enqueued atomically with the message commit; this
         // is only the best-effort wire nudge. If it fails, the retry sweep and
         // reconnect reconciliation still deliver the durably queued work.
-        if (result.wake) {
-            await ctx.agentDelivery
-                .dispatchAgent(result.wake.agentId, result.wake.serverId)
-                .catch(() => undefined);
-        }
+        await Promise.all(
+            result.wakes.map((wake) =>
+                ctx.agentDelivery.dispatchAgent(wake.agentId, wake.serverId).catch(() => undefined)
+            )
+        );
 
         return result.receipt;
     });

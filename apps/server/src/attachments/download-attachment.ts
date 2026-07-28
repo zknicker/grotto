@@ -27,6 +27,12 @@ export async function openHostedAttachmentDownload(
         throw new AttachmentUploadError('No attachment was found in that Server.', 'not_found');
     }
 
+    if (!attachment.chatId) {
+        throw new AttachmentUploadError(
+            'That attachment is not available for download.',
+            'forbidden'
+        );
+    }
     await requireChatAccess(db, member, {
         chatId: attachment.chatId,
         serverId: attachment.serverId,

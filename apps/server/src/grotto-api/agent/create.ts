@@ -9,7 +9,14 @@ export const createAgentProcedure = memberProcedure
     .output(hostedAgentCreatedSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            return await createHostedAgent(ctx.grottoDb, ctx.member, input);
+            const created = await createHostedAgent(ctx.grottoDb, ctx.member, input);
+            ctx.agentDelivery.configureAgent({
+                agentId: created.agent.id,
+                computerId: created.agent.computerId,
+                modelId: created.agent.desiredModelId,
+                runtimeId: created.agent.desiredRuntimeId,
+            });
+            return created;
         } catch (cause) {
             if (cause instanceof AgentConfigDeniedError) {
                 throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });

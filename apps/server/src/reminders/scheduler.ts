@@ -1,9 +1,11 @@
 import type { HostedDurableEvent } from '@tavern/api';
 import { and, asc, eq, lte, notInArray } from 'drizzle-orm';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
+    agentsTable,
     chatMessagesTable,
     chatsTable,
     reminderAgentAttentionTable,
@@ -25,14 +27,18 @@ import {
     requireAgentAnchor,
 } from './reminder-model.ts';
 
-export async function tickHostedReminders(db: GrottoDatabase, clock: ReminderClock) {
+export async function tickHostedReminders(
+    db: GrottoDatabase,
+    clock: ReminderClock,
+    delivery?: AgentDelivery
+) {
     const now = clock.now();
     const failedReminderIds: string[] = [];
     let fired = 0;
     while (true) {
         let result: ReminderFireAttempt | null;
         try {
-            result = await fireNextDueReminder(db, now, failedReminderIds);
+            result = await fireNextDueReminder(db, now, failedReminderIds, delivery);
         } catch (cause) {
             if (!(cause instanceof ReminderFireError)) {
                 throw cause;
@@ -52,13 +58,20 @@ export async function tickHostedReminders(db: GrottoDatabase, clock: ReminderClo
         for (const event of result.events) {
             emitDurableChatEvent({ audienceUserId: null, event });
         }
+        if (delivery && result.dispatch?.kind === 'agent') {
+            await delivery.dispatchAgent(result.dispatch.agentId, result.dispatch.serverId);
+        }
+        if (delivery && result.dispatch?.kind === 'script') {
+            delivery.dispatchReminderScript(result.dispatch.computerId, result.dispatch.command);
+        }
     }
 }
 
 async function fireNextDueReminder(
     db: GrottoDatabase,
     now: Date,
-    excludedReminderIds: string[]
+    excludedReminderIds: string[],
+    delivery?: AgentDelivery
 ): Promise<ReminderFireAttempt | null> {
     let selectedReminderId: string | null = null;
     try {
@@ -95,7 +108,7 @@ async function fireNextDueReminder(
                 )
                 .for('update', { skipLocked: true });
             if (!reminder) {
-                return { events: [], fired: false };
+                return { dispatch: null, events: [], fired: false };
             }
 
             try {
@@ -112,6 +125,7 @@ async function fireNextDueReminder(
                     cause instanceof ReminderAnchorAccessError
                 ) {
                     return {
+                        dispatch: null,
                         events: [await cancelUnauthorizedReminder(tx, reminder, now)],
                         fired: true,
                     };
@@ -159,8 +173,19 @@ async function fireNextDueReminder(
                     )
                 );
 
+            const [agent] = await tx
+                .select({ computerId: agentsTable.computerId })
+                .from(agentsTable)
+                .where(
+                    and(
+                        eq(agentsTable.serverId, reminder.serverId),
+                        eq(agentsTable.id, reminder.ownerAgentId)
+                    )
+                )
+                .limit(1);
             const fireId = createOpaqueId('rmf');
             const receiptId = createOpaqueId('msg');
+            const attentionId = createOpaqueId('rma');
             await tx.insert(chatMessagesTable).values({
                 chatId: reminder.anchorChatId,
                 content: `🔔 Reminder: ${reminder.title}`,
@@ -183,7 +208,7 @@ async function fireNextDueReminder(
                 agentId: reminder.ownerAgentId,
                 anchorChatId: reminder.anchorChatId,
                 fireId,
-                id: createOpaqueId('rma'),
+                id: attentionId,
                 kind: reminder.script === null ? 'reminder' : 'reminder_script',
                 queuedAt: now,
                 receiptMessageId: receiptId,
@@ -191,6 +216,17 @@ async function fireNextDueReminder(
                 script: reminder.script,
                 serverId: reminder.serverId,
             });
+            if (delivery && reminder.script === null) {
+                await delivery.enqueue(tx, {
+                    agentId: reminder.ownerAgentId,
+                    chatId: reminder.anchorChatId,
+                    content: `🔔 Reminder: ${reminder.title}`,
+                    dedupeKey: receiptId,
+                    sequence,
+                    serverId: reminder.serverId,
+                    source: 'reminder',
+                });
+            }
 
             const repeat = reminder.repeat ? parseReminderRepeat(reminder.repeat) : null;
             await tx
@@ -226,7 +262,31 @@ async function fireNextDueReminder(
                 sequence,
                 serverId: reminder.serverId,
             });
-            return { events: [messageEvent, reminderEvent], fired: true };
+            return {
+                dispatch:
+                    reminder.script === null
+                        ? {
+                              agentId: reminder.ownerAgentId,
+                              kind: 'agent' as const,
+                              serverId: reminder.serverId,
+                          }
+                        : agent?.computerId
+                          ? {
+                                command: {
+                                    agentId: reminder.ownerAgentId,
+                                    attentionId,
+                                    fireId,
+                                    reminderId: reminder.id,
+                                    script: reminder.script,
+                                    type: 'reminder-script' as const,
+                                },
+                                computerId: agent.computerId,
+                                kind: 'script' as const,
+                            }
+                          : null,
+                events: [messageEvent, reminderEvent],
+                fired: true,
+            };
         });
     } catch (cause) {
         if (selectedReminderId) {
@@ -237,6 +297,21 @@ async function fireNextDueReminder(
 }
 
 interface ReminderFireAttempt {
+    dispatch:
+        | { agentId: string; kind: 'agent'; serverId: string }
+        | {
+              command: {
+                  agentId: string;
+                  attentionId: string;
+                  fireId: string;
+                  reminderId: string;
+                  script: string;
+                  type: 'reminder-script';
+              };
+              computerId: string;
+              kind: 'script';
+          }
+        | null;
     events: HostedDurableEvent[];
     fired: boolean;
 }

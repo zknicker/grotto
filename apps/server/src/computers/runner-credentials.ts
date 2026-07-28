@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { HostedRunnerMintRequest, HostedRunnerRevokeRequest } from '@tavern/api';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -19,11 +19,13 @@ export interface ResolvedRunner {
     serverId: string;
 }
 
+const runnerLifetimeMs = 12 * 60 * 60 * 1000;
+
 /**
  * Mints one scoped runner credential for an Agent launch. The caller proves the
- * Computer credential; the credential is bound to a single Agent, run, and
- * collaboration chat, and every reference is checked to belong to that
- * Computer's Server so a Computer can never mint authority for another tenant.
+ * Computer credential; the credential is bound to one Agent and run on one
+ * Server. The launch chat is retained as context while Agent API routes resolve
+ * every product target and access under that same Agent/Server authority.
  */
 export async function mintRunnerCredential(db: GrottoDatabase, input: HostedRunnerMintRequest) {
     const computer = await requireComputer(db, input.credentialHash);
@@ -58,6 +60,7 @@ export async function mintRunnerCredential(db: GrottoDatabase, input: HostedRunn
         agentId: input.agentId,
         chatId: input.chatId,
         computerId: computer.id,
+        expiresAt: new Date(Date.now() + runnerLifetimeMs),
         id: runnerId,
         runId: input.runId,
         serverId: computer.serverId,
@@ -105,7 +108,7 @@ export async function revokeRunnerCredentialsForRun(
         );
 }
 
-/** Resolves a runner token to its bound Agent, chat, and Server. Fails closed. */
+/** Resolves a runner token to its bound Agent, launch chat, and Server. Fails closed. */
 export async function resolveRunnerCredential(
     db: GrottoDatabase,
     token: string
@@ -122,7 +125,8 @@ export async function resolveRunnerCredential(
         .where(
             and(
                 eq(agentRunnerCredentialsTable.tokenHash, hashComputerSecret(token)),
-                isNull(agentRunnerCredentialsTable.revokedAt)
+                isNull(agentRunnerCredentialsTable.revokedAt),
+                gt(agentRunnerCredentialsTable.expiresAt, new Date())
             )
         )
         .limit(1);

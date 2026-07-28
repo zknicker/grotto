@@ -11,17 +11,13 @@ export const hostedMcpGrantSchema = z
     .object({
         agentId: hostedIdSchema,
         connectionId: mcpConnectionIdSchema,
-        toolName: toolNameSchema,
     })
     .strict();
 
 export const hostedMcpConnectionSchema = z
     .object({
         accountLabel: z.string().trim().min(1).max(200).nullable(),
-        args: z.array(z.string()).max(50),
         auth: z.enum(['headers', 'none', 'oauth']),
-        command: z.string().nullable(),
-        computerId: hostedIdSchema,
         connected: z.boolean(),
         grants: z.array(hostedMcpGrantSchema),
         headerNames: z.array(z.string()).max(50),
@@ -31,37 +27,23 @@ export const hostedMcpConnectionSchema = z
         serverId: hostedIdSchema,
         status: z.enum(['online', 'pending']),
         tools: z.array(toolNameSchema),
-        transport: z.enum(['http', 'stdio']),
-        url: z.string().url().nullable(),
+        url: z.string().url(),
     })
     .strict();
 
 export const hostedMcpConnectionCreateSchema = z
     .object({
-        args: z.array(z.string().trim().min(1)).max(50).default([]),
         auth: z.enum(['headers', 'none', 'oauth']).default('none'),
-        command: z.string().trim().min(1).max(500).optional(),
-        computerId: hostedIdSchema,
-        env: z.record(z.string().trim().min(1), z.string().max(4000)).default({}),
         headers: z.record(z.string().trim().min(1), z.string().max(8000)).default({}),
         name: z.string().trim().min(1).max(100),
         oauthClientId: z.string().trim().min(1).max(1000).optional(),
         oauthClientSecret: z.string().max(4000).optional(),
         oauthScopes: z.array(z.string().trim().min(1).max(500)).max(100).default([]),
         serverId: hostedIdSchema,
-        url: z.string().url().max(2000).optional(),
+        url: z.string().url().max(2000),
     })
     .strict()
-    .refine((value) => Boolean(value.command) !== Boolean(value.url), {
-        message: 'Provide either a URL or a command.',
-    })
-    .refine((value) => value.command === undefined || value.auth !== 'oauth', {
-        message: 'OAuth is only available for HTTP connections.',
-    })
     .superRefine((value, context) => {
-        if (!value.url) {
-            return;
-        }
         const url = new URL(value.url);
         const loopback = ['127.0.0.1', '::1', 'localhost'].includes(url.hostname);
         if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) {
@@ -92,7 +74,6 @@ export const hostedMcpConnectionCreateSchema = z
 
 export const hostedMcpPresetAccountCreateSchema = z
     .object({
-        computerId: hostedIdSchema,
         name: z.string().trim().min(1).max(100),
         preset: hostedMcpPresetSchema,
         serverId: hostedIdSchema,

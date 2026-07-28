@@ -145,8 +145,14 @@ const schemaStatements = [
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         handle text NOT NULL,
         display_name text NOT NULL,
+        description text
+            CONSTRAINT agents_description_length CHECK (
+                description IS NULL OR char_length(description) BETWEEN 1 AND 500
+            ),
         home_timezone text NOT NULL,
         role text NOT NULL CONSTRAINT agents_role CHECK (role IN ('admin', 'member')),
+        session_generation integer NOT NULL DEFAULT 1
+            CONSTRAINT agents_positive_session_generation CHECK (session_generation > 0),
         computer_id text,
         desired_runtime_id text,
         desired_model_id text,
@@ -172,38 +178,33 @@ const schemaStatements = [
             CONSTRAINT mcp_connections_id_shape CHECK (id ~ '^mcp_[A-Za-z0-9_-]{16}$'),
         account_label text,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
-        computer_id text NOT NULL,
         name text NOT NULL,
-        transport text NOT NULL
-            CONSTRAINT mcp_connections_transport CHECK (transport IN ('http', 'stdio')),
         auth text NOT NULL
             CONSTRAINT mcp_connections_auth CHECK (auth IN ('none', 'headers', 'oauth')),
-        url text,
-        command text,
-        args text[] NOT NULL,
+        url text NOT NULL,
         connected boolean NOT NULL,
         header_names text[] NOT NULL,
         preset text CONSTRAINT mcp_connections_preset
             CHECK (preset IS NULL OR preset IN ('google-calendar', 'merchbase')),
         tools text[] NOT NULL,
-        created_at timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT mcp_connections_computer_fk
-            FOREIGN KEY (server_id, computer_id)
-            REFERENCES computers (server_id, id),
-        CONSTRAINT mcp_connections_endpoint CHECK ((url IS NULL) <> (command IS NULL))
+        created_at timestamptz NOT NULL DEFAULT now()
     );`,
     'CREATE UNIQUE INDEX mcp_connections_server_id_key ON mcp_connections (server_id, id);',
-    `CREATE TABLE agent_mcp_tool_grants (
+    `CREATE TABLE mcp_secrets (
+        connection_id text PRIMARY KEY REFERENCES mcp_connections (id) ON DELETE CASCADE,
+        secret jsonb NOT NULL,
+        updated_at timestamptz NOT NULL DEFAULT now()
+    );`,
+    `CREATE TABLE agent_mcp_connection_grants (
         server_id text NOT NULL,
         agent_id text NOT NULL,
         connection_id text NOT NULL,
-        tool_name text NOT NULL,
         created_at timestamptz NOT NULL DEFAULT now(),
-        PRIMARY KEY (server_id, agent_id, connection_id, tool_name),
-        CONSTRAINT agent_mcp_tool_grants_agent_fk
+        PRIMARY KEY (server_id, agent_id, connection_id),
+        CONSTRAINT agent_mcp_connection_grants_agent_fk
             FOREIGN KEY (server_id, agent_id)
             REFERENCES agents (server_id, id) ON DELETE CASCADE,
-        CONSTRAINT agent_mcp_tool_grants_connection_fk
+        CONSTRAINT agent_mcp_connection_grants_connection_fk
             FOREIGN KEY (server_id, connection_id)
             REFERENCES mcp_connections (server_id, id) ON DELETE CASCADE
     );`,
@@ -396,6 +397,7 @@ const schemaStatements = [
         token_hash text NOT NULL UNIQUE
             CONSTRAINT agent_runner_credentials_token_hash_shape CHECK (token_hash ~ '^[a-f0-9]{64}$'),
         created_at timestamptz NOT NULL DEFAULT now(),
+        expires_at timestamptz NOT NULL DEFAULT (now() + interval '12 hours'),
         revoked_at timestamptz,
         CONSTRAINT agent_runner_credentials_computer_fk
             FOREIGN KEY (server_id, computer_id)
@@ -507,12 +509,56 @@ const schemaStatements = [
         ON agent_pending_work (server_id, agent_id, dedupe_key);`,
     `CREATE INDEX agent_pending_work_queue_idx
         ON agent_pending_work (server_id, agent_id, created_at);`,
+    `CREATE TABLE agent_inbox_cursors (
+        server_id text NOT NULL,
+        agent_id text NOT NULL,
+        session_generation integer NOT NULL,
+        chat_id text NOT NULL,
+        delivered_up_to_sequence integer NOT NULL DEFAULT 0,
+        served_up_to_sequence integer NOT NULL DEFAULT 0,
+        seen_up_to_sequence integer NOT NULL DEFAULT 0,
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (server_id, agent_id, session_generation, chat_id),
+        CONSTRAINT agent_inbox_cursors_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_inbox_cursors_chat_fk
+            FOREIGN KEY (server_id, chat_id)
+            REFERENCES chats (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_inbox_cursors_nonnegative CHECK (
+            delivered_up_to_sequence >= 0
+            AND served_up_to_sequence >= 0
+            AND seen_up_to_sequence >= 0
+            AND session_generation > 0
+        )
+    );`,
+    `CREATE TABLE agent_message_drafts (
+        server_id text NOT NULL,
+        agent_id text NOT NULL,
+        session_generation integer NOT NULL,
+        chat_id text NOT NULL,
+        content text NOT NULL,
+        attachment_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+        rehold_count integer NOT NULL,
+        saved_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (server_id, agent_id, session_generation, chat_id),
+        CONSTRAINT agent_message_drafts_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_message_drafts_chat_fk
+            FOREIGN KEY (server_id, chat_id)
+            REFERENCES chats (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_message_drafts_shape CHECK (
+            rehold_count > 0 AND session_generation > 0
+        )
+    );`,
     `CREATE TABLE attachments (
         id text PRIMARY KEY NOT NULL
             CONSTRAINT attachments_id_shape CHECK (id ~ '^att_[A-Za-z0-9_-]{16}$'),
         server_id text NOT NULL,
-        chat_id text NOT NULL,
-        uploader_user_id text NOT NULL,
+        chat_id text,
+        uploader_user_id text,
+        uploader_agent_id text,
         upload_nonce text NOT NULL,
         filename text NOT NULL,
         media_type text NOT NULL,
@@ -540,24 +586,50 @@ const schemaStatements = [
         CONSTRAINT attachments_uploader_membership_fk
             FOREIGN KEY (server_id, uploader_user_id)
             REFERENCES server_memberships (server_id, user_id),
+        CONSTRAINT attachments_uploader_agent_fk
+            FOREIGN KEY (server_id, uploader_agent_id)
+            REFERENCES agents (server_id, id),
         CONSTRAINT attachments_message_fk
             FOREIGN KEY (server_id, chat_id, message_id)
             REFERENCES chat_messages (server_id, chat_id, id),
         CONSTRAINT attachments_message_ready CHECK (
             message_id IS NULL OR (
-                state = 'ready' AND message_position IS NOT NULL AND message_position >= 0
+                chat_id IS NOT NULL AND state = 'ready'
+                AND message_position IS NOT NULL AND message_position >= 0
             )
+        ),
+        CONSTRAINT attachments_uploader_shape CHECK (
+            num_nonnulls(uploader_user_id, uploader_agent_id) = 1
         ),
         CONSTRAINT attachments_failure_shape CHECK (
             (state = 'failed') = (failure_code IS NOT NULL)
         )
     );`,
     'CREATE UNIQUE INDEX attachments_server_id_key ON attachments (server_id, id);',
-    `CREATE UNIQUE INDEX attachments_uploader_nonce_key
-        ON attachments (server_id, uploader_user_id, upload_nonce);`,
+    `CREATE UNIQUE INDEX attachments_user_nonce_key
+        ON attachments (server_id, uploader_user_id, upload_nonce)
+        WHERE uploader_user_id IS NOT NULL;`,
+    `CREATE UNIQUE INDEX attachments_agent_nonce_key
+        ON attachments (server_id, uploader_agent_id, upload_nonce)
+        WHERE uploader_agent_id IS NOT NULL;`,
     `CREATE UNIQUE INDEX attachments_message_position_key
         ON attachments (server_id, message_id, message_position)
         WHERE message_id IS NOT NULL;`,
+    `CREATE TABLE message_reactions (
+        server_id text NOT NULL,
+        message_id text NOT NULL,
+        actor_agent_id text NOT NULL,
+        emoji text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT message_reactions_message_fk
+            FOREIGN KEY (server_id, message_id)
+            REFERENCES chat_messages (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT message_reactions_actor_agent_fk
+            FOREIGN KEY (server_id, actor_agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE
+    );`,
+    `CREATE UNIQUE INDEX message_reactions_actor_key
+        ON message_reactions (server_id, message_id, actor_agent_id, emoji);`,
     `CREATE TABLE reminders (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
@@ -620,7 +692,12 @@ const schemaStatements = [
         reminder_id text NOT NULL,
         scheduled_for timestamptz NOT NULL,
         fired_at timestamptz NOT NULL,
+        script_exit_code integer,
+        script_output text,
+        script_timed_out boolean NOT NULL DEFAULT false,
         receipt_message_id text NOT NULL,
+        CONSTRAINT reminder_fires_script_output_size
+            CHECK (script_output IS NULL OR octet_length(script_output) <= 65536),
         CONSTRAINT reminder_fires_reminder_fk
             FOREIGN KEY (server_id, reminder_id)
             REFERENCES reminders (server_id, id) ON DELETE CASCADE,
@@ -686,6 +763,36 @@ const schemaStatements = [
         CONSTRAINT thread_follows_membership_fk
             FOREIGN KEY (server_id, user_id)
             REFERENCES server_memberships (server_id, user_id) ON DELETE CASCADE
+    );`,
+    `CREATE TABLE agent_channel_mutes (
+        server_id text NOT NULL,
+        agent_id text NOT NULL,
+        chat_id text NOT NULL,
+        chat_kind text NOT NULL DEFAULT 'channel'
+            CONSTRAINT agent_channel_mutes_kind CHECK (chat_kind = 'channel'),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (server_id, agent_id, chat_id),
+        CONSTRAINT agent_channel_mutes_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_channel_mutes_chat_fk
+            FOREIGN KEY (server_id, chat_id, chat_kind)
+            REFERENCES chats (server_id, id, kind) ON DELETE CASCADE
+    );`,
+    `CREATE TABLE agent_thread_follows (
+        server_id text NOT NULL,
+        agent_id text NOT NULL,
+        thread_chat_id text NOT NULL,
+        thread_chat_kind text NOT NULL DEFAULT 'thread'
+            CONSTRAINT agent_thread_follows_kind CHECK (thread_chat_kind = 'thread'),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (server_id, agent_id, thread_chat_id),
+        CONSTRAINT agent_thread_follows_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_thread_follows_thread_fk
+            FOREIGN KEY (server_id, thread_chat_id, thread_chat_kind)
+            REFERENCES chats (server_id, id, kind) ON DELETE CASCADE
     );`,
     `CREATE TABLE chat_reads (
         server_id text NOT NULL,

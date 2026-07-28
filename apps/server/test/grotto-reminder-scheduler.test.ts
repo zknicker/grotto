@@ -2,7 +2,9 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { HostedAgentCommand } from '@tavern/api';
 import { eq, sql } from 'drizzle-orm';
+import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
@@ -11,9 +13,13 @@ import {
     channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
+    computersTable,
+    reminderAgentAttentionTable,
     reminderFiresTable,
     remindersTable,
+    serverMembershipsTable,
     serversTable,
+    usersTable,
 } from '../src/postgres/schema.ts';
 import { createHostedReminderScheduler } from '../src/reminders/reminder-scheduler.ts';
 import { tickHostedReminders } from '../src/reminders/scheduler.ts';
@@ -202,7 +208,68 @@ describe('hosted reminder scheduler lifecycle', () => {
         expect(fires).toHaveLength(1);
         expect(fires[0]?.reminderId).toBe('rem_scheduler_healthy');
     });
+
+    test('dispatches script fires to Computer and wakes the Agent only for output', async () => {
+        cluster = await startPostgresCluster();
+        await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
+        connection = await connectGrottoDatabase(cluster.databaseUrl);
+        await seedOverdueReminder(connection);
+        await configureHostedComputer(connection);
+        await connection.db
+            .update(remindersTable)
+            .set({ repeat: null, script: 'printf changed' })
+            .where(eq(remindersTable.id, 'rem_scheduler'));
+
+        const transport = new RecordingTransport();
+        const delivery = new AgentDelivery(connection.db, transport);
+        await tickHostedReminders(connection.db, { now: () => now }, delivery);
+
+        const command = transport.frames.find((frame) => frame.type === 'reminder-script');
+        expect(command).toMatchObject({
+            agentId: 'agt_scheduler',
+            script: 'printf changed',
+            type: 'reminder-script',
+        });
+        if (!command || command.type !== 'reminder-script') {
+            throw new Error('Reminder script did not dispatch.');
+        }
+        expect(transport.frames.some((frame) => frame.type === 'start')).toBe(false);
+
+        await delivery.onReminderScriptResult('cmp_ssssssssssssssss', {
+            agentId: command.agentId,
+            attentionId: command.attentionId,
+            exitCode: 0,
+            fireId: command.fireId,
+            output: 'changed',
+            timedOut: false,
+            type: 'reminder-script-result',
+        });
+        expect(transport.frames.some((frame) => frame.type === 'start')).toBe(true);
+        expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(0);
+        const [fire] = await connection.db.select().from(reminderFiresTable);
+        expect(fire).toMatchObject({
+            scriptExitCode: 0,
+            scriptOutput: 'changed',
+            scriptTimedOut: false,
+        });
+    });
 });
+
+class RecordingTransport implements DeliveryTransport {
+    readonly frames: HostedAgentCommand[] = [];
+
+    isOnline(computerId: string): boolean {
+        return computerId === 'cmp_ssssssssssssssss';
+    }
+
+    send(computerId: string, frame: HostedAgentCommand): boolean {
+        if (!this.isOnline(computerId)) {
+            return false;
+        }
+        this.frames.push(frame);
+        return true;
+    }
+}
 
 const inertTimers = {
     clearInterval: (_timer: ReturnType<typeof setInterval>) => undefined,
@@ -265,4 +332,30 @@ async function seedOverdueReminder(grotto: GrottoConnection) {
         title: 'Recover me',
         updatedAt: new Date('2026-07-26T12:00:00.000Z'),
     });
+}
+
+async function configureHostedComputer(grotto: GrottoConnection) {
+    await grotto.db
+        .insert(usersTable)
+        .values({ clerkUserId: 'clerk_scheduler', id: 'usr_scheduler' });
+    await grotto.db.insert(serverMembershipsTable).values({
+        id: 'mem_scheduler',
+        role: 'owner',
+        serverId: 'srv_scheduler',
+        userId: 'usr_scheduler',
+    });
+    await grotto.db.insert(computersTable).values({
+        attachedByUserId: 'usr_scheduler',
+        credentialHash: 'a'.repeat(64),
+        id: 'cmp_ssssssssssssssss',
+        serverId: 'srv_scheduler',
+    });
+    await grotto.db
+        .update(agentsTable)
+        .set({
+            computerId: 'cmp_ssssssssssssssss',
+            desiredModelId: 'fake-model',
+            desiredRuntimeId: 'fake',
+        })
+        .where(eq(agentsTable.id, 'agt_scheduler'));
 }

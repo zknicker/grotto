@@ -9,6 +9,7 @@ import {
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { agentsTable } from './agents.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
@@ -20,7 +21,7 @@ export const attachmentsTable = pgTable(
     {
         attemptId: text('attempt_id'),
         byteSize: bigint('byte_size', { mode: 'number' }),
-        chatId: text('chat_id').notNull(),
+        chatId: text('chat_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         failedAt: timestamp('failed_at', { withTimezone: true }),
         failureCode: text('failure_code'),
@@ -36,15 +37,17 @@ export const attachmentsTable = pgTable(
         state: text('state').notNull().$type<AttachmentState>(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
         uploadNonce: text('upload_nonce').notNull(),
-        uploaderUserId: text('uploader_user_id').notNull(),
+        uploaderAgentId: text('uploader_agent_id'),
+        uploaderUserId: text('uploader_user_id'),
     },
     (table) => [
         uniqueIndex('attachments_server_id_key').on(table.serverId, table.id),
-        uniqueIndex('attachments_uploader_nonce_key').on(
-            table.serverId,
-            table.uploaderUserId,
-            table.uploadNonce
-        ),
+        uniqueIndex('attachments_user_nonce_key')
+            .on(table.serverId, table.uploaderUserId, table.uploadNonce)
+            .where(sql`${table.uploaderUserId} is not null`),
+        uniqueIndex('attachments_agent_nonce_key')
+            .on(table.serverId, table.uploaderAgentId, table.uploadNonce)
+            .where(sql`${table.uploaderAgentId} is not null`),
         uniqueIndex('attachments_message_position_key')
             .on(table.serverId, table.messageId, table.messagePosition)
             .where(sql`${table.messageId} is not null`),
@@ -57,6 +60,11 @@ export const attachmentsTable = pgTable(
             columns: [table.serverId, table.uploaderUserId],
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
             name: 'attachments_uploader_membership_fk',
+        }),
+        foreignKey({
+            columns: [table.serverId, table.uploaderAgentId],
+            foreignColumns: [agentsTable.serverId, agentsTable.id],
+            name: 'attachments_uploader_agent_fk',
         }),
         foreignKey({
             columns: [table.serverId, table.chatId, table.messageId],
@@ -83,9 +91,14 @@ export const attachmentsTable = pgTable(
         check(
             'attachments_message_ready',
             sql`${table.messageId} is null or (
-                ${table.state} = 'ready' and ${table.messagePosition} is not null
+                ${table.chatId} is not null and ${table.state} = 'ready'
+                and ${table.messagePosition} is not null
                 and ${table.messagePosition} >= 0
             )`
+        ),
+        check(
+            'attachments_uploader_shape',
+            sql`num_nonnulls(${table.uploaderUserId}, ${table.uploaderAgentId}) = 1`
         ),
         check(
             'attachments_failure_shape',

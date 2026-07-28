@@ -6,6 +6,7 @@ import EventEmitter, { on } from 'node:events';
  */
 export interface ServerUpdatedEvent {
     emittedAt: string;
+    scope: 'computer' | 'server';
     serverId: string;
 }
 
@@ -14,9 +15,13 @@ const emitter = new EventEmitter();
 
 emitter.setMaxListeners(0);
 
-export function emitServerUpdated(input: { serverId: string }) {
+export function emitServerUpdated(input: {
+    scope?: ServerUpdatedEvent['scope'];
+    serverId: string;
+}) {
     emitter.emit(eventName, {
         emittedAt: new Date().toISOString(),
+        scope: input.scope ?? 'server',
         serverId: input.serverId,
     } satisfies ServerUpdatedEvent);
 }

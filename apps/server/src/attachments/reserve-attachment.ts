@@ -38,13 +38,7 @@ export async function reserveHostedAttachment(
             uploadNonce: input.nonce,
             uploaderUserId: member.id,
         })
-        .onConflictDoNothing({
-            target: [
-                attachmentsTable.serverId,
-                attachmentsTable.uploaderUserId,
-                attachmentsTable.uploadNonce,
-            ],
-        })
+        .onConflictDoNothing()
         .returning({ id: attachmentsTable.id, state: attachmentsTable.state });
 
     if (created) {

@@ -1,13 +1,14 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
+import { importHostedAgentSkill } from '../src/hosted-agents/import-agent-skill.ts';
 import { recordAgentTurnSummary } from '../src/hosted-agents/record-agent-turn.ts';
-import { createHostedMcpConnection } from '../src/hosted-mcp/service.ts';
+import { HostedMcpRuntime } from '../src/hosted-mcp/runtime.ts';
 import {
-    listHostedMcpConnections,
-    recordHostedMcpInventory,
-    setHostedMcpGrant,
-} from '../src/hosted-mcp/state.ts';
+    createHostedMcpConnection,
+    disconnectHostedMcpConnection,
+} from '../src/hosted-mcp/service.ts';
+import { listHostedMcpConnections, setHostedMcpGrant } from '../src/hosted-mcp/state.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
@@ -67,7 +68,11 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
         target: 'dm:@operator',
     });
     expect(sent.status).toBe(200);
-    expect(sent.body.receipt).toMatchObject({ chatId: dmChatId, idempotent: false });
+    expect(sent.body.message).toMatchObject({
+        chat_id: dmChatId,
+        content: 'Hello from the Agent.',
+        sender: { handle: 'cove', type: 'agent' },
+    });
 
     const rows = (await harness.sql`
         select author_agent_id, author_user_id, content from chat_messages
@@ -86,10 +91,7 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
         nonce: 'agent_nonce_1',
         target: 'dm:@operator',
     });
-    expect(again.body.receipt).toMatchObject({
-        idempotent: true,
-        messageId: sent.body.receipt.messageId,
-    });
+    expect(again.body.message?.id).toBe(sent.body.message?.id);
     const dupCount = (await harness.sql`
         select count(*)::int as n from chat_messages
         where server_id = ${serverId} and chat_id = ${dmChatId} and nonce = 'agent_nonce_1'
@@ -101,6 +103,632 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     const page = await owner.trpc.chat.messages.query({ chatId: dmChatId, serverId });
     const agentMessage = page.messages.find((message) => message.nonce === 'agent_nonce_1');
     expect(agentMessage?.author).toEqual({ agentId, kind: 'agent' });
+});
+
+test('an Agent send resolves its target instead of writing into the launch chat', async () => {
+    const channelId = 'cht_targetchannel01';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values (${channelId}, ${serverId}, 'channel', 'dispatch')
+    `;
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channelId}, ${agentId})
+    `;
+    await harness.sql`
+        insert into channel_participants (server_id, chat_id, user_id)
+        values (${serverId}, ${channelId}, ${ownerUserId})
+    `;
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_target_1' });
+
+    const sent = await agentSend(minted.runnerToken, {
+        content: 'This belongs in dispatch.',
+        nonce: 'agent_target_nonce_1',
+        target: '#dispatch',
+    });
+    expect(sent.status).toBe(200);
+    expect(sent.body.message).toMatchObject({ chat_id: channelId });
+
+    const rows = (await harness.sql`
+        select chat_id from chat_messages
+        where server_id = ${serverId} and nonce = 'agent_target_nonce_1'
+    `) as { chat_id: string }[];
+    expect(rows).toEqual([{ chat_id: channelId }]);
+
+    const denied = await agentSend(minted.runnerToken, {
+        content: 'This must not land.',
+        nonce: 'agent_target_nonce_denied',
+        target: '#missing',
+    });
+    expect(denied.status).toBe(404);
+    expect(denied.body.code).toBe('INVALID_TARGET');
+});
+
+test('an Agent resolves an exact DM thread target and fails closed on wrong peers or anchors', async () => {
+    const created = await owner.trpc.task.create.mutate({
+        chatId: dmChatId,
+        content: 'DM thread target fixture',
+        nonce: 'dm_thread_target_task',
+        serverId,
+    });
+    const shortAnchor = created.task.messageId.slice(4, 12);
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_dm_thread_target_1' });
+    const event = subscribeToChatEvents(owner, serverId);
+    await event.started;
+
+    const sent = await agentSend(minted.runnerToken, {
+        content: 'This belongs in the DM task thread.',
+        nonce: 'agent_dm_thread_target_1',
+        target: `dm:@operator:${shortAnchor}`,
+    });
+    expect(sent).toMatchObject({
+        body: { message: { chat_id: created.task.threadChatId } },
+        status: 200,
+    });
+    await expect(event.nextEvent).resolves.toMatchObject({
+        chatId: created.task.threadChatId,
+        parentChatId: dmChatId,
+        type: 'message.created',
+    });
+
+    for (const target of [
+        `dm:@someone-else:${shortAnchor}`,
+        'dm:@operator:deadbeef',
+        `dm:@operator:${shortAnchor}:extra`,
+    ]) {
+        const denied = await agentSend(minted.runnerToken, {
+            content: 'This must not route.',
+            nonce: `denied_${target}`,
+            target,
+        });
+        expect(denied).toMatchObject({
+            body: { code: 'INVALID_TARGET' },
+            status: 404,
+        });
+    }
+});
+
+test('an ambiguous Channel Thread prefix fails closed', async () => {
+    const channelId = 'cht_ambiguous_threads';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name, last_message_sequence)
+        values (${channelId}, ${serverId}, 'channel', 'ambiguous-threads', 2)
+    `;
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channelId}, ${agentId})
+    `;
+    await harness.sql`
+        insert into chat_messages
+            (id, server_id, chat_id, sequence, nonce, author_user_id, content)
+        values
+            ('msg_deadbeef_anchor_one', ${serverId}, ${channelId}, 1, 'ambiguous_anchor_one', ${ownerUserId}, 'First anchor'),
+            ('msg_deadbeef_anchor_two', ${serverId}, ${channelId}, 2, 'ambiguous_anchor_two', ${ownerUserId}, 'Second anchor')
+    `;
+    await harness.sql`
+        insert into chats
+            (id, server_id, kind, parent_chat_id, parent_chat_kind, anchor_message_id)
+        values
+            ('cht_ambiguous_thread_one', ${serverId}, 'thread', ${channelId}, 'channel', 'msg_deadbeef_anchor_one'),
+            ('cht_ambiguous_thread_two', ${serverId}, 'thread', ${channelId}, 'channel', 'msg_deadbeef_anchor_two')
+    `;
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_ambiguous_thread_1' });
+
+    const denied = await agentSend(minted.runnerToken, {
+        content: 'This must not pick an arbitrary Thread.',
+        nonce: 'agent_ambiguous_thread_1',
+        target: '#ambiguous-threads:deadbeef',
+    });
+    expect(denied).toMatchObject({
+        body: { code: 'INVALID_TARGET' },
+        status: 404,
+    });
+});
+
+test('a reminder preserves its canonical Channel Thread target', async () => {
+    const channelId = 'cht_reminder_threads';
+    const threadId = 'cht_reminder_thread';
+    const anchorMessageId = 'msg_cafebabe_anchor';
+    const reminderMessageId = 'msg_reminder_thread_message';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name, last_message_sequence)
+        values (${channelId}, ${serverId}, 'channel', 'reminder-threads', 1)
+    `;
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channelId}, ${agentId})
+    `;
+    await harness.sql`
+        insert into chat_messages
+            (id, server_id, chat_id, sequence, nonce, author_user_id, content)
+        values
+            (${anchorMessageId}, ${serverId}, ${channelId}, 1, 'reminder_thread_anchor', ${ownerUserId}, 'Reminder Thread anchor')
+    `;
+    await harness.sql`
+        insert into chats
+            (id, server_id, kind, parent_chat_id, parent_chat_kind, anchor_message_id, last_message_sequence)
+        values
+            (${threadId}, ${serverId}, 'thread', ${channelId}, 'channel', ${anchorMessageId}, 1)
+    `;
+    await harness.sql`
+        insert into chat_messages
+            (id, server_id, chat_id, sequence, nonce, author_agent_id, content)
+        values
+            (${reminderMessageId}, ${serverId}, ${threadId}, 1, 'reminder_thread_message', ${agentId}, 'Remember this Thread reply')
+    `;
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_thread_reminder_1' });
+
+    const scheduled = await agentPost(minted.runnerToken, '/api/agent/reminders/schedule', {
+        delaySeconds: 3600,
+        messageId: reminderMessageId,
+        title: 'Follow up inside the Channel Thread',
+    });
+    expect(scheduled).toMatchObject({
+        body: {
+            reminder: {
+                anchorTarget: '#reminder-threads:cafebabe',
+                title: 'Follow up inside the Channel Thread',
+            },
+        },
+        status: 200,
+    });
+    const listed = await agentGet(minted.runnerToken, '/api/agent/reminders', {
+        status: 'scheduled',
+    });
+    expect(listed.body.reminders).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                anchorTarget: '#reminder-threads:cafebabe',
+                id: scheduled.body.reminder?.id,
+            }),
+        ])
+    );
+});
+
+test('a channel send holds a durable draft until the Agent catches up', async () => {
+    const channelId = 'cht_targetchannel01';
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_hold_1' });
+    await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: 'New peer context before the reply.',
+        nonce: 'human_hold_1',
+        serverId,
+    });
+
+    const held = await agentSend(minted.runnerToken, {
+        content: 'This exact reply should be held.',
+        nonce: 'agent_hold_nonce_1',
+        target: '#dispatch',
+    });
+    expect(held.status).toBe(200);
+    expect(held.body).toMatchObject({
+        continueAnywaySuggested: false,
+        newMessageCount: 1,
+        reholdCount: 1,
+        state: 'held',
+    });
+    expect(held.body.shownMessages?.[0]).toMatchObject({
+        content: 'New peer context before the reply.',
+    });
+
+    await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: 'One more update before release.',
+        nonce: 'human_hold_2',
+        serverId,
+    });
+    const reheld = await agentSend(minted.runnerToken, {
+        nonce: 'agent_hold_nonce_2',
+        sendDraft: true,
+        target: '#dispatch',
+    });
+    expect(reheld.body).toMatchObject({
+        continueAnywaySuggested: true,
+        reholdCount: 2,
+        state: 'held',
+    });
+
+    const released = await agentSend(minted.runnerToken, {
+        continueAnyway: true,
+        nonce: 'agent_hold_nonce_3',
+        sendDraft: true,
+        target: '#dispatch',
+    });
+    expect(released.body).toMatchObject({
+        message: { content: 'This exact reply should be held.' },
+        state: 'sent',
+    });
+});
+
+test('send hold counts exact Agent handle mentions, never opaque ids or handle prefixes', async () => {
+    const channelId = 'cht_targetchannel01';
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_hold_mentions_1' });
+    for (const [index, content] of [
+        `Opaque ids are not mentions: @${agentId}`,
+        'Handle prefixes are not mentions: @cove-ish',
+        'Exact handles are mentions: @Cove, please inspect this.',
+    ].entries()) {
+        await owner.trpc.chat.send.mutate({
+            chatId: channelId,
+            content,
+            nonce: `human_hold_mention_${index}`,
+            serverId,
+        });
+    }
+
+    const held = await agentSend(minted.runnerToken, {
+        content: 'This response should pause for context.',
+        nonce: 'agent_hold_mentions_1',
+        target: '#dispatch',
+    });
+    expect(held).toMatchObject({
+        body: { formalMentionCount: 1, state: 'held' },
+        status: 200,
+    });
+});
+
+test('the ported Agent CLI read surface can read, search, and resolve visible messages', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_read_1' });
+    const sent = await agentSend(minted.runnerToken, {
+        content: 'Distinctive telescope release note.',
+        nonce: 'agent_read_nonce_1',
+        target: 'dm:@operator',
+    });
+    expect(sent.status).toBe(200);
+    const messageId = sent.body.message?.id;
+    expect(messageId).toBeTruthy();
+
+    const history = await agentGet(minted.runnerToken, '/api/agent/history', {
+        limit: '10',
+        target: 'dm:@operator',
+    });
+    expect(history.status).toBe(200);
+    expect(history.body.messages).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                chat_id: dmChatId,
+                content: 'Distinctive telescope release note.',
+            }),
+        ])
+    );
+
+    const search = await agentGet(minted.runnerToken, '/api/agent/messages/search', {
+        q: 'telescope',
+        sort: 'recent',
+    });
+    expect(search.status).toBe(200);
+    expect(search.body.messages).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                id: messageId,
+                target: 'dm:@operator',
+            }),
+        ])
+    );
+
+    const resolved = await agentGet(
+        minted.runnerToken,
+        `/api/agent/messages/${messageId?.slice(4, 12)}`,
+        {}
+    );
+    expect(resolved.status).toBe(200);
+    expect(resolved.body.message).toMatchObject({ id: messageId });
+});
+
+test('an Agent uploads, sends, reads, and downloads its own attachment', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_attachment_1' });
+    const upload = await agentPost(minted.runnerToken, '/api/agent/attachments/upload', {
+        dataBase64: Buffer.from('agent attachment bytes').toString('base64'),
+        filename: 'notes.txt',
+        mediaType: 'text/plain',
+    });
+    expect(upload.status).toBe(200);
+    expect(upload.body.attachment).toMatchObject({
+        byteSize: 22,
+        filename: 'notes.txt',
+        mediaType: 'text/plain',
+    });
+    const attachmentId = String(upload.body.attachment?.id);
+
+    const sent = await agentSend(minted.runnerToken, {
+        attachmentIds: [attachmentId],
+        content: 'The notes are attached.',
+        nonce: 'agent_attachment_nonce_1',
+        target: 'dm:@operator',
+    });
+    expect(sent.status).toBe(200);
+    expect(sent.body.message?.attachments).toEqual([
+        expect.objectContaining({ filename: 'notes.txt', id: attachmentId }),
+    ]);
+
+    const history = await agentGet(minted.runnerToken, '/api/agent/history', {
+        limit: '10',
+        target: 'dm:@operator',
+    });
+    expect(
+        history.body.messages?.find((message) => message.id === sent.body.message?.id)?.attachments
+    ).toEqual([expect.objectContaining({ id: attachmentId })]);
+
+    const viewed = await agentGet(minted.runnerToken, `/api/agent/attachments/${attachmentId}`, {});
+    expect(viewed.body.attachment).toMatchObject({
+        dataBase64: Buffer.from('agent attachment bytes').toString('base64'),
+        id: attachmentId,
+    });
+});
+
+test('an Agent adds and removes its own canonical message reaction', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_reaction_1' });
+    const sent = await agentSend(minted.runnerToken, {
+        content: 'React to this canonical message.',
+        nonce: 'agent_reaction_nonce_1',
+        target: 'dm:@operator',
+    });
+    const messageId = String(sent.body.message?.id);
+
+    const added = await agentPost(minted.runnerToken, '/api/agent/messages/react', {
+        emoji: '👍',
+        messageId: messageId.slice(4, 12),
+    });
+    expect(added.status).toBe(200);
+    expect(added.body.message?.reactions).toEqual([
+        { actors: [{ handle: 'cove', id: agentId }], emoji: '👍' },
+    ]);
+
+    const removed = await agentPost(minted.runnerToken, '/api/agent/messages/react', {
+        emoji: '👍',
+        messageId,
+        remove: true,
+    });
+    expect(removed.status).toBe(200);
+    expect(removed.body.message?.reactions).toEqual([]);
+});
+
+test('the ported Agent directory can inspect and change channel membership', async () => {
+    const channelId = 'cht_directorychannel';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values (${channelId}, ${serverId}, 'channel', 'research')
+    `;
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_directory_1' });
+
+    const before = await agentGet(minted.runnerToken, '/api/agent/channels/info', {
+        target: '#research',
+    });
+    expect(before.body).toMatchObject({ handle: '#research', joined: false });
+
+    const joined = await agentPost(minted.runnerToken, '/api/agent/channels/join', {
+        target: '#research',
+    });
+    expect(joined).toMatchObject({
+        body: { joined: true, target: '#research' },
+        status: 200,
+    });
+
+    const directory = await agentGet(minted.runnerToken, '/api/agent/server', {
+        channels: 'true',
+        joined: 'true',
+    });
+    expect(directory.body.channels).toEqual(
+        expect.arrayContaining([expect.objectContaining({ handle: '#research', joined: true })])
+    );
+    const members = await agentGet(minted.runnerToken, '/api/agent/channels/members', {
+        target: '#research',
+    });
+    expect(members.body.members).toEqual(
+        expect.arrayContaining([expect.objectContaining({ handle: 'cove', role: 'agent' })])
+    );
+
+    const left = await agentPost(minted.runnerToken, '/api/agent/channels/leave', {
+        target: '#research',
+    });
+    expect(left).toMatchObject({ body: { left: true, target: '#research' }, status: 200 });
+});
+
+test('the ported Agent task flow creates, claims, updates, and releases its own work', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_tasks_1' });
+    const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
+        target: '#dispatch',
+        titles: ['Audit the delivery boundary'],
+    });
+    expect(created).toMatchObject({
+        body: {
+            tasks: [
+                {
+                    assignee: null,
+                    number: 1,
+                    status: 'todo',
+                    target: '#dispatch',
+                    version: 1,
+                },
+            ],
+        },
+        status: 200,
+    });
+
+    const claimed = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
+        numbers: [1],
+        target: '#dispatch',
+    });
+    expect(claimed.body.claimed[0]).toMatchObject({
+        assignee: 'cove',
+        status: 'in_progress',
+        version: 2,
+    });
+    const updated = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
+        number: 1,
+        status: 'in_review',
+        target: '#dispatch',
+    });
+    expect(updated.body.task).toMatchObject({
+        assignee: 'cove',
+        status: 'in_review',
+        version: 3,
+    });
+    const unclaimed = await agentPost(minted.runnerToken, '/api/agent/tasks/unclaim', {
+        number: 1,
+        target: '#dispatch',
+    });
+    expect(unclaimed.body.task).toMatchObject({
+        assignee: null,
+        status: 'in_review',
+        version: 4,
+    });
+
+    const [row] = (await harness.sql`
+        select created_by_agent_id, created_by_user_id, assignee_agent_id
+        from message_tasks
+        where server_id = ${serverId} and chat_id = 'cht_targetchannel01' and number = 1
+    `) as Array<{
+        assignee_agent_id: string | null;
+        created_by_agent_id: string | null;
+        created_by_user_id: string | null;
+    }>;
+    expect(row).toEqual({
+        assignee_agent_id: null,
+        created_by_agent_id: agentId,
+        created_by_user_id: null,
+    });
+    const events = (await harness.sql`
+        select ce.event_type
+        from chat_events ce
+        inner join chat_messages cm
+            on cm.server_id = ce.server_id and cm.id = ce.message_id
+        where ce.server_id = ${serverId}
+          and cm.content = 'Audit the delivery boundary'
+        order by ce.cursor
+    `) as Array<{ event_type: string }>;
+    expect(events.map((event) => event.event_type)).toEqual([
+        'message.created',
+        'task.created',
+        'task.updated',
+        'task.updated',
+        'task.updated',
+    ]);
+
+    const regular = await owner.trpc.chat.send.mutate({
+        chatId: 'cht_targetchannel01',
+        content: 'Turn this ordinary message into claimed work.',
+        nonce: 'human_task_conversion_1',
+        serverId,
+    });
+    const converted = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
+        messageId: regular.message.id.slice(4, 12),
+        target: '#dispatch',
+    });
+    expect(converted).toMatchObject({
+        body: {
+            claimed: [
+                {
+                    assignee: 'cove',
+                    number: 2,
+                    status: 'in_progress',
+                    target: '#dispatch',
+                },
+            ],
+        },
+        status: 200,
+    });
+    const [convertedRow] = (await harness.sql`
+        select origin, message_id, assignee_agent_id
+        from message_tasks
+        where server_id = ${serverId} and chat_id = 'cht_targetchannel01' and number = 2
+    `) as Array<{ assignee_agent_id: string | null; message_id: string; origin: string }>;
+    expect(convertedRow).toEqual({
+        assignee_agent_id: agentId,
+        message_id: regular.message.id,
+        origin: 'converted',
+    });
+    const convertedEvents = (await harness.sql`
+        select event_type
+        from chat_events
+        where server_id = ${serverId} and message_id = ${regular.message.id}
+        order by cursor
+    `) as Array<{ event_type: string }>;
+    expect(convertedEvents.map((event) => event.event_type)).toEqual([
+        'message.created',
+        'task.created',
+        'task.updated',
+    ]);
+});
+
+test('an Agent owns its profile description and that description rides its messages', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_profile_1' });
+    const updated = await agentPost(minted.runnerToken, '/api/agent/profile/update', {
+        description: 'Resident systems investigator',
+    });
+    expect(updated).toMatchObject({
+        body: {
+            profile: {
+                description: 'Resident systems investigator',
+                handle: 'cove',
+                isSelf: true,
+            },
+        },
+        status: 200,
+    });
+
+    const profile = await agentGet(minted.runnerToken, '/api/agent/profile', {});
+    expect(profile.body.profile).toMatchObject({
+        description: 'Resident systems investigator',
+        handle: 'cove',
+        isSelf: true,
+    });
+
+    const sent = await agentSend(minted.runnerToken, {
+        content: 'Profile descriptions should travel.',
+        nonce: 'agent_profile_nonce_1',
+        target: 'dm:@operator',
+    });
+    expect(sent.body.message?.sender).toEqual({
+        description: 'Resident systems investigator',
+        handle: 'cove',
+        type: 'agent',
+    });
+});
+
+test('the ported Agent reminder flow schedules against a DM message and can manage it', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_reminder_1' });
+    const anchor = await agentSend(minted.runnerToken, {
+        content: 'Remember this exact DM.',
+        nonce: 'agent_reminder_anchor_1',
+        target: 'dm:@operator',
+    });
+    expect(anchor.status).toBe(200);
+
+    const scheduled = await agentPost(minted.runnerToken, '/api/agent/reminders/schedule', {
+        delaySeconds: 3600,
+        messageId: anchor.body.message?.id,
+        title: 'Follow up on the DM',
+    });
+    expect(scheduled.status).toBe(200);
+    expect(scheduled.body.reminder).toMatchObject({
+        anchorTarget: 'dm:@operator',
+        script: false,
+        status: 'scheduled',
+        title: 'Follow up on the DM',
+    });
+    const reminderId = scheduled.body.reminder?.id as string;
+
+    const listed = await agentGet(minted.runnerToken, '/api/agent/reminders', {
+        status: 'scheduled',
+    });
+    expect(listed.status).toBe(200);
+    expect(listed.body.reminders).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: reminderId })])
+    );
+
+    const snoozed = await agentPost(minted.runnerToken, '/api/agent/reminders/snooze', {
+        by: '2h',
+        id: reminderId,
+    });
+    expect(snoozed.status).toBe(200);
+    expect(snoozed.body.reminder).toMatchObject({ id: reminderId, status: 'scheduled' });
+
+    const canceled = await agentPost(minted.runnerToken, '/api/agent/reminders/cancel', {
+        id: reminderId,
+    });
+    expect(canceled.status).toBe(200);
+    expect(canceled.body.reminder).toMatchObject({ id: reminderId, status: 'canceled' });
 });
 
 test('a revoked runner token can no longer speak as the Agent', async () => {
@@ -160,8 +788,12 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
     await delivery.onComputerReconnect(computerId);
     const starts = () => frames.filter((frame) => frame.type === 'start');
     expect(starts()).toHaveLength(1);
-    expect(frames[0]).toMatchObject({ modelId: 'gpt-5.6-sol', runtimeId: 'codex', type: 'start' });
-    const runId = frames[0]?.runId ?? '';
+    expect(starts()[0]).toMatchObject({
+        modelId: 'gpt-5.6-sol',
+        runtimeId: 'codex',
+        type: 'start',
+    });
+    const runId = starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId, runId });
 
     // Busy: a second message queues and notices, never a second concurrent start.
@@ -188,6 +820,64 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
         type: 'turn',
     });
     expect(starts()).toHaveLength(2);
+});
+
+test('an Owner imports a Computer-reported host skill into exactly one assigned Agent', async () => {
+    const sourceId = 'hsk_skillimport00000';
+    await harness.sql`
+        update computers
+        set reported_inventory = ${JSON.stringify({
+            importableSkills: [
+                {
+                    description: 'Release checks',
+                    id: sourceId,
+                    name: 'release-checks',
+                    source: '~/.agents/skills/release-checks',
+                },
+            ],
+            runtimes: [codexRuntime],
+        })}::jsonb
+        where id = ${computerId}
+    `;
+    const frames: Record<string, unknown>[] = [];
+    let reportSent: (() => void) | undefined;
+    const sent = new Promise<void>((resolve) => {
+        reportSent = resolve;
+    });
+    const computers = new ComputerConnections();
+    computers.register(computerId, {
+        ordinary: true,
+        send: (frame) => {
+            frames.push(frame as Record<string, unknown>);
+            reportSent?.();
+        },
+        serverId,
+        updatePhase: 'idle',
+    });
+    const imported = importHostedAgentSkill(
+        connection.db,
+        computers,
+        { clerkUserId: 'user_run_owner', id: ownerUserId },
+        { agentId, serverId, sourceId }
+    );
+    await sent;
+    const requestId = String(frames[0]?.requestId);
+    expect(frames[0]).toMatchObject({
+        agentId,
+        sourceId,
+        type: 'agent-skill-import',
+    });
+    computers.acceptSkillImport(computerId, {
+        agentId,
+        requestId,
+        skill: {
+            description: 'Release checks',
+            hash: 'a'.repeat(64),
+            modifiedAt: '2026-07-27T00:00:00.000Z',
+            name: 'release-checks',
+        },
+    });
+    expect(await imported).toMatchObject({ name: 'release-checks' });
 });
 
 test('a human DM send enqueues durable pending work atomically with the message', async () => {
@@ -218,99 +908,177 @@ test('a human DM send enqueues durable pending work atomically with the message'
     expect(after[0]?.content).toBe('Durable delivery, please.');
 });
 
-test('relays secrets online, persists only public state, and fails closed across Computers', async () => {
-    const frames: unknown[] = [];
-    const computers = new ComputerConnections();
-    computers.register(computerId, {
-        ordinary: true,
-        send: (frame) => frames.push(frame),
-        serverId,
-        updatePhase: 'idle',
-    });
+test('keeps MCP credentials on Server and grants one whole connection', async () => {
     const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
-    const created = await createHostedMcpConnection(connection.db, computers, member, {
-        args: [],
-        auth: 'headers',
-        computerId,
-        env: {},
-        headers: { Authorization: 'Bearer attachment-secret' },
+    const runtime = new HostedMcpRuntime(connection.db);
+    const created = await createHostedMcpConnection(connection.db, runtime, member, {
+        auth: 'oauth',
+        headers: {},
         name: 'Deterministic',
+        oauthClientId: 'server-client',
+        oauthClientSecret: 'server-secret',
         oauthScopes: [],
         serverId,
         url: 'http://127.0.0.1:9999/mcp',
     });
 
-    expect(frames).toHaveLength(1);
-    expect(frames[0]).toMatchObject({
-        connection: { headers: { Authorization: 'Bearer attachment-secret' } },
-        type: 'mcp-upsert',
-    });
     const rows = (await harness.sql`
         select auth, header_names, tools
         from mcp_connections where id = ${created.id}
     `) as { auth: string; header_names: string[]; tools: string[] }[];
     expect(rows[0]).toMatchObject({
-        auth: 'headers',
-        header_names: ['Authorization'],
+        auth: 'oauth',
+        header_names: [],
         tools: [],
     });
-    expect(JSON.stringify(rows)).not.toContain('attachment-secret');
+    expect(JSON.stringify(rows)).not.toContain('server-secret');
+    const secrets = (await harness.sql`
+        select secret from mcp_secrets where connection_id = ${created.id}
+    `) as { secret: Record<string, unknown> }[];
+    expect(JSON.stringify(secrets[0]?.secret)).toContain('server-secret');
 
-    await recordHostedMcpInventory(connection.db, computerId, {
-        accountLabel: 'Fixture account',
-        connected: true,
-        connectionId: created.id,
-        tools: ['echo'],
-    });
-    await setHostedMcpGrant(connection.db, computers, member, {
+    await harness.sql`
+        update mcp_connections
+        set account_label = 'Fixture account', connected = true, tools = ARRAY['echo']
+        where id = ${created.id}
+    `;
+    await setHostedMcpGrant(connection.db, member, {
         agentId,
         connectionId: created.id,
         enabled: true,
         serverId,
-        toolName: 'echo',
     });
 
     const grants = (await harness.sql`
-        select agent_id, connection_id, tool_name from agent_mcp_tool_grants
+        select agent_id, connection_id from agent_mcp_connection_grants
         where server_id = ${serverId} and agent_id = ${agentId}
-    `) as { agent_id: string; connection_id: string; tool_name: string }[];
-    expect(grants).toEqual([{ agent_id: agentId, connection_id: created.id, tool_name: 'echo' }]);
+    `) as { agent_id: string; connection_id: string }[];
+    expect(grants).toEqual([{ agent_id: agentId, connection_id: created.id }]);
 
-    const otherComputerId = 'cmp_ssssssssssssssss';
-    await harness.sql`
-        insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
-        values (${otherComputerId}, ${serverId}, ${ownerUserId}, ${'e'.repeat(64)}, ${JSON.stringify({ runtimes: [codexRuntime] })}::jsonb, 'healthy')
-    `;
-    const otherConnectionId = 'mcp_abcdefghijklmnop';
-    await harness.sql`
-        insert into mcp_connections
-            (id, server_id, computer_id, name, transport, auth, url, command, args,
-             connected, header_names, preset, tools)
-        values
-            (${otherConnectionId}, ${serverId}, ${otherComputerId}, 'Other', 'stdio', 'none',
-             null, 'other-mcp', ARRAY[]::text[], true, ARRAY[]::text[], null, ARRAY['echo'])
-    `;
-    await expect(
-        setHostedMcpGrant(connection.db, computers, member, {
-            agentId,
-            connectionId: otherConnectionId,
-            enabled: true,
-            serverId,
-            toolName: 'echo',
-        })
-    ).rejects.toThrow('same Computer');
-
-    const offline = await listHostedMcpConnections(
-        connection.db,
-        new ComputerConnections(),
-        member,
-        serverId
-    );
-    expect(offline.find((item) => item.id === created.id)).toMatchObject({
-        grants: [{ agentId, connectionId: created.id, toolName: 'echo' }],
-        status: 'pending',
+    const listed = await listHostedMcpConnections(connection.db, member, serverId);
+    expect(listed.find((item) => item.id === created.id)).toMatchObject({
+        grants: [{ agentId, connectionId: created.id }],
+        status: 'online',
         tools: ['echo'],
     });
+    await disconnectHostedMcpConnection(connection.db, runtime, member, {
+        connectionId: created.id,
+        serverId,
+    });
+    const disconnectedSecrets = (await harness.sql`
+        select secret from mcp_secrets where connection_id = ${created.id}
+    `) as { secret: string }[];
+    expect(JSON.parse(disconnectedSecrets[0]?.secret ?? '{}')).toMatchObject({
+        configuredClientInformation: {
+            client_id: 'server-client',
+            client_secret: 'server-secret',
+        },
+    });
+    expect(
+        (
+            await harness.sql`
+            select count(*)::int as n from agent_mcp_connection_grants
+            where server_id = ${serverId} and connection_id = ${created.id}
+        `
+        )[0]?.n
+    ).toBe(0);
+    await runtime.close();
+});
+
+test('Server discovers and invokes a granted remote MCP without Computer custody', async () => {
+    const calls: Array<{ method: string; params?: Record<string, unknown> }> = [];
+    const mcp = Bun.serve({
+        fetch: async (request) => {
+            if (request.method !== 'POST') {
+                return new Response(null, { status: 405 });
+            }
+            const message = (await request.json()) as {
+                id?: number;
+                method: string;
+                params?: Record<string, unknown>;
+            };
+            calls.push({ method: message.method, params: message.params });
+            if (message.method === 'notifications/initialized') {
+                return new Response(null, { status: 202 });
+            }
+            const result =
+                message.method === 'initialize'
+                    ? {
+                          capabilities: { tools: {} },
+                          protocolVersion: String(message.params?.protocolVersion),
+                          serverInfo: { name: 'Server fixture', version: '1.0.0' },
+                      }
+                    : message.method === 'tools/list'
+                      ? {
+                            tools: [
+                                {
+                                    description: 'Echo text from the fixture.',
+                                    inputSchema: {
+                                        additionalProperties: false,
+                                        properties: { text: { type: 'string' } },
+                                        required: ['text'],
+                                        type: 'object',
+                                    },
+                                    name: 'echo',
+                                },
+                            ],
+                        }
+                      : message.method === 'tools/call'
+                        ? {
+                              content: [
+                                  {
+                                      text: String(
+                                          (
+                                              message.params?.arguments as
+                                                  | { text?: string }
+                                                  | undefined
+                                          )?.text ?? ''
+                                      ),
+                                      type: 'text',
+                                  },
+                              ],
+                          }
+                        : null;
+            return Response.json({ id: message.id, jsonrpc: '2.0', result });
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    const runtime = new HostedMcpRuntime(connection.db);
+    try {
+        const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
+        const created = await createHostedMcpConnection(connection.db, runtime, member, {
+            auth: 'none',
+            headers: {},
+            name: 'Server fixture',
+            oauthScopes: [],
+            serverId,
+            url: `http://127.0.0.1:${mcp.port}/mcp`,
+        });
+        await setHostedMcpGrant(connection.db, member, {
+            agentId,
+            connectionId: created.id,
+            enabled: true,
+            serverId,
+        });
+
+        const tools = await runtime.listAgentTools(serverId, agentId);
+        expect(tools).toHaveLength(1);
+        expect(tools[0]).toMatchObject({ description: 'Echo text from the fixture.' });
+        const result = await runtime.invoke({
+            agentId,
+            args: { text: 'server-owned' },
+            serverId,
+            toolName: tools[0]?.name ?? '',
+        });
+        expect(result).toMatchObject({
+            content: [{ text: 'server-owned', type: 'text' }],
+        });
+        expect(calls.map((call) => call.method)).toContain('tools/call');
+    } finally {
+        await runtime.close();
+        mcp.stop(true);
+    }
 });
 
 test('records a compact turn summary and fails closed on cross-Computer claims', async () => {
@@ -356,7 +1124,17 @@ async function mintRunner(input: { chatId: string; runId: string }) {
     return (await response.json()) as { runnerId: string; runnerToken: string };
 }
 
-async function agentSend(token: string, body: { content: string; nonce: string; target: string }) {
+async function agentSend(
+    token: string,
+    body: {
+        attachmentIds?: string[];
+        content?: string;
+        continueAnyway?: boolean;
+        nonce: string;
+        sendDraft?: boolean;
+        target: string;
+    }
+) {
     const response = await fetch(new URL('/api/agent/messages/send', harness.url), {
         body: JSON.stringify(body),
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -364,10 +1142,63 @@ async function agentSend(token: string, body: { content: string; nonce: string; 
     });
     const payload = (await response.json()) as {
         code?: string;
-        receipt?: { chatId: string; idempotent: boolean; messageId: string };
+        continueAnywaySuggested?: boolean;
+        formalMentionCount?: number;
+        message?: {
+            attachments: Record<string, unknown>[];
+            chat_id: string;
+            content: string;
+            id: string;
+            sender: unknown;
+        };
+        recentUnread?: unknown[];
+        reholdCount?: number;
+        shownMessages?: Record<string, unknown>[];
         state?: string;
     };
     return { body: payload, status: response.status };
+}
+
+async function agentGet(token: string, path: string, query: Record<string, string>) {
+    const url = new URL(path, harness.url);
+    for (const [name, value] of Object.entries(query)) {
+        url.searchParams.set(name, value);
+    }
+    const response = await fetch(url, {
+        headers: { authorization: `Bearer ${token}` },
+    });
+    return {
+        body: (await response.json()) as {
+            channels?: Record<string, unknown>[];
+            attachment?: Record<string, unknown>;
+            message?: Record<string, unknown>;
+            members?: Record<string, unknown>[];
+            messages?: Array<Record<string, unknown> & { attachments?: unknown; id?: string }>;
+            profile?: Record<string, unknown>;
+            reminders?: Record<string, unknown>[];
+        },
+        status: response.status,
+    };
+}
+
+async function agentPost(token: string, path: string, body: Record<string, unknown>) {
+    const response = await fetch(new URL(path, harness.url), {
+        body: JSON.stringify(body),
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    return {
+        body: (await response.json()) as {
+            joined?: boolean;
+            left?: boolean;
+            attachment?: Record<string, unknown>;
+            message?: Record<string, unknown>;
+            profile?: Record<string, unknown>;
+            reminder?: Record<string, unknown>;
+            target?: string;
+        },
+        status: response.status,
+    };
 }
 
 async function signIn(clerkUserId: string) {
@@ -380,4 +1211,31 @@ async function readUserId(clerkUserId: string) {
         select id from users where clerk_user_id = ${clerkUserId}
     `) as { id: string }[];
     return rows[0].id;
+}
+
+function subscribeToChatEvents(client: GrottoClient, subscribedServerId: string) {
+    const started = Promise.withResolvers<void>();
+    const nextEvent = Promise.withResolvers<unknown>();
+    const timeout = setTimeout(() => {
+        nextEvent.reject(new Error('Timed out waiting for an Agent Chat event.'));
+    }, 5000);
+    const subscription = client.trpc.chat.onEvent.subscribe(
+        { serverId: subscribedServerId },
+        {
+            onData: (event) => {
+                clearTimeout(timeout);
+                subscription.unsubscribe();
+                nextEvent.resolve(event);
+            },
+            onError: (error) => {
+                clearTimeout(timeout);
+                started.reject(error);
+                nextEvent.reject(error);
+            },
+            onStarted: () => started.resolve(),
+        }
+    );
+    started.promise.catch(() => undefined);
+    nextEvent.promise.catch(() => undefined);
+    return { nextEvent: nextEvent.promise, started: started.promise };
 }

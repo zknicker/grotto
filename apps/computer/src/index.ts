@@ -5,26 +5,44 @@ import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import computerPackage from '../package.json' with { type: 'json' };
 import { runAgentCli } from './agent-cli.ts';
+import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import {
     decideStart,
     purgeServerPartition,
     readRunMarker,
-    reserveRun,
+    releaseAgentRun,
+    reserveAgentRun,
     writePendingNotice,
     writeRunMarker,
 } from './delivery.ts';
+import {
+    doctorComputer,
+    formatComputerStatus,
+    formatDoctor,
+    readComputerLogs,
+    readComputerStatus,
+} from './diagnostics.ts';
+import { readEffectiveAgentStates } from './effective-state.ts';
+import {
+    importHostSkill,
+    listAgentSkillReports,
+    listImportableSkills,
+    parseAgentSkillImportCommand,
+} from './host-skills.ts';
 import { detectInventory } from './inventory.ts';
 import {
     type Attachment,
     type HostedAgentStartCommand,
     type HostedAgentTurnFrame,
     parseNoticeCommand,
+    parseResetCommand,
     parseServerDeleteCommand,
     parseStartCommand,
     parseStopCommand,
+    resetAgentState,
     runAgentLaunch,
 } from './launch.ts';
-import { type AttachmentMcpConnection, AttachmentMcpRuntime } from './mcp-runtime.ts';
+import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import {
     admitActiveRun,
     progress,
@@ -39,6 +57,7 @@ import {
     parseBootstrapAccepted,
     parseComputerUpdateCommand,
 } from './update-contract.ts';
+import { parseAgentWorkspaceRequest, runAgentWorkspaceRequest } from './workspace-files.ts';
 
 interface SetupResponse {
     approvalId: string;
@@ -71,13 +90,38 @@ async function main(args: string[]) {
         });
         return;
     }
+    if (command === 'status') {
+        console.log(formatComputerStatus(await readComputerStatus(dataRoot)));
+        return;
+    }
+    if (command === 'doctor') {
+        const result = await doctorComputer(dataRoot, validate);
+        console.log(formatDoctor(result));
+        if (!result.healthy) {
+            process.exitCode = 1;
+        }
+        return;
+    }
+    if (command === 'logs') {
+        const requestedLines = Number.parseInt(target ?? '200', 10);
+        process.stdout.write(
+            await readComputerLogs(
+                dataRoot,
+                Number.isSafeInteger(requestedLines) ? requestedLines : 200
+            )
+        );
+        return;
+    }
     if (command === 'start') {
         await recoverInterruptedUpdate();
         await finishRestart();
         await rm(stoppedPath(), { force: true });
         await startAttachments(target);
         if (process.env.GROTTO_COMPUTER_RESIDENT === '1') {
-            await new Promise<never>(() => undefined);
+            for (;;) {
+                await Bun.sleep(500);
+                await startAttachments(target);
+            }
         }
         return;
     }
@@ -108,7 +152,7 @@ async function main(args: string[]) {
     }
     if (command !== 'setup' || !target?.startsWith('/')) {
         throw new Error(
-            'Usage: grotto-computer <install|upgrade|start|stop|restart|setup /server-slug>'
+            'Usage: grotto-computer <install|upgrade|start|stop|restart|status|doctor|logs|setup /server-slug>'
         );
     }
     const slug = target.slice(1);
@@ -314,8 +358,12 @@ async function isStopped() {
 }
 
 async function startAttachment(attachment: Attachment) {
-    if (await isRunnerAlive(attachment)) {
+    const marker = await readRunnerMarker(attachment);
+    if (marker && isPidAlive(marker.pid) && marker.credentialHash === hash(attachment.credential)) {
         return;
+    }
+    if (marker && isPidAlive(marker.pid)) {
+        process.kill(marker.pid, 'SIGTERM');
     }
     const child = Bun.spawn([process.execPath, process.argv[1] ?? '', 'run', attachment.serverId], {
         env: { ...process.env, GROTTO_COMPUTER_DATA_ROOT: dataRoot },
@@ -323,14 +371,18 @@ async function startAttachment(attachment: Attachment) {
         stdin: 'ignore',
         stdout: 'inherit',
     });
-    await writeFile(runnerPath(attachment), `${child.pid}\n`, { mode: 0o600 });
+    await writeFile(
+        runnerPath(attachment),
+        `${JSON.stringify({ credentialHash: hash(attachment.credential), pid: child.pid })}\n`,
+        { mode: 0o600 }
+    );
 }
 
 async function stopAttachment(attachment: Attachment) {
+    const marker = await readRunnerMarker(attachment);
     try {
-        const pid = Number.parseInt(await readFile(runnerPath(attachment), 'utf8'), 10);
-        if (Number.isSafeInteger(pid) && pid > 0) {
-            process.kill(pid, 'SIGTERM');
+        if (marker && isPidAlive(marker.pid)) {
+            process.kill(marker.pid, 'SIGTERM');
         }
     } catch {
         // A stopped or stale runner is already isolated from the other attachments.
@@ -342,9 +394,32 @@ function runnerPath(attachment: Attachment) {
     return join(dataRoot, 'servers', attachment.serverId, 'runner.pid');
 }
 
-async function isRunnerAlive(attachment: Attachment) {
+async function readRunnerMarker(
+    attachment: Attachment
+): Promise<{ credentialHash: string | null; pid: number } | null> {
     try {
-        const pid = Number.parseInt(await readFile(runnerPath(attachment), 'utf8'), 10);
+        const contents = await readFile(runnerPath(attachment), 'utf8');
+        const legacyPid = Number.parseInt(contents, 10);
+        if (Number.isSafeInteger(legacyPid) && legacyPid > 0) {
+            return { credentialHash: null, pid: legacyPid };
+        }
+        const marker = JSON.parse(contents) as { credentialHash?: unknown; pid?: unknown };
+        if (
+            typeof marker.credentialHash !== 'string' ||
+            !/^[a-f0-9]{64}$/u.test(marker.credentialHash) ||
+            !Number.isSafeInteger(marker.pid) ||
+            (marker.pid as number) <= 0
+        ) {
+            return null;
+        }
+        return { credentialHash: marker.credentialHash, pid: marker.pid as number };
+    } catch {
+        return null;
+    }
+}
+
+function isPidAlive(pid: number) {
+    try {
         process.kill(pid, 0);
         return true;
     } catch {
@@ -357,6 +432,7 @@ async function installResidentService() {
     const plistPath = join(agentsRoot, 'com.grotto.computer.plist');
     await mkdir(agentsRoot, { recursive: true });
     await mkdir(dataRoot, { mode: 0o700, recursive: true });
+    await mkdir(join(dataRoot, 'logs'), { mode: 0o700, recursive: true });
     const updatePublicKey = process.env.GROTTO_COMPUTER_UPDATE_PUBLIC_KEY;
     if (updatePublicKey) {
         await writeFile(
@@ -403,9 +479,9 @@ async function stopResidentService() {
 async function restartAfterUpdate() {
     for (const attachment of await listAttachments()) {
         try {
-            const pid = Number.parseInt(await readFile(runnerPath(attachment), 'utf8'), 10);
-            if (pid !== process.pid && Number.isSafeInteger(pid) && pid > 0) {
-                process.kill(pid, 'SIGTERM');
+            const marker = await readRunnerMarker(attachment);
+            if (marker && marker.pid !== process.pid && isPidAlive(marker.pid)) {
+                process.kill(marker.pid, 'SIGTERM');
             }
         } catch {
             // A missing runner is already ready for the resident restart.
@@ -443,7 +519,8 @@ export async function recoverInterruptedUpdate(root = dataRoot) {
 
 export function launchdPlist(runtime: string, entrypoint: string) {
     const escaped = [runtime, entrypoint, 'start', dataRoot].map(escapeXml);
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.grotto.computer</string><key>ProgramArguments</key><array><string>${escaped[0]}</string><string>${escaped[1]}</string><string>${escaped[2]}</string></array><key>EnvironmentVariables</key><dict><key>GROTTO_COMPUTER_DATA_ROOT</key><string>${escaped[3]}</string><key>GROTTO_COMPUTER_RESIDENT</key><string>1</string></dict><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
+    const logPath = escapeXml(join(dataRoot, 'logs', 'computer.log'));
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.grotto.computer</string><key>ProgramArguments</key><array><string>${escaped[0]}</string><string>${escaped[1]}</string><string>${escaped[2]}</string></array><key>EnvironmentVariables</key><dict><key>GROTTO_COMPUTER_DATA_ROOT</key><string>${escaped[3]}</string><key>GROTTO_COMPUTER_RESIDENT</key><string>1</string></dict><key>StandardOutPath</key><string>${logPath}</string><key>StandardErrorPath</key><string>${logPath}</string><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
 }
 
 function escapeXml(value: string) {
@@ -455,12 +532,18 @@ function escapeXml(value: string) {
 }
 
 async function connect(attachment: Attachment) {
-    const mcp = new AttachmentMcpRuntime(join(dataRoot, 'servers', attachment.serverId, 'mcp'));
     const socketUrl = new URL('/computer/attachment', attachment.serverOrigin);
     socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    const initialProgress = await readUpdateProgress(dataRoot);
     const socket = new WebSocket(socketUrl);
     // Live runs in this process, keyed by run so a Stop can kill the right child.
     const running = new Map<string, AbortController>();
+    const agentRuns = new Map<string, string>();
+    const noticeSinks = new Map<
+        string,
+        { deliver: (pending: number) => Promise<boolean>; runId: string }
+    >();
+    const resettingAgents = new Set<string>();
     const pendingWriters = new Set<Promise<unknown>>();
     let deleting = false;
     const trackWriter = <Result>(operation: Promise<Result>) => {
@@ -471,7 +554,7 @@ async function connect(attachment: Attachment) {
         );
         return operation;
     };
-    let lastProgress = JSON.stringify(await readUpdateProgress(dataRoot));
+    let lastProgress = JSON.stringify(initialProgress);
     const progressTimer = setInterval(() => {
         void readUpdateProgress(dataRoot).then((update) => {
             const serialized = JSON.stringify(update);
@@ -482,11 +565,13 @@ async function connect(attachment: Attachment) {
             socket.send(JSON.stringify({ type: 'update-progress', update }));
         });
     }, 500);
-    socket.addEventListener('close', () => clearInterval(progressTimer));
+    socket.addEventListener('close', () => {
+        clearInterval(progressTimer);
+    });
     await new Promise<void>((resolve, reject) => {
-        socket.addEventListener('error', () =>
-            reject(new Error('Computer attachment socket failed.'))
-        );
+        socket.addEventListener('error', () => {
+            reject(new Error('Computer attachment socket failed.'));
+        });
         socket.addEventListener('message', (event) => {
             const frame = JSON.parse(String(event.data)) as { type?: string };
             if (parseServerDeleteCommand(frame)) {
@@ -495,13 +580,11 @@ async function connect(attachment: Attachment) {
                 for (const controller of running.values()) {
                     controller.abort();
                 }
-                void mcp
-                    .close()
-                    .catch(() => undefined)
-                    .then(() => purgeServerPartition(dataRoot, attachment.serverId, pendingWriters))
-                    .catch((error) => {
+                void purgeServerPartition(dataRoot, attachment.serverId, pendingWriters).catch(
+                    (error) => {
                         console.error(error instanceof Error ? error.message : error);
-                    });
+                    }
+                );
                 return;
             }
             if (deleting) {
@@ -510,13 +593,15 @@ async function connect(attachment: Attachment) {
             const bootstrap = parseBootstrapAccepted(frame);
             if (bootstrap) {
                 if (bootstrap.mode === 'ordinary') {
-                    socket.send(
-                        JSON.stringify({
-                            agents: [],
-                            inventory: detectInventory(),
-                            type: 'report',
-                        })
-                    );
+                    void trackWriter(
+                        sendComputerReport(socket, attachment.serverId).catch(reportStateError)
+                    ).finally(() => {
+                        if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
+                            socket.close();
+                        }
+                        resolve();
+                    });
+                    return;
                 }
                 if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
                     socket.close();
@@ -535,155 +620,118 @@ async function connect(attachment: Attachment) {
                 });
                 return;
             }
-            const mcpConnection = parseMcpUpsert(frame);
-            if (mcpConnection) {
+            const stop = parseStopCommand(frame);
+            if (stop) {
+                running.get(stop.runId)?.abort();
+                return;
+            }
+            const configuration = parseAgentConfigureCommand(frame);
+            if (configuration) {
                 void trackWriter(
-                    mcp
-                        .upsert(mcpConnection)
-                        .then(async () => {
-                            const connected = await mcp.isConnected(mcpConnection.id);
+                    waitForAgentRunToSettle(agentRuns, configuration.agentId)
+                        .then(() =>
+                            applyAgentConfiguration({
+                                command: configuration,
+                                dataRoot,
+                                inventory: detectInventory(),
+                                serverId: attachment.serverId,
+                            })
+                        )
+                        .then(() => sendComputerReport(socket, attachment.serverId))
+                        .catch(reportStateError)
+                );
+                return;
+            }
+            const skillImport = parseAgentSkillImportCommand(frame);
+            if (skillImport) {
+                void trackWriter(
+                    waitForAgentRunToSettle(agentRuns, skillImport.agentId)
+                        .then(() =>
+                            importHostSkill({
+                                agentId: skillImport.agentId,
+                                dataRoot,
+                                serverId: attachment.serverId,
+                                sourceId: skillImport.sourceId,
+                            })
+                        )
+                        .then(async (skill) => {
                             socket.send(
                                 JSON.stringify({
-                                    accountLabel: connected
-                                        ? (await mcp.discover(mcpConnection.id)).accountLabel
-                                        : null,
-                                    connected,
-                                    connectionId: mcpConnection.id,
-                                    tools: connected ? await mcp.listTools(mcpConnection.id) : [],
-                                    type: 'mcp-inventory',
+                                    agentId: skillImport.agentId,
+                                    requestId: skillImport.requestId,
+                                    skill,
+                                    type: 'agent-skill-import-result',
+                                })
+                            );
+                            await sendComputerReport(socket, attachment.serverId);
+                        })
+                        .catch((error) => {
+                            socket.send(
+                                JSON.stringify({
+                                    agentId: skillImport.agentId,
+                                    error: safeSkillImportError(error),
+                                    requestId: skillImport.requestId,
+                                    type: 'agent-skill-import-result',
                                 })
                             );
                         })
+                );
+                return;
+            }
+            const workspaceRequest = parseAgentWorkspaceRequest(frame);
+            if (workspaceRequest) {
+                void trackWriter(
+                    runAgentWorkspaceRequest({
+                        dataRoot,
+                        request: workspaceRequest,
+                        serverId: attachment.serverId,
+                    }).then((result) => socket.send(JSON.stringify(result)))
+                );
+                return;
+            }
+            const reset = parseResetCommand(frame);
+            if (reset) {
+                resettingAgents.add(reset.agentId);
+                const runId = agentRuns.get(reset.agentId);
+                if (runId) {
+                    running.get(runId)?.abort();
+                }
+                void trackWriter(
+                    waitForAgentRunToSettle(agentRuns, reset.agentId)
+                        .then(() =>
+                            resetAgentState({
+                                agentId: reset.agentId,
+                                dataRoot,
+                                kind: reset.kind,
+                                serverId: attachment.serverId,
+                            })
+                        )
+                        .then(() => sendComputerReport(socket, attachment.serverId))
+                        .catch((error) => {
+                            console.error(error instanceof Error ? error.message : error);
+                        })
+                        .finally(() => {
+                            resettingAgents.delete(reset.agentId);
+                        })
+                );
+                return;
+            }
+            const reminderScript = parseReminderScriptCommand(frame);
+            if (reminderScript) {
+                void trackWriter(
+                    waitForAgentRunToSettle(agentRuns, reminderScript.agentId)
+                        .then(() =>
+                            runReminderScript({
+                                command: reminderScript,
+                                dataRoot,
+                                serverId: attachment.serverId,
+                            })
+                        )
+                        .then((result) => socket.send(JSON.stringify(result)))
                         .catch((error) => {
                             console.error(error instanceof Error ? error.message : error);
                         })
                 );
-                return;
-            }
-            const oauthStart = parseMcpOAuthStart(frame);
-            if (oauthStart) {
-                void trackWriter(
-                    mcp
-                        .startOAuth(oauthStart)
-                        .then((result) => {
-                            socket.send(
-                                JSON.stringify({
-                                    requestId: oauthStart.requestId,
-                                    result,
-                                    type: 'mcp-oauth-started',
-                                })
-                            );
-                        })
-                        .catch(() => {
-                            socket.send(
-                                JSON.stringify({
-                                    error: 'MCP OAuth could not start.',
-                                    requestId: oauthStart.requestId,
-                                    type: 'mcp-oauth-started',
-                                })
-                            );
-                        })
-                );
-                return;
-            }
-            const oauthComplete = parseMcpOAuthComplete(frame);
-            if (oauthComplete) {
-                void trackWriter(
-                    mcp
-                        .completeOAuth(oauthComplete)
-                        .then((discovery) => {
-                            socket.send(
-                                JSON.stringify({
-                                    accountLabel: discovery.accountLabel,
-                                    connected: true,
-                                    connectionId: oauthComplete.connectionId,
-                                    tools: discovery.tools,
-                                    type: 'mcp-inventory',
-                                })
-                            );
-                            socket.send(
-                                JSON.stringify({
-                                    requestId: oauthComplete.requestId,
-                                    type: 'mcp-oauth-completed',
-                                })
-                            );
-                        })
-                        .catch(() => {
-                            socket.send(
-                                JSON.stringify({
-                                    error: 'MCP OAuth did not complete.',
-                                    requestId: oauthComplete.requestId,
-                                    type: 'mcp-oauth-completed',
-                                })
-                            );
-                        })
-                );
-                return;
-            }
-            const mcpControl = parseMcpControl(frame);
-            if (mcpControl) {
-                const operation =
-                    mcpControl.type === 'mcp-delete'
-                        ? mcp.delete(mcpControl.connectionId).then(() => null)
-                        : mcpControl.type === 'mcp-disconnect'
-                          ? mcp.disconnect(mcpControl.connectionId).then(() => [])
-                          : mcp.discover(mcpControl.connectionId);
-                void trackWriter(
-                    operation
-                        .then((discovery) => {
-                            if (discovery) {
-                                socket.send(
-                                    JSON.stringify({
-                                        accountLabel:
-                                            'accountLabel' in discovery
-                                                ? discovery.accountLabel
-                                                : null,
-                                        connected: mcpControl.type === 'mcp-refresh',
-                                        connectionId: mcpControl.connectionId,
-                                        tools: 'tools' in discovery ? discovery.tools : discovery,
-                                        type: 'mcp-inventory',
-                                    })
-                                );
-                            }
-                        })
-                        .catch(() => undefined)
-                );
-                return;
-            }
-            const mcpHeaders = parseMcpHeaders(frame);
-            if (mcpHeaders) {
-                void trackWriter(
-                    mcp
-                        .replaceHeaders(mcpHeaders.connectionId, mcpHeaders.headers)
-                        .then(() => mcp.discover(mcpHeaders.connectionId))
-                        .then((discovery) => {
-                            socket.send(
-                                JSON.stringify({
-                                    accountLabel: discovery.accountLabel,
-                                    connected: true,
-                                    connectionId: mcpHeaders.connectionId,
-                                    tools: discovery.tools,
-                                    type: 'mcp-inventory',
-                                })
-                            );
-                        })
-                        .catch(() => undefined)
-                );
-                return;
-            }
-            const mcpGrant = parseMcpGrant(frame);
-            if (mcpGrant) {
-                mcp.setGrant(mcpGrant);
-                return;
-            }
-            const mcpGrants = parseMcpGrants(frame);
-            if (mcpGrants) {
-                mcp.replaceAllGrants(mcpGrants);
-                return;
-            }
-            const stop = parseStopCommand(frame);
-            if (stop) {
-                running.get(stop.runId)?.abort();
                 return;
             }
             const notice = parseNoticeCommand(frame);
@@ -693,19 +741,34 @@ async function connect(attachment: Attachment) {
                         agentId: notice.agentId,
                         pending: notice.pending,
                         serverId: attachment.serverId,
-                    }).catch((error) => {
-                        console.error(error instanceof Error ? error.message : error);
                     })
+                        .then(async () => {
+                            const sink = noticeSinks.get(notice.agentId);
+                            if (sink?.runId === notice.runId) {
+                                await sink.deliver(notice.pending);
+                            }
+                        })
+                        .catch((error) => {
+                            console.error(error instanceof Error ? error.message : error);
+                        })
                 );
                 return;
             }
             const command = parseStartCommand(frame);
             if (command) {
+                if (resettingAgents.has(command.agentId)) {
+                    return;
+                }
                 // Reserve the run synchronously, before any async marker I/O, so a
                 // duplicate start frame that arrives mid-launch is deduped here
                 // instead of racing into a second concurrent child.
-                const controller = reserveRun(running, command.runId);
-                if (!controller) {
+                const reservation = reserveAgentRun(
+                    running,
+                    agentRuns,
+                    command.agentId,
+                    command.runId
+                );
+                if (reservation.kind === 'duplicate') {
                     socket.send(
                         JSON.stringify({
                             agentId: command.agentId,
@@ -715,25 +778,29 @@ async function connect(attachment: Attachment) {
                     );
                     return;
                 }
+                if (reservation.kind === 'busy') {
+                    return;
+                }
                 void trackWriter(
                     admitActiveRun(dataRoot, command.runId)
                         .then((clearActiveRun) => {
                             if (!clearActiveRun) {
-                                running.delete(command.runId);
+                                releaseAgentRun(running, agentRuns, command.agentId, command.runId);
                                 return;
                             }
                             return handleStartCommand({
+                                agentRuns,
                                 attachment,
                                 clearActiveRun,
                                 command,
-                                controller,
-                                mcpRuntime: mcp,
+                                controller: reservation.controller,
+                                noticeSinks,
                                 running,
                                 socket,
                             });
                         })
                         .catch((error) => {
-                            running.delete(command.runId);
+                            releaseAgentRun(running, agentRuns, command.agentId, command.runId);
                             console.error(error instanceof Error ? error.message : error);
                         })
                 );
@@ -761,6 +828,27 @@ async function connect(attachment: Attachment) {
     });
 }
 
+function safeSkillImportError(error: unknown) {
+    const message = error instanceof Error ? error.message : '';
+    if (
+        message === 'That host skill is no longer available.' ||
+        message === 'The imported skill could not be verified.' ||
+        /^The Agent already has a skill named "[A-Za-z0-9_-]{1,128}"\.$/u.test(message)
+    ) {
+        return message;
+    }
+    return 'The skill could not be imported.';
+}
+
+async function waitForAgentRunToSettle(
+    agentRuns: Map<string, string>,
+    agentId: string
+): Promise<void> {
+    while (agentRuns.has(agentId)) {
+        await Bun.sleep(10);
+    }
+}
+
 /**
  * Handles one start command idempotently. The run is already reserved in
  * `running` (synchronously, by the caller), so only one launch per run can exist.
@@ -769,15 +857,25 @@ async function connect(attachment: Attachment) {
  * settled run replays its summary and only a genuinely fresh run launches.
  */
 async function handleStartCommand(input: {
+    agentRuns: Map<string, string>;
     attachment: Attachment;
     command: HostedAgentStartCommand;
     controller: AbortController;
     clearActiveRun: () => Promise<void>;
-    mcpRuntime: AttachmentMcpRuntime;
+    noticeSinks: Map<string, { deliver: (pending: number) => Promise<boolean>; runId: string }>;
     running: Map<string, AbortController>;
     socket: WebSocket;
 }): Promise<void> {
-    const { attachment, clearActiveRun, command, controller, mcpRuntime, running, socket } = input;
+    const {
+        agentRuns,
+        attachment,
+        clearActiveRun,
+        command,
+        controller,
+        noticeSinks,
+        running,
+        socket,
+    } = input;
     const startedAt = new Date().toISOString();
     const send = (frame: unknown) => socket.send(JSON.stringify(frame));
     const ack = () => send({ agentId: command.agentId, runId: command.runId, type: 'ack' });
@@ -807,20 +905,29 @@ async function handleStartCommand(input: {
             return;
         }
 
-        await writeRunMarker(dataRoot, {
-            marker: { status: 'accepted' },
-            runId: command.runId,
-            serverId: attachment.serverId,
-        });
-        ack();
-
         let summary: HostedAgentTurnFrame;
         try {
             summary = await runAgentLaunch({
                 attachment,
                 command,
                 dataRoot,
-                mcpRuntime,
+                onRuntimeReady: async () => {
+                    await writeRunMarker(dataRoot, {
+                        marker: { status: 'accepted' },
+                        runId: command.runId,
+                        serverId: attachment.serverId,
+                    });
+                    ack();
+                },
+                registerNoticeSink: (deliver) => {
+                    const sink = { deliver, runId: command.runId };
+                    noticeSinks.set(command.agentId, sink);
+                    return () => {
+                        if (noticeSinks.get(command.agentId) === sink) {
+                            noticeSinks.delete(command.agentId);
+                        }
+                    };
+                },
                 sendFrame: send,
                 serverOrigin,
                 signal: controller.signal,
@@ -838,10 +945,31 @@ async function handleStartCommand(input: {
             runId: command.runId,
             serverId: attachment.serverId,
         });
+        await sendComputerReport(socket, attachment.serverId).catch(reportStateError);
     } finally {
         await clearActiveRun();
-        running.delete(command.runId);
+        releaseAgentRun(running, agentRuns, command.agentId, command.runId);
     }
+}
+
+async function sendComputerReport(socket: WebSocket, serverId: string) {
+    socket.send(
+        JSON.stringify({
+            agents: await readEffectiveAgentStates(dataRoot, serverId),
+            inventory: {
+                ...detectInventory(),
+                agentSkills: await listAgentSkillReports(dataRoot, serverId),
+                importableSkills: await listImportableSkills(),
+            },
+            type: 'report',
+        })
+    );
+}
+
+function reportStateError(error: unknown) {
+    console.error(
+        `Computer state report failed: ${error instanceof Error ? error.message : error}`
+    );
 }
 
 function interruptedTurn(
@@ -881,182 +1009,15 @@ function launchCrashTurn(
     };
 }
 
-function parseMcpGrants(frame: unknown) {
-    if (
-        typeof frame !== 'object' ||
-        frame === null ||
-        !('type' in frame) ||
-        frame.type !== 'mcp-grants' ||
-        !('grants' in frame) ||
-        !Array.isArray(frame.grants)
-    ) {
-        return null;
-    }
-    const grants = frame.grants.filter(
-        (grant): grant is { agentId: string; connectionId: string; toolName: string } =>
-            typeof grant === 'object' &&
-            grant !== null &&
-            'agentId' in grant &&
-            typeof grant.agentId === 'string' &&
-            'connectionId' in grant &&
-            typeof grant.connectionId === 'string' &&
-            'toolName' in grant &&
-            typeof grant.toolName === 'string'
-    );
-    return grants.length === frame.grants.length ? grants : null;
-}
-
-function parseMcpGrant(frame: unknown) {
-    if (
-        typeof frame !== 'object' ||
-        frame === null ||
-        !('type' in frame) ||
-        frame.type !== 'mcp-grant' ||
-        !('grant' in frame) ||
-        typeof frame.grant !== 'object' ||
-        frame.grant === null
-    ) {
-        return null;
-    }
-    const grant = frame.grant as Record<string, unknown>;
-    if (
-        typeof grant.agentId !== 'string' ||
-        typeof grant.connectionId !== 'string' ||
-        typeof grant.toolName !== 'string' ||
-        typeof grant.enabled !== 'boolean'
-    ) {
-        return null;
-    }
-    return grant as { agentId: string; connectionId: string; enabled: boolean; toolName: string };
-}
-
-function parseMcpUpsert(frame: unknown): AttachmentMcpConnection | null {
-    if (
-        typeof frame !== 'object' ||
-        frame === null ||
-        !('type' in frame) ||
-        frame.type !== 'mcp-upsert' ||
-        !('connection' in frame) ||
-        typeof frame.connection !== 'object' ||
-        frame.connection === null
-    ) {
-        return null;
-    }
-    const connection = frame.connection as Record<string, unknown>;
-    if (
-        typeof connection.id !== 'string' ||
-        typeof connection.name !== 'string' ||
-        !['headers', 'none', 'oauth'].includes(String(connection.auth)) ||
-        !(typeof connection.command === 'string' || connection.command === null) ||
-        !(typeof connection.url === 'string' || connection.url === null) ||
-        !Array.isArray(connection.args) ||
-        !Array.isArray(connection.oauthScopes) ||
-        !(
-            connection.preset === null ||
-            connection.preset === 'google-calendar' ||
-            connection.preset === 'merchbase'
-        ) ||
-        typeof connection.env !== 'object' ||
-        connection.env === null ||
-        typeof connection.headers !== 'object' ||
-        connection.headers === null
-    ) {
-        return null;
-    }
-    return connection as unknown as AttachmentMcpConnection;
-}
-
-function parseMcpOAuthStart(frame: unknown) {
-    if (!isFrame(frame, 'mcp-oauth-start')) {
-        return null;
-    }
-    const value = frame as Record<string, unknown>;
-    if (
-        typeof value.requestId !== 'string' ||
-        typeof value.connectionId !== 'string' ||
-        typeof value.redirectUrl !== 'string' ||
-        typeof value.routingState !== 'string' ||
-        typeof value.allowAuthorizationServerOrigin !== 'boolean'
-    ) {
-        return null;
-    }
-    return value as {
-        allowAuthorizationServerOrigin: boolean;
-        connectionId: string;
-        redirectUrl: string;
-        requestId: string;
-        routingState: string;
-    };
-}
-
-function parseMcpOAuthComplete(frame: unknown) {
-    if (!isFrame(frame, 'mcp-oauth-complete')) {
-        return null;
-    }
-    const value = frame as Record<string, unknown>;
-    if (
-        typeof value.requestId !== 'string' ||
-        typeof value.connectionId !== 'string' ||
-        typeof value.redirectUrl !== 'string' ||
-        typeof value.state !== 'string' ||
-        typeof value.code !== 'string'
-    ) {
-        return null;
-    }
-    return value as {
-        code: string;
-        connectionId: string;
-        redirectUrl: string;
-        requestId: string;
-        state: string;
-    };
-}
-
-function isFrame(frame: unknown, type: string) {
-    return typeof frame === 'object' && frame !== null && 'type' in frame && frame.type === type;
-}
-
-function parseMcpControl(frame: unknown) {
-    if (
-        typeof frame !== 'object' ||
-        frame === null ||
-        !('type' in frame) ||
-        !['mcp-delete', 'mcp-disconnect', 'mcp-refresh'].includes(String(frame.type)) ||
-        !('connectionId' in frame) ||
-        typeof frame.connectionId !== 'string'
-    ) {
-        return null;
-    }
-    return frame as {
-        connectionId: string;
-        type: 'mcp-delete' | 'mcp-disconnect' | 'mcp-refresh';
-    };
-}
-
-function parseMcpHeaders(frame: unknown) {
-    if (!isFrame(frame, 'mcp-replace-headers')) {
-        return null;
-    }
-    const value = frame as Record<string, unknown>;
-    if (
-        typeof value.connectionId !== 'string' ||
-        typeof value.headers !== 'object' ||
-        value.headers === null ||
-        Array.isArray(value.headers) ||
-        !Object.values(value.headers).every((header) => typeof header === 'string')
-    ) {
-        return null;
-    }
-    return value as { connectionId: string; headers: Record<string, string> };
-}
-
 function hash(value: string) {
     return createHash('sha256').update(value).digest('hex');
 }
 
 if (import.meta.main) {
-    void main(process.argv.slice(2)).catch((error) => {
+    try {
+        await main(process.argv.slice(2));
+    } catch (error) {
         console.error(error instanceof Error ? error.message : error);
         process.exitCode = 1;
-    });
+    }
 }

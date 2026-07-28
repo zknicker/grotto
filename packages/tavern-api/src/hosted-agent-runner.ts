@@ -3,6 +3,22 @@ import { hostedIdSchema } from './hosted-chat.ts';
 
 const hostedTimestampSchema = z.iso.datetime({ offset: true });
 
+/** One Server-owned message envelope durably accepted into a Computer inbox. */
+export const hostedAgentInboxItemSchema = z
+    .object({
+        chatId: hostedIdSchema,
+        content: z.string().max(32_000),
+        createdAt: hostedTimestampSchema,
+        id: hostedIdSchema,
+        senderHandle: z.string().trim().min(1).max(128),
+        senderType: z.enum(['agent', 'human', 'system']),
+        sequence: z.number().int().positive(),
+        target: z.string().trim().min(1).max(200),
+    })
+    .strict();
+
+export type HostedAgentInboxItem = z.infer<typeof hostedAgentInboxItemSchema>;
+
 /**
  * The Server→Computer typed launch command. It carries only identity, the
  * resolved runtime/model to run, the durable collaboration chat the launch
@@ -12,12 +28,17 @@ const hostedTimestampSchema = z.iso.datetime({ offset: true });
 export const hostedAgentStartCommandSchema = z
     .object({
         agentId: hostedIdSchema,
+        agentDescription: z.string().max(10_000).optional(),
+        agentName: z.string().trim().min(1).max(64).optional(),
         chatId: hostedIdSchema,
+        homeTimezone: z.string().trim().min(1).max(128).optional(),
+        inbox: z.array(hostedAgentInboxItemSchema).max(100).default([]),
         modelId: z.string().trim().min(1).max(128),
         prompt: z.string().max(200_000),
         runId: hostedIdSchema,
         runtimeId: z.string().trim().min(1).max(64),
         type: z.literal('start'),
+        webAccess: z.enum(['fetch-only', 'search', 'search-only']).optional(),
     })
     .strict();
 
@@ -38,11 +59,57 @@ export const hostedAgentStopCommandSchema = z
 
 export type HostedAgentStopCommand = z.infer<typeof hostedAgentStopCommandSchema>;
 
+export const hostedAgentResetCommandSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        kind: z.enum(['full', 'session']),
+        type: z.literal('agent-reset'),
+    })
+    .strict();
+
+export type HostedAgentResetCommand = z.infer<typeof hostedAgentResetCommandSchema>;
+
+/** Full desired executor snapshot applied by the assigned Computer. */
+export const hostedAgentConfigureCommandSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        modelId: z.string().trim().min(1).max(128),
+        runtimeId: z.string().trim().min(1).max(64),
+        type: z.literal('agent-configure'),
+    })
+    .strict();
+
+export type HostedAgentConfigureCommand = z.infer<typeof hostedAgentConfigureCommandSchema>;
+
+export const hostedAgentSkillImportCommandSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        requestId: hostedIdSchema,
+        sourceId: hostedIdSchema,
+        type: z.literal('agent-skill-import'),
+    })
+    .strict();
+
+export type HostedAgentSkillImportCommand = z.infer<typeof hostedAgentSkillImportCommandSchema>;
+
+/** Runs one persisted reminder script inside the owning Agent's Computer workspace. */
+export const hostedReminderScriptCommandSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        attentionId: hostedIdSchema,
+        fireId: hostedIdSchema,
+        reminderId: hostedIdSchema,
+        script: z.string().min(1).max(16_384),
+        type: z.literal('reminder-script'),
+    })
+    .strict();
+
+export type HostedReminderScriptCommand = z.infer<typeof hostedReminderScriptCommandSchema>;
+
 /**
- * A content-free notice: work landed for a busy Agent. It carries only the
- * pending count, never message content — the queued work becomes model-visible
- * only at the next safe boundary, when the current run settles and the Server
- * drains the pending inbox into a fresh turn.
+ * Work landed for a busy Agent. The Server retains canonical queue ownership;
+ * the notice is deliberately content-free. `grotto message check` pulls
+ * canonical rows through the scoped proxy when the Agent chooses to inspect.
  */
 export const hostedAgentNoticeCommandSchema = z
     .object({
@@ -64,10 +131,93 @@ export const hostedServerDeleteCommandSchema = z
 
 export type HostedServerDeleteCommand = z.infer<typeof hostedServerDeleteCommandSchema>;
 
+export const hostedWorkspacePathSchema = z
+    .string()
+    .trim()
+    .max(2000)
+    .refine((value) => value.length === 0 || !value.startsWith('/'), {
+        message: 'Workspace path must be relative.',
+    })
+    .refine((value) => !value.includes('\\'), {
+        message: 'Workspace path must use forward slashes.',
+    })
+    .refine(
+        (value) =>
+            value.length === 0 ||
+            value
+                .split('/')
+                .every((segment) => segment.length > 0 && segment !== '.' && segment !== '..'),
+        { message: 'Workspace path must stay inside the workspace.' }
+    );
+
+export const hostedWorkspaceFileEntrySchema = z
+    .object({
+        kind: z.enum(['directory', 'file']),
+        mediaType: z.string().trim().min(1).nullable(),
+        name: z.string().trim().min(1),
+        path: hostedWorkspacePathSchema.refine((value) => value.length > 0),
+        sizeBytes: z.number().int().nonnegative().nullable(),
+        updatedAt: hostedTimestampSchema.nullable(),
+    })
+    .strict();
+
+export type HostedWorkspaceFileEntry = z.infer<typeof hostedWorkspaceFileEntrySchema>;
+
+export const hostedWorkspaceFileListSchema = z
+    .object({
+        entries: z.array(hostedWorkspaceFileEntrySchema).max(10_000),
+        path: hostedWorkspacePathSchema,
+        workspaceRoot: z.string().trim().min(1).max(4000),
+    })
+    .strict();
+
+export type HostedWorkspaceFileList = z.infer<typeof hostedWorkspaceFileListSchema>;
+
+export const hostedWorkspaceFileContentSchema = z
+    .object({
+        binary: z.boolean(),
+        content: z.string(),
+        encoding: z.enum(['base64', 'utf8']),
+        language: z.string().trim().min(1).nullable(),
+        mediaType: z.string().trim().min(1),
+        path: hostedWorkspacePathSchema.refine((value) => value.length > 0),
+        sizeBytes: z.number().int().nonnegative(),
+        truncated: z.boolean(),
+        updatedAt: hostedTimestampSchema.nullable(),
+        workspaceRoot: z.string().trim().min(1).max(4000),
+    })
+    .strict();
+
+export type HostedWorkspaceFileContent = z.infer<typeof hostedWorkspaceFileContentSchema>;
+
+export const hostedAgentWorkspaceRequestSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        operation: z.discriminatedUnion('kind', [
+            z.object({ kind: z.literal('list'), path: hostedWorkspacePathSchema }).strict(),
+            z
+                .object({
+                    kind: z.literal('read'),
+                    path: hostedWorkspacePathSchema.refine((value) => value.length > 0),
+                })
+                .strict(),
+        ]),
+        requestId: hostedIdSchema,
+        type: z.literal('agent-workspace-request'),
+    })
+    .strict();
+
+export type HostedAgentWorkspaceRequest = z.infer<typeof hostedAgentWorkspaceRequestSchema>;
+
 /** Every typed frame the Server sends down a Computer attachment socket. */
 export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
     hostedAgentStartCommandSchema,
     hostedAgentStopCommandSchema,
+    hostedAgentResetCommandSchema,
+    hostedAgentConfigureCommandSchema,
+    hostedAgentSkillImportCommandSchema,
+    hostedAgentWorkspaceRequestSchema,
+    hostedReminderScriptCommandSchema,
     hostedAgentNoticeCommandSchema,
     hostedServerDeleteCommandSchema,
 ]);
@@ -89,11 +239,75 @@ export const hostedAgentDeliveryAckSchema = z
 
 export type HostedAgentDeliveryAck = z.infer<typeof hostedAgentDeliveryAckSchema>;
 
+/** Idempotent Computer result for one reminder script attention row. */
+export const hostedReminderScriptResultSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        attentionId: hostedIdSchema,
+        exitCode: z.number().int(),
+        fireId: hostedIdSchema,
+        output: z.string().max(65_536),
+        timedOut: z.boolean(),
+        type: z.literal('reminder-script-result'),
+    })
+    .strict();
+
+export type HostedReminderScriptResult = z.infer<typeof hostedReminderScriptResultSchema>;
+
+export const hostedAgentSkillImportResultSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        error: z.string().trim().min(1).max(300).optional(),
+        requestId: hostedIdSchema,
+        skill: z
+            .object({
+                description: z.string().max(500),
+                hash: z.string().regex(/^[a-f0-9]{64}$/u),
+                modifiedAt: hostedTimestampSchema,
+                name: z.string().trim().min(1).max(128),
+            })
+            .strict()
+            .optional(),
+        type: z.literal('agent-skill-import-result'),
+    })
+    .strict()
+    .refine((value) => Boolean(value.error) !== Boolean(value.skill));
+
+export type HostedAgentSkillImportResult = z.infer<typeof hostedAgentSkillImportResultSchema>;
+
+export const hostedAgentWorkspaceResultSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        error: z.string().trim().min(1).max(300).optional(),
+        requestId: hostedIdSchema,
+        result: z
+            .discriminatedUnion('kind', [
+                z
+                    .object({
+                        kind: z.literal('list'),
+                        value: hostedWorkspaceFileListSchema,
+                    })
+                    .strict(),
+                z
+                    .object({
+                        kind: z.literal('read'),
+                        value: hostedWorkspaceFileContentSchema,
+                    })
+                    .strict(),
+            ])
+            .optional(),
+        type: z.literal('agent-workspace-result'),
+    })
+    .strict()
+    .refine((value) => Boolean(value.error) !== Boolean(value.result));
+
+export type HostedAgentWorkspaceResult = z.infer<typeof hostedAgentWorkspaceResultSchema>;
+
 /**
  * A Computer mints a per-launch runner credential from its Computer credential
  * before spawning the Agent. The credential is scoped to exactly one Agent,
- * run, and collaboration chat, so a leaked runner token can only speak as that
- * Agent into that one launch's channel.
+ * run, and Server. The launch chat carries turn context; Agent API routes still
+ * resolve each target and membership Server-side.
  */
 export const hostedRunnerMintRequestSchema = z
     .object({
@@ -125,14 +339,17 @@ export type HostedRunnerRevokeRequest = z.infer<typeof hostedRunnerRevokeRequest
 
 /**
  * `grotto message send` behind the loopback proxy. The runner credential fixes
- * the author and channel, so the Agent supplies only the message body plus the
- * grammar target it believes it is answering; the Server writes to the runner's
- * bound chat and records the requested target for fidelity.
+ * the author and Server, so the Agent supplies the message body and grammar
+ * target; the Server resolves that target and access before writing.
  */
 export const hostedAgentSendInputSchema = z
     .object({
-        content: z.string().trim().min(1).max(32_000),
+        attachmentIds: z.array(hostedIdSchema).max(20).default([]),
+        compositionId: z.string().trim().min(1).max(200).optional(),
+        content: z.string().max(32_000).optional(),
+        continueAnyway: z.boolean().default(false),
         nonce: z.string().trim().min(1).max(128),
+        sendDraft: z.boolean().default(false),
         target: z.string().trim().min(1).max(200),
     })
     .strict();

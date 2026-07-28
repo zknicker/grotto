@@ -33,7 +33,7 @@ export async function createHostedAgent(
             throw new AgentConfigDeniedError('Only a Server Owner or Admin can create an Agent.');
         }
 
-        const { inventory } = await resolveAssignedComputer(tx, {
+        const { health: computerHealth, inventory } = await resolveAssignedComputer(tx, {
             computerId: input.computerId,
             serverId: input.serverId,
         });
@@ -90,8 +90,12 @@ export async function createHostedAgent(
             .returning({ createdAt: chatsTable.createdAt });
 
         const agentRow = {
+            activeRunId: null,
             computerId: input.computerId,
+            computerHealth,
+            consecutiveFailures: 0,
             createdAt: new Date(),
+            description: null,
             desiredModelId: input.modelId,
             desiredRuntimeId: input.runtimeId,
             displayName: input.displayName,
@@ -104,6 +108,7 @@ export async function createHostedAgent(
             id: agentId,
             role: input.role,
             serverId: input.serverId,
+            stopped: false,
         };
 
         return {

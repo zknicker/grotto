@@ -26,11 +26,13 @@ export const hostedTaskLabelSchema = z
 
 export const hostedMessageTaskSchema = z
     .object({
+        assigneeAgentId: hostedTaskIdSchema.nullable(),
         assigneeUserId: hostedTaskIdSchema.nullable(),
         chatId: hostedTaskIdSchema,
         claimedAt: z.iso.datetime({ offset: true }).nullable(),
         createdAt: z.iso.datetime({ offset: true }),
-        createdByUserId: hostedTaskIdSchema,
+        createdByAgentId: hostedTaskIdSchema.nullable(),
+        createdByUserId: hostedTaskIdSchema.nullable(),
         labels: z.array(hostedTaskLabelSchema),
         messageId: hostedTaskIdSchema,
         number: z.number().int().positive(),

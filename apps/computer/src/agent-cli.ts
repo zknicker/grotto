@@ -1,149 +1,103 @@
-import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { AgentCliError, renderAgentCliError } from './agent-cli/agent-error.ts';
+import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
+import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
+import { INBOX_SUBCOMMANDS } from './agent-cli/commands/agent-inbox.ts';
+import { MESSAGE_SUBCOMMANDS } from './agent-cli/commands/agent-message.ts';
+import { PROFILE_SUBCOMMANDS } from './agent-cli/commands/agent-profile.ts';
+import { REMINDER_SUBCOMMANDS } from './agent-cli/commands/agent-reminder.ts';
+import { SKILL_SUBCOMMANDS } from './agent-cli/commands/agent-skill.ts';
+import { TASK_SUBCOMMANDS } from './agent-cli/commands/agent-task.ts';
+import { THREAD_SUBCOMMANDS } from './agent-cli/commands/agent-thread.ts';
+import { UsageError } from './agent-cli/parse.ts';
+import { dispatchSubcommand, type SubCommand } from './agent-cli/subcommand.ts';
+import { errorBlock } from './agent-cli/ui.ts';
 
-interface CliFailure {
-    code: string;
-    message: string;
-    nextAction?: string;
-    usage?: boolean;
-}
+const commandGroups = {
+    attachment: ATTACHMENT_SUBCOMMANDS,
+    channel: CHANNEL_SUBCOMMANDS,
+    inbox: INBOX_SUBCOMMANDS,
+    message: MESSAGE_SUBCOMMANDS,
+    profile: PROFILE_SUBCOMMANDS,
+    reminder: REMINDER_SUBCOMMANDS,
+    server: SERVER_SUBCOMMANDS,
+    skill: SKILL_SUBCOMMANDS,
+    task: TASK_SUBCOMMANDS,
+    thread: THREAD_SUBCOMMANDS,
+} satisfies Record<string, SubCommand[]>;
 
 /**
- * The embedded Agent CLI. `grotto-computer` re-executes this behind the managed
- * `grotto` wrapper. It is the Agent's only collaboration output channel: text
- * emitted outside `grotto message send` reaches no one. Identity comes from the
- * baked wrapper env and fails closed — never a fallback to another credential.
+ * Computer-owned copy of the proven Runtime Agent CLI. Command modules are
+ * ported intact; this narrow dispatcher deliberately exposes only Agent
+ * commands inside a managed launch.
  */
 export async function runAgentCli(argv: string[]): Promise<number> {
-    if (argv[0] !== 'message' || argv[1] !== 'send') {
-        return fail({
-            code: 'INVALID_ARG',
-            message: 'Only `grotto message send` is available in this build.',
-            usage: true,
-        });
-    }
-
-    const parsed = parseSendArgs(argv.slice(2));
-    if ('code' in parsed) {
-        return fail(parsed);
-    }
-
-    const identity = readIdentity();
-    if ('code' in identity) {
-        return fail(identity);
-    }
-
-    const token = await readProxyToken(identity.tokenFile);
-    if ('code' in token) {
-        return fail(token);
-    }
-
-    const content = (await Bun.stdin.text()).trim();
-    if (!content) {
-        return fail({
-            code: 'MISSING_CONTENT',
-            message: 'Message bodies are read from stdin.',
-            nextAction: 'Pipe the body via a GROTTOMSG heredoc.',
-        });
-    }
-
-    try {
-        const response = await fetch(new URL('/api/agent/messages/send', identity.proxyUrl), {
-            body: JSON.stringify({
-                content,
-                nonce: parsed.nonce ?? `grta_${randomBytes(12).toString('base64url')}`,
-                target: parsed.target,
-            }),
-            headers: {
-                authorization: `Bearer ${token.value}`,
-                'content-type': 'application/json',
-            },
-            method: 'POST',
-        });
-        return await renderSendResponse(response, parsed.target);
-    } catch {
-        return fail({ code: 'SERVER_5XX', message: 'The Grotto Computer proxy was unreachable.' });
-    }
-}
-
-function parseSendArgs(args: string[]): { nonce?: string; target: string } | CliFailure {
-    const stdinOnly = 'Message bodies are stdin-only; pipe the body via a GROTTOMSG heredoc.';
-    let target: string | null = null;
-    let nonce: string | undefined;
-    let index = 0;
-    while (index < args.length) {
-        const arg = args[index];
-        if (arg === '--target') {
-            target = args[index + 1] ?? null;
-            index += 2;
-        } else if (arg === '--nonce') {
-            nonce = args[index + 1];
-            index += 2;
-        } else if (arg === '--content') {
-            return { code: 'CONTENT_FLAG_UNSUPPORTED', message: stdinOnly, usage: true };
-        } else if (arg.startsWith('--')) {
-            index += 1;
-        } else {
-            return { code: 'POSITIONAL_CONTENT_UNSUPPORTED', message: stdinOnly, usage: true };
-        }
-    }
-    if (!target) {
-        return { code: 'INVALID_TARGET', message: '--target is required.', usage: true };
-    }
-    return { nonce, target };
-}
-
-function readIdentity(): { proxyUrl: string; tokenFile: string } | CliFailure {
-    const proxyUrl = process.env.GROTTO_AGENT_PROXY_URL;
-    if (!proxyUrl) {
-        return { code: 'MISSING_SERVER_URL', message: 'GROTTO_AGENT_PROXY_URL is not set.' };
-    }
-    const tokenFile = process.env.GROTTO_AGENT_PROXY_TOKEN_FILE;
-    if (!tokenFile) {
-        return { code: 'MISSING_TOKEN', message: 'GROTTO_AGENT_PROXY_TOKEN_FILE is not set.' };
-    }
-    return { proxyUrl, tokenFile };
-}
-
-async function readProxyToken(tokenFile: string): Promise<{ value: string } | CliFailure> {
-    let raw: string;
-    try {
-        raw = await readFile(tokenFile, 'utf8');
-    } catch {
-        return { code: 'TOKEN_FILE_UNREADABLE', message: 'The local proxy token is unreadable.' };
-    }
-    const value = raw.trim();
-    if (!value) {
-        return { code: 'TOKEN_FILE_EMPTY', message: 'The local proxy token file is empty.' };
-    }
-    return { value };
-}
-
-async function renderSendResponse(response: Response, target: string): Promise<number> {
-    if (response.ok) {
-        const payload = (await response.json()) as { receipt?: { messageId?: string } };
-        const messageId = payload.receipt?.messageId ?? 'unknown';
-        process.stdout.write(`Message sent to ${target}. Message ID: ${messageId}\n`);
+    const [group, ...rest] = argv;
+    if (!group || group === '--help' || group === '-h' || group === 'help') {
+        printHelp();
         return 0;
     }
-    let body: { code?: string; message?: string; nextAction?: string } = {};
-    try {
-        body = (await response.json()) as typeof body;
-    } catch {
-        // A non-JSON error body still fails closed below.
+    if (group === '--version' || group === '-v') {
+        process.stdout.write('1.0.0\n');
+        return 0;
     }
-    return fail({
-        code: response.status >= 500 ? 'SERVER_5XX' : (body.code ?? 'SEND_FAILED'),
-        message: body.message ?? 'The message send failed.',
-        nextAction: body.nextAction,
-    });
+    const subcommands = commandGroups[group as keyof typeof commandGroups];
+    if (!subcommands) {
+        process.stderr.write(
+            `${errorBlock(
+                `'grotto ${group}' is not available in an Agent launch.`,
+                "Run 'grotto help' for the Agent command list."
+            )}\n`
+        );
+        return 2;
+    }
+    try {
+        if (rest.length === 0 || rest[0] === '--help' || rest[0] === '-h') {
+            printGroupHelp(group, subcommands);
+            return rest.length === 0 ? 1 : 0;
+        }
+        return await dispatchSubcommand(group, subcommands, rest);
+    } catch (error) {
+        if (error instanceof UsageError) {
+            process.stderr.write(`${errorBlock(error.message)}\n`);
+            return 2;
+        }
+        if (error instanceof AgentCliError) {
+            process.stderr.write(renderAgentCliError(error));
+            return 1;
+        }
+        process.stderr.write(
+            `${errorBlock(error instanceof Error ? error.message : String(error))}\n`
+        );
+        return 1;
+    }
 }
 
-function fail(failure: CliFailure): number {
-    const lines = [`Error: ${failure.message}`, `Code: ${failure.code}`];
-    if (failure.nextAction) {
-        lines.push(`Next action: ${failure.nextAction}`);
-    }
-    process.stderr.write(`${lines.join('\n')}\n`);
-    return failure.usage ? 2 : 1;
+function printHelp() {
+    process.stdout.write(
+        [
+            'Grotto Agent CLI',
+            '',
+            'Commands:',
+            ...Object.entries(commandGroups).map(
+                ([name, commands]) =>
+                    `  ${name.padEnd(12)} ${commands.map((command) => command.name).join(', ')}`
+            ),
+            '',
+            "Run 'grotto <command> --help' for command help.",
+            '',
+        ].join('\n')
+    );
+}
+
+function printGroupHelp(group: string, subcommands: SubCommand[]) {
+    process.stdout.write(
+        [
+            `grotto ${group}`,
+            '',
+            ...subcommands.map(
+                (subcommand) => `  ${subcommand.name.padEnd(12)} ${subcommand.summary}`
+            ),
+            '',
+        ].join('\n')
+    );
 }

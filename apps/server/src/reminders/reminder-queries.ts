@@ -13,6 +13,9 @@ export interface HostedReminderFire {
     receiptMessageId: string;
     reminderId: string;
     scheduledFor: string;
+    scriptExitCode?: number | null;
+    scriptOutput?: string | null;
+    scriptTimedOut?: boolean;
 }
 
 export interface ReminderAgentAttention {
@@ -52,6 +55,9 @@ export async function listHostedReminderFires(
         receiptMessageId: row.receiptMessageId,
         reminderId: row.reminderId,
         scheduledFor: row.scheduledFor.toISOString(),
+        scriptExitCode: row.scriptExitCode,
+        scriptOutput: row.scriptOutput,
+        scriptTimedOut: row.scriptTimedOut,
     }));
 }
 

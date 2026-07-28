@@ -9,8 +9,7 @@
 async function main(): Promise<number> {
     const prompt = process.env.GROTTO_TURN_PROMPT ?? '';
     const ask = readLatestHumanMessage(prompt);
-    const mcp = readMcpRequest(prompt);
-    const reply = mcp ? await invokeMcp(mcp) : ask ? `Acknowledged: ${ask}` : 'Acknowledged.';
+    const reply = ask ? `Acknowledged: ${ask}` : 'Acknowledged.';
 
     const grotto = Bun.which('grotto') ?? process.env.GROTTO_WRAPPER;
     if (!grotto) {
@@ -24,36 +23,6 @@ async function main(): Promise<number> {
         stdout: 'inherit',
     });
     return await child.exited;
-}
-
-function readMcpRequest(prompt: string) {
-    const match = /\[mcp=([^/\]]+)\/([^\]]+)\]\s*(\{.*\})/u.exec(prompt);
-    if (!(match?.[1] && match[2] && match[3])) {
-        return null;
-    }
-    return {
-        args: JSON.parse(match[3]) as unknown,
-        connectionId: match[1],
-        toolName: match[2],
-    };
-}
-
-async function invokeMcp(input: { args: unknown; connectionId: string; toolName: string }) {
-    const url = process.env.GROTTO_MCP_URL;
-    const token = process.env.GROTTO_MCP_TOKEN;
-    if (!(url && token)) {
-        throw new Error('The attachment MCP endpoint is unavailable.');
-    }
-    const response = await fetch(url, {
-        body: JSON.stringify(input),
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        method: 'POST',
-    });
-    const payload = (await response.json()) as { error?: string; result?: unknown };
-    if (!response.ok) {
-        throw new Error(payload.error ?? 'MCP invocation failed.');
-    }
-    return JSON.stringify(payload.result);
 }
 
 function readLatestHumanMessage(prompt: string): string | null {

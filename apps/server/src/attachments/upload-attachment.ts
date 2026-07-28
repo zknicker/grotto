@@ -58,6 +58,9 @@ async function uploadHostedAttachmentOperation(
     if (!attachment) {
         throw new AttachmentUploadError('No attachment was found in that Server.', 'not_found');
     }
+    if (!attachment.chatId) {
+        throw new AttachmentUploadError('That attachment is not a human upload.', 'forbidden');
+    }
 
     await requireChatAccess(db, input.member, {
         chatId: attachment.chatId,

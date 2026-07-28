@@ -8,7 +8,8 @@ import {
     purgeServerPartition,
     type RunMarker,
     readRunMarker,
-    reserveRun,
+    releaseAgentRun,
+    reserveAgentRun,
     writePendingNotice,
     writeRunMarker,
 } from './delivery.ts';
@@ -100,31 +101,39 @@ test('an interrupted (accepted-only) run recovers, then replays its terminal res
     });
 });
 
-test('reserveRun admits a fresh run once and rejects a concurrent duplicate', () => {
+test('run admission serializes every turn for one Agent while allowing other Agents', () => {
     const running = new Map<string, AbortController>();
-    const first = reserveRun(running, 'run_x');
-    expect(first).not.toBeNull();
-    // A duplicate start frame for the same run — before the first launch finishes
-    // — is rejected synchronously, so no second child can spawn.
-    expect(reserveRun(running, 'run_x')).toBeNull();
-    running.delete('run_x');
-    expect(reserveRun(running, 'run_x')).not.toBeNull();
+    const agentRuns = new Map<string, string>();
+    expect(reserveAgentRun(running, agentRuns, 'agt_x', 'run_x').kind).toBe('reserved');
+    expect(reserveAgentRun(running, agentRuns, 'agt_x', 'run_x')).toEqual({
+        kind: 'duplicate',
+    });
+    expect(reserveAgentRun(running, agentRuns, 'agt_x', 'run_y')).toEqual({ kind: 'busy' });
+    expect(reserveAgentRun(running, agentRuns, 'agt_y', 'run_z').kind).toBe('reserved');
+
+    releaseAgentRun(running, agentRuns, 'agt_x', 'run_x');
+    expect(reserveAgentRun(running, agentRuns, 'agt_x', 'run_y').kind).toBe('reserved');
 });
 
-test('a content-free notice parses and is recorded for the running turn', async () => {
+test('a pending notice parses and records its compact count for the running turn', async () => {
     const notice = parseNoticeCommand({
         agentId: 'agt_x',
         pending: 3,
         runId: 'run_x',
         type: 'notice',
     });
-    expect(notice).toEqual({ agentId: 'agt_x', pending: 3, runId: 'run_x', type: 'notice' });
+    expect(notice).toEqual({
+        agentId: 'agt_x',
+        pending: 3,
+        runId: 'run_x',
+        type: 'notice',
+    });
 
     await writePendingNotice(dataRoot, { agentId: 'agt_x', pending: 3, serverId });
     const written = JSON.parse(
         await readFile(noticePath(dataRoot, { agentId: 'agt_x', serverId }), 'utf8')
     );
-    // Content-free: only a count is recorded, never message content.
+    // Notice state is count-only; canonical bodies stay Server-side.
     expect(written).toEqual({ pending: 3 });
 });
 

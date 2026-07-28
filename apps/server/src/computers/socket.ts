@@ -6,17 +6,18 @@ import {
     computerUpdateProgressFrameSchema,
     hostedAgentDeliveryAckSchema,
     hostedAgentEffectiveStateSchema,
+    hostedAgentSkillImportResultSchema,
     hostedAgentTurnSummarySchema,
+    hostedAgentWorkspaceResultSchema,
     hostedComputerInventorySchema,
+    hostedReminderScriptResultSchema,
 } from '@tavern/api';
-import { eq } from 'drizzle-orm';
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { emitServerUpdated } from '../grotto-api/server-events.ts';
 import { recordAgentEffectiveState } from '../hosted-agents/record-agent-effective-state.ts';
-import { recordHostedMcpInventory } from '../hosted-mcp/state.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { agentMcpToolGrantsTable, mcpConnectionsTable } from '../postgres/schema.ts';
 import type { ComputerConnections } from './connections.ts';
 import {
     hashComputerSecret,
@@ -32,33 +33,6 @@ const reportSchema = z
         agents: z.array(hostedAgentEffectiveStateSchema).max(500).default([]),
         inventory: hostedComputerInventorySchema.optional(),
         type: z.literal('report'),
-    })
-    .strict();
-
-const mcpInventorySchema = z
-    .object({
-        accountLabel: z.string().trim().min(1).max(200).nullable(),
-        connected: z.boolean(),
-        connectionId: z.string().regex(/^mcp_[A-Za-z0-9_-]{16}$/u),
-        tools: z.array(z.string().trim().min(1).max(200)).max(1000),
-        type: z.literal('mcp-inventory'),
-    })
-    .strict();
-
-const mcpOAuthResponseSchema = z
-    .object({
-        error: z.string().max(500).optional(),
-        requestId: z.string().regex(/^req_[A-Za-z0-9_-]{16}$/u),
-        result: z
-            .discriminatedUnion('status', [
-                z.object({ authorizationUrl: z.string().url(), status: z.literal('ready') }),
-                z.object({
-                    authorizationServerOrigin: z.string().url(),
-                    status: z.literal('trust-required'),
-                }),
-            ])
-            .optional(),
-        type: z.enum(['mcp-oauth-completed', 'mcp-oauth-started']),
     })
     .strict();
 
@@ -83,10 +57,19 @@ export function startComputerAttachmentSocket(
     server.on('upgrade', onUpgrade);
     socketServer.on('connection', (socket) => {
         let computerId: string | null = null;
+        let attachedServerId: string | null = null;
         let ordinary = false;
         socket.on('message', async (raw) => {
-            if (computerId) {
-                await ingestReport(db, connections, delivery, computerId, ordinary, raw.toString());
+            if (computerId && attachedServerId) {
+                await ingestReport(
+                    db,
+                    connections,
+                    delivery,
+                    computerId,
+                    attachedServerId,
+                    ordinary,
+                    raw.toString()
+                );
                 return;
             }
             try {
@@ -101,6 +84,7 @@ export function startComputerAttachmentSocket(
                     return;
                 }
                 computerId = computer.id;
+                attachedServerId = computer.serverId;
                 ordinary = hello.protocolVersion === computerProtocolVersion;
                 sockets.set(computer.id, socket);
                 connections.register(computer.id, {
@@ -116,22 +100,10 @@ export function startComputerAttachmentSocket(
                         type: 'bootstrap-accepted',
                     })
                 );
+                emitServerUpdated({ scope: 'computer', serverId: computer.serverId });
                 if (!ordinary) {
                     return;
                 }
-                const grants = await db
-                    .select({
-                        agentId: agentMcpToolGrantsTable.agentId,
-                        connectionId: agentMcpToolGrantsTable.connectionId,
-                        toolName: agentMcpToolGrantsTable.toolName,
-                    })
-                    .from(agentMcpToolGrantsTable)
-                    .innerJoin(
-                        mcpConnectionsTable,
-                        eq(mcpConnectionsTable.id, agentMcpToolGrantsTable.connectionId)
-                    )
-                    .where(eq(mcpConnectionsTable.computerId, computer.id));
-                socket.send(JSON.stringify({ grants, type: 'mcp-grants' }));
                 // Idempotent reconnect: resend unacknowledged deliveries and drain
                 // any pending inbox for this Computer's Agents.
                 void delivery.onComputerReconnect(computer.id).catch(() => undefined);
@@ -143,7 +115,14 @@ export function startComputerAttachmentSocket(
             if (computerId) {
                 sockets.delete(computerId);
                 connections.unregister(computerId);
-                void markComputerOffline(db, computerId);
+                if (attachedServerId) {
+                    const serverId = attachedServerId;
+                    void markComputerOffline(db, computerId).then(() => {
+                        emitServerUpdated({ scope: 'computer', serverId });
+                    });
+                } else {
+                    void markComputerOffline(db, computerId);
+                }
             }
         });
     });
@@ -163,6 +142,7 @@ async function ingestReport(
     connections: ComputerConnections,
     delivery: AgentDelivery,
     computerId: string,
+    serverId: string,
     ordinary: boolean,
     raw: string
 ) {
@@ -177,6 +157,7 @@ async function ingestReport(
     if (update.success) {
         connections.setUpdatePhase(computerId, update.data.update.phase);
         await reportComputerUpdateProgress(db, computerId, update.data.update);
+        emitServerUpdated({ scope: 'computer', serverId });
         return;
     }
     if (!ordinary) {
@@ -197,15 +178,21 @@ async function ingestReport(
         return;
     }
 
-    const mcpInventory = mcpInventorySchema.safeParse(frame);
-    if (mcpInventory.success) {
-        await recordHostedMcpInventory(db, computerId, mcpInventory.data);
+    const reminderScript = hostedReminderScriptResultSchema.safeParse(frame);
+    if (reminderScript.success) {
+        await delivery.onReminderScriptResult(computerId, reminderScript.data);
         return;
     }
 
-    const mcpOAuthResponse = mcpOAuthResponseSchema.safeParse(frame);
-    if (mcpOAuthResponse.success) {
-        connections.acceptMcpResponse(computerId, mcpOAuthResponse.data);
+    const skillImport = hostedAgentSkillImportResultSchema.safeParse(frame);
+    if (skillImport.success) {
+        connections.acceptSkillImport(computerId, skillImport.data);
+        return;
+    }
+
+    const workspace = hostedAgentWorkspaceResultSchema.safeParse(frame);
+    if (workspace.success) {
+        connections.acceptWorkspaceResult(computerId, workspace.data);
         return;
     }
 
@@ -219,4 +206,5 @@ async function ingestReport(
     if (report.data.agents.length > 0) {
         await recordAgentEffectiveState(db, computerId, report.data.agents);
     }
+    emitServerUpdated({ scope: 'computer', serverId });
 }

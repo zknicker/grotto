@@ -1,18 +1,34 @@
 import { createRouter } from '../trpc.ts';
+import { agentActivityProcedure } from './activity.ts';
+import { agentChatsProcedure } from './chats.ts';
 import { configureAgentProcedure } from './configure.ts';
 import { createAgentProcedure } from './create.ts';
 import { deleteAgentProcedure } from './delete.ts';
 import { agentDeliveryStateProcedure } from './delivery-state.ts';
+import { importAgentSkillProcedure } from './import-skill.ts';
 import { listAgentsProcedure } from './list.ts';
+import { resetAgentProcedure } from './reset.ts';
+import { restartAgentProcedure } from './restart.ts';
 import { startAgentProcedure } from './start.ts';
 import { stopAgentProcedure } from './stop.ts';
+import { updateAgentProfileProcedure } from './update-profile.ts';
+import { agentWorkspaceFileProcedure } from './workspace-file.ts';
+import { agentWorkspaceFilesProcedure } from './workspace-files.ts';
 
 export const agentRouter = createRouter({
+    activity: agentActivityProcedure,
+    chats: agentChatsProcedure,
     configure: configureAgentProcedure,
     create: createAgentProcedure,
     delete: deleteAgentProcedure,
     deliveryState: agentDeliveryStateProcedure,
+    importSkill: importAgentSkillProcedure,
     list: listAgentsProcedure,
+    reset: resetAgentProcedure,
+    restart: restartAgentProcedure,
     start: startAgentProcedure,
     stop: stopAgentProcedure,
+    updateProfile: updateAgentProfileProcedure,
+    workspaceFile: agentWorkspaceFileProcedure,
+    workspaceFiles: agentWorkspaceFilesProcedure,
 });

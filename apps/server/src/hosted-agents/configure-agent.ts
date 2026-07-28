@@ -2,7 +2,7 @@ import type { HostedAgent, HostedConfigureAgentInput } from '@tavern/api';
 import { and, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { agentsTable, chatsTable } from '../postgres/schema.ts';
+import { agentDeliveryTable, agentsTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -46,7 +46,7 @@ export async function configureHostedAgent(
             throw new AgentConfigDeniedError('No configured Agent exists with that id.');
         }
 
-        const { inventory } = await resolveAssignedComputer(tx, {
+        const { health: computerHealth, inventory } = await resolveAssignedComputer(tx, {
             computerId: agent.computerId,
             serverId: input.serverId,
         });
@@ -62,8 +62,11 @@ export async function configureHostedAgent(
         const agentDm = alias(chatsTable, 'agent_dm');
         const [row] = await tx
             .select({
+                activeRunId: agentDeliveryTable.activeRunId,
                 computerId: agentsTable.computerId,
+                consecutiveFailures: agentDeliveryTable.consecutiveFailures,
                 createdAt: agentsTable.createdAt,
+                description: agentsTable.description,
                 desiredModelId: agentsTable.desiredModelId,
                 desiredRuntimeId: agentsTable.desiredRuntimeId,
                 displayName: agentsTable.displayName,
@@ -76,6 +79,7 @@ export async function configureHostedAgent(
                 id: agentsTable.id,
                 role: agentsTable.role,
                 serverId: agentsTable.serverId,
+                stopped: agentDeliveryTable.stopped,
             })
             .from(agentsTable)
             .leftJoin(
@@ -87,6 +91,7 @@ export async function configureHostedAgent(
                     eq(agentDm.kind, 'dm')
                 )
             )
+            .leftJoin(agentDeliveryTable, eq(agentDeliveryTable.agentId, agentsTable.id))
             .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
             .limit(1);
 
@@ -94,6 +99,12 @@ export async function configureHostedAgent(
             throw new AgentConfigDeniedError('No configured Agent exists with that id.');
         }
 
-        return toHostedAgent(row satisfies ConfiguredAgentRow);
+        return toHostedAgent({
+            ...row,
+            activeRunId: row.activeRunId ?? null,
+            computerHealth,
+            consecutiveFailures: row.consecutiveFailures ?? 0,
+            stopped: row.stopped ?? false,
+        } satisfies ConfiguredAgentRow);
     });
 }

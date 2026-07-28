@@ -5,6 +5,7 @@ import type {
 } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { listAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
@@ -25,7 +26,6 @@ import { autoFollowHostedThreadMentions } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
 import { requireChatAccess } from './chat-access.ts';
-import { readDmAgentId } from './dm-agent.ts';
 import { toHostedChatMessage } from './message-shape.ts';
 
 export class ChatNonceConflictError extends Error {
@@ -45,8 +45,8 @@ export class DirectThreadSendError extends Error {
 export interface SendHostedChatMessageResult {
     event: HostedDurableEvent | null;
     receipt: HostedChatMessageReceipt;
-    /** The seated DM Agent whose pending inbox this send enqueued, if any. */
-    wake: { agentId: string; serverId: string } | null;
+    /** Agents whose durable pending inbox this send enqueued. */
+    wakes: Array<{ agentId: string; serverId: string }>;
 }
 
 export async function sendHostedChatMessage(
@@ -143,7 +143,7 @@ export async function sendHostedChatMessage(
                     message: toHostedChatMessage(existing, existingAttachments),
                     threadChatId: thread?.id ?? null,
                 },
-                wake: null,
+                wakes: [],
             };
         }
 
@@ -221,23 +221,24 @@ export async function sendHostedChatMessage(
                 id: chatEventsTable.id,
             });
 
-        // Enqueue the seated DM Agent's pending work in this same transaction, so
-        // a committed message can never leave its wake unqueued. The wire
-        // dispatch is the caller's separate, recoverable step.
-        let wake: SendHostedChatMessageResult['wake'] = null;
-        if (!thread && writeChat.kind === 'dm') {
-            const agentId = await readDmAgentId(tx, input.serverId, writeChatId);
-            if (agentId) {
-                await agentDelivery.enqueue(tx, {
-                    agentId,
-                    chatId: writeChatId,
-                    content: input.content,
-                    dedupeKey: message.id,
-                    serverId: input.serverId,
-                    source: 'human',
-                });
-                wake = { agentId, serverId: input.serverId };
-            }
+        // Plan every Agent recipient under its Server-owned attention state in
+        // this same transaction. The wire nudge remains separately recoverable.
+        const recipientIds = await listAgentMessageRecipients(tx, {
+            authorAgentId: null,
+            chatId: writeChatId,
+            content: input.content,
+            serverId: input.serverId,
+        });
+        for (const agentId of recipientIds) {
+            await agentDelivery.enqueue(tx, {
+                agentId,
+                chatId: writeChatId,
+                content: input.content,
+                dedupeKey: message.id,
+                sequence: message.sequence,
+                serverId: input.serverId,
+                source: 'human',
+            });
         }
 
         return {
@@ -258,7 +259,7 @@ export async function sendHostedChatMessage(
                 message: toHostedChatMessage(message, attachmentMetadata(attachments)),
                 threadChatId: thread?.id ?? null,
             },
-            wake,
+            wakes: recipientIds.map((agentId) => ({ agentId, serverId: input.serverId })),
         };
     });
 }

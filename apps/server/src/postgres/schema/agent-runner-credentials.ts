@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { foreignKey, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { chatsTable } from './chats.ts';
@@ -17,6 +18,9 @@ export const agentRunnerCredentialsTable = pgTable(
         chatId: text('chat_id').notNull(),
         computerId: text('computer_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        expiresAt: timestamp('expires_at', { withTimezone: true })
+            .notNull()
+            .default(sql`now() + interval '12 hours'`),
         id: text('id').primaryKey(),
         revokedAt: timestamp('revoked_at', { withTimezone: true }),
         runId: text('run_id').notNull(),

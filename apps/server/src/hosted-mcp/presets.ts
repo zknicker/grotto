@@ -1,7 +1,7 @@
 import type { HostedMcpConnection, HostedMcpPresetAccountCreate } from '@tavern/api';
-import type { ComputerConnections } from '../computers/connections.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HostedMcpRuntime } from './runtime.ts';
 import { createHostedMcpConnection } from './service.ts';
 
 const presets = {
@@ -17,20 +17,17 @@ const presets = {
 
 export async function createHostedMcpPresetAccount(
     db: GrottoDatabase,
-    connections: ComputerConnections,
+    runtime: HostedMcpRuntime,
     member: GrottoUser | null,
     input: HostedMcpPresetAccountCreate
 ): Promise<HostedMcpConnection> {
     const preset = presets[input.preset];
     return await createHostedMcpConnection(
         db,
-        connections,
+        runtime,
         member,
         {
-            args: [],
             auth: 'oauth',
-            computerId: input.computerId,
-            env: {},
             headers: {},
             name: input.name || preset.name,
             oauthScopes: [],

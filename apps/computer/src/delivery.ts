@@ -58,16 +58,39 @@ export function decideStart(marker: RunMarker | null): StartDecision {
  * live — the guard that stops a duplicate start frame from racing into a second
  * concurrent child.
  */
-export function reserveRun(
+export type AgentRunReservation =
+    | { controller: AbortController; kind: 'reserved' }
+    | { kind: 'busy' }
+    | { kind: 'duplicate' };
+
+export function reserveAgentRun(
     running: Map<string, AbortController>,
+    agentRuns: Map<string, string>,
+    agentId: string,
     runId: string
-): AbortController | null {
+): AgentRunReservation {
     if (running.has(runId)) {
-        return null;
+        return { kind: 'duplicate' };
+    }
+    if (agentRuns.has(agentId)) {
+        return { kind: 'busy' };
     }
     const controller = new AbortController();
     running.set(runId, controller);
-    return controller;
+    agentRuns.set(agentId, runId);
+    return { controller, kind: 'reserved' };
+}
+
+export function releaseAgentRun(
+    running: Map<string, AbortController>,
+    agentRuns: Map<string, string>,
+    agentId: string,
+    runId: string
+): void {
+    running.delete(runId);
+    if (agentRuns.get(agentId) === runId) {
+        agentRuns.delete(agentId);
+    }
 }
 
 export async function readRunMarker(

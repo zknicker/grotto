@@ -1,0 +1,114 @@
+import type { FastifyInstance } from 'fastify';
+import * as z from 'zod';
+import { emitDurableChatEvent } from '../chats/durable-events.ts';
+import type { GrottoDatabase } from '../postgres/connection.ts';
+import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
+import {
+    claimAgentTasks,
+    createAgentTasks,
+    listAgentTasks,
+    unclaimAgentTask,
+    updateAgentTask,
+} from './tasks.ts';
+
+const taskStatusSchema = z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']);
+
+export function registerAgentTaskRoutes(app: FastifyInstance, db: GrottoDatabase) {
+    app.get('/api/agent/tasks', async (request, reply) => {
+        const runner = await authorizeAgentRunner(db, request);
+        const parsed = z
+            .object({ status: taskStatusSchema.optional(), target: z.string().optional() })
+            .safeParse(request.query);
+        if (!(runner && parsed.success)) {
+            return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The task request was invalid.');
+        }
+        try {
+            return await listAgentTasks(db, runner, parsed.data);
+        } catch (cause) {
+            return sendAgentReadError(reply, cause);
+        }
+    });
+
+    app.post('/api/agent/tasks/create', async (request, reply) => {
+        const runner = await authorizeAgentRunner(db, request);
+        const parsed = z
+            .object({
+                assignee: z.string().optional(),
+                content: z.string().optional(),
+                target: z.string().min(1),
+                titles: z.array(z.string().min(1)).max(20).optional(),
+            })
+            .safeParse(request.body);
+        if (!(runner && parsed.success)) {
+            return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The task request was invalid.');
+        }
+        try {
+            const result = await createAgentTasks(db, runner, parsed.data);
+            emitTaskEvents(result.events);
+            return { tasks: result.tasks };
+        } catch (cause) {
+            return sendAgentReadError(reply, cause);
+        }
+    });
+
+    app.post('/api/agent/tasks/claim', async (request, reply) => {
+        const runner = await authorizeAgentRunner(db, request);
+        const parsed = z
+            .object({
+                messageId: z.string().optional(),
+                numbers: z.array(z.number().int().positive()).max(20).optional(),
+                target: z.string().min(1),
+            })
+            .safeParse(request.body);
+        if (!(runner && parsed.success)) {
+            return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The task request was invalid.');
+        }
+        try {
+            const result = await claimAgentTasks(db, runner, parsed.data);
+            emitTaskEvents(result.events);
+            return { claimed: result.claimed };
+        } catch (cause) {
+            return sendAgentReadError(reply, cause);
+        }
+    });
+
+    for (const action of ['unclaim', 'update'] as const) {
+        app.post(`/api/agent/tasks/${action}`, async (request, reply) => {
+            const runner = await authorizeAgentRunner(db, request);
+            const parsed = z
+                .object({
+                    number: z.number().int().positive(),
+                    status: taskStatusSchema.optional(),
+                    target: z.string().min(1),
+                })
+                .safeParse(request.body);
+            if (!(runner && parsed.success) || (action === 'update' && !parsed.data.status)) {
+                return sendAgentApiError(
+                    reply,
+                    400,
+                    'INVALID_ARG',
+                    'The task request was invalid.'
+                );
+            }
+            try {
+                const result =
+                    action === 'unclaim'
+                        ? await unclaimAgentTask(db, runner, parsed.data)
+                        : await updateAgentTask(db, runner, {
+                              ...parsed.data,
+                              status: parsed.data.status as z.infer<typeof taskStatusSchema>,
+                          });
+                emitTaskEvents([result.event]);
+                return { task: result.task };
+            } catch (cause) {
+                return sendAgentReadError(reply, cause);
+            }
+        });
+    }
+}
+
+function emitTaskEvents(events: Parameters<typeof emitDurableChatEvent>[0]['event'][]) {
+    for (const event of events) {
+        emitDurableChatEvent({ audienceUserId: null, event });
+    }
+}

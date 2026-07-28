@@ -62,6 +62,7 @@ class FakeTransport implements DeliveryTransport {
 }
 
 interface Seed {
+    agentHandle: string;
     agentId: string;
     chatId: string;
     computerId: string;
@@ -74,6 +75,7 @@ async function seedAgent(): Promise<Seed> {
     const serverId = createOpaqueId('srv');
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
+    const agentHandle = `ada-${randomBytes(4).toString('hex')}`;
     const chatId = createOpaqueId('cht');
     await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
     await db
@@ -93,7 +95,7 @@ async function seedAgent(): Promise<Seed> {
         desiredModelId: 'fake-model',
         desiredRuntimeId: 'fake',
         displayName: 'Ada',
-        handle: `ada-${randomBytes(4).toString('hex')}`,
+        handle: agentHandle,
         homeTimezone: 'UTC',
         id: agentId,
         role: 'member',
@@ -107,7 +109,7 @@ async function seedAgent(): Promise<Seed> {
         kind: 'dm',
         serverId,
     });
-    return { agentId, chatId, computerId, serverId };
+    return { agentHandle, agentId, chatId, computerId, serverId };
 }
 
 function turnSummary(
@@ -181,6 +183,8 @@ test('drains delivered work into one run, then settles it', async () => {
 
     const starts = transport.framesOfType('start');
     expect(starts).toHaveLength(1);
+    expect(starts[0]?.agentName).toBe(seed.agentHandle);
+    expect(starts[0]?.homeTimezone).toBe('UTC');
     expect(starts[0]?.prompt).toContain('hello there');
     const runId = starts[0]?.runId ?? '';
 
@@ -246,6 +250,14 @@ test('ignores a duplicate delivery of the same message', async () => {
 
     transport.online.add(seed.computerId);
     await delivery.onComputerReconnect(seed.computerId);
+    expect(transport.framesOfType('agent-configure')).toEqual([
+        {
+            agentId: seed.agentId,
+            modelId: 'fake-model',
+            runtimeId: 'fake',
+            type: 'agent-configure',
+        },
+    ]);
     const starts = transport.framesOfType('start');
     expect(starts).toHaveLength(1);
     expect(starts[0]?.prompt.match(/once/g)).toHaveLength(1);
@@ -267,7 +279,8 @@ test('queues work for a busy Agent and notices it, then drains at the boundary',
     const firstRun = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: firstRun });
 
-    // Busy: a second message queues and yields a content-free notice, no run.
+    // Busy: the wire notice is content-free, starts no second model turn, and
+    // does not append the new body to the active model prompt.
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.chatId,
@@ -279,7 +292,8 @@ test('queues work for a busy Agent and notices it, then drains at the boundary',
     const notices = transport.framesOfType('notice');
     expect(notices).toHaveLength(1);
     expect(notices[0]?.pending).toBe(1);
-    expect(JSON.stringify(notices[0])).not.toContain('second');
+    expect('inbox' in (notices[0] ?? {})).toBe(false);
+    expect(transport.framesOfType('start')[0]?.prompt).not.toContain('second');
 
     // The safe boundary: the run settles and the queued work drains into a run.
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, firstRun, 'completed'));
@@ -347,16 +361,19 @@ test('queues while the Computer is offline and redelivers on reconnect', async (
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
     });
-    // Offline: a run was recorded durably but nothing reached the wire.
+    // Offline: work stays queued; a run is created only once a Computer can
+    // actually accept it, allowing one reconnect drain across all targets.
     expect(transport.sent).toHaveLength(0);
     const pending = await readDeliveryState(connection.db, seed.agentId);
-    expect(pending?.activeRunId).not.toBeNull();
+    expect(pending?.activeRunId).toBeNull();
 
     transport.online.add(seed.computerId);
     await delivery.onComputerReconnect(seed.computerId);
     const starts = transport.framesOfType('start');
     expect(starts).toHaveLength(1);
-    expect(starts[0]?.runId).toBe(pending?.activeRunId);
+    expect(starts[0]?.runId).toBe(
+        (await readDeliveryState(connection.db, seed.agentId))?.activeRunId
+    );
 });
 
 test('records a duplicate turn summary exactly once', async () => {
@@ -474,11 +491,10 @@ test('a degraded Agent stops auto-retrying until fresh human intent', async () =
     expect((await readDeliveryState(connection.db, seed.agentId))?.consecutiveFailures).toBe(0);
 });
 
-test('drains one chat per run and never merges chats into a fixed-chat turn', async () => {
+test('a floating-session run drains queued work across every target', async () => {
     const seed = await seedAgent();
     const chatB = await addDmChat(seed);
     const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
     const delivery = new AgentDelivery(connection.db, transport);
 
     await delivery.deliver({
@@ -488,9 +504,6 @@ test('drains one chat per run and never merges chats into a fixed-chat turn', as
         dedupeKey: 'a-1',
         serverId: seed.serverId,
     });
-    const firstRun = transport.framesOfType('start')[0]?.runId ?? '';
-    await delivery.onAck({ agentId: seed.agentId, runId: firstRun });
-
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: chatB,
@@ -499,16 +512,14 @@ test('drains one chat per run and never merges chats into a fixed-chat turn', as
         serverId: seed.serverId,
     });
 
+    expect(transport.framesOfType('start')).toHaveLength(0);
+    transport.online.add(seed.computerId);
+    await delivery.onComputerReconnect(seed.computerId);
     const first = transport.framesOfType('start')[0];
     expect(first?.chatId).toBe(seed.chatId);
     expect(first?.prompt).toContain('from chat A');
-    expect(first?.prompt).not.toContain('from chat B');
-
-    await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, firstRun, 'completed'));
-    const second = transport.framesOfType('start')[1];
-    expect(second?.chatId).toBe(chatB);
-    expect(second?.prompt).toContain('from chat B');
-    expect(second?.prompt).not.toContain('from chat A');
+    expect(first?.prompt).toContain('from chat B');
+    expect(first?.inbox.map((item) => item.chatId)).toEqual([seed.chatId, chatB]);
 });
 
 test('Stop revokes the run credential so it holds even without the socket', async () => {
@@ -545,6 +556,67 @@ test('Stop revokes the run credential so it holds even without the socket', asyn
         .from(agentRunnerCredentialsTable)
         .where(eq(agentRunnerCredentialsTable.id, runnerId));
     expect(credential?.revokedAt).not.toBeNull();
+});
+
+test('Restart preserves the session generation and immediately redrives pending work', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'restart me',
+        dedupeKey: 'msg-restart',
+        serverId: seed.serverId,
+    });
+    const first = transport.framesOfType('start')[0];
+
+    await delivery.restart({ agentId: seed.agentId, serverId: seed.serverId });
+
+    expect(transport.framesOfType('stop')).toEqual([
+        { agentId: seed.agentId, runId: first?.runId, type: 'stop' },
+    ]);
+    expect(transport.framesOfType('start')).toHaveLength(2);
+    expect(transport.framesOfType('start')[1]?.runId).not.toBe(first?.runId);
+    const [agent] = await connection.db
+        .select({ generation: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(agent?.generation).toBe(1);
+});
+
+test('Reset rotates the session and tells the assigned Computer to clear local state', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'reset me',
+        dedupeKey: 'msg-reset',
+        serverId: seed.serverId,
+    });
+    const first = transport.framesOfType('start')[0];
+
+    await delivery.reset({ agentId: seed.agentId, kind: 'session', serverId: seed.serverId });
+
+    expect(transport.framesOfType('stop')).toEqual([
+        { agentId: seed.agentId, runId: first?.runId, type: 'stop' },
+    ]);
+    expect(transport.framesOfType('agent-reset')).toEqual([
+        { agentId: seed.agentId, kind: 'session', type: 'agent-reset' },
+    ]);
+    expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
+    expect(await countQueuedPending(connection.db, seed.agentId)).toBe(1);
+    const [agent] = await connection.db
+        .select({ generation: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(agent?.generation).toBe(2);
 });
 
 test('a failed turn that produced output does not requeue its work', async () => {

@@ -1,4 +1,11 @@
-import type { ComputerUpdatePhase, HostedAgentCommand, SignedComputerRelease } from '@tavern/api';
+import type {
+    ComputerUpdatePhase,
+    HostedAgentCommand,
+    HostedAgentSkillMetadata,
+    HostedAgentWorkspaceRequest,
+    HostedAgentWorkspaceResult,
+    SignedComputerRelease,
+} from '@tavern/api';
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 
@@ -10,16 +17,20 @@ interface AttachedComputer {
     updatePhase: ComputerUpdatePhase;
 }
 
-type McpOAuthStartResult =
-    | { authorizationUrl: string; status: 'ready' }
-    | { authorizationServerOrigin: string; status: 'trust-required' };
-
-interface PendingMcpRequest {
+interface PendingSkillImport {
+    agentId: string;
     computerId: string;
     reject(error: Error): void;
-    resolve(value: unknown): void;
+    resolve(skill: HostedAgentSkillMetadata): void;
     timeout: ReturnType<typeof setTimeout>;
-    type: 'mcp-oauth-completed' | 'mcp-oauth-started';
+}
+
+interface PendingWorkspaceRequest {
+    agentId: string;
+    computerId: string;
+    reject(error: Error): void;
+    resolve(result: NonNullable<HostedAgentWorkspaceResult['result']>): void;
+    timeout: ReturnType<typeof setTimeout>;
 }
 
 /**
@@ -31,7 +42,8 @@ interface PendingMcpRequest {
  */
 export class ComputerConnections implements DeliveryTransport {
     private readonly attached = new Map<string, AttachedComputer>();
-    private readonly pendingMcpRequests = new Map<string, PendingMcpRequest>();
+    private readonly pendingSkillImports = new Map<string, PendingSkillImport>();
+    private readonly pendingWorkspaceRequests = new Map<string, PendingWorkspaceRequest>();
 
     register(computerId: string, computer: AttachedComputer): void {
         this.attached.set(computerId, computer);
@@ -39,10 +51,17 @@ export class ComputerConnections implements DeliveryTransport {
 
     unregister(computerId: string): void {
         this.attached.delete(computerId);
-        for (const [requestId, pending] of this.pendingMcpRequests) {
+        for (const [requestId, pending] of this.pendingSkillImports) {
             if (pending.computerId === computerId) {
                 clearTimeout(pending.timeout);
-                this.pendingMcpRequests.delete(requestId);
+                this.pendingSkillImports.delete(requestId);
+                pending.reject(new Error('The selected Computer went offline.'));
+            }
+        }
+        for (const [requestId, pending] of this.pendingWorkspaceRequests) {
+            if (pending.computerId === computerId) {
+                clearTimeout(pending.timeout);
+                this.pendingWorkspaceRequests.delete(requestId);
                 pending.reject(new Error('The selected Computer went offline.'));
             }
         }
@@ -89,23 +108,109 @@ export class ComputerConnections implements DeliveryTransport {
         return true;
     }
 
-    sendMcpConnection(computerId: string, connection: unknown): boolean {
-        const computer = this.attached.get(computerId);
-        if (!(this.isOnline(computerId) && computer)) {
+    requestSkillImport(
+        computerId: string,
+        input: { agentId: string; sourceId: string }
+    ): Promise<HostedAgentSkillMetadata> {
+        const requestId = createOpaqueId('req');
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                this.pendingSkillImports.delete(requestId);
+                reject(new Error('The Computer did not finish the skill import.'));
+            }, 30_000);
+            this.pendingSkillImports.set(requestId, {
+                agentId: input.agentId,
+                computerId,
+                reject,
+                resolve,
+                timeout,
+            });
+            if (
+                !this.send(computerId, {
+                    ...input,
+                    requestId,
+                    type: 'agent-skill-import',
+                })
+            ) {
+                clearTimeout(timeout);
+                this.pendingSkillImports.delete(requestId);
+                reject(new Error('The selected Computer is offline.'));
+            }
+        });
+    }
+
+    acceptSkillImport(
+        computerId: string,
+        result: {
+            agentId: string;
+            error?: string;
+            requestId: string;
+            skill?: HostedAgentSkillMetadata;
+        }
+    ): boolean {
+        const pending = this.pendingSkillImports.get(result.requestId);
+        if (!pending || pending.computerId !== computerId || pending.agentId !== result.agentId) {
             return false;
         }
-        computer.send({ connection, type: 'mcp-upsert' });
+        clearTimeout(pending.timeout);
+        this.pendingSkillImports.delete(result.requestId);
+        if (result.skill) {
+            pending.resolve(result.skill);
+        } else {
+            pending.reject(new Error(result.error ?? 'The skill could not be imported.'));
+        }
         return true;
     }
 
-    sendMcpGrant(computerId: string, grant: unknown): boolean {
-        const computer = this.attached.get(computerId);
-        if (!computer?.ordinary) {
+    requestWorkspace(
+        computerId: string,
+        input: {
+            agentId: string;
+            operation: HostedAgentWorkspaceRequest['operation'];
+        }
+    ): Promise<NonNullable<HostedAgentWorkspaceResult['result']>> {
+        const requestId = createOpaqueId('req');
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                this.pendingWorkspaceRequests.delete(requestId);
+                reject(new Error('The Computer did not answer the workspace request.'));
+            }, 10_000);
+            this.pendingWorkspaceRequests.set(requestId, {
+                agentId: input.agentId,
+                computerId,
+                reject,
+                resolve,
+                timeout,
+            });
+            if (
+                !this.send(computerId, {
+                    ...input,
+                    requestId,
+                    type: 'agent-workspace-request',
+                })
+            ) {
+                clearTimeout(timeout);
+                this.pendingWorkspaceRequests.delete(requestId);
+                reject(new Error('The selected Computer is offline.'));
+            }
+        });
+    }
+
+    acceptWorkspaceResult(computerId: string, result: HostedAgentWorkspaceResult): boolean {
+        const pending = this.pendingWorkspaceRequests.get(result.requestId);
+        if (!pending || pending.computerId !== computerId || pending.agentId !== result.agentId) {
             return false;
         }
-        computer.send({ grant, type: 'mcp-grant' });
+        clearTimeout(pending.timeout);
+        this.pendingWorkspaceRequests.delete(result.requestId);
+        if (result.result) {
+            pending.resolve(result.result);
+        } else {
+            pending.reject(new Error(result.error ?? 'The workspace request failed.'));
+        }
         return true;
     }
+
     setUpdatePhase(computerId: string, updatePhase: ComputerUpdatePhase): void {
         const computer = this.attached.get(computerId);
         if (computer) {
@@ -120,100 +225,5 @@ export class ComputerConnections implements DeliveryTransport {
         }
         computer.send({ release, type: 'update' });
         return true;
-    }
-
-    sendMcpHeaders(
-        computerId: string,
-        connectionId: string,
-        headers: Record<string, string>
-    ): boolean {
-        const attached = this.attached.get(computerId);
-        if (!(attached && this.isOnline(computerId))) {
-            return false;
-        }
-        attached.send({ connectionId, headers, type: 'mcp-replace-headers' });
-        return true;
-    }
-
-    sendMcpControl(
-        computerId: string,
-        type: 'mcp-delete' | 'mcp-disconnect' | 'mcp-refresh',
-        connectionId: string
-    ): boolean {
-        const attached = this.attached.get(computerId);
-        if (!(attached && this.isOnline(computerId))) {
-            return false;
-        }
-        attached.send({ connectionId, type });
-        return true;
-    }
-
-    requestMcpOAuthStart(
-        computerId: string,
-        input: {
-            allowAuthorizationServerOrigin: boolean;
-            connectionId: string;
-            redirectUrl: string;
-            routingState: string;
-        }
-    ): Promise<McpOAuthStartResult> {
-        return this.requestMcp(computerId, 'mcp-oauth-started', {
-            ...input,
-            type: 'mcp-oauth-start',
-        });
-    }
-
-    requestMcpOAuthComplete(
-        computerId: string,
-        input: { code: string; connectionId: string; redirectUrl: string; state: string }
-    ): Promise<void> {
-        return this.requestMcp(computerId, 'mcp-oauth-completed', {
-            ...input,
-            type: 'mcp-oauth-complete',
-        });
-    }
-
-    acceptMcpResponse(
-        computerId: string,
-        input: { error?: string; requestId: string; result?: unknown; type: string }
-    ): boolean {
-        const pending = this.pendingMcpRequests.get(input.requestId);
-        if (!pending || pending.computerId !== computerId || pending.type !== input.type) {
-            return false;
-        }
-        clearTimeout(pending.timeout);
-        this.pendingMcpRequests.delete(input.requestId);
-        if (input.error) {
-            pending.reject(new Error(input.error));
-        } else {
-            pending.resolve(input.result);
-        }
-        return true;
-    }
-
-    private requestMcp<Result>(
-        computerId: string,
-        responseType: PendingMcpRequest['type'],
-        frame: Record<string, unknown>
-    ): Promise<Result> {
-        const attached = this.attached.get(computerId);
-        if (!(attached && this.isOnline(computerId))) {
-            return Promise.reject(new Error('The selected Computer must be online.'));
-        }
-        const requestId = createOpaqueId('req');
-        return new Promise<Result>((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                this.pendingMcpRequests.delete(requestId);
-                reject(new Error('The selected Computer did not respond.'));
-            }, 10_000);
-            this.pendingMcpRequests.set(requestId, {
-                computerId,
-                reject,
-                resolve: (value) => resolve(value as Result),
-                timeout,
-                type: responseType,
-            });
-            attached.send({ ...frame, requestId });
-        });
     }
 }

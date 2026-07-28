@@ -6,25 +6,10 @@ import type {
     OAuthTokens,
 } from '@ai-sdk/mcp';
 import { auth } from '@ai-sdk/mcp';
-import { readGoogleMcpOAuthClient } from './google-mcp-oauth-client.ts';
-import type { AttachmentMcpRuntime } from './mcp-runtime.ts';
-import { assertSecureOrLoopbackUrl, secureMcpFetch } from './mcp-secure-fetch.ts';
+import type { HostedMcpRuntime, HostedMcpSecret } from './runtime.ts';
+import { assertSecureOrLoopbackUrl, secureMcpFetch } from './secure-fetch.ts';
 
-export interface AttachmentMcpSecret {
-    approvedAuthorizationServerOrigins: string[];
-    authorizationServerInformation?: Record<string, unknown>;
-    clientInformation?: Record<string, unknown>;
-    configuredClientInformation?: Record<string, unknown>;
-    env: Record<string, string>;
-    headers: Record<string, string>;
-    oauthScopes: string[];
-    oauthState?: string;
-    redirectUrl?: string;
-    tokens?: Record<string, unknown>;
-    verifier?: string;
-}
-
-export type AttachmentOAuthStartResult =
+export type HostedMcpOAuthStartResult =
     | { authorizationUrl: string; status: 'ready' }
     | { authorizationServerOrigin: string; status: 'trust-required' };
 
@@ -34,29 +19,28 @@ class AuthorizationOriginError extends Error {
     }
 }
 
-export async function startAttachmentMcpOAuth(
-    storage: AttachmentMcpRuntime,
+export async function startHostedMcpAuthorization(
+    runtime: HostedMcpRuntime,
     input: {
         allowAuthorizationServerOrigin: boolean;
         connectionId: string;
         redirectUrl: string;
         routingState: string;
     }
-): Promise<AttachmentOAuthStartResult> {
-    const connection = await requireOAuthConnection(storage, input.connectionId);
+): Promise<HostedMcpOAuthStartResult> {
+    const connection = await requireOAuthConnection(runtime, input.connectionId);
     assertSecureOrLoopbackUrl(input.redirectUrl, 'OAuth redirect');
-    const existing = await storage.readSecret(input.connectionId);
-    await storage.writeSecret(input.connectionId, {
+    const existing = await runtime.readSecret(input.connectionId);
+    await runtime.writeSecret(input.connectionId, {
         ...existing,
-        ...(connection.preset === 'google-calendar' ? {} : { clientInformation: undefined }),
         oauthState: undefined,
         redirectUrl: input.redirectUrl,
         tokens: undefined,
         verifier: undefined,
     });
     let authorizationUrl: string | null = null;
-    const provider = await createAttachmentOAuthProvider(
-        storage,
+    const provider = await createHostedMcpOAuthProvider(
+        runtime,
         input.connectionId,
         input.redirectUrl,
         {
@@ -70,33 +54,33 @@ export async function startAttachmentMcpOAuth(
     try {
         const result = await auth(provider, {
             fetchFn: secureMcpFetch,
-            serverUrl: requireUrl(connection.url),
+            serverUrl: connection.url,
         });
         if (result !== 'REDIRECT' || !authorizationUrl) {
             throw new Error('The MCP authorization server did not return an authorization URL.');
         }
         return { authorizationUrl, status: 'ready' };
-    } catch (error) {
-        if (error instanceof AuthorizationOriginError) {
-            await storage.writeSecret(input.connectionId, {
+    } catch (cause) {
+        if (cause instanceof AuthorizationOriginError) {
+            await runtime.writeSecret(input.connectionId, {
                 ...existing,
-                approvedAuthorizationServerOrigins: (await storage.readSecret(input.connectionId))
+                approvedAuthorizationServerOrigins: (await runtime.readSecret(input.connectionId))
                     .approvedAuthorizationServerOrigins,
             });
-            return { authorizationServerOrigin: error.origin, status: 'trust-required' };
+            return { authorizationServerOrigin: cause.origin, status: 'trust-required' };
         }
-        await storage.writeSecret(input.connectionId, existing);
-        throw error;
+        await runtime.writeSecret(input.connectionId, existing);
+        throw cause;
     }
 }
 
-export async function completeAttachmentMcpOAuth(
-    storage: AttachmentMcpRuntime,
+export async function completeHostedMcpAuthorization(
+    runtime: HostedMcpRuntime,
     input: { code: string; connectionId: string; redirectUrl: string; state: string }
 ): Promise<void> {
-    const connection = await requireOAuthConnection(storage, input.connectionId);
-    const provider = await createAttachmentOAuthProvider(
-        storage,
+    const connection = await requireOAuthConnection(runtime, input.connectionId);
+    const provider = await createHostedMcpOAuthProvider(
+        runtime,
         input.connectionId,
         input.redirectUrl,
         {
@@ -110,15 +94,15 @@ export async function completeAttachmentMcpOAuth(
         authorizationCode: input.code,
         callbackState: input.state,
         fetchFn: secureMcpFetch,
-        serverUrl: requireUrl(connection.url),
+        serverUrl: connection.url,
     });
     if (result !== 'AUTHORIZED') {
         throw new Error('MCP authorization did not complete.');
     }
 }
 
-export async function createAttachmentOAuthProvider(
-    storage: AttachmentMcpRuntime,
+export async function createHostedMcpOAuthProvider(
+    runtime: HostedMcpRuntime,
     connectionId: string,
     redirectUrl: string,
     options: {
@@ -127,8 +111,8 @@ export async function createAttachmentOAuthProvider(
         routingState?: string;
     }
 ): Promise<OAuthClientProvider> {
-    const connection = await requireOAuthConnection(storage, connectionId);
-    let secret = await storage.readSecret(connectionId);
+    const connection = await requireOAuthConnection(runtime, connectionId);
+    let secret = await runtime.readSecret(connectionId);
     const trustedOrigins = new Set([
         ...(connection.preset === 'google-calendar'
             ? ['https://accounts.google.com', 'https://oauth2.googleapis.com']
@@ -136,9 +120,9 @@ export async function createAttachmentOAuthProvider(
         ...secret.approvedAuthorizationServerOrigins,
     ]);
     let approvalAvailable = options.allowAuthorizationServerOrigin;
-    const update = async (patch: Partial<AttachmentMcpSecret>) => {
+    const update = async (patch: Partial<HostedMcpSecret>) => {
         secret = { ...secret, ...patch };
-        await storage.writeSecret(connectionId, secret);
+        await runtime.writeSecret(connectionId, secret);
     };
     const trustOrigin = async (url: URL) => {
         assertSecureOrLoopbackUrl(url.toString(), 'OAuth authorization server');
@@ -158,11 +142,10 @@ export async function createAttachmentOAuthProvider(
     };
 
     return {
-        authorizationServerInformation() {
-            return secret.authorizationServerInformation as
+        authorizationServerInformation: () =>
+            secret.authorizationServerInformation as
                 | OAuthAuthorizationServerInformation
-                | undefined;
-        },
+                | undefined,
         async clientInformation() {
             if (secret.configuredClientInformation) {
                 return secret.configuredClientInformation as OAuthClientInformation;
@@ -173,7 +156,7 @@ export async function createAttachmentOAuthProvider(
             if (connection.preset !== 'google-calendar') {
                 return undefined;
             }
-            const client = await readGoogleMcpOAuthClient();
+            const client = googleOAuthClient();
             await update({ clientInformation: client });
             return client;
         },
@@ -251,15 +234,14 @@ export async function createAttachmentOAuthProvider(
         },
         async invalidateCredentials(scope) {
             if (scope === 'all') {
-                await storage.writeSecret(connectionId, {
+                secret = {
                     approvedAuthorizationServerOrigins: secret.approvedAuthorizationServerOrigins,
                     configuredClientInformation: secret.configuredClientInformation,
-                    env: secret.env,
                     headers: secret.headers,
                     oauthScopes: secret.oauthScopes,
                     redirectUrl: secret.redirectUrl,
-                });
-                secret = await storage.readSecret(connectionId);
+                };
+                await runtime.writeSecret(connectionId, secret);
                 return;
             }
             await update({
@@ -271,12 +253,21 @@ export async function createAttachmentOAuthProvider(
     };
 }
 
-async function requireOAuthConnection(storage: AttachmentMcpRuntime, connectionId: string) {
-    const connection = await storage.readConnection(connectionId);
-    if (connection.auth !== 'oauth' || connection.command) {
+async function requireOAuthConnection(runtime: HostedMcpRuntime, connectionId: string) {
+    const connection = await runtime.readConnection(connectionId);
+    if (connection.auth !== 'oauth') {
         throw new Error('This MCP connection does not use OAuth.');
     }
     return connection;
+}
+
+function googleOAuthClient(): OAuthClientInformation {
+    const clientId = process.env.TAVERN_GOOGLE_OAUTH_CLIENT_ID?.trim();
+    const clientSecret = process.env.TAVERN_GOOGLE_OAUTH_CLIENT_SECRET?.trim();
+    if (!(clientId && clientSecret)) {
+        throw new Error('The Grotto Server Google Calendar OAuth client is unavailable.');
+    }
+    return { client_id: clientId, client_secret: clientSecret };
 }
 
 function validateAuthorizationServerInformation(value: OAuthAuthorizationServerInformation) {
@@ -285,11 +276,4 @@ function validateAuthorizationServerInformation(value: OAuthAuthorizationServerI
             assertSecureOrLoopbackUrl(endpoint, 'OAuth authorization server endpoint');
         }
     }
-}
-
-function requireUrl(value: string | null) {
-    if (!value) {
-        throw new Error('MCP connection URL is missing.');
-    }
-    return value;
 }

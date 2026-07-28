@@ -10,6 +10,7 @@ apps/server/data
 .context
 apps/server/dist-sidecar
 apps/server/release
+apps/computer/release
 apps/website/dist-grotto
 apps/website/electron-dist
 apps/website/electron/generated-icons

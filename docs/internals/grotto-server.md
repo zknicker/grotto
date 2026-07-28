@@ -125,13 +125,14 @@ temporary secret only in memory. An Owner or Admin approves exactly once; the
 Server stores only the hash of the Computer-generated Server credential. A
 re-run validates that credential and fails closed if it was revoked. The
 Computer keeps its attachment record under `~/.grotto/computer`, separate from
-npm-delivered code, and its resident launchd service reconnects through the
-single outbound `/computer/attachment` socket.
+the standalone executable at `~/.local/bin/grotto-computer`, and its resident
+launchd service reconnects through the single outbound
+`/computer/attachment` socket.
 
 Every socket starts with bootstrap protocol version 1. The authenticated
 `bootstrap` frame carries only Computer product/protocol facts and shared update
 progress. The Server admits ordinary reports, delivery, and control only when
-the ordinary protocol is version 2. An incompatible Computer stays connected
+the ordinary protocol is version 3. An incompatible Computer stays connected
 as `update-required`: signed update control remains available, while inventory,
 Agent delivery, and MCP control fail closed. A Computer that cannot send the
 stable bootstrap frame is rejected and must be repaired with
@@ -142,7 +143,7 @@ shared Computer-local update record, so every attached Server sees the same
 phase without receiving the initiating User or Server identity. Download and
 signature verification run while turns may continue. `waiting-for-agents`
 closes local and Server admission, waits for every active-run marker to clear
-without a deadline, then the verified npm tarball replaces code and the
+without a deadline, then the verified standalone executable atomically replaces code and the
 resident service restarts every attachment runner. Queued Server work drains
 after reconnect.
 

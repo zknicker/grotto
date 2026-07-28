@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { resetReleaseSurfaceDecision } from './release-surfaces.mjs';
 import {
     compareVersions,
     fail,
@@ -50,6 +51,7 @@ const main = async () => {
         bumpRuntime,
         requireRuntime,
     });
+    await updateJson('release-surfaces.json', () => resetReleaseSurfaceDecision(targetVersion));
 
     printSummary({ bumpRuntime, currentVersion, requireRuntime, targetVersion });
 };
@@ -152,6 +154,7 @@ function printSummary({ bumpRuntime, currentVersion, requireRuntime, targetVersi
     console.log(`Bumped release version ${currentVersion} -> ${targetVersion}`);
     console.log('Updated files:');
     console.log('- apps/website/package.json');
+    console.log('- release-surfaces.json');
     if (bumpRuntime) {
         console.log('- apps/runtime/package.json');
     }
@@ -161,6 +164,7 @@ function printSummary({ bumpRuntime, currentVersion, requireRuntime, targetVersi
     console.log('Next:');
     console.log('- bun install --frozen-lockfile');
     console.log('- bun run release:collect-changelog-context');
+    console.log('- decide publish or unchanged for every surface in release-surfaces.json');
     console.log('- update CHANGELOG.md using commit analysis');
     console.log('- bun run release:check');
 }

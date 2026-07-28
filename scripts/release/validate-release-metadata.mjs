@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertReleaseSurfaceDecision, formatReleaseSurfaceDecision } from './release-surfaces.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,6 +59,21 @@ const main = async () => {
             expectedVersion === releaseVersion,
             `expected version ${expectedVersion} does not match ${releaseVersion}`
         );
+    }
+    const surfaceDecision = await readJson('release-surfaces.json');
+    try {
+        const result = assertReleaseSurfaceDecision(surfaceDecision, {
+            requireDecision: Boolean(expectedVersion),
+            targetVersion: releaseVersion,
+        });
+        if (result.complete) {
+            assert(
+                latestRelease.body.includes(formatReleaseSurfaceDecision(surfaceDecision)),
+                'latest changelog entry must include the exact release surface decision'
+            );
+        }
+    } catch (error) {
+        fail(error instanceof Error ? error.message : String(error));
     }
 
     console.log('release:check passed');
@@ -121,7 +137,8 @@ function assertRuntimeCompatibilityMetadata(input) {
 }
 
 function parseLatestReleaseFromChangelog(changelog) {
-    const match = changelog.match(/^## v(\d+\.\d+\.\d+) - (\d{4}-\d{2}-\d{2})$/m);
+    const pattern = /^## v(\d+\.\d+\.\d+) - (\d{4}-\d{2}-\d{2})$/gm;
+    const match = pattern.exec(changelog);
     if (!match) {
         fail('could not find release heading in CHANGELOG.md');
     }
@@ -129,6 +146,7 @@ function parseLatestReleaseFromChangelog(changelog) {
     return {
         version: match[1],
         date: match[2],
+        body: changelog.slice(pattern.lastIndex, pattern.exec(changelog)?.index).trim(),
     };
 }
 

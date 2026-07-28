@@ -1,0 +1,21 @@
+{
+  "targetVersion": null,
+  "surfaces": {
+    "appServer": {
+      "action": "undecided",
+      "version": null
+    },
+    "computer": {
+      "action": "undecided",
+      "version": null
+    },
+    "desktop": {
+      "action": "undecided",
+      "version": null
+    },
+    "runtime": {
+      "action": "undecided",
+      "version": null
+    }
+  }
+}

@@ -47,6 +47,12 @@ Before every release, inspect the changed files and record every surface:
 | Computer | Computer execution, lifecycle, local CLI, updater, embedded managed CLI, bootstrap or ordinary protocol, or a required shared Computer dependency changes |
 | Runtime | A remaining pre-Computer Runtime package contract changes |
 
+`release:bump` resets `release-surfaces.json`. Set every surface to `publish`
+with its version or `unchanged`, then copy the exact block from
+`release:collect-changelog-context` into the new changelog entry.
+`release:check` and production publishers reject missing or inconsistent
+decisions.
+
 If App/Server raises its required Computer protocol, publish and publicly verify
 the compatible Computer release first. The App/Server publisher must not proceed
 against a production Computer descriptor below that floor.
@@ -326,10 +332,16 @@ Required release environment:
   `APPLE_APP_SPECIFIC_PASSWORD`
 * `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
 
-Computer releases additionally require the Ed25519 private release key used to
+Computer releases additionally require
+`GROTTO_COMPUTER_RELEASE_PRIVATE_KEY`, the Ed25519 private release key used to
 sign the Computer descriptor. The corresponding public key is compiled into the
 Computer executable; normal installation does not accept a public-key
-environment override.
+environment override. `GROTTO_COMPUTER_RELEASE_BASE_URL` defaults to
+`https://releases.grotto.sh/computer`; Computer objects publish below the
+`computer/` prefix of `TAVERN_RELEASE_S3_URI`. Standalone Computer codesigning
+also requires the Developer ID certificate in the macOS keychain, selected by
+`CSC_NAME` or `APPLE_SIGNING_IDENTITY`; a `CSC_LINK` file alone is not a
+codesign identity.
 
 Runtime releases additionally require `TAVERN_GOOGLE_OAUTH_CLIENT_ID` and
 `TAVERN_GOOGLE_OAUTH_CLIENT_SECRET` for the Runtime artifact. App-only releases

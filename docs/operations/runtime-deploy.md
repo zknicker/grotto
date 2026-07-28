@@ -24,9 +24,11 @@ grotto-computer upgrade
 ```
 
 The command downloads the same latest-production descriptor as Settings,
-verifies its Ed25519 signature and tarball SHA-256, waits indefinitely for
-active Agent turns, replaces only the npm-installed code, and restarts the
-resident service plus every Server attachment runner. It never cleans
+verifies its embedded Ed25519 trust anchor, executable SHA-256, Apple identity,
+and stamped release identity, waits indefinitely for active Agent turns,
+atomically replaces only `~/.local/bin/grotto-computer`, and restarts the
+resident service plus every Server attachment runner. It retains one previous
+verified executable for `grotto-computer upgrade --rollback` and never cleans
 `~/.grotto/computer`, and it never kills a stuck Agent on a hidden timeout. Use
 the explicit Owner/Admin Agent Stop control before retrying when a turn cannot
 finish.

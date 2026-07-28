@@ -1,0 +1,56 @@
+import { expect, test } from 'bun:test';
+import { generateKeyPairSync } from 'node:crypto';
+import {
+    computerReleaseSigningPayload,
+    createSignedComputerRelease,
+    publishComputerInOrder,
+    verifySignedComputerRelease,
+} from './computer-release-contract.mjs';
+
+const release = {
+    artifactUrl: 'https://releases.grotto.sh/computer/1.1.0/grotto-computer-aarch64-apple-darwin',
+    protocolVersion: 3,
+    sha256: 'a'.repeat(64),
+    sourceRevision: 'b'.repeat(40),
+    version: '1.1.0',
+};
+
+test('Computer release descriptor is canonical and fails closed', () => {
+    const keys = generateKeyPairSync('ed25519');
+    const descriptor = createSignedComputerRelease(release, keys.privateKey);
+    expect(computerReleaseSigningPayload(release)).toBe(
+        `{"artifactUrl":"${release.artifactUrl}","protocolVersion":3,"sha256":"${release.sha256}","sourceRevision":"${release.sourceRevision}","version":"1.1.0"}`
+    );
+    expect(() => verifySignedComputerRelease(descriptor, keys.publicKey)).not.toThrow();
+    expect(() =>
+        verifySignedComputerRelease(
+            {
+                ...descriptor,
+                release: { ...descriptor.release, sha256: 'c'.repeat(64) },
+            },
+            keys.publicKey
+        )
+    ).toThrow('signature verification failed');
+});
+
+test('failed immutable verification never promotes latest', async () => {
+    const calls = [];
+    await expect(
+        publishComputerInOrder({
+            promoteLatest: async () => {
+                calls.push('promote');
+            },
+            publishImmutable: async () => {
+                calls.push('publish');
+            },
+            verifyImmutable: async () => {
+                calls.push('verify');
+                throw new Error('public artifact rejected');
+            },
+            verifyLatest: async () => {
+                calls.push('latest');
+            },
+        })
+    ).rejects.toThrow('public artifact rejected');
+    expect(calls).toEqual(['publish', 'verify']);
+});

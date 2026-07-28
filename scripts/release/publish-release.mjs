@@ -5,6 +5,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { checkComputerReleasePrerequisite } from './check-computer-prerequisite.mjs';
 import { findGrottoServerReleaseAssets } from './grotto-server-release-assets.mjs';
 import { fail, isSemver, readFlagValue, readJson, readText, repoRoot } from './release-utils.mjs';
 
@@ -21,6 +22,7 @@ const allowedDirtyPaths = new Set([
     'CHANGELOG.md',
     'apps/runtime/package.json',
     'apps/website/package.json',
+    'release-surfaces.json',
 ]);
 const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
 const runtimeBundleDir = path.join(repoRoot, 'apps', 'website', 'electron-dist', 'runtime');
@@ -32,7 +34,25 @@ const main = async () => {
 
     assertVersion(version);
     assertNoTag(tagName);
-    run('bun', ['run', 'release:check']);
+    run('bun', ['run', 'release:check', '--', '--expect-version', version]);
+    const computerRelease = await checkComputerReleasePrerequisite().catch((error) => {
+        fail('compatible Grotto Computer must be published before App/Server', {
+            message: error instanceof Error ? error.message : String(error),
+        });
+    });
+    console.log(
+        `Computer prerequisite: ${computerRelease.version} (protocol ${computerRelease.protocolVersion})`
+    );
+    const surfaceDecision = await readJson('release-surfaces.json');
+    if (
+        surfaceDecision.surfaces.computer.action === 'publish' &&
+        surfaceDecision.surfaces.computer.version !== computerRelease.version
+    ) {
+        fail('the declared Computer release is not the publicly verified production release', {
+            declared: surfaceDecision.surfaces.computer.version,
+            production: computerRelease.version,
+        });
+    }
     if (publishRuntime) {
         await assertRuntimeReleaseVersion(version);
     }

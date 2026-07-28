@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { assertReleaseSurfaceDecision, formatReleaseSurfaceDecision } from './release-surfaces.mjs';
 import {
     compareVersions,
     fail,
@@ -37,12 +38,19 @@ const main = async () => {
     }
 
     const commits = await readCommits(baseRef, maxCommits);
+    const surfaceDecision = await readJson('release-surfaces.json');
+    try {
+        assertReleaseSurfaceDecision(surfaceDecision, { targetVersion });
+    } catch {
+        // The context deliberately prints the incomplete decision for the operator to finish.
+    }
     printContext({
         targetVersion,
         previousVersion: latestChangelogVersion,
         baseRef,
         commitCount: commits.length,
         commits,
+        surfaceDecision,
     });
 };
 
@@ -139,7 +147,14 @@ function readMaxCommits(args) {
     return parsed;
 }
 
-function printContext({ targetVersion, previousVersion, baseRef, commitCount, commits }) {
+function printContext({
+    targetVersion,
+    previousVersion,
+    baseRef,
+    commitCount,
+    commits,
+    surfaceDecision,
+}) {
     console.log('# Release Changelog Context');
     console.log('');
     console.log(`- Target version: ${targetVersion}`);
@@ -159,6 +174,14 @@ function printContext({ targetVersion, previousVersion, baseRef, commitCount, co
         console.log(`- ${commit.hash} ${commit.date} ${commit.subject}`);
     }
 
+    console.log('');
+    console.log('## Required Release Surface Decision');
+    console.log('');
+    console.log(
+        'Edit `release-surfaces.json`, then include this generated block in the changelog:'
+    );
+    console.log('');
+    console.log(formatReleaseSurfaceDecision(surfaceDecision));
     console.log('');
     console.log('## AI Changelog Writing Guidance');
     console.log('');

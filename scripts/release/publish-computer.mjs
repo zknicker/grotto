@@ -2,13 +2,11 @@
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
     buildComputerArtifact,
     signAndNotarizeComputer,
-    verifyAppleSignature,
     verifyComputerIdentity,
 } from './build-computer-artifact.mjs';
 import {
@@ -19,6 +17,13 @@ import {
     sha256File,
     verifySignedComputerRelease,
 } from './computer-release-contract.mjs';
+import {
+    promoteInstaller,
+    promoteLatest,
+    publishImmutableObjects,
+    verifyPublicDescriptor,
+    verifyPublicObjects,
+} from './computer-release-publication.mjs';
 import { assertReleaseSurfaceDecision } from './release-surfaces.mjs';
 import { fail, isSemver, loadEnvFile, readJson, repoRoot } from './release-utils.mjs';
 
@@ -89,13 +94,15 @@ async function main() {
     const descriptorPath = path.join(path.dirname(built.artifactPath), 'release.json');
     await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
     const installerPath = await renderInstaller({ appleSigningIdentity, appleTeamId });
+    const s3Root = requiredEnv('TAVERN_RELEASE_S3_URI').replace(/\/+$/u, '');
     await publishComputerInOrder({
-        promoteLatest: async () => await promoteLatest(descriptorPath),
+        promoteLatest: async () => promoteLatest(descriptorPath, s3Root),
         publishImmutable: async () =>
             await publishImmutableObjects({
                 artifactPath: built.artifactPath,
                 descriptorPath,
                 installerPath,
+                s3Root,
                 version,
             }),
         verifyImmutable: async () =>
@@ -104,6 +111,7 @@ async function main() {
                 appleTeamId,
                 descriptor,
                 publicKey: built.publicKey,
+                releaseBaseUrl,
                 sourceRevision,
                 version,
             }),
@@ -114,7 +122,7 @@ async function main() {
                 built.publicKey
             ),
     });
-    await promoteInstaller(installerPath);
+    await promoteInstaller(installerPath, { releaseBaseUrl, s3Root });
     const tag = `computer-v${version}`;
     run('git', ['tag', '-a', tag, '-m', tag]);
     run('git', ['push', 'origin', tag]);
@@ -134,74 +142,6 @@ async function main() {
     console.log(`Published and verified ${tag}.`);
 }
 
-async function publishImmutableObjects(input) {
-    const root = `${requiredEnv('TAVERN_RELEASE_S3_URI').replace(/\/+$/u, '')}/computer/${input.version}`;
-    for (const [file, name] of [
-        [input.artifactPath, computerArtifactName],
-        [input.descriptorPath, 'release.json'],
-        [input.installerPath, 'install.sh'],
-    ]) {
-        const uri = `${root}/${name}`;
-        if (spawnSync('aws', ['s3', 'ls', uri], { stdio: 'ignore' }).status === 0) {
-            fail(`immutable Computer release object already exists: ${uri}`);
-        }
-        run('aws', ['s3', 'cp', file, uri]);
-    }
-}
-
-async function verifyPublicObjects(input) {
-    const descriptor = await verifyPublicDescriptor(
-        `${releaseBaseUrl}/${input.version}/release.json`,
-        input.descriptor,
-        input.publicKey
-    );
-    const root = await mkdtemp(path.join(tmpdir(), 'grotto-computer-public-'));
-    try {
-        const artifactPath = path.join(root, computerArtifactName);
-        const response = await retryPublicVerification('public Computer artifact', async () => {
-            const candidate = await fetch(descriptor.release.artifactUrl, { cache: 'no-store' });
-            if (!candidate.ok) {
-                throw new Error(`returned ${candidate.status}`);
-            }
-            return candidate;
-        });
-        await writeFile(artifactPath, Buffer.from(await response.arrayBuffer()), { mode: 0o755 });
-        if ((await sha256File(artifactPath)) !== descriptor.release.sha256) {
-            fail('public Computer artifact digest does not match descriptor');
-        }
-        verifyAppleSignature(artifactPath, input);
-        await verifyComputerIdentity(artifactPath, input);
-    } finally {
-        await rm(root, { force: true, recursive: true });
-    }
-}
-
-async function promoteLatest(descriptorPath) {
-    const uri = `${requiredEnv('TAVERN_RELEASE_S3_URI').replace(/\/+$/u, '')}/computer/latest.json`;
-    run('aws', ['s3', 'cp', descriptorPath, uri, '--cache-control', 'no-cache']);
-}
-
-async function promoteInstaller(installerPath) {
-    const uri = `${requiredEnv('TAVERN_RELEASE_S3_URI').replace(/\/+$/u, '')}/computer/install.sh`;
-    run('aws', [
-        's3',
-        'cp',
-        installerPath,
-        uri,
-        '--cache-control',
-        'no-cache',
-        '--content-type',
-        'text/x-shellscript',
-    ]);
-    const expected = await readFile(installerPath, 'utf8');
-    await retryPublicVerification('public Computer installer', async () => {
-        const response = await fetch(`${releaseBaseUrl}/install.sh`, { cache: 'no-store' });
-        if (!response.ok || (await response.text()) !== expected) {
-            throw new Error(response.ok ? 'content differs' : `returned ${response.status}`);
-        }
-    });
-}
-
 async function renderInstaller(input) {
     const template = await readFile(
         path.join(repoRoot, 'scripts', 'release', 'install-grotto-computer.sh'),
@@ -213,38 +153,6 @@ async function renderInstaller(input) {
     const installerPath = path.join(repoRoot, 'apps', 'computer', 'release', 'install.sh');
     await writeFile(installerPath, rendered, { mode: 0o755 });
     return installerPath;
-}
-
-async function verifyPublicDescriptor(url, expected, publicKey) {
-    return await retryPublicVerification(`public Computer descriptor ${url}`, async () => {
-        const response = await fetch(url, { cache: 'no-store' });
-        if (!response.ok) {
-            throw new Error(`returned ${response.status}`);
-        }
-        const descriptor = await response.json();
-        verifySignedComputerRelease(descriptor, publicKey);
-        if (JSON.stringify(descriptor) !== JSON.stringify(expected)) {
-            throw new Error('content differs from release');
-        }
-        return descriptor;
-    });
-}
-
-async function retryPublicVerification(description, verify) {
-    let lastError;
-    for (let attempt = 1; attempt <= 30; attempt += 1) {
-        try {
-            return await verify();
-        } catch (error) {
-            lastError = error;
-            if (attempt < 30) {
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-            }
-        }
-    }
-    fail(`${description} verification failed`, {
-        message: lastError instanceof Error ? lastError.message : String(lastError),
-    });
 }
 
 async function assertPublishState(releaseVersion) {

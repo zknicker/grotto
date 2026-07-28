@@ -53,9 +53,9 @@ import {
     writeUpdateProgress,
 } from './update.ts';
 import {
+    type ComputerUpdateProgress,
     computerBootstrapProtocolVersion,
     computerProtocolVersion,
-    type ComputerUpdateProgress,
     parseBootstrapAccepted,
     parseComputerUpdateCommand,
 } from './update-contract.ts';

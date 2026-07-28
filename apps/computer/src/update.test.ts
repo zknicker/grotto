@@ -14,7 +14,7 @@ import { computerReleaseSigningPayload, type SignedComputerRelease } from './upd
 test('a signed update waits without a kill timeout, then installs and restarts', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
     const tarball = Buffer.from('verified computer tarball');
-    const peer = serveTarball(tarball);
+    const peer = serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
     const release = signedRelease(peer.url, tarball, keys.privateKey);
     const clearRun = await admitActiveRun(dataRoot, 'run_active');
@@ -24,6 +24,7 @@ test('a signed update waits without a kill timeout, then installs and restarts',
 
     try {
         const updating = runSignedUpdate({
+            currentVersion: '1.0.0',
             dataRoot,
             install: async (path) => {
                 expect(await readFile(path)).toEqual(tarball);
@@ -34,6 +35,7 @@ test('a signed update waits without a kill timeout, then installs and restarts',
             restart: async () => {
                 restarted = true;
             },
+            verifyArtifact: async () => undefined,
         });
 
         await waitForPhase(dataRoot, 'waiting-for-agents');
@@ -60,7 +62,7 @@ test('failed signature verification never touches Computer data or installs', as
     const keys = generateKeyPairSync('ed25519');
     const wrongKeys = generateKeyPairSync('ed25519');
     const tarball = Buffer.from('untrusted');
-    const release = signedRelease('https://example.test/computer.tgz', tarball, keys.privateKey);
+    const release = signedRelease('https://example.test/grotto-computer', tarball, keys.privateKey);
     let installed = false;
 
     try {
@@ -72,6 +74,7 @@ test('failed signature verification never touches Computer data or installs', as
         ).toThrow('signature verification failed');
         await expect(
             runSignedUpdate({
+                currentVersion: '1.0.0',
                 dataRoot,
                 install: async () => {
                     installed = true;
@@ -79,6 +82,7 @@ test('failed signature verification never touches Computer data or installs', as
                 publicKey: wrongKeys.publicKey.export({ format: 'pem', type: 'spki' }).toString(),
                 release,
                 restart: async () => undefined,
+                verifyArtifact: async () => undefined,
             })
         ).rejects.toThrow('signature verification failed');
         expect(installed).toBe(false);
@@ -92,13 +96,14 @@ test('failed signature verification never touches Computer data or installs', as
 test('one physical Computer runs only one update job', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
     const tarball = Buffer.from('verified computer tarball');
-    const peer = serveTarball(tarball);
+    const peer = serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
     const release = signedRelease(peer.url, tarball, keys.privateKey);
     const clearRun = await admitActiveRun(dataRoot, 'run_active');
     let installs = 0;
     let restarts = 0;
     const input = {
+        currentVersion: '1.0.0',
         dataRoot,
         install: async () => {
             installs += 1;
@@ -108,6 +113,7 @@ test('one physical Computer runs only one update job', async () => {
         restart: async () => {
             restarts += 1;
         },
+        verifyArtifact: async () => undefined,
     };
 
     try {
@@ -124,25 +130,27 @@ test('one physical Computer runs only one update job', async () => {
     }
 });
 
-function serveTarball(bytes: Buffer) {
+function serveArtifact(bytes: Buffer) {
     const server = Bun.serve({
         fetch: () => new Response(bytes),
         port: 0,
     });
     return {
         stop: (closeActiveConnections: boolean) => server.stop(closeActiveConnections),
-        url: `http://127.0.0.1:${server.port}/computer.tgz`,
+        url: `http://127.0.0.1:${server.port}/grotto-computer`,
     };
 }
 
 function signedRelease(
-    tarballUrl: string,
+    artifactUrl: string,
     bytes: Buffer,
     privateKey: ReturnType<typeof generateKeyPairSync>['privateKey']
 ): SignedComputerRelease {
     const release = {
+        artifactUrl,
+        protocolVersion: 3,
         sha256: createHash('sha256').update(bytes).digest('hex'),
-        tarballUrl,
+        sourceRevision: 'b'.repeat(40),
         version: '1.1.0',
     };
     return {

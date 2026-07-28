@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readlink, rm, symlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { computerEntrypoint } from './build-identity.ts';
 import { type NoticeSinkRegistrar, runHarnessTurn } from './harness/executor.ts';
 import { startLoopbackProxy } from './proxy.ts';
 import { createServerMcpTools } from './server-mcp-tools.ts';
@@ -105,7 +106,6 @@ export interface RunAgentLaunchOptions {
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 const fakeRuntimePath = resolve(moduleDir, 'fake-runtime.ts');
-const computerEntry = resolve(moduleDir, 'index.ts');
 
 /**
  * Runs one Agent launch: isolated logical home/workspace/skills/runtime, a
@@ -532,12 +532,6 @@ const runtimeCli: Record<string, string> = {
     codex: 'codex',
     pi: 'pi',
 };
-
-function computerEntrypoint(): { args: string[]; executable: string } {
-    // Resolved from this module, not argv, so the wrapper always re-executes
-    // the Computer's Agent CLI entrypoint even under a test runner.
-    return { args: [computerEntry], executable: process.execPath };
-}
 
 async function mintRunner(options: RunAgentLaunchOptions) {
     return await postJson<{ runnerId: string; runnerToken: string }>(

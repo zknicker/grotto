@@ -1,27 +1,36 @@
 export const computerBootstrapProtocolVersion = 1;
-export const computerProtocolVersion = 2;
+export const computerProtocolVersion = 3;
 
 export type ComputerUpdatePhase =
     | 'available'
     | 'checking'
     | 'complete'
+    | 'downloading'
     | 'failed'
     | 'idle'
     | 'installing'
+    | 'requested'
     | 'restarting'
+    | 'verifying'
     | 'waiting-for-agents';
 
 export interface ComputerUpdateProgress {
+    activeAgentCount: number | null;
     detail: string | null;
+    downloadedBytes: number | null;
+    failedPhase: Exclude<ComputerUpdatePhase, 'failed'> | null;
     phase: ComputerUpdatePhase;
     targetVersion: string | null;
+    totalBytes: number | null;
     updatedAt: string;
 }
 
 export interface SignedComputerRelease {
     release: {
+        artifactUrl: string;
+        protocolVersion: number;
         sha256: string;
-        tarballUrl: string;
+        sourceRevision: string;
         version: string;
     };
     signature: string;
@@ -35,25 +44,35 @@ export function parseSignedComputerRelease(value: unknown): SignedComputerReleas
     if (
         !(
             isRecord(release) &&
-            hasOnlyKeys(release, ['sha256', 'tarballUrl', 'version']) &&
+            hasOnlyKeys(release, [
+                'artifactUrl',
+                'protocolVersion',
+                'sha256',
+                'sourceRevision',
+                'version',
+            ]) &&
+            typeof release.artifactUrl === 'string' &&
+            isUrl(release.artifactUrl) &&
+            Number.isSafeInteger(release.protocolVersion) &&
+            (release.protocolVersion as number) > 0 &&
             typeof release.sha256 === 'string' &&
             /^[a-f0-9]{64}$/u.test(release.sha256) &&
-            typeof release.tarballUrl === 'string' &&
-            isUrl(release.tarballUrl) &&
+            typeof release.sourceRevision === 'string' &&
+            /^[a-f0-9]{40}$/u.test(release.sourceRevision) &&
             typeof release.version === 'string' &&
-            release.version.length > 0 &&
-            release.version.length <= 64 &&
+            /^\d+\.\d+\.\d+$/u.test(release.version) &&
             typeof signature === 'string' &&
-            signature.length >= 32 &&
-            signature.length <= 1024
+            /^(?:[A-Za-z0-9+/]{4}){21}[A-Za-z0-9+/]{2}==$/u.test(signature)
         )
     ) {
         throw new Error('Production release manifest is invalid.');
     }
     return {
         release: {
+            artifactUrl: release.artifactUrl,
+            protocolVersion: release.protocolVersion as number,
             sha256: release.sha256,
-            tarballUrl: release.tarballUrl,
+            sourceRevision: release.sourceRevision,
             version: release.version,
         },
         signature,
@@ -87,8 +106,10 @@ export function parseComputerUpdateCommand(value: unknown) {
 
 export function computerReleaseSigningPayload(release: SignedComputerRelease['release']): string {
     return JSON.stringify({
+        artifactUrl: release.artifactUrl,
+        protocolVersion: release.protocolVersion,
         sha256: release.sha256,
-        tarballUrl: release.tarballUrl,
+        sourceRevision: release.sourceRevision,
         version: release.version,
     });
 }
@@ -104,8 +125,7 @@ function hasOnlyKeys(value: Record<string, unknown>, expected: string[]) {
 
 function isUrl(value: string) {
     try {
-        new URL(value);
-        return true;
+        return new URL(value).protocol === 'https:';
     } catch {
         return false;
     }

@@ -3,9 +3,9 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
-import computerPackage from '../package.json' with { type: 'json' };
 import { runAgentCli } from './agent-cli.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
+import { computerEntrypoint, computerSourceRevision, computerVersion } from './build-identity.ts';
 import {
     decideStart,
     purgeServerPartition,
@@ -48,6 +48,7 @@ import {
     progress,
     readProductionRelease,
     readUpdateProgress,
+    rollbackComputer,
     runSignedUpdate,
     writeUpdateProgress,
 } from './update.ts';
@@ -82,12 +83,27 @@ async function main(args: string[]) {
         return;
     }
     if (command === 'upgrade') {
+        if (target === '--rollback') {
+            await rollbackComputer({ restart: restartAfterUpdate });
+            console.log('Grotto Computer restored the previous verified executable.');
+            return;
+        }
         const release = await readProductionRelease();
         await runSignedUpdate({
             dataRoot,
             release,
             restart: restartAfterUpdate,
         });
+        return;
+    }
+    if (command === '--version' || command === 'version') {
+        console.log(
+            JSON.stringify({
+                protocolVersion: computerProtocolVersion,
+                sourceRevision: computerSourceRevision,
+                version: computerVersion,
+            })
+        );
         return;
     }
     if (command === 'status') {
@@ -152,7 +168,7 @@ async function main(args: string[]) {
     }
     if (command !== 'setup' || !target?.startsWith('/')) {
         throw new Error(
-            'Usage: grotto-computer <install|upgrade|start|stop|restart|status|doctor|logs|setup /server-slug>'
+            'Usage: grotto-computer <install|upgrade [--rollback]|start|stop|restart|status|doctor|logs|version|setup /server-slug>'
         );
     }
     const slug = target.slice(1);
@@ -365,12 +381,20 @@ async function startAttachment(attachment: Attachment) {
     if (marker && isPidAlive(marker.pid)) {
         process.kill(marker.pid, 'SIGTERM');
     }
-    const child = Bun.spawn([process.execPath, process.argv[1] ?? '', 'run', attachment.serverId], {
-        env: { ...process.env, GROTTO_COMPUTER_DATA_ROOT: dataRoot },
-        stderr: 'inherit',
-        stdin: 'ignore',
-        stdout: 'inherit',
-    });
+    const entrypoint = computerEntrypoint();
+    const child = Bun.spawn(
+        [entrypoint.executable, ...entrypoint.args, 'run', attachment.serverId],
+        {
+            env: {
+                ...process.env,
+                GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+                GROTTO_COMPUTER_RUNNER: '1',
+            },
+            stderr: 'inherit',
+            stdin: 'ignore',
+            stdout: 'inherit',
+        }
+    );
     await writeFile(
         runnerPath(attachment),
         `${JSON.stringify({ credentialHash: hash(attachment.credential), pid: child.pid })}\n`,
@@ -433,15 +457,7 @@ async function installResidentService() {
     await mkdir(agentsRoot, { recursive: true });
     await mkdir(dataRoot, { mode: 0o700, recursive: true });
     await mkdir(join(dataRoot, 'logs'), { mode: 0o700, recursive: true });
-    const updatePublicKey = process.env.GROTTO_COMPUTER_UPDATE_PUBLIC_KEY;
-    if (updatePublicKey) {
-        await writeFile(
-            join(dataRoot, 'update-public-key.pem'),
-            updatePublicKey.replaceAll('\\n', '\n'),
-            { mode: 0o600 }
-        );
-    }
-    await writeFile(plistPath, launchdPlist(process.execPath, process.argv[1] ?? ''), {
+    await writeFile(plistPath, launchdPlist(computerEntrypoint()), {
         mode: 0o600,
     });
     const domain = `gui/${userInfo().uid}`;
@@ -489,6 +505,9 @@ async function restartAfterUpdate() {
         await rm(runnerPath(attachment), { force: true });
     }
     await installResidentService();
+    if (process.env.GROTTO_COMPUTER_RUNNER === '1') {
+        setTimeout(() => process.exit(0), 100);
+    }
 }
 
 async function finishRestart() {
@@ -504,7 +523,11 @@ async function finishRestart() {
 
 export async function recoverInterruptedUpdate(root = dataRoot) {
     const current = await readUpdateProgress(root);
-    if (!['installing', 'waiting-for-agents'].includes(current.phase)) {
+    if (
+        !['requested', 'downloading', 'verifying', 'installing', 'waiting-for-agents'].includes(
+            current.phase
+        )
+    ) {
         return;
     }
     await writeUpdateProgress(
@@ -512,15 +535,24 @@ export async function recoverInterruptedUpdate(root = dataRoot) {
         progress(
             'failed',
             current.targetVersion,
-            'Update was interrupted. Retry in Settings or run grotto-computer upgrade locally.'
+            'Update was interrupted. Retry in Settings or run grotto-computer upgrade locally.',
+            {
+                downloadedBytes: current.downloadedBytes,
+                failedPhase: current.phase,
+                totalBytes: current.totalBytes,
+            }
         )
     );
 }
 
-export function launchdPlist(runtime: string, entrypoint: string) {
-    const escaped = [runtime, entrypoint, 'start', dataRoot].map(escapeXml);
+export function launchdPlist(entrypoint: { args: string[]; executable: string }) {
+    const escaped = [entrypoint.executable, ...entrypoint.args, 'start', dataRoot].map(escapeXml);
+    const programArguments = escaped
+        .slice(0, -1)
+        .map((value) => `<string>${value}</string>`)
+        .join('');
     const logPath = escapeXml(join(dataRoot, 'logs', 'computer.log'));
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.grotto.computer</string><key>ProgramArguments</key><array><string>${escaped[0]}</string><string>${escaped[1]}</string><string>${escaped[2]}</string></array><key>EnvironmentVariables</key><dict><key>GROTTO_COMPUTER_DATA_ROOT</key><string>${escaped[3]}</string><key>GROTTO_COMPUTER_RESIDENT</key><string>1</string></dict><key>StandardOutPath</key><string>${logPath}</string><key>StandardErrorPath</key><string>${logPath}</string><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.grotto.computer</string><key>ProgramArguments</key><array>${programArguments}</array><key>EnvironmentVariables</key><dict><key>GROTTO_COMPUTER_DATA_ROOT</key><string>${escaped.at(-1)}</string><key>GROTTO_COMPUTER_RESIDENT</key><string>1</string></dict><key>StandardOutPath</key><string>${logPath}</string><key>StandardErrorPath</key><string>${logPath}</string><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
 }
 
 function escapeXml(value: string) {
@@ -816,8 +848,7 @@ async function connect(attachment: Attachment) {
                         credential: attachment.credential,
                         health: 'healthy',
                         operatingSystem: platform(),
-                        productVersion:
-                            process.env.GROTTO_COMPUTER_PRODUCT_VERSION ?? computerPackage.version,
+                        productVersion: computerVersion,
                         protocolVersion: computerProtocolVersion,
                         type: 'bootstrap',
                         update,

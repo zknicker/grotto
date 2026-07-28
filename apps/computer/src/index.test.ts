@@ -80,8 +80,8 @@ test('setup stores only a Server credential and reruns by validation', async () 
         expect((await stat(attachmentPath)).mode & 0o777).toBe(0o600);
         expect(socketFrames[0]).toMatchObject({
             bootstrapProtocolVersion: 1,
-            productVersion: '1.0.0',
-            protocolVersion: 2,
+            productVersion: '1.1.0',
+            protocolVersion: 3,
             type: 'bootstrap',
             update: { phase: 'idle' },
         });
@@ -173,7 +173,10 @@ test('run keeps the attachment connected until the Server closes it', async () =
 });
 
 test('the resident service keeps its state root outside executable code', () => {
-    const plist = launchdPlist('/opt/grotto/bin/bun', '/opt/grotto/package/index.ts');
+    const plist = launchdPlist({
+        args: ['/opt/grotto/package/index.ts'],
+        executable: '/opt/grotto/bin/bun',
+    });
     expect(plist).toContain('<string>com.grotto.computer</string>');
     expect(plist).toContain('<key>GROTTO_COMPUTER_DATA_ROOT</key>');
     expect(plist).toContain('.grotto/computer');
@@ -192,6 +195,7 @@ test('startup reopens admission after an interrupted update', async () => {
         await recoverInterruptedUpdate(dataRoot);
         expect(await readUpdateProgress(dataRoot)).toMatchObject({
             detail: expect.stringContaining('interrupted'),
+            failedPhase: 'waiting-for-agents',
             phase: 'failed',
             targetVersion: '1.1.0',
         });

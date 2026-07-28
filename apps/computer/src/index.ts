@@ -55,6 +55,7 @@ import {
 import {
     computerBootstrapProtocolVersion,
     computerProtocolVersion,
+    type ComputerUpdateProgress,
     parseBootstrapAccepted,
     parseComputerUpdateCommand,
 } from './update-contract.ts';
@@ -523,11 +524,7 @@ async function finishRestart() {
 
 export async function recoverInterruptedUpdate(root = dataRoot) {
     const current = await readUpdateProgress(root);
-    if (
-        !['requested', 'downloading', 'verifying', 'installing', 'waiting-for-agents'].includes(
-            current.phase
-        )
-    ) {
+    if (!isInterruptedUpdatePhase(current.phase)) {
         return;
     }
     await writeUpdateProgress(
@@ -542,6 +539,14 @@ export async function recoverInterruptedUpdate(root = dataRoot) {
                 totalBytes: current.totalBytes,
             }
         )
+    );
+}
+
+function isInterruptedUpdatePhase(
+    phase: ComputerUpdateProgress['phase']
+): phase is 'downloading' | 'installing' | 'requested' | 'verifying' | 'waiting-for-agents' {
+    return ['requested', 'downloading', 'verifying', 'installing', 'waiting-for-agents'].includes(
+        phase
     );
 }
 

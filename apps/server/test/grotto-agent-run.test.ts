@@ -50,12 +50,54 @@ beforeAll(async () => {
     });
     agentId = created.agent.id;
     dmChatId = created.chat.id;
+    await harness.sql`
+        update computers
+        set reported_inventory = ${JSON.stringify({
+            agentSkills: [
+                {
+                    agentId,
+                    skills: [
+                        {
+                            description: 'Drive a browser.',
+                            hash: 'a'.repeat(64),
+                            modifiedAt: '2026-07-28T00:00:00.000Z',
+                            name: 'agent-browser',
+                        },
+                    ],
+                },
+            ],
+            runtimes: [codexRuntime],
+        })}::jsonb
+        where id = ${computerId}
+    `;
 });
 
 afterAll(async () => {
     owner.close();
     await connection.close();
     await harness.close();
+});
+
+test('chat mention options expose only the DM Agent and its reported skills', async () => {
+    const result = await owner.trpc.chat.mentionOptions.query({
+        agentIds: [agentId],
+        chatId: dmChatId,
+        serverId,
+    });
+
+    expect(result.options).toEqual([
+        expect.objectContaining({
+            id: `agent://${agentId}`,
+            kind: 'agent',
+            label: 'Cove',
+        }),
+        expect.objectContaining({
+            id: 'skill://agent-browser',
+            insertText: 'agent-browser',
+            kind: 'skill',
+            label: 'agent-browser',
+        }),
+    ]);
 });
 
 test('mints a scoped runner credential and records a durable Agent-authored message', async () => {

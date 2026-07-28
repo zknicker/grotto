@@ -63,6 +63,7 @@ export * from './hosted-chat.ts';
 export * from './hosted-computer-update.ts';
 export * from './hosted-mcp.ts';
 export * from './hosted-membership.ts';
+export * from './hosted-mentions.ts';
 export * from './hosted-reminders.ts';
 export * from './hosted-task.ts';
 export * from './hosted-task-shared.ts';

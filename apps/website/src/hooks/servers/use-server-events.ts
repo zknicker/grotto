@@ -19,11 +19,17 @@ export function useServerEvents(serverId: string | undefined) {
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,
-            onData: () => {
+            onData: (event) => {
+                if (event.scope === 'computer') {
+                    void utils.computer.list.invalidate({ serverId });
+                    void utils.agent.list.invalidate({ serverId });
+                    return;
+                }
+
                 void utils.server.bySlug.invalidate();
                 void utils.server.list.invalidate();
-                void utils.member.list.invalidate();
-                void utils.invitation.list.invalidate();
+                void utils.member.list.invalidate({ serverId });
+                void utils.invitation.list.invalidate({ serverId });
             },
             onError: (error) => {
                 if (!isMembershipLoss(error)) {

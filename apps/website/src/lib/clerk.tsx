@@ -1,5 +1,5 @@
-import { ClerkProvider } from '@clerk/clerk-react';
-import type { ReactNode } from 'react';
+import { ClerkProvider, useAuth } from '@clerk/clerk-react';
+import { type ReactNode, useLayoutEffect, useState } from 'react';
 import { getNativeClerk, getNativeClerkSessionToken } from './clerk-native.ts';
 import { clerkNativeOptions } from './clerk-native-options.ts';
 import { isElectronDesktopApp } from './desktop-bridge.ts';
@@ -14,14 +14,20 @@ interface ClerkGlobal {
     session?: { getToken(): Promise<string | null> } | null;
 }
 
+let readReactClerkSessionToken: (() => Promise<string | null>) | null = null;
+
 /**
  * Current Clerk session token for API auth headers. clerk-js refreshes the
  * short-lived JWT internally; read it fresh per request, never cache it.
  */
 export async function getClerkSessionToken(): Promise<string | null> {
     try {
-        if (isClerkEnabled && isElectronDesktopApp()) {
+        if (isClerkEnabled && usesNativeClerk()) {
             return await getNativeClerkSessionToken();
+        }
+
+        if (readReactClerkSessionToken) {
+            return await readReactClerkSessionToken();
         }
 
         const clerk = (window as { Clerk?: ClerkGlobal }).Clerk;
@@ -36,7 +42,7 @@ export function TavernClerkProvider({ children }: { children: ReactNode }) {
         return children;
     }
 
-    if (isElectronDesktopApp()) {
+    if (usesNativeClerk()) {
         return (
             <ClerkProvider
                 Clerk={getNativeClerk(clerkPublishableKey)}
@@ -50,7 +56,26 @@ export function TavernClerkProvider({ children }: { children: ReactNode }) {
 
     return (
         <ClerkProvider afterSignOutUrl="/" publishableKey={clerkPublishableKey}>
-            {children}
+            <ClerkSessionTokenBridge>{children}</ClerkSessionTokenBridge>
         </ClerkProvider>
     );
+}
+
+function ClerkSessionTokenBridge({ children }: { children: ReactNode }) {
+    const { getToken } = useAuth();
+    const [ready, setReady] = useState(false);
+
+    useLayoutEffect(() => {
+        readReactClerkSessionToken = getToken;
+        setReady(true);
+        return () => {
+            readReactClerkSessionToken = null;
+        };
+    }, [getToken]);
+
+    return ready ? children : null;
+}
+
+function usesNativeClerk() {
+    return isElectronDesktopApp() && !import.meta.env.DEV;
 }

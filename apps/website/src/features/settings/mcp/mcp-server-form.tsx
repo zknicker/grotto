@@ -46,15 +46,13 @@ export function McpConnectionFormDrawer({
     saving: boolean;
 }) {
     const [draft, setDraft] = useState(createConnectionDraft);
-    const canSave = Boolean(
-        draft.name.trim() && (draft.transport === 'stdio' ? draft.command.trim() : draft.url.trim())
-    );
+    const canSave = Boolean(draft.name.trim() && draft.url.trim());
 
     return (
         <Drawer onOpenChange={onOpenChange} open={open} position="right">
             <DrawerPopup className="max-w-[600px] sm:w-[600px]" showCloseButton variant="inset">
                 <DrawerHeader>
-                    <DrawerTitle>Add custom connection</DrawerTitle>
+                    <DrawerTitle>Add MCP server</DrawerTitle>
                 </DrawerHeader>
                 <Form
                     className="contents"
@@ -74,31 +72,7 @@ export function McpConnectionFormDrawer({
                                 value={draft.name}
                             />
                         </LabeledField>
-                        <LabeledField label="Transport">
-                            <Select
-                                onValueChange={(value) =>
-                                    update(setDraft, {
-                                        transport: value === 'stdio' ? 'stdio' : 'http',
-                                    })
-                                }
-                                value={draft.transport}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue>
-                                        {draft.transport === 'http' ? 'Streamable HTTP' : 'stdio'}
-                                    </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="http">Streamable HTTP</SelectItem>
-                                    <SelectItem value="stdio">stdio</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </LabeledField>
-                        {draft.transport === 'http' ? (
-                            <HttpConnectionFields draft={draft} setDraft={setDraft} />
-                        ) : (
-                            <StdioConnectionFields draft={draft} setDraft={setDraft} />
-                        )}
+                        <HttpConnectionFields draft={draft} setDraft={setDraft} />
                     </DrawerPanel>
                     <DrawerFooter>
                         <Button onClick={() => onOpenChange(false)} type="button" variant="ghost">
@@ -224,41 +198,6 @@ function OAuthAdvancedFields({
                 </div>
             </CollapsiblePanel>
         </Collapsible>
-    );
-}
-
-function StdioConnectionFields({
-    draft,
-    setDraft,
-}: {
-    draft: McpConnectionDraft;
-    setDraft: React.Dispatch<React.SetStateAction<McpConnectionDraft>>;
-}) {
-    return (
-        <>
-            <LabeledField label="Command">
-                <Input
-                    onChange={(event) => update(setDraft, { command: event.target.value })}
-                    placeholder="mcp-server"
-                    type="text"
-                    value={draft.command}
-                />
-            </LabeledField>
-            <LabeledField label="Arguments">
-                <Input
-                    onChange={(event) => update(setDraft, { args: event.target.value })}
-                    placeholder="--flag value"
-                    type="text"
-                    value={draft.args}
-                />
-            </LabeledField>
-            <SecretFieldsEditor
-                addLabel="Add variable"
-                entries={draft.env}
-                onChange={(env) => update(setDraft, { env })}
-                title="Environment variables"
-            />
-        </>
     );
 }
 

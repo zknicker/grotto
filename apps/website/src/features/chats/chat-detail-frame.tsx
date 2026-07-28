@@ -34,6 +34,7 @@ export function ChatDetailFrame({
     isFetchingOlderHistory = false,
     isPending,
     rows,
+    timelineContent,
     totalMessages,
 }: {
     activeReplies: readonly ChatActiveReply[];
@@ -55,6 +56,7 @@ export function ChatDetailFrame({
     isFetchingOlderHistory?: boolean;
     isPending: boolean;
     rows: NonNullable<ChatLogOutput>['rows'];
+    timelineContent?: (scrollContentRef: React.RefObject<HTMLDivElement | null>) => React.ReactNode;
     totalMessages: number;
 }) {
     const viewportRef = React.useRef<HTMLDivElement | null>(null);
@@ -104,16 +106,20 @@ export function ChatDetailFrame({
                                                 </div>
                                             </MessageScrollerContent>
                                         ) : hasTimelineContent ? (
-                                            <ChatTimeline
-                                                agentStatusCharacter={agentStatusCharacter}
-                                                canRequestMention={canRequestMention}
-                                                chatId={chatId}
-                                                conversationLayout={conversationLayout}
-                                                defaultOpenWorkGroups={defaultOpenWorkGroups}
-                                                rows={rows}
-                                                scrollContentRef={contentRef}
-                                                totalMessages={totalMessages}
-                                            />
+                                            timelineContent ? (
+                                                timelineContent(contentRef)
+                                            ) : (
+                                                <ChatTimeline
+                                                    agentStatusCharacter={agentStatusCharacter}
+                                                    canRequestMention={canRequestMention}
+                                                    chatId={chatId}
+                                                    conversationLayout={conversationLayout}
+                                                    defaultOpenWorkGroups={defaultOpenWorkGroups}
+                                                    rows={rows}
+                                                    scrollContentRef={contentRef}
+                                                    totalMessages={totalMessages}
+                                                />
+                                            )
                                         ) : (
                                             <MessageScrollerContent className="w-full">
                                                 <div className="px-2 py-4 text-muted-foreground text-sm">

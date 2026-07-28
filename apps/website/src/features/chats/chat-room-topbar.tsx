@@ -33,42 +33,69 @@ export function ChatRoomTopbar({ chat }: { chat: ChatListItem }) {
     const [editOpen, setEditOpen] = React.useState(false);
 
     return (
+        <>
+            <ChatRoomTopbarPresentation
+                actions={
+                    <>
+                        <ChatDevMenu chatId={chat.id} />
+                        <ChatParticipantsControl chat={chat} />
+                        <ToolbarDivider />
+                        <ChatPaneToggleButton chatId={chat.id} />
+                    </>
+                }
+                identity={
+                    <>
+                        <RoomIcon chat={chat} />
+                        {isChannel ? (
+                            <ChannelNameMenu
+                                chat={chat}
+                                onEdit={() => setEditOpen(true)}
+                                title={title}
+                            />
+                        ) : (
+                            <h1 className="min-w-0 truncate font-semibold text-foreground text-sm">
+                                {title}
+                            </h1>
+                        )}
+                        <AgentPresenceBadge chat={chat} />
+                        {chat.archived ? <Badge variant="secondary">Archived</Badge> : null}
+                        {isChannel && chat.description ? (
+                            <button
+                                className="no-drag min-w-0 truncate text-left text-muted-foreground text-sm hover:text-foreground"
+                                onClick={() => setEditOpen(true)}
+                                title="Edit channel description"
+                                type="button"
+                            >
+                                {chat.description}
+                            </button>
+                        ) : null}
+                    </>
+                }
+            />
+            {isChannel ? (
+                <ChannelEditDialog chat={chat} onClose={() => setEditOpen(false)} open={editOpen} />
+            ) : null}
+        </>
+    );
+}
+
+export function ChatRoomTopbarPresentation({
+    actions,
+    identity,
+}: {
+    actions: React.ReactNode;
+    identity: React.ReactNode;
+}) {
+    return (
         <header
             className="relative z-40 grid h-[var(--content-topbar-height)] shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center border-[var(--content-card-border)] border-b bg-background"
             data-slot="chat-room-topbar"
             data-window-drag-region=""
         >
-            <div className="flex min-w-0 items-center gap-2 pr-2 pl-3">
-                <RoomIcon chat={chat} />
-                {isChannel ? (
-                    <ChannelNameMenu chat={chat} onEdit={() => setEditOpen(true)} title={title} />
-                ) : (
-                    <h1 className="min-w-0 truncate font-semibold text-foreground text-sm">
-                        {title}
-                    </h1>
-                )}
-                <AgentPresenceBadge chat={chat} />
-                {chat.archived ? <Badge variant="secondary">Archived</Badge> : null}
-                {isChannel && chat.description ? (
-                    <button
-                        className="no-drag min-w-0 truncate text-left text-muted-foreground text-sm hover:text-foreground"
-                        onClick={() => setEditOpen(true)}
-                        title="Edit channel description"
-                        type="button"
-                    >
-                        {chat.description}
-                    </button>
-                ) : null}
-            </div>
+            <div className="flex min-w-0 items-center gap-2 pr-2 pl-3">{identity}</div>
             <div className="no-drag flex min-w-0 items-center justify-end gap-1.5 px-2">
-                <ChatDevMenu chatId={chat.id} />
-                <ChatParticipantsControl chat={chat} />
-                <ToolbarDivider />
-                <ChatPaneToggleButton chatId={chat.id} />
+                {actions}
             </div>
-            {isChannel ? (
-                <ChannelEditDialog chat={chat} onClose={() => setEditOpen(false)} open={editOpen} />
-            ) : null}
         </header>
     );
 }

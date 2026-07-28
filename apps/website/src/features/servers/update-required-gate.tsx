@@ -1,12 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { Button } from '../../components/ui/button.tsx';
-import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import {
     isUpdateRequiredError,
     type UpdateRequiredMode,
     updateRequiredMode,
 } from '../../lib/app-update-required.ts';
+import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 /**
  * Watches every hosted query and mutation for the Server's protocol-mismatch
@@ -74,7 +74,7 @@ function UpdateRequiredScreen({ mode }: { mode: UpdateRequiredMode }) {
     return (
         <div className="flex min-h-screen items-center justify-center bg-background p-6">
             <div className="max-w-md space-y-4 text-center">
-                <h1 className="font-semibold text-lg text-foreground">Update required</h1>
+                <h1 className="font-semibold text-foreground text-lg">Update required</h1>
                 {mode === 'reload' ? <ReloadBody /> : <DesktopUpdateBody />}
             </div>
         </div>

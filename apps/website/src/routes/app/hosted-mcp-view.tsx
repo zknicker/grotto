@@ -12,16 +12,13 @@ import { Button } from '../../components/ui/primitives/button.tsx';
 import type { McpConnection } from '../../features/settings/mcp/mcp-server-shared.ts';
 
 export function HostedMcpPresetButtons({
-    computerId,
     onAdd,
 }: {
-    computerId: string;
     onAdd(preset: HostedMcpPreset, name: string): void;
 }) {
     return (
         <div className="flex gap-2">
             <Button
-                disabled={!computerId}
                 onClick={() => onAdd('google-calendar', 'Google Calendar')}
                 type="button"
                 variant="secondary"
@@ -29,7 +26,6 @@ export function HostedMcpPresetButtons({
                 Add Google Calendar
             </Button>
             <Button
-                disabled={!computerId}
                 onClick={() => onAdd('merchbase', 'MerchBase')}
                 type="button"
                 variant="secondary"
@@ -81,16 +77,13 @@ export function toHostedMcpView(
         affectedAgents: agents
             .filter((agent) => grantedAgentIds.has(agent.id))
             .map((agent) => ({ id: agent.id, name: agent.displayName })),
-        args: connection.args,
         auth: connection.auth,
         builtIn: connection.preset !== null,
-        command: connection.command,
         connected: connection.connected,
         headerNames: connection.headerNames,
         id: connection.id,
         name: connection.name,
         preset: connection.preset,
-        transport: connection.transport,
         url: connection.url,
     };
 }

@@ -1,25 +1,30 @@
-import type { McpConnectionListOutput } from '../../../lib/trpc.tsx';
-
-export type McpConnection = McpConnectionListOutput['connections'][number];
+export interface McpConnection {
+    accountLabel: string | null;
+    affectedAgents: Array<{ id: string; name: string }>;
+    auth: 'headers' | 'none' | 'oauth';
+    builtIn: boolean;
+    connected: boolean;
+    headerNames: string[];
+    id: string;
+    name: string;
+    preset: 'google-calendar' | 'merchbase' | null;
+    url: string;
+}
 export interface McpConnectionTool {
     description: string;
     name: string;
     title: string | null;
 }
 export interface McpConnectionSaveInput {
-    args?: string[];
     auth: 'headers' | 'none' | 'oauth';
-    command?: string;
-    env?: Record<string, string>;
     headers?: Record<string, string>;
     name: string;
     oauthClientId?: string;
     oauthClientSecret?: string;
     oauthScopes?: string[];
-    url?: string;
+    url: string;
 }
 export type McpConnectionFilter = 'all' | 'connected' | 'not-connected';
-export type McpConnectionTransport = 'http' | 'stdio';
 
 export interface SecretDraftEntry {
     key: string;
@@ -28,24 +33,17 @@ export interface SecretDraftEntry {
 }
 
 export interface McpConnectionDraft {
-    args: string;
     auth: 'headers' | 'none' | 'oauth';
-    command: string;
-    env: SecretDraftEntry[];
     headers: SecretDraftEntry[];
     name: string;
     oauthClientId: string;
     oauthClientSecret: string;
     oauthScopes: string;
-    transport: McpConnectionTransport;
     url: string;
 }
 
 export function connectionSummary(connection: McpConnection): string {
-    if (connection.transport === 'stdio') {
-        return [connection.command, ...connection.args].filter(Boolean).join(' ');
-    }
-    return connection.url ?? '';
+    return connection.url;
 }
 
 export function visibleConnections(
@@ -62,43 +60,27 @@ export function visibleConnections(
 
 export function createConnectionDraft(): McpConnectionDraft {
     return {
-        args: '',
         auth: 'none',
-        command: '',
-        env: [],
         headers: [],
         name: '',
         oauthClientId: '',
         oauthClientSecret: '',
         oauthScopes: '',
-        transport: 'http',
         url: '',
     };
 }
 
 export function buildSaveInput(draft: McpConnectionDraft): McpConnectionSaveInput {
-    const env = toSecretRecord(draft.env);
     const headers = toSecretRecord(draft.headers);
     return {
-        args: draft.transport === 'stdio' ? splitArgs(draft.args) : undefined,
-        auth: draft.transport === 'stdio' ? 'none' : draft.auth,
-        command: draft.transport === 'stdio' ? draft.command.trim() : undefined,
-        env: Object.keys(env).length > 0 ? env : undefined,
+        auth: draft.auth,
         headers: Object.keys(headers).length > 0 ? headers : undefined,
         name: draft.name.trim(),
-        oauthClientId:
-            draft.transport === 'http' && draft.auth === 'oauth'
-                ? draft.oauthClientId.trim() || undefined
-                : undefined,
+        oauthClientId: draft.auth === 'oauth' ? draft.oauthClientId.trim() || undefined : undefined,
         oauthClientSecret:
-            draft.transport === 'http' && draft.auth === 'oauth'
-                ? draft.oauthClientSecret || undefined
-                : undefined,
-        oauthScopes:
-            draft.transport === 'http' && draft.auth === 'oauth'
-                ? splitArgs(draft.oauthScopes)
-                : undefined,
-        url: draft.transport === 'http' ? draft.url.trim() : undefined,
+            draft.auth === 'oauth' ? draft.oauthClientSecret || undefined : undefined,
+        oauthScopes: draft.auth === 'oauth' ? splitArgs(draft.oauthScopes) : undefined,
+        url: draft.url.trim(),
     };
 }
 
@@ -111,18 +93,6 @@ export function splitArgs(value: string) {
 }
 
 export function toSecretRecord(entries: SecretDraftEntry[]) {
-    return Object.fromEntries(
-        entries
-            .map((entry) => [entry.name.trim(), entry.value] as const)
-            .filter(([name]) => name.length > 0)
-    );
-}
-
-export function joinArgs(args: string[]) {
-    return args.join(' ');
-}
-
-export function toEnvRecord(entries: Array<{ name: string; value: string }>) {
     return Object.fromEntries(
         entries
             .map((entry) => [entry.name.trim(), entry.value] as const)

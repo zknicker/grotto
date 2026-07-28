@@ -3,10 +3,13 @@ import type { AgentActivityOutput } from '../../lib/trpc.tsx';
 type ActivityEntry = AgentActivityOutput['entries'][number];
 
 export interface OverviewActivityItem {
-    agentId: string;
+    agentId: string | null;
+    at: string;
     atMs: number;
-    entry: ActivityEntry;
+    description: string;
+    href?: string;
     key: string;
+    kind: ActivityEntry['kind'];
 }
 
 export interface OverviewActivityFeed {
@@ -51,9 +54,11 @@ export function buildOverviewActivityFeed(
             if (feedKinds.has(entry.kind)) {
                 items.push({
                     agentId,
+                    at: entry.at,
                     atMs,
-                    entry,
+                    description: describeActivityEntry(entry),
                     key: `${agentId}:${entry.at}:${entry.kind}:${entry.turnId ?? ''}`,
+                    kind: entry.kind,
                 });
             }
         }

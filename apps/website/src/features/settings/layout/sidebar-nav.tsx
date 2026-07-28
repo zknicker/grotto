@@ -39,23 +39,48 @@ export function SettingsSidebarNav({ onBackToApp }: { onBackToApp?: () => void }
         void import('../../../routes/app/settings-models-page.tsx');
         void utils.model.inventory.prefetch(undefined, queryPolicy.runtimeModelSnapshot);
     }, [utils]);
+    return (
+        <SettingsSidebarNavView
+            capability={capability}
+            onBackToApp={onBackToApp}
+            prefetchModelsSettings={prefetchModelsSettings}
+        />
+    );
+}
+
+export function SettingsSidebarNavView({
+    capability,
+    hiddenItemIds,
+    onBackToApp,
+    prefetchModelsSettings,
+    resolveTo = (to) => to,
+}: {
+    capability?: ResolveCapability;
+    hiddenItemIds?: ReadonlySet<StaticSettingsNavItem['id']>;
+    onBackToApp?: () => void;
+    prefetchModelsSettings?: () => void;
+    resolveTo?: (to: string, item: StaticSettingsNavItem) => string;
+}) {
     const generalSection = settingsNavSectionsById.get('general');
     const activitySection = settingsNavSectionsById.get('activity');
-
     return (
         <>
             {onBackToApp ? <BackToAppSection onBackToApp={onBackToApp} /> : null}
             <StaticSettingsSection
                 capability={capability}
+                hiddenItemIds={hiddenItemIds}
                 itemIds={generalSection?.itemIds ?? []}
                 label={generalSection?.label ?? 'General'}
                 prefetchModelsSettings={prefetchModelsSettings}
+                resolveTo={resolveTo}
             />
             <StaticSettingsSection
                 capability={capability}
+                hiddenItemIds={hiddenItemIds}
                 itemIds={activitySection?.itemIds ?? []}
                 label={activitySection?.label ?? 'Activity'}
                 prefetchModelsSettings={prefetchModelsSettings}
+                resolveTo={resolveTo}
             />
         </>
     );
@@ -85,14 +110,18 @@ function BackToAppSection({ onBackToApp }: { onBackToApp: () => void }) {
 
 function StaticSettingsSection({
     capability,
+    hiddenItemIds,
     itemIds,
     label,
     prefetchModelsSettings,
+    resolveTo,
 }: {
-    capability: ResolveCapability;
+    capability?: ResolveCapability;
+    hiddenItemIds?: ReadonlySet<StaticSettingsNavItem['id']>;
     itemIds: readonly StaticSettingsNavItem['id'][];
     label: string;
-    prefetchModelsSettings: () => void;
+    prefetchModelsSettings?: () => void;
+    resolveTo: (to: string, item: StaticSettingsNavItem) => string;
 }) {
     return (
         <SidebarGroup>
@@ -100,6 +129,9 @@ function StaticSettingsSection({
             <SidebarGroupContent>
                 <SidebarMenu>
                     {itemIds.map((itemId) => {
+                        if (hiddenItemIds?.has(itemId)) {
+                            return null;
+                        }
                         const item = staticSettingsNavItemsById.get(itemId);
 
                         if (!item) {
@@ -112,6 +144,7 @@ function StaticSettingsSection({
                                 item={item}
                                 key={item.id}
                                 prefetchModelsSettings={prefetchModelsSettings}
+                                resolveTo={resolveTo}
                             />
                         );
                     })}
@@ -125,18 +158,20 @@ function StaticSettingsNavRow({
     capability,
     item,
     prefetchModelsSettings,
+    resolveTo,
 }: {
-    capability: ResolveCapability;
+    capability?: ResolveCapability;
     item: StaticSettingsNavItem;
-    prefetchModelsSettings: () => void;
+    prefetchModelsSettings?: () => void;
+    resolveTo: (to: string, item: StaticSettingsNavItem) => string;
 }) {
-    const gate = capability(settingsCapabilityRequirements[item.id]);
-    const disabledReason = gate.healthy ? null : formatCapabilityDisabledReason(gate);
+    const gate = capability?.(settingsCapabilityRequirements[item.id]);
+    const disabledReason = gate && !gate.healthy ? formatCapabilityDisabledReason(gate) : null;
 
     return (
         <SidebarMenuItem>
-            {gate.healthy ? (
-                <NavLink className="contents" to={item.to}>
+            {!gate || gate.healthy ? (
+                <NavLink className="contents" to={resolveTo(item.to, item)}>
                     {({ isActive }) => (
                         <SidebarMenuButton
                             isActive={isActive}

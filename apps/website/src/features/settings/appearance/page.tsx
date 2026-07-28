@@ -26,7 +26,7 @@ const themeOptions: Array<{
     { id: 'system', label: 'System', description: 'Match your OS preference', icon: ComputerIcon },
 ];
 
-export function AppearanceSettings() {
+export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHref?: string } = {}) {
     const { setTheme, theme } = useTheme();
     const navigate = useNavigate();
 
@@ -107,6 +107,22 @@ export function AppearanceSettings() {
 
             <SettingsSection title="Design Lab">
                 <SettingsGroup>
+                    {briefVariationsHref ? (
+                        <SettingsRow
+                            description="Iterate on the home brief's chips, wordmark, and sentence patterns."
+                            title="Brief variations"
+                        >
+                            <div className="flex justify-start md:justify-end">
+                                <Button
+                                    onClick={() => navigate(briefVariationsHref)}
+                                    size="sm"
+                                    variant="outline"
+                                >
+                                    Open
+                                </Button>
+                            </div>
+                        </SettingsRow>
+                    ) : null}
                     <SettingsRow
                         description="Every agent character across the full set of facial expressions."
                         title="Agent faces"

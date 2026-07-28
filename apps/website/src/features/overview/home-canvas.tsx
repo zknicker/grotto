@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
-import type { AgentListOutput } from '../../lib/trpc.tsx';
 import { trpc } from '../../lib/trpc.tsx';
 import { workspaceIframeSandbox } from '../../widgets/sandbox.ts';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
@@ -11,8 +10,7 @@ import {
     readHostTokenCss,
 } from '../chats/host-token-style.ts';
 import starterHtml from './home-canvas-starter.html?raw';
-
-type Agent = AgentListOutput['agents'][number];
+import type { OverviewAgent } from './overview-types.ts';
 
 // The home canvas (specs/home-brief.md): an agent-authored HTML page at
 // workbench/home.html, maintained by the Home brief automation and rendered
@@ -79,10 +77,7 @@ export function buildFaceSpriteCss(sprites: { aliases: string[]; svg: string }[]
     return rules.join('');
 }
 
-export function HomeCanvas({ agents }: { agents: Agent[] }) {
-    const scheme = useResolvedThemeOptional() === 'dark' ? 'dark' : 'light';
-    const dark = scheme === 'dark';
-
+export function HomeCanvas({ agents }: { agents: OverviewAgent[] }) {
     // One bounded read per agent; the freshest authored copy wins. Polling
     // stands in for a file-change subscription until one exists.
     const fileQueries = trpc.useQueries((query) =>
@@ -101,6 +96,17 @@ export function HomeCanvas({ agents }: { agents: Agent[] }) {
         )
         .sort((a, b) => ((a.updatedAt ?? '') < (b.updatedAt ?? '') ? 1 : -1))[0];
     const html = authored?.content ?? starterHtml;
+
+    return <HomeCanvasDocument agents={agents} html={html} />;
+}
+
+export function StarterHomeCanvas({ agents }: { agents: OverviewAgent[] }) {
+    return <HomeCanvasDocument agents={agents} html={starterHtml} />;
+}
+
+function HomeCanvasDocument({ agents, html }: { agents: OverviewAgent[]; html: string }) {
+    const scheme = useResolvedThemeOptional() === 'dark' ? 'dark' : 'light';
+    const dark = scheme === 'dark';
 
     // Face sprites come from the hidden roster mount below: AgentFace sets
     // its pose in effects, so the snapshot must read the live DOM. Children's

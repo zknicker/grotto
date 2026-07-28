@@ -108,8 +108,8 @@ export function ConnectionDestructiveDialog({
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                         {connection.affectedAgents.length === 0
-                            ? 'This connection has no agent tool grants.'
-                            : `${connection.affectedAgents.map((agent) => agent.name).join(', ')} will lose access to this connection and its current tool grants.`}
+                            ? 'No Agents currently use this connection.'
+                            : `${connection.affectedAgents.map((agent) => agent.name).join(', ')} will lose access to this MCP server.`}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

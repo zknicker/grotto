@@ -8,23 +8,25 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { Table, TableBody, TableCell, TableRow } from '../../components/ui/table.tsx';
 import { appRoutes } from '../../lib/app-routes.ts';
 import { formatRelativeTime } from '../../lib/format.ts';
-import type { AgentActivityOutput, AgentListOutput, AgentPresenceOutput } from '../../lib/trpc.tsx';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
 import { AgentFace } from '../chats/agent-face.tsx';
-import { describeActivityEntry, type OverviewActivityItem } from './overview-activity.ts';
+import type { OverviewActivityItem } from './overview-activity.ts';
+import type { OverviewAgent, OverviewPresenceEntry } from './overview-types.ts';
 
-type Agent = AgentListOutput['agents'][number];
-type PresenceEntry = AgentPresenceOutput['presence'][number];
+type Agent = OverviewAgent;
+type PresenceEntry = OverviewPresenceEntry;
 
 export function OverviewAgentCards({
     agents,
     modelRefByAgentId,
     presence,
+    resolveAgentHref = appRoutes.memberAgent,
     seriesByAgentId,
 }: {
     agents: Agent[];
     modelRefByAgentId: Map<string, string | null>;
     presence: PresenceEntry[];
+    resolveAgentHref?: (agentId: string) => string;
     seriesByAgentId: Map<string, number[]>;
 }) {
     const dark = useResolvedThemeOptional() === 'dark';
@@ -34,6 +36,9 @@ export function OverviewAgentCards({
             {agents.map((agent) => {
                 const entry = presence.find((candidate) => candidate.agentId === agent.id);
                 const busy = entry?.state === 'busy';
+                const animate = entry?.animate ?? busy;
+                const statusLabel = entry?.label ?? (busy ? 'Working' : 'Idle');
+                const statusTone = entry?.tone ?? (busy ? 'warning' : 'success');
                 const modelName = formatModelName(modelRefByAgentId.get(agent.id) ?? null);
                 const series = seriesByAgentId.get(agent.id) ?? [];
                 const weekTotal = series.reduce((sum, value) => sum + value, 0);
@@ -42,15 +47,15 @@ export function OverviewAgentCards({
                     <Link
                         className="group min-w-56 flex-1 sm:max-w-80"
                         key={agent.id}
-                        to={appRoutes.memberAgent(agent.id)}
+                        to={resolveAgentHref(agent.id)}
                     >
                         <Card className="flex h-full flex-col gap-2.5 px-3.5 py-3 transition-colors group-hover:bg-accent/40">
                             <div className="flex items-center gap-2.5">
                                 <span aria-hidden="true" className="flex shrink-0 items-center">
                                     <AgentFace
-                                        animate={busy}
+                                        animate={animate}
                                         dark={dark}
-                                        emotion={busy ? 'curious' : 'idle'}
+                                        emotion={animate ? 'curious' : 'idle'}
                                         head={agent.effectiveCharacter}
                                         ink={resolveAgentInk(dark, agent.effectivePrimaryColor)}
                                         size={30}
@@ -61,9 +66,11 @@ export function OverviewAgentCards({
                                 </span>
                                 <span className="flex shrink-0 items-center gap-1.5 text-muted-foreground text-xs">
                                     <span
-                                        className={`size-2 rounded-full ${busy ? 'bg-warning' : 'bg-success'}`}
+                                        className={`size-2 rounded-full ${
+                                            statusTone === 'warning' ? 'bg-warning' : 'bg-success'
+                                        }`}
                                     />
-                                    {busy ? 'Working' : 'Idle'}
+                                    {statusLabel}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between gap-3">
@@ -93,12 +100,16 @@ export function OverviewAgentCards({
 
 export function OverviewActivity({
     activity,
+    activityHref = appRoutes.activity,
     agents,
     now,
+    resolveAgentHref = appRoutes.memberAgent,
 }: {
     activity: OverviewActivityItem[];
+    activityHref?: string;
     agents: Agent[];
     now: number;
+    resolveAgentHref?: (agentId: string) => string;
 }) {
     const dark = useResolvedThemeOptional() === 'dark';
     const navigate = useNavigate();
@@ -125,10 +136,8 @@ export function OverviewActivity({
                     <TableBody>
                         {activity.map((item, index) => {
                             const agent = agents.find((entry) => entry.id === item.agentId);
-                            const target = agent
-                                ? appRoutes.memberAgent(agent.id)
-                                : appRoutes.activity;
-                            const clause = describeActivityEntry(item.entry);
+                            const target =
+                                item.href ?? (agent ? resolveAgentHref(agent.id) : activityHref);
 
                             return (
                                 <TableRow
@@ -151,7 +160,7 @@ export function OverviewActivity({
                                         <Icon
                                             aria-hidden="true"
                                             className="relative z-20 inline-block size-4 text-muted-foreground/75"
-                                            icon={activityKindIcons[item.entry.kind]}
+                                            icon={activityKindIcons[item.kind]}
                                             strokeWidth={1.8}
                                         />
                                     </TableCell>
@@ -159,13 +168,13 @@ export function OverviewActivity({
                                         <span className="relative z-20 flex min-w-0 items-center gap-1.5">
                                             {agent ? <AgentChip agent={agent} dark={dark} /> : null}
                                             <span className="shrink-0 text-foreground/80 text-sm">
-                                                {clause}
+                                                {item.description}
                                             </span>
                                         </span>
                                     </TableCell>
                                     <TableCell className="h-9 px-3 py-1 text-right text-muted-foreground text-xs tabular-nums">
                                         <span className="relative z-20">
-                                            {formatRelativeTime(item.entry.at, now)}
+                                            {formatRelativeTime(item.at, now)}
                                         </span>
                                     </TableCell>
                                 </TableRow>
@@ -178,7 +187,7 @@ export function OverviewActivity({
     );
 }
 
-const activityKindIcons: Record<AgentActivityOutput['entries'][number]['kind'], IconSvgElement> = {
+const activityKindIcons: Record<OverviewActivityItem['kind'], IconSvgElement> = {
     completed: BubbleChatIcon,
     failed: AlertCircleIcon,
     message_received: BubbleChatIcon,

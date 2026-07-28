@@ -54,9 +54,7 @@ export function ConnectionRow({
                     </span>
                 </span>
             </span>
-            <span className="text-muted-foreground text-sm">
-                {connection.transport === 'stdio' ? 'Local' : 'Web'}
-            </span>
+            <span className="text-muted-foreground text-sm">Remote</span>
             <span className="flex items-center gap-2 text-sm">
                 <span
                     className={

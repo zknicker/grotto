@@ -1,21 +1,27 @@
 import * as React from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { DeleteServerDialog } from '../../features/servers/delete-server-dialog.tsx';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+    AppShell,
+    AppShellBody,
+    AppShellDragRegion,
+    AppShellMain,
+} from '../../components/ui/app-shell.tsx';
+import { SidebarProvider } from '../../components/ui/sidebar.tsx';
+import {
+    HostedServerRail,
+    type HostedServerSection,
+} from '../../features/servers/hosted-server-rail.tsx';
+import { HostedServerSidebar } from '../../features/servers/hosted-server-sidebar.tsx';
 import { HostedServerReminders } from '../../features/servers/reminders/hosted-server-reminders.tsx';
 import { ServerChat } from '../../features/servers/server-chat.tsx';
 import { ServerChatSearch } from '../../features/servers/server-chat-search.tsx';
 import {
     isServerRemindersPath,
-    serverAgentsRoute,
-    serverComputersRoute,
-    serverConnectionsRoute,
     serverMembersRoute,
     serverRemindersRoute,
     serverRoute,
-    serversRoute,
+    serverSettingsRoute,
 } from '../../features/servers/server-routes.ts';
-import { ServerSwitcher } from '../../features/servers/server-switcher.tsx';
 import type { ServerTask } from '../../features/servers/tasks/server-task-presentation.ts';
 import { ServerTasksSurface } from '../../features/servers/tasks/server-tasks-surface.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';
@@ -32,7 +38,6 @@ export function ServerPage() {
     const [selectedChatId, setSelectedChatId] = React.useState<string | null>(null);
     const [surface, setSurface] = React.useState<'chat' | 'tasks'>('chat');
     const [taskToOpen, setTaskToOpen] = React.useState<ServerTask | null>(null);
-    const [deleteOpen, setDeleteOpen] = React.useState(false);
     const server = useServer(slug);
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
@@ -40,11 +45,7 @@ export function ServerPage() {
         { serverId: server.data?.id ?? '' },
         { enabled: Boolean(server.data) }
     );
-    const agentHandles = new Map((agents.data ?? []).map((agent) => [agent.id, agent.handle]));
     const remindersOpen = isServerRemindersPath(location.pathname, slug);
-    const deleteServer = grottoTrpc.server.delete.useMutation({
-        onSuccess: () => navigate(serversRoute),
-    });
 
     useServerChatEvents(server.data?.id);
 
@@ -73,174 +74,122 @@ export function ServerPage() {
         setTaskToOpen(null);
         navigate(serverRoute(server.data.slug));
     };
+    const activeSection: HostedServerSection = remindersOpen ? 'reminders' : surface;
+    const selectSection = (section: HostedServerSection) => {
+        if (section === 'tasks') {
+            setSurface('tasks');
+            setTaskToOpen(null);
+            navigate(serverRoute(server.data.slug));
+            return;
+        }
+        if (section === 'chat') {
+            setSurface('chat');
+            navigate(serverRoute(server.data.slug));
+            return;
+        }
+        if (section === 'reminders') {
+            navigate(serverRemindersRoute(server.data.slug));
+            return;
+        }
+        navigate(
+            section === 'members'
+                ? serverMembersRoute(server.data.slug)
+                : serverSettingsRoute(server.data.slug)
+        );
+    };
 
     return (
-        <div className="flex h-dvh w-full">
-            <aside className="flex w-64 shrink-0 flex-col gap-4 border-border border-r bg-sidebar p-4">
-                <p className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
-                    Servers
-                </p>
-                <ServerSwitcher servers={servers.data ?? []} />
-                <div className="flex flex-col gap-1">
-                    <Button
-                        className="justify-start"
-                        onClick={() => {
-                            setSurface('tasks');
-                            setTaskToOpen(null);
-                            navigate(serverRoute(server.data.slug));
-                        }}
-                        size="sm"
-                        variant={!remindersOpen && surface === 'tasks' ? 'secondary' : 'ghost'}
-                    >
-                        Tasks
-                    </Button>
-                    <p className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
-                        Chats
-                    </p>
-                    {chats.data?.map((chat) => {
-                        const name =
-                            chat.kind === 'channel'
-                                ? `#${chat.name}`
-                                : chat.peerAgentId
-                                  ? `Direct · @${agentHandles.get(chat.peerAgentId) ?? 'agent'}`
-                                  : `Direct · Human ${chat.peerUserId?.slice(-6) ?? ''}`;
-
-                        return (
-                            <Button
-                                className="justify-between"
-                                key={chat.id}
-                                onClick={() => openChat(chat.id)}
-                                size="sm"
-                                variant={
-                                    !remindersOpen &&
-                                    surface === 'chat' &&
-                                    chat.id === selectedChat?.id
-                                        ? 'secondary'
-                                        : 'ghost'
-                                }
-                            >
-                                <span>{name}</span>
-                                {chat.unreadCount > 0 ? (
-                                    <span className="text-muted-foreground text-xs">
-                                        {chat.unreadCount}
-                                    </span>
-                                ) : null}
-                            </Button>
-                        );
-                    })}
-                </div>
-                {canOperateReminders ? (
-                    <div className="flex flex-col gap-1">
-                        <p className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
-                            Operator
-                        </p>
-                        <Button
-                            className="justify-start"
-                            onClick={() => navigate(serverRemindersRoute(server.data.slug))}
-                            size="sm"
-                            variant={remindersOpen ? 'secondary' : 'ghost'}
-                        >
-                            Reminders
-                        </Button>
-                    </div>
-                ) : null}
-            </aside>
-            <main className="flex min-w-0 flex-1 flex-col">
-                <header className="flex items-center justify-between gap-4 border-border border-b px-6 py-4">
-                    <div className="flex flex-col gap-0.5">
-                        <h1 className="font-semibold text-base text-foreground">
-                            {server.data.displayName}
-                        </h1>
-                        <p className="text-meta text-muted-foreground">/{server.data.slug}</p>
-                    </div>
-                    <Link
-                        className="text-muted-foreground text-sm hover:text-foreground"
-                        to={serverMembersRoute(server.data.slug)}
-                    >
-                        Members
-                    </Link>
-                    {canOperateReminders ? (
-                        <Link
-                            className="text-muted-foreground text-sm hover:text-foreground"
-                            to={serverAgentsRoute(server.data.slug)}
-                        >
-                            Agents
-                        </Link>
-                    ) : null}
-                    {canOperateReminders ? (
-                        <Link
-                            className="text-muted-foreground text-sm hover:text-foreground"
-                            to={serverConnectionsRoute(server.data.slug)}
-                        >
-                            Connections
-                        </Link>
-                    ) : null}
-                    {canOperateReminders ? (
-                        <Link
-                            className="text-muted-foreground text-sm hover:text-foreground"
-                            to={serverComputersRoute(server.data.slug)}
-                        >
-                            Computers
-                        </Link>
-                    ) : null}
-                    {server.data.role === 'owner' ? (
-                        <Button onClick={() => setDeleteOpen(true)} size="sm" variant="destructive">
-                            Delete Server
-                        </Button>
-                    ) : null}
-                </header>
-                {remindersOpen && canOperateReminders ? (
-                    <HostedServerReminders serverId={server.data.id} />
-                ) : remindersOpen ? (
-                    <div className="grid flex-1 place-content-center gap-1 px-6 text-center">
-                        <h2 className="font-medium text-foreground">Owner or Admin required</h2>
-                        <p className="max-w-sm text-muted-foreground text-sm">
-                            Reminder schedules and fire logs are available only to Server operators.
-                        </p>
-                    </div>
-                ) : surface === 'tasks' ? (
-                    <ServerTasksSurface
-                        chats={chats.data ?? []}
-                        onOpenTask={(task) => {
-                            setSelectedChatId(task.chatId);
-                            setTaskToOpen(task);
-                            setSurface('chat');
-                        }}
-                        role={server.data.role}
-                        serverId={server.data.id}
-                        viewerUserId={server.data.viewerUserId}
+        <SidebarProvider className="app-reference-theme flex min-h-screen w-full md:h-dvh md:min-h-0">
+            <AppShell className="w-full" data-app-layout="sidebar">
+                <AppShellDragRegion />
+                <AppShellBody className="pt-0 md:flex-row">
+                    <HostedServerRail
+                        active={activeSection}
+                        canOperate={canOperateReminders}
+                        onSelect={selectSection}
                     />
-                ) : (
-                    <>
-                        <ServerChatSearch onOpenChat={openChat} serverId={server.data.id} />
-                        {selectedChat ? (
-                            <ServerChat
-                                chat={selectedChat}
-                                initialTask={
-                                    selectedTask
-                                        ? {
-                                              message: selectedTask.message,
-                                              summary: selectedTask.threadSummary,
-                                              threadChatId: selectedTask.threadChatId,
-                                          }
-                                        : undefined
-                                }
-                                key={`${selectedChat.id}:${selectedTask?.id ?? ''}`}
-                                onOpenChat={openChat}
-                            />
-                        ) : null}
-                    </>
-                )}
-            </main>
-            <DeleteServerDialog
-                displayName={server.data.displayName}
-                onConfirm={(confirmation) =>
-                    deleteServer.mutate({ confirmation, serverId: server.data.id })
-                }
-                onOpenChange={setDeleteOpen}
-                open={deleteOpen}
-                slug={server.data.slug}
-            />
-        </div>
+                    <HostedServerSidebar
+                        agents={agents.data ?? []}
+                        chats={chats.data ?? []}
+                        currentServer={server.data}
+                        onOpenActivity={() => navigate(serverRoute(server.data.slug))}
+                        onOpenChat={openChat}
+                        selectedChatId={
+                            !remindersOpen && surface === 'chat' ? selectedChat?.id : undefined
+                        }
+                        servers={servers.data ?? [server.data]}
+                    />
+                    <AppShellMain data-edge-to-edge="true">
+                        <main className="flex h-full min-w-0 flex-1 flex-col">
+                            <header className="flex h-[var(--topbar-height)] items-center justify-between gap-4 border-border border-b px-6">
+                                <div className="flex flex-col gap-0.5">
+                                    <h1 className="font-semibold text-base text-foreground">
+                                        {server.data.displayName}
+                                    </h1>
+                                    <p className="text-meta text-muted-foreground">
+                                        /{server.data.slug}
+                                    </p>
+                                </div>
+                                <span className="text-muted-foreground text-xs">
+                                    {agents.data?.length ?? 0} Agents
+                                </span>
+                            </header>
+                            {remindersOpen && canOperateReminders ? (
+                                <HostedServerReminders serverId={server.data.id} />
+                            ) : remindersOpen ? (
+                                <div className="grid flex-1 place-content-center gap-1 px-6 text-center">
+                                    <h2 className="font-medium text-foreground">
+                                        Owner or Admin required
+                                    </h2>
+                                    <p className="max-w-sm text-muted-foreground text-sm">
+                                        Reminder schedules and fire logs are available only to
+                                        Server operators.
+                                    </p>
+                                </div>
+                            ) : surface === 'tasks' ? (
+                                <ServerTasksSurface
+                                    chats={chats.data ?? []}
+                                    onOpenTask={(task) => {
+                                        setSelectedChatId(task.chatId);
+                                        setTaskToOpen(task);
+                                        setSurface('chat');
+                                    }}
+                                    role={server.data.role}
+                                    serverId={server.data.id}
+                                    viewerUserId={server.data.viewerUserId}
+                                />
+                            ) : (
+                                <>
+                                    <ServerChatSearch
+                                        onOpenChat={openChat}
+                                        serverId={server.data.id}
+                                    />
+                                    {selectedChat ? (
+                                        <ServerChat
+                                            agents={agents.data ?? []}
+                                            chat={selectedChat}
+                                            initialTask={
+                                                selectedTask
+                                                    ? {
+                                                          message: selectedTask.message,
+                                                          summary: selectedTask.threadSummary,
+                                                          threadChatId: selectedTask.threadChatId,
+                                                      }
+                                                    : undefined
+                                            }
+                                            key={`${selectedChat.id}:${selectedTask?.id ?? ''}`}
+                                            onOpenChat={openChat}
+                                            role={server.data.role}
+                                            server={server.data}
+                                            viewerUserId={server.data.viewerUserId}
+                                        />
+                                    ) : null}
+                                </>
+                            )}
+                        </main>
+                    </AppShellMain>
+                </AppShellBody>
+            </AppShell>
+        </SidebarProvider>
     );
 }

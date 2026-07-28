@@ -1,8 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createTRPCClient, httpLink } from '@trpc/client';
 import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
+import { createTRPCClient, httpLink } from '@trpc/client';
 import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
 import { clerkSessionFile, signInAsClerkHuman } from '../support/clerk-session.ts';
 import { expect, test } from '../support/test.ts';

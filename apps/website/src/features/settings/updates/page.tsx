@@ -1,5 +1,6 @@
 import { SystemUpdate01Icon } from '@hugeicons/core-free-icons';
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
 import { Progress } from '../../../components/ui/progress.tsx';
@@ -12,22 +13,17 @@ import {
     SettingsSection,
     SettingsValue,
 } from '../../../components/ui/settings-row.tsx';
-import { useRuntimeConnection } from '../../../hooks/connections/use-runtime-connection.ts';
 import {
-    type TavernUpdateStatus,
-    useTavernUpdate,
-} from '../../../hooks/desktop/use-tavern-update.ts';
+    type DesktopUpdateStatus,
+    useDesktopUpdate,
+} from '../../../hooks/desktop/use-desktop-update.ts';
 import { cn } from '../../../lib/utils.ts';
 
-export function UpdatesSettings() {
-    const { connection } = useRuntimeConnection();
-    const { checkForUpdate, status, updateAndRestart } = useTavernUpdate();
+export function UpdatesSettings({ computerSettingsHref }: { computerSettingsHref?: string }) {
+    const { checkForUpdate, status, updateAndRestart } = useDesktopUpdate();
     const [hasCheckedForUpdate, setHasCheckedForUpdate] = React.useState(false);
-    const canCheck = status.phase !== 'checking' && status.phase !== 'downloading-app';
-    const canInstall =
-        status.phase === 'app-update-required' ||
-        status.phase === 'available' ||
-        status.phase === 'ready';
+    const canCheck = status.phase !== 'checking' && status.phase !== 'downloading';
+    const canInstall = status.phase === 'available' || status.phase === 'ready';
     const updateStatusMessage = getUpdateStatusMessage(status, hasCheckedForUpdate);
 
     const handleCheckForUpdate = React.useCallback(async () => {
@@ -42,7 +38,7 @@ export function UpdatesSettings() {
                 <SettingsGroup>
                     <SettingsRow
                         className="md:items-start"
-                        description="The app and runtime update automatically."
+                        description="Check for and install updates to the packaged Grotto app."
                         title="Update"
                         trailingWidth="intrinsic"
                     >
@@ -59,10 +55,8 @@ export function UpdatesSettings() {
                                 <Button
                                     disabled={!canInstall}
                                     loading={
-                                        status.phase === 'downloading-app' ||
-                                        status.phase === 'staging-runtime' ||
-                                        status.phase === 'restarting-runtime' ||
-                                        status.phase === 'restarting-app'
+                                        status.phase === 'downloading' ||
+                                        status.phase === 'restarting'
                                     }
                                     onClick={updateAndRestart}
                                 >
@@ -70,7 +64,7 @@ export function UpdatesSettings() {
                                     {status.phase === 'ready' ? 'Restart' : 'Update'}
                                 </Button>
                             </div>
-                            {status.phase === 'downloading-app' ? (
+                            {status.phase === 'downloading' ? (
                                 <Progress value={status.progress * 100} />
                             ) : null}
                             {updateStatusMessage ? (
@@ -80,18 +74,26 @@ export function UpdatesSettings() {
                     </SettingsRow>
                     <Separator />
                     <SettingsRow title="App version">
-                        <VersionValue>{connection?.appVersion ?? 'Unknown'}</VersionValue>
-                    </SettingsRow>
-                    <Separator />
-                    <SettingsRow title="Runtime version">
                         <VersionValue>
-                            {connection
-                                ? (connection.runtimeVersion ?? 'Unknown')
-                                : 'No Runtime Connected'}
+                            {import.meta.env.VITE_GROTTO_PRODUCT_VERSION ?? 'Development'}
                         </VersionValue>
                     </SettingsRow>
                 </SettingsGroup>
             </SettingsSection>
+            {computerSettingsHref ? (
+                <SettingsSection title="Computer Updates">
+                    <SettingsGroup>
+                        <SettingsRow
+                            description="Each attached Computer reports its own version and update state."
+                            title="Grotto Computers"
+                        >
+                            <Button render={<Link to={computerSettingsHref} />} variant="secondary">
+                                Manage Computers
+                            </Button>
+                        </SettingsRow>
+                    </SettingsGroup>
+                </SettingsSection>
+            ) : null}
         </SettingsPage>
     );
 }
@@ -124,30 +126,37 @@ function VersionValue({ children }: { children: React.ReactNode }) {
 }
 
 export function getUpdateStatusMessage(
-    status: TavernUpdateStatus,
+    status: DesktopUpdateStatus,
     hasCheckedForUpdate: boolean
 ): null | {
     detail: string;
     tone: 'error' | 'neutral' | 'success';
 } {
     switch (status.phase) {
-        case 'idle':
+        case 'current':
             return hasCheckedForUpdate ? { detail: 'Up to date', tone: 'success' } : null;
         case 'available':
-        case 'app-update-required':
         case 'ready':
-            return { detail: status.detail, tone: 'error' };
-        case 'failed':
-            return { detail: status.detail, tone: 'error' };
+            return {
+                detail: `Grotto v${status.version} is available.`,
+                tone: 'neutral',
+            };
+        case 'error':
+            return { detail: status.message, tone: 'error' };
         case 'checking':
-        case 'runtime-disconnected':
         case 'unsupported':
-            return hasCheckedForUpdate ? { detail: status.detail, tone: 'neutral' } : null;
-        case 'staging-runtime':
-            return { detail: status.detail, tone: 'neutral' };
-        case 'downloading-app':
-        case 'restarting-app':
-        case 'restarting-runtime':
+            return hasCheckedForUpdate
+                ? {
+                      detail:
+                          status.phase === 'unsupported'
+                              ? 'App updates are installed through the packaged Mac app.'
+                              : 'Checking for updates…',
+                      tone: 'neutral',
+                  }
+                : null;
+        case 'downloading':
+        case 'restarting':
+        case 'idle':
             return null;
     }
 }

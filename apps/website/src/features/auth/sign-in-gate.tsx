@@ -2,11 +2,11 @@ import {
     ClerkFailed,
     ClerkLoaded,
     ClerkLoading,
-    SignedIn,
-    SignedOut,
     SignInButton,
+    useAuth,
+    useClerk,
 } from '@clerk/clerk-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Button } from '../../components/ui/button.tsx';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
@@ -14,10 +14,9 @@ import { useDesktopOAuth } from './use-desktop-oauth.ts';
 
 /**
  * Mandatory sign-in (specs/identity.md): with Clerk configured, the app
- * renders only for a signed-in user. Grace paths keep the app sync-first:
- * keyless dev builds skip the gate entirely, and if clerk-js cannot load
- * (offline) we render the app on the cached identity rather than lock the
- * user out of local data.
+ * renders only for a signed-in user. Keyless test builds skip the gate, but a
+ * configured hosted App never falls through to authenticated Server routes
+ * without a Clerk session.
  */
 export function SignInGate({ children }: { children: ReactNode }) {
     if (!isClerkEnabled) {
@@ -33,31 +32,111 @@ export function SignInGate({ children }: { children: ReactNode }) {
             <ClerkLoading>
                 <GateFrame />
             </ClerkLoading>
-            <ClerkFailed>{children}</ClerkFailed>
+            <ClerkFailed>
+                <GateFrame signIn />
+            </ClerkFailed>
             {/* ClerkLoaded also covers the degraded status (degraded implies
-                loaded), so SignedIn/SignedOut decide there too — a degraded
-                client with a cached session stays signed in (offline grace),
-                and a degraded signed-out client sees the gate. A separate
-                ClerkDegraded branch would double-mount alongside this one. */}
+                loaded). The session gate also requires the token used by the
+                Server client, so stale Clerk UI state cannot open signed API
+                routes without usable authentication. */}
             <ClerkLoaded>
-                <SignedIn>{children}</SignedIn>
-                <SignedOut>
-                    <GateFrame signIn />
-                </SignedOut>
+                <ClerkSessionGate>{children}</ClerkSessionGate>
             </ClerkLoaded>
         </>
     );
 }
 
-function GateFrame({ signIn = false }: { signIn?: boolean }) {
+function ClerkSessionGate({ children }: { children: ReactNode }) {
+    const { getToken, isLoaded, isSignedIn } = useAuth();
+    const clerk = useClerk();
+    const [tokenState, setTokenState] = useState<ClerkSessionTokenState>('loading');
+    const [retryKey, setRetryKey] = useState(0);
+
+    useEffect(() => {
+        // The retry key intentionally starts a fresh token read.
+        void retryKey;
+        let active = true;
+
+        if (!(isLoaded && isSignedIn)) {
+            setTokenState('missing');
+            return;
+        }
+
+        setTokenState('loading');
+        void readClerkSessionToken(getToken).then((state) => {
+            if (active) {
+                setTokenState(state);
+            }
+        });
+
+        return () => {
+            active = false;
+        };
+    }, [getToken, isLoaded, isSignedIn, retryKey]);
+
+    if (!(isLoaded && isSignedIn)) {
+        return <GateFrame signIn={isLoaded} />;
+    }
+
+    if (tokenState === 'loading') {
+        return <GateFrame />;
+    }
+
+    if (tokenState === 'missing') {
+        const signInAgain = () => {
+            if (isElectronDesktopApp()) {
+                void clerk.signOut(() => undefined);
+                return;
+            }
+            void clerk.signOut();
+        };
+
+        return (
+            <GateFrame
+                message="We couldn’t open your signed-in session."
+                recovery={
+                    <>
+                        <Button onClick={() => setRetryKey((key) => key + 1)}>Try again</Button>
+                        <Button onClick={signInAgain} variant="outline">
+                            Sign in again
+                        </Button>
+                    </>
+                }
+            />
+        );
+    }
+
+    return children;
+}
+
+type ClerkSessionTokenState = 'loading' | 'ready' | 'missing';
+
+export async function readClerkSessionToken(
+    getToken: () => Promise<string | null>
+): Promise<ClerkSessionTokenState> {
+    try {
+        return (await getToken()) ? 'ready' : 'missing';
+    } catch {
+        return 'missing';
+    }
+}
+
+function GateFrame({
+    message = 'Sign in to open your Grotto.',
+    recovery,
+    signIn = false,
+}: {
+    message?: string;
+    recovery?: ReactNode;
+    signIn?: boolean;
+}) {
     return (
         <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-background">
             <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="font-semibold text-2xl text-foreground">Welcome to Grotto</h1>
-                <p className="max-w-sm text-muted-foreground text-sm">
-                    Sign in to open your Grotto.
-                </p>
+                <p className="max-w-sm text-muted-foreground text-sm">{message}</p>
             </div>
+            {recovery ? <div className="flex items-center gap-2">{recovery}</div> : null}
             {signIn ? <SignInAction /> : null}
         </div>
     );

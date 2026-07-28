@@ -35,6 +35,7 @@ export function ChatTurnDrawer({
     agentColor = null,
     agentName,
     chatId,
+    embeddedEvidence = false,
     entry,
     onOpenChange,
     open,
@@ -44,6 +45,7 @@ export function ChatTurnDrawer({
     agentColor?: string | null;
     agentName: string;
     chatId?: string;
+    embeddedEvidence?: boolean;
     entry: TranscriptTurnEntry | null;
     onOpenChange: (open: boolean) => void;
     open: boolean;
@@ -64,7 +66,17 @@ export function ChatTurnDrawer({
                     turnActive={turnActive}
                 />
                 <DrawerPanel>
-                    <ChatTurnBody chatId={chatId} entry={entry} turnActive={turnActive} />
+                    {embeddedEvidence ? (
+                        <ChatTurnItems
+                            chatId={chatId}
+                            items={entry?.items ?? []}
+                            showPromptEvidence={false}
+                            turnActive={turnActive}
+                            turnStartedAt={entry?.timestamp ?? null}
+                        />
+                    ) : (
+                        <ChatTurnBody chatId={chatId} entry={entry} turnActive={turnActive} />
+                    )}
                 </DrawerPanel>
             </DrawerPopup>
         </Drawer>
@@ -167,11 +179,13 @@ export function ChatTurnBody({
 export function ChatTurnItems({
     chatId,
     items,
+    showPromptEvidence = true,
     turnActive = false,
     turnStartedAt = null,
 }: {
     chatId?: string;
     items: readonly TranscriptItem[];
+    showPromptEvidence?: boolean;
     turnActive?: boolean;
     turnStartedAt?: string | null;
 }) {
@@ -199,7 +213,7 @@ export function ChatTurnItems({
                     turnStopped={false}
                 />
             ))}
-            <TurnPromptEvidence runId={runId} />
+            {showPromptEvidence ? <TurnPromptEvidence runId={runId} /> : null}
         </div>
     );
 }

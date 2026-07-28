@@ -27,40 +27,71 @@ export function AppIconRail() {
     const isSettingsActive = location.pathname.startsWith(appRoutes.settings);
 
     return (
+        <AppIconRailView
+            activityStrip={<SidebarAgentActivityStrip />}
+            items={routeTabs.map((tab) => {
+                const gate = capability(routeTabCapabilityRequirements[tab.id]);
+                const disabledReason = gate.healthy ? null : formatCapabilityDisabledReason(gate);
+
+                return {
+                    content: <RouteTabIcon className="size-4.5" tab={tab.id} />,
+                    disabled: !gate.healthy,
+                    id: tab.id,
+                    isActive: activeTab === tab.id,
+                    label: disabledReason ?? tab.label,
+                    onClick: () => {
+                        if (gate.healthy) {
+                            setActiveTab(tab.id);
+                        }
+                    },
+                    unseen: tab.id === 'activity' && activityUnseen,
+                };
+            })}
+            settings={{
+                content: (
+                    <Icon aria-hidden="true" className="size-4.5" icon={Setting07Icon} size={20} />
+                ),
+                id: 'settings',
+                isActive: isSettingsActive,
+                label: 'Settings',
+                onClick: () => navigate(appRoutes.settings),
+            }}
+        />
+    );
+}
+
+export interface AppIconRailItem {
+    content: React.ReactNode;
+    disabled?: boolean;
+    id: string;
+    isActive: boolean;
+    label: string;
+    onClick: () => void;
+    unseen?: boolean;
+}
+
+export function AppIconRailView({
+    activityStrip,
+    items,
+    settings,
+}: {
+    activityStrip?: React.ReactNode;
+    items: AppIconRailItem[];
+    settings: AppIconRailItem;
+}) {
+    return (
         <nav
             aria-label="Sections"
             className="relative z-30 flex w-12 shrink-0 flex-col items-center gap-1 bg-[var(--sidebar)] pt-[calc(var(--topbar-height)-4px)] pb-2"
         >
-            {routeTabs.map((tab) => {
-                const gate = capability(routeTabCapabilityRequirements[tab.id]);
-                const disabledReason = gate.healthy ? null : formatCapabilityDisabledReason(gate);
-
-                return (
-                    <RailButton
-                        disabled={!gate.healthy}
-                        isActive={activeTab === tab.id}
-                        key={tab.id}
-                        label={disabledReason ?? tab.label}
-                        onClick={() => {
-                            if (gate.healthy) {
-                                setActiveTab(tab.id);
-                            }
-                        }}
-                        unseen={tab.id === 'activity' && activityUnseen}
-                    >
-                        <RouteTabIcon className="size-4.5" tab={tab.id} />
-                    </RailButton>
-                );
-            })}
+            {items.map((item) => (
+                <RailButton key={item.id} {...item}>
+                    {item.content}
+                </RailButton>
+            ))}
             <div className="flex-1" />
-            <SidebarAgentActivityStrip />
-            <RailButton
-                isActive={isSettingsActive}
-                label="Settings"
-                onClick={() => navigate(appRoutes.settings)}
-            >
-                <Icon aria-hidden="true" className="size-4.5" icon={Setting07Icon} size={20} />
-            </RailButton>
+            {activityStrip}
+            <RailButton {...settings}>{settings.content}</RailButton>
         </nav>
     );
 }

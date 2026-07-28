@@ -177,37 +177,22 @@ export function ChatTranscript({
     }, [latestAgentMessage]);
 
     const transcript = (
-        <TranscriptRenderProvider value={renderContext}>
-            <div className="relative min-h-full w-full">
-                <MessageScrollerContent className="w-full gap-2" ref={scrollContentRef}>
-                    {leadingContent}
-                    {transcriptRows.map((row) =>
-                        row.kind === 'hiddenCount' && hiddenCount === 0 ? null : (
-                            <MessageScrollerItem
-                                // Drop paint containment so a message's hover
-                                // action island can sit on top of the row
-                                // without being clipped, keeping rows tight.
-                                className="![content-visibility:visible]"
-                                key={row.id}
-                                messageId={row.id}
-                            >
-                                <TranscriptRenderRowItem
-                                    agentStatusCharacter={agentStatusCharacter}
-                                    row={row}
-                                />
-                            </MessageScrollerItem>
-                        )
-                    )}
-                    {chatId ? (
-                        <ChatCompositionBubbles
-                            chatId={chatId}
-                            compositionTarget={compositionTarget}
-                            messageCompositionIds={messageCompositionIds}
-                        />
-                    ) : null}
-                </MessageScrollerContent>
-            </div>
-        </TranscriptRenderProvider>
+        <ChatTranscriptRowsPresentation
+            agentStatusCharacter={agentStatusCharacter}
+            composition={
+                chatId ? (
+                    <ChatCompositionBubbles
+                        chatId={chatId}
+                        compositionTarget={compositionTarget}
+                        messageCompositionIds={messageCompositionIds}
+                    />
+                ) : null
+            }
+            leadingContent={leadingContent}
+            renderContext={renderContext}
+            scrollContentRef={scrollContentRef}
+            transcriptRows={transcriptRows}
+        />
     );
 
     if (!scrollContentRef) {
@@ -238,6 +223,81 @@ export function ChatTranscript({
     }
 
     return transcript;
+}
+
+export function ChatTranscriptPresentation({
+    agentStatusCharacter = null,
+    leadingContent,
+    renderContext,
+    rows,
+    scrollContentRef,
+}: {
+    agentStatusCharacter?: AgentCharacter | null;
+    leadingContent?: React.ReactNode;
+    renderContext: TranscriptRenderContextValue;
+    rows: TranscriptRow[];
+    scrollContentRef?: React.RefObject<HTMLDivElement | null>;
+}) {
+    const entries = React.useMemo(() => buildTranscriptEntries({ rows }), [rows]);
+    const rawTranscriptRows = React.useMemo(
+        () => buildTranscriptRenderRows(entries, renderContext.hiddenCount),
+        [entries, renderContext.hiddenCount]
+    );
+    const transcriptRows = useStableTranscriptRenderRows(rawTranscriptRows);
+
+    return (
+        <ChatTranscriptRowsPresentation
+            agentStatusCharacter={agentStatusCharacter}
+            leadingContent={leadingContent}
+            renderContext={renderContext}
+            scrollContentRef={scrollContentRef}
+            transcriptRows={transcriptRows}
+        />
+    );
+}
+
+function ChatTranscriptRowsPresentation({
+    agentStatusCharacter,
+    composition,
+    leadingContent,
+    renderContext,
+    scrollContentRef,
+    transcriptRows,
+}: {
+    agentStatusCharacter: AgentCharacter | null;
+    composition?: React.ReactNode;
+    leadingContent?: React.ReactNode;
+    renderContext: TranscriptRenderContextValue;
+    scrollContentRef?: React.RefObject<HTMLDivElement | null>;
+    transcriptRows: ReturnType<typeof buildTranscriptRenderRows>;
+}) {
+    return (
+        <TranscriptRenderProvider value={renderContext}>
+            <div className="relative min-h-full w-full">
+                <MessageScrollerContent className="w-full gap-2" ref={scrollContentRef}>
+                    {leadingContent}
+                    {transcriptRows.map((row) =>
+                        row.kind === 'hiddenCount' && renderContext.hiddenCount === 0 ? null : (
+                            <MessageScrollerItem
+                                // Drop paint containment so a message's hover
+                                // action island can sit on top of the row
+                                // without being clipped, keeping rows tight.
+                                className="![content-visibility:visible]"
+                                key={row.id}
+                                messageId={row.id}
+                            >
+                                <TranscriptRenderRowItem
+                                    agentStatusCharacter={agentStatusCharacter}
+                                    row={row}
+                                />
+                            </MessageScrollerItem>
+                        )
+                    )}
+                    {composition}
+                </MessageScrollerContent>
+            </div>
+        </TranscriptRenderProvider>
+    );
 }
 
 // Pagination timestamps are minutes-to-months old; live rows land within

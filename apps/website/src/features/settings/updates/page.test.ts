@@ -6,7 +6,6 @@ describe('update settings status message', () => {
         expect(
             getUpdateStatusMessage(
                 {
-                    detail: 'Tavern is up to date.',
                     phase: 'idle',
                 },
                 false
@@ -18,8 +17,7 @@ describe('update settings status message', () => {
         expect(
             getUpdateStatusMessage(
                 {
-                    detail: 'Tavern is up to date.',
-                    phase: 'idle',
+                    phase: 'current',
                 },
                 true
             )
@@ -33,15 +31,14 @@ describe('update settings status message', () => {
         expect(
             getUpdateStatusMessage(
                 {
-                    detail: 'Tavern 1.2.4 is available.',
                     phase: 'available',
                     version: '1.2.4',
                 },
                 true
             )
         ).toEqual({
-            detail: 'Tavern 1.2.4 is available.',
-            tone: 'error',
+            detail: 'Grotto v1.2.4 is available.',
+            tone: 'neutral',
         });
     });
 });

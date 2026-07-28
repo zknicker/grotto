@@ -1,4 +1,5 @@
 import { Plus } from '@hugeicons/core-free-icons';
+import type { ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import {
@@ -50,75 +51,62 @@ export function MembersPage() {
         ).catch(() => undefined);
     };
 
+    const createControl = (
+        <Menu>
+            <MenuTrigger
+                aria-label="Create agent"
+                className="no-drag flex size-5 cursor-pointer items-center justify-center rounded-md text-sidebar-muted hover:bg-[var(--nav-hover)] hover:text-foreground disabled:cursor-default disabled:opacity-50"
+                disabled={createAgent.isPending}
+                title="Create agent"
+            >
+                <Icon aria-hidden="true" icon={Plus} size={14} />
+            </MenuTrigger>
+            <MenuPopup align="start" className="w-72">
+                <MenuItem onClick={() => handleCreate(null)}>
+                    <div className="flex flex-col gap-0.5 py-0.5">
+                        <span>Blank agent</span>
+                        <span className="text-muted-foreground text-xs">
+                            Starts with no role; its lane emerges from work
+                        </span>
+                    </div>
+                </MenuItem>
+                <MenuSeparator />
+                {agentArchetypeProposals.map((proposal) => (
+                    <MenuItem key={proposal.id} onClick={() => handleCreate(proposal)}>
+                        <div className="flex flex-col gap-0.5 py-0.5">
+                            <span>{proposal.label}</span>
+                            <span className="text-muted-foreground text-xs">
+                                {proposal.tagline}
+                            </span>
+                        </div>
+                    </MenuItem>
+                ))}
+            </MenuPopup>
+        </Menu>
+    );
+
     return (
-        <main className="flex min-h-0 flex-1">
-            <aside className="w-72 shrink-0 overflow-y-auto border-[var(--content-card-border)] border-r bg-[var(--sidebar)] pt-[calc(var(--topbar-height)-4px)] pb-6">
-                <section>
-                    <div className="mb-2 flex items-center justify-between px-3">
-                        <h1 className="flex items-center gap-2 font-mono text-sidebar-muted text-xs uppercase tracking-wider">
-                            <span>Agents</span>
-                            <span className="tabular-nums">{agents.length}</span>
-                        </h1>
-                        <Menu>
-                            <MenuTrigger
-                                aria-label="Create agent"
-                                className="no-drag flex size-5 cursor-pointer items-center justify-center rounded-md text-sidebar-muted hover:bg-[var(--nav-hover)] hover:text-foreground disabled:cursor-default disabled:opacity-50"
-                                disabled={createAgent.isPending}
-                                title="Create agent"
-                            >
-                                <Icon aria-hidden="true" icon={Plus} size={14} />
-                            </MenuTrigger>
-                            <MenuPopup align="start" className="w-72">
-                                <MenuItem onClick={() => handleCreate(null)}>
-                                    <div className="flex flex-col gap-0.5 py-0.5">
-                                        <span>Blank agent</span>
-                                        <span className="text-muted-foreground text-xs">
-                                            Starts with no role; its lane emerges from work
-                                        </span>
-                                    </div>
-                                </MenuItem>
-                                <MenuSeparator />
-                                {agentArchetypeProposals.map((proposal) => (
-                                    <MenuItem
-                                        key={proposal.id}
-                                        onClick={() => handleCreate(proposal)}
-                                    >
-                                        <div className="flex flex-col gap-0.5 py-0.5">
-                                            <span>{proposal.label}</span>
-                                            <span className="text-muted-foreground text-xs">
-                                                {proposal.tagline}
-                                            </span>
-                                        </div>
-                                    </MenuItem>
-                                ))}
-                            </MenuPopup>
-                        </Menu>
-                    </div>
-                    <div className="space-y-1 px-2">
-                        {agents.map((agent) => (
-                            <NavLink
-                                className={({ isActive }) =>
-                                    cn(
-                                        'block rounded-lg px-2 py-2 hover:bg-[var(--nav-hover)]',
-                                        isActive
-                                            ? 'bg-secondary shadow-[0_2px_0_0_var(--hard-shadow)] ring-1 ring-input ring-inset'
-                                            : null
-                                    )
-                                }
-                                key={agent.id}
-                                to={appRoutes.memberAgent(agent.id)}
-                            >
-                                <MemberAgentLabel agent={agent} showPresence />
-                            </NavLink>
-                        ))}
-                    </div>
-                </section>
-                <div className="px-2">
-                    <HumanMemberList />
-                </div>
-            </aside>
-            <section className="flex min-w-0 flex-1">
-                {isHumansAdmin ? (
+        <MembersPageFrame
+            agentCount={agents.length}
+            agentRows={agents.map((agent) => (
+                <NavLink
+                    className={({ isActive }) =>
+                        cn(
+                            'block rounded-lg px-2 py-2 hover:bg-[var(--nav-hover)]',
+                            isActive
+                                ? 'bg-secondary shadow-[0_2px_0_0_var(--hard-shadow)] ring-1 ring-input ring-inset'
+                                : null
+                        )
+                    }
+                    key={agent.id}
+                    to={appRoutes.memberAgent(agent.id)}
+                >
+                    <MemberAgentLabel agent={agent} showPresence />
+                </NavLink>
+            ))}
+            createControl={createControl}
+            detail={
+                isHumansAdmin ? (
                     <div className="min-w-0 flex-1 overflow-y-auto">
                         <MembersAdmin />
                     </div>
@@ -134,8 +122,42 @@ export function MembersPage() {
                     )
                 ) : (
                     <p className="m-auto text-muted-foreground text-sm">Select a member</p>
-                )}
-            </section>
+                )
+            }
+            humanMembers={<HumanMemberList />}
+        />
+    );
+}
+
+export function MembersPageFrame({
+    agentCount,
+    agentRows,
+    createControl,
+    detail,
+    humanMembers,
+}: {
+    agentCount: number;
+    agentRows: ReactNode;
+    createControl?: ReactNode;
+    detail: ReactNode;
+    humanMembers: ReactNode;
+}) {
+    return (
+        <main className="flex min-h-0 flex-1">
+            <aside className="w-72 shrink-0 overflow-y-auto border-[var(--content-card-border)] border-r bg-[var(--sidebar)] pt-[calc(var(--topbar-height)-4px)] pb-6">
+                <section>
+                    <div className="mb-2 flex items-center justify-between px-3">
+                        <h1 className="flex items-center gap-2 font-mono text-sidebar-muted text-xs uppercase tracking-wider">
+                            <span>Agents</span>
+                            <span className="tabular-nums">{agentCount}</span>
+                        </h1>
+                        {createControl}
+                    </div>
+                    <div className="space-y-1 px-2">{agentRows}</div>
+                </section>
+                <div className="px-2">{humanMembers}</div>
+            </aside>
+            <section className="flex min-w-0 flex-1">{detail}</section>
         </main>
     );
 }

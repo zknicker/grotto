@@ -5,6 +5,22 @@ export function serverRoute(slug: string) {
     return `${serversRoute}/${slug}`;
 }
 
+export function serverActivityRoute(slug: string) {
+    return `${serverRoute(slug)}/activity`;
+}
+
+export function serverSearchRoute(slug: string) {
+    return `${serverRoute(slug)}/search`;
+}
+
+export function serverChatRoute(slug: string, chatId: string) {
+    return `${serverRoute(slug)}/chats/${encodeURIComponent(chatId)}`;
+}
+
+export function serverTasksRoute(slug: string) {
+    return `${serverRoute(slug)}/tasks`;
+}
+
 export function serverMembersRoute(slug: string) {
     return `${serverRoute(slug)}/members`;
 }
@@ -23,6 +39,18 @@ export function serverAgentsRoute(slug: string) {
 
 export function serverRemindersRoute(slug: string) {
     return `${serverRoute(slug)}/reminders`;
+}
+
+export function serverSettingsRoute(slug: string) {
+    return `${serverRoute(slug)}/settings`;
+}
+
+export function serverSettingsSectionRoute(slug: string, section: string) {
+    return `${serverSettingsRoute(slug)}/${section}`;
+}
+
+export function serverBriefVariationsRoute(slug: string) {
+    return `${serverRoute(slug)}/design/brief`;
 }
 
 export function isServerRemindersPath(pathname: string, slug: string) {

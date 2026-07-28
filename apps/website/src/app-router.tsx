@@ -1,4 +1,4 @@
-import { createBrowserRouter, createHashRouter } from 'react-router-dom';
+import { createBrowserRouter, createHashRouter, Navigate } from 'react-router-dom';
 import { AppFrame } from './components/app-frame.tsx';
 import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
@@ -44,43 +44,125 @@ export function createAppRouter() {
                         {
                             path: 's/:slug',
                             lazy: lazyRoute(
-                                () => import('./routes/app/server-page.tsx'),
-                                'ServerPage'
+                                () => import('./routes/app/server-layout.tsx'),
+                                'ServerLayout'
                             ),
-                        },
-                        {
-                            path: 's/:slug/members',
-                            lazy: lazyRoute(
-                                () => import('./routes/app/server-members-page.tsx'),
-                                'ServerMembersPage'
-                            ),
-                        },
-                        {
-                            path: 's/:slug/computers',
-                            lazy: lazyRoute(
-                                () => import('./routes/app/server-computers-page.tsx'),
-                                'ServerComputersPage'
-                            ),
+                            children: [
+                                {
+                                    index: true,
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-default-page.tsx'),
+                                        'ServerDefaultPage'
+                                    ),
+                                },
+                                {
+                                    path: 'activity',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-activity-page.tsx'),
+                                        'ServerActivityPage'
+                                    ),
+                                },
+                                {
+                                    path: 'search',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-search-page.tsx'),
+                                        'ServerSearchPage'
+                                    ),
+                                },
+                                {
+                                    path: 'design/brief',
+                                    lazy: lazyRoute(
+                                        () =>
+                                            import('./routes/app/server-brief-variations-page.tsx'),
+                                        'ServerBriefVariationsPage'
+                                    ),
+                                },
+                                {
+                                    path: 'chats/:chatId',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-chat-page.tsx'),
+                                        'ServerChatPage'
+                                    ),
+                                },
+                                {
+                                    path: 'tasks',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-tasks-page.tsx'),
+                                        'ServerTasksPage'
+                                    ),
+                                },
+                                {
+                                    path: 'reminders',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-reminders-page.tsx'),
+                                        'ServerRemindersPage'
+                                    ),
+                                },
+                                {
+                                    path: 'members',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-members-page.tsx'),
+                                        'ServerMembersPage'
+                                    ),
+                                },
+                                {
+                                    path: 'members/agents/:agentId',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-members-page.tsx'),
+                                        'ServerMembersPage'
+                                    ),
+                                },
+                                {
+                                    path: 'members/humans',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-members-page.tsx'),
+                                        'ServerMembersPage'
+                                    ),
+                                },
+                                {
+                                    path: 'agents',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-agents-page.tsx'),
+                                        'ServerAgentsPage'
+                                    ),
+                                },
+                                {
+                                    path: 'computers',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-computers-page.tsx'),
+                                        'ServerComputersPage'
+                                    ),
+                                },
+                                {
+                                    path: 'settings',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-settings-page.tsx'),
+                                        'ServerSettingsPage'
+                                    ),
+                                    children: [
+                                        {
+                                            index: true,
+                                            element: <Navigate replace to="appearance" />,
+                                        },
+                                        {
+                                            path: ':section',
+                                            lazy: lazyRoute(
+                                                () =>
+                                                    import(
+                                                        './routes/app/server-settings-section-page.tsx'
+                                                    ),
+                                                'ServerSettingsSectionPage'
+                                            ),
+                                        },
+                                    ],
+                                },
+                            ],
                         },
                         {
                             path: 's/:slug/connections',
                             lazy: lazyRoute(
                                 () => import('./routes/app/server-connections-page.tsx'),
                                 'ServerConnectionsPage'
-                            ),
-                        },
-                        {
-                            path: 's/:slug/agents',
-                            lazy: lazyRoute(
-                                () => import('./routes/app/server-agents-page.tsx'),
-                                'ServerAgentsPage'
-                            ),
-                        },
-                        {
-                            path: 's/:slug/reminders',
-                            lazy: lazyRoute(
-                                () => import('./routes/app/server-page.tsx'),
-                                'ServerPage'
                             ),
                         },
                         {

@@ -1,6 +1,12 @@
 import * as React from 'react';
+import type { ActorProfile } from '../../hooks/actors/use-actor.ts';
 import type { ChatLogOutput } from '../../lib/trpc.tsx';
-import type { ConversationMessageLayout, TranscriptRow } from './chat-transcript-model.ts';
+import type { TranscriptMessage } from './chat-transcript-message.tsx';
+import type {
+    ConversationMessageLayout,
+    TranscriptActor,
+    TranscriptRow,
+} from './chat-transcript-model.ts';
 
 export type TranscriptMessageRow = Extract<TranscriptRow, { kind: 'message' }>;
 export type TranscriptThreadSummary = NonNullable<
@@ -21,13 +27,18 @@ export interface TranscriptRenderContextValue {
     conversationLayout: ConversationMessageLayout;
     currentSessionKey?: string | null;
     defaultOpenWorkGroups: boolean;
+    disableAgentHoverCard?: boolean;
     flashMessageId: string | null;
     hiddenCount: number;
+    onActorClick?: (actor: TranscriptActor) => void;
     onOpenThread: (row: TranscriptMessageRow) => void;
     onUnfollowThread: (threadChatId: string) => void;
     profilePaneChatId?: string;
+    renderMessageAttachments?: (message: TranscriptMessage) => React.ReactNode;
+    renderMessageContent?: (message: TranscriptMessage) => React.ReactNode;
     /** Runs whose final reply is present anywhere in the transcript. */
     repliedRunIds: ReadonlySet<string>;
+    resolveActorProfile?: (actor: TranscriptActor) => ActorProfile | null;
     /**
      * Whether an item mounting now lands at the live edge and should animate
      * in. False for everything present at first render and for older history
@@ -35,6 +46,7 @@ export interface TranscriptRenderContextValue {
      */
     shouldAnimateItemEnter: (key: string, timestampMs: number | null) => boolean;
     threadActionsEnabled: boolean;
+    turnEvidenceSource?: 'embedded' | 'runtime';
 }
 
 export function resolveTranscriptInteractionHosts(input: {

@@ -4,21 +4,29 @@ import { SimpleCodeEditor } from '../../components/code-editor/simple-code-edito
 import { SelectionQuoteContainer } from '../../components/quote/selection-quote.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { trpc } from '../../lib/trpc.tsx';
 import { injectHostTokenStyle, readHostTokenCss } from './host-token-style.ts';
 import { formatTavernResourceLink, type TavernResourceTarget } from './tavern-resource-link.ts';
 
 export function WorkspaceArtifactContent({
     agentId,
+    serverId,
     target,
 }: {
     agentId: string;
+    serverId?: string;
     target: Extract<TavernResourceTarget, { kind: 'workspaceFile' }>;
 }) {
-    const fileQuery = trpc.agent.workspaceReadableFile.useQuery(
+    const localFileQuery = trpc.agent.workspaceReadableFile.useQuery(
         { agentId, path: target.path },
-        { enabled: agentId.length > 0 }
+        { enabled: agentId.length > 0 && !serverId }
     );
+    const hostedFileQuery = grottoTrpc.agent.workspaceFile.useQuery(
+        { agentId, path: target.path, serverId: serverId ?? '' },
+        { enabled: agentId.length > 0 && Boolean(serverId) }
+    );
+    const fileQuery = serverId ? hostedFileQuery : localFileQuery;
 
     if (!agentId) {
         return (

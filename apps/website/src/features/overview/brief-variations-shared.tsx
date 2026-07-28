@@ -2,11 +2,11 @@ import type { IconSvgElement } from '@hugeicons/react';
 import type { ReactNode } from 'react';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import type { AgentListOutput } from '../../lib/trpc.tsx';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
 import { AgentFace } from '../chats/agent-face.tsx';
+import type { OverviewAgent } from './overview-types.ts';
 
-export type Agent = AgentListOutput['agents'][number];
+export type Agent = OverviewAgent;
 
 // Dominant art color per character head (sampled from the face art fills in
 // agent-face.tsx) so a mentioned agent's name reads as the same "ink" as its
@@ -125,7 +125,9 @@ export function AgentChip({
     fallback: string;
     id: string;
 }) {
-    const agent = agents.find((entry) => entry.id === id);
+    const agent =
+        agents.find((entry) => entry.id === id) ??
+        agents.find((entry) => entry.name.toLowerCase() === fallback.toLowerCase());
 
     if (!agent) {
         return <span className="font-semibold text-foreground not-italic">{fallback}</span>;

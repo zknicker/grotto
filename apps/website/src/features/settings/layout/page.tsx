@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { appRoutes } from '../../../lib/app-routes.ts';
 import { useLayoutContext } from '../../shell/use-layout-context.ts';
@@ -15,6 +16,20 @@ export function SettingsLayout() {
     const isFullContentRoute = location.pathname === appRoutes.settingsSkills;
 
     return (
+        <SettingsContentFrame isFullContentRoute={isFullContentRoute}>
+            <Outlet context={layoutContext} />
+        </SettingsContentFrame>
+    );
+}
+
+export function SettingsContentFrame({
+    children,
+    isFullContentRoute = false,
+}: {
+    children: ReactNode;
+    isFullContentRoute?: boolean;
+}) {
+    return (
         <section
             className={
                 isFullContentRoute
@@ -29,7 +44,7 @@ export function SettingsLayout() {
                         : 'mx-auto w-full max-w-5xl px-12 pt-12 pb-16'
                 }
             >
-                <Outlet context={layoutContext} />
+                {children}
             </div>
         </section>
     );

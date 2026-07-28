@@ -38,6 +38,11 @@ import {
 // winner gets folded back into the OverviewBriefSegment renderer.
 export function BriefVariations() {
     const agents = useAgentList().data?.agents ?? [];
+
+    return <BriefVariationsView agents={agents} />;
+}
+
+export function BriefVariationsView({ agents }: { agents: VariationProps['agents'] }) {
     const dark = useResolvedThemeOptional() === 'dark';
 
     return (

@@ -1,161 +1,145 @@
-import type { ServerMember } from '@tavern/api/hosted-membership';
-import { canManageServerInvitations } from '@tavern/api/hosted-membership';
-import * as React from 'react';
-import { Link, useParams } from 'react-router-dom';
-import {
-    InviteMemberForm,
-    ServerInvitationList,
-} from '../../features/servers/server-invitations.tsx';
-import {
-    memberChangeDescription,
-    type ServerMemberRowAction,
-} from '../../features/servers/server-member-actions.ts';
-import {
-    type PendingMemberChange,
-    ServerMemberConfirmDialog,
-} from '../../features/servers/server-member-confirm-dialog.tsx';
-import { ServerMemberList } from '../../features/servers/server-member-list.tsx';
-import { serverRoute } from '../../features/servers/server-routes.ts';
-import { useServer } from '../../hooks/servers/use-server.ts';
-import { useServerInvitations } from '../../hooks/servers/use-server-invitations.ts';
+import { Plus } from '@hugeicons/core-free-icons';
+import type { HostedAgent } from '@tavern/api';
+import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
+import { NavLink, useLocation, useParams } from 'react-router-dom';
+import { Icon } from '../../components/ui/icon.tsx';
+import { AgentFace } from '../../features/chats/agent-face.tsx';
+import { HostedAgentProfile } from '../../features/members/agent-profile/hosted-agent-profile.tsx';
+import { HumanMemberSection } from '../../features/members/human-member-list.tsx';
+import { MembersPageFrame } from '../../features/members/members-page.tsx';
+import { HostedHumanDirectory } from '../../features/servers/hosted-human-directory.tsx';
+import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
+import { serverAgentsRoute, serverMembersRoute } from '../../features/servers/server-routes.ts';
 import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
-import { useServerMembershipCommands } from '../../hooks/servers/use-server-membership-commands.ts';
+import { cn } from '../../lib/utils.ts';
 
-/** Invitation and membership management for one Grotto server. */
 export function ServerMembersPage() {
-    const { slug = '' } = useParams();
-    const server = useServer(slug);
-    const serverId = server.data?.id;
-    const directory = useServerMembers(serverId);
-    const canInvite = directory.data
-        ? canManageServerInvitations(directory.data.viewerRole)
-        : false;
-    const invitations = useServerInvitations(serverId, canInvite);
-    const commands = useServerMembershipCommands(serverId);
-    const [pending, setPending] = React.useState<PendingMemberChange | null>(null);
-
-    if (server.error) {
-        return <MembersMessage detail={server.error.message} title="Server unavailable" />;
-    }
-
-    if (!(server.data && directory.data)) {
-        return null;
-    }
-
-    const openChange = (member: ServerMember, action: ServerMemberRowAction) =>
-        setPending(
-            buildPendingChange(member, action, server.data.slug, commands, () => setPending(null))
-        );
+    const { agentId } = useParams();
+    const location = useLocation();
+    const { agents, server } = useHostedServerContext();
+    const directory = useServerMembers(server.id);
+    const selectedAgent = agents.find((agent) => agent.id === agentId) ?? null;
+    const humansSelected = location.pathname.endsWith('/humans');
+    const humansRoute = `${serverMembersRoute(server.slug)}/humans`;
 
     return (
-        <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-12">
-            <header className="flex flex-col gap-1">
-                <Link
-                    className="text-muted-foreground text-xs hover:text-foreground"
-                    to={serverRoute(server.data.slug)}
+        <MembersPageFrame
+            agentCount={agents.length}
+            agentRows={agents.map((agent) => (
+                <AgentRow agent={agent} key={agent.id} slug={server.slug} />
+            ))}
+            createControl={
+                <NavLink
+                    aria-label="Create agent"
+                    className="no-drag flex size-5 items-center justify-center rounded-md text-sidebar-muted hover:bg-[var(--nav-hover)] hover:text-foreground"
+                    title="Create agent"
+                    to={serverAgentsRoute(server.slug)}
                 >
-                    ← {server.data.displayName}
-                </Link>
-                <h1 className="font-display text-2xl text-foreground">Members</h1>
-            </header>
-
-            <section className="flex flex-col gap-3">
-                <h2 className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
-                    Humans
-                </h2>
-                <ServerMemberList directory={directory.data} onChoose={openChange} />
-                {commands.changeRole.error ? (
-                    <p className="text-destructive text-xs">{commands.changeRole.error.message}</p>
-                ) : null}
-                {commands.remove.error ? (
-                    <p className="text-destructive text-xs">{commands.remove.error.message}</p>
-                ) : null}
-                {commands.leave.error ? (
-                    <p className="text-destructive text-xs">{commands.leave.error.message}</p>
-                ) : null}
-            </section>
-
-            {canInvite ? (
-                <section className="flex flex-col gap-4">
-                    <h2 className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
-                        Invitations
-                    </h2>
-                    <InviteMemberForm serverId={server.data.id} />
-                    <ServerInvitationList
-                        invitations={invitations.data ?? []}
-                        serverId={server.data.id}
+                    <Icon aria-hidden="true" icon={Plus} size={14} />
+                </NavLink>
+            }
+            detail={
+                selectedAgent ? (
+                    <HostedAgentProfile
+                        agent={selectedAgent}
+                        key={selectedAgent.id}
+                        server={server}
+                        variant="page"
                     />
-                </section>
-            ) : null}
-
-            <ServerMemberConfirmDialog
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setPending(null);
-                    }
-                }}
-                pending={pending}
-                slug={server.data.slug}
-            />
-        </main>
+                ) : humansSelected ? (
+                    <HostedHumanDirectory
+                        directory={directory.data}
+                        serverId={server.id}
+                        serverSlug={server.slug}
+                    />
+                ) : (
+                    <p className="m-auto text-muted-foreground text-sm">Select a member</p>
+                )
+            }
+            humanMembers={
+                <HumanMemberSection
+                    count={directory.data?.members.length ?? 0}
+                    manageTo={humansRoute}
+                >
+                    {(directory.data?.members ?? []).map((member) => (
+                        <NavLink
+                            className={({ isActive }) =>
+                                cn(
+                                    'flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 hover:bg-[var(--nav-hover)]',
+                                    isActive && humansSelected
+                                        ? 'bg-secondary shadow-[0_2px_0_0_var(--hard-shadow)] ring-1 ring-input ring-inset'
+                                        : null
+                                )
+                            }
+                            key={member.userId}
+                            to={humansRoute}
+                        >
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs">
+                                {member.userId.slice(0, 2).toUpperCase()}
+                            </span>
+                            <span className="min-w-0">
+                                <span className="block truncate font-medium text-sm">
+                                    {member.userId}
+                                </span>
+                                <span className="block text-muted-foreground text-sm capitalize">
+                                    {member.role}
+                                </span>
+                            </span>
+                        </NavLink>
+                    ))}
+                </HumanMemberSection>
+            }
+        />
     );
 }
 
-function buildPendingChange(
-    member: ServerMember,
-    action: ServerMemberRowAction,
-    slug: string,
-    commands: ReturnType<typeof useServerMembershipCommands>,
-    done: () => void
-): PendingMemberChange {
-    const serverId = commands.serverId ?? '';
-    const shared = {
-        description: memberChangeDescription(member, action, slug),
-        label: action.label,
-        requiresSlug: action.requiresSlug,
-    };
-
-    if (action.kind === 'leave') {
-        return {
-            ...shared,
-            run: (confirmation) => {
-                commands.leave.mutate({ confirmation, serverId });
-                done();
-            },
-        };
-    }
-
-    if (action.kind === 'remove') {
-        return {
-            ...shared,
-            run: (confirmation) => {
-                commands.remove.mutate({ confirmation, serverId, userId: member.userId });
-                done();
-            },
-        };
-    }
-
-    const nextRole = action.nextRole ?? member.role;
-
-    return {
-        ...shared,
-        run: (confirmation) => {
-            commands.changeRole.mutate({
-                confirmation: action.requiresSlug ? confirmation : undefined,
-                role: nextRole,
-                serverId,
-                userId: member.userId,
-            });
-            done();
-        },
-    };
-}
-
-function MembersMessage({ detail, title }: { detail: string; title: string }) {
+function AgentRow({ agent, slug }: { agent: HostedAgent; slug: string }) {
     return (
-        <main className="flex h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-            <h1 className="font-semibold text-foreground text-lg">{title}</h1>
-            <p className="max-w-sm text-muted-foreground text-sm">{detail}</p>
-        </main>
+        <NavLink
+            className={({ isActive }) =>
+                cn(
+                    'block rounded-lg px-2 py-2 hover:bg-[var(--nav-hover)]',
+                    isActive
+                        ? 'bg-secondary shadow-[0_2px_0_0_var(--hard-shadow)] ring-1 ring-input ring-inset'
+                        : null
+                )
+            }
+            to={`${serverMembersRoute(slug)}/agents/${agent.id}`}
+        >
+            <span className="flex min-w-0 items-center gap-3">
+                <span className="relative flex size-8 shrink-0 items-center justify-center overflow-visible">
+                    <AgentFace
+                        animate={false}
+                        head={resolveAgentDefaultCharacter(agent.id)}
+                        size={32}
+                        style={{
+                            flexShrink: 0,
+                            height: 32,
+                            overflow: 'visible',
+                            width: 32,
+                        }}
+                    />
+                    <span
+                        className={`absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-sidebar ${
+                            agent.availability === 'idle'
+                                ? 'bg-success'
+                                : agent.availability === 'working'
+                                  ? 'bg-warning'
+                                  : agent.availability === 'error'
+                                    ? 'bg-error'
+                                    : 'bg-muted-foreground'
+                        }`}
+                    />
+                </span>
+                <span className="min-w-0">
+                    <span className="block truncate font-semibold text-sm">
+                        {agent.displayName}
+                    </span>
+                    <span className="block truncate text-muted-foreground text-sm">
+                        @{agent.handle}
+                    </span>
+                </span>
+            </span>
+        </NavLink>
     );
 }

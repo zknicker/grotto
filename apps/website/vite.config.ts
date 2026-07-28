@@ -12,9 +12,8 @@ const serverOrigin = `http://localhost:${serverPort}`;
 
 // The App's product version is provenance the App sends to the hosted Server.
 // It has one source of truth: this package's version.
-const productVersion = JSON.parse(
-    readFileSync(path.join(websiteRoot, 'package.json'), 'utf8')
-).version as string;
+const productVersion = JSON.parse(readFileSync(path.join(websiteRoot, 'package.json'), 'utf8'))
+    .version as string;
 
 export default defineConfig(({ command }) => ({
     base: command === 'build' && process.env.TAVERN_HOSTED_APP !== '1' ? './' : '/',

@@ -1,4 +1,5 @@
 import type { RuntimeUser } from '@tavern/api';
+import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar.tsx';
 import { appRoutes } from '../../lib/app-routes.ts';
@@ -22,6 +23,45 @@ function SignedInHumanMemberList() {
 
 function MemberSection({ count, users }: { count: number; users: RuntimeUser[] }) {
     return (
+        <HumanMemberSection count={count} manageTo={appRoutes.membersHumans}>
+            {users.map((user) => {
+                const name = getUserDisplayName(user);
+                return (
+                    <div
+                        className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2"
+                        key={user.id}
+                    >
+                        <Avatar className="size-8">
+                            {user.avatarUrl ? (
+                                <AvatarImage alt={`${name} avatar`} src={user.avatarUrl} />
+                            ) : null}
+                            <AvatarFallback>{getInitials(name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                            <p className="truncate font-medium text-sm">{name}</p>
+                            {user.email ? (
+                                <p className="truncate text-muted-foreground text-sm">
+                                    {user.email}
+                                </p>
+                            ) : null}
+                        </div>
+                    </div>
+                );
+            })}
+        </HumanMemberSection>
+    );
+}
+
+export function HumanMemberSection({
+    children,
+    count,
+    manageTo,
+}: {
+    children: ReactNode;
+    count: number;
+    manageTo: string;
+}) {
+    return (
         <section className="mt-6">
             <div className="mb-2 flex items-center justify-between px-3">
                 <h2 className="flex items-center gap-2 font-mono text-sidebar-muted text-xs uppercase tracking-wider">
@@ -34,37 +74,12 @@ function MemberSection({ count, users }: { count: number; users: RuntimeUser[] }
                             ? 'font-medium text-foreground text-xs'
                             : 'text-sidebar-muted text-xs hover:text-foreground'
                     }
-                    to={appRoutes.membersHumans}
+                    to={manageTo}
                 >
                     Manage
                 </NavLink>
             </div>
-            <div className="space-y-1">
-                {users.map((user) => {
-                    const name = getUserDisplayName(user);
-                    return (
-                        <div
-                            className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2"
-                            key={user.id}
-                        >
-                            <Avatar className="size-8">
-                                {user.avatarUrl ? (
-                                    <AvatarImage alt={`${name} avatar`} src={user.avatarUrl} />
-                                ) : null}
-                                <AvatarFallback>{getInitials(name)}</AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0">
-                                <p className="truncate font-medium text-sm">{name}</p>
-                                {user.email ? (
-                                    <p className="truncate text-muted-foreground text-sm">
-                                        {user.email}
-                                    </p>
-                                ) : null}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+            <div className="space-y-1">{children}</div>
         </section>
     );
 }

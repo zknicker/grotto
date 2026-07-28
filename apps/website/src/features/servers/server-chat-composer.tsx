@@ -9,6 +9,7 @@ import {
     AttachmentGroup,
     AttachmentTitle,
 } from '../../components/ui/attachment.tsx';
+import { Checkbox } from '../../components/ui/checkbox.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import {
     PromptInput,
@@ -21,6 +22,7 @@ import {
     PromptInputTextarea,
     PromptInputTools,
 } from '../../components/ui/prompt-input.tsx';
+import { useCreateServerTask } from '../../hooks/servers/use-create-server-task.ts';
 import { useSendServerChatMessage } from '../../hooks/servers/use-send-server-chat-message.ts';
 import { useServerChatComposition } from '../../hooks/servers/use-server-chat-composition.ts';
 import {
@@ -51,11 +53,13 @@ export function ServerChatComposer({
     thread?: { anchorMessageId: string };
 }) {
     const [draft, setDraft] = React.useState('');
+    const [asTask, setAsTask] = React.useState(false);
     const [attachments, setAttachments] = React.useState<SelectedAttachment[]>([]);
     const [attachmentError, setAttachmentError] = React.useState<string | null>(null);
     const [compositionId] = React.useState(() => crypto.randomUUID());
     const fileInput = React.useRef<HTMLInputElement>(null);
     const send = useSendServerChatMessage();
+    const createTask = useCreateServerTask();
     const upload = useUploadServerAttachment();
     const composition = useServerChatComposition(serverId, compositionChatId);
     const publishComposition = composition.publish.mutate;
@@ -97,9 +101,23 @@ export function ServerChatComposer({
 
         if (
             (content.length === 0 && attachments.length === 0) ||
+            (asTask && content.length === 0) ||
             send.isPending ||
+            createTask.isPending ||
             upload.isPending
         ) {
+            return;
+        }
+
+        if (asTask && !thread) {
+            await createTask.mutateAsync({
+                chatId,
+                content,
+                nonce: crypto.randomUUID(),
+                serverId,
+            });
+            setDraft('');
+            setAsTask(false);
             return;
         }
 
@@ -135,17 +153,23 @@ export function ServerChatComposer({
         }
     };
 
-    const isPending = send.isPending || upload.isPending;
+    const isPending = send.isPending || createTask.isPending || upload.isPending;
 
     return (
-        <div>
+        <div className="shrink-0 px-5 pb-4">
             {composition.compositions.length > 0 ? (
                 <p className="mx-auto mb-1 w-full max-w-[60rem] px-9 text-muted-foreground text-xs">
                     Someone is typing…
                 </p>
             ) : null}
             <PromptInput
-                error={attachmentError ?? upload.error?.message ?? send.error?.message}
+                className="mx-auto w-full max-w-none"
+                error={
+                    attachmentError ??
+                    upload.error?.message ??
+                    createTask.error?.message ??
+                    send.error?.message
+                }
                 onSubmit={handleSubmit}
             >
                 {attachments.length > 0 ? (
@@ -233,8 +257,20 @@ export function ServerChatComposer({
                         )}
                     </PromptInputTools>
                     <PromptInputActions>
+                        {thread ? null : (
+                            <label className="mr-1 inline-flex items-center gap-1.5 text-meta text-muted-foreground">
+                                <Checkbox
+                                    aria-label="Send as task"
+                                    checked={asTask}
+                                    onCheckedChange={(checked) => setAsTask(checked === true)}
+                                />
+                                As Task
+                            </label>
+                        )}
                         <PromptInputSubmit
-                            canSubmit={draft.trim().length > 0 || attachments.length > 0}
+                            canSubmit={
+                                draft.trim().length > 0 || (!asTask && attachments.length > 0)
+                            }
                             disabled={isPending}
                         />
                     </PromptInputActions>

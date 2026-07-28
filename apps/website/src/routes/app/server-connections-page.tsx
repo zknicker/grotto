@@ -2,13 +2,6 @@ import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '../../components/ui/select.tsx';
-import {
     SettingsGroup,
     SettingsPage,
     SettingsPageHeader,
@@ -36,10 +29,9 @@ import {
     toHostedMcpView,
 } from './hosted-mcp-view.tsx';
 
-export function ServerConnectionsPage() {
+export function ServerConnectionsPage({ embedded = false }: { embedded?: boolean }) {
     const { slug = '' } = useParams();
     const server = useServer(slug);
-    const [computerId, setComputerId] = React.useState('');
     const [filter, setFilter] = React.useState<McpConnectionFilter>('all');
     const [isAddOpen, setIsAddOpen] = React.useState(false);
     const [selectedId, setSelectedId] = React.useState<string | null>(null);
@@ -49,10 +41,6 @@ export function ServerConnectionsPage() {
         origin: string;
     } | null>(null);
     const [connectingId, setConnectingId] = React.useState<string | null>(null);
-    const computers = grottoTrpc.computer.list.useQuery(
-        { serverId: server.data?.id ?? '' },
-        { enabled: Boolean(server.data) }
-    );
     const connections = grottoTrpc.mcp.list.useQuery(
         { serverId: server.data?.id ?? '' },
         { enabled: Boolean(server.data), refetchInterval: connectingId ? 1000 : 4000 }
@@ -70,7 +58,6 @@ export function ServerConnectionsPage() {
     const refresh = grottoTrpc.mcp.refresh.useMutation({ onSuccess: invalidate });
     const replaceHeaders = grottoTrpc.mcp.replaceHeaders.useMutation({ onSuccess: invalidate });
     const startOAuth = grottoTrpc.mcp.startOAuth.useMutation();
-    const selectedComputerId = computerId || computers.data?.[0]?.id || '';
     const viewConnections = (connections.data ?? []).map((connection) =>
         toHostedMcpView(connection, agents.data ?? [])
     );
@@ -133,16 +120,9 @@ export function ServerConnectionsPage() {
         }
     };
     const saveCustom = async (input: McpConnectionSaveInput) => {
-        if (!selectedComputerId) {
-            setRetryMessage('Choose an online Computer and try again.');
-            return;
-        }
         try {
             await add.mutateAsync({
                 ...input,
-                args: input.args ?? [],
-                computerId: selectedComputerId,
-                env: input.env ?? {},
                 headers: input.headers ?? {},
                 oauthScopes: input.oauthScopes ?? [],
                 serverId: server.data.id,
@@ -157,48 +137,23 @@ export function ServerConnectionsPage() {
 
     return (
         <SettingsPage>
-            <Link
-                className="text-muted-foreground text-sm hover:text-foreground"
-                to={serverRoute(slug)}
-            >
-                Back to /{slug}
-            </Link>
+            {embedded ? null : (
+                <Link
+                    className="text-muted-foreground text-sm hover:text-foreground"
+                    to={serverRoute(slug)}
+                >
+                    Back to /{slug}
+                </Link>
+            )}
             <SettingsPageHeader
-                action={<Button onClick={() => setIsAddOpen(true)}>Add connection</Button>}
-                description="Connect MCP servers, then choose each agent’s tools from its profile."
-                title="Connections"
+                action={<Button onClick={() => setIsAddOpen(true)}>Add MCP server</Button>}
+                description="Connect remote tools to this Server, then enable each connection for the Agents that need it."
+                title="MCP Servers"
             />
-            <SettingsSection title="Run on">
-                <SettingsGroup>
-                    <div className="p-4">
-                        <Select
-                            items={(computers.data ?? []).map((computer) => ({
-                                label: `${computer.operatingSystem ?? 'Computer'} · ${computer.health}`,
-                                value: computer.id,
-                            }))}
-                            onValueChange={(value) => setComputerId(value ?? '')}
-                            value={selectedComputerId}
-                        >
-                            <SelectTrigger aria-label="Computer">
-                                <SelectValue placeholder="Choose a Computer" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {(computers.data ?? []).map((computer) => (
-                                    <SelectItem key={computer.id} value={computer.id}>
-                                        {computer.operatingSystem ?? 'Computer'} · {computer.health}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </SettingsGroup>
-            </SettingsSection>
-            <SettingsSection title="Built-in presets">
+            <SettingsSection title="Recommended">
                 <HostedMcpPresetButtons
-                    computerId={selectedComputerId}
                     onAdd={(preset, name) =>
                         addPreset.mutate({
-                            computerId: selectedComputerId,
                             name,
                             preset,
                             serverId: server.data.id,
@@ -238,9 +193,8 @@ export function ServerConnectionsPage() {
             <McpConnectionDetailDialog
                 connection={selectedConnection}
                 onAddAccount={(connection) => {
-                    if (connection.preset && selectedComputerId) {
+                    if (connection.preset) {
                         addPreset.mutate({
-                            computerId: selectedComputerId,
                             name: `${connection.name} account`,
                             preset: connection.preset,
                             serverId: server.data.id,

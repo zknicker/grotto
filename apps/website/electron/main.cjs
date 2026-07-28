@@ -47,6 +47,14 @@ let updateCheckInterval = null;
 let availableDesktopUpdateVersion = null;
 const newWindowOffsetPx = 36;
 
+if (process.env.TAVERN_ELECTRON_DEV_URL) {
+    const stackId = (process.env.TAVERN_DEV_STACK_ID || 'default').replace(
+        /[^a-zA-Z0-9._-]/gu,
+        '-'
+    );
+    app.setPath('userData', path.join(app.getPath('appData'), 'Grotto Dev', stackId));
+}
+
 app.setName('Grotto');
 app.setAppUserModelId('build.grotto.desktop');
 

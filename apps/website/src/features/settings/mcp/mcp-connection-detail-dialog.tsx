@@ -134,7 +134,7 @@ export function McpConnectionDetailDialog({
                                 <div>
                                     <h3 className="font-medium text-sm">Available tools</h3>
                                     <p className="text-meta text-muted-foreground">
-                                        Agents only receive tools granted from their Tools tab.
+                                        Enabled Agents receive every tool listed here.
                                     </p>
                                 </div>
                                 {toolsPending ? <Spinner className="size-4" /> : null}
@@ -153,7 +153,7 @@ export function McpConnectionDetailDialog({
                             <div>
                                 <h3 className="font-medium text-sm">Agent access</h3>
                                 <p className="text-meta text-muted-foreground">
-                                    Exact grants are managed separately for each agent.
+                                    Access is enabled per MCP server from each Agent profile.
                                 </p>
                             </div>
                             <div className="overflow-hidden rounded-xl border border-border/70">

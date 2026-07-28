@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
     Sidebar,
     SidebarContent,
@@ -22,28 +23,41 @@ interface AppSidebarProps {
  */
 export function AppSidebar({ isSettingsRoute, onBackToApp }: AppSidebarProps) {
     return (
-        <Sidebar
-            className="app-shell-sidebar z-30 shrink-0 bg-transparent pt-[calc(var(--topbar-height)-4px)]"
-            collapsible="none"
-        >
-            <SidebarContent className="overflow-hidden">
-                {isSettingsRoute ? (
+        <AppSidebarFrame
+            content={
+                isSettingsRoute ? (
                     <SettingsSidebarNav onBackToApp={onBackToApp} />
                 ) : (
                     <>
                         <SidebarHomeNav />
                         <AppSidebarChatList />
                     </>
-                )}
-            </SidebarContent>
-            {isSettingsRoute ? null : (
-                <SidebarFooter>
-                    <SidebarMenu>
+                )
+            }
+            footer={
+                isSettingsRoute ? null : (
+                    <>
                         <SidebarUpdateMenuItem />
                         <SidebarAuthItems />
-                    </SidebarMenu>
+                    </>
+                )
+            }
+        />
+    );
+}
+
+export function AppSidebarFrame({ content, footer }: { content: ReactNode; footer?: ReactNode }) {
+    return (
+        <Sidebar
+            className="app-shell-sidebar z-30 shrink-0 bg-transparent pt-[calc(var(--topbar-height)-4px)]"
+            collapsible="none"
+        >
+            <SidebarContent className="overflow-hidden">{content}</SidebarContent>
+            {footer ? (
+                <SidebarFooter>
+                    <SidebarMenu>{footer}</SidebarMenu>
                 </SidebarFooter>
-            )}
+            ) : null}
         </Sidebar>
     );
 }

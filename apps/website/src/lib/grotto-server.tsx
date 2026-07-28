@@ -21,10 +21,13 @@ export type GrottoOutputs = inferRouterOutputs<GrottoRouter>;
 export type GrottoInputs = inferRouterInputs<GrottoRouter>;
 export type ServerSummary = GrottoOutputs['server']['list'][number];
 export type ServerDetail = GrottoOutputs['server']['bySlug'];
+export type GrottoServerConnectionState = 'connected' | 'connecting' | 'reconnecting';
 
 const sessionWatchIntervalMs = 30_000;
 // Provenance only; the build injects the App package version (see vite.config).
 const productVersion = import.meta.env.VITE_GROTTO_PRODUCT_VERSION ?? '0.0.0-dev';
+const GrottoServerConnectionContext =
+    React.createContext<GrottoServerConnectionState>('connecting');
 
 export function getGrottoServerOrigin(): string {
     return resolveGrottoServerOrigin(
@@ -71,14 +74,22 @@ export function GrottoServerProvider({ children }: React.PropsWithChildren) {
     // A socket presents the Clerk session it was opened with. When Clerk hands
     // out a new one, open the next connection and re-register subscriptions
     // against it. Query data lives in the shared cache, so the swap is silent.
-    const [connection, setConnection] = React.useState(() => createGrottoConnection(0));
+    const [connectionState, setConnectionState] =
+        React.useState<GrottoServerConnectionState>('connecting');
+    const [connection, setConnection] = React.useState(() =>
+        createGrottoConnection(0, setConnectionState)
+    );
 
     React.useEffect(() => {
         const stop = watchGrottoSession({
             clearTimer: (handle) => window.clearInterval(handle),
             intervalMs: sessionWatchIntervalMs,
-            onStaleSession: () =>
-                setConnection((current) => createGrottoConnection(current.generation + 1)),
+            onStaleSession: () => {
+                setConnectionState('connecting');
+                setConnection((current) =>
+                    createGrottoConnection(current.generation + 1, setConnectionState)
+                );
+            },
             readSessionToken: getClerkSessionToken,
             startTimer: (run, intervalMs) => window.setInterval(run, intervalMs),
         });
@@ -90,20 +101,25 @@ export function GrottoServerProvider({ children }: React.PropsWithChildren) {
     }, [connection]);
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <grottoTrpc.Provider
-                client={connection.client}
-                key={connection.generation}
-                queryClient={queryClient}
-            >
-                <UpdateRequiredGate queryClient={queryClient}>{children}</UpdateRequiredGate>
-            </grottoTrpc.Provider>
-        </QueryClientProvider>
+        <GrottoServerConnectionContext value={connectionState}>
+            <QueryClientProvider client={queryClient}>
+                <grottoTrpc.Provider
+                    client={connection.client}
+                    key={connection.generation}
+                    queryClient={queryClient}
+                >
+                    <UpdateRequiredGate queryClient={queryClient}>{children}</UpdateRequiredGate>
+                </grottoTrpc.Provider>
+            </QueryClientProvider>
+        </GrottoServerConnectionContext>
     );
 }
 
 /** One connection to the hosted Server; `generation` counts session renewals. */
-function createGrottoConnection(generation: number) {
+function createGrottoConnection(
+    generation: number,
+    onConnectionState: (state: GrottoServerConnectionState) => void
+) {
     const origin = getGrottoServerOrigin();
     const httpUrl = new URL('/trpc', origin).toString();
     const socketUrl = new URL('/trpc', origin);
@@ -119,6 +135,8 @@ function createGrottoConnection(generation: number) {
                 productVersion,
             };
         },
+        onClose: () => onConnectionState('reconnecting'),
+        onOpen: () => onConnectionState('connected'),
         url: socketUrl.toString(),
     });
 
@@ -146,4 +164,8 @@ function createGrottoConnection(generation: number) {
         generation,
         wsClient,
     };
+}
+
+export function useGrottoServerConnectionState() {
+    return React.use(GrottoServerConnectionContext);
 }

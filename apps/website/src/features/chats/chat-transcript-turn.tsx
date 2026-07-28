@@ -15,7 +15,7 @@ import {
     MessageContent,
     MessageHeader,
 } from '../../components/ui/message.tsx';
-import { useActorProfile } from '../../hooks/actors/use-actor.ts';
+import { type ActorProfile, useActorProfile } from '../../hooks/actors/use-actor.ts';
 import { isLocalTimelineMessageMetadata } from '../../hooks/chats/chat-timeline-messages.ts';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import { openAgentProfilePane } from '../../hooks/pane/use-agent-profile-pane.ts';
@@ -177,7 +177,43 @@ function UserTurn({
     entry: Extract<TranscriptEntry, { kind: 'turn' }>;
     layout: ConversationMessageLayout;
 }) {
+    const context = useTranscriptRenderContextOptional();
+
+    if (context?.resolveActorProfile) {
+        return (
+            <UserTurnPresentation
+                actorProfile={context.resolveActorProfile(entry.actor)}
+                entry={entry}
+                layout={layout}
+            />
+        );
+    }
+
+    return <LocalUserTurn entry={entry} layout={layout} />;
+}
+
+function LocalUserTurn({
+    entry,
+    layout,
+}: {
+    entry: Extract<TranscriptEntry, { kind: 'turn' }>;
+    layout: ConversationMessageLayout;
+}) {
     const actorProfile = useActorProfile(entry.actor);
+
+    return <UserTurnPresentation actorProfile={actorProfile} entry={entry} layout={layout} />;
+}
+
+function UserTurnPresentation({
+    actorProfile,
+    entry,
+    layout,
+}: {
+    actorProfile: ActorProfile | null;
+    entry: Extract<TranscriptEntry, { kind: 'turn' }>;
+    layout: ConversationMessageLayout;
+}) {
+    const context = useTranscriptRenderContextOptional();
     const displayName = actorProfile?.name ?? getTurnFallbackName(entry) ?? 'You';
     const lastMessage = getLastMessage(entry.items);
 
@@ -201,6 +237,11 @@ function UserTurn({
                             ) : null
                         }
                         displayName={displayName}
+                        onClick={
+                            entry.actor && context?.onActorClick
+                                ? () => context.onActorClick?.(entry.actor)
+                                : undefined
+                        }
                         timestamp={entry.timestamp}
                     />
                 ) : null}
@@ -311,6 +352,7 @@ function TurnHeader({
     composerId,
     displayName,
     mentionAgentId,
+    onClick,
     timestamp,
 }: {
     actions?: React.ReactNode;
@@ -318,6 +360,7 @@ function TurnHeader({
     composerId?: string;
     displayName: string;
     mentionAgentId?: string;
+    onClick?: () => void;
     timestamp: string | null;
 }) {
     return (
@@ -329,6 +372,14 @@ function TurnHeader({
                     onClick={() =>
                         requestChatComposerMention({ agentId: mentionAgentId, composerId })
                     }
+                    type="button"
+                >
+                    {displayName}
+                </button>
+            ) : onClick ? (
+                <button
+                    className="shrink-0 cursor-pointer truncate font-semibold text-foreground text-sm leading-5 hover:underline"
+                    onClick={onClick}
                     type="button"
                 >
                     {displayName}
@@ -417,15 +468,88 @@ function AgentTurn({
     sessionNotice?: SessionNoticeRow | null;
     turnStartedAt?: string | null;
 }) {
-    const actorProfile = useActorProfile(entry.actor);
+    const context = useTranscriptRenderContext();
+
+    if (context.resolveActorProfile) {
+        return (
+            <AgentTurnPresentation
+                activeReply={activeReply}
+                actorProfile={context.resolveActorProfile(entry.actor)}
+                agentStatusCharacter={agentStatusCharacter}
+                chatId={chatId}
+                currentSessionKey={currentSessionKey}
+                defaultOpenWorkGroups={defaultOpenWorkGroups}
+                entry={entry}
+                followsRuntimeNotice={followsRuntimeNotice}
+                layout={layout}
+                sessionNotice={sessionNotice}
+                turnStartedAt={turnStartedAt}
+            />
+        );
+    }
+
+    return (
+        <LocalAgentTurn
+            activeReply={activeReply}
+            agentStatusCharacter={agentStatusCharacter}
+            chatId={chatId}
+            currentSessionKey={currentSessionKey}
+            defaultOpenWorkGroups={defaultOpenWorkGroups}
+            entry={entry}
+            followsRuntimeNotice={followsRuntimeNotice}
+            layout={layout}
+            sessionNotice={sessionNotice}
+            turnStartedAt={turnStartedAt}
+        />
+    );
+}
+
+interface AgentTurnProps {
+    activeReply: ChatActiveReply | null;
+    agentStatusCharacter: AgentCharacter | null;
+    chatId?: string;
+    currentSessionKey?: string | null;
+    defaultOpenWorkGroups: boolean;
+    entry: Extract<TranscriptEntry, { kind: 'turn' }>;
+    followsRuntimeNotice: boolean;
+    layout: ConversationMessageLayout;
+    sessionNotice?: SessionNoticeRow | null;
+    turnStartedAt?: string | null;
+}
+
+function LocalAgentTurn(props: AgentTurnProps) {
+    const actorProfile = useActorProfile(props.entry.actor);
+
+    return <AgentTurnPresentation actorProfile={actorProfile} {...props} />;
+}
+
+function AgentTurnPresentation({
+    activeReply,
+    actorProfile,
+    agentStatusCharacter,
+    chatId,
+    currentSessionKey,
+    defaultOpenWorkGroups,
+    entry,
+    followsRuntimeNotice,
+    layout,
+    sessionNotice,
+    turnStartedAt,
+}: AgentTurnProps & { actorProfile: ActorProfile | null }) {
     const actorId = entry.actor?.id ?? null;
     const items = entry.items;
     const displayName = actorProfile?.name ?? getTurnFallbackName(entry) ?? 'Agent';
     const showIdentity = layout.showAgentIdentity;
     const lastMessage = getLastMessage(items);
     const turnCompletedAt = lastMessage?.timestamp ?? null;
-    const { canRequestMention, composerId, profilePaneChatId, repliedRunIds } =
-        useTranscriptRenderContext();
+    const {
+        canRequestMention,
+        composerId,
+        disableAgentHoverCard,
+        profilePaneChatId,
+        repliedRunIds,
+        turnEvidenceSource,
+    } = useTranscriptRenderContext();
     const segments = groupAgentItems(items);
     const visibleSegments = filterPaneSegments(segments, repliedRunIds);
     const turnStopped =
@@ -479,7 +603,7 @@ function AgentTurn({
                 showIdentity ? newTurnGapClassName : followsRuntimeNotice ? 'mt-0' : null
             )}
         >
-            {chatId && actorId ? (
+            {chatId && actorId && !disableAgentHoverCard ? (
                 <AgentHoverCard
                     agentId={actorId}
                     agentName={displayName}
@@ -500,6 +624,20 @@ function AgentTurn({
                         name={displayName}
                     />
                 </AgentHoverCard>
+            ) : chatId && actorId && profilePaneChatId ? (
+                <button
+                    aria-label={`Agent details: ${displayName}`}
+                    className="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
+                    type="button"
+                >
+                    <TurnAvatar
+                        actorKind="agent"
+                        character={actorProfile?.character ?? agentStatusCharacter ?? 'none'}
+                        color={actorProfile?.primaryColor}
+                        name={displayName}
+                    />
+                </button>
             ) : (
                 <TurnAvatar
                     actorKind="agent"
@@ -549,6 +687,7 @@ function AgentTurn({
                     agentColor={actorProfile?.primaryColor ?? null}
                     agentName={displayName}
                     chatId={chatId}
+                    embeddedEvidence={turnEvidenceSource === 'embedded'}
                     entry={entry}
                     onOpenChange={setInspectOpen}
                     open={inspectOpen}
@@ -735,14 +874,21 @@ function isWorkspaceChangesItem(item: TranscriptItem) {
 
 function UserTurnItem({ from, item }: { from: 'assistant' | 'user'; item: TranscriptItem }) {
     const animateLiveEnter = useLiveEdgeMessageEnter(item);
+    const context = useTranscriptRenderContextOptional();
 
     if (item.kind !== 'row' || item.row.kind !== 'message') {
         return null;
     }
 
     const message = item.row.message;
-    const attachments = renderTranscriptMessageAttachments(message.attachments);
-    const body = <ChatTranscriptMessageContent message={message} textClassName="text-current" />;
+    const attachments = context?.renderMessageAttachments
+        ? context.renderMessageAttachments(message)
+        : renderTranscriptMessageAttachments(message.attachments);
+    const body = context?.renderMessageContent ? (
+        context.renderMessageContent(message)
+    ) : (
+        <ChatTranscriptMessageContent message={message} textClassName="text-current" />
+    );
 
     return body ? (
         <ThreadMessageSurface row={item.row}>
@@ -898,19 +1044,28 @@ function AssistantReplyText({
         revealKey: revealKey ?? (message ? getAssistantMessageRevealKey(message) : 'assistant'),
     });
     const shouldReduceMotion = useReducedMotion();
+    const context = useTranscriptRenderContextOptional();
     const animatedRanges = useStreamingTextRanges(revealedText, {
         enabled:
             shouldReduceMotion !== true && (revealText || revealedText.length < fullContent.length),
     });
-    const attachments = message ? renderTranscriptMessageAttachments(message.attachments) : null;
+    const attachments = message
+        ? context?.renderMessageAttachments
+            ? context.renderMessageAttachments(message)
+            : renderTranscriptMessageAttachments(message.attachments)
+        : null;
     const ratchetRef = useRatchetedMinHeight(revealText, slotKey);
     const body = message ? (
-        <ChatTranscriptMessageContent
-            animatedRanges={animatedRanges}
-            contentOverride={revealedText}
-            message={message}
-            textClassName={isCommentary ? 'text-muted-foreground' : undefined}
-        />
+        context?.renderMessageContent ? (
+            context.renderMessageContent({ ...message, content: revealedText })
+        ) : (
+            <ChatTranscriptMessageContent
+                animatedRanges={animatedRanges}
+                contentOverride={revealedText}
+                message={message}
+                textClassName={isCommentary ? 'text-muted-foreground' : undefined}
+            />
+        )
     ) : (
         <ChatMarkdownText animatedRanges={animatedRanges} content={revealedText} />
     );

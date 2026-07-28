@@ -1,4 +1,5 @@
 import type { HostedAgent, HostedMcpConnection } from '@tavern/api';
+import { Badge } from '../../components/ui/badge.tsx';
 import { Switch } from '../../components/ui/switch.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
@@ -16,34 +17,34 @@ export function HostedAgentTools({
         onSuccess: () => utils.mcp.list.invalidate({ serverId }),
     });
     const available = connections.filter(
-        (connection) =>
-            connection.computerId === agent.computerId &&
-            connection.connected &&
-            connection.tools.length > 0
+        (connection) => connection.connected && connection.tools.length > 0
     );
 
-    if (available.length === 0) {
-        return null;
-    }
-
     return (
-        <div className="mt-2 grid gap-2 border-border/60 border-t pt-3">
-            <p className="font-medium text-xs">Tools</p>
-            {available.flatMap((connection) =>
-                connection.tools.map((toolName) => {
-                    const checked = connection.grants.some(
-                        (grant) => grant.agentId === agent.id && grant.toolName === toolName
-                    );
+        <section className="grid gap-3">
+            <header>
+                <h2 className="font-semibold text-base">
+                    Agent MCP access
+                    <span className="ml-2 text-muted-foreground">{available.length}</span>
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                    Choose which Server-managed MCP connections this Agent can use.
+                </p>
+            </header>
+            {available.length === 0 ? (
+                <p className="rounded-xl border border-dashed p-6 text-muted-foreground text-sm">
+                    Connect an MCP server in Settings → Connections.
+                </p>
+            ) : (
+                available.map((connection) => {
+                    const checked = connection.grants.some((grant) => grant.agentId === agent.id);
                     return (
                         <label
-                            className="flex items-center justify-between gap-3 text-xs"
-                            key={`${connection.id}:${toolName}`}
+                            className="grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] gap-3 rounded-xl border border-border bg-card p-4"
+                            key={connection.id}
                         >
-                            <span>
-                                {connection.name} · {toolName}
-                            </span>
                             <Switch
-                                aria-label={`Grant ${toolName} to ${agent.displayName}`}
+                                aria-label={`Enable ${connection.name} for ${agent.displayName}`}
                                 checked={checked}
                                 disabled={setGrant.isPending}
                                 onCheckedChange={(enabled) =>
@@ -52,14 +53,25 @@ export function HostedAgentTools({
                                         connectionId: connection.id,
                                         enabled,
                                         serverId,
-                                        toolName,
                                     })
                                 }
                             />
+                            <span className="min-w-0">
+                                <span className="flex items-center gap-2 font-semibold text-sm">
+                                    {connection.name}
+                                    <Badge variant="subtle">MCP</Badge>
+                                </span>
+                                <span className="mt-1 block text-muted-foreground text-sm">
+                                    {connection.url}
+                                </span>
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                                {connection.tools.length} tools
+                            </span>
                         </label>
                     );
                 })
             )}
-        </div>
+        </section>
     );
 }

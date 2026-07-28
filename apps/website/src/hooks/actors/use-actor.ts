@@ -6,7 +6,7 @@ import { useCurrentUser } from '../identity/use-current-user.ts';
 import { useParticipantList } from '../participants/use-participant-list.ts';
 import { useUserProfilePreference } from '../shell/use-user-profile-preference.ts';
 
-interface ActorProfile {
+export interface ActorProfile {
     avatarUrl: string | null;
     bio: string | null;
     character: AgentCharacter | null;

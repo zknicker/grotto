@@ -10,7 +10,7 @@ export function isPackagedDesktopApp() {
 }
 
 export function getConfiguredServerOrigin() {
-    return import.meta.env.VITE_GROTTO_SERVER_ORIGIN ?? import.meta.env.VITE_SERVER_ORIGIN ?? null;
+    return import.meta.env.VITE_SERVER_ORIGIN ?? import.meta.env.VITE_GROTTO_SERVER_ORIGIN ?? null;
 }
 
 export function getTavernRuntimeOrigin() {

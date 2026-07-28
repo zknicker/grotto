@@ -137,10 +137,12 @@ function item(): HostedTaskListItem {
             serverId: 'server_one',
         },
         task: {
+            assigneeAgentId: null,
             assigneeUserId: null,
             chatId: 'chat_one',
             claimedAt: null,
             createdAt: '2026-07-26T12:00:00.000Z',
+            createdByAgentId: null,
             createdByUserId: 'user_one',
             labels: [],
             messageId: 'message_one',

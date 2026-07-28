@@ -47,6 +47,22 @@ export function ThreadMessageSurface({
     row: TranscriptMessageRow;
 }) {
     const context = useTranscriptRenderContextOptional();
+
+    if (context?.turnEvidenceSource === 'embedded') {
+        return <EmbeddedThreadMessageSurface row={row}>{children}</EmbeddedThreadMessageSurface>;
+    }
+
+    return <RuntimeThreadMessageSurface row={row}>{children}</RuntimeThreadMessageSurface>;
+}
+
+function RuntimeThreadMessageSurface({
+    children,
+    row,
+}: {
+    children: React.ReactNode;
+    row: TranscriptMessageRow;
+}) {
+    const context = useTranscriptRenderContextOptional();
     const reaction = useChatReaction();
     const convert = useTaskConvert();
     const durable = isThreadAnchorRow(row);
@@ -158,14 +174,56 @@ export function ThreadMessageSurface({
     );
 }
 
+function EmbeddedThreadMessageSurface({
+    children,
+    row,
+}: {
+    children: React.ReactNode;
+    row: TranscriptMessageRow;
+}) {
+    const context = useTranscriptRenderContextOptional();
+    const durable = isThreadAnchorRow(row);
+    const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
+    const thread = getTranscriptMessageThread(row);
+    const active = context?.activeThreadAnchorId === row.message.id;
+    const flashing = context?.flashMessageId === row.message.id;
+    const openThread = () => context?.onOpenThread(row);
+
+    return (
+        <div
+            className={cn(
+                'group/message-row relative block min-w-0 rounded-lg',
+                active && 'bg-active ring-1 ring-brand-ring',
+                flashing && 'chat-thread-flash'
+            )}
+            data-message-id={row.message.id}
+        >
+            <MessageHoverActions
+                canOpenThread={canOpenThread}
+                onOpenThread={openThread}
+                onReact={() => undefined}
+                reactionsEnabled={false}
+            />
+            {children}
+            {thread && canOpenThread ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                    <ThreadReplyPill onClick={openThread} summary={thread} />
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
 function MessageHoverActions({
     canOpenThread,
     onOpenThread,
     onReact,
+    reactionsEnabled = true,
 }: {
     canOpenThread: boolean;
     onOpenThread: () => void;
     onReact: (emoji: string) => void;
+    reactionsEnabled?: boolean;
 }) {
     return (
         <div className="absolute -top-3 right-1 z-10 flex items-center rounded-lg border bg-popover p-0.5 opacity-0 focus-within:opacity-100 group-hover/message-row:opacity-100">
@@ -179,14 +237,16 @@ function MessageHoverActions({
                     <Icon className="size-4" icon={BubbleChatIcon} />
                 </button>
             ) : null}
-            <Popover>
-                <PopoverTrigger aria-label="Add Reaction" className={actionButtonClassName}>
-                    <Icon className="size-4" icon={SmileIcon} />
-                </PopoverTrigger>
-                <PopoverPopup align="end" className="w-auto p-1">
-                    <QuickReactionStrip onReact={onReact} />
-                </PopoverPopup>
-            </Popover>
+            {reactionsEnabled ? (
+                <Popover>
+                    <PopoverTrigger aria-label="Add Reaction" className={actionButtonClassName}>
+                        <Icon className="size-4" icon={SmileIcon} />
+                    </PopoverTrigger>
+                    <PopoverPopup align="end" className="w-auto p-1">
+                        <QuickReactionStrip onReact={onReact} />
+                    </PopoverPopup>
+                </Popover>
+            ) : null}
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import type { FileTreeSortEntry } from '@pierre/trees';
 import { FileTree as TreesFileTree, useFileTree } from '@pierre/trees/react';
+import type { HostedWorkspaceFileEntry } from '@tavern/api';
 import * as React from 'react';
 import { SearchInput } from '../../components/ui/primitives/search-input.tsx';
 import {
@@ -12,14 +13,15 @@ import {
     SidebarGroupContent,
     SidebarHeader,
 } from '../../components/ui/sidebar.tsx';
-import { type AppRouterOutputs, trpc } from '../../lib/trpc.tsx';
+import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { trpc } from '../../lib/trpc.tsx';
 import {
     WorkspaceArtifactContent,
     WorkspaceArtifactEmpty,
 } from './chat-artifact-workspace-preview.tsx';
 
 type TreeHostStyle = React.CSSProperties & Record<`--${string}`, string>;
-type WorkspaceFileEntry = AppRouterOutputs['agent']['workspaceFiles']['entries'][number];
+type WorkspaceFileEntry = HostedWorkspaceFileEntry;
 type WorkspaceDirectoryEntries = Record<string, WorkspaceFileEntry[]>;
 
 export function WorkspaceBrowserContent({
@@ -28,6 +30,7 @@ export function WorkspaceBrowserContent({
     sidebarStorageKey = 'tavern.artifactPane.workspaceSidebar.width',
     selectedPath: controlledSelectedPath,
     onSelectPath,
+    serverId,
 }: {
     agentId: string;
     initialDirectoryPath?: string;
@@ -36,6 +39,7 @@ export function WorkspaceBrowserContent({
         survives the tab moving to another window. Omitted callers keep local state. */
     selectedPath?: null | string;
     onSelectPath?: (path: null | string) => void;
+    serverId?: string;
 }) {
     const [internalSelectedPath, setInternalSelectedPath] = React.useState<string | null>(null);
     const selectedPath = onSelectPath ? (controlledSelectedPath ?? null) : internalSelectedPath;
@@ -55,16 +59,22 @@ export function WorkspaceBrowserContent({
     const [directoryLoadError, setDirectoryLoadError] = React.useState<string | null>(null);
     const initialDirectory = normalizeWorkspacePath(initialDirectoryPath);
     const utils = trpc.useUtils();
+    const hostedUtils = grottoTrpc.useUtils();
     const fileSidebarWidth = useResizablePaneWidth({
         defaultWidth: 300,
         maxWidth: 440,
         minWidth: 220,
         storageKey: sidebarStorageKey,
     });
-    const filesQuery = trpc.agent.workspaceFiles.useQuery(
+    const localFilesQuery = trpc.agent.workspaceFiles.useQuery(
         { agentId, path: '' },
-        { enabled: agentId.length > 0 }
+        { enabled: agentId.length > 0 && !serverId }
     );
+    const hostedFilesQuery = grottoTrpc.agent.workspaceFiles.useQuery(
+        { agentId, path: '', serverId: serverId ?? '' },
+        { enabled: agentId.length > 0 && Boolean(serverId) }
+    );
+    const filesQuery = serverId ? hostedFilesQuery : localFilesQuery;
     const entriesByDirectory = React.useMemo(
         () => ({
             ...loadedEntriesByDirectory,
@@ -113,10 +123,16 @@ export function WorkspaceBrowserContent({
             }
 
             try {
-                const result = await utils.agent.workspaceFiles.fetch({
-                    agentId,
-                    path: nextPath,
-                });
+                const result = serverId
+                    ? await hostedUtils.agent.workspaceFiles.fetch({
+                          agentId,
+                          path: nextPath,
+                          serverId,
+                      })
+                    : await utils.agent.workspaceFiles.fetch({
+                          agentId,
+                          path: nextPath,
+                      });
                 setLoadedEntriesByDirectory((current) => ({
                     ...current,
                     [nextPath]: result.entries,
@@ -125,7 +141,14 @@ export function WorkspaceBrowserContent({
                 setDirectoryLoadError('Unable to load this workspace folder.');
             }
         },
-        [agentId, loadedEntriesByDirectory, setSelectedPath, utils.agent.workspaceFiles]
+        [
+            agentId,
+            hostedUtils.agent.workspaceFiles,
+            loadedEntriesByDirectory,
+            serverId,
+            setSelectedPath,
+            utils.agent.workspaceFiles,
+        ]
     );
 
     React.useEffect(() => {
@@ -167,7 +190,11 @@ export function WorkspaceBrowserContent({
             <section className="flex min-h-0 min-w-0 flex-col">
                 <div className="min-h-0 flex-1 overflow-hidden">
                     {selectedTarget ? (
-                        <WorkspaceArtifactContent agentId={agentId} target={selectedTarget} />
+                        <WorkspaceArtifactContent
+                            agentId={agentId}
+                            serverId={serverId}
+                            target={selectedTarget}
+                        />
                     ) : (
                         <WorkspaceArtifactEmpty
                             detail={

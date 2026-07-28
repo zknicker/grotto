@@ -38,6 +38,18 @@ export async function listAgentMessageRecipients(
     if (!parentChatId) {
         return [];
     }
+    if (chat.kind === 'thread') {
+        const [parent] = await db
+            .select({ dmAgentId: chatsTable.dmAgentId, kind: chatsTable.kind })
+            .from(chatsTable)
+            .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, parentChatId)))
+            .limit(1);
+        if (parent?.kind === 'dm') {
+            return parent.dmAgentId && parent.dmAgentId !== input.authorAgentId
+                ? [parent.dmAgentId]
+                : [];
+        }
+    }
     const joined = await db
         .select({ agentId: channelAgentParticipantsTable.agentId })
         .from(channelAgentParticipantsTable)

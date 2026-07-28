@@ -50,19 +50,19 @@ export async function resolveAgentTarget(
         if (peer !== 'operator' || extra.length > 0) {
             throw new AgentTargetError();
         }
-        const [chat] = await db
+        const chats = await db
             .select({ id: chatsTable.id })
             .from(chatsTable)
             .where(
                 and(
                     eq(chatsTable.serverId, runner.serverId),
-                    eq(chatsTable.id, runner.chatId),
                     eq(chatsTable.kind, 'dm'),
                     eq(chatsTable.dmAgentId, runner.agentId)
                 )
             )
-            .limit(1);
-        if (chat) {
+            .limit(2);
+        if (chats.length === 1) {
+            const chat = chats[0];
             if (!threadAnchor) {
                 return chat.id;
             }

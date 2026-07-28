@@ -184,11 +184,20 @@ export function visibleChatSql(runner: ResolvedRunner) {
         )
         or (
             ${chatsTable.kind} = 'thread'
-            and exists (
-                select 1 from channel_agent_participants cap
-                where cap.server_id = ${runner.serverId}
-                  and cap.chat_id = ${chatsTable.parentChatId}
-                  and cap.agent_id = ${runner.agentId}
+            and (
+                exists (
+                    select 1 from channel_agent_participants cap
+                    where cap.server_id = ${runner.serverId}
+                      and cap.chat_id = ${chatsTable.parentChatId}
+                      and cap.agent_id = ${runner.agentId}
+                )
+                or exists (
+                    select 1 from chats parent_dm
+                    where parent_dm.server_id = ${runner.serverId}
+                      and parent_dm.id = ${chatsTable.parentChatId}
+                      and parent_dm.kind = 'dm'
+                      and parent_dm.dm_agent_id = ${runner.agentId}
+                )
             )
         )
     )`;

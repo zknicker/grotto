@@ -152,9 +152,62 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         serverId,
     });
     const shortAnchor = created.task.messageId.slice(4, 12);
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_dm_thread_target_1' });
-    const event = subscribeToChatEvents(owner, serverId);
-    await event.started;
+    const humanReply = await owner.trpc.chat.send.mutate({
+        chatId: dmChatId,
+        content: 'Distinctive DM child Thread reply.',
+        nonce: 'human_dm_thread_reply_1',
+        serverId,
+        thread: { anchorMessageId: created.task.messageId },
+    });
+    const [pending] = (await harness.sql`
+        select agent_id, chat_id
+        from agent_pending_work
+        where server_id = ${serverId} and dedupe_key = ${humanReply.message.id}
+    `) as Array<{ agent_id: string; chat_id: string }>;
+    expect(pending).toEqual({
+        agent_id: agentId,
+        chat_id: created.task.threadChatId,
+    });
+
+    const minted = await mintRunner({
+        chatId: 'cht_targetchannel01',
+        runId: 'run_dm_thread_target_1',
+    });
+    const history = await agentGet(minted.runnerToken, '/api/agent/history', {
+        limit: '10',
+        target: `dm:@operator:${shortAnchor}`,
+    });
+    expect(history).toMatchObject({
+        body: {
+            messages: [
+                expect.objectContaining({
+                    content: 'Distinctive DM child Thread reply.',
+                    id: humanReply.message.id,
+                }),
+            ],
+        },
+        status: 200,
+    });
+    const search = await agentGet(minted.runnerToken, '/api/agent/messages/search', {
+        q: 'Distinctive DM child Thread reply',
+        sort: 'recent',
+    });
+    expect(search.body.messages).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: humanReply.message.id })])
+    );
+    const reacted = await agentPost(minted.runnerToken, '/api/agent/messages/react', {
+        emoji: '👀',
+        messageId: humanReply.message.id,
+    });
+    expect(reacted).toMatchObject({
+        body: {
+            message: {
+                id: humanReply.message.id,
+                reactions: [{ actors: [{ id: agentId }], emoji: '👀' }],
+            },
+        },
+        status: 200,
+    });
 
     const sent = await agentSend(minted.runnerToken, {
         content: 'This belongs in the DM task thread.',
@@ -162,13 +215,16 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         target: `dm:@operator:${shortAnchor}`,
     });
     expect(sent).toMatchObject({
-        body: { message: { chat_id: created.task.threadChatId } },
+        body: {
+            shownMessages: [
+                expect.objectContaining({
+                    chat_id: created.task.threadChatId,
+                    id: humanReply.message.id,
+                }),
+            ],
+            state: 'held',
+        },
         status: 200,
-    });
-    await expect(event.nextEvent).resolves.toMatchObject({
-        chatId: created.task.threadChatId,
-        parentChatId: dmChatId,
-        type: 'message.created',
     });
 
     for (const target of [
@@ -1211,31 +1267,4 @@ async function readUserId(clerkUserId: string) {
         select id from users where clerk_user_id = ${clerkUserId}
     `) as { id: string }[];
     return rows[0].id;
-}
-
-function subscribeToChatEvents(client: GrottoClient, subscribedServerId: string) {
-    const started = Promise.withResolvers<void>();
-    const nextEvent = Promise.withResolvers<unknown>();
-    const timeout = setTimeout(() => {
-        nextEvent.reject(new Error('Timed out waiting for an Agent Chat event.'));
-    }, 5000);
-    const subscription = client.trpc.chat.onEvent.subscribe(
-        { serverId: subscribedServerId },
-        {
-            onData: (event) => {
-                clearTimeout(timeout);
-                subscription.unsubscribe();
-                nextEvent.resolve(event);
-            },
-            onError: (error) => {
-                clearTimeout(timeout);
-                started.reject(error);
-                nextEvent.reject(error);
-            },
-            onStarted: () => started.resolve(),
-        }
-    );
-    started.promise.catch(() => undefined);
-    nextEvent.promise.catch(() => undefined);
-    return { nextEvent: nextEvent.promise, started: started.promise };
 }

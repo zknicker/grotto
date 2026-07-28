@@ -192,6 +192,23 @@ export async function requireAgentChatAccess(
     if (chat.kind === 'dm' && chat.dmAgentId === runner.agentId) {
         return;
     }
+    if (chat.kind === 'thread' && chat.parentChatId) {
+        const [parentDm] = await db
+            .select({ id: chatsTable.id })
+            .from(chatsTable)
+            .where(
+                and(
+                    eq(chatsTable.serverId, runner.serverId),
+                    eq(chatsTable.id, chat.parentChatId),
+                    eq(chatsTable.kind, 'dm'),
+                    eq(chatsTable.dmAgentId, runner.agentId)
+                )
+            )
+            .limit(1);
+        if (parentDm) {
+            return;
+        }
+    }
     const channelId = chat.kind === 'thread' ? chat.parentChatId : chat.id;
     if (channelId) {
         const [joined] = await db

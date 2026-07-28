@@ -61,25 +61,35 @@ until an operator explicitly runs `start`; otherwise the installed OS service st
 automatically at boot.
 _Avoid_: Grotto CLI, Agent tool, hosted Server administration
 
+**Computer release**:
+An independently versioned, immutable Grotto Computer executable plus its signed production
+descriptor. It uses `computer-vX.Y.Z` tags and one production stream, but participates in the same
+holistic release decision as App/Server and Desktop. A compatible Computer release is published
+and publicly verified before an App/Server release that requires its protocol.
+_Avoid_: App release, Server deployment, release channel, npm package
+
 **Computer update**:
 An operator-triggered upgrade of the installed Grotto Computer service. The service reports its
 current version and update state to every attached Server. Owners and Admins initiate updates from
 the App's Computer settings; the Server sends a typed update command to the online Computer, which
-stages the signed release, restarts, and reconnects. Updates never install automatically during
-ordinary startup. Because the resident service is shared, any attached Server's Owner or Admin may
-trigger the update and every attachment observes the restart. Other Servers receive no initiating
-Server or User identity. The Computer downloads and verifies while turns continue, then stops
-admitting new turns, waits for active turns to finish, restarts, and resumes queued work. A stuck
-Agent must be explicitly stopped; updates never force-interrupt a turn. `grotto-computer upgrade`
-is the local recovery path. Grotto publishes one production Computer release stream; there are no
-release channels or pinned tracks, and every normal update targets the latest release.
+downloads and verifies the signed standalone release, drains active turns, atomically replaces the
+executable, restarts, and reconnects. Updates never install automatically during ordinary startup.
+Because the resident service is shared, any attached Server's Owner or Admin may trigger the
+update and every attachment observes its byte progress, phase, disconnect, and reconnect. Other
+Servers receive no initiating Server or User identity. A stuck Agent must be explicitly stopped;
+updates never force-interrupt a turn. `grotto-computer upgrade` is the local recovery path, and
+`grotto-computer upgrade --rollback` restores the one previous verified executable. Grotto
+publishes one production Computer release stream; there are no release channels or pinned tracks,
+and every normal update targets the latest release.
 _Avoid_: App update, automatic update, Agent runtime change, protocol fallback
 
 **Computer install root**:
-The disposable, versioned location containing the installed Grotto Computer executable and its
-embedded managed Grotto CLI. npm installation and Computer updates may atomically replace this
-root, but never write to the Computer data root. It lives under the npm installation prefix with
-the `grotto-computer` executable exposed on `PATH`; it is never inside `~/.grotto`.
+The disposable location containing the signed standalone Grotto Computer executable and its
+embedded managed Grotto CLI. The canonical executable is
+`~/.local/bin/grotto-computer`; the updater may retain one verified
+`~/.local/bin/grotto-computer.prev` for explicit rollback. Installation and updates atomically
+replace code but never write to the Computer data root. npm, Homebrew, and the application bundle
+do not own this root.
 _Avoid_: Computer data root, Agent workspace, attachment state
 
 **Computer data root**:
@@ -90,9 +100,9 @@ relocate this root. The updater does not snapshot the data root or Agent workspa
 Computer-owned records use atomic writes, and local schema changes are transactional. Its canonical
 path is `~/.grotto`; resident service state lives under `computer/`, while each attachment owns
 `computer/servers/<server-id>/` with its credential, vault, queues, and
-`agents/<agent-id>/{home,skills,workspace,runtime}/` directories. npm uninstall removes only
-installed code; it never deletes this root. Reinstalling resumes every still-valid attachment and
-workspace.
+`agents/<agent-id>/{home,skills,workspace,runtime}/` directories. Removing or reinstalling the
+standalone executable never deletes this root. Reinstalling resumes every still-valid attachment
+and workspace.
 _Avoid_: Computer install root, npm package directory, application bundle
 
 **Computer model access**:

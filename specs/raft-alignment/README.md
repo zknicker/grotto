@@ -106,7 +106,9 @@ operator has explicitly stopped it; that stopped state persists until `grotto-co
 Computer releases are operator-triggered, not installed automatically at service startup.
 Computer settings show the installed and available versions plus update progress; an Owner or
 Admin starts an update, the Server sends a typed command over the attachment socket, and the
-Computer verifies, stages, restarts, and reconnects. `grotto-computer upgrade` remains the local
+Computer verifies, stages, restarts, and reconnects. The App immediately acknowledges the request,
+shows real byte-based download progress, names verification and drain phases, and uses prominent
+indeterminate progress through restart and reconnect. `grotto-computer upgrade` remains the local
 recovery path. Any attached Server's Owner or Admin may trigger the signed update. Because the
 resident binary is shared, every child runner restarts; all attachments see update state but never
 the initiating Server or User. Download and verification may overlap active turns, but restart
@@ -121,27 +123,22 @@ ordinary control. If it cannot speak the bootstrap protocol, recovery requires a
 Grotto deliberately omits Raft's `latest`/`alpha`/`pinned` release-channel model. There is one
 production Computer release stream, and both App-triggered updates and plain CLI upgrades target
 its newest version.
-As in Raft's executable-versus-`$SLOCK_HOME` split, Grotto Computer's npm-delivered install root
-is disposable and strictly separate from its stable data root. Computer identity, attachments,
-queues, logs, credentials, and Agent workspaces never live under an npm package or executable
-directory. Updates atomically replace code only; they never clean, relocate, stage through, or
-otherwise treat durable Agent data as part of the release. Like Raft, Grotto does not snapshot
-control state or Agent workspaces before an update; small Computer records use atomic writes and
-local schema changes are transactional. Unlike Raft's production CDN-delivered standalone binary,
-Grotto keeps no `<executable>.prev` rollback copy: its immutable npm releases are repaired by a
-new release or explicit npm reinstall.
-The npm prefix contains the disposable package and `grotto-computer` PATH entry; neither lives
-inside `~/.grotto`. The canonical data root is `~/.grotto`, with resident service state under
-`computer/`. Every attachment owns `computer/servers/<server-id>/`, containing its credential,
-vault, queues, and `agents/<agent-id>/{home,skills,workspace,runtime}/`. As in the
-Raft layout shown above, the `computer/` directory is state owned by the service, not the service
-binary.
-npm install/uninstall owns code only and never touches `~/.grotto`. A reinstall validates and
-resumes still-valid attachments and workspaces; permanent cleanup occurs only through explicit
-Agent, Computer, or Server deletion.
+Matching Raft's executable-versus-`$SLOCK_HOME` split, Grotto Computer ships as a compiled,
+Developer-ID-signed and notarized standalone executable at
+`~/.local/bin/grotto-computer`. Its install root is disposable and strictly separate from the
+stable `~/.grotto` data root. Computer identity, attachments, queues, logs, credentials, and Agent
+workspaces never live beside the executable. Updates atomically replace code only and retain one
+previous verified executable for explicit `grotto-computer upgrade --rollback`; they never clean,
+relocate, stage through, snapshot, or roll back durable Agent data. Reinstalling the executable
+validates and resumes still-valid attachments and workspaces.
 WS6 supports Apple Silicon macOS only, matching the current Grotto Runtime release. It ships one
-npm artifact and launchd service implementation, reports OS/architecture in the Computer
+standalone executable and launchd service implementation, reports OS/architecture in the Computer
 handshake, and adds no Linux, Intel Mac, Windows, or generic service-manager abstraction.
+Computer has independent SemVer and `computer-vX.Y.Z` tags but participates in one holistic Grotto
+release decision. Every release explicitly assesses App/Server, Desktop, and Computer. A
+compatible signed Computer release is published and publicly verified before an App/Server release
+that requires its protocol. The normative release, installation, recovery, and progress UX
+contract is [computer-release-and-update.md](computer-release-and-update.md).
 Computer credentials follow Raft's locked-down-file model rather than macOS Keychain. Each
 Server attachment credential is atomically stored mode `0600`; runner credentials are
 memory-only; per-launch Agent proxy tokens are mode-`0600` files removed at launch end and swept

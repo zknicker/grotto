@@ -1,13 +1,20 @@
 ---
-summary: Release workflow for app-only releases, Runtime compatibility floors, Runtime artifacts, desktop signing/notarization, updater metadata, S3 upload, tags, and GitHub Release.
+summary: Coordinated release workflow for App/Server, Desktop, Computer, and remaining Runtime artifacts, including signing, publishing, compatibility ordering, and promotion.
 read_when:
   - cutting, signing, notarizing, or publishing a Grotto release
+  - deciding whether a Grotto release needs a Computer release
+  - changing Computer packaging, protocol, updater, or release progress
   - deciding whether a Grotto app release needs a Runtime release
   - changing Runtime release artifacts or Homebrew deployment
   - changing release scripts, updater metadata, or release environment variables
 ---
 
 # Releases
+
+Every release starts with one Grotto release decision across App/Server,
+Desktop, Computer, and any remaining Runtime surface. A surface may remain
+unchanged, but the release notes must say so. Independently versioned artifacts
+are prerequisites in one ordered release train, not isolated release projects.
 
 Grotto releases optimize for frequent app updates and infrequent Runtime updates.
 The desktop app has its own release version. Runtime has a package version, and
@@ -31,7 +38,20 @@ compatible unless the app raises the floor.
 
 ## Agent Release Decision
 
-Before every release, inspect the changed files and choose one lane:
+Before every release, inspect the changed files and record every surface:
+
+| Surface | Publish when |
+| --- | --- |
+| App/Server | Product UI, hosted API, hosted persistence, or Server behavior changes |
+| Desktop | The Electron shell or bundled desktop artifact changes |
+| Computer | Computer execution, lifecycle, local CLI, updater, embedded managed CLI, bootstrap or ordinary protocol, or a required shared Computer dependency changes |
+| Runtime | A remaining pre-Computer Runtime package contract changes |
+
+If App/Server raises its required Computer protocol, publish and publicly verify
+the compatible Computer release first. The App/Server publisher must not proceed
+against a production Computer descriptor below that floor.
+
+For the remaining Runtime surface, choose one compatibility lane:
 
 | Lane | Use when | Runtime package | Runtime floor |
 | --- | --- | --- | --- |
@@ -89,38 +109,68 @@ does not require release assets. This preserves rollback to an installed
 transitional release whose GitHub Release predates hosted Server assets.
 
 It does not accept branches, `main`, arbitrary SHAs, draft releases, or
-prereleases. Cut an annotated patch release for an urgent fix. The Computer and
-optional Runtime remain separate operator-triggered release streams under their
-existing rules.
+prereleases. Cut an annotated patch release for an urgent fix. Computer and any
+optional Runtime artifacts retain independent versions and operator-triggered
+publishers, but their decision and prerequisite order belong to this release
+workflow.
 
 ## Computer Release Contract
 
-Grotto Computer has one production stream. Its latest descriptor is a JSON
-document at `GROTTO_COMPUTER_RELEASE_MANIFEST_URL` (default
+The normative packaging, signing, installation, rollback, progress UX, and
+acceptance contract is
+[Grotto Computer release and update](../../specs/raft-alignment/computer-release-and-update.md).
+
+Grotto Computer has independent SemVer, `computer-vX.Y.Z` tags, and one
+production stream. Its latest descriptor is a JSON document at
+`GROTTO_COMPUTER_RELEASE_MANIFEST_URL` (default
 `https://releases.grotto.sh/computer/latest.json`):
 
 ```json
 {
   "release": {
-    "sha256": "<lowercase tarball sha256>",
-    "tarballUrl": "https://…/grotto-computer-X.Y.Z.tgz",
+    "artifactUrl": "https://releases.grotto.sh/computer/X.Y.Z/grotto-computer-aarch64-apple-darwin",
+    "protocolVersion": 3,
+    "sha256": "<lowercase artifact sha256>",
+    "sourceRevision": "<full lowercase git sha>",
     "version": "X.Y.Z"
   },
   "signature": "<base64 Ed25519 signature>"
 }
 ```
 
-The signature covers the compact JSON release object in `sha256`,
-`tarballUrl`, `version` order. The Computer install records the PEM public key
-from `GROTTO_COMPUTER_UPDATE_PUBLIC_KEY` under its stable data root. Settings
-and `grotto-computer upgrade` both target this same descriptor. The Computer
-verifies the signature and downloaded SHA-256 before invoking npm; failed
-verification never reaches install or attachment/Agent data.
+The signature covers the compact JSON release object in the documented key
+order. The signed and notarized standalone executable embeds the Ed25519 public
+key and managed Grotto CLI. It installs at
+`~/.local/bin/grotto-computer`; npm, Homebrew, and Bun are not installation or
+recovery dependencies. Failed verification never reaches executable
+replacement or attachment/Agent data.
 
 Starting the Computer never checks or installs a release. An Owner or Admin
 must choose **Check** and **Update** in the attached Server's Computer settings,
 or an operator must run `grotto-computer upgrade` locally. There are no channels,
-pins, prerelease tracks, automatic startup installs, or rollback copies.
+pins, prerelease tracks, or automatic startup installs. The updater retains one
+previous verified executable for explicit `grotto-computer upgrade --rollback`.
+
+## Computer Release Flow
+
+Use this lane when the release decision marks Computer **publish**:
+
+1. Choose the next independent Computer SemVer.
+2. Run `bun run computer:release -- --dry-run <version>`.
+3. Update the changelog with the Computer version and any App/Server dependency.
+4. Run `bun run computer:release <version>` from macOS with Apple, Ed25519, S3,
+   Git, and GitHub credentials configured.
+5. Confirm the publisher publicly verified the immutable executable and signed
+   descriptor before promoting `computer/latest.json`.
+6. If App/Server requires the new protocol, only then continue its release flow.
+
+The publisher creates the annotated Computer tag and GitHub Release. It never
+promotes `latest.json` before the immutable public artifact passes signature,
+notarization, digest, version, protocol, and source-revision checks.
+
+The pre-publisher 1.0.0 development install is a one-time clean transition, not
+a Computer release lane. Run the new standalone installer and setup command; it
+reuses `~/.grotto` state. Do not publish an npm compatibility bridge.
 
 ## Runtime Release Flow
 
@@ -248,6 +298,9 @@ Grotto releases publish these production artifacts:
 * `grotto-server-<version>+git.<short-sha>-aarch64-apple-darwin.tar.gz`
   contains the hosted Server and hosted App. Its sidecar travels with it as a
   GitHub Release asset.
+* `computer/<version>/grotto-computer-aarch64-apple-darwin` is the independently
+  versioned, signed and notarized Computer executable. Its signed descriptor is
+  published immutably beside it before `computer/latest.json` is promoted.
 * `grotto-runtime-<version>-<target>.tar.gz` is the always-on Runtime server for
   a Mac mini or other host when the release includes Runtime.
 
@@ -272,6 +325,11 @@ Required release environment:
 * `APPLE_PASSWORD` is accepted as a compatibility alias for
   `APPLE_APP_SPECIFIC_PASSWORD`
 * `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+
+Computer releases additionally require the Ed25519 private release key used to
+sign the Computer descriptor. The corresponding public key is compiled into the
+Computer executable; normal installation does not accept a public-key
+environment override.
 
 Runtime releases additionally require `TAVERN_GOOGLE_OAUTH_CLIENT_ID` and
 `TAVERN_GOOGLE_OAUTH_CLIENT_SECRET` for the Runtime artifact. App-only releases

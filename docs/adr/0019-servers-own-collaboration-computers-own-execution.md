@@ -183,8 +183,10 @@ from the App; the Server sends a typed update command over the Computer's
 existing attachment socket. The Computer downloads and verifies the signed
 release, stages it, restarts the resident service and child runners, then
 reconnects with its new version. The App presents checking, available,
-installing, restarting, complete, and failed states. Offline Computers cannot
-update. Ordinary service startup never installs an update automatically.
+requested, byte-progress downloading, verifying, waiting-for-agents, installing,
+restarting, complete, and failed states. Restart uses prominent indeterminate
+progress through the expected disconnect and new bootstrap handshake. Offline
+Computers cannot update. Ordinary service startup never installs an update automatically.
 `grotto-computer upgrade` remains the local repair path. The resident binary is
 shared by every attachment on the physical machine, so an update restarts all
 child runners. An Owner or Admin of any attached Server may trigger a signed
@@ -201,7 +203,8 @@ a stuck Agent before the update can continue.
 
 The attachment socket begins with a small, stable Computer bootstrap protocol.
 It authenticates the Computer and carries only installed binary version,
-Computer protocol version, update commands, and update progress. When the
+Computer protocol version, update commands, downloaded and total bytes, and
+update phase/result. When the
 ordinary Computer protocol is incompatible, the Server admits the attachment
 in `update-required` mode: Agent execution, message delivery, and ordinary
 control remain disabled, while Owners and Admins can still repair it through
@@ -209,50 +212,40 @@ the App. This is not a compatibility implementation for old Agent behavior.
 If a binary is too old to speak the bootstrap protocol, the App directs the
 operator to run `grotto-computer upgrade` locally.
 
+The release artifact, trust root, installation, rollback, coordinated release
+process, and responsive progress UX are detailed by
+[ADR 0020](0020-computer-ships-as-a-signed-standalone-release.md).
+
 Unlike Raft, Grotto has one production Computer release stream. There is no
 release-channel setting, alpha track, or pinned track. App-triggered updates and
 plain `grotto-computer upgrade` always target the latest production release.
 
-Computer code and Computer data have separate roots. The npm-delivered,
-versioned install root contains only the executable and its embedded managed
-Grotto CLI and is disposable. Computer identity, Server attachments, delivery
-queues, logs, credentials, and Agent workspaces live in a stable,
-version-independent data root outside every npm package directory and
-executable location. Update code may atomically replace the install root but
-must never recursively replace, clean, relocate, or use the data root as a
-staging directory. Agent workspace contents are not update or local-schema
-migration inputs. Matching Raft's data-isolation level, Grotto does not copy or
-snapshot the data root or Agent workspaces before an update. Small
-Computer-owned records use atomic temporary-write-and-rename; any future local
-database schema change is transactional.
+Computer code and Computer data have separate roots. The signed standalone
+executable at `~/.local/bin/grotto-computer` contains the service and embedded
+managed Grotto CLI and is disposable. Computer identity, Server attachments,
+delivery queues, logs, credentials, and Agent workspaces live in the stable,
+version-independent `~/.grotto` data root. Update code may atomically replace
+the executable but must never recursively replace, clean, relocate, or use the
+data root as a staging directory. Agent workspace contents are not update or
+local-schema migration inputs. Matching Raft's data-isolation level, Grotto
+does not copy or snapshot the data root or Agent workspaces before an update.
+Small Computer-owned records use atomic temporary-write-and-rename; any future
+local database schema change is transactional.
 
-The physical boundary is explicit. The npm install prefix contains the
-disposable package and exposes `grotto-computer` on `PATH`; no executable or
-package is installed under `~/.grotto`. The canonical data root is
-`~/.grotto`: `~/.grotto/computer` stores resident service state, while each
-attachment owns `~/.grotto/computer/servers/<server-id>/` with its credential,
-vault, queues, and `agents/<agent-id>/{home,skills,workspace,runtime}/`
-directories. The `computer` directory names the owner of that state, not an
-installed binary.
+Removing or reinstalling the executable leaves every attachment, credential,
+queue, vault record, and Agent workspace intact. Reinstalling validates and
+resumes every still-valid attachment. Permanent cleanup remains an explicit
+product lifecycle operation, never an installer side effect.
 
-npm install and uninstall own code only. No npm lifecycle hook deletes,
-rewrites, or adopts `~/.grotto`. Uninstalling therefore leaves every
-attachment, credential, queue, vault record, and Agent workspace intact;
-reinstalling Grotto Computer validates and resumes every still-valid
-attachment. Permanent cleanup remains an explicit product lifecycle operation,
-never a package-manager side effect.
+Grotto now copies Raft's standalone-binary recovery model. The production
+updater downloads a signed platform executable, verifies it, atomically swaps
+it, and retains one previous verified executable for explicit rollback. See
+ADR 0020 for the current release contract.
 
-Grotto does not copy Raft's standalone-binary rollback. Raft's production
-updater downloads a platform executable from its CDN, verifies it, atomically
-swaps it, and retains `<executable>.prev`; its npm/source build cannot
-self-upgrade. Grotto instead publishes one immutable npm release stream, keeps
-no previous executable, and recovers through a fixed release or explicit npm
-reinstallation.
-
-WS6 supports Apple Silicon macOS only, matching Grotto's current Runtime
-release. Grotto Computer has one npm artifact and one launchd service
-implementation and reports operating system and architecture in its handshake.
-WS6 adds no Linux, Intel Mac, Windows, or generic service-manager abstraction.
+WS6 supports Apple Silicon macOS only. Grotto Computer has one signed and
+notarized standalone executable plus one launchd service implementation and
+reports operating system and architecture in its handshake. WS6 adds no Linux,
+Intel Mac, Windows, or generic service-manager abstraction.
 
 Computer secrets use Raft-style locked-down local files rather than macOS
 Keychain. Each durable Server attachment credential lives in its own

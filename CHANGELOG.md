@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.6 - 2026-07-28
+
+- Hosted Grotto restores the full desktop collaboration experience: signed-in
+  Server selection, the familiar sidebar and activity home, compact chat,
+  agent profiles, message inspection, artifact panes, and appearance choices.
+- Attached Grotto Computers again execute hosted Agent turns with their
+  configured model, workspace, skills, and Server-owned remote MCP access.
+- Chat composition restores `@` Agent and `$` skill autocomplete, rich chips,
+  keyboard controls, and Command-K navigation. Referenced skills now become
+  available to the selected Agent for that turn.
+- Fixed hosted authentication and Agent direct-message/thread access.
+
 ## v1.6.5 - 2026-07-27
 
 - Hosted Server startup now uses the provisioned production attachment root

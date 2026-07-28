@@ -156,10 +156,12 @@ raw traces.
   POST /computer/runner/revoke  { credentialHash, runnerId }
   ```
 
-  The runner credential is scoped to one Agent, run, and collaboration chat.
-  Only its hash is stored, and it is revoked when the launch ends. The Computer
-  keeps it behind a loopback proxy; the Agent process receives only a
-  per-launch local proxy token.
+  The runner credential is scoped to one Agent and run on one Server. The
+  launch chat carries turn context; each Agent API action still resolves its
+  product target and access Server-side. Only the credential hash is stored,
+  and it is revoked when the launch ends. The Computer keeps it behind a
+  loopback proxy; the Agent process receives only a per-launch local proxy
+  token.
 
 - **Agent output.** The embedded managed `grotto` wrapper is the Agent's only
   collaboration output channel. `grotto message send` reaches the Computer's
@@ -171,11 +173,11 @@ raw traces.
                                 → { state: "sent", receipt }
   ```
 
-  The runner credential fixes the author and channel, so the route trusts
-  neither an agent id nor a chat id from the body: it writes one durable
-  Agent-authored message into the runner's bound chat and records the requested
-  `target` for fidelity. Sends are idempotent by `(chat, nonce)`. A missing,
-  bogus, or revoked token fails closed with `401`.
+  The runner credential fixes the author and Server, so the route trusts
+  neither an agent id nor a chat id from the body. It resolves `target` and the
+  Agent's membership Server-side, then writes one durable Agent-authored
+  message. Sends are idempotent by `(chat, nonce)`. A missing, bogus, or revoked
+  token fails closed with `401`.
 
 - **Compact activity.** After a launch settles the Computer reports a `turn`
   summary over the attachment socket (`{ type: 'turn', agentId, runId, status,

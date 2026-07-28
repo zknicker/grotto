@@ -1,72 +1,54 @@
 ---
-summary: Normative product contract for MCP connections, credentials, discovery, and exact agent tool grants.
+summary: Normative product contract for Server-owned remote MCP connections, credentials, discovery, and Agent access.
 read_when:
-  - changing Connections settings or agent Tools
-  - changing MCP storage, auth, client lifecycle, or audit
+  - changing Connections settings or Agent Tools
+  - changing MCP storage, auth, client lifecycle, or invocation
 ---
 
 # MCP connections
 
 ## Product model
 
-- A connection identifies one MCP server account.
-- WS6 preserves the existing MCP connection surface: no-auth, secret-header,
-  OAuth, and stdio connections plus the Google Calendar and MerchBase presets.
-- Built-in presets populate URL and auth defaults. They use the same storage,
-  discovery, OAuth, and grant path as custom connections.
-- Preset coordinates are Runtime-owned and immutable. Generic connection
-  creation cannot select a preset.
-- Multiple connections may share a server or preset.
-- Connection state is Connect/Reconnect or Disconnect. There is no enabled flag.
-- Disconnect clears credentials and exact tool grants. Custom connections may
-  also be deleted.
+- A connection identifies one remote HTTP MCP server account on one Grotto Server.
+- Grotto Server owns its endpoint, credentials, OAuth state, discovered tools, client sessions,
+  and invocation.
+- Connections support no auth, secret headers, or MCP OAuth. Remote endpoints require HTTPS;
+  loopback HTTP exists only for development.
+- Grotto does not support local or stdio MCP connections.
+- Google Calendar and MerchBase presets populate immutable URL and auth defaults, then use the
+  same storage, discovery, OAuth, grant, and invocation path as custom connections.
+- Multiple connections may target the same MCP server or preset.
+- Disconnect clears the active identity, tokens, inventory, and Agent grants. It preserves
+  reusable client registration and operator-approved authorization origins. Custom connections
+  may also be deleted.
 
 ## Agent access
 
-- Grants are `(agent_id, connection_id, upstream_tool_name)`.
-- The Agent and connection must belong to the same Computer. Server validation
-  rejects cross-Computer grants; tool calls never relay through another
-  Computer.
-- Grant changes are Server-owned desired state and may be saved while that
-  Computer is offline using its last reported connection/tool inventory. They
-  remain pending until the Computer reconnects and reports the applied state.
-- Tool discovery never grants access.
-- A granted tool is presented as an AI SDK tool with a stable namespaced model
-  name.
-- Runtime rechecks the grant immediately before the upstream call.
-- Discovery or session failures stay visible as an unavailable granted tool so
-  the agent can report the connection problem.
+- A grant is `(server_id, agent_id, connection_id)` and enables every tool currently exposed by
+  that connection.
+- Tool discovery changes the read-only tool list; it does not create a second grant layer.
+- Server rechecks the connection grant before every upstream call.
+- Computer receives only safe names, descriptions, and input schemas for granted tools.
+- Computer sends invocation through its scoped per-run Server credential. MCP credentials and
+  upstream sessions never enter Computer, Agent prompts, or tool arguments.
+- An unavailable MCP connection does not prevent an Agent from starting. Its tools are omitted
+  until Server can rediscover the connection.
 
-## Auth
+## OAuth and secrets
 
-- Secrets stay in the Server attachment's local Runtime vault namespace.
-- HTTP connections support no auth, headers, or MCP OAuth.
-- OAuth uses protected-resource and authorization-server metadata, PKCE,
-  refresh tokens, and DCR through AI SDK. Custom connections may instead
-  provide a pre-registered client id, optional client secret, and scopes.
-- Computer retains the PKCE verifier. The hosted callback validates
-  short-lived routing state and immediately forwards the one-time authorization
-  code over the target attachment's live socket. It cannot redeem or persist
-  the code. An offline Computer expires the attempt.
-- A different authorization-server origin requires persisted user approval.
-- Credential-bearing HTTP connections and authorization servers require HTTPS.
-  Plain HTTP is allowed only for explicit loopback development.
-- Google Calendar uses the packaged Google client because Google does not offer
+- PostgreSQL stores MCP secrets in a Server-only table that is never returned by tRPC.
+- OAuth uses protected-resource and authorization-server metadata, PKCE, refresh tokens, and DCR
+  through AI SDK. Custom connections may use pre-registered client credentials and scopes.
+- Server creates and retains PKCE state, handles the hosted callback, exchanges the code, refreshes
+  tokens, and persists authorization-server trust.
+- A different authorization-server origin requires explicit operator confirmation.
+- Google Calendar uses configured Server environment credentials because Google does not offer
   DCR. MerchBase uses Clerk DCR.
-- Human-entered header values, stdio environment values, and pre-registered
-  OAuth client secrets use an online-only typed Server-to-Computer relay. The
-  Server never persists, queues, retries, or logs them; an offline Computer
-  rejects the mutation.
-- Connect, reconnect, test, identity changes, and secret changes require an
-  online Computer. They are not queued as desired state.
-- Changing URL, command, args, auth, or OAuth client configuration is an
-  identity change. Runtime validates the complete new identity, closes its
-  existing client, then atomically clears credentials and grants before use.
+- Public reads expose header names, never values.
 
 ## Operations
 
-- Tool calls record agent, turn, connection, tool, timestamps, outcome, and
-  error summary only.
-- HTTP client sessions are isolated by agent and connection.
-- Tool listing follows bounded MCP pagination and rejects cursor cycles.
-- Expired sessions are closed, evicted, and retried once with a new client.
+- MCP uses bounded pagination, rejects cursor cycles, and caps discovery at 1,000 tools.
+- Clients are pooled by connection and closed on identity, credential, disconnect, or Server
+  lifecycle changes.
+- Invocation is authorized by the scoped runner identity plus the current Server grant.

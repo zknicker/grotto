@@ -13,33 +13,29 @@ read_when:
 
 ## MCP ownership
 
-PostgreSQL owns public connection identity, last reported tool inventory, and
-exact Agent grants. Secret headers, stdio environment, MCP clients, and
-discovered executable tools remain under one Computer attachment root.
-Secret-bearing mutations require a live attachment and are never queued or
-written by the Server. Grants remain durable while a Computer is offline and
-apply when the Agent next launches; online grant changes are pushed immediately.
+PostgreSQL owns remote HTTP MCP connection identity, secret headers, OAuth
+state and tokens, discovered tool inventory, and connection-level Agent
+grants. Grotto Server owns MCP clients and invokes upstream tools. Computer
+receives safe schemas and proxies Agent calls through a scoped runner
+credential; it never receives MCP credentials or sessions. Local and stdio
+MCP connections are not supported.
 
 A Grotto server is the durable collaboration container
 ([ADR 0019](../adr/0019-servers-own-collaboration-computers-own-execution.md)).
 The hosted Server owns its state in PostgreSQL and the App talks to it directly
 over tRPC HTTP and WebSocket.
 
-## Two applications
+## Applications
 
-During the expand phase the repository builds two separate applications, and
-neither reaches into the other:
+| Application | Entrypoint | Owns |
+| --- | --- | --- |
+| Grotto Server | `src/grotto-server.ts` | tRPC, collaboration, delivery, attachment bytes, and PostgreSQL |
+| Grotto App | `apps/website` | Web UI plus the optional Electron native shell |
+| Grotto Computer | `apps/computer` | Local Agent execution and one isolated attachment per Server |
 
-| Application | Entrypoint | Serves | Storage |
-| --- | --- | --- | --- |
-| Hosted Grotto Server | `src/grotto-server.ts` | Server tRPC plus authorized streamed attachment upload/download | PostgreSQL plus the Server attachment root |
-| Local sidecar (pre-WS6) | `src/index.ts` | `appRouter`/`wsRouter` — the legacy local-owner contract | SQLite |
-
-The packaged desktop app launches the local sidecar with a `--database-path`
-and no PostgreSQL, so the hosted application must never be in that process.
-Legacy local-owner procedures — settings, runtime control, member removal,
-`identity.pushSessionToken` — are not registered on the hosted transport and
-answer `404` there. CORS restricts origins; it does not authorize anyone.
+The App calls the Server. Each Computer opens an outbound attachment socket to
+the Server. The App and Computer never connect directly. Legacy local-owner
+Runtime procedures are not part of the hosted transport.
 
 ## Identity
 
@@ -47,11 +43,10 @@ Clerk authenticates humans and nothing more. A verified session token's subject
 is the external reference used to find the stable Grotto User. Clerk
 Organizations and Clerk role claims are never read and carry no authority.
 
-Authentication carries that subject for one request only. It never writes to the
-database and never publishes the token to shared process state, so concurrent
-humans cannot bleed into each other. The local sidecar's `agentRuntime.connect` and
-`identity.pushSessionToken` still hand a session to its Runtime transport, and
-they do it explicitly — neither procedure exists on the hosted Server.
+Authentication carries that subject for one request only. It never publishes
+the token to shared process state, so concurrent humans cannot bleed into each
+other. Computers authenticate with their own Server-scoped credentials, never
+with a human Clerk session.
 
 A Grotto User is minted in exactly one place: inside Server creation's
 transaction. Reads resolve an existing User or find none — asking never mints
@@ -136,7 +131,7 @@ single outbound `/computer/attachment` socket.
 Every socket starts with bootstrap protocol version 1. The authenticated
 `bootstrap` frame carries only Computer product/protocol facts and shared update
 progress. The Server admits ordinary reports, delivery, and control only when
-the ordinary protocol is version 1. An incompatible Computer stays connected
+the ordinary protocol is version 2. An incompatible Computer stays connected
 as `update-required`: signed update control remains available, while inventory,
 Agent delivery, and MCP control fail closed. A Computer that cannot send the
 stable bootstrap frame is rejected and must be repaired with
@@ -169,7 +164,10 @@ same Computer — the assignment is immutable and absent from the input — and
 validates only against that Computer's inventory, so desired edits saved while
 the Computer is offline still fail closed on a cross-Computer or unreported
 reference. A referenced runtime or model that is absent is rejected; the Server
-never substitutes another. `agent.list` derives status per Agent: `pending`
+never substitutes another. The Server sends the full desired executor snapshot
+after create/configure and on every Computer reconnect. The Computer resolves
+and durably records it before any first turn, then reports either the exact
+effective pair or explicit missing resources. `agent.list` derives status per Agent: `pending`
 until a reported effective snapshot matches desired, `applied` once it matches
 with nothing missing, and `degraded` when the Computer reports missing local
 resources. Effective reports (`record-agent-effective-state`) only touch rows
@@ -177,10 +175,23 @@ whose `computer_id` is the reporting Computer, so cross-Computer effective
 claims update nothing. See
 [Agent desired and effective configuration](../../specs/agent-desired-effective-config.md).
 
+## Agent skills
+
+Each Agent's assigned Computer owns one canonical skill library for that Agent.
+Ordinary Computer reports add compact host-source and Agent-library metadata to
+the sanitized inventory stored in `computers.reported_inventory`; skill content
+and operator-global execution remain local. An Owner/Admin `agent.importSkill`
+request validates the source against that Computer's last report, then asks the
+online Computer to make one independent atomic copy in the assigned Agent's
+library. Imports wait for the Agent's current turn to settle and affect the next
+turn only. Native skill paths and harness injection resolve to the same library.
+See [Skills](../features/skills.md) and [Skills API](../api/skills.md).
+
 `apps/server/src/postgres/bootstrap.ts` is the schema of record — fresh-schema
 DDL applied by the explicit bootstrap command before the application starts.
-`schema.ts` describes the same tables for typed queries. Runtime has table DML
-authority but no DDL authority. There is no migration history or tooling.
+`schema.ts` describes the same tables for typed queries. The Server application
+role has table DML authority but no DDL authority. There is no migration history
+or tooling.
 
 ## Durable Agent delivery
 
@@ -237,13 +248,17 @@ reminders.
 A fire transaction appends the visible reminder system message, fire log,
 pending Agent attention, reminder state, and durable events atomically. The
 Server performs no network, model, process, shell, workspace, or script work in
-that transaction. Script text is opaque, size-bounded delivery data for a
-future Computer-local path.
+that transaction. Script text is opaque, size-bounded delivery data. The
+assigned Computer executes it once in the Agent workspace with a timeout and a
+restart-durable result marker. Empty success stays quiet; output or failure is
+recorded on the fire, appended as a reminder-authored message, and delivered to
+the Agent. Offline script attention is resent on Computer reconnect.
 
 `/healthz` reports only the scheduler's redacted state and safe timestamps.
 Shutdown stops new ticks and awaits any in-flight tick before closing
-PostgreSQL. Pending attention is durable across shutdown but defines no
-transport or acknowledgment behavior.
+PostgreSQL. Pending attention remains durable across Server and Computer
+shutdown. Ordinary attention clears after a completed Agent turn sees it;
+script attention clears after the matching Computer result settles.
 
 ## Attachment storage and recovery
 
@@ -386,7 +401,8 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 
 ## App surface
 
-- `/s` lists the Servers this human can open and creates new ones.
+- `/` signs the human in, then opens the last Server they used or their first
+  current membership. Server switching and creation live in the App sidebar.
 - `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, search,
   attachments, and the hosted task Board/List. It reserves and streams local
   files to the hosted Server, renders only attachment metadata in messages,
@@ -397,19 +413,28 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   Task rows open the canonical message's existing child Thread. Task controls
   call the hosted API directly; durable task events own exact cache invalidation.
 - `/s/<slug>/members` manages humans and invitations.
+- `/s/<slug>/computers` is the Owner/Admin Computer inventory. It shows
+  attachment health, reported runtimes/models, assigned Agents, update state,
+  recovery commands, and removal. Computer reports invalidate this inventory
+  and Agent availability through the Server websocket; the App does not poll a
+  Computer or connect to one directly.
+- `/s/<slug>/settings/connections` manages MCP connections on one selected
+  Computer attachment. Secrets relay over the Server's existing authenticated
+  Computer socket and never enter App storage.
+- `/s/<slug>/settings/updates` owns only the packaged desktop App update.
+  Computer updates live on the selected Computer detail. The hosted App has no
+  Runtime URL, token, connection banner, or Runtime update flow.
 - `/invite/<token>` is where an invited human accepts. It sits outside the
   `/s/<slug>` branch because a Server address may itself be `invite` or `join`.
   Manual links use `VITE_GROTTO_APP_ORIGIN` when configured, so a packaged App
   never exposes its private `file:` URL; that origin must match `APP_ORIGIN`.
 
-These routes are a separate top-level route-tree branch and run on their own
-client — `apps/website/src/lib/grotto-server.tsx` — using the browser's same
-origin in production and the `VITE_GROTTO_SERVER_ORIGIN` override in
-development, with the Clerk session attached per request and per WebSocket
-connection. They never use the local sidecar's client, and no product operation
-is routed through Electron IPC. Hooks live in `apps/website/src/hooks/servers/`.
-The local Command menu, Runtime gates, sidecar query hooks, and query cache exist
-only in the ordinary local route branch.
+The App uses `apps/website/src/lib/grotto-server.tsx`: the browser's same origin
+in production and `VITE_GROTTO_SERVER_ORIGIN` in development, with the Clerk
+session attached per request and per WebSocket connection. Product operations
+never use a local sidecar or Electron IPC. Electron supplies native window,
+link, authentication-storage, and desktop-update behavior only. Hooks live in
+`apps/website/src/hooks/servers/`.
 
 A socket presents the Clerk session it was opened with, so the provider watches
 the current session and opens a fresh connection when Clerk rotates the token;

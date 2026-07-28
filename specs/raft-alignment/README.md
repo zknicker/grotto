@@ -64,9 +64,9 @@ included. Pre-WS6 both connections are in-process hops inside the co-hosted proc
 upgrades transport only, contracts unchanged. One resident `grotto-computer` OS service
 supervises one isolated child runner per Server attachment; attaching another Server creates
 another child, not another service or a stop/restart cycle. Setup is additive across Servers.
-Each Computer attachment is a hard execution namespace: its Agents, workspaces, skills, MCP
-connections, grants, queues, sessions, and effective state cannot cross to another Computer or
-attachment. Server-owned desired configuration is scoped by Computer id and may reference only
+Each Computer attachment is a hard execution namespace for its Agents, workspaces, skills, queues,
+sessions, and effective state. MCP connections and grants are Server-owned. Server-owned desired
+execution configuration is scoped by Computer id and may reference only
 that Computer's reported inventory. The physical installation shares only installed software and
 native runtime/model access.
 As in Raft, an Agent's one global session inherently serializes its turns; new work for a busy
@@ -145,7 +145,7 @@ handshake, and adds no Linux, Intel Mac, Windows, or generic service-manager abs
 Computer credentials follow Raft's locked-down-file model rather than macOS Keychain. Each
 Server attachment credential is atomically stored mode `0600`; runner credentials are
 memory-only; per-launch Agent proxy tokens are mode-`0600` files removed at launch end and swept
-after crashes. MCP secrets stay in the attachment-local Runtime vault; model-provider
+after crashes. MCP secrets stay on Grotto Server; model-provider
 authentication remains native runtime state outside Grotto. Logs, traces, update state, and Server
 diagnostics never include secret values.
 Model-provider access is shared by the physical machine, in direct Raft parity: locally installed
@@ -154,23 +154,12 @@ advertise sanitized model availability and assign its Agents to it; raw provider
 never enter Grotto at all. Provider setup and login use each runtime's native local flow; Grotto
 Computer only detects and reports availability. Setup explicitly acknowledges that attaching a
 Server shares this paid compute capacity.
-MCP binaries/definitions may be machine-wide, but every configured MCP connection and credential
-is scoped to one Server attachment and stored in that attachment's local vault namespace. Only
-that Server sees non-secret metadata, and only Agents assigned to that same Computer may receive
-grants. Other Computers and attachments cannot discover, reference, or reuse it; the same external
-account requires explicit authorization for each Computer. MCP calls never relay through a second
-Computer.
-WS6 preserves the shipped MCP product surface rather than applying the model-runtime simplification
-to integrations: Google Calendar keeps its packaged OAuth client, MerchBase keeps Clerk DCR, and
-custom no-auth, secret-header, OAuth, and stdio connections remain supported. Human-entered secret
-mutations are online-only typed relays to the target Computer. The Server never persists, queues,
-retries, or logs their values; an offline Computer rejects the mutation.
-MCP OAuth uses a hosted callback without hosted token custody: the Computer retains PKCE, the
-Server validates short-lived routing state and immediately forwards the one-time code over the
-live attachment socket, and only the Computer exchanges and stores tokens. Codes are neither
-persisted nor retried; an offline Computer expires the attempt.
-Grotto copies Raft's offline desired-config behavior, not Raft's current hosted MCP custody.
-Runtime/model choices and same-Computer MCP grants may be saved against the
+MCP follows Raft's hosted custody. Every configured remote HTTP MCP connection, credential,
+OAuth attempt, discovered tool, session, and Agent grant belongs to one Grotto Server. Server
+terminates MCP and auth, while Computer receives safe schemas and proxies invocation through a
+scoped runner credential. Local and stdio MCP are not supported. Google Calendar and MerchBase
+are endpoint/auth presets on the generic path.
+Runtime/model choices and Server-owned MCP grants may be saved against the
 Computer's last reported inventory while it is offline and apply from a full snapshot on reconnect.
 The App shows them as pending until Computer-reported effective state catches up. Missing local
 resources degrade explicitly; no substitute is chosen. Runtime rescans, MCP auth/test/identity or
@@ -320,14 +309,13 @@ inbox. Human **Start** resumes the current session and drains that work.
   edges, `scheduledFor` (a reminder anchored on the task message covers it), attachment
   promotion (files live on the server post-WS6), per-task work chats (threads), auto-dispatch
   queue, `tasks_*` tools, `workbench/tasks/T-…` folders.
-- **D9 — MCP replaces plugins; the runtime is the credential broker** (walked and resolved
+- **D9 — MCP replaces plugins; Grotto Server is the credential broker** (walked and resolved
   2026-07-24; full evidence in ADR 0017). The plugin concept is retired. Outside services reach
   agents as operator-configured **MCP servers** with explicit Server-owned per-Agent grants;
   unlike local Agent skills, MCP access is an authorization boundary. The remaining
   non-MCP capabilities are **host tools** (Browser) and **model capabilities** (image
-  generation). A runtime-owned relay holds upstream credentials **in the runtime** (Raft
-  parity: secrets live on the computer, not the central server), authenticates agents by their
-  own token, terminates MCP + auth (no passthrough), and authorizes per tool-call. Per-server
+  generation). A Server-owned relay holds upstream credentials, authenticates Agents by their
+  scoped runner identity, terminates MCP + auth, and authorizes per connection. Per-server
   auth is per-integration (owner-OAuth for personal external accounts; a Grotto-issued badge for
   first-party services), not one universal scheme. No `grotto integration` CLI family and no
   Clerk M2M machine-per-agent — the relay + per-agent grants already carry custody, access
@@ -676,9 +664,8 @@ deployment, so intermediate brokenness is not a constraint.
   `grotto claim`, Clerk member forwarding, `docs/api/auth.md` member model. **Data cutover:
   grotto.sh starts completely fresh — existing local chat history and Agent workspaces are
   discarded, not migrated or adopted (decided).**
-  **Integration credentials also stay on the runtime, not the server** (D9): the MCP relay and
-  its secret store live where agents execute; the server split moves chat + identity, never the
-  upstream credentials. WS6 does not gate WS-MCP. Agent deletion requires an App confirmation,
+  **Integration credentials stay on Grotto Server** (D9): MCP is a hosted service and Computer
+  receives only safe schemas plus scoped invocation. Agent deletion requires an App confirmation,
   immediately retires Server membership/assignments/reminders/task claims while preserving
   tombstoned authored history, and queues Computer-local workspace cleanup without waiting for an
   offline Computer; deletion has no restore path. Each Agent's creation-time Computer assignment is
@@ -687,9 +674,9 @@ deployment, so intermediate brokenness is not a constraint.
   adoption, reassignment, or unhosted-Agent recovery state. Stopping Grotto Computer preserves
   attachments and workspaces; the App may remove a confirmed, Agent-free Computer even while it is
   offline, without waiting for impossible local cleanup. There is no detach/forget/reclaim flow.
-  Agents, workspaces, skills, MCP connections, grants, queues, sessions, and effective state are
-  isolated to one Computer attachment. They cannot be migrated, shared, or invoked across
-  Computers; only installed software and native runtime/model access are machine-wide.
+  Agent workspaces, skills, queues, sessions, and effective state are isolated to one Computer
+  attachment. MCP connections and grants are Server-owned and available to that Server's Agents
+  regardless of which Computer executes them.
   `grotto-computer setup /server` is additive and idempotent: it starts a new per-Server runner
   without disturbing current attachments, or validates and starts that Server's existing valid
   attachment. A manual `stop` persists across reboot until an explicit `start`; absent that pause,
@@ -710,13 +697,10 @@ deployment, so intermediate brokenness is not a constraint.
   grants; the surviving non-MCP capabilities are **host tools** (Browser)
   and **model capabilities** (image generation, already codex-native). No `grotto integration`
   CLI family — ever (evidence M1). Scope:
-  - **Runtime relay/broker.** Agents call granted MCP servers through a runtime-owned relay
-    authenticated by their existing agent token; the relay holds upstream credentials in the
-    runtime, terminates MCP and auth (no token passthrough — MCP spec forbids it), authorizes
-    every tool-call against `(agent, server, tool)`, and never logs secrets. Credentials live
-    in the **runtime**, not the grotto.sh server (Raft parity: secrets live on the computer;
-    evidence M2). OS-level agent-vs-agent isolation is an operator **deployment** concern
-    (run the runtime under a separate user for hard isolation) — documented, not built.
+  - **Server relay/broker.** Agents call granted remote MCP servers through Grotto Server,
+    authenticated by scoped runner credentials. Server holds upstream credentials, terminates MCP
+    and auth, authorizes every call against `(Server, Agent, connection)`, and never logs secrets.
+    Computer receives only safe schemas. Local and stdio MCP are not supported.
   - **Per-server auth is per-integration, not universal** (evidence M3): personal external
     accounts (e.g. Google Calendar) → operator completes OAuth once, relay holds the session;
     first-party services (MerchBase) → relay presents a Grotto-issued badge the agent cannot
@@ -732,8 +716,7 @@ deployment, so intermediate brokenness is not a constraint.
   - **Delete:** the plugin host/manifest/settings framework (`apps/runtime/src/plugins/store.ts`,
     `routes.ts`, `agent-capabilities.ts`, `materialize-skills.ts`, `merchbase*`, `google*`;
     server `api/plugin/**`), rehoming Browser's health/grant wiring onto the MCP-grants surface.
-  - **Build on the runtime now — no WS6 dependency.** Integrations are a runtime feature; the
-    server split does not gate them and does not change where secrets live.
+  - **Build on Grotto Server.** Integrations are a Server feature and secrets never enter Computer.
   - The `## MCP` prompt section composes only for agents with at least one granted server.
 - **Release blockers (flip → mini):** the flip may not ride a release to the mini without
   **WS5** (✅ landed — task surface ported from pre-flip components) and **WS-MCP** (MerchBase

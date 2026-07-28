@@ -26,11 +26,11 @@ _Avoid_: Grotto server, Grotto Computer, local app server
 
 **Computer**:
 A Server-scoped attachment of a physical machine that runs Agent sessions and Agent turns and
-stores its Agents, workspaces, skills, MCP connections, grants, queues, and execution credentials.
-None of those resources can be referenced or used across Computers, including attachments on the
-same physical machine. A Grotto server may have multiple Computers; one physical machine may have
-a separate Computer attachment in multiple Grotto servers. The physical installation shares only
-installed software and native runtime/model access.
+stores its Agents, workspaces, skills, queues, and execution credentials. None of those resources
+can be referenced or used across Computers, including attachments on the same physical machine.
+MCP connections and grants belong to Grotto Server instead. A Grotto server may have multiple
+Computers; one physical machine may have a separate Computer attachment in multiple Grotto
+servers. The physical installation shares only installed software and native runtime/model access.
 _Avoid_: Grotto server, tenant, Grotto Computer installation, agent runtime, model provider
 
 **Grotto Computer**:
@@ -105,23 +105,17 @@ compute capacity, matching Raft's reuse of host runtime logins such as Codex OAu
 _Avoid_: Server-owned model credential, per-Agent provider login, hosted provider secret
 
 **MCP connection**:
-A Server-scoped configured connection from one Computer attachment to an MCP server. Grotto
-preserves its existing generic MCP client, built-in Google Calendar and MerchBase presets,
-no-auth, secret-header, OAuth, and stdio connection behavior. Credentials stay in that
-attachment's local vault namespace, while non-secret metadata and per-Agent grants belong to the
-Server. A hosted secret mutation is an online-only, non-durable relay to the Computer; the Server
-never queues, persists, or logs its values. Other Server attachments cannot discover or use the
-connection. Reusing the same external account on another Server requires explicit authorization
-for a separate connection.
-_Avoid_: machine-wide integration credential, model provider access, hosted secret
+A Server-owned configured account on one remote HTTP MCP server. Grotto Server stores its
+credentials, OAuth state, discovered tools, connection-level Agent grants, and client sessions.
+Computer receives only safe tool schemas and returns granted calls through a scoped runner
+credential. Reusing an external account on another Server requires a separate connection.
+_Avoid_: Computer-owned integration credential, local MCP process, stdio connection
 
 **MCP OAuth attempt**:
-A short-lived Server-routed authorization flow for one Server-scoped MCP connection. Grotto
-Computer creates and retains the PKCE verifier; the hosted callback validates routing state and
-immediately forwards the one-time authorization code over that attachment's live socket. Only the
-Computer can redeem the code and store tokens. Codes are never persisted or retried; an offline
-Computer makes the attempt expire.
-_Avoid_: hosted OAuth token, Server-owned PKCE verifier, durable authorization code
+A short-lived Server-owned authorization flow for one MCP connection. Grotto Server creates and
+retains PKCE and routing state, validates the hosted callback, exchanges the one-time code, and
+stores and refreshes tokens. Computer does not participate.
+_Avoid_: Computer callback relay, Agent-visible token, durable authorization code
 
 **Computer bootstrap protocol**:
 The minimal stable handshake through which a Computer authenticates and reports its binary and
@@ -182,7 +176,7 @@ _Avoid_: Agent session, Agent turn, executor, Computer
 
 **Agent execution configuration**:
 The Grotto server's immutable Computer assignment plus desired executor, model reference, execution
-policy, same-Computer MCP grants, and lifecycle state for an Agent. Humans may edit this desired
+policy, Server-owned MCP connection grants, and lifecycle state for an Agent. Humans may edit this desired
 state while the Computer is offline using its last reported inventory. The Computer applies the
 current snapshot after reconnect and reports any unavailable local reference as degraded instead
 of substituting it. A stopped lifecycle state persists until a human starts the Agent and
@@ -333,17 +327,17 @@ browser control, Memory reads, chat sends, or other Tavern-owned product actions
 _Avoid_: Harness-native tool, raw Runtime route, MCP connection setting
 
 **MCP connection**:
-A Runtime-owned configured instance of an external Model Context Protocol server, including its
-transport, authentication boundary, account identity, connection state, and discovered tools.
-Multiple connections may target the same MCP server for different accounts. Runtime holds
-credentials and relays granted calls without exposing credentials to agents.
-_Avoid_: MCP server, Tool, Channel, Plugin
+A Grotto Server-owned configured instance of a remote HTTP Model Context Protocol server,
+including authentication, account identity, connection state, and discovered tools. Multiple
+connections may target the same server for different accounts. Server invokes granted calls
+without exposing credentials to Agents or Computers.
+_Avoid_: local process, stdio transport, Tool, Channel, Plugin
 
 **MCP tool grant**:
-An agent-level policy that allows one exact upstream tool from one MCP connection during Agent
-turns. Newly discovered tools are ungranted by default, and Runtime rechecks the grant immediately
-before forwarding every call.
-_Avoid_: Connection enablement, per-chat MCP setting, broad server grant
+An Agent-level policy that enables one whole MCP connection during Agent turns. Every current tool
+on that connection becomes available, and Server rechecks the connection grant immediately before
+forwarding every call.
+_Avoid_: Per-tool switch, per-chat MCP setting, global grant
 
 **Sandbox mode**:
 The execution environment for an agent's tools and harness processes: none, Docker, or Podman.

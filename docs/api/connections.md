@@ -1,62 +1,43 @@
 ---
-summary: Runtime and Server contracts for MCP connections, OAuth, discovery, and agent tool grants.
+summary: Server tRPC and runner contracts for remote MCP connections and connection-level Agent access.
 read_when:
-  - changing MCP Runtime routes or Server tRPC procedures
-  - changing connection or grant schemas
+  - changing MCP Server tRPC procedures
+  - changing connection, secret, discovery, runner, or grant schemas
 ---
 
 # Connections API
 
-Runtime owns:
+The App uses the Grotto Server `mcp` tRPC router:
+
+- `mcp.add`
+- `mcp.addPresetAccount`
+- `mcp.list`
+- `mcp.startOAuth`
+- `mcp.refresh`
+- `mcp.replaceHeaders`
+- `mcp.disconnect`
+- `mcp.delete`
+- `mcp.setGrant`
+
+`mcp.add` accepts one HTTPS remote endpoint plus no auth, secret headers, or MCP OAuth
+configuration. Public connection reads expose header names and discovered tool names, never secret
+values. Preset creation resolves immutable Server-owned coordinates.
+
+`mcp.startOAuth` creates Server-held PKCE and routing state. The hosted callback validates state;
+Server exchanges the code, persists tokens and client registration, and performs refresh. Computer
+does not participate.
+
+`mcp.setGrant` stores one `(Server, Agent, connection)` grant. Enabling it makes every current tool
+on the connection available to that Agent.
+
+During an Agent launch, Computer calls two scoped Server endpoints through its per-run loopback
+proxy:
 
 ```txt
-GET    /mcp/connections
-POST   /mcp/connections
-POST   /mcp/preset-accounts
-PATCH  /mcp/connections/{id}
-DELETE /mcp/connections/{id}
-POST   /mcp/connections/{id}/disconnect
-POST   /mcp/connections/{id}/test
-GET    /mcp/connections/{id}/tools
-POST   /mcp/connections/{id}/oauth/start
-POST   /mcp/connections/{id}/oauth/complete
-GET    /mcp/agents/{agentId}/grants
-PUT    /mcp/agents/{agentId}/connections/{connectionId}/tools/{toolName}/grant
-GET    /mcp/agents/{agentId}/host-tools
-PUT    /mcp/agents/{agentId}/host-tools/{toolId}/grant
+GET  /api/agent/mcp/tools
+POST /api/agent/mcp/invoke
 ```
 
-Public connection reads expose header names, never values. OAuth tokens, client
-registration, configured client secrets, PKCE state, approved
-authorization-server origins, stdio env, and header values remain Runtime vault
-data. Generic connection creation does not accept preset ids; the preset-account
-route resolves the immutable built-in endpoint and auth configuration.
-
-The App uses the same connection shapes through Runtime or the hosted Server
-`mcp` tRPC router.
-
-Hosted Server connections use the same product contract through the attached
-Computer:
-
-- `mcp.add` requires the selected Computer online. The Server forwards headers
-  and stdio environment exactly once over that live attachment and stores only
-  endpoint identity, header names, and discovered tool names.
-- `mcp.list` returns Server-owned public connection state. An offline Computer
-  reports `pending` with its last tool inventory and connected identity.
-- `mcp.startOAuth` creates short-lived routing state. The Server validates that
-  state and relays one live callback code to the exact Computer attachment. It
-  never stores PKCE, client registration, tokens, or callback codes, and never
-  retries a callback. Expired, offline, replayed, or wrong-attachment callbacks
-  fail closed.
-- The Computer owns OAuth discovery, PKCE, client registration, token refresh,
-  connected identity, and its attachment-scoped vault. Google Calendar uses its
-  packaged client, MerchBase uses dynamic client registration, and custom OAuth
-  supports dynamic or pre-registered clients.
-- `mcp.setGrant` stores exact `(Agent, connection, upstream tool)` desired state.
-  Agent and connection must belong to the same Computer. Online changes are
-  also pushed to that attachment so invocation-time checks see revocations.
-
-The Computer stores public connection configuration separately from its vault
-under the Server attachment root, maintains MCP sessions there, and checks the
-exact current grant immediately before each upstream call. Another attachment
-cannot resolve those connection files, credentials, or sessions.
+The first returns safe tool names, descriptions, and input schemas for currently granted
+connections. The second resolves the tool, rechecks the grant, and invokes the upstream MCP from
+Server. Computer never receives MCP secrets, OAuth tokens, or upstream session state.

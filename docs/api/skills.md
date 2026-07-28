@@ -1,62 +1,49 @@
 ---
-summary: Skill inventory, enablement, assignment, host tools, and MCP tool grants.
+summary: Agent-local skill library and host import contracts.
 read_when:
-  - changing skill or tool API contracts
+  - changing Agent skill API routes or Computer skill reports
 ---
 
-# Skills and Tools API
+# Skills API
 
-Runtime reports installed skills and executable Runtime tools. Server projects
-dependency readiness and global enablement for Settings.
+## Agent API
 
-Global skill disable is a destructive assignment operation: Runtime writes the
-disabled state and deletes every matching `agent_skill_assignments` row in one
-transaction. The UI lists affected agents before calling it.
+The scoped Agent API exposes the calling Agent's canonical library:
 
-Agent skill assignments remain `enabledSkillIds`. Host-tool and MCP-tool grants
-are separate records:
+- `GET /api/agent/skills`
+- `GET /api/agent/skills/:skillId`
+- `POST /api/agent/skills/create`
+- `POST /api/agent/skills/patch`
+- `POST /api/agent/skills/write-file`
+- `DELETE /api/agent/skills/:skillId`
 
-- `agent_host_tool_grants(agent_id, tool_id)`
-- `agent_mcp_tool_grants(agent_id, connection_id, tool_name)`
+Every route is bound to the authenticated Agent id. Paths are validated inside
+that Agent's skill directory. The API cannot read or mutate another Agent's
+library or a host import source.
 
-Skill contract:
+## Computer report
 
-- Skill ids are stable within the Runtime source.
-- Installed skills are Runtime-owned packages. Installing a skill imports or
-  copies it into the installed library; it does not assign the skill.
-- Assignment is per-agent policy exposed through the Agents API as
-  `enabledSkillIds`. Newly assigned skills must be globally enabled and free of
-  setup blockers.
-- Setup requirements and source state remain visible even when blockers make a
-  skill unusable.
-- Each agent has one canonical, writable library directory. Agent-scoped skill
-  reads, authoring, imports, and harness injection resolve to that directory, so
-  the harness receives exactly that library and no ambient, host-global, or
-  cross-agent skills.
-- `grotto skill delete <skillId>` (`DELETE /api/agent/skills/:id`) removes only
-  the calling agent's own copy. It names the agent and skill, clears that skill's
-  source record and the agent's assignment, and never alters an import source or
-  another agent's library. Seeded skills cannot be deleted; they are restored
-  each session.
-- Agent-authored skills are writable only by their creating agent. Other
-  disk-backed skills remain non-editable on the agent surface.
-- Hub installs record the installed content hash. Reinstalling an edited skill
-  conflicts unless `force` is set; available entries report `edited` and
-  `updateAvailable`.
-- Seeded `tavern-agent` and `visuals` skills can be reset through
-  `POST /skills/:id/reset`. Runtime also refreshes changed seeded content when
-  preparing managed skills.
+The Computer's ordinary attachment report includes:
 
-Tool contract:
+- `importableSkills`: opaque source id, name, description, and shortened source
+  location for host-installed bundles.
+- `agentSkills`: Agent id plus compact name, description, content hash, and
+  modification time for each Agent-local bundle.
 
-- Runtime-native tool ids remain distinct from provider transport names.
-- Tool enablement separates operator choice from Runtime usability.
-- Runtime may report built-in tools as `readOnly` inventory facts.
-- Browser and `web_fetch` are host tools with exact per-agent grants.
-- MCP tools are granted by connection id and upstream tool name. Discovery
-  never grants a newly reported tool.
-- MCP connection configuration and credentials belong to Connections, not
-  skills. Runtime tool details remain diagnostics rather than copied skill
-  instructions.
+Only metadata reaches the Server. The Server stores the latest complete
+inventory in `computers.reported_inventory` for offline display.
 
-See [Connections API](connections.md) for MCP routes and credential boundaries.
+## Operator import
+
+`agent.importSkill` accepts `serverId`, `agentId`, and a reported `sourceId`.
+Only a Server Owner or Admin may call it. The Server verifies that the Agent is
+assigned to the reporting Computer, then sends a typed import request over that
+Computer's live attachment.
+
+The Computer resolves the opaque source id against a fresh local scan, waits
+for any active turn to settle, copies the bundle atomically into the Agent's
+library, and returns compact metadata. The Server never receives bundle bytes.
+The operation fails if the source disappeared, the Computer is offline, or the
+Agent already owns a same-name skill.
+
+The independent copy is visible to the next turn. There is no background sync.

@@ -236,9 +236,10 @@ Runtime composes the AI SDK tool set for each turn from three sources:
 3. explicitly granted tools discovered from MCP connections.
 
 MCP tools keep their upstream schemas and receive stable namespaced
-model-visible names. Discovery never grants a tool. Runtime checks the
-`(agent, connection, upstream tool name)` grant immediately before the
-upstream call and records metadata-only audit evidence. Messaging, chat
+model-visible names. A Server-owned `(Server, Agent, connection)` grant enables
+the connection's current tools. Grotto Server rechecks it immediately before
+the upstream call. Computer receives safe schemas and proxies invocation.
+Messaging, chat
 history, and channel attention remain CLI verbs on PATH rather than MCP tools.
 
 Agents read chat history themselves through `grotto message read` and

@@ -92,7 +92,7 @@ attachment flow. Re-running `setup` for a valid local attachment validates and
 starts that attachment idempotently. If its credential is rejected while the
 Server attachment may still exist, `setup` fails closed and directs the
 operator to the App; it never silently creates a replacement Computer or
-adopts the old identity. Computers own Agent workspaces, provider and MCP
+adopts the old identity. Computers own Agent workspaces, provider
 credentials, executable model inventory, skill bundles, Agent sessions,
 processes, and effective execution state. An Agent is created on one Computer and that
 assignment is immutable. If the Computer is offline, its Agents remain
@@ -105,7 +105,7 @@ silently substitutes an executor or model that a Computer cannot satisfy.
 One resident `grotto-computer` OS service supervises one isolated child runner
 per Server attachment. Each child owns only that attachment's Computer
 credential, outbound socket, local state partition, Agents, workspaces, skill
-bundles, MCP connections, grants, queues, and processes. These resources never
+bundles, queues, and processes. These resources never
 cross Computer boundaries, including between two attachments supervised by
 the same resident service. Server records for desired Agent configuration are
 scoped by Computer id and may reference only inventory reported by that
@@ -260,7 +260,7 @@ atomically-written mode-`0600` file under that attachment's data partition.
 Per-launch Agent runner credentials remain memory-only inside Grotto Computer
 and are revoked at launch end. The Agent receives only a per-launch local proxy
 token in a mode-`0600` file; normal shutdown removes it and startup sweeps
-orphaned tokens after crashes. MCP credentials remain in the local vault.
+orphaned tokens after crashes. MCP credentials remain on Grotto Server.
 Secret values never enter logs, traces, update metadata, or Server-visible
 diagnostics.
 
@@ -274,35 +274,18 @@ local flow. Grotto Computer only detects availability: Grotto has no provider
 credential form, vault record, or relay. The Computer attachment
 acknowledgement explicitly includes this sharing of paid execution capacity.
 
-MCP software and credentials use a narrower boundary. An MCP executable or
-server definition may be installed machine-wide, but each configured
-connection and credential belongs to exactly one Server attachment and lives
-in that attachment's local vault namespace. Only that Server receives
-non-secret connection metadata. Only Agents assigned to that same Computer may
-receive its grants. Other Computers and attachments cannot discover, reference,
-or consume it. Connecting the same external account elsewhere requires an
-explicit second authorization. This preserves WS-MCP's per-Agent grant model
-without turning a private external account into shared machine capacity or
-introducing a cross-Computer tool relay.
+MCP is a Server service, not Computer execution state. Every configured remote
+HTTP MCP connection, credential, OAuth attempt, discovered tool, client
+session, and Agent grant belongs to one Grotto Server. The Server terminates
+MCP and auth, persists secrets outside public tRPC shapes, and invokes upstream
+tools. Computer receives only safe schemas and returns calls through its scoped
+per-run Server credential. It cannot read or reuse MCP credentials.
 
-MCP OAuth remains remotely operable after the local App Server retires.
-Grotto Computer creates and retains the PKCE verifier and authorization
-request. The hosted App opens the authorization URL, and the provider returns
-to a `grotto.sh` callback containing short-lived routing state. The Server
-validates that state and immediately forwards the one-time authorization code
-over the target attachment's live socket. Only the Computer can exchange it;
-tokens remain in the Server-scoped local vault. The Server never persists or
-retries the code. If the Computer is offline when the callback arrives, the
-attempt expires and the human retries.
-
-WS6 otherwise preserves the existing MCP surface. Google Calendar continues
-through its packaged OAuth client, MerchBase continues through Clerk DCR, and
-custom no-auth, secret-header, OAuth, and stdio connections continue to work.
-For a custom header, stdio environment value, or pre-registered OAuth client
-secret entered in the hosted App, the Server performs an online-only typed
-relay to the target attachment. It never persists, queues, retries, or logs
-the value; an offline Computer rejects the mutation. The Computer writes the
-secret only to that Server attachment's local vault namespace.
+MCP OAuth remains remotely operable because Grotto Server owns PKCE, the
+hosted callback, code exchange, refresh tokens, and authorization-server trust.
+Computer does not participate. Google Calendar and MerchBase are endpoint/auth
+presets on this path. Custom connections support no auth, secret headers, or
+OAuth over remote HTTP; local and stdio MCP are not supported.
 
 A Computer is shared Server compute rather than a private resource of the
 User who attached it. Human Owners and Admins may assign and control Agents on
@@ -389,7 +372,7 @@ snapshots to the Server. Routine App reads use those persisted reports and
 never synchronously query a Computer. Mutations of desired Agent state return
 after the Server commits the change; Computers apply it asynchronously and
 report the result. Matching Raft's offline Runtime Config behavior, humans may
-change an Agent's runtime/model choice and same-Computer MCP grants while its
+change an Agent's runtime/model choice and Server-owned MCP grants while its
 Computer is offline. The Server validates references
 against that Computer's last reported inventory, marks the change pending,
 and sends the complete current snapshot after reconnect. If a referenced

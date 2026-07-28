@@ -47,14 +47,13 @@ executor and remain governed by sandbox and approval policy.
 
 ### MCP tools
 
-Settings -> Connections manages HTTP and stdio MCP connections. A connection
+Settings -> Connections manages remote HTTP MCP connections. A connection
 represents one server account. Built-in presets reduce configuration but use
 the same storage, auth, discovery, and grant path as custom connections.
 
-Runtime discovers upstream tools and presents only granted tools to each agent
-with stable namespaced model-visible names. A newly discovered upstream tool
-starts ungranted. Runtime rechecks the grant immediately before forwarding a
-call.
+Grotto Server discovers upstream tools and presents every tool from an Agent's
+granted connections with stable namespaced model-visible names. Server rechecks
+the connection grant immediately before forwarding a call.
 
 OAuth connections use Connect/Reconnect and Disconnect. There is no connection
 enable switch. Disconnect clears credentials and grants. Custom connections may

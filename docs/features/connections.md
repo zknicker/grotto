@@ -1,39 +1,26 @@
 ---
-summary: Connections settings for generic and built-in MCP servers.
+summary: Server settings for remote MCP accounts and connection-level Agent access.
 read_when:
   - changing Settings -> Connections
-  - adding a built-in MCP preset
-  - changing connect, reconnect, disconnect, delete, or test behavior
+  - adding an MCP preset
+  - changing connect, reconnect, disconnect, or Agent access behavior
 ---
 
 # Connections
 
-Settings -> Connections manages MCP server accounts.
+Server Settings -> Connections manages remote MCP server accounts.
 
-Hosted Servers expose the same list, filters, custom-connection drawer, detail
-dialog, trust confirmation, connected identity, tool discovery, reconnect,
-disconnect, and delete flow. The only hosted additions are choosing the online
-Computer that owns the connection and adding Google Calendar or MerchBase from
-the built-in preset buttons.
+The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no auth, headers, or
+OAuth, complete authentication in a browser window, and inspect the connected identity and
+discovered tools. There is no Computer picker and no local or stdio transport.
 
-Google Calendar and MerchBase ship as presets to avoid manual URL and auth
-configuration. They remain ordinary MCP connections. Users may connect another
-account for the same preset or add a custom HTTP or stdio server.
+Google Calendar and MerchBase are presets for endpoint and auth defaults. They remain ordinary MCP
+connections, and another account can be added from the connection detail.
 
-The overview filters connections by status. Selecting a connection opens its
-server identity, authenticated status, discovered tools, and affected agents.
-OAuth connections offer Connect or Reconnect. The actions menu refreshes tools,
-adds another preset account, disconnects an account, or deletes a custom
-connection.
+Disconnect warns which Agents lose access, then clears active credentials, discovered tools, and
+grants. Custom connections may be deleted. Reconnect uses the same connection and can reuse its
+configured OAuth client and previously approved authorization-server origins.
 
-Disconnect warns which agents lose tools, then clears credentials and grants.
-Custom OAuth defaults to dynamic client registration and also accepts optional
-pre-registered client credentials and scopes.
-
-OAuth opens the provider in a separate browser window. The App teaches first-use
-authorization-server trust and retryable offline or expired callback failures.
-Reopening a connected account shows the identity reported by the MCP handshake
-and its discovered tools.
-
-Agent profiles expose Tools separately. Host tools and every discovered MCP
-tool have individual grants. Newly discovered tools stay off until granted.
+Each Agent profile shows one switch per connected MCP server. Turning it on grants that Agent all
+tools exposed by the connection. The tool names are read-only context, not individual permission
+controls.

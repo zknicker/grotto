@@ -23,9 +23,10 @@ fires even while the Agent's Computer is offline.
   slots.
 - **Durable history.** PostgreSQL stores schedules, commands, fire logs,
   receipts, pending attention, and durable reminder change events.
-- **Opaque scripts.** A script payload is at most 16 KiB. The Server stores it
-  for later Computer-local execution but never runs or interprets it. Script
-  fires still post the visible receipt and queue attention.
+- **Computer-local scripts.** A script payload is at most 16 KiB. The Server
+  stores it but never runs or interprets it. The assigned Computer executes it
+  once in the Agent workspace. Empty success stays quiet; output or failure is
+  posted to the conversation and wakes the Agent.
 - **Operator view.** Server Owners and Admins can filter reminders, inspect
   fire history, and cancel from `/s/<slug>/reminders`. Members cannot open the
   view. Script contents remain redacted.
@@ -33,8 +34,8 @@ fires even while the Agent's Computer is offline.
   combines live invalidation with durable cursor catch-up.
 
 Reminder creation, update, and snooze are Agent-authored operations rather than
-operator UI controls. Agent creation/configuration, Computer transport, local
-script execution, and attention acknowledgment are outside this feature.
+operator UI controls. Offline fires wait durably, Computer reconnect resends
+them, and completed Agent turns acknowledge ordinary reminder attention.
 
 See `specs/reminders.md` for the normative persistence, authority, firing, and
 lifecycle contract.

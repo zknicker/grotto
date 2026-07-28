@@ -17,9 +17,9 @@ cancelable wake anchored to a message in a Channel or Thread.
   configuration, Computer assignment, execution, and transport are separate
   work.
 - Each `reminder_agent_attention` row is one durable, unacknowledged fire
-  snapshot. Every logical fire retains a distinct row until a later
-  acknowledgment contract exists. The table is not an outbox and defines no
-  drain, retry, transport, or acknowledgment protocol.
+  snapshot. Ordinary attention is removed only after the owning Agent completes
+  a turn that saw the receipt. Script attention is removed only after the
+  assigned Computer returns that fire's idempotent execution result.
 - Fresh schema only. Existing Runtime reminder history is not imported or
   adopted, and there is no compatibility path.
 
@@ -63,9 +63,17 @@ fire, including a script reminder, has the visible receipt and attention
 snapshot.
 
 An optional script is opaque UTF-8 delivery data limited to 16,384 bytes.
-The Server stores and snapshots it but never interprets or executes it. A later
-Computer-local delivery path owns any execution and model-turn suppression;
-this contract does not define that transport.
+The Server stores and snapshots it but never interprets or executes it. When the
+assigned Computer is online, the Server sends a typed command containing the
+attention and fire ids. When it is offline, the attention stays durable and is
+resent on reconnect.
+
+The Computer executes the script once in the owning Agent's workspace with that
+Agent's isolated `HOME`, a 60-second timeout, and bounded stdout/stderr. A
+restart-durable result marker makes redelivery idempotent. An empty successful
+result is recorded without waking the model. Output, timeout, or non-zero exit
+appends one canonical reminder system message and wakes the owning Agent. The
+fire log stores the bounded output, exit code, and timeout state.
 
 ## Surfaces and lifecycle
 
@@ -73,9 +81,9 @@ this contract does not define that transport.
   `reminder.list`, `reminder.runs`, and `reminder.cancel`. It keeps script
   contents redacted and recovers changes through durable
   `reminder.changed` cursor catch-up plus live notifications.
-- Agent reminder verbs are the hosted domain contract. Computer attachment,
-  Agent CLI delivery, local script execution, and attention acknowledgment are
-  not implemented by this slice.
+- Agent reminder verbs are exposed through the Computer-injected `grotto`
+  CLI. Computer reconnect recovery, local script execution, and attention
+  acknowledgment are part of the end-to-end contract.
 - Scheduler health reports only `healthy`, `degraded`, or `stopped` plus safe
   timestamps. Errors are redacted. One malformed reminder degrades the tick but
   does not block other due reminders. Shutdown stops new ticks and waits for an

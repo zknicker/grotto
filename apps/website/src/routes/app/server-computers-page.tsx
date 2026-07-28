@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
+import { CodeSnippet } from '../../components/ui/code-snippet.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import { ComputerUpdateControls } from '../../features/servers/computer-update-controls.tsx';
 import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
@@ -80,9 +81,10 @@ export function ServerComputersPage() {
                     <p className="text-muted-foreground text-xs">
                         Add one from an Apple Silicon Mac:
                     </p>
-                    <code className="mt-1 block break-all text-xs">
-                        grotto-computer setup /{slug}
-                    </code>
+                    <CodeSnippet
+                        className="mt-2 h-auto py-2 text-xs"
+                        lines={`curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /${slug}`}
+                    />
                 </div>
             </aside>
             <main className="min-w-0 flex-1 overflow-y-auto pt-[var(--topbar-height)]">
@@ -216,6 +218,7 @@ function ComputerDetail({
                     <code className="block">grotto-computer status</code>
                     <code className="block">grotto-computer doctor</code>
                     <code className="block">grotto-computer restart /{serverSlug}</code>
+                    <code className="block">grotto-computer upgrade --rollback</code>
                 </div>
             </DetailSection>
 

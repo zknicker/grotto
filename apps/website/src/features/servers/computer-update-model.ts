@@ -4,10 +4,13 @@ const phaseLabels = {
     available: 'Update available',
     checking: 'Checking production release…',
     complete: 'Update complete',
+    downloading: 'Downloading Grotto Computer',
     failed: 'Update failed',
     idle: 'Not checked',
-    installing: 'Installing signed release…',
-    restarting: 'Restarting Computer…',
+    installing: 'Installing update',
+    requested: 'Download requested',
+    restarting: 'Restarting Grotto Computer',
+    verifying: 'Verifying signature and integrity',
     'waiting-for-agents': 'Waiting for active Agents…',
 } as const satisfies Record<ComputerUpdatePhase, string>;
 
@@ -19,11 +22,21 @@ export function computerUpdateView(input: {
     const connected = input.health !== 'offline';
     const busy =
         input.isChecking ||
-        ['checking', 'installing', 'waiting-for-agents', 'restarting'].includes(input.phase);
+        [
+            'checking',
+            'requested',
+            'downloading',
+            'verifying',
+            'installing',
+            'waiting-for-agents',
+            'restarting',
+        ].includes(input.phase);
     return {
         canCheck: connected && !busy,
         canUpdate: connected && input.phase === 'available' && !busy,
         label: input.isChecking ? phaseLabels.checking : phaseLabels[input.phase],
-        needsLocalRecovery: input.health === 'offline' || input.health === 'update-required',
+        needsLocalRecovery:
+            input.health === 'update-required' ||
+            (input.health === 'offline' && input.phase !== 'restarting'),
     };
 }

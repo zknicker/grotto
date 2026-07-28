@@ -30,11 +30,14 @@ const computerReleaseServer = Bun.serve({
         await Bun.sleep(400);
         return Response.json({
             release: {
+                artifactUrl:
+                    'https://updates.grotto.test/1.1.0/grotto-computer-aarch64-apple-darwin',
+                protocolVersion: 3,
                 sha256: 'a'.repeat(64),
-                tarballUrl: 'https://updates.grotto.test/grotto-computer-1.1.0.tgz',
+                sourceRevision: 'b'.repeat(40),
                 version: '1.1.0',
             },
-            signature: 'c2lnbmF0dXJl'.repeat(3),
+            signature: Buffer.alloc(64, 1).toString('base64'),
         });
     },
     hostname: '127.0.0.1',

@@ -4,7 +4,35 @@ export function useComputerUpdate(serverId: string, computerId: string) {
     const utils = grottoTrpc.useUtils();
     const invalidate = () => utils.computer.list.invalidate({ serverId });
     const check = grottoTrpc.computer.checkUpdate.useMutation({ onSettled: invalidate });
-    const update = grottoTrpc.computer.update.useMutation({ onSettled: invalidate });
+    const update = grottoTrpc.computer.update.useMutation({
+        onMutate: async () => {
+            await utils.computer.list.cancel({ serverId });
+            const previous = utils.computer.list.getData({ serverId });
+            utils.computer.list.setData({ serverId }, (computers) =>
+                computers?.map((computer) =>
+                    computer.id === computerId
+                        ? {
+                              ...computer,
+                              updateActiveAgentCount: null,
+                              updateDetail: 'Download requested.',
+                              updateDownloadedBytes: null,
+                              updateFailedPhase: null,
+                              updatePhase: 'requested',
+                              updateTotalBytes: null,
+                              updateUpdatedAt: new Date().toISOString(),
+                          }
+                        : computer
+                )
+            );
+            return { previous };
+        },
+        onError: (_error, _variables, context) => {
+            if (context?.previous) {
+                utils.computer.list.setData({ serverId }, context.previous);
+            }
+        },
+        onSettled: invalidate,
+    });
 
     return {
         check: () => check.mutate({ computerId, serverId }),

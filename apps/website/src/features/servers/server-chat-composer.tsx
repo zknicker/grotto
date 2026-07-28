@@ -1,5 +1,12 @@
 import { Attachment01Icon, Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
+import { useChatComposerFocusRequest } from '../../commands/chat-composer-focus.ts';
+import {
+    appendComposerInsert,
+    useChatComposerInsertRequest,
+} from '../../commands/chat-composer-insert.ts';
+import { useChatComposerMentionRequest } from '../../commands/chat-composer-mention.ts';
 import {
     Attachment,
     AttachmentAction,
@@ -19,7 +26,6 @@ import {
     PromptInputFooter,
     PromptInputHeader,
     PromptInputSubmit,
-    PromptInputTextarea,
     PromptInputTools,
 } from '../../components/ui/prompt-input.tsx';
 import { useCreateServerTask } from '../../hooks/servers/use-create-server-task.ts';
@@ -29,6 +35,14 @@ import {
     hostedAttachmentMaxSizeBytes,
     useUploadServerAttachment,
 } from '../../hooks/servers/use-upload-server-attachment.ts';
+import { buildChatComposerSubmission } from '../chats/chat-message-composer.tsx';
+import type { Mention } from '../mentions/mention-types.ts';
+import {
+    MentionComposerEditor,
+    MentionComposerPicker,
+    useHostedMentionComposer,
+} from '../mentions/use-mention-composer.tsx';
+import { buildAgentMentionOption } from '../mentions/use-mention-options.ts';
 
 interface SelectedAttachment {
     file: File;
@@ -36,6 +50,7 @@ interface SelectedAttachment {
 }
 
 export function ServerChatComposer({
+    agents,
     chatId,
     chatName,
     compositionChatId,
@@ -44,6 +59,7 @@ export function ServerChatComposer({
     serverId,
     thread,
 }: {
+    agents: HostedAgent[];
     chatId: string;
     chatName: string;
     compositionChatId: string | undefined;
@@ -53,6 +69,7 @@ export function ServerChatComposer({
     thread?: { anchorMessageId: string };
 }) {
     const [draft, setDraft] = React.useState('');
+    const [mentions, setMentions] = React.useState<Mention[]>([]);
     const [asTask, setAsTask] = React.useState(false);
     const [attachments, setAttachments] = React.useState<SelectedAttachment[]>([]);
     const [attachmentError, setAttachmentError] = React.useState<string | null>(null);
@@ -63,6 +80,42 @@ export function ServerChatComposer({
     const upload = useUploadServerAttachment();
     const composition = useServerChatComposition(serverId, compositionChatId);
     const publishComposition = composition.publish.mutate;
+    const mentionableAgentIds = React.useMemo(() => agents.map((agent) => agent.id), [agents]);
+    const mentionComposer = useHostedMentionComposer({
+        agents,
+        chatId,
+        content: draft,
+        mentionableAgentIds,
+        onMentionsChange: setMentions,
+        onSubmit: () => {
+            void handleSubmit();
+        },
+        onSubmitAsTask: thread
+            ? undefined
+            : () => {
+                  void handleSubmit(undefined, true);
+              },
+        onTextChange: setDraft,
+        serverId,
+    });
+
+    useChatComposerFocusRequest(!thread, mentionComposer.focusTextEditor);
+    useChatComposerInsertRequest(!thread, (text) => {
+        setDraft((current) => appendComposerInsert(current, text));
+        requestAnimationFrame(mentionComposer.focusTextEditor);
+    });
+    useChatComposerMentionRequest(thread ? null : chatId, ({ agentId }) => {
+        const agent = agents.find((candidate) => candidate.id === agentId);
+        if (!agent) {
+            return;
+        }
+        mentionComposer.handleMentionSelect(
+            buildAgentMentionOption({
+                agentId,
+                agents: [{ id: agent.id, name: agent.displayName }],
+            })
+        );
+    });
 
     React.useEffect(() => {
         if (draft.length === 0 || compositionChatId === undefined) {
@@ -95,13 +148,14 @@ export function ServerChatComposer({
         [compositionChatId, compositionId, publishComposition, serverId]
     );
 
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
-        const content = draft.trim();
+    async function handleSubmit(event?: React.FormEvent, forceAsTask = false) {
+        event?.preventDefault();
+        const { content } = buildChatComposerSubmission({ content: draft, mentions });
+        const submitAsTask = forceAsTask || asTask;
 
         if (
             (content.length === 0 && attachments.length === 0) ||
-            (asTask && content.length === 0) ||
+            (submitAsTask && content.length === 0) ||
             send.isPending ||
             createTask.isPending ||
             upload.isPending
@@ -109,7 +163,7 @@ export function ServerChatComposer({
             return;
         }
 
-        if (asTask && !thread) {
+        if (submitAsTask && !thread) {
             await createTask.mutateAsync({
                 chatId,
                 content,
@@ -117,6 +171,7 @@ export function ServerChatComposer({
                 serverId,
             });
             setDraft('');
+            setMentions([]);
             setAsTask(false);
             return;
         }
@@ -138,6 +193,7 @@ export function ServerChatComposer({
             onThreadCreated?.(receipt.threadChatId);
         }
         setDraft('');
+        setMentions([]);
         setAttachments([]);
         setAttachmentError(null);
         if (fileInput.current) {
@@ -151,7 +207,7 @@ export function ServerChatComposer({
                 text: null,
             });
         }
-    };
+    }
 
     const isPending = send.isPending || createTask.isPending || upload.isPending;
 
@@ -171,6 +227,7 @@ export function ServerChatComposer({
                     send.error?.message
                 }
                 onSubmit={handleSubmit}
+                onTextEditorFocus={mentionComposer.focusTextEditor}
             >
                 {attachments.length > 0 ? (
                     <PromptInputHeader>
@@ -204,13 +261,16 @@ export function ServerChatComposer({
                     </PromptInputHeader>
                 ) : null}
                 <PromptInputBody>
-                    <PromptInputTextarea
-                        aria-label={`Message ${chatName}`}
-                        onChange={(event) => setDraft(event.target.value)}
+                    <MentionComposerEditor
+                        ariaLabel={`Message ${chatName}`}
+                        autoFocus={!thread}
+                        composer={mentionComposer}
+                        disabled={isPending}
+                        name="chat-message"
                         placeholder={placeholder ?? `Message ${chatName}`}
-                        value={draft}
                     />
                 </PromptInputBody>
+                <MentionComposerPicker composer={mentionComposer} />
                 <PromptInputFooter>
                     <PromptInputTools>
                         {thread ? null : (

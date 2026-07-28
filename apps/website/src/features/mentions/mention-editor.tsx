@@ -54,6 +54,7 @@ export function MentionEditor({
     const onKeyDownRef = React.useRef(onKeyDown);
     const viewRef = React.useRef<EditorView | null>(null);
     const valueRef = React.useRef(value);
+    const disabledRef = React.useRef(disabled);
 
     React.useImperativeHandle(
         ref,
@@ -76,6 +77,14 @@ export function MentionEditor({
     }, [onActiveQueryChange, onChange, onFocus, onKeyDown]);
 
     React.useEffect(() => {
+        disabledRef.current = disabled;
+        viewRef.current?.setProps({
+            attributes: mentionEditorAttributes({ ariaLabel, disabled, id }),
+            editable: () => !disabledRef.current,
+        });
+    }, [ariaLabel, disabled, id]);
+
+    React.useEffect(() => {
         const element = editorRef.current;
 
         if (!element) {
@@ -84,15 +93,11 @@ export function MentionEditor({
 
         let focusFrame: number | null = null;
         const view = new EditorView(element, {
-            attributes: {
-                'aria-label': ariaLabel,
-                class: cn(
-                    'min-h-0 whitespace-pre-wrap break-words px-3 pt-2 pb-0 text-sm leading-6 outline-none max-sm:text-base',
-                    disabled && 'pointer-events-none'
-                ),
-                id: id ?? '',
-                role: 'textbox',
-            },
+            attributes: mentionEditorAttributes({
+                ariaLabel,
+                disabled: disabledRef.current,
+                id,
+            }),
             dispatchTransaction(transaction) {
                 const nextState = view.state.apply(transaction);
 
@@ -105,7 +110,7 @@ export function MentionEditor({
                     getActiveQuery(nextState.doc, nextState.selection.from)
                 );
             },
-            editable: () => !disabled,
+            editable: () => !disabledRef.current,
             handleDOMEvents: {
                 blur: (view) => {
                     onActiveQueryChangeRef.current(
@@ -151,7 +156,7 @@ export function MentionEditor({
 
         viewRef.current = view;
         onActiveQueryChangeRef.current(getActiveQuery(view.state.doc, view.state.selection.from));
-        if (autoFocus && !disabled) {
+        if (autoFocus && !disabledRef.current) {
             focusFrame = requestAnimationFrame(() => view.focus());
         }
 
@@ -162,7 +167,7 @@ export function MentionEditor({
             view.destroy();
             viewRef.current = null;
         };
-    }, [ariaLabel, autoFocus, disabled, id]);
+    }, [ariaLabel, autoFocus, id]);
 
     React.useEffect(() => {
         const view = viewRef.current;
@@ -189,6 +194,27 @@ export function MentionEditor({
             <div ref={editorRef} />
         </div>
     );
+}
+
+function mentionEditorAttributes({
+    ariaLabel,
+    disabled,
+    id,
+}: {
+    ariaLabel: string;
+    disabled: boolean;
+    id?: string;
+}) {
+    return {
+        'aria-disabled': String(disabled),
+        'aria-label': ariaLabel,
+        class: cn(
+            'min-h-0 whitespace-pre-wrap break-words px-3 pt-2 pb-0 text-sm leading-6 outline-none max-sm:text-base',
+            disabled && 'pointer-events-none'
+        ),
+        id: id ?? '',
+        role: 'textbox',
+    };
 }
 
 export function isMentionEditorLineBreakShortcut(

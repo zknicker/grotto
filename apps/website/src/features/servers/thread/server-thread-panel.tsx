@@ -1,4 +1,4 @@
-import type { HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
+import type { HostedAgent, HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
 import * as React from 'react';
 import { Button } from '../../../components/ui/primitives/button.tsx';
 import { useMarkServerChatReadOnView } from '../../../hooks/servers/use-mark-server-chat-read.ts';
@@ -11,6 +11,7 @@ import { ServerChatComposer } from '../server-chat-composer.tsx';
 import { serverThreadTitles } from './server-thread-target.ts';
 
 export function ServerThreadPanel({
+    agents,
     anchor,
     chat,
     initialThreadChatId,
@@ -19,6 +20,7 @@ export function ServerThreadPanel({
     summary,
     takeover,
 }: {
+    agents: HostedAgent[];
     anchor: HostedChatMessage;
     chat: HostedChat;
     initialThreadChatId?: string;
@@ -95,6 +97,7 @@ export function ServerThreadPanel({
                     </div>
                     <div className="shrink-0 border-border/70 border-t py-3">
                         <ServerChatComposer
+                            agents={agents}
                             chatId={chat.id}
                             chatName={titles.header}
                             compositionChatId={threadChatId}

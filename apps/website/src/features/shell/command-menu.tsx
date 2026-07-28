@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { AppCommand } from '../../commands/types.ts';
+import type { AppCommand, AppCommandGroup } from '../../commands/types.ts';
 import { getCommandSearchText } from '../../commands/types.ts';
 import { useAppCommands } from '../../commands/use-app-commands.ts';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
@@ -20,7 +20,10 @@ import {
     CommandShortcut,
 } from '../../components/ui/command.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { useAgentAppearanceLookup } from '../../hooks/agents/use-agent-appearance.ts';
+import {
+    type AgentFaceAppearance,
+    useAgentAppearanceLookup,
+} from '../../hooks/agents/use-agent-appearance.ts';
 import { cn } from '../../lib/utils.ts';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
 import { AgentFace } from '../chats/agent-face.tsx';
@@ -32,11 +35,22 @@ import { getChannelColorStyle } from './channel-color-options.ts';
  * developer action definitions while this component owns only the shell.
  */
 export function CommandMenu() {
+    const commandGroups = useAppCommands();
+    const lookupAppearance = useAgentAppearanceLookup();
+
+    return <CommandMenuShell commandGroups={commandGroups} lookupAppearance={lookupAppearance} />;
+}
+
+export function CommandMenuShell({
+    commandGroups,
+    lookupAppearance,
+}: {
+    commandGroups: AppCommandGroup[];
+    lookupAppearance: (agentId: string | null | undefined) => AgentFaceAppearance;
+}) {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
-    const lookupAppearance = useAgentAppearanceLookup();
     const dark = useResolvedThemeOptional() === 'dark';
-    const commandGroups = useAppCommands();
     const visibleCommandGroups = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase();
 
@@ -180,7 +194,7 @@ function CommandMenuIcon({
     command: AppCommand;
     dark: boolean;
     disabled: boolean;
-    lookupAppearance: ReturnType<typeof useAgentAppearanceLookup>;
+    lookupAppearance: (agentId: string | null | undefined) => AgentFaceAppearance;
 }) {
     const className = cn(
         'size-5 shrink-0 text-muted-foreground transition-colors',

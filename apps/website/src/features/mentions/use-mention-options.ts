@@ -1,11 +1,7 @@
 import { formatAgentReferenceTarget } from '@tavern/api/rich-references';
 import * as React from 'react';
 import { queryPolicy } from '../../lib/query-policy.ts';
-import type {
-    AgentListOutput,
-    MentionInventoryOutput,
-    MentionPathOutput,
-} from '../../lib/trpc.tsx';
+import type { MentionInventoryOutput, MentionPathOutput } from '../../lib/trpc.tsx';
 import { trpc } from '../../lib/trpc.tsx';
 import type { MentionOption, MentionTrigger } from './mention-types.ts';
 
@@ -19,7 +15,7 @@ export function useMentionOptions({
 }: {
     agentId: string;
     agentIds?: readonly string[];
-    agents: AgentListOutput['agents'];
+    agents: MentionAgent[];
     mentionableAgentIds?: readonly string[];
     query: string;
     trigger: MentionTrigger | null;
@@ -74,7 +70,7 @@ export function selectMentionOptionsForQuery({
     pathData,
     query,
 }: {
-    agents?: AgentListOutput['agents'];
+    agents?: MentionAgent[];
     inventoryData?: MentionInventoryOutput;
     mentionableAgentIds?: readonly string[];
     pathData?: MentionPathOutput;
@@ -100,7 +96,7 @@ export function buildAgentMentionOption({
     agents,
 }: {
     agentId: string;
-    agents: AgentListOutput['agents'];
+    agents: MentionAgent[];
 }): MentionOption {
     const agent = agents.find((entry) => entry.id === agentId);
     const label = agent?.name ?? agentId;
@@ -123,6 +119,13 @@ export function buildAgentMentionOption({
         projection: 'agent-reference',
         sourceLabel: 'Agents',
     };
+}
+
+export interface MentionAgent {
+    effectiveCharacter?: string | null;
+    effectivePrimaryColor?: string | null;
+    id: string;
+    name: string;
 }
 
 export function filterMentionOptionsForQuery(options: MentionOption[], query: string) {

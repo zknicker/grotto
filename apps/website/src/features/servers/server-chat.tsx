@@ -111,6 +111,7 @@ export function ServerChat({
     };
     const threadPanel = threadSelection ? (
         <ServerThreadPanel
+            agents={agents}
             anchor={threadSelection.anchor}
             chat={chat}
             initialThreadChatId={threadSelection.initialThreadChatId}
@@ -158,7 +159,7 @@ export function ServerChat({
                             <HostedChatFiles messages={messages.data?.messages} />
                         ) : undefined
                     }
-                    canRequestMention={false}
+                    canRequestMention
                     chatId={chat.id}
                     emptyLabel="No messages yet."
                     error={messages.error}
@@ -174,6 +175,7 @@ export function ServerChat({
                                     {read.data ? `Read through ${read.data.sequence}` : ''}
                                 </span>
                                 <ServerChatComposer
+                                    agents={agents}
                                     chatId={chat.id}
                                     chatName={chatName}
                                     compositionChatId={chat.id}

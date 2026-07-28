@@ -23,6 +23,7 @@ import {
     serverSettingsRoute,
     serverTasksRoute,
 } from '../../features/servers/server-routes.ts';
+import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
 import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
@@ -90,6 +91,12 @@ export function ServerLayout() {
         <SidebarProvider className="app-reference-theme flex min-h-screen w-full md:h-dvh md:min-h-0">
             <AppShell className="w-full" data-app-layout="sidebar">
                 <AppShellDragRegion />
+                <HostedCommandMenu
+                    agents={agents.data ?? []}
+                    chats={chats.data ?? []}
+                    role={server.data.role}
+                    serverSlug={slug}
+                />
                 <AppShellBody className="pt-0 md:flex-row">
                     <HostedServerRail
                         active={active}

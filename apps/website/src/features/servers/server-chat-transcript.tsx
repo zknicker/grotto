@@ -135,7 +135,7 @@ export function ServerChatTranscript({
         () =>
             ({
                 activeThreadAnchorId: activeThreadAnchorId ?? null,
-                canRequestMention: false,
+                canRequestMention: true,
                 chatId,
                 conversationLayout: hostedConversationLayout,
                 defaultOpenWorkGroups: false,

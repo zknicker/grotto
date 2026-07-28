@@ -1,13 +1,21 @@
+import type { HostedAgent } from '@tavern/api';
+import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import { parseAgentReferenceTarget } from '@tavern/api/rich-references';
 import * as React from 'react';
+import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
-import { type AgentListOutput, trpc } from '../../lib/trpc.tsx';
+import { trpc } from '../../lib/trpc.tsx';
 import { shouldSubmitChatComposerAsTaskKey } from '../chats/chat-composer-keyboard.ts';
 import { MentionEditor, type MentionEditorHandle } from './mention-editor.tsx';
 import { MentionPicker } from './mention-picker.tsx';
 import type { ActiveMentionQuery, Mention, MentionOption } from './mention-types.ts';
 import { selectVisibleOptions } from './mention-visible-options.ts';
-import { useMentionOptions } from './use-mention-options.ts';
+import {
+    buildAgentMentionOption,
+    filterMentionOptionsForQuery,
+    type MentionAgent,
+    useMentionOptions,
+} from './use-mention-options.ts';
 
 export interface MentionComposerState {
     activeIndex: number;
@@ -36,7 +44,7 @@ export function useMentionComposer({
     onMentionsChange,
 }: {
     agentId: string;
-    agents: AgentListOutput['agents'];
+    agents: MentionAgent[];
     content: string;
     mentionableAgentIds?: readonly string[];
     onTextChange: (content: string) => void;
@@ -44,12 +52,144 @@ export function useMentionComposer({
     onSubmitAsTask?: () => void;
     onMentionsChange?: (mentions: Mention[]) => void;
 }) {
+    const scaffold = useMentionComposerScaffold({
+        agentId,
+        mentionableAgentIds,
+    });
     const utils = trpc.useUtils();
-    const editorRef = React.useRef<MentionEditorHandle | null>(null);
-    const dismissedQueryRef = React.useRef<ActiveMentionQuery | null>(null);
+    const mentionOptionsState = useMentionOptions({
+        agentId,
+        agentIds: scaffold.skillScopeAgentIds,
+        agents,
+        mentionableAgentIds,
+        query: scaffold.activeQuery?.query ?? '',
+        trigger: scaffold.activeQuery?.trigger ?? null,
+    });
+    const prefetchMentionOptions = React.useCallback(() => {
+        if (scaffold.skillScopeAgentIds.length === 0) {
+            return;
+        }
+
+        void utils.mention.inventory.prefetch(
+            {
+                agentIds: [...scaffold.skillScopeAgentIds],
+            },
+            queryPolicy.agentRuntimeSnapshot
+        );
+    }, [scaffold.skillScopeAgentIds, utils]);
+
+    return useMentionComposerController({
+        content,
+        mentionOptionsState,
+        onMentionsChange,
+        onSubmit,
+        onSubmitAsTask,
+        onTextChange,
+        prefetchMentionOptions,
+        scaffold,
+    });
+}
+
+export function useHostedMentionComposer({
+    agents,
+    chatId,
+    content,
+    mentionableAgentIds,
+    onMentionsChange,
+    onSubmit,
+    onSubmitAsTask,
+    onTextChange,
+    serverId,
+}: {
+    agents: HostedAgent[];
+    chatId: string;
+    content: string;
+    mentionableAgentIds: readonly string[];
+    onMentionsChange?: (mentions: Mention[]) => void;
+    onSubmit?: () => void;
+    onSubmitAsTask?: () => void;
+    onTextChange: (content: string) => void;
+    serverId: string;
+}) {
+    const mentionAgents = React.useMemo<MentionAgent[]>(
+        () =>
+            agents.map((agent) => ({
+                effectiveCharacter: resolveAgentDefaultCharacter(agent.id),
+                effectivePrimaryColor: null,
+                id: agent.id,
+                name: agent.displayName,
+            })),
+        [agents]
+    );
+    const scaffold = useMentionComposerScaffold({
+        agentId: mentionableAgentIds[0] ?? '',
+        mentionableAgentIds,
+    });
+    const input = React.useMemo(
+        () => ({
+            agentIds: [...scaffold.skillScopeAgentIds],
+            chatId,
+            serverId,
+        }),
+        [chatId, scaffold.skillScopeAgentIds, serverId]
+    );
+    const optionsQuery = grottoTrpc.chat.mentionOptions.useQuery(input, {
+        enabled: scaffold.activeQuery !== null,
+    });
+    const utils = grottoTrpc.useUtils();
+    const options = React.useMemo(
+        () =>
+            filterMentionOptionsForQuery(
+                (optionsQuery.data?.options ?? []).map((option): MentionOption => {
+                    if (option.kind !== 'agent') {
+                        return option;
+                    }
+                    const agentId = parseAgentReferenceTarget(option.id);
+                    return agentId
+                        ? buildAgentMentionOption({ agentId, agents: mentionAgents })
+                        : option;
+                }),
+                scaffold.activeQuery?.query ?? ''
+            ),
+        [mentionAgents, optionsQuery.data?.options, scaffold.activeQuery?.query]
+    );
+    const prefetchMentionOptions = React.useCallback(() => {
+        void utils.chat.mentionOptions.prefetch(input);
+    }, [input, utils.chat.mentionOptions]);
+
+    return useMentionComposerController({
+        content,
+        mentionOptionsState: {
+            isPathSearchActive: false,
+            isPathSearchLoading: optionsQuery.isLoading || optionsQuery.isFetching,
+            options,
+        },
+        onMentionsChange,
+        onSubmit,
+        onSubmitAsTask,
+        onTextChange,
+        prefetchMentionOptions,
+        scaffold,
+    });
+}
+
+interface MentionComposerScaffold {
+    activeQuery: ActiveMentionQuery | null;
+    mentions: Mention[];
+    setActiveQuery: React.Dispatch<React.SetStateAction<ActiveMentionQuery | null>>;
+    setMentions: React.Dispatch<React.SetStateAction<Mention[]>>;
+    skillScopeAgentIds: string[];
+}
+
+function useMentionComposerScaffold({
+    agentId,
+    mentionableAgentIds,
+}: {
+    agentId: string;
+    mentionableAgentIds: readonly string[];
+}): MentionComposerScaffold {
     const [mentions, setMentions] = React.useState<Mention[]>([]);
     const [activeQuery, setActiveQuery] = React.useState<ActiveMentionQuery | null>(null);
-    const [activeIndex, setActiveIndex] = React.useState(0);
     const skillScopeAgentIds = React.useMemo(
         () =>
             resolveSkillScopeAgentIds({
@@ -59,31 +199,48 @@ export function useMentionComposer({
             }),
         [agentId, mentionableAgentIds, mentions]
     );
-    const mentionOptionsState = useMentionOptions({
-        agentId,
-        agentIds: skillScopeAgentIds,
-        agents,
-        mentionableAgentIds,
-        query: activeQuery?.query ?? '',
-        trigger: activeQuery?.trigger ?? null,
-    });
+
+    return {
+        activeQuery,
+        mentions,
+        setActiveQuery,
+        setMentions,
+        skillScopeAgentIds,
+    };
+}
+
+function useMentionComposerController({
+    content,
+    mentionOptionsState,
+    onMentionsChange,
+    onSubmit,
+    onSubmitAsTask,
+    onTextChange,
+    prefetchMentionOptions,
+    scaffold,
+}: {
+    content: string;
+    mentionOptionsState: {
+        isPathSearchActive: boolean;
+        isPathSearchLoading: boolean;
+        options: MentionOption[];
+    };
+    onMentionsChange?: (mentions: Mention[]) => void;
+    onSubmit?: () => void;
+    onSubmitAsTask?: () => void;
+    onTextChange: (content: string) => void;
+    prefetchMentionOptions: () => void;
+    scaffold: MentionComposerScaffold;
+}) {
+    const editorRef = React.useRef<MentionEditorHandle | null>(null);
+    const dismissedQueryRef = React.useRef<ActiveMentionQuery | null>(null);
+    const [activeIndex, setActiveIndex] = React.useState(0);
+    const { activeQuery, mentions, setActiveQuery, setMentions } = scaffold;
     const trigger = activeQuery?.trigger ?? '@';
     const visibleMentionOptions = selectVisibleOptions({
         activeQuery,
         mentionOptions: mentionOptionsState.options,
     });
-    const prefetchMentionOptions = React.useCallback(() => {
-        if (skillScopeAgentIds.length === 0) {
-            return;
-        }
-
-        void utils.mention.inventory.prefetch(
-            {
-                agentIds: [...skillScopeAgentIds],
-            },
-            queryPolicy.agentRuntimeSnapshot
-        );
-    }, [skillScopeAgentIds, utils]);
 
     React.useEffect(() => {
         prefetchMentionOptions();
@@ -103,7 +260,7 @@ export function useMentionComposer({
             setMentions([]);
             onMentionsChange?.([]);
         }
-    }, [content.length, mentions.length, onMentionsChange]);
+    }, [content.length, mentions.length, onMentionsChange, setMentions]);
 
     function commitMentions(nextMentions: Mention[]) {
         setMentions(nextMentions);

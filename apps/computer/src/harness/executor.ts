@@ -13,6 +13,7 @@ import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 import { composeAgentInstructions } from './instructions.ts';
+import { projectHostedMessageForAgent } from './rich-reference-projection.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import {
     type AgentSessionState,
@@ -154,7 +155,10 @@ async function executeHarnessTurn(
 
         const turn = await agent.stream({
             abortSignal: input.signal,
-            prompt: input.prompt,
+            prompt: projectHostedMessageForAgent({
+                content: input.prompt,
+                enabledSkillIds: skills.map((skill) => skill.name),
+            }),
             session: live,
         });
         const deliverNotice = createNoticeDelivery(live, input.agentRoot);

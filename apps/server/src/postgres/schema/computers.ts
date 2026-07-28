@@ -33,9 +33,14 @@ export const computersTable = pgTable(
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
+        updateActiveAgentCount: integer('update_active_agent_count'),
         updateDetail: text('update_detail'),
+        updateDownloadedBytes: integer('update_downloaded_bytes'),
+        updateFailedPhase:
+            text('update_failed_phase').$type<Exclude<ComputerUpdatePhase, 'failed'>>(),
         updatePhase: text('update_phase').notNull().default('idle').$type<ComputerUpdatePhase>(),
         updateTargetVersion: text('update_target_version'),
+        updateTotalBytes: integer('update_total_bytes'),
         updateUpdatedAt: timestamp('update_updated_at', { withTimezone: true }),
     },
     (table) => [
@@ -50,7 +55,7 @@ export const computersTable = pgTable(
         check('computers_id_shape', sql`${table.id} ~ '^cmp_[A-Za-z0-9_-]{16}$'`),
         check(
             'computers_update_phase',
-            sql`${table.updatePhase} in ('idle', 'checking', 'available', 'installing', 'waiting-for-agents', 'restarting', 'complete', 'failed')`
+            sql`${table.updatePhase} in ('idle', 'checking', 'available', 'requested', 'downloading', 'verifying', 'installing', 'waiting-for-agents', 'restarting', 'complete', 'failed')`
         ),
     ]
 );

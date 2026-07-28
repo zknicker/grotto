@@ -19,11 +19,14 @@ const stop: HostedAgentCommand = {
 };
 const release = {
     release: {
+        artifactUrl:
+            'https://releases.grotto.sh/computer/1.1.0/grotto-computer-aarch64-apple-darwin',
+        protocolVersion: 3,
         sha256: 'a'.repeat(64),
-        tarballUrl: 'https://releases.grotto.sh/computer.tgz',
+        sourceRevision: 'b'.repeat(40),
         version: '1.1.0',
     },
-    signature: 's'.repeat(64),
+    signature: Buffer.alloc(64, 1).toString('base64'),
 } satisfies SignedComputerRelease;
 
 test('update-required permits signed update control but rejects ordinary work', () => {
@@ -50,7 +53,7 @@ test('waiting for Agents closes admission until reconnect completes', () => {
         serverId: 'srv_1234567890123456',
         updatePhase: 'installing',
     });
-    expect(connections.send(computerId, start)).toBe(true);
+    expect(connections.send(computerId, start)).toBe(false);
 
     connections.setUpdatePhase(computerId, 'waiting-for-agents');
     expect(connections.send(computerId, start)).toBe(false);
@@ -58,7 +61,7 @@ test('waiting for Agents closes admission until reconnect completes', () => {
 
     connections.setUpdatePhase(computerId, 'complete');
     expect(connections.send(computerId, start)).toBe(true);
-    expect(frames).toEqual([start, stop, start]);
+    expect(frames).toEqual([stop, start]);
 });
 
 test('skill imports resolve only from the requested Computer and Agent', async () => {

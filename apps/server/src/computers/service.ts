@@ -178,8 +178,12 @@ export async function reportComputerHandshake(
                     : 'update-required',
             lastConnectedAt: new Date(),
             updateDetail: update.detail,
+            updateDownloadedBytes: update.downloadedBytes,
+            updateFailedPhase: update.failedPhase,
             updatePhase: update.phase,
+            updateActiveAgentCount: update.activeAgentCount,
             updateTargetVersion: update.targetVersion,
+            updateTotalBytes: update.totalBytes,
             updateUpdatedAt: new Date(update.updatedAt),
         })
         .where(eq(computersTable.id, computer.id));
@@ -195,8 +199,12 @@ export async function reportComputerUpdateProgress(
         .update(computersTable)
         .set({
             updateDetail: update.detail,
+            updateDownloadedBytes: update.downloadedBytes,
+            updateFailedPhase: update.failedPhase,
             updatePhase: update.phase,
+            updateActiveAgentCount: update.activeAgentCount,
             updateTargetVersion: update.targetVersion,
+            updateTotalBytes: update.totalBytes,
             updateUpdatedAt: new Date(update.updatedAt),
         })
         .where(eq(computersTable.id, computerId));
@@ -242,8 +250,12 @@ export async function listServerComputers(
             protocolVersion: computersTable.protocolVersion,
             reportedInventory: computersTable.reportedInventory,
             updateDetail: computersTable.updateDetail,
+            updateDownloadedBytes: computersTable.updateDownloadedBytes,
+            updateFailedPhase: computersTable.updateFailedPhase,
             updatePhase: computersTable.updatePhase,
+            updateActiveAgentCount: computersTable.updateActiveAgentCount,
             updateTargetVersion: computersTable.updateTargetVersion,
+            updateTotalBytes: computersTable.updateTotalBytes,
             updateUpdatedAt: computersTable.updateUpdatedAt,
         })
         .from(computersTable)

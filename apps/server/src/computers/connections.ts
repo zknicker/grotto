@@ -71,7 +71,7 @@ export class ComputerConnections implements DeliveryTransport {
         const computer = this.attached.get(computerId);
         return Boolean(
             computer?.ordinary &&
-                !['waiting-for-agents', 'restarting'].includes(computer.updatePhase)
+                !['waiting-for-agents', 'installing', 'restarting'].includes(computer.updatePhase)
         );
     }
 

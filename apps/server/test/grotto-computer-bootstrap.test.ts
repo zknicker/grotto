@@ -51,9 +51,13 @@ test('incompatible ordinary protocol remains connected only for update progress'
             protocolVersion: 999,
             type: 'bootstrap',
             update: {
+                activeAgentCount: null,
                 detail: null,
+                downloadedBytes: null,
+                failedPhase: null,
                 phase: 'idle',
                 targetVersion: null,
+                totalBytes: null,
                 updatedAt: '2026-07-27T12:00:00.000Z',
             },
         })
@@ -68,9 +72,13 @@ test('incompatible ordinary protocol remains connected only for update progress'
         JSON.stringify({
             type: 'update-progress',
             update: {
+                activeAgentCount: 2,
                 detail: 'Waiting for active Agents to finish.',
+                downloadedBytes: null,
+                failedPhase: null,
                 phase: 'waiting-for-agents',
                 targetVersion: '1.1.0',
+                totalBytes: null,
                 updatedAt: '2026-07-27T12:01:00.000Z',
             },
         })

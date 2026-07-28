@@ -76,28 +76,14 @@ test('creates no Computer or Agent alongside the Server', async () => {
     });
 
     expect(created.channels).toHaveLength(1);
-    await expect(readTableNames()).resolves.toEqual([
-        'agents',
-        'attachments',
-        'channel_agent_participants',
-        'channel_participants',
-        'chat_events',
-        'chat_messages',
-        'chat_reads',
-        'chats',
-        'message_task_labels',
-        'message_tasks',
-        'reminder_agent_attention',
-        'reminder_commands',
-        'reminder_fires',
-        'reminders',
-        'server_invitations',
-        'server_memberships',
-        'servers',
-        'task_labels',
-        'thread_follows',
-        'users',
-    ]);
+    const [counts] = (await harness.sql`
+        select
+            (select count(*)::integer from computers where server_id = ${created.id})
+                as computer_count,
+            (select count(*)::integer from agents where server_id = ${created.id})
+                as agent_count
+    `) as { agent_count: number; computer_count: number }[];
+    expect(counts).toEqual({ agent_count: 0, computer_count: 0 });
 });
 
 test('PostgreSQL refuses a Server role outside owner, admin, and member', async () => {
@@ -124,14 +110,4 @@ async function signIn(clerkUserId: string, claims?: Record<string, unknown>) {
 
     openClients.push(client);
     return client;
-}
-
-async function readTableNames() {
-    const rows = (await harness.sql`
-        select table_name from information_schema.tables
-        where table_schema = 'public'
-        order by table_name
-    `) as { table_name: string }[];
-
-    return rows.map((row) => row.table_name);
 }

@@ -72,12 +72,17 @@ const schemaStatements = [
         update_phase text NOT NULL DEFAULT 'idle'
             CONSTRAINT computers_update_phase CHECK (
                 update_phase IN (
-                    'idle', 'checking', 'available', 'installing',
+                    'idle', 'checking', 'available', 'requested', 'downloading',
+                    'verifying', 'installing',
                     'waiting-for-agents', 'restarting', 'complete', 'failed'
                 )
             ),
         update_target_version text,
         update_detail text,
+        update_downloaded_bytes integer,
+        update_total_bytes integer,
+        update_active_agent_count integer,
+        update_failed_phase text,
         update_updated_at timestamptz,
         last_connected_at timestamptz,
         created_at timestamptz NOT NULL DEFAULT now(),

@@ -1,4 +1,9 @@
-import { type SignedComputerRelease, signedComputerReleaseSchema } from '@tavern/api';
+import {
+    type ComputerUpdateProgress,
+    computerProtocolVersion,
+    type SignedComputerRelease,
+    signedComputerReleaseSchema,
+} from '@tavern/api';
 import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
@@ -20,6 +25,7 @@ export async function checkComputerUpdate(input: {
     await setChecking(input.db, computer.id);
     try {
         const release = await fetchProductionRelease(input.manifestUrl);
+        assertCompatibleProductionRelease(release);
         const available = isNewer(release.release.version, computer.productVersion);
         await input.db
             .update(computersTable)
@@ -34,7 +40,7 @@ export async function checkComputerUpdate(input: {
             .where(eq(computersTable.id, computer.id));
         return { available, version: release.release.version };
     } catch (cause) {
-        await recordFailure(input.db, computer.id, cause);
+        await recordFailure(input.db, computer.id, cause, 'checking');
         throw cause;
     }
 }
@@ -49,8 +55,10 @@ export async function startComputerUpdate(input: {
 }) {
     const computer = await requireComputerAdmin(input);
     await setChecking(input.db, computer.id);
+    let failedPhase: ComputerUpdateProgress['failedPhase'] = 'checking';
     try {
         const release = await fetchProductionRelease(input.manifestUrl);
+        assertCompatibleProductionRelease(release);
         if (!isNewer(release.release.version, computer.productVersion)) {
             await input.db
                 .update(computersTable)
@@ -63,12 +71,26 @@ export async function startComputerUpdate(input: {
                 .where(eq(computersTable.id, computer.id));
             return { started: false, version: release.release.version };
         }
+        await input.db
+            .update(computersTable)
+            .set({
+                updateActiveAgentCount: null,
+                updateDetail: 'Download requested.',
+                updateDownloadedBytes: null,
+                updateFailedPhase: null,
+                updatePhase: 'requested',
+                updateTargetVersion: release.release.version,
+                updateTotalBytes: null,
+                updateUpdatedAt: new Date(),
+            })
+            .where(eq(computersTable.id, computer.id));
+        failedPhase = 'requested';
         if (!input.connections.sendUpdate(computer.id, release)) {
             throw new ComputerSetupDeniedError('This Computer is offline.');
         }
         return { started: true, version: release.release.version };
     } catch (cause) {
-        await recordFailure(input.db, computer.id, cause);
+        await recordFailure(input.db, computer.id, cause, failedPhase);
         throw cause;
     }
 }
@@ -121,11 +143,17 @@ async function setChecking(db: GrottoDatabase, computerId: string) {
         .where(eq(computersTable.id, computerId));
 }
 
-async function recordFailure(db: GrottoDatabase, computerId: string, cause: unknown) {
+async function recordFailure(
+    db: GrottoDatabase,
+    computerId: string,
+    cause: unknown,
+    failedPhase: ComputerUpdateProgress['failedPhase']
+) {
     await db
         .update(computersTable)
         .set({
             updateDetail: cause instanceof Error ? cause.message : 'Computer update failed.',
+            updateFailedPhase: failedPhase,
             updatePhase: 'failed',
             updateUpdatedAt: new Date(),
         })
@@ -152,4 +180,12 @@ function parseVersion(version: string): number[] {
         throw new Error(`Invalid Computer release version "${version}".`);
     }
     return match.slice(1).map(Number);
+}
+
+function assertCompatibleProductionRelease(release: SignedComputerRelease) {
+    if (release.release.protocolVersion < computerProtocolVersion) {
+        throw new Error(
+            `Production Grotto Computer ${release.release.version} does not satisfy protocol ${computerProtocolVersion}.`
+        );
+    }
 }

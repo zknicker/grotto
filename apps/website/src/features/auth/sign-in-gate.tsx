@@ -8,7 +8,11 @@ import {
 } from '@clerk/clerk-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Button } from '../../components/ui/button.tsx';
-import { isClerkEnabled } from '../../lib/clerk.tsx';
+import {
+    getClerkSessionToken,
+    isClerkEnabled,
+    useClerkSessionTokenState,
+} from '../../lib/clerk.tsx';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { useDesktopOAuth } from './use-desktop-oauth.ts';
 
@@ -47,8 +51,9 @@ export function SignInGate({ children }: { children: ReactNode }) {
 }
 
 function ClerkSessionGate({ children }: { children: ReactNode }) {
-    const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
     const clerk = useClerk();
+    const refreshState = useClerkSessionTokenState();
     const [tokenState, setTokenState] = useState<ClerkSessionTokenState>('loading');
     const [retryKey, setRetryKey] = useState(0);
 
@@ -63,7 +68,7 @@ function ClerkSessionGate({ children }: { children: ReactNode }) {
         }
 
         setTokenState('loading');
-        void readClerkSessionToken(getToken).then((state) => {
+        void readClerkSessionToken(getClerkSessionToken).then((state) => {
             if (active) {
                 setTokenState(state);
             }
@@ -72,7 +77,7 @@ function ClerkSessionGate({ children }: { children: ReactNode }) {
         return () => {
             active = false;
         };
-    }, [getToken, isLoaded, isSignedIn, retryKey]);
+    }, [isLoaded, isSignedIn, retryKey]);
 
     if (!(isLoaded && isSignedIn)) {
         return <GateFrame signIn={isLoaded} />;
@@ -82,7 +87,7 @@ function ClerkSessionGate({ children }: { children: ReactNode }) {
         return <GateFrame />;
     }
 
-    if (tokenState === 'missing') {
+    if (tokenState === 'missing' || refreshState === 'missing') {
         const signInAgain = () => {
             if (isElectronDesktopApp()) {
                 void clerk.signOut(() => undefined);

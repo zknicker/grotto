@@ -18,11 +18,32 @@ export async function publishImmutableObjects(input) {
         [input.installerPath, 'install.sh'],
     ]) {
         const uri = `${root}/${name}`;
-        if (spawnSync('aws', ['s3', 'ls', uri], { stdio: 'ignore' }).status === 0) {
-            fail(`immutable Computer release object already exists: ${uri}`);
-        }
+        assertImmutableObjectAbsent(uri);
         run('aws', ['s3', 'cp', file, uri]);
     }
+}
+
+export function assertImmutableObjectAbsent(uri, execute = spawnSync) {
+    const result = execute('aws', ['s3', 'ls', uri], { encoding: 'utf8' });
+    if (result.status !== 0) {
+        throw new Error(`Could not check immutable Computer release object: ${uri}`);
+    }
+    if (result.stdout.trim()) {
+        throw new Error(`Immutable Computer release object already exists: ${uri}`);
+    }
+}
+
+export async function readProductionComputerRelease(url, publicKey, request = fetch) {
+    const response = await request(url, { cache: 'no-store' });
+    if (response.status === 404) {
+        return null;
+    }
+    if (!response.ok) {
+        throw new Error(`Production Computer descriptor returned ${response.status}.`);
+    }
+    const descriptor = await response.json();
+    verifySignedComputerRelease(descriptor, publicKey);
+    return descriptor;
 }
 
 export async function verifyPublicObjects(input) {

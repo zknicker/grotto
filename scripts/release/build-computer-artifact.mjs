@@ -4,18 +4,14 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import {
-    computerArtifactName,
-    computerProtocolVersion,
-    publicKeyFromPrivate,
-} from './computer-release-contract.mjs';
+import { computerArtifactName, computerProtocolVersion } from './computer-release-contract.mjs';
 import { fail, repoRoot } from './release-utils.mjs';
 
 export const computerReleaseRoot = path.join(repoRoot, 'apps', 'computer', 'release');
 
 export async function buildComputerArtifact(input) {
     const artifactPath = path.join(computerReleaseRoot, computerArtifactName);
-    const publicKey = publicKeyFromPrivate(input.privateKey);
+    const publicKey = input.publicKey;
     await rm(computerReleaseRoot, { force: true, recursive: true });
     await mkdir(computerReleaseRoot, { recursive: true });
     run(

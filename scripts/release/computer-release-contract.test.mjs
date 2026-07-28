@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
 import {
+    assertComputerReleaseKey,
+    assertNewerComputerVersion,
     computerReleaseSigningPayload,
     createSignedComputerRelease,
     publishComputerInOrder,
@@ -53,4 +55,24 @@ test('failed immutable verification never promotes latest', async () => {
         })
     ).rejects.toThrow('public artifact rejected');
     expect(calls).toEqual(['publish', 'verify']);
+});
+
+test('release key and production SemVer continuity fail closed', () => {
+    const trusted = generateKeyPairSync('ed25519');
+    const rotated = generateKeyPairSync('ed25519');
+    expect(() =>
+        assertComputerReleaseKey(
+            trusted.privateKey,
+            trusted.publicKey.export({ format: 'pem', type: 'spki' })
+        )
+    ).not.toThrow();
+    expect(() =>
+        assertComputerReleaseKey(
+            rotated.privateKey,
+            trusted.publicKey.export({ format: 'pem', type: 'spki' })
+        )
+    ).toThrow('does not match');
+    expect(() => assertNewerComputerVersion('1.1.0', '1.0.9')).not.toThrow();
+    expect(() => assertNewerComputerVersion('1.0.9', '1.1.0')).toThrow('not newer');
+    expect(() => assertNewerComputerVersion('1.1.0', '1.1.0')).toThrow('not newer');
 });

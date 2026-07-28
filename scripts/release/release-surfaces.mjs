@@ -13,13 +13,36 @@ export function assertReleaseSurfaceDecision(value, options = {}) {
     assertExactObject(value.surfaces, surfaceKeys);
 
     if (value.targetVersion === null) {
-        if (options.requireDecision) {
-            throw new Error('release surface decision is not prepared');
+        const undecided = surfaceKeys.every(
+            (key) =>
+                value.surfaces[key].action === 'undecided' && value.surfaces[key].version === null
+        );
+        if (undecided) {
+            if (options.requireDecision) {
+                throw new Error('release surface decision is not prepared');
+            }
+            for (const key of surfaceKeys) {
+                assertSurface(value.surfaces[key], key, true);
+            }
+            return { complete: false, value };
+        }
+        if (options.targetVersion) {
+            throw new Error('Computer-only release decision cannot satisfy an App release');
         }
         for (const key of surfaceKeys) {
-            assertSurface(value.surfaces[key], key, true);
+            assertSurface(value.surfaces[key], key, false);
         }
-        return { complete: false, value };
+        if (
+            value.surfaces.appServer.action !== 'unchanged' ||
+            value.surfaces.desktop.action !== 'unchanged' ||
+            value.surfaces.runtime.action !== 'unchanged' ||
+            value.surfaces.computer.action !== 'publish'
+        ) {
+            throw new Error(
+                'Computer-only release must publish Computer and leave other surfaces unchanged'
+            );
+        }
+        return { complete: true, value };
     }
 
     if (!isSemver(value.targetVersion)) {

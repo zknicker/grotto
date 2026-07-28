@@ -64,7 +64,10 @@ const main = async () => {
     try {
         const result = assertReleaseSurfaceDecision(surfaceDecision, {
             requireDecision: Boolean(expectedVersion),
-            targetVersion: releaseVersion,
+            targetVersion:
+                surfaceDecision.targetVersion === null && !expectedVersion
+                    ? undefined
+                    : releaseVersion,
         });
         if (result.complete) {
             assert(

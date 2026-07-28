@@ -10,9 +10,12 @@ import {
     verifyComputerIdentity,
 } from './build-computer-artifact.mjs';
 import {
+    assertComputerReleaseKey,
+    assertNewerComputerVersion,
     computerArtifactName,
     computerProtocolVersion,
     createSignedComputerRelease,
+    publicKeyFromPrivate,
     publishComputerInOrder,
     sha256File,
     verifySignedComputerRelease,
@@ -21,6 +24,7 @@ import {
     promoteInstaller,
     promoteLatest,
     publishImmutableObjects,
+    readProductionComputerRelease,
     verifyPublicDescriptor,
     verifyPublicObjects,
 } from './computer-release-publication.mjs';
@@ -52,6 +56,10 @@ async function main() {
                   type: 'pkcs8',
               })
             : requiredEnv('GROTTO_COMPUTER_RELEASE_PRIVATE_KEY').replaceAll('\\n', '\n'));
+    const releasePublicKey = dryRun
+        ? publicKeyFromPrivate(privateKey)
+        : requiredEnv('GROTTO_COMPUTER_RELEASE_PUBLIC_KEY').replaceAll('\\n', '\n');
+    assertComputerReleaseKey(privateKey, releasePublicKey);
     const appleTeamId = dryRun
         ? (process.env.APPLE_TEAM_ID ?? 'DRYRUN0000')
         : requiredEnv('APPLE_TEAM_ID');
@@ -60,8 +68,9 @@ async function main() {
         : requiredSigningIdentity();
     assertSource(sourceRevision);
     if (!dryRun) {
-        await assertPublishState(version);
+        await assertPublishState(version, releasePublicKey);
         requirePublishingEnvironment();
+        run('bun', ['run', 'release:check']);
     }
     run('bun', ['run', '--filter', '@tavern/api', 'typecheck']);
     run('bun', ['run', '--filter', '@tavern/computer', 'test']);
@@ -69,7 +78,7 @@ async function main() {
     const built = await buildComputerArtifact({
         appleSigningIdentity,
         appleTeamId,
-        privateKey,
+        publicKey: releasePublicKey,
         sourceRevision,
         version,
     });
@@ -155,7 +164,7 @@ async function renderInstaller(input) {
     return installerPath;
 }
 
-async function assertPublishState(releaseVersion) {
+async function assertPublishState(releaseVersion, releasePublicKey) {
     if (git('status', '--porcelain').trim()) {
         fail('Computer publishing requires a clean worktree');
     }
@@ -173,6 +182,15 @@ async function assertPublishState(releaseVersion) {
     if (computer.action !== 'publish' || computer.version !== releaseVersion) {
         fail(`release surface decision must publish Computer ${releaseVersion}`);
     }
+    const current = await readProductionComputerRelease(
+        `${releaseBaseUrl}/latest.json`,
+        releasePublicKey
+    );
+    if (current) {
+        assertNewerComputerVersion(releaseVersion, current.release.version);
+    } else if (remoteComputerTags().length > 0) {
+        fail('production Computer descriptor is missing after an earlier Computer release');
+    }
     const tag = `computer-v${releaseVersion}`;
     if (
         spawnSync('git', ['rev-parse', '--verify', `refs/tags/${tag}`], { stdio: 'ignore' })
@@ -187,6 +205,12 @@ async function assertPublishState(releaseVersion) {
     ) {
         fail(`tag ${tag} already exists on origin`);
     }
+}
+
+function remoteComputerTags() {
+    return git('ls-remote', '--tags', 'origin', 'refs/tags/computer-v*')
+        .split('\n')
+        .filter(Boolean);
 }
 
 function assertSource(sourceRevision) {

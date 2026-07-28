@@ -1,4 +1,4 @@
-import { createHash, createPublicKey, sign, verify } from 'node:crypto';
+import { createHash, createPublicKey, sign, timingSafeEqual, verify } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 export const computerProtocolVersion = 3;
@@ -44,6 +44,30 @@ export function publicKeyFromPrivate(privateKey) {
     return createPublicKey(privateKey).export({ format: 'pem', type: 'spki' }).toString();
 }
 
+export function assertComputerReleaseKey(privateKey, expectedPublicKey) {
+    const derived = createPublicKey(privateKey).export({ format: 'der', type: 'spki' });
+    const expected = createPublicKey(expectedPublicKey).export({ format: 'der', type: 'spki' });
+    if (derived.length !== expected.length || !timingSafeEqual(derived, expected)) {
+        throw new Error('Computer release private key does not match the trusted public key.');
+    }
+}
+
+export function assertNewerComputerVersion(candidate, current) {
+    validateVersion(candidate);
+    validateVersion(current);
+    const candidateParts = candidate.split('.').map(Number);
+    const currentParts = current.split('.').map(Number);
+    for (let index = 0; index < 3; index += 1) {
+        if (candidateParts[index] !== currentParts[index]) {
+            if ((candidateParts[index] ?? 0) > (currentParts[index] ?? 0)) {
+                return;
+            }
+            break;
+        }
+    }
+    throw new Error(`Computer ${candidate} is not newer than production ${current}.`);
+}
+
 export async function sha256File(path) {
     return createHash('sha256')
         .update(await readFile(path))
@@ -85,10 +109,20 @@ export function validateComputerRelease(value) {
         value.protocolVersion < 1 ||
         !/^[a-f0-9]{64}$/u.test(value.sha256) ||
         !/^[a-f0-9]{40}$/u.test(value.sourceRevision) ||
-        !/^\d+\.\d+\.\d+$/u.test(value.version)
+        !isVersion(value.version)
     ) {
         throw new Error('Computer release identity is invalid.');
     }
+}
+
+function validateVersion(value) {
+    if (!isVersion(value)) {
+        throw new Error(`Invalid Computer SemVer: ${value}.`);
+    }
+}
+
+function isVersion(value) {
+    return typeof value === 'string' && /^\d+\.\d+\.\d+$/u.test(value);
 }
 
 function isRecord(value) {

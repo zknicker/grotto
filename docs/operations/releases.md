@@ -51,7 +51,9 @@ Before every release, inspect the changed files and record every surface:
 with its version or `unchanged`, then copy the exact block from
 `release:collect-changelog-context` into the new changelog entry.
 `release:check` and production publishers reject missing or inconsistent
-decisions.
+decisions. For a Computer-only repair, leave `targetVersion` null, publish the
+Computer version, mark App/Server, Desktop, and Runtime unchanged, and record
+the generated surface block in the current changelog entry.
 
 If App/Server raises its required Computer protocol, publish and publicly verify
 the compatible Computer release first. The App/Server publisher must not proceed
@@ -334,9 +336,12 @@ Required release environment:
 
 Computer releases additionally require
 `GROTTO_COMPUTER_RELEASE_PRIVATE_KEY`, the Ed25519 private release key used to
-sign the Computer descriptor. The corresponding public key is compiled into the
-Computer executable; normal installation does not accept a public-key
-environment override. `GROTTO_COMPUTER_RELEASE_BASE_URL` defaults to
+sign the Computer descriptor, and `GROTTO_COMPUTER_RELEASE_PUBLIC_KEY`, its
+corresponding trusted public key. The publisher verifies that pair and verifies
+the current production descriptor with the public key before building. The
+public key is compiled into the Computer executable; normal installation does
+not accept a public-key environment override.
+`GROTTO_COMPUTER_RELEASE_BASE_URL` defaults to
 `https://releases.grotto.sh/computer`; Computer objects publish below the
 `computer/` prefix of `TAVERN_RELEASE_S3_URI`. Standalone Computer codesigning
 also requires the Developer ID certificate in the macOS keychain, selected by

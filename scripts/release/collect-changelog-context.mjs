@@ -23,8 +23,16 @@ if (argv.includes('--help') || argv.includes('-h')) {
 const main = async () => {
     const targetVersion = await readCurrentVersion();
     const latestChangelogVersion = await readLatestChangelogVersion();
+    const surfaceDecision = await readJson('release-surfaces.json');
+    let computerOnly = false;
+    try {
+        const result = assertReleaseSurfaceDecision(surfaceDecision);
+        computerOnly = result.complete && surfaceDecision.targetVersion === null;
+    } catch {
+        // The context still prints an incomplete App release decision for the operator to finish.
+    }
 
-    if (compareVersions(targetVersion, latestChangelogVersion) <= 0) {
+    if (compareVersions(targetVersion, latestChangelogVersion) <= 0 && !computerOnly) {
         fail(
             `app version ${targetVersion} must be greater than changelog latest ${latestChangelogVersion}. Run release:bump first.`
         );
@@ -38,12 +46,6 @@ const main = async () => {
     }
 
     const commits = await readCommits(baseRef, maxCommits);
-    const surfaceDecision = await readJson('release-surfaces.json');
-    try {
-        assertReleaseSurfaceDecision(surfaceDecision, { targetVersion });
-    } catch {
-        // The context deliberately prints the incomplete decision for the operator to finish.
-    }
     printContext({
         targetVersion,
         previousVersion: latestChangelogVersion,

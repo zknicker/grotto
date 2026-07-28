@@ -25,3 +25,22 @@ test('release check accepts and formats one explicit decision per surface', () =
     expect(assertReleaseSurfaceDecision(decision, { targetVersion: '1.2.3' }).complete).toBe(true);
     expect(formatReleaseSurfaceDecision(decision)).toContain('- Computer: Publish v2.0.0');
 });
+
+test('Computer-only repairs explicitly leave every other surface unchanged', () => {
+    const decision = {
+        targetVersion: null,
+        surfaces: {
+            appServer: { action: 'unchanged', version: null },
+            computer: { action: 'publish', version: '2.0.1' },
+            desktop: { action: 'unchanged', version: null },
+            runtime: { action: 'unchanged', version: null },
+        },
+    };
+    expect(assertReleaseSurfaceDecision(decision, { requireDecision: true }).complete).toBe(true);
+    expect(() =>
+        assertReleaseSurfaceDecision(decision, {
+            requireDecision: true,
+            targetVersion: '1.2.3',
+        })
+    ).toThrow('cannot satisfy an App release');
+});

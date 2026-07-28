@@ -25,7 +25,7 @@ import { createReminder, listReminders } from './reminder-store';
 // hygiene for fresh seeds is locked by the seed-lint cases in
 // development-chat-demos.test.ts.
 export function shouldSeedDevelopmentChatDemos() {
-    return process.env.TAVERN_DEV_STACK === '1';
+    return process.env.TAVERN_DEV_STACK === '1' && process.env.TAVERN_HOSTED_DEV_STACK !== '1';
 }
 
 export async function seedDevelopmentChatDemos({

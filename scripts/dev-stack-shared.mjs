@@ -31,6 +31,17 @@ export function createDevStackEnvironment({
     return {
         ...baseEnvironment,
         DATABASE_PATH: baseEnvironment.DATABASE_PATH ?? statePaths.databasePath,
+        GROTTO_ATTACHMENT_ROOT:
+            baseEnvironment.GROTTO_ATTACHMENT_ROOT ?? statePaths.hostedAttachmentRoot,
+        GROTTO_COMPUTER_DATA_ROOT:
+            baseEnvironment.GROTTO_COMPUTER_DATA_ROOT ?? statePaths.computerDataRoot,
+        GROTTO_POSTGRES_DATA_ROOT:
+            baseEnvironment.GROTTO_POSTGRES_DATA_ROOT ?? statePaths.postgresDataRoot,
+        GROTTO_POSTGRES_SOCKET_ROOT:
+            baseEnvironment.GROTTO_POSTGRES_SOCKET_ROOT ?? statePaths.postgresSocketRoot,
+        GROTTO_SERVER_PORT: baseEnvironment.GROTTO_SERVER_PORT ?? resolvedPorts.grottoPort,
+        GROTTO_SERVER_ORIGIN:
+            baseEnvironment.GROTTO_SERVER_ORIGIN ?? `http://127.0.0.1:${resolvedPorts.grottoPort}`,
         TAVERN_DEV_STACK: baseEnvironment.TAVERN_DEV_STACK ?? '1',
         TAVERN_RUNTIME_PORT: baseEnvironment.TAVERN_RUNTIME_PORT ?? resolvedPorts.runtimePort,
         TAVERN_RUNTIME_ROOT: baseEnvironment.TAVERN_RUNTIME_ROOT ?? statePaths.runtimeRoot,
@@ -66,6 +77,8 @@ export function createDevStackConfig({
         databasePath: shortenHomePath(databasePath),
         desktopEnabled: isDesktop,
         jobsDatabasePath: shortenHomePath(deriveJobsDatabasePath(databasePath)),
+        grottoServerUrl: `http://localhost:${ports.grottoPort}`,
+        postgresDataPath: shortenHomePath(devEnvironment.GROTTO_POSTGRES_DATA_ROOT),
         runtimeObserve: hasRuntime ? 'live ws' : 'disabled',
         runtimeRoot: shortenHomePath(runtimeRoot),
         runtimeUrl: hasRuntime ? runtimeUrl : 'disabled',
@@ -245,6 +258,11 @@ export function assertDevStackPortsAvailable({ mode, ports, repositoryRoot }) {
     const hasRuntime = isRuntimeMode(mode);
     const devEnvironment = createDevStackEnvironment({ ports, repositoryRoot });
     const definitions = [
+        {
+            enabled: true,
+            label: 'hosted Server',
+            port: Number(ports.grottoPort),
+        },
         {
             enabled: hasRuntime,
             label: 'runtime',
@@ -532,14 +550,19 @@ function resolveHomePath(value) {
     return path.resolve(value);
 }
 
-function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
+export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
     const stackId =
         baseEnvironment.TAVERN_DEV_STACK_ID ??
         `${path.basename(repositoryRoot)}-${hashString(repositoryRoot).slice(0, 8)}`;
     const appStateRoot = resolveDevStackStateRoot(stackId);
 
     return {
+        appStateRoot,
+        computerDataRoot: path.join(appStateRoot, 'computer'),
         databasePath: path.join(appStateRoot, 'tavern.sqlite'),
+        hostedAttachmentRoot: path.join(appStateRoot, 'server', 'attachments'),
+        postgresDataRoot: path.join(appStateRoot, 'postgres'),
+        postgresSocketRoot: path.join(appStateRoot, 'postgres-socket'),
         runtimeRoot: path.join(appStateRoot, 'runtime'),
     };
 }

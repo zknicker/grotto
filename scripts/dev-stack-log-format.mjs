@@ -15,11 +15,13 @@ export const theme = {
     warning: ansi.yellow,
 };
 
-const processOrder = ['runtime', 'server', 'website', 'desktop'];
+const processOrder = ['postgres', 'runtime', 'server', 'grotto', 'website', 'desktop'];
 
 const sourceMeta = {
     tavern: { color: theme.accent, icon: '🎰', label: 'grotto' },
     desktop: { color: theme.accent, icon: '🪟', label: 'desktop' },
+    grotto: { color: theme.warning, icon: '🏠', label: 'hosted' },
+    postgres: { color: theme.warning, icon: '🐘', label: 'postgres' },
     runtime: { color: theme.accent, icon: '🧠', label: 'runtime' },
     server: { color: theme.warning, icon: '🖥️', label: 'server' },
     website: { color: theme.accent, icon: '🌐', label: 'website' },
@@ -116,7 +118,8 @@ export function formatReadyBlock(snapshot, { colorize = false } = {}) {
         `${dim('│', colorize)}  ${colorizeText('Ready to go', theme.ok, colorize)}`,
         colorizeText('├─ Services', theme.accent, colorize),
         readyServiceLine('Runtime', snapshot.config.runtimeUrl, colorize),
-        readyServiceLine('Server', snapshot.config.serverUrl, colorize),
+        readyServiceLine('Local API', snapshot.config.serverUrl, colorize),
+        readyServiceLine('Server', snapshot.config.grottoServerUrl, colorize),
         readyServiceLine('Website', snapshot.config.websiteUrl, colorize),
         readyServiceLine(
             'Desktop',
@@ -137,6 +140,9 @@ export function formatReadyBlock(snapshot, { colorize = false } = {}) {
 
     lines.push(colorizeText('├─ Data', theme.accent, colorize));
     lines.push(`${dim('│', colorize)}  ${dim('DB', colorize)}   ${snapshot.config.databasePath}`);
+    lines.push(
+        `${dim('│', colorize)}  ${dim('PG', colorize)}   ${snapshot.config.postgresDataPath}`
+    );
     lines.push(`${dim('│', colorize)}  ${dim('Root', colorize)} ${snapshot.config.runtimeRoot}`);
     lines.push(colorizeText('╰─', theme.accent, colorize));
 
@@ -232,6 +238,12 @@ function getProcessValue(source, snapshot) {
 
     if (source === 'desktop') {
         return snapshot.config.desktopEnabled ? 'enabled' : 'disabled';
+    }
+    if (source === 'grotto') {
+        return snapshot.config.grottoServerUrl;
+    }
+    if (source === 'postgres') {
+        return snapshot.config.postgresDataPath;
     }
 
     return '';

@@ -85,6 +85,10 @@ test('createDevStackEnvironment uses shared dev state outside packaged app state
     assert.equal(environment.PATH, '/usr/bin');
     assert.equal(environment.TAVERN_RUNTIME_TOKEN, 'env-token');
     assert.equal(
+        environment.GROTTO_COMPUTER_DATA_ROOT,
+        path.join(os.homedir(), '.tavern', 'dev', 'alpha', 'computer')
+    );
+    assert.equal(
         environment.DATABASE_PATH,
         path.join(os.homedir(), '.tavern', 'dev', 'alpha', 'tavern.sqlite')
     );

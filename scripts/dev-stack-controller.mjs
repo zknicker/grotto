@@ -3,6 +3,12 @@ import { EventEmitter } from 'node:events';
 import path from 'node:path';
 import readline from 'node:readline';
 import {
+    hasGrottoSchema,
+    prepareDevPostgres,
+    reserveDevPostgresPort,
+    waitForDevPostgres,
+} from './dev-postgres.mjs';
+import {
     assertDevStackPortsAvailable,
     cleanupStaleProcesses,
     createDevStackConfig,
@@ -18,7 +24,15 @@ import {
     waitForRuntimeReady,
 } from './dev-stack-shared.mjs';
 
-const shutdownProcessOrder = ['desktop', 'website', 'server', 'runtime'];
+const shutdownProcessOrder = [
+    'desktop',
+    'website',
+    'computer',
+    'grotto',
+    'server',
+    'runtime',
+    'postgres',
+];
 const shutdownTimeoutMs = Number.parseInt(
     process.env.TAVERN_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000',
     10
@@ -66,7 +80,10 @@ export class DevStackController extends EventEmitter {
             },
             logs: [],
             processes: {
+                computer: { status: 'waiting' },
                 desktop: { status: isDesktop ? 'waiting' : 'disabled' },
+                grotto: { status: 'waiting' },
+                postgres: { status: 'waiting' },
                 runtime: { status: hasRuntime ? 'waiting' : 'disabled' },
                 server: { status: 'waiting' },
                 website: { status: 'waiting' },
@@ -215,6 +232,8 @@ export class DevStackController extends EventEmitter {
             this.addLog(source, error.message);
             void this.stop(1);
         });
+
+        return child;
     }
 
     spawnBackgroundProcess(source, command, env = process.env) {
@@ -271,12 +290,20 @@ export class DevStackController extends EventEmitter {
             repositoryRoot: this.repositoryRoot,
         });
         const runtimeUrl = getRuntimeBaseUrl(devStackEnvironment);
+        const computerDirectory = path.join(this.repositoryRoot, 'apps', 'computer');
         const runtimeDirectory = path.join(this.repositoryRoot, 'apps', 'runtime');
         const serverDirectory = path.join(this.repositoryRoot, 'apps', 'server');
         const websiteDirectory = path.join(this.repositoryRoot, 'apps', 'website');
         const startupUiEnv = {
             ...devStackEnvironment,
             TAVERN_STARTUP_UI: '1',
+        };
+        const hostedServerUrl = `http://localhost:${this.ports.grottoPort}`;
+        const websiteEnv = {
+            ...startupUiEnv,
+            VITE_GROTTO_APP_ORIGIN: startupUiEnv.APP_ORIGIN,
+            VITE_GROTTO_SERVER_ORIGIN: hostedServerUrl,
+            VITE_SERVER_ORIGIN: `http://localhost:${this.ports.serverPort}`,
         };
 
         const hasRuntime = isRuntimeMode(this.mode);
@@ -314,7 +341,7 @@ export class DevStackController extends EventEmitter {
                     ['x', 'vite', '--host', '127.0.0.1', '--port', String(this.ports.websitePort)],
                     {
                         cwd: websiteDirectory,
-                        env: startupUiEnv,
+                        env: websiteEnv,
                     }
                 );
                 websiteReadyPromise = waitForPort(Number(this.ports.websitePort)).then(() => {
@@ -366,6 +393,7 @@ export class DevStackController extends EventEmitter {
                 cwd: runtimeDirectory,
                 env: {
                     ...startupUiEnv,
+                    TAVERN_HOSTED_DEV_STACK: '1',
                     ...this.runtimeEnvironmentOverrides,
                 },
             });
@@ -384,6 +412,37 @@ export class DevStackController extends EventEmitter {
             throw new Error('Failed to build server workspace dependencies.');
         }
 
+        const postgres = prepareDevPostgres(devStackEnvironment, await reserveDevPostgresPort());
+        const postgresChild = this.spawnProcess('postgres', postgres.executable, postgres.args, {
+            env: startupUiEnv,
+        });
+        await waitForDevPostgres(postgres, postgresChild);
+        this.update((snapshot) => {
+            snapshot.processes.postgres.status = 'running';
+        });
+
+        const hostedServerEnv = {
+            ...startupUiEnv,
+            ...this.runtimeEnvironmentOverrides,
+            APP_ORIGIN: startupUiEnv.APP_ORIGIN ?? `http://localhost:${this.ports.websitePort}`,
+            GROTTO_DATABASE_URL: postgres.databaseUrl,
+            GROTTO_SERVER_PORT: String(this.ports.grottoPort),
+        };
+        if (!hasGrottoSchema(postgres)) {
+            const bootstrapped = await this.spawnBackgroundProcess(
+                'grotto',
+                'bun apps/server/src/grotto-server-bootstrap.ts',
+                {
+                    ...hostedServerEnv,
+                    GROTTO_DATABASE_BOOTSTRAP_URL: postgres.databaseUrl,
+                    GROTTO_DATABASE_RUNTIME_ROLE: 'grotto',
+                }
+            );
+            if (!bootstrapped) {
+                throw new Error('Failed to bootstrap the hosted development Server.');
+            }
+        }
+
         this.spawnProcess('server', 'bun', ['--watch', 'src/index.ts'], {
             cwd: serverDirectory,
             env: serverEnv,
@@ -391,6 +450,27 @@ export class DevStackController extends EventEmitter {
         await waitForPort(Number(this.ports.serverPort));
         this.update((snapshot) => {
             snapshot.processes.server.status = 'running';
+        });
+
+        this.spawnProcess('grotto', 'bun', ['--watch', 'src/grotto-server.ts'], {
+            cwd: serverDirectory,
+            env: hostedServerEnv,
+        });
+        await waitForPort(Number(this.ports.grottoPort));
+        this.update((snapshot) => {
+            snapshot.processes.grotto.status = 'running';
+        });
+
+        this.spawnProcess('computer', 'bun', ['--watch', 'src/index.ts', 'start'], {
+            cwd: computerDirectory,
+            env: {
+                ...startupUiEnv,
+                GROTTO_COMPUTER_RESIDENT: '1',
+                GROTTO_SERVER_ORIGIN: hostedServerUrl,
+            },
+        });
+        this.update((snapshot) => {
+            snapshot.processes.computer.status = 'running';
         });
 
         startWebsite();
@@ -446,8 +526,8 @@ export class DevStackController extends EventEmitter {
     }
 
     signalManagedProcesses(signal) {
-        for (const child of this.processes.values()) {
-            signalChildProcessGroup(child, signal);
+        for (const [source, child] of this.processes) {
+            signalChildProcessGroup(child, source === 'postgres' ? 'SIGINT' : signal);
         }
         this.signalBackgroundProcesses(signal);
     }
@@ -604,8 +684,15 @@ function isStartupComplete(snapshot) {
         snapshot.processes.runtime.status === 'disabled' ||
         snapshot.processes.runtime.status === 'running';
 
+    const grottoReady = snapshot.processes.grotto.status === 'running';
+    const computerReady = snapshot.processes.computer.status === 'running';
+    const postgresReady = snapshot.processes.postgres.status === 'running';
+
     return (
         snapshot.processes.server.status === 'running' &&
+        computerReady &&
+        grottoReady &&
+        postgresReady &&
         snapshot.processes.website.status === 'running' &&
         desktopReady &&
         runtimeReady &&

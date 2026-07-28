@@ -41,14 +41,35 @@ function main() {
 }
 
 function getRuntimeEnvironmentOverrides(repositoryRoot) {
-    if (process.env.TAVERN_CLERK_PUBLISHABLE_KEY !== undefined) {
-        return {};
+    const envPath = path.join(repositoryRoot, 'apps', 'website', '.env.development');
+    const publishableKey =
+        process.env.TAVERN_CLERK_PUBLISHABLE_KEY ??
+        readEnvValue(envPath, 'VITE_CLERK_PUBLISHABLE_KEY');
+    const overrides = {};
+
+    if (publishableKey && process.env.TAVERN_CLERK_PUBLISHABLE_KEY === undefined) {
+        overrides.TAVERN_CLERK_PUBLISHABLE_KEY = publishableKey;
+    }
+    if (publishableKey && process.env.CLERK_ISSUER_URL === undefined) {
+        overrides.CLERK_ISSUER_URL = clerkIssuerFromPublishableKey(publishableKey);
     }
 
-    const envPath = path.join(repositoryRoot, 'apps', 'website', '.env.development');
-    const publishableKey = readEnvValue(envPath, 'VITE_CLERK_PUBLISHABLE_KEY');
+    return overrides;
+}
 
-    return publishableKey ? { TAVERN_CLERK_PUBLISHABLE_KEY: publishableKey } : {};
+function clerkIssuerFromPublishableKey(publishableKey) {
+    const encodedFrontendApi = publishableKey.split('_')[2];
+    if (!encodedFrontendApi) {
+        throw new Error('The Clerk publishable key is invalid.');
+    }
+
+    const decoded = Buffer.from(encodedFrontendApi, 'base64').toString('utf8');
+    const frontendApi = decoded.endsWith('$') ? decoded.slice(0, -1) : decoded;
+    if (!frontendApi.includes('.')) {
+        throw new Error('The Clerk publishable key does not contain a valid issuer.');
+    }
+
+    return `https://${frontendApi}`;
 }
 
 function readEnvValue(envPath, key) {

@@ -9,18 +9,27 @@ const devPortGroupCount = 8000;
 export function resolveDevPorts({
     baseEnvironment = process.env,
     port,
-    repositoryRoot = process.cwd(),
+    repositoryRoot,
     serverPort,
     websitePort,
 } = {}) {
-    const portBase = resolveDevPortBase({ baseEnvironment, repositoryRoot });
+    const useIsolatedGroup = Boolean(
+        repositoryRoot ??
+            baseEnvironment.TAVERN_DEV_PORT_BASE ??
+            baseEnvironment.TAVERN_DEV_STACK_ID
+    );
+    const portBase = useIsolatedGroup
+        ? resolveDevPortBase({ baseEnvironment, repositoryRoot: repositoryRoot ?? process.cwd() })
+        : null;
     const resolvedWebsitePort =
         websitePort ??
         baseEnvironment.TAVERN_WEBSITE_PORT ??
         port ??
         (hasExplicitDevPortInput({ baseEnvironment, port, serverPort, websitePort })
             ? defaultWebsitePort
-            : String(portBase));
+            : portBase === null
+              ? defaultWebsitePort
+              : String(portBase));
     const resolvedServerPort =
         serverPort ??
         baseEnvironment.TAVERN_SERVER_PORT ??
@@ -28,13 +37,27 @@ export function resolveDevPorts({
             ? incrementPort(port)
             : hasExplicitDevPortInput({ baseEnvironment, port, serverPort, websitePort })
               ? defaultServerPort
-              : String(portBase + 1));
+              : portBase === null
+                ? defaultServerPort
+                : String(portBase + 1));
     const resolvedRuntimePort =
         baseEnvironment.TAVERN_RUNTIME_PORT ??
-        (hasExplicitDevPortInput({ baseEnvironment, port, serverPort, websitePort })
-            ? defaultRuntimePort
-            : String(portBase + 2));
+        (port
+            ? incrementPortBy(port, 2)
+            : hasExplicitDevPortInput({ baseEnvironment, port, serverPort, websitePort }) ||
+                portBase === null
+              ? defaultRuntimePort
+              : String(portBase + 2));
+    const resolvedGrottoPort =
+        baseEnvironment.GROTTO_SERVER_PORT ??
+        (port
+            ? incrementPortBy(port, 3)
+            : hasExplicitDevPortInput({ baseEnvironment, port, serverPort, websitePort }) ||
+                portBase === null
+              ? '8090'
+              : String(portBase + 3));
     return {
+        grottoPort: parsePort(resolvedGrottoPort, 'hosted Server port'),
         runtimePort: parsePort(resolvedRuntimePort, 'runtime port'),
         serverPort: parsePort(resolvedServerPort, 'backend port'),
         websitePort: parsePort(resolvedWebsitePort, 'vite port'),
@@ -56,6 +79,7 @@ export function getDevEnvironment({
 
     return {
         ...baseEnvironment,
+        GROTTO_SERVER_PORT: resolvedPorts.grottoPort,
         TAVERN_RUNTIME_PORT: resolvedPorts.runtimePort,
         TAVERN_SERVER_PORT: resolvedPorts.serverPort,
         TAVERN_WEBSITE_PORT: resolvedPorts.websitePort,
@@ -91,13 +115,17 @@ function hasExplicitDevPortInput({ baseEnvironment, port, serverPort, websitePor
 }
 
 function incrementPort(value) {
+    return incrementPortBy(value, 1);
+}
+
+function incrementPortBy(value, offset) {
     const numericValue = Number(parsePort(value, 'port'));
 
-    if (numericValue >= 65_535) {
-        throw new Error('Expected a valid port below 65535 so the backend port can be derived.');
+    if (numericValue + offset > 65_535) {
+        throw new Error('Expected a valid port that leaves room for the dev stack port group.');
     }
 
-    return String(numericValue + 1);
+    return String(numericValue + offset);
 }
 
 function parsePort(value, label) {

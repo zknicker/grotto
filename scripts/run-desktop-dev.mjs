@@ -257,6 +257,7 @@ function waitForStaleDesktopDevServerShutdown({
 function main() {
     const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
     const repositoryRoot = path.resolve(currentDirectory, '..');
+    const websiteDirectory = path.join(repositoryRoot, 'apps', 'website');
     const buildIconScriptPath = path.join(currentDirectory, 'build-macos-app-icon.mjs');
     const buildScriptPath = path.join(currentDirectory, 'build-electron-sidecar.mjs');
     const { electronArguments, pid, port, serverPort, skipServerCleanup, websitePort } =
@@ -286,18 +287,14 @@ function main() {
         process.exit(buildResult.status ?? 1);
     }
 
-    const child = spawn(
-        'bun',
-        ['x', 'electron', 'apps/website/electron/main.cjs', ...electronArguments],
-        {
-            cwd: repositoryRoot,
-            env: {
-                ...environment,
-                TAVERN_ELECTRON_DEV_URL: `http://localhost:${environment.TAVERN_WEBSITE_PORT}`,
-            },
-            stdio: 'inherit',
-        }
-    );
+    const child = spawn('bun', ['x', 'electron', 'electron/main.cjs', ...electronArguments], {
+        cwd: websiteDirectory,
+        env: {
+            ...environment,
+            TAVERN_ELECTRON_DEV_URL: `http://localhost:${environment.TAVERN_WEBSITE_PORT}`,
+        },
+        stdio: 'inherit',
+    });
 
     child.on('exit', (code, signal) => {
         if (signal) {

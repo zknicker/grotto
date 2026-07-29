@@ -120,15 +120,48 @@ test('failed signature verification never touches Computer data or installs', as
     }
 });
 
-test('a future protocol release cannot strand this Computer', async () => {
+test('a Server-authorized future protocol release upgrades this Computer', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
+    const tarball = Buffer.from('future');
+    const peer = serveArtifact(tarball);
+    const keys = generateKeyPairSync('ed25519');
+    const release = signedRelease(peer.url, tarball, keys.privateKey);
+    release.release.protocolVersion = 4;
+    release.signature = sign(
+        null,
+        Buffer.from(computerReleaseSigningPayload(release.release)),
+        keys.privateKey
+    ).toString('base64');
+    let installed = false;
+
+    try {
+        await runSignedUpdate({
+            currentVersion: '1.0.0',
+            dataRoot,
+            install: async () => {
+                installed = true;
+            },
+            publicKey: keys.publicKey.export({ format: 'pem', type: 'spki' }).toString(),
+            release,
+            restart: async () => undefined,
+            verifyArtifact: async () => undefined,
+        });
+        expect(installed).toBe(true);
+    } finally {
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('an older protocol release cannot downgrade this Computer', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
     const keys = generateKeyPairSync('ed25519');
     const release = signedRelease(
         'https://example.test/grotto-computer',
-        Buffer.from('future'),
+        Buffer.from('older'),
         keys.privateKey
     );
-    release.release.protocolVersion = 4;
+    release.release.protocolVersion = 2;
     release.signature = sign(
         null,
         Buffer.from(computerReleaseSigningPayload(release.release)),
@@ -145,7 +178,7 @@ test('a future protocol release cannot strand this Computer', async () => {
                 restart: async () => undefined,
                 verifyArtifact: async () => undefined,
             })
-        ).rejects.toThrow('protocol does not match');
+        ).rejects.toThrow('protocol is older');
     } finally {
         await rm(dataRoot, { force: true, recursive: true });
     }

@@ -117,8 +117,8 @@ export async function runSignedUpdate(input: {
         if (!isNewerVersion(targetVersion, input.currentVersion ?? computerVersion)) {
             throw new Error(`Grotto Computer ${targetVersion} is not a newer release.`);
         }
-        if (release.release.protocolVersion !== computerProtocolVersion) {
-            throw new Error('Computer release protocol does not match this Computer.');
+        if (release.release.protocolVersion < computerProtocolVersion) {
+            throw new Error('Computer release protocol is older than this Computer.');
         }
         await writeUpdateProgress(
             dataRoot,

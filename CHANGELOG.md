@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.13 - 2026-07-29
+
+- Restarting a degraded Agent now clears its failure hold and immediately
+  redrives queued work without rotating the Agent's session.
+
+### Release surfaces
+
+- App/Server: Publish v1.6.13
+- Desktop: Unchanged
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.6.12 - 2026-07-29
 
 - New Servers now offer Cove as their first Agent with his orange blob

@@ -12,8 +12,9 @@ import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
  * Watches every hosted query and mutation for the Server's protocol-mismatch
  * rejection. The gate covers the whole hosted App because `server.list` and the
  * open Server run on load, so a stale client trips it before showing product
- * data. A hosted browser tab is taught to reload; a packaged desktop App, which
- * cannot reload into a new contract, is taught to install a desktop update.
+ * data. Hosted browser tabs and the current thin desktop shell reload the
+ * canonical hosted App. Older desktop releases with a bundled renderer are
+ * taught to install a desktop update.
  */
 export function UpdateRequiredGate({
     children,

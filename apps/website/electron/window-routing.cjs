@@ -6,13 +6,14 @@
 // Top-level in-app route prefixes (mirrors lib/app-routes.ts; this file is plain CJS and
 // cannot import the TS source). Only routes under one of these may seed a new window.
 const appRoutePrefixes = [
-    '/overview',
+    '/activity',
     '/chats',
+    '/design',
+    '/members',
+    '/reminders',
+    '/search',
     '/tasks',
-    '/workspace',
-    '/wiki',
     '/settings',
-    '/onboarding',
 ];
 const defaultWindowWidth = 1440;
 const defaultWindowHeight = 960;
@@ -41,13 +42,13 @@ function nextWindowBounds(openerBounds, options = {}) {
     };
 }
 
-/** Builds the dev-server URL (path router) for a seeded route, or the bare origin. */
-function buildDevWindowUrl(devUrl, route) {
-    return route ? new URL(route, devUrl).toString() : devUrl;
+/** Builds the hosted or dev App URL for a seeded route, or the bare App origin. */
+function buildWindowUrl(appUrl, route) {
+    return route ? new URL(route, appUrl).toString() : appUrl;
 }
 
 module.exports = {
-    buildDevWindowUrl,
+    buildWindowUrl,
     isSafeWindowRoute,
     nextWindowBounds,
 };

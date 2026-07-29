@@ -1,5 +1,7 @@
 'use strict';
 
+const { desktopRuntimeDependencies } = require('./electron/runtime-dependencies.cjs');
+
 const releaseBaseUrl = process.env.TAVERN_RELEASE_BASE_URL?.replace(/\/+$/u, '');
 
 module.exports = {
@@ -15,14 +17,17 @@ module.exports = {
         output: 'electron-dist',
     },
     files: [
-        'dist/**',
         'electron/clerk-auth.cjs',
+        'electron/clerk-native-requests.cjs',
         'electron/edit-context-menu.cjs',
         'electron/external-link-handlers.cjs',
         'electron/main.cjs',
         'electron/preload.cjs',
+        'electron/trusted-renderer.cjs',
         'electron/window-routing.cjs',
         'package.json',
+        '!node_modules/**',
+        `node_modules/{${desktopRuntimeDependencies.join(',')}}/**`,
     ],
     extraResources: [
         {

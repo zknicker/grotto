@@ -43,7 +43,7 @@ Before every release, inspect the changed files and record every surface:
 | Surface | Publish when |
 | --- | --- |
 | App/Server | Product UI, hosted API, hosted persistence, or Server behavior changes |
-| Desktop | The Electron shell or bundled desktop artifact changes |
+| Desktop | The Electron shell, preload bridge, or native desktop artifact changes |
 | Computer | Computer execution, lifecycle, local CLI, updater, embedded managed CLI, bootstrap or ordinary protocol, or a required shared Computer dependency changes |
 | Runtime | A remaining pre-Computer Runtime package contract changes |
 
@@ -95,7 +95,11 @@ the build without invalidating the immutable release commit.
 
 The hosted Server and hosted web App use the same product version as
 `apps/website`. They are one atomic production artifact; there is no separate
-Server SemVer.
+Server SemVer. The Electron app loads this canonical hosted App; ordinary UI
+changes do not require a desktop release. A desktop release is required only
+when the native shell or preload bridge changes. The publisher reads the
+release-surface decision and skips desktop building, notarization, updater
+upload, and GitHub artifacts when Desktop is unchanged.
 
 Publishing the annotated `vX.Y.Z` GitHub Release triggers the production
 deployment. A push to `main` does not. The deploy resolves that immutable tag to

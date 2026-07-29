@@ -11,20 +11,29 @@ loadEnvFile();
 const s3Uri = trimTrailingSlash(requireEnv('TAVERN_RELEASE_S3_URI'));
 const includeRuntime =
     process.argv.includes('--runtime') || process.env.TAVERN_RELEASE_INCLUDE_RUNTIME === '1';
+const includeDesktop = process.env.TAVERN_RELEASE_INCLUDE_DESKTOP !== '0';
 const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
 const runtimeBundleDir = path.join(repoRoot, 'apps', 'website', 'electron-dist', 'runtime');
 
 const main = async () => {
     const { version } = await readJson('apps/website/package.json');
     const artifactPrefix = `Grotto_${version}_arm64`;
-    const desktopArtifacts = [
-        ...(await findFiles(bundleRoot, (entry) => entry === 'latest-mac.yml')),
-        ...(await findFiles(bundleRoot, (entry) => entry === `${artifactPrefix}.dmg`)),
-        ...(await findFiles(bundleRoot, (entry) => entry === `${artifactPrefix}.zip`)),
-        ...(await findFiles(bundleRoot, (entry) => entry === `${artifactPrefix}.dmg.blockmap`)),
-        ...(await findFiles(bundleRoot, (entry) => entry === `${artifactPrefix}.zip.blockmap`)),
-    ];
-    if (desktopArtifacts.length !== 5) {
+    const desktopArtifacts = includeDesktop
+        ? [
+              ...(await findFiles(bundleRoot, (entry) => entry === 'latest-mac.yml')),
+              ...(await findFiles(bundleRoot, (entry) => entry === `${artifactPrefix}.dmg`)),
+              ...(await findFiles(bundleRoot, (entry) => entry === `${artifactPrefix}.zip`)),
+              ...(await findFiles(
+                  bundleRoot,
+                  (entry) => entry === `${artifactPrefix}.dmg.blockmap`
+              )),
+              ...(await findFiles(
+                  bundleRoot,
+                  (entry) => entry === `${artifactPrefix}.zip.blockmap`
+              )),
+          ]
+        : [];
+    if (includeDesktop && desktopArtifacts.length !== 5) {
         console.error(
             `release:publish-desktop error: expected 5 desktop artifacts for ${version}, found ${desktopArtifacts.length}`
         );

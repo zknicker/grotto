@@ -433,21 +433,22 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 - `/s/<slug>/settings/connections` manages MCP connections on one selected
   Computer attachment. Secrets relay over the Server's existing authenticated
   Computer socket and never enter App storage.
-- `/s/<slug>/settings/updates` owns only the packaged desktop App update.
+- `/s/<slug>/settings/updates` owns only the thin desktop shell update.
   Computer updates live on the selected Computer detail. The hosted App has no
   Runtime URL, token, connection banner, or Runtime update flow.
 - `/invite/<token>` is where an invited human accepts. It sits outside the
   `/s/<slug>` branch because a Server address may itself be `invite` or `join`.
-  Manual links use `VITE_GROTTO_APP_ORIGIN` when configured, so a packaged App
-  never exposes its private `file:` URL; that origin must match `APP_ORIGIN`.
+  Manual links use `VITE_GROTTO_APP_ORIGIN` when configured; that origin must
+  match `APP_ORIGIN`.
 - `/privacy` serves the public privacy policy directly from the hosted App
   artifact without loading the signed-in App shell.
 
 The App uses `apps/website/src/lib/grotto-server.tsx`: the browser's same origin
 in production and `VITE_GROTTO_SERVER_ORIGIN` in development, with the Clerk
 session attached per request and per WebSocket connection. Product operations
-never use a local sidecar or Electron IPC. Electron supplies native window,
-link, authentication-storage, and desktop-update behavior only. Hooks live in
+never use a local sidecar or Electron IPC. Electron loads this same hosted App
+and supplies native window, link, authentication-storage, and desktop-update
+behavior only. Hooks live in
 `apps/website/src/hooks/servers/`.
 
 A socket presents the Clerk session it was opened with, so the provider watches

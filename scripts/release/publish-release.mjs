@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { checkComputerReleasePrerequisite } from './check-computer-prerequisite.mjs';
 import { findGrottoServerReleaseAssets } from './grotto-server-release-assets.mjs';
+import { releasePublishesSurface } from './release-surfaces.mjs';
 import { fail, isSemver, readFlagValue, readJson, readText, repoRoot } from './release-utils.mjs';
 
 const argv = process.argv.slice(2);
@@ -44,6 +45,7 @@ const main = async () => {
         `Computer prerequisite: ${computerRelease.version} (protocol ${computerRelease.protocolVersion})`
     );
     const surfaceDecision = await readJson('release-surfaces.json');
+    const publishDesktop = releasePublishesSurface(surfaceDecision, 'desktop');
     if (
         surfaceDecision.surfaces.computer.action === 'publish' &&
         surfaceDecision.surfaces.computer.version !== computerRelease.version
@@ -69,12 +71,30 @@ const main = async () => {
     if (publishRuntime) {
         run('bun', ['run', 'release:build-runtime-artifact']);
     }
-    process.env.TAVERN_RELEASE_INCLUDE_RUNTIME = publishRuntime ? '1' : '0';
-    run('bun', ['run', 'publish:desktop']);
-    run('bun', ['run', 'release:check-desktop-artifacts']);
+    if (publishDesktop) {
+        run('bun', ['run', 'publish:desktop'], {
+            env: {
+                ...process.env,
+                TAVERN_RELEASE_INCLUDE_DESKTOP: '1',
+                TAVERN_RELEASE_INCLUDE_RUNTIME: publishRuntime ? '1' : '0',
+            },
+        });
+    } else if (publishRuntime) {
+        run('node', ['scripts/release/publish-desktop.mjs'], {
+            env: {
+                ...process.env,
+                TAVERN_RELEASE_INCLUDE_DESKTOP: '0',
+                TAVERN_RELEASE_INCLUDE_RUNTIME: '1',
+            },
+        });
+    }
+    if (publishDesktop) {
+        run('bun', ['run', 'release:check-desktop-artifacts']);
+    }
 
     const notesPath = await writeReleaseNotes(version);
     const artifacts = await findReleaseArtifacts({
+        includeDesktop: publishDesktop,
         includeRuntime: publishRuntime,
         sourceRevision,
         version,
@@ -98,7 +118,7 @@ function printUsage() {
             'Usage: bun run release:publish [-- --push-branch main]',
             '       bun run release:publish -- --runtime',
             '',
-            'Builds the hosted Server plus signed desktop artifacts, notarizes the app,',
+            'Builds the hosted Server and each declared release surface,',
             'pushes the release commit and tag, and creates the GitHub Release.',
             'Pass --runtime to also build/publish the Runtime tarball and Homebrew formula.',
         ].join('\n')
@@ -250,10 +270,10 @@ function extractReleaseNotes(changelog, version) {
     return notes;
 }
 
-async function findReleaseArtifacts({ includeRuntime, sourceRevision, version }) {
+async function findReleaseArtifacts({ includeDesktop, includeRuntime, sourceRevision, version }) {
     const artifacts = [
-        ...(await findDesktopArtifacts(version)),
-        path.join(bundleRoot, 'latest-mac.yml'),
+        ...(includeDesktop ? await findDesktopArtifacts(version) : []),
+        ...(includeDesktop ? [path.join(bundleRoot, 'latest-mac.yml')] : []),
         ...(await findGrottoServerReleaseAssets({
             releaseRoot: serverReleaseRoot,
             sourceRevision,
@@ -262,7 +282,7 @@ async function findReleaseArtifacts({ includeRuntime, sourceRevision, version })
         ...(includeRuntime ? await findRuntimeArtifacts(version) : []),
     ];
 
-    if (!artifacts.some((artifact) => path.basename(artifact).endsWith('.dmg'))) {
+    if (includeDesktop && !artifacts.some((artifact) => path.basename(artifact).endsWith('.dmg'))) {
         fail('could not find expected Electron DMG artifact', {
             files: await readdir(bundleRoot),
         });

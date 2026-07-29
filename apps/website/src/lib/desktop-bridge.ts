@@ -18,6 +18,8 @@ export interface TavernDesktopBridge {
     closeWindow: () => Promise<void>;
     downloadUpdate: () => Promise<void>;
     getInfo: () => Promise<{ isPackaged: boolean; platform: NodeJS.Platform; version: string }>;
+    /** This shell loads the canonical hosted App instead of a bundled renderer. */
+    loadsHostedApp?: true;
     /** Main → renderer: the Developer menu toggled dev mode for this device. */
     onDevModeToggle?: (listener: () => void) => () => void;
     /** Main → renderer: the system browser returned Clerk's OAuth callback. */

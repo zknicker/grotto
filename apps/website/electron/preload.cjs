@@ -3,6 +3,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('tavernDesktop', {
+    loadsHostedApp: true,
     authTokenGet: () => ipcRenderer.invoke('desktop:auth:token-get'),
     authTokenSet: (token) => ipcRenderer.invoke('desktop:auth:token-set', token),
     onSsoCallback: (listener) => {

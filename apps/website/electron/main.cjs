@@ -7,6 +7,7 @@ const {
     Menu,
     nativeTheme,
     safeStorage,
+    session,
     shell,
     webContents,
 } = require('electron');
@@ -14,9 +15,11 @@ const path = require('node:path');
 const { execFile } = require('node:child_process');
 const electronUpdater = require('electron-updater');
 const { registerClerkAuth } = require('./clerk-auth.cjs');
+const { registerNativeClerkRequestHeaders } = require('./clerk-native-requests.cjs');
 const { registerEditContextMenuHandlers } = require('./edit-context-menu.cjs');
 const { registerExternalLinkHandlers } = require('./external-link-handlers.cjs');
-const { buildDevWindowUrl, isSafeWindowRoute, nextWindowBounds } = require('./window-routing.cjs');
+const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
+const { buildWindowUrl, isSafeWindowRoute, nextWindowBounds } = require('./window-routing.cjs');
 
 // A broken stdout/stderr pipe (e.g. the dev launcher's reader went away, or a logging
 // library writes after the pipe closed) must never crash the app with an uncaught EPIPE.
@@ -30,6 +33,8 @@ for (const stream of [process.stdout, process.stderr]) {
 
 const updateCheckIntervalMs = 10 * 60 * 1000;
 const openDevtoolsMenuId = 'open-devtools';
+const productionAppUrl = 'https://grotto.sh';
+const productionClerkOrigin = 'https://clerk.grotto.sh';
 // Matches --topbar-height in the renderer so the traffic lights center in
 // the shell's headroom band.
 const topbarHeightPx = 48;
@@ -40,6 +45,9 @@ const macosTrafficLightPosition = {
 };
 const { autoUpdater } = electronUpdater;
 const useMockUpdater = !app.isPackaged && process.env.TAVERN_ELECTRON_UPDATER_MOCK === '1';
+const appUrl = app.isPackaged
+    ? productionAppUrl
+    : (process.env.TAVERN_ELECTRON_DEV_URL ?? productionAppUrl);
 
 const windows = new Set();
 let mainWindow = null;
@@ -58,7 +66,7 @@ if (process.env.TAVERN_ELECTRON_DEV_URL) {
 app.setName('Grotto');
 app.setAppUserModelId('build.grotto.desktop');
 
-registerClerkAuth({ app, BrowserWindow, ipcMain, safeStorage, shell, webContents });
+registerClerkAuth({ app, appUrl, BrowserWindow, ipcMain, safeStorage, shell, webContents });
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
@@ -116,7 +124,7 @@ function createWindow({ route, openerBounds } = {}) {
     });
 
     registerExternalLinkHandlers(window, {
-        appUrl: process.env.TAVERN_ELECTRON_DEV_URL ?? 'file://',
+        appUrl,
         openExternal: (url) => shell.openExternal(url),
     });
 
@@ -125,15 +133,7 @@ function createWindow({ route, openerBounds } = {}) {
     return window;
 }
 async function loadWindow(window, route) {
-    const devUrl = process.env.TAVERN_ELECTRON_DEV_URL;
-
-    if (devUrl) {
-        await window.loadURL(buildDevWindowUrl(devUrl, route));
-        return;
-    }
-
-    const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
-    await window.loadFile(indexPath, route ? { hash: route } : undefined);
+    await window.loadURL(buildWindowUrl(appUrl, route));
 }
 
 function installAppMenu() {
@@ -200,17 +200,23 @@ function installAppMenu() {
 }
 
 function registerIpcHandlers() {
-    registerEditContextMenuHandlers();
+    registerEditContextMenuHandlers({ appUrl, ipcMain });
 
-    ipcMain.handle('desktop:get-info', () => ({
-        isPackaged: app.isPackaged,
-        platform: process.platform,
-        version: app.getVersion(),
-    }));
+    ipcMain.handle('desktop:get-info', (event) => {
+        assertTrustedRenderer(event, appUrl);
+        return {
+            isPackaged: app.isPackaged,
+            platform: process.platform,
+            version: app.getVersion(),
+        };
+    });
 
-    ipcMain.handle('desktop:window:start-drag', () => undefined);
+    ipcMain.handle('desktop:window:start-drag', (event) => {
+        assertTrustedRenderer(event, appUrl);
+    });
 
     ipcMain.handle('desktop:window:open', (event, route) => {
+        assertTrustedRenderer(event, appUrl);
         if (!isSafeWindowRoute(route)) {
             return;
         }
@@ -220,18 +226,22 @@ function registerIpcHandlers() {
     });
 
     ipcMain.handle('desktop:window:close', (event) => {
+        assertTrustedRenderer(event, appUrl);
         BrowserWindow.fromWebContents(event.sender)?.close();
     });
 
-    ipcMain.handle('desktop:window:set-theme', (_event, theme) => {
+    ipcMain.handle('desktop:window:set-theme', (event, theme) => {
+        assertTrustedRenderer(event, appUrl);
         nativeTheme.themeSource = theme === 'dark' || theme === 'light' ? theme : 'system';
     });
 
-    ipcMain.handle('desktop:update:check', async () => {
+    ipcMain.handle('desktop:update:check', async (event) => {
+        assertTrustedRenderer(event, appUrl);
         await checkForUpdates();
     });
 
-    ipcMain.handle('desktop:update:download', async () => {
+    ipcMain.handle('desktop:update:download', async (event) => {
+        assertTrustedRenderer(event, appUrl);
         if (useMockUpdater) {
             await runMockUpdateDownload();
             return;
@@ -240,7 +250,8 @@ function registerIpcHandlers() {
         await autoUpdater.downloadUpdate();
     });
 
-    ipcMain.handle('desktop:update:restart', () => {
+    ipcMain.handle('desktop:update:restart', (event) => {
+        assertTrustedRenderer(event, appUrl);
         if (useMockUpdater) {
             sendUpdateStatus({ phase: 'restarting', version: '999.0.0' });
             return;
@@ -372,6 +383,11 @@ function getErrorMessage(error) {
 }
 
 app.whenReady().then(() => {
+    registerNativeClerkRequestHeaders(
+        session.defaultSession.webRequest,
+        productionClerkOrigin,
+        productionAppUrl
+    );
     registerIpcHandlers();
     installAppMenu();
     createWindow();

@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import {
     assertReleaseSurfaceDecision,
     formatReleaseSurfaceDecision,
+    releasePublishesSurface,
     resetReleaseSurfaceDecision,
 } from './release-surfaces.mjs';
 
@@ -24,6 +25,8 @@ test('release check accepts and formats one explicit decision per surface', () =
     };
     expect(assertReleaseSurfaceDecision(decision, { targetVersion: '1.2.3' }).complete).toBe(true);
     expect(formatReleaseSurfaceDecision(decision)).toContain('- Computer: Publish v2.0.0');
+    expect(releasePublishesSurface(decision, 'appServer')).toBe(true);
+    expect(releasePublishesSurface(decision, 'desktop')).toBe(false);
 });
 
 test('Computer-only repairs explicitly leave every other surface unchanged', () => {

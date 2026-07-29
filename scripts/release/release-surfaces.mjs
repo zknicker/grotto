@@ -84,6 +84,10 @@ export function formatReleaseSurfaceDecision(value) {
     ].join('\n');
 }
 
+export function releasePublishesSurface(value, surface) {
+    return value.surfaces[surface].action === 'publish';
+}
+
 export function resetReleaseSurfaceDecision(targetVersion) {
     return {
         targetVersion,

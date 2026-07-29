@@ -7,9 +7,17 @@ read_when:
 
 # Tavern App
 
-Tavern App is the Electron product surface and first-party Tavern Runtime client.
-Its React client and local Node/tRPC layer are one app boundary, not the
-canonical chat server.
+The hosted React App is Grotto's canonical product surface. Browsers load it
+directly from `grotto.sh`; the Electron desktop app is a thin native shell that
+loads the same hosted App. Electron adds only native window behavior, system
+links, native Clerk token storage, deep links, and desktop updates through a
+narrow preload bridge.
+
+The packaged desktop artifact does not contain a second copy of the product UI.
+Only the exact configured App origin may navigate inside the shell or invoke
+native IPC. UI fixes therefore reach browsers and desktop windows together when
+the hosted App is promoted; a signed desktop release is required only when the
+Electron shell or preload bridge changes.
 
 Tavern App must not gain execution ownership from the agent-engine integration.
 Anything a headless Runtime API client needs to run the agent belongs to

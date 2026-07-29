@@ -1,11 +1,12 @@
 'use strict';
 
-const { ipcMain } = require('electron');
+const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
 
 const editCommands = new Set(['copy', 'cut', 'paste', 'redo', 'selectAll', 'undo']);
 
-function registerEditContextMenuHandlers() {
+function registerEditContextMenuHandlers({ appUrl, ipcMain }) {
     ipcMain.handle('desktop:edit:run', (event, command) => {
+        assertTrustedRenderer(event, appUrl);
         if (!editCommands.has(command)) {
             return;
         }

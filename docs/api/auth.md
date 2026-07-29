@@ -101,10 +101,15 @@ implemented surface:
   (dev: `apps/website/.env.local`, pulled with `clerk env pull`). Keyless
   builds run a signed-out dev mode with no gate; e2e forces keyless. If
   clerk-js cannot load (offline), the app renders local data on the cached
-  identity instead of locking the user out. Packaged desktop builds use
-  Clerk's native header authentication, keep the encrypted client token in
-  Electron storage, and complete Google sign-in in the system browser through
-  the `grotto://sso-callback` protocol.
+  identity instead of locking the user out. The Electron shell loads the same
+  hosted App but uses Clerk's native header authentication, keeps the encrypted
+  client token in Electron storage, and completes Google sign-in in the system
+  browser through the `grotto://sso-callback` protocol. Electron removes the
+  hosted renderer's automatic `Origin` header only from Clerk requests explicitly
+  marked as native, because Clerk accepts either native `Authorization` or a
+  browser `Origin`, never both. The shell permits only the configured hosted App
+  origin to read those native Clerk responses; it does not disable Chromium web
+  security or widen CORS for other traffic.
 - Dev builds automatically sign in as the configured dev user when
   `CLERK_SECRET_KEY` and `DEV_CLERK_SIGN_IN_USER_ID` are set in the
   machine-local root `.env`. The dev stack forwards those values to the Server,
@@ -123,8 +128,8 @@ implemented surface:
   membership. `CLERK_SECRET_KEY` is CLI/dev-only and must never ship in
   client code or version control.
 - Production runs on the Clerk instance at `clerk.grotto.sh` (Google OAuth
-  via the Grotto Clerk client in the technical `tavern-499717` Google Cloud project). Desktop
-  release builds bake the pk_live publishable key via the
-  `desktop:build:release` script; dev and unsigned builds stay on the dev
-  instance. Before release, both Clerk instances must whitelist the canonical
+  via the Grotto Clerk client in the technical `tavern-499717` Google Cloud
+  project). The hosted App build carries the production publishable key; the
+  desktop shell contains no separate React or Clerk build. Before release,
+  both Clerk instances must whitelist the canonical
   `grotto://sso-callback` redirect.

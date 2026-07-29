@@ -2,13 +2,22 @@
 
 const path = require('node:path');
 const { existsSync, readFileSync, unlinkSync, writeFileSync } = require('node:fs');
+const { assertTrustedRenderer, isTrustedRendererUrl } = require('./trusted-renderer.cjs');
 
 const callbackChannel = 'desktop:auth:sso-callback';
 const callbackMarker = 'sso-callback';
 const protocolScheme = 'grotto';
 let memoryToken = null;
 
-function registerClerkAuth({ app, BrowserWindow, ipcMain, safeStorage, shell, webContents }) {
+function registerClerkAuth({
+    app,
+    appUrl,
+    BrowserWindow,
+    ipcMain,
+    safeStorage,
+    shell,
+    webContents,
+}) {
     registerProtocolClient(app);
 
     const hasLock = app.requestSingleInstanceLock();
@@ -19,13 +28,13 @@ function registerClerkAuth({ app, BrowserWindow, ipcMain, safeStorage, shell, we
 
     app.on('open-url', (event, url) => {
         event.preventDefault();
-        broadcastSsoCallback(url, webContents);
+        broadcastSsoCallback(url, webContents, appUrl);
     });
 
     app.on('second-instance', (_event, argv) => {
         const callbackUrl = argv.find(isSsoCallbackUrl);
         if (callbackUrl) {
-            broadcastSsoCallback(callbackUrl, webContents);
+            broadcastSsoCallback(callbackUrl, webContents, appUrl);
         }
 
         const window = BrowserWindow.getAllWindows().find((candidate) => !candidate.isDestroyed());
@@ -38,11 +47,16 @@ function registerClerkAuth({ app, BrowserWindow, ipcMain, safeStorage, shell, we
         }
     });
 
-    ipcMain.handle('desktop:auth:token-get', () => readToken(app, safeStorage));
-    ipcMain.handle('desktop:auth:token-set', (_event, token) =>
-        writeToken(app, safeStorage, token)
-    );
-    ipcMain.handle('desktop:open-external', async (_event, url) => {
+    ipcMain.handle('desktop:auth:token-get', (event) => {
+        assertTrustedRenderer(event, appUrl);
+        return readToken(app, safeStorage);
+    });
+    ipcMain.handle('desktop:auth:token-set', (event, token) => {
+        assertTrustedRenderer(event, appUrl);
+        return writeToken(app, safeStorage, token);
+    });
+    ipcMain.handle('desktop:open-external', async (event, url) => {
+        assertTrustedRenderer(event, appUrl);
         if (!isExternalBrowserUrl(url)) {
             throw new Error('Only HTTP(S) URLs can open in the system browser.');
         }
@@ -63,13 +77,13 @@ function registerProtocolClient(app) {
     app.setAsDefaultProtocolClient(protocolScheme);
 }
 
-function broadcastSsoCallback(url, allWebContents) {
+function broadcastSsoCallback(url, allWebContents, appUrl) {
     if (!isSsoCallbackUrl(url)) {
         return;
     }
 
     for (const contents of allWebContents.getAllWebContents()) {
-        if (!contents.isDestroyed()) {
+        if (!contents.isDestroyed() && isTrustedRendererUrl(contents.getURL(), appUrl)) {
             contents.send(callbackChannel, url);
         }
     }

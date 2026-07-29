@@ -1,4 +1,4 @@
-import { isElectronDesktopApp } from './desktop-bridge.ts';
+import { getDesktopBridge, isElectronDesktopApp } from './desktop-bridge.ts';
 
 /**
  * The hosted Server admits only an App that declares the exact
@@ -12,12 +12,14 @@ const updateRequiredTrpcCode = 'PRECONDITION_FAILED';
 export type UpdateRequiredMode = 'desktop-update' | 'reload';
 
 /**
- * A stale hosted browser tab reloads to fetch the current App; an older
- * packaged desktop App cannot reload into a new contract and must install a
+ * A hosted browser or current thin desktop shell reloads to fetch the current
+ * App. Older desktop releases still carrying a bundled renderer must install a
  * desktop update instead.
  */
 export function updateRequiredMode(): UpdateRequiredMode {
-    return isElectronDesktopApp() ? 'desktop-update' : 'reload';
+    return isElectronDesktopApp() && !getDesktopBridge()?.loadsHostedApp
+        ? 'desktop-update'
+        : 'reload';
 }
 
 /** True when a tRPC error is the hosted Server's protocol-mismatch rejection. */

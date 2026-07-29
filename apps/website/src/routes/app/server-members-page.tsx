@@ -16,7 +16,7 @@ import { cn } from '../../lib/utils.ts';
 export function ServerMembersPage() {
     const { agentId } = useParams();
     const location = useLocation();
-    const { agents, server } = useHostedServerContext();
+    const { agentListStatus, agents, server } = useHostedServerContext();
     const directory = useServerMembers(server.id);
     const selectedAgent = agents.find((agent) => agent.id === agentId) ?? null;
     const humansSelected = location.pathname.endsWith('/humans');
@@ -25,6 +25,7 @@ export function ServerMembersPage() {
     return (
         <MembersPageFrame
             agentCount={agents.length}
+            agentListStatus={agentListStatus}
             agentRows={agents.map((agent) => (
                 <AgentRow agent={agent} key={agent.id} slug={server.slug} />
             ))}

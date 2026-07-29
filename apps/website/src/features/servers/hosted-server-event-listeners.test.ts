@@ -1,8 +1,5 @@
 import { expect, test } from 'bun:test';
-import {
-    hostedServerEventIds,
-    hostedServerSlugFromPath,
-} from './hosted-server-event-listeners.tsx';
+import { hostedServerEventIds, hostedServerSlugFromPath } from './hosted-server-event-model.ts';
 
 test('the open Server is observed before the Server list resolves', () => {
     expect(hostedServerEventIds([], { id: 'srv_open' })).toEqual(['srv_open']);

@@ -67,6 +67,7 @@ export function ServerLayout() {
 
     const active = resolveActiveSection(location.pathname, slug);
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
+    const agentListStatus = agents.data ? 'ready' : agents.isPending ? 'loading' : 'error';
     const serverChoices = servers.data ?? [server.data];
     const openChat = (chatId: string) => navigate(serverChatRoute(slug, chatId));
     const selectSection = (section: HostedServerSection) => {
@@ -127,16 +128,19 @@ export function ServerLayout() {
                             active === 'members' || active === 'computers' ? 'true' : undefined
                         }
                     >
-                        {server.error || connectionState !== 'connected' ? (
+                        {server.error || agents.error || connectionState !== 'connected' ? (
                             <Elevated
                                 className="absolute top-2 right-3 z-20 rounded-lg px-2 py-1 text-meta text-muted-foreground"
                                 offset={2}
                             >
-                                Server reconnecting · showing the latest data
+                                {agents.error && !agents.data
+                                    ? 'Agent directory unavailable'
+                                    : 'Server reconnecting · showing the latest data'}
                             </Elevated>
                         ) : null}
                         <Outlet
                             context={{
+                                agentListStatus,
                                 agents: agents.data ?? [],
                                 chats: chats.data ?? [],
                                 server: server.data,

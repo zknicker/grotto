@@ -11,9 +11,12 @@ read_when:
 `grotto.sh` is one Server on the Mac mini. Cloudflare provides DNS, TLS, and a
 named Tunnel only. The Tunnel sends `https://grotto.sh` to
 `http://127.0.0.1:18791`; the Server serves the App, tRPC HTTP, WebSocket, and
-`/healthz` from that origin. PostgreSQL, attachments, and jobs stay on the mini.
-There is no public inbound port, managed database, object store in the request
-path, or Cloudflare compute.
+`/healthz` from that origin. A Cloudflare Redirect Rule sends
+`www.grotto.sh/*` to the matching apex path and preserves the query string.
+PostgreSQL, attachments, and jobs stay on the mini. There is no public inbound
+port, managed database, object store in the request path, or Cloudflare compute
+for the apex. Vercel remains the domain registrar only; no production request
+or deployment uses Vercel.
 
 ## Release artifact
 

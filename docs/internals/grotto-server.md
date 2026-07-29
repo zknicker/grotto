@@ -435,6 +435,8 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   `/s/<slug>` branch because a Server address may itself be `invite` or `join`.
   Manual links use `VITE_GROTTO_APP_ORIGIN` when configured, so a packaged App
   never exposes its private `file:` URL; that origin must match `APP_ORIGIN`.
+- `/privacy` serves the public privacy policy directly from the hosted App
+  artifact without loading the signed-in App shell.
 
 The App uses `apps/website/src/lib/grotto-server.tsx`: the browser's same origin
 in production and `VITE_GROTTO_SERVER_ORIGIN` in development, with the Clerk
@@ -463,6 +465,7 @@ anchor or message content in the event.
 
 The single-node production Server listens on `127.0.0.1:18791` and serves the
 hosted App, tRPC HTTP, WebSocket, and `/healthz` from `https://grotto.sh`.
-Cloudflare is limited to DNS, TLS, and named Tunnel ingress. PostgreSQL,
-attachment storage, and jobs remain local to the Mac mini. See
-[Grotto Server deployment](../operations/grotto-server-deploy.md).
+Cloudflare owns DNS, TLS, named Tunnel ingress, and the `www`-to-apex Redirect
+Rule. PostgreSQL, attachment storage, and jobs remain local to the Mac mini.
+Vercel remains the registrar only and serves no production traffic. See [Grotto
+Server deployment](../operations/grotto-server-deploy.md).

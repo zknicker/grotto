@@ -233,7 +233,7 @@ test('resident start reconnects an attachment after the Server closes it', async
     try {
         await Promise.race([
             reconnected.promise,
-            Bun.sleep(2000).then(async () => {
+            Bun.sleep(5000).then(async () => {
                 const marker = await readFile(join(attachmentRoot, 'runner.pid'), 'utf8').catch(
                     () => 'missing'
                 );

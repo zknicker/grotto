@@ -4,6 +4,7 @@ import { Combobox } from '@base-ui/react/combobox';
 import { Close } from '@hugeicons/core-free-icons';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
+import { Elevated } from '../../components/ui/surface.tsx';
 import { cn } from '../../lib/utils.ts';
 
 interface AllowedToolsInputProps {
@@ -197,7 +198,7 @@ export function AllowedToolsInput({
         >
             <Combobox.Chips
                 className={cn(
-                    'relative flex min-h-10 w-full flex-wrap items-center gap-2 rounded-lg border border-input bg-background px-2 py-2 text-sm shadow-xs/5 ring-ring/24 transition-shadow focus-within:border-ring focus-within:ring-[3px] dark:bg-input/32',
+                    'relative flex min-h-10 w-full flex-wrap items-center gap-2 rounded-lg border border-input bg-background px-2 py-2 text-sm ring-ring/24 focus-within:border-ring focus-within:ring-[3px]',
                     'aria-invalid:border-destructive/36 aria-invalid:focus-within:border-destructive/64 aria-invalid:focus-within:ring-destructive/16 dark:aria-invalid:focus-within:ring-destructive/24'
                 )}
             >
@@ -207,7 +208,7 @@ export function AllowedToolsInput({
                             {selected.map((item) => (
                                 <Combobox.Chip
                                     aria-label={item.label}
-                                    className="inline-flex h-7 items-center gap-1 rounded-md bg-foreground/6 px-2.5 text-foreground text-sm dark:bg-white/8"
+                                    className="inline-flex h-7 items-center gap-1 rounded-md bg-muted px-2.5 text-foreground text-sm"
                                     key={item.value}
                                 >
                                     <span className="max-w-48 truncate">{item.label}</span>
@@ -270,28 +271,30 @@ export function AllowedToolsInput({
             </Combobox.Chips>
             <Combobox.Portal>
                 <Combobox.Positioner align="start" className="z-50" side="bottom" sideOffset={6}>
-                    <Combobox.Popup className="min-w-[min(var(--anchor-width),28rem)] origin-(--transform-origin) rounded-lg border bg-popover shadow-lg/5 outline-none">
-                        {items.length === 0 ? (
-                            <Combobox.Empty className="px-3 py-2 text-muted-foreground text-sm">
-                                No tools found.
-                            </Combobox.Empty>
-                        ) : null}
-                        <Combobox.List className="max-h-64 overflow-y-auto p-1.5">
-                            {(item: ToolOption) => (
-                                <Combobox.Item
-                                    className="flex cursor-default items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                    key={item.value}
-                                    value={item}
-                                >
-                                    <span className="truncate">{item.label}</span>
-                                    {item.isCustom ? (
-                                        <span className="shrink-0 text-caption text-muted-foreground uppercase tracking-[0.16em] data-highlighted:text-accent-foreground/72">
-                                            Custom
-                                        </span>
-                                    ) : null}
-                                </Combobox.Item>
-                            )}
-                        </Combobox.List>
+                    <Combobox.Popup className="min-w-[min(var(--anchor-width),28rem)] origin-(--transform-origin) outline-none">
+                        <Elevated className="overflow-hidden rounded-lg" offset={2} shadowLevel={3}>
+                            {items.length === 0 ? (
+                                <Combobox.Empty className="px-3 py-2 text-muted-foreground text-sm">
+                                    No tools found.
+                                </Combobox.Empty>
+                            ) : null}
+                            <Combobox.List className="max-h-64 overflow-y-auto p-1.5">
+                                {(item: ToolOption) => (
+                                    <Combobox.Item
+                                        className="flex cursor-default items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground"
+                                        key={item.value}
+                                        value={item}
+                                    >
+                                        <span className="truncate">{item.label}</span>
+                                        {item.isCustom ? (
+                                            <span className="shrink-0 text-caption text-muted-foreground uppercase tracking-[0.16em]">
+                                                Custom
+                                            </span>
+                                        ) : null}
+                                    </Combobox.Item>
+                                )}
+                            </Combobox.List>
+                        </Elevated>
                     </Combobox.Popup>
                 </Combobox.Positioner>
             </Combobox.Portal>

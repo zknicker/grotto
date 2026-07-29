@@ -1,5 +1,6 @@
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import type { ComponentProps, ReactNode } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui/alert.tsx';
 import {
     Dialog,
     DialogContent,
@@ -13,7 +14,6 @@ import { Field, FieldDescription, FieldLabel } from '../../../components/ui/prim
 import { Form } from '../../../components/ui/primitives/form.tsx';
 import { Switch } from '../../../components/ui/switch.tsx';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui/tooltip.tsx';
-import { cn } from '../../../lib/utils.ts';
 
 // Reusable shell + field kit for Browser config dialogs. Mirrors the skill
 // inspection dialog: circle icon, header-aligned toggle, compact fields, and a
@@ -53,7 +53,7 @@ export function BrowserDialog({
                     }}
                 >
                     <DialogHeader className="gap-3 pe-0">
-                        <div className="flex size-12 items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground">
+                        <div className="flex size-12 items-center justify-center rounded-full border border-border-subtle bg-background text-muted-foreground">
                             <Icon className="size-6" icon={icon} />
                         </div>
                         <div className="flex items-center gap-3">
@@ -72,7 +72,7 @@ export function BrowserDialog({
                             ) : null}
                         </div>
                         {description ? (
-                            <DialogDescription className="text-foreground/80 leading-6">
+                            <DialogDescription className="text-sm leading-6">
                                 {description}
                             </DialogDescription>
                         ) : null}
@@ -147,16 +147,12 @@ export function BrowserNotice({
     variant?: 'warning' | 'error';
 }) {
     return (
-        <div
-            className={cn(
-                'rounded-lg border px-3 py-2 text-sm',
-                variant === 'warning' && 'border-warning/25 bg-warning/8',
-                variant === 'error' && 'border-error/25 bg-error/8'
-            )}
-        >
-            <span className="font-medium text-foreground">{title}. </span>
-            <span className="text-muted-foreground">{children}</span>
-        </div>
+        <Alert variant={variant}>
+            <AlertDescription>
+                <span className="font-medium text-foreground">{title}. </span>
+                {children}
+            </AlertDescription>
+        </Alert>
     );
 }
 

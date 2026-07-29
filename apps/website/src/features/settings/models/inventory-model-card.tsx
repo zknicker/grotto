@@ -19,7 +19,7 @@ export function InventoryModelCard({ model, providerId }: InventoryModelCardProp
                     <p className="font-medium text-base text-foreground leading-6">
                         {model.displayName}
                     </p>
-                    <p className="mt-1 truncate font-medium text-meta text-muted-foreground/90">
+                    <p className="mt-1 truncate font-medium text-meta text-muted-foreground">
                         {model.ref}
                     </p>
                 </div>

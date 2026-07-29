@@ -42,11 +42,9 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                             <button
                                 aria-pressed={isActive}
                                 className={cn(
-                                    'no-drag group relative flex flex-col overflow-hidden rounded-2xl border bg-popover not-dark:bg-clip-padding text-left shadow-xs/5 outline-none transition-shadow dark:bg-input/32',
+                                    'no-drag group relative flex flex-col overflow-hidden rounded-xl border bg-surface-2 text-left outline-none',
                                     'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-                                    isActive
-                                        ? 'border-brand'
-                                        : 'border-input hover:bg-accent/50 dark:hover:bg-input/64'
+                                    isActive ? 'border-brand' : 'border-input hover:bg-accent'
                                 )}
                                 key={option.id}
                                 onClick={() => setTheme(option.id)}
@@ -66,17 +64,10 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                                             size={24}
                                         />
                                         <div className="min-w-0">
-                                            <div
-                                                className={cn(
-                                                    'truncate font-semibold text-sm leading-none',
-                                                    isActive
-                                                        ? 'text-foreground'
-                                                        : 'text-foreground/85'
-                                                )}
-                                            >
+                                            <div className="truncate font-semibold text-foreground text-sm leading-none">
                                                 {option.label}
                                             </div>
-                                            <div className="mt-1 truncate text-muted-foreground text-xs leading-none">
+                                            <div className="mt-1 truncate text-meta text-muted-foreground leading-none">
                                                 {option.description}
                                             </div>
                                         </div>
@@ -180,10 +171,10 @@ function SystemSurface() {
 function ToneWindow({ insetLeft = '22%', tone }: { insetLeft?: string; tone: 'dark' | 'light' }) {
     const isDark = tone === 'dark';
     const windowSurface = isDark
-        ? 'bg-zinc-950 text-white shadow-[0_10px_22px_-6px_rgba(0,0,0,0.55)]'
-        : 'bg-white text-zinc-900 shadow-[0_10px_22px_-6px_rgba(0,0,0,0.2)]';
+        ? 'bg-zinc-950 text-white ring-1 ring-zinc-700'
+        : 'bg-white text-zinc-900 ring-1 ring-zinc-300';
     const titlebar = isDark
-        ? 'bg-zinc-800 border-b border-zinc-700/60'
+        ? 'bg-zinc-800 border-b border-zinc-700'
         : 'bg-zinc-100 border-b border-zinc-200';
 
     return (

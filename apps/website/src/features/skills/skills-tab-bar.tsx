@@ -29,7 +29,7 @@ export function SkillsTabBar({
                     <TabsSubtleItem key={tab.id} size="sm" value={tab.id}>
                         <span>{tab.label}</span>
                         {counts[tab.id] === undefined ? null : (
-                            <span className="font-mono text-muted-foreground text-xs tabular-nums">
+                            <span className="font-mono text-meta text-muted-foreground tabular-nums">
                                 {counts[tab.id]}
                             </span>
                         )}

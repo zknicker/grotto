@@ -1,4 +1,5 @@
 import { SecureStorageBadge } from '../../../components/badges/secure-storage-badge.tsx';
+import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { cn } from '../../../lib/utils.ts';
 
 type ConnectionState = 'error' | 'live' | 'needs-auth';
@@ -26,7 +27,7 @@ export function ProviderConnectionDescription({
 export function ProviderConnectionStatus({ state }: { state: ConnectionState }) {
     return (
         <span className={cn('inline-flex items-center gap-1.5', getStatusTextClass(state))}>
-            <span className={cn('size-1.5 rounded-full', getStatusDotClass(state))} />
+            <StatusDot size="sm" status={getStatusDotTone(state)} />
             {getStatusLabel(state)}
         </span>
     );
@@ -44,14 +45,14 @@ export function ProviderConnectionDetail({
     return description ? <span className="text-muted-foreground">{description}</span> : null;
 }
 
-function getStatusDotClass(state: ConnectionState) {
+function getStatusDotTone(state: ConnectionState) {
     switch (state) {
         case 'live':
-            return 'bg-success';
+            return 'success' as const;
         case 'error':
-            return 'bg-destructive';
+            return 'error' as const;
         case 'needs-auth':
-            return 'bg-destructive';
+            return 'error' as const;
     }
 }
 

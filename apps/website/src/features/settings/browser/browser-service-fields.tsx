@@ -52,7 +52,7 @@ export function BrowserSection({
 
 export function BrowserServiceList({ children }: { children: ReactNode }) {
     return (
-        <div className="divide-y divide-border/60 rounded-lg border border-border/70">
+        <div className="divide-y divide-border-subtle rounded-lg border border-border-subtle">
             {children}
         </div>
     );
@@ -95,7 +95,7 @@ export function BrowserServiceRow({
                 </div>
                 {control}
             </div>
-            {children ? <div className="border-border/60 border-t pt-3">{children}</div> : null}
+            {children ? <div className="border-border-subtle border-t pt-3">{children}</div> : null}
         </div>
     );
 }

@@ -70,7 +70,7 @@ export function ProfileSettings() {
                                 variant="ghost"
                             >
                                 <AvatarPreview avatarUrl={profile.avatarUrl} name={displayName} />
-                                <span className="absolute -right-1.5 -bottom-1.5 inline-flex size-6 items-center justify-center rounded-full border border-card bg-secondary text-muted-foreground shadow-xs transition-colors group-hover/avatar:bg-input group-hover/avatar:text-foreground">
+                                <span className="absolute -right-1.5 -bottom-1.5 inline-flex size-6 items-center justify-center rounded-full border border-card bg-secondary text-muted-foreground transition-colors group-hover/avatar:bg-input group-hover/avatar:text-foreground">
                                     <Icon
                                         className="size-3.5"
                                         icon={Camera01Icon}
@@ -97,7 +97,7 @@ export function ProfileSettings() {
 function AvatarPreview({ avatarUrl, name }: { avatarUrl: string | null; name: string }) {
     if (avatarUrl) {
         return (
-            <span className="inline-flex size-10 shrink-0 overflow-hidden rounded-full ring-1 ring-border/60">
+            <span className="inline-flex size-10 shrink-0 overflow-hidden rounded-full ring-1 ring-border-subtle">
                 <img
                     alt="Your avatar"
                     className="size-full object-cover"
@@ -110,7 +110,7 @@ function AvatarPreview({ avatarUrl, name }: { avatarUrl: string | null; name: st
     }
 
     return (
-        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold text-muted-foreground text-xs ring-1 ring-border/60">
+        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold text-caption text-muted-foreground ring-1 ring-border-subtle">
             {getInitials(name)}
         </span>
     );

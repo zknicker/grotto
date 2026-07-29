@@ -9,6 +9,7 @@ import {
 } from '../../../components/ui/dialog.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
 import { Spinner } from '../../../components/ui/spinner.tsx';
+import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import {
     ConnectionDestructiveDialog,
     ConnectionMenu,
@@ -92,18 +93,14 @@ export function McpConnectionDetailDialog({
                         </div>
                     </DialogHeader>
                     <DialogPanel className="grid gap-6">
-                        <div className="flex items-center justify-between gap-4 rounded-xl bg-muted/50 p-3.5">
+                        <div className="flex items-center justify-between gap-4 rounded-xl bg-muted p-3.5">
                             <div className="min-w-0">
                                 <p className="truncate font-mono text-meta text-muted-foreground">
                                     {connectionSummary(connection)}
                                 </p>
                                 <p className="mt-1 flex items-center gap-2 text-sm">
-                                    <span
-                                        className={
-                                            connection.connected
-                                                ? 'size-2 rounded-full bg-success'
-                                                : 'size-2 rounded-full bg-muted-foreground/40'
-                                        }
+                                    <StatusDot
+                                        status={connection.connected ? 'success' : 'muted'}
                                     />
                                     {connection.connected ? 'Connected' : 'Not connected'}
                                 </p>
@@ -139,7 +136,7 @@ export function McpConnectionDetailDialog({
                                 </div>
                                 {toolsPending ? <Spinner className="size-4" /> : null}
                             </div>
-                            <div className="overflow-hidden rounded-xl border border-border/70">
+                            <div className="overflow-hidden rounded-xl border border-border-subtle">
                                 <ToolList
                                     connection={connection}
                                     error={toolsError}
@@ -156,11 +153,11 @@ export function McpConnectionDetailDialog({
                                     Access is enabled per MCP server from each Agent profile.
                                 </p>
                             </div>
-                            <div className="overflow-hidden rounded-xl border border-border/70">
+                            <div className="overflow-hidden rounded-xl border border-border-subtle">
                                 {connection.affectedAgents.length > 0 ? (
                                     connection.affectedAgents.map((agent) => (
                                         <div
-                                            className="border-border/50 border-b px-3.5 py-3 text-sm last:border-b-0"
+                                            className="border-border-subtle border-b px-3.5 py-3 text-sm last:border-b-0"
                                             key={agent.id}
                                         >
                                             {agent.name}
@@ -244,7 +241,7 @@ function ToolList({
         return <p className="px-3.5 py-4 text-muted-foreground text-sm">No tools reported.</p>;
     }
     return tools.map((tool) => (
-        <div className="border-border/50 border-b px-3.5 py-3 last:border-b-0" key={tool.name}>
+        <div className="border-border-subtle border-b px-3.5 py-3 last:border-b-0" key={tool.name}>
             <p className="font-medium text-sm">{tool.title ?? tool.name}</p>
             <p className="truncate text-meta text-muted-foreground">{tool.description}</p>
         </div>

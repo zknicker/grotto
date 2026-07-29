@@ -1,3 +1,4 @@
+import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { TabsSubtle, TabsSubtleItem, TabsSubtleList } from '../../../components/ui/tabs-subtle.tsx';
 import type { McpConnection, McpConnectionFilter } from './mcp-server-shared.ts';
 
@@ -37,7 +38,7 @@ export function ConnectionRow({
 }) {
     return (
         <button
-            className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_7rem_8rem] items-center border-border/40 border-b px-5 text-left outline-none transition-colors last:border-b-0 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_7rem_8rem] items-center border-border-subtle border-b px-5 text-left outline-none last:border-b-0 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
             onClick={onSelect}
             type="button"
         >
@@ -56,13 +57,7 @@ export function ConnectionRow({
             </span>
             <span className="text-muted-foreground text-sm">Remote</span>
             <span className="flex items-center gap-2 text-sm">
-                <span
-                    className={
-                        connection.connected
-                            ? 'size-2 rounded-full bg-success'
-                            : 'size-2 rounded-full bg-muted-foreground/40'
-                    }
-                />
+                <StatusDot status={connection.connected ? 'success' : 'muted'} />
                 {connection.connected ? 'Connected' : 'Not connected'}
             </span>
         </button>

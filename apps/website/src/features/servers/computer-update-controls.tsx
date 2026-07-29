@@ -36,7 +36,7 @@ export function ComputerUpdateControls({
     const versionSuffix = computer.updateTargetVersion ? ` ${computer.updateTargetVersion}` : '';
 
     return (
-        <div className="flex flex-col gap-2 border-border border-t pt-3">
+        <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <p aria-live="polite" className="font-medium text-sm">

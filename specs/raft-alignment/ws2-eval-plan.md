@@ -23,7 +23,7 @@ the current scenario list.
 | --- | --- |
 | handoff: mention dispatches a turn on the target seat | Keep — assert the mentioned agent wakes and acts (delivery now via inbox) |
 | silence: FYI-only mention ends with NO_REPLY | Rewrite → **silence-is-default**: turn ends with zero `message send` calls; no NO_REPLY artifact anywhere |
-| dm responsiveness: FYI in a DM still gets a reply | Keep — now asserts a `message send` to the DM target (guards the DM-acknowledgement etiquette bullet; if the operator drops that bullet, drop this eval with it, named) |
+| dm silence: explicit no-response FYI ends with zero sends | Keep — asserts that an explicit no-response instruction wins in a DM, matching Raft's silence-by-default contract |
 | cross-post: chat_send lands exact text in a member chat | Rewrite — `message send --target "#other"` lands exact text |
 | consult: cross-post mention wakes the agent in the target chat | Keep, CLI form |
 | cross-post refusal: non-member chat stays untouched | Rewrite — send to unjoined channel fails; agent reports instead of forcing |

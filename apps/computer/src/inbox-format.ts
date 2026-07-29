@@ -20,7 +20,10 @@ export function composeInboxDrain(items: HostedAgentInboxItem[], homeTimezone = 
 }
 
 /** Content-free, target-level busy notice. Bodies never enter this projection. */
-export function composeInboxNotice(items: HostedAgentInboxItem[]): string | null {
+export function composeInboxNotice(
+    items: HostedAgentInboxItem[],
+    totalPending = items.length
+): string | null {
     if (items.length === 0) {
         return null;
     }
@@ -43,12 +46,12 @@ export function composeInboxNotice(items: HostedAgentInboxItem[]): string | null
             ` · first msg=${shortId(first.id)}`,
             ` · latest sender @${latest.senderHandle}`,
             ` · latest msg=${shortId(latest.id)}`,
-            noticeTag(target),
+            noticeTag(target, latest),
         ].join('');
     });
     return [
         '[Grotto inbox notice:',
-        `Inbox update: ${items.length} unread messages total; ${targets.size} changed target(s)`,
+        `Inbox update: ${totalPending} unread messages total; ${targets.size} changed target(s)`,
         ...lines,
         ']',
     ].join('\n');
@@ -58,10 +61,21 @@ function formatEnvelope(item: HostedAgentInboxItem, homeTimezone: string): strin
     const sender = item.senderDescription
         ? `@${item.senderHandle} — ${item.senderDescription}`
         : `@${item.senderHandle}`;
+    const task = item.task
+        ? ` task=#${item.task.number}:${item.task.status}:${taskAssignee(item)}`
+        : '';
+    const mention = item.mentioned ? ' mentioned=true' : '';
     return (
-        `[target=${item.target} msg=${shortId(item.id)} time=${formatLocalTime(item.createdAt, homeTimezone)} type=${item.senderType}] ` +
+        `[target=${item.target} msg=${shortId(item.id)} time=${formatLocalTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${mention}] ` +
         `${sender}: ${item.content}`
     );
+}
+
+function taskAssignee(item: HostedAgentInboxItem): string {
+    if (!item.task) {
+        return 'unassigned';
+    }
+    return item.task.assigneeAgentId ?? item.task.assigneeUserId ?? 'unassigned';
 }
 
 function formatLocalTime(timestamp: string, homeTimezone: string): string {
@@ -80,11 +94,13 @@ function formatLocalTime(timestamp: string, homeTimezone: string): string {
     return `${value('year')}-${value('month')}-${value('day')} ${value('hour')}:${value('minute')}:${value('second')}`;
 }
 
-function noticeTag(target: string): string {
-    if (target.startsWith('dm:')) {
-        return ' · dm';
-    }
-    return target.includes(':') ? ' · thread' : '';
+function noticeTag(target: string, item?: HostedAgentInboxItem): string {
+    const tags = [
+        target.startsWith('dm:') ? 'dm' : target.includes(':') ? 'thread' : null,
+        item?.task ? `task #${item.task.number}` : null,
+        item?.mentioned ? 'you were mentioned' : null,
+    ].filter(Boolean);
+    return tags.length > 0 ? ` · ${tags.join(' · ')}` : '';
 }
 
 function shortId(id: string): string {

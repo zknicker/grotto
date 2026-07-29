@@ -407,6 +407,7 @@ export class DevStackController extends EventEmitter {
             env: {
                 ...startupUiEnv,
                 GROTTO_COMPUTER_RESIDENT: '1',
+                GROTTO_COMPUTER_WATCH_RUNNER: '1',
                 GROTTO_SERVER_ORIGIN: hostedServerUrl,
             },
         });

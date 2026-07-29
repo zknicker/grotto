@@ -68,7 +68,7 @@ the decision that kills it.
 | `global session framing` ("Your chats:" block) | D6/I1 — block dies; persistence framing moves to `## Who you are` |
 | `default-evaluate: every message is evaluated` | I1 — evaluation dispatch dies; inbox delivery replaces it |
 | `NO_REPLY silent turn` | D1 — silence is the default, speaking is an act |
-| `DM responsiveness: every DM message gets a reply` | D1 — NO_REPLY framing dies; successor: `DM acknowledgement` etiquette requirement (operator to confirm; dropping it entirely is the Raft-pure alternative) |
+| `DM responsiveness: every DM message gets a reply` | D1 — removed in favor of Raft-pure deliberate silence; explicit FYI / no-response-needed DMs settle with zero sends |
 | `mention sets expectation to act` | Replaced by Raft `## @Mentions` requirements |
 | `agent handoff via mention` | Replaced by `mention others not yourself` |
 | `current-chat history tools` (`chat_messages_*`) | D5 — successor: `reading history` CLI requirements |
@@ -207,7 +207,7 @@ are the enforced dead list.
 | concise updates | `Don't flood the chat.` | full |
 | respect ongoing conversations | `only join if you are explicitly @mentioned or clearly addressed` | full |
 | only the worker reports | `don't echo or summarize their work` | full |
-| DM acknowledgement | `acknowledge it briefly even when it is an FYI` | full |
+| deliberate DM silence | `explicit FYI / no-response-needed messages should settle with zero sends` | full |
 | DM discretion | `What someone shares in a DM was shared with you, not with every room.` | full |
 | blockers before stopping | `send one minimal actionable message to that person or channel before stopping` | full |
 | skip idle narration | `avoid broadcasting that you are waiting or idle` | full |

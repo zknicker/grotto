@@ -8,6 +8,7 @@ import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
+    agentInboxPiercesTable,
     agentMessageDraftsTable,
     agentsTable,
     chatMessagesTable,
@@ -72,7 +73,13 @@ export async function prepareAgentSend(
     }
     const hold = input.continueAnyway
         ? null
-        : await resolveHold(db, runner, chatId, Math.max(cursor.seen, cursor.served));
+        : await resolveHold(
+              db,
+              runner,
+              chatId,
+              cursor.generation,
+              Math.max(cursor.seen, cursor.served)
+          );
     if (!hold) {
         return { kind: 'send' as const, outgoing };
     }
@@ -112,6 +119,7 @@ async function resolveHold(
     db: GrottoDatabase,
     runner: ResolvedRunner,
     chatId: string,
+    sessionGeneration: number,
     horizon: number
 ) {
     const [chat] = await db
@@ -126,6 +134,15 @@ async function resolveHold(
         eq(chatMessagesTable.serverId, runner.serverId),
         eq(chatMessagesTable.chatId, chatId),
         gt(chatMessagesTable.sequence, horizon),
+        sql`not exists (
+            select 1 from ${agentInboxPiercesTable} pierce
+            where pierce.server_id = ${runner.serverId}
+              and pierce.agent_id = ${runner.agentId}
+              and pierce.session_generation = ${sessionGeneration}
+              and pierce.chat_id = ${chatId}
+              and pierce.message_id = ${chatMessagesTable.id}
+              and pierce.served_at is not null
+        )`,
         or(
             sql`${chatMessagesTable.authorUserId} is not null`,
             and(

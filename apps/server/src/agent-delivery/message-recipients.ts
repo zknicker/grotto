@@ -9,7 +9,12 @@ import {
     chatsTable,
 } from '../postgres/schema.ts';
 
-export async function listAgentMessageRecipients(
+export interface AgentMessageRecipientPlan {
+    agentId: string;
+    pierced: boolean;
+}
+
+export async function planAgentMessageRecipients(
     db: GrottoDatabase,
     input: {
         authorAgentId: string | null;
@@ -17,7 +22,7 @@ export async function listAgentMessageRecipients(
         content: string;
         serverId: string;
     }
-): Promise<string[]> {
+): Promise<AgentMessageRecipientPlan[]> {
     const [chat] = await db
         .select({
             dmAgentId: chatsTable.dmAgentId,
@@ -31,7 +36,9 @@ export async function listAgentMessageRecipients(
         return [];
     }
     if (chat.kind === 'dm') {
-        return chat.dmAgentId && chat.dmAgentId !== input.authorAgentId ? [chat.dmAgentId] : [];
+        return chat.dmAgentId && chat.dmAgentId !== input.authorAgentId
+            ? [{ agentId: chat.dmAgentId, pierced: false }]
+            : [];
     }
 
     const parentChatId = chat.kind === 'thread' ? chat.parentChatId : input.chatId;
@@ -46,7 +53,7 @@ export async function listAgentMessageRecipients(
             .limit(1);
         if (parent?.kind === 'dm') {
             return parent.dmAgentId && parent.dmAgentId !== input.authorAgentId
-                ? [parent.dmAgentId]
+                ? [{ agentId: parent.dmAgentId, pierced: false }]
                 : [];
         }
     }
@@ -92,7 +99,10 @@ export async function listAgentMessageRecipients(
             ),
         chat.kind === 'thread'
             ? db
-                  .select({ agentId: agentThreadFollowsTable.agentId })
+                  .select({
+                      agentId: agentThreadFollowsTable.agentId,
+                      followed: agentThreadFollowsTable.followed,
+                  })
                   .from(agentThreadFollowsTable)
                   .where(
                       and(
@@ -104,14 +114,34 @@ export async function listAgentMessageRecipients(
             : Promise.resolve([]),
     ]);
     const muted = new Set(mutes.map((row) => row.agentId));
-    const followed = new Set(follows.map((row) => row.agentId));
+    const followByAgent = new Map(follows.map((row) => [row.agentId, row.followed]));
     const mentioned = mentionedAgentIds(input.content, agents);
 
-    return agentIds.filter(
-        (agentId) =>
-            mentioned.has(agentId) ||
-            (!muted.has(agentId) && (chat.kind !== 'thread' || followed.has(agentId)))
-    );
+    if (chat.kind === 'thread') {
+        for (const agentId of mentioned) {
+            if (agentIds.includes(agentId) && followByAgent.get(agentId) === undefined) {
+                await db
+                    .insert(agentThreadFollowsTable)
+                    .values({
+                        agentId,
+                        serverId: input.serverId,
+                        threadChatId: input.chatId,
+                    })
+                    .onConflictDoNothing();
+                followByAgent.set(agentId, true);
+            }
+        }
+    }
+
+    return agentIds.flatMap((agentId) => {
+        const isMentioned = mentioned.has(agentId);
+        const isMuted = muted.has(agentId);
+        const followed = chat.kind !== 'thread' || followByAgent.get(agentId) === true;
+        if (!isMentioned && (isMuted || !followed)) {
+            return [];
+        }
+        return [{ agentId, pierced: isMentioned && (isMuted || !followed) }];
+    });
 }
 
 function mentionedAgentIds(

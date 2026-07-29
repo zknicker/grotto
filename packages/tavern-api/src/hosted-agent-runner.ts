@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { hostedIdSchema } from './hosted-chat.ts';
+import { hostedMessageTaskSchema } from './hosted-task-shared.ts';
 import {
     agentArchetypeIdSchema,
     agentRuntimeBrowserActionResultSchema,
@@ -16,10 +17,12 @@ export const hostedAgentInboxItemSchema = z
         content: z.string().max(32_000),
         createdAt: hostedTimestampSchema,
         id: hostedIdSchema,
+        mentioned: z.boolean().optional(),
         senderDescription: z.string().trim().max(500).optional(),
         senderHandle: z.string().trim().min(1).max(128),
         senderType: z.enum(['agent', 'human', 'system']),
         sequence: z.number().int().positive(),
+        task: hostedMessageTaskSchema.optional(),
         target: z.string().trim().min(1).max(200),
     })
     .strict();
@@ -125,6 +128,7 @@ export const hostedAgentNoticeCommandSchema = z
         agentId: hostedIdSchema,
         inbox: z.array(hostedAgentInboxItemSchema).min(1).max(100),
         runId: hostedIdSchema,
+        totalPending: z.number().int().positive(),
         type: z.literal('notice'),
     })
     .strict();

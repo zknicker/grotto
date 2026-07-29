@@ -25,6 +25,7 @@ export interface PendingWorkRow {
     createdAt: Date;
     dedupeKey: string;
     id: string;
+    pierced: boolean;
     serverId: string;
     source: string;
 }
@@ -116,6 +117,7 @@ export async function enqueuePendingWork(
         chatId: string;
         content: string;
         dedupeKey: string;
+        pierced?: boolean;
         serverId: string;
         source: string;
     }
@@ -128,6 +130,7 @@ export async function enqueuePendingWork(
             content: input.content,
             dedupeKey: input.dedupeKey,
             id: createOpaqueId('apw'),
+            pierced: input.pierced ?? false,
             serverId: input.serverId,
             source: input.source,
         })
@@ -161,6 +164,7 @@ export async function claimQueuedPending(
             createdAt: agentPendingWorkTable.createdAt,
             dedupeKey: agentPendingWorkTable.dedupeKey,
             id: agentPendingWorkTable.id,
+            pierced: agentPendingWorkTable.pierced,
             serverId: agentPendingWorkTable.serverId,
             source: agentPendingWorkTable.source,
         })
@@ -198,6 +202,30 @@ export async function claimQueuedPending(
     return chosen;
 }
 
+/**
+ * Associates an explicit in-turn pull with the accepted run that received it.
+ * Settlement can then advance `seen` for the pulled rows, while an unsettled
+ * run keeps them durable and replayable under the same run id.
+ */
+export async function attachQueuedPendingToRun(
+    db: GrottoDatabase,
+    input: { agentId: string; pendingIds: string[]; runId: string }
+): Promise<void> {
+    if (input.pendingIds.length === 0) {
+        return;
+    }
+    await db
+        .update(agentPendingWorkTable)
+        .set({ runId: input.runId })
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                isNull(agentPendingWorkTable.runId),
+                inArray(agentPendingWorkTable.id, input.pendingIds)
+            )
+        );
+}
+
 export async function listPendingForRun(
     db: GrottoDatabase,
     input: { agentId: string; runId: string }
@@ -209,6 +237,7 @@ export async function listPendingForRun(
             createdAt: agentPendingWorkTable.createdAt,
             dedupeKey: agentPendingWorkTable.dedupeKey,
             id: agentPendingWorkTable.id,
+            pierced: agentPendingWorkTable.pierced,
             serverId: agentPendingWorkTable.serverId,
             source: agentPendingWorkTable.source,
         })
@@ -234,6 +263,7 @@ export async function listQueuedPending(
             createdAt: agentPendingWorkTable.createdAt,
             dedupeKey: agentPendingWorkTable.dedupeKey,
             id: agentPendingWorkTable.id,
+            pierced: agentPendingWorkTable.pierced,
             serverId: agentPendingWorkTable.serverId,
             source: agentPendingWorkTable.source,
         })
@@ -241,6 +271,26 @@ export async function listQueuedPending(
         .where(and(eq(agentPendingWorkTable.agentId, agentId), isNull(agentPendingWorkTable.runId)))
         .orderBy(agentPendingWorkTable.createdAt)
         .limit(limit);
+}
+
+export async function deleteQueuedOrdinaryWork(
+    db: GrottoDatabase,
+    input: { agentId: string; chatIds: string[]; serverId: string }
+): Promise<void> {
+    if (input.chatIds.length === 0) {
+        return;
+    }
+    await db
+        .delete(agentPendingWorkTable)
+        .where(
+            and(
+                eq(agentPendingWorkTable.serverId, input.serverId),
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                inArray(agentPendingWorkTable.chatId, input.chatIds),
+                eq(agentPendingWorkTable.pierced, false),
+                isNull(agentPendingWorkTable.runId)
+            )
+        );
 }
 
 export async function beginActiveRun(

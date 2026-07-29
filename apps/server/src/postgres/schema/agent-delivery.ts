@@ -85,6 +85,7 @@ export const agentPendingWorkTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         dedupeKey: text('dedupe_key').notNull(),
         id: text('id').primaryKey(),
+        pierced: boolean('pierced').notNull().default(false),
         runId: text('run_id'),
         serverId: text('server_id')
             .notNull()

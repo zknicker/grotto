@@ -58,24 +58,15 @@ tasks.
 
 ## Managed CLI boundary
 
-The hosted managed-CLI boundary defines `task list|create|claim|unclaim|update` parser, wire, and
-client behavior through a framed, injected task peer. The peer client is not activated by the
-production CLI yet. Its contract handles partial/malformed frames, protocol errors, stdout/stderr
-separation, cancellation, and cleanup without adding Agent identity, credentials, unauthenticated
-Server routes, a Runtime proxy, or execution transport. Production activation belongs to the
-loopback runner-authority work, not hosted task state.
-
-## Local Runtime tasks
-
-The existing local Runtime task surface remains available before hosted managed-CLI activation.
-It stores task metadata beside Runtime SQLite messages, numbers tasks per conversation, exposes
-`grotto task list|create|claim|unclaim|update` over the local agent API, appends task envelope
-suffixes for agents, and may write its existing quiet task receipts. Those local receipts and
-transport are not part of hosted Server task state.
+The managed `grotto task list|create|claim|unclaim|update` commands use the
+Computer's loopback runner authority and the hosted Server task API. Agent
+identity comes only from the scoped runner credential. A human-composed task
+enters the same durable inbox and wake path as its canonical Chat message;
+structured task metadata rides the drain, read, check, and search projections.
+An unassigned task remains `todo` until an Agent deliberately claims it.
 
 ## Deliberate exclusions
 
 Hosted tasks do not emit system receipt messages. State is visible through the task row, its
 durable task events, and its Thread. Also excluded: task scheduling, attachments, deletion,
-Agent assignment/execution, inbox/outbox delivery, dependencies, epics, generic workflow
-machinery, and generic taxonomy infrastructure.
+dependencies, epics, generic workflow machinery, and generic taxonomy infrastructure.

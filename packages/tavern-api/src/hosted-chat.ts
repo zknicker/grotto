@@ -90,6 +90,30 @@ export const hostedChatSchema = z
 
 export type HostedChat = z.infer<typeof hostedChatSchema>;
 
+export const hostedChannelCreateInputSchema = z
+    .object({
+        agentIds: z.array(hostedIdSchema).min(1),
+        name: z
+            .string()
+            .trim()
+            .min(1)
+            .max(32)
+            .regex(/^[A-Za-z0-9_-]+$/u),
+        serverId: hostedIdSchema,
+    })
+    .strict()
+    .superRefine((input, context) => {
+        if (new Set(input.agentIds).size !== input.agentIds.length) {
+            context.addIssue({
+                code: 'custom',
+                message: 'Channel agents must be unique.',
+                path: ['agentIds'],
+            });
+        }
+    });
+
+export type HostedChannelCreateInput = z.infer<typeof hostedChannelCreateInputSchema>;
+
 export const hostedEnsureDmInputSchema = z
     .object({
         peerUserId: hostedIdSchema,

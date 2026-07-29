@@ -465,11 +465,23 @@ async function createAgentTaskThread(
         parentChatKind: parent.kind,
         serverId: runner.serverId,
     });
-    await db.insert(agentThreadFollowsTable).values({
-        agentId: runner.agentId,
-        serverId: runner.serverId,
-        threadChatId,
-    });
+    await db
+        .insert(agentThreadFollowsTable)
+        .values({
+            agentId: runner.agentId,
+            followed: true,
+            serverId: runner.serverId,
+            threadChatId,
+            updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+            set: { followed: true, updatedAt: new Date() },
+            target: [
+                agentThreadFollowsTable.serverId,
+                agentThreadFollowsTable.agentId,
+                agentThreadFollowsTable.threadChatId,
+            ],
+        });
 }
 
 async function agentHandle(

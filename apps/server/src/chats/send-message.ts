@@ -5,7 +5,7 @@ import type {
 } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { listAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
+import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
@@ -223,18 +223,19 @@ export async function sendHostedChatMessage(
 
         // Plan every Agent recipient under its Server-owned attention state in
         // this same transaction. The wire nudge remains separately recoverable.
-        const recipientIds = await listAgentMessageRecipients(tx, {
+        const recipients = await planAgentMessageRecipients(tx, {
             authorAgentId: null,
             chatId: writeChatId,
             content: input.content,
             serverId: input.serverId,
         });
-        for (const agentId of recipientIds) {
+        for (const recipient of recipients) {
             await agentDelivery.enqueue(tx, {
-                agentId,
+                agentId: recipient.agentId,
                 chatId: writeChatId,
                 content: input.content,
                 dedupeKey: message.id,
+                pierced: recipient.pierced,
                 sequence: message.sequence,
                 serverId: input.serverId,
                 source: 'human',
@@ -259,7 +260,7 @@ export async function sendHostedChatMessage(
                 message: toHostedChatMessage(message, attachmentMetadata(attachments)),
                 threadChatId: thread?.id ?? null,
             },
-            wakes: recipientIds.map((agentId) => ({ agentId, serverId: input.serverId })),
+            wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),
         };
     });
 }

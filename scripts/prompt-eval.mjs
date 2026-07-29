@@ -73,10 +73,13 @@ try {
         );
     });
 
-    await scenario('dm acknowledgement: FYI in a DM still gets a reply', async () => {
+    await scenario('dm silence: explicit no-response FYI ends with zero sends', async () => {
         const dmId = await createDmChat(alpha, `Prompt eval dm ${stamp}`);
         await send(dmId, 'FYI, no response needed: the deploy finished fine.');
-        await pollLog(dmId, (log) => authoredBy(log, alpha.id).length > 0, 240_000);
+        await waitForQuiet(dmId, 45_000, 300_000);
+        const log = await readLog(dmId);
+        const replies = authoredBy(log, alpha.id);
+        assert(replies.length === 0, `expected silence, got: ${replies.join(' | ').slice(0, 200)}`);
     });
 
     await scenario(

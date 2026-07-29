@@ -53,7 +53,7 @@ import { upsertStoredAgent } from './agents-store.ts';
  * - `default-evaluate: every message is evaluated` — I1
  * - `NO_REPLY silent turn` — D1 (silence is the default, speaking is an act)
  * - `DM responsiveness: every DM message gets a reply` — D1 (successor:
- *   DM-acknowledgement etiquette bullet)
+ *   deliberate silence for explicit FYI / no-response-needed messages)
  * - `mention sets expectation to act` — replaced by Raft ## @Mentions rows
  * - `agent handoff via mention` — replaced by mention-others-not-yourself
  * - `current-chat history tools` (chat_messages_*) — D5 (successor: reading
@@ -276,7 +276,7 @@ const REQUIREMENTS: PromptRequirement[] = [
     },
     {
         capability: 'reply in same thread target',
-        expected: '**always reply using that same target**',
+        expected: '**always use that same target**',
         prompt: 'full',
     },
     {
@@ -313,7 +313,7 @@ const REQUIREMENTS: PromptRequirement[] = [
     },
     {
         capability: 'reply in context',
-        expected: 'always respond in the channel/thread the message came from',
+        expected: 'when responding, use the channel/thread the message came from',
         prompt: 'full',
     },
     {
@@ -424,8 +424,8 @@ const REQUIREMENTS: PromptRequirement[] = [
         prompt: 'full',
     },
     {
-        capability: 'DM acknowledgement',
-        expected: 'acknowledge it briefly even when it is an FYI',
+        capability: 'deliberate DM silence',
+        expected: 'explicit FYI / no-response-needed messages should settle with zero sends',
         prompt: 'full',
     },
     {

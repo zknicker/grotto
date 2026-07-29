@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentInboxCursorsTable,
+    agentInboxPiercesTable,
     agentPendingWorkTable,
     agentsTable,
     chatMessagesTable,
@@ -74,6 +75,7 @@ export async function advanceSeenForRun(
         .select({
             chatId: agentPendingWorkTable.chatId,
             messageId: chatMessagesTable.id,
+            pierced: agentPendingWorkTable.pierced,
             sequence: chatMessagesTable.sequence,
         })
         .from(agentPendingWorkTable)
@@ -92,7 +94,22 @@ export async function advanceSeenForRun(
             )
         );
     for (const row of rows) {
-        await advanceSeenCursor(db, { ...input, ...row });
+        if (!row.pierced) {
+            await advanceSeenCursor(db, { ...input, ...row });
+        }
+    }
+    const piercedMessageIds = rows.filter((row) => row.pierced).map((row) => row.messageId);
+    if (piercedMessageIds.length > 0) {
+        await db
+            .update(agentInboxPiercesTable)
+            .set({ seenAt: new Date() })
+            .where(
+                and(
+                    eq(agentInboxPiercesTable.serverId, input.serverId),
+                    eq(agentInboxPiercesTable.agentId, input.agentId),
+                    inArray(agentInboxPiercesTable.messageId, piercedMessageIds)
+                )
+            );
     }
     const messageIds = rows.map((row) => row.messageId);
     if (messageIds.length > 0) {
@@ -124,6 +141,7 @@ export async function deleteSeenQueuedWork(
         where pending.server_id = ${input.serverId}
           and pending.agent_id = ${input.agentId}
           and pending.run_id is null
+          and pending.pierced = false
           and message.server_id = pending.server_id
           and message.id = pending.dedupe_key
           and cursor.server_id = pending.server_id
@@ -132,6 +150,36 @@ export async function deleteSeenQueuedWork(
           and cursor.chat_id = pending.chat_id
           and message.sequence <= cursor.seen_up_to_sequence
     `);
+}
+
+export async function recordAgentInboxPierce(
+    db: GrottoDatabase,
+    input: { agentId: string; chatId: string; messageId: string; serverId: string }
+) {
+    const generation = await readAgentSessionGeneration(db, input.agentId);
+    await db
+        .insert(agentInboxPiercesTable)
+        .values({ ...input, sessionGeneration: generation })
+        .onConflictDoNothing();
+}
+
+export async function markAgentInboxPiercesServed(
+    db: GrottoDatabase,
+    input: { agentId: string; messageIds: string[]; serverId: string }
+) {
+    if (input.messageIds.length === 0) {
+        return;
+    }
+    await db
+        .update(agentInboxPiercesTable)
+        .set({ servedAt: new Date() })
+        .where(
+            and(
+                eq(agentInboxPiercesTable.serverId, input.serverId),
+                eq(agentInboxPiercesTable.agentId, input.agentId),
+                inArray(agentInboxPiercesTable.messageId, input.messageIds)
+            )
+        );
 }
 
 async function advanceCursor(

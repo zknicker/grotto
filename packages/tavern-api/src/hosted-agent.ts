@@ -210,6 +210,51 @@ export type HostedAgentActivityEntry = z.infer<typeof hostedAgentActivityEntrySc
 
 export const hostedAgentActivitySchema = z.array(hostedAgentActivityEntrySchema);
 
+const hostedAgentLifecycleBaseSchema = z.object({
+    agentId: hostedIdSchema,
+    chatId: hostedIdSchema,
+    emittedAt: hostedTimestampSchema,
+    runId: hostedIdSchema,
+    serverId: hostedIdSchema,
+});
+
+/**
+ * Volatile execution projection for one hosted Agent run. Durable turn
+ * evidence remains in `agent.activity`; this feed exists so App surfaces can
+ * react immediately without inventing transcript rows.
+ */
+export const hostedAgentLifecycleEventSchema = z.discriminatedUnion('phase', [
+    hostedAgentLifecycleBaseSchema
+        .extend({
+            phase: z.literal('working'),
+        })
+        .strict(),
+    hostedAgentLifecycleBaseSchema
+        .extend({
+            phase: z.literal('reading'),
+        })
+        .strict(),
+    hostedAgentLifecycleBaseSchema
+        .extend({
+            compositionId: hostedIdSchema,
+            phase: z.literal('sending'),
+            text: z.string().min(1).max(32_000),
+        })
+        .strict(),
+    hostedAgentLifecycleBaseSchema
+        .extend({
+            outcome: z.enum(['completed', 'failed', 'stopped']),
+            phase: z.literal('settled'),
+        })
+        .strict(),
+]);
+
+export type HostedAgentLifecycleEvent = z.infer<typeof hostedAgentLifecycleEventSchema>;
+
+export const hostedAgentLifecycleSubscriptionInputSchema = z
+    .object({ serverId: hostedIdSchema })
+    .strict();
+
 export const hostedAgentWorkspaceListInputSchema = hostedAgentDetailInputSchema.extend({
     path: hostedWorkspacePathSchema.default(''),
 });

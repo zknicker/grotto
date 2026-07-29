@@ -8,6 +8,7 @@ import {
 } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
+import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
 
 const CONTENT_RECIPE = `<<'GROTTOMSG'\n<SKILL.md content>\nGROTTOMSG`;
@@ -227,13 +228,7 @@ async function stdin(deps: SkillDeps, command: string): Promise<string> {
 function defaultDeps(): SkillDeps {
     return {
         client: createAgentApiClient(),
-        readStdin: async () => {
-            let data = '';
-            for await (const chunk of process.stdin) {
-                data += chunk;
-            }
-            return data;
-        },
+        readStdin: readAgentStdin,
         stdinIsTty: () => process.stdin.isTTY === true,
         write: (text) => process.stdout.write(text),
     };

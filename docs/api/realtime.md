@@ -21,6 +21,7 @@ delivery is allowed to drop; clients recover through durable reads.
 | Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, and reminder changes |
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
+| Hosted Agent lifecycle hub | Grotto Server | Volatile working/reading/sending/settled projection for presence and send composition |
 | `chat_events` | Tavern Runtime | Durable cursor-backed event log |
 | `chat_responses` / `chat_response_activity` | Tavern Runtime | Durable response/activity rows (real agent turns no longer populate them — see [Chat API](chat.md)) |
 | `chat_artifacts` | Tavern Runtime | Durable renderable outputs |
@@ -73,6 +74,16 @@ Hosted composition events use a separate in-memory hub. They carry current
 composition text or a clear signal, are never written to PostgreSQL, have no
 cursor, and are never replayed. The subscriber's Chat access is rechecked for
 every delivery.
+
+Hosted Agent lifecycle events are also volatile and membership-checked. The
+Server projects `working` when a run is dispatched, `reading` when Computer
+acceptance arrives and after a send commits, `sending` around the Agent's
+message-send request, and `settled` from the Computer's terminal turn proof.
+The App maps every active phase to coarse Agent `working` availability. Only
+`sending` carries provisional text and composition identity, and only the
+exact target Chat renders it. Settlement invalidates the durable Agent list,
+delivery state, and activity reads. Reconnect recovers from those reads rather
+than replaying lifecycle events.
 
 Hosted durable event kinds are `message.created`, `chat.read`, the
 reader-private `thread.follow.updated`, `task.created`, `task.updated`, and
@@ -171,7 +182,8 @@ Examples:
 * the ephemeral composition stream (`agent.composition` events) — a
   provisional bubble for an in-flight `grotto message send`, never persisted
   or replayed (see [Agent Inbox](../../specs/inbox.md))
-* agent presence (busy/idle)
+* hosted Agent lifecycle (`working`, `reading`, `sending`, `settled`) projected
+  to coarse busy/idle presence
 * short-lived hover/debug state
 * app-only invalidation hints
 

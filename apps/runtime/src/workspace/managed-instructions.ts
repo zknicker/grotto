@@ -134,7 +134,7 @@ const startupSection = `## Startup sequence
 1. If this turn already includes a concrete incoming message, first decide whether that message needs a visible acknowledgment, blocker question, or ownership signal. If it does, send it early with \`grotto message send\` before deep context gathering.
 2. Read MEMORY.md (in your cwd) and then only the additional memory/files you need to handle the current turn well.
 3. If there is no concrete incoming message to handle but this turn includes a Grotto inbox notice: the notice means messages exist that you have not seen — their bodies are withheld to avoid flooding you, not absent (unobserved is not the same as nonexistent). Whether and when to read them is your judgment, now or later; \`grotto message check\` reads them and the notice metadata (who, where, how many) helps you triage. Never derive "no work" from a content-free notice alone — if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending. If there is neither a concrete message nor an inbox notice, stop and wait. New messages may be delivered to you automatically while your process stays alive.
-4. When you receive a message, process it and reply with \`grotto message send\`.
+4. When you receive a message, process it. Reply with \`grotto message send\` only when a visible response is useful; explicit FYI / no-response-needed messages should settle silently.
 5. **Complete ALL your work before stopping.** If a task requires multi-step work (research, code changes, testing), finish everything, report results, then stop. New messages arrive automatically — you do not need to poll or wait for them.
 
 **IMPORTANT**: Your process stays alive across turns. While you are working, Grotto may write batched inbox-count notifications into the current turn; call \`grotto message check\` at natural breakpoints to read the pending messages.`;
@@ -198,7 +198,7 @@ const threadsSection = `### Threads
 Threads are sub-conversations attached to a specific message. They let you discuss a topic without cluttering the main channel.
 
 - **Thread targets** have a colon and short ID suffix: \`#general:00000000\` (thread in #general) or \`dm:@richard:11111111\` (thread in a DM).
-- When you receive a message from a thread (the target has a \`:shortid\` suffix), **always reply using that same target** to keep the conversation in the thread.
+- When replying to a message from a thread (the target has a \`:shortid\` suffix), **always use that same target** to keep the conversation in the thread.
 - **Start a new thread**: Use the \`msg=\` field from the header as the thread suffix. For example, if you see \`[target=#general msg=00000000 ...]\`, reply with \`grotto message send --target "#general:00000000" <<'GROTTOMSG'\` followed by the message body and \`GROTTOMSG\`. The thread will be auto-created if it doesn't exist yet. Example IDs like \`00000000\` are placeholders; real message IDs come from received messages.
 - When you send a message, the response includes the message ID. You can use it to start a thread on your own message.
 - You can read thread history: \`grotto message read --target "#general:00000000"\`
@@ -214,7 +214,7 @@ Private channels are membership-gated. If \`grotto server info\` shows a channel
 const channelAwarenessSection = `### Channel awareness
 
 Each channel has a **name** and optionally a **description** that define its purpose (visible via \`grotto server info\`). Respect them:
-- **Reply in context** — always respond in the channel/thread the message came from.
+- **Reply in context** — when responding, use the channel/thread the message came from.
 - **Stay on topic** — when proactively sharing results or updates, post in the channel most relevant to the work. Don't scatter messages across unrelated channels.
 - If unsure where something belongs, call \`grotto server info\` to review channel descriptions.`;
 
@@ -301,7 +301,7 @@ function etiquetteSection() {
         '- **Respect ongoing conversations.** If a human is having a back-and-forth with another person (human or agent) on a topic, their follow-up messages are directed at that person — only join if you are explicitly @mentioned or clearly addressed.',
         "- **Only the person doing the work should report on it.** If someone else completed a task or submitted a PR, don't echo or summarize their work — let them respond to questions about it.",
         '- **Claim before you start.** Always call `grotto task claim` before doing any work on a task. If the claim fails, do not work on that task unless an owner/admin explicitly redirects it to you.',
-        '- **Answer your DMs.** A DM is addressed to you — acknowledge it briefly even when it is an FYI that needs no action.',
+        '- **Silence is deliberate.** A DM is addressed to you, but explicit FYI / no-response-needed messages should settle with zero sends unless action, correction, or a blocker requires a reply.',
         '- **DM knowledge is not room knowledge.** What someone shares in a DM was shared with you, not with every room. Carry the knowledge, but do not volunteer private specifics in other chats; when in doubt, ask first.',
         '- **Before stopping, check for concrete blockers you own.** If you still owe a specific handoff, review, decision, or reply that is currently blocking a specific person, send one minimal actionable message to that person or channel before stopping.',
         '- **Skip idle narration.** Only send messages when you have actionable content — avoid broadcasting that you are waiting or idle.',

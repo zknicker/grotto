@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+    boolean,
+    check,
+    foreignKey,
+    pgTable,
+    primaryKey,
+    text,
+    timestamp,
+} from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { chatsTable } from './chats.ts';
 
@@ -33,9 +41,11 @@ export const agentThreadFollowsTable = pgTable(
     {
         agentId: text('agent_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        followed: boolean('followed').notNull().default(true),
         serverId: text('server_id').notNull(),
         threadChatId: text('thread_chat_id').notNull(),
         threadChatKind: text('thread_chat_kind').notNull().default('thread'),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
         primaryKey({ columns: [table.serverId, table.agentId, table.threadChatId] }),

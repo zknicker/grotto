@@ -38,6 +38,25 @@ test('busy notices include target metadata but never message bodies', () => {
     expect(notice).not.toContain('This must also stay hidden');
 });
 
+test('projects task and mention intent into both drain and busy-notice metadata', () => {
+    const task = item({
+        mentioned: true,
+        task: {
+            assigneeAgentId: null,
+            assigneeUserId: null,
+            messageId: 'msg_first',
+            number: 7,
+            priority: 'high',
+            status: 'todo',
+        },
+    });
+
+    expect(composeInboxDrain([task], 'UTC')).toContain(
+        'type=human task=#7:todo:unassigned mentioned=true'
+    );
+    expect(composeInboxNotice([task])).toContain('· task #7 · you were mentioned');
+});
+
 function item(overrides: Partial<HostedAgentInboxItem> = {}): HostedAgentInboxItem {
     return {
         chatId: 'cht_general',

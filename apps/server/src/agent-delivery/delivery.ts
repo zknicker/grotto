@@ -22,9 +22,16 @@ import {
     settleReminderScript,
 } from '../reminders/reminder-script-delivery.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { listHostedMessageTaskMap } from '../tasks/task-shape.ts';
 import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
-import { advanceDeliveredCursor, advanceSeenForRun, deleteSeenQueuedWork } from './cursors.ts';
+import {
+    advanceDeliveredCursor,
+    advanceSeenForRun,
+    deleteSeenQueuedWork,
+    recordAgentInboxPierce,
+} from './cursors.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
+import { publishAgentLifecycle } from './lifecycle.ts';
 import type { AgentDeliveryRow, AgentDispatchConfig } from './store.ts';
 import * as store from './store.ts';
 
@@ -37,6 +44,7 @@ export interface DeliveryTransport {
 interface DispatchPlan {
     computerId: string;
     frame: HostedAgentCommand;
+    serverId: string;
 }
 
 interface DispatchOptions {
@@ -50,6 +58,7 @@ export interface EnqueueInput {
     content: string;
     /** Idempotency key; a duplicate delivery of the same message is a no-op. */
     dedupeKey: string;
+    pierced?: boolean;
     sequence?: number;
     serverId: string;
     source?: string;
@@ -95,10 +104,18 @@ export class AgentDelivery {
             chatId: input.chatId,
             content: input.content,
             dedupeKey: input.dedupeKey,
+            pierced: input.pierced,
             serverId: input.serverId,
             source,
         });
-        if (input.sequence) {
+        if (input.pierced) {
+            await recordAgentInboxPierce(tx, {
+                agentId: input.agentId,
+                chatId: input.chatId,
+                messageId: input.dedupeKey,
+                serverId: input.serverId,
+            });
+        } else if (input.sequence) {
             await advanceDeliveredCursor(tx, {
                 agentId: input.agentId,
                 chatId: input.chatId,
@@ -160,9 +177,23 @@ export class AgentDelivery {
                 runId: state.activeRunId,
             });
             await store.clearActiveRun(tx, input.agentId);
-            return { computerId: state.activeRunComputerId, runId: state.activeRunId };
+            return {
+                chatId: state.activeRunChatId,
+                computerId: state.activeRunComputerId,
+                runId: state.activeRunId,
+            };
         });
         if (kill) {
+            if (kill.chatId) {
+                publishAgentLifecycle({
+                    agentId: input.agentId,
+                    chatId: kill.chatId,
+                    outcome: 'stopped',
+                    phase: 'settled',
+                    runId: kill.runId,
+                    serverId: input.serverId,
+                });
+            }
             this.transport.send(kill.computerId, {
                 agentId: input.agentId,
                 runId: kill.runId,
@@ -186,6 +217,16 @@ export class AgentDelivery {
     async restart(input: { agentId: string; serverId: string }): Promise<void> {
         const interrupted = await this.interruptActiveRun(input);
         if (interrupted) {
+            if (interrupted.chatId) {
+                publishAgentLifecycle({
+                    agentId: input.agentId,
+                    chatId: interrupted.chatId,
+                    outcome: 'stopped',
+                    phase: 'settled',
+                    runId: interrupted.runId,
+                    serverId: input.serverId,
+                });
+            }
             this.transport.send(interrupted.computerId, {
                 agentId: input.agentId,
                 runId: interrupted.runId,
@@ -229,6 +270,7 @@ export class AgentDelivery {
                 .where(eq(agentMessageDraftsTable.agentId, input.agentId));
             const config = await store.readAgentDispatchConfig(tx, input.agentId);
             return {
+                chatId: state?.activeRunChatId ?? null,
                 computerId: config?.computerId ?? null,
                 runId: state?.activeRunId ?? null,
             };
@@ -237,6 +279,16 @@ export class AgentDelivery {
             return;
         }
         if (result.runId) {
+            if (result.chatId) {
+                publishAgentLifecycle({
+                    agentId: input.agentId,
+                    chatId: result.chatId,
+                    outcome: 'stopped',
+                    phase: 'settled',
+                    runId: result.runId,
+                    serverId: input.serverId,
+                });
+            }
             this.transport.send(result.computerId, {
                 agentId: input.agentId,
                 runId: result.runId,
@@ -253,6 +305,16 @@ export class AgentDelivery {
     /** The Computer accepted a delivery locally — stop retrying it. */
     async onAck(input: { agentId: string; runId: string }): Promise<void> {
         await store.markAccepted(this.db, input);
+        const state = await store.readDeliveryState(this.db, input.agentId);
+        if (state?.activeRunId === input.runId && state.activeRunChatId) {
+            publishAgentLifecycle({
+                agentId: input.agentId,
+                chatId: state.activeRunChatId,
+                phase: 'reading',
+                runId: input.runId,
+                serverId: state.serverId,
+            });
+        }
     }
 
     /** A run settled on the Computer: consume or requeue its work, then drain next. */
@@ -262,14 +324,15 @@ export class AgentDelivery {
         if (!serverId) {
             return;
         }
-        const plan = await this.db.transaction(async (tx) => {
+        const settlement = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, serverId);
             const state = await store.readDeliveryState(tx, summary.agentId);
-            if (state?.activeRunId !== summary.runId) {
+            if (state?.activeRunId !== summary.runId || !state.activeRunChatId) {
                 // A stale or duplicate summary for an already-cleared run: the
                 // durable record upsert above is the only effect.
                 return null;
             }
+            const chatId = state.activeRunChatId;
             await revokeRunnerCredentialsForRun(tx, {
                 agentId: summary.agentId,
                 runId: summary.runId,
@@ -295,7 +358,7 @@ export class AgentDelivery {
                     turns: nextAgentChainTurns(completedRows, state.agentChainTurns),
                 });
                 await store.clearActiveRun(tx, summary.agentId);
-                return this.planDispatch(tx, summary.agentId);
+                return { chatId, plan: await this.planDispatch(tx, summary.agentId) };
             }
             // A failed turn that produced model-visible output must not requeue
             // its work — redelivering it would re-trigger that output. Only a
@@ -328,9 +391,20 @@ export class AgentDelivery {
                 retryAfter:
                     retryable && failures < maxDeliveryFailures ? nextRetryAt(failures) : null,
             });
-            return null;
+            return { chatId, plan: null };
         });
-        this.emit(plan);
+        if (!settlement) {
+            return;
+        }
+        publishAgentLifecycle({
+            agentId: summary.agentId,
+            chatId: settlement.chatId,
+            outcome: summary.status,
+            phase: 'settled',
+            runId: summary.runId,
+            serverId,
+        });
+        this.emit(settlement.plan);
     }
 
     /**
@@ -437,6 +511,7 @@ export class AgentDelivery {
                 return {
                     computerId: state.activeRunComputerId,
                     frame: await startFrame(tx, state, config),
+                    serverId: state.serverId,
                 };
             }
             const pending = await store.listQueuedPending(tx, agentId, maxDrainRows);
@@ -447,8 +522,10 @@ export class AgentDelivery {
                         agentId,
                         inbox: await buildInboxItems(tx, pending),
                         runId: state.activeRunId,
+                        totalPending: await store.countQueuedPending(tx, agentId),
                         type: 'notice',
                     },
+                    serverId: state.serverId,
                 };
             }
             return null;
@@ -495,12 +572,22 @@ export class AgentDelivery {
                 runtimeId: config.desiredRuntimeId,
                 type: 'start',
             },
+            serverId: state.serverId,
         };
     }
 
     private emit(plan: DispatchPlan | null): void {
-        if (plan) {
-            this.transport.send(plan.computerId, plan.frame);
+        if (!(plan && this.transport.send(plan.computerId, plan.frame))) {
+            return;
+        }
+        if (plan.frame.type === 'start') {
+            publishAgentLifecycle({
+                agentId: plan.frame.agentId,
+                chatId: plan.frame.chatId,
+                phase: 'working',
+                runId: plan.frame.runId,
+                serverId: plan.serverId,
+            });
         }
     }
 
@@ -521,7 +608,11 @@ export class AgentDelivery {
                 runId: state.activeRunId,
             });
             await store.clearActiveRun(tx, input.agentId);
-            return { computerId: state.activeRunComputerId, runId: state.activeRunId };
+            return {
+                chatId: state.activeRunChatId,
+                computerId: state.activeRunComputerId,
+                runId: state.activeRunId,
+            };
         });
     }
 }
@@ -582,6 +673,14 @@ async function buildInboxItems(
     db: GrottoDatabase,
     rows: store.PendingWorkRow[]
 ): Promise<HostedAgentInboxItem[]> {
+    const serverId = rows[0]?.serverId;
+    const taskByMessage = serverId
+        ? await listHostedMessageTaskMap(
+              db,
+              serverId,
+              rows.map((row) => row.dedupeKey)
+          )
+        : new Map();
     return await Promise.all(
         rows.map(async (row) => {
             const [message] = await db
@@ -610,6 +709,7 @@ async function buildInboxItems(
                 content: row.content,
                 createdAt: row.createdAt.toISOString(),
                 id: row.dedupeKey,
+                ...(row.pierced ? { mentioned: true } : {}),
                 ...(senderAgent?.description ? { senderDescription: senderAgent.description } : {}),
                 senderHandle: row.source === 'human' ? 'operator' : (agentHandle ?? row.source),
                 senderType:
@@ -619,6 +719,9 @@ async function buildInboxItems(
                           ? ('agent' as const)
                           : ('system' as const),
                 sequence: message?.sequence ?? 1,
+                ...(taskByMessage.get(row.dedupeKey)
+                    ? { task: taskByMessage.get(row.dedupeKey) }
+                    : {}),
                 target,
             };
         })

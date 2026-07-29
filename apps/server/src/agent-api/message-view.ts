@@ -9,6 +9,7 @@ import {
     chatsTable,
     messageReactionsTable,
 } from '../postgres/schema.ts';
+import { listHostedMessageTaskMap } from '../tasks/task-shape.ts';
 
 export interface MessageRow {
     authorAgentId: string | null;
@@ -39,7 +40,18 @@ export async function toAgentMessages(
     serverId: string,
     rows: MessageRow[]
 ): Promise<TavernAgentMessage[]> {
-    const agentIds = [...new Set(rows.flatMap((row) => row.authorAgentId ?? []))];
+    const tasksByMessage = await listHostedMessageTaskMap(
+        db,
+        serverId,
+        rows.map(({ id }) => id)
+    );
+    const agentIds = [
+        ...new Set(
+            rows
+                .flatMap((row) => row.authorAgentId ?? [])
+                .concat([...tasksByMessage.values()].flatMap((task) => task.assigneeAgentId ?? []))
+        ),
+    ];
     const agents =
         agentIds.length === 0
             ? []
@@ -70,6 +82,10 @@ export async function toAgentMessages(
         const system = row.systemAuthor !== null;
         const handle = agent?.handle ?? (system ? null : 'operator');
         const label = agent?.displayName ?? (system ? 'Grotto' : 'Operator');
+        const task = tasksByMessage.get(row.id);
+        const taskAssigneeAgent = task?.assigneeAgentId
+            ? agentById.get(task.assigneeAgentId)
+            : undefined;
         return {
             attachments: attachmentsByMessage.get(row.id) ?? [],
             author: {
@@ -94,6 +110,28 @@ export async function toAgentMessages(
                 type: system ? 'system' : agent ? 'agent' : 'human',
             },
             sequence: row.sequence,
+            ...(task
+                ? {
+                      task: {
+                          assignee: task.assigneeAgentId
+                              ? {
+                                    handle: taskAssigneeAgent?.handle ?? null,
+                                    id: task.assigneeAgentId,
+                                }
+                              : task.assigneeUserId
+                                ? { handle: null, id: task.assigneeUserId }
+                                : null,
+                          claimed_at: task.claimedAt,
+                          created_at: task.createdAt,
+                          labels: task.labels,
+                          number: task.number,
+                          origin: task.origin,
+                          priority: task.priority,
+                          status: task.status,
+                          updated_at: task.updatedAt,
+                      },
+                  }
+                : {}),
         };
     });
 }

@@ -7,7 +7,7 @@ import type {
 import { and, eq, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { listAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
+import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
@@ -171,18 +171,19 @@ export async function sendHostedAgentMessage(
                 threadChatId: input.chatId,
             });
         }
-        const recipientIds = await listAgentMessageRecipients(tx, {
+        const recipients = await planAgentMessageRecipients(tx, {
             authorAgentId: input.agentId,
             chatId: input.chatId,
             content: input.content,
             serverId: input.serverId,
         });
-        for (const agentId of recipientIds) {
+        for (const recipient of recipients) {
             await agentDelivery.enqueue(tx, {
-                agentId,
+                agentId: recipient.agentId,
                 chatId: input.chatId,
                 content: input.content,
                 dedupeKey: message.id,
+                pierced: recipient.pierced,
                 sequence: message.sequence,
                 serverId: input.serverId,
                 source: `agent:${agent.handle}`,
@@ -232,7 +233,7 @@ export async function sendHostedAgentMessage(
                 sequence: message.sequence,
                 target: input.target,
             },
-            wakes: recipientIds.map((agentId) => ({ agentId, serverId: input.serverId })),
+            wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),
         };
     });
 }

@@ -9,7 +9,12 @@ import { AgentConfigurationQueue } from './agent-configuration-queue.ts';
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
-import { computerEntrypoint, computerSourceRevision, computerVersion } from './build-identity.ts';
+import {
+    computerEntrypoint,
+    computerRunnerEntrypoint,
+    computerSourceRevision,
+    computerVersion,
+} from './build-identity.ts';
 import { readComputerName } from './computer-name.ts';
 import {
     decideStart,
@@ -407,20 +412,19 @@ async function startAttachment(attachment: Attachment) {
     if (marker && isPidAlive(marker.pid)) {
         process.kill(marker.pid, 'SIGTERM');
     }
-    const entrypoint = computerEntrypoint();
-    const child = Bun.spawn(
-        [entrypoint.executable, ...entrypoint.args, 'run', attachment.serverId],
-        {
-            env: {
-                ...process.env,
-                GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-                GROTTO_COMPUTER_RUNNER: '1',
-            },
-            stderr: 'inherit',
-            stdin: 'ignore',
-            stdout: 'inherit',
-        }
-    );
+    const entrypoint = computerRunnerEntrypoint(attachment.serverId, {
+        watch: process.env.GROTTO_COMPUTER_WATCH_RUNNER === '1',
+    });
+    const child = Bun.spawn([entrypoint.executable, ...entrypoint.args], {
+        env: {
+            ...process.env,
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_COMPUTER_RUNNER: '1',
+        },
+        stderr: 'inherit',
+        stdin: 'ignore',
+        stdout: 'inherit',
+    });
     await writeFile(
         runnerPath(attachment),
         `${JSON.stringify({ credentialHash: hash(attachment.credential), pid: child.pid })}\n`,
@@ -895,7 +899,10 @@ async function connect(attachment: Attachment) {
                 void trackWriter(
                     replacePendingInbox(location, notice.inbox)
                         .then(async () => {
-                            const projected = composeInboxNotice(await readPendingInbox(location));
+                            const projected = composeInboxNotice(
+                                await readPendingInbox(location),
+                                notice.totalPending
+                            );
                             if (!projected) {
                                 return;
                             }

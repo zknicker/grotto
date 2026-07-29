@@ -1,5 +1,7 @@
 import type { HostedDurableEvent, HostedMessageTask } from '@tavern/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
 import { findHostedChatAccess, requireChatAccess } from '../chats/chat-access.ts';
 import { ChatNonceConflictError } from '../chats/send-message.ts';
@@ -26,6 +28,7 @@ export interface CreateHostedTaskResult {
     events: HostedDurableEvent[];
     idempotent: boolean;
     task: HostedMessageTask;
+    wakes: Array<{ agentId: string; serverId: string }>;
 }
 
 export async function createHostedTask(
@@ -37,7 +40,8 @@ export async function createHostedTask(
         content: string;
         nonce: string;
         serverId: string;
-    }
+    },
+    agentDelivery: AgentDelivery
 ): Promise<CreateHostedTaskResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
@@ -98,7 +102,7 @@ export async function createHostedTask(
             if (!task) {
                 throw new ChatNonceConflictError();
             }
-            return { events: [], idempotent: true, task };
+            return { events: [], idempotent: true, task, wakes: [] };
         }
         if (input.assigneeUserId) {
             const [active] = await tx
@@ -199,11 +203,30 @@ export async function createHostedTask(
             serverId: input.serverId,
             type: 'task.created',
         });
+        const recipients = await planAgentMessageRecipients(tx, {
+            authorAgentId: null,
+            chatId: input.chatId,
+            content: input.content,
+            serverId: input.serverId,
+        });
+        for (const recipient of recipients) {
+            await agentDelivery.enqueue(tx, {
+                agentId: recipient.agentId,
+                chatId: input.chatId,
+                content: input.content,
+                dedupeKey: message.id,
+                pierced: recipient.pierced,
+                sequence: message.sequence,
+                serverId: input.serverId,
+                source: 'human',
+            });
+        }
 
         return {
             events: [messageEvent, taskEvent],
             idempotent: false,
             task,
+            wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),
         };
     });
 }

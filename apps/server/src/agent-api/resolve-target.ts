@@ -1,7 +1,12 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { channelAgentParticipantsTable, chatsTable } from '../postgres/schema.ts';
+import {
+    channelAgentParticipantsTable,
+    chatMessagesTable,
+    chatsTable,
+} from '../postgres/schema.ts';
+import { ensureHostedThreadRecord } from '../threads/ensure-thread.ts';
 
 /**
  * Resolves the Agent CLI's product target under the runner's Server and Agent
@@ -71,6 +76,74 @@ export async function resolveAgentTarget(
     }
 
     throw new AgentTargetError();
+}
+
+/** Send-only resolver: an Agent may create the canonical thread for a visible anchor message. */
+export async function resolveAgentSendTarget(
+    db: GrottoDatabase,
+    runner: ResolvedRunner,
+    target: string
+): Promise<string> {
+    try {
+        return await resolveAgentTarget(db, runner, target);
+    } catch (cause) {
+        if (!(cause instanceof AgentTargetError)) {
+            throw cause;
+        }
+    }
+
+    const parsed = await resolveAgentParentTarget(db, runner, target);
+    if (!parsed) {
+        throw new AgentTargetError();
+    }
+    const anchors = await db
+        .select({ id: chatMessagesTable.id })
+        .from(chatMessagesTable)
+        .where(
+            and(
+                eq(chatMessagesTable.serverId, runner.serverId),
+                eq(chatMessagesTable.chatId, parsed.parentChatId),
+                parsed.anchor.startsWith('msg_')
+                    ? eq(chatMessagesTable.id, parsed.anchor)
+                    : sql`${chatMessagesTable.id}
+                        ilike ${`msg_${escapeLike(parsed.anchor)}%`} escape '\\'`
+            )
+        )
+        .limit(2);
+    if (anchors.length !== 1) {
+        throw new AgentTargetError();
+    }
+    return (
+        await ensureHostedThreadRecord(db, {
+            anchorMessageId: anchors[0].id,
+            parentChatId: parsed.parentChatId,
+            serverId: runner.serverId,
+        })
+    ).id;
+}
+
+async function resolveAgentParentTarget(
+    db: GrottoDatabase,
+    runner: ResolvedRunner,
+    target: string
+): Promise<{ anchor: string; parentChatId: string } | null> {
+    if (target.startsWith('#')) {
+        const [channelName, anchor, ...extra] = target.slice(1).split(':');
+        if (!(channelName && anchor) || extra.length > 0) {
+            return null;
+        }
+        const parentChatId = await resolveAgentTarget(db, runner, `#${channelName}`);
+        return { anchor, parentChatId };
+    }
+    if (target.startsWith('dm:@operator:')) {
+        const anchor = target.slice('dm:@operator:'.length);
+        if (!anchor || anchor.includes(':')) {
+            return null;
+        }
+        const parentChatId = await resolveAgentTarget(db, runner, 'dm:@operator');
+        return { anchor, parentChatId };
+    }
+    return null;
 }
 
 async function resolveAgentThreadTarget(

@@ -8,6 +8,7 @@ import { agentMessageSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { shortMessageId } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
+import { readAgentStdin } from '../stdin.ts';
 
 // Family 5 — Tasks (D8). A task is a message with task metadata; claiming is
 // the concurrency lock. `task create` posts a fresh message and publishes it
@@ -221,13 +222,7 @@ function withTaskSignal(deps: TaskDeps, input: AgentApiRequest): AgentApiRequest
 export function defaultTaskDeps(): TaskDeps {
     return {
         client: createAgentApiClient(),
-        readStdin: async () => {
-            let data = '';
-            for await (const chunk of process.stdin) {
-                data += chunk;
-            }
-            return data;
-        },
+        readStdin: readAgentStdin,
         stdinIsTty: () => process.stdin.isTTY === true,
         write: (text) => process.stdout.write(text),
     };

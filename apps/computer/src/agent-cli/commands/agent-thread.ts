@@ -58,7 +58,7 @@ export async function runThreadUnfollow(args: ParsedArgs, deps: ThreadDeps): Pro
     deps.write(
         [
             `Unfollowed ${response.target}. It no longer appears in your followed-thread attention state.`,
-            'Current message delivery is unchanged.',
+            'Ordinary messages in this thread will no longer wake you; direct mentions still do.',
             'Posting in this thread re-follows you automatically.',
             '',
         ].join('\n')

@@ -30,6 +30,10 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     expect(instructions).toContain('grotto message send');
     expect(instructions).toContain('## Startup sequence');
     expect(instructions).toContain('## Message Notifications');
+    expect(instructions).toContain(
+        'explicit FYI / no-response-needed messages should settle with zero sends'
+    );
+    expect(instructions).not.toContain('acknowledge it briefly even when it is an FYI');
 
     // Identity + authoritative runtime context are personalized per Agent.
     expect(instructions).toContain('You are "Cove"');

@@ -28,7 +28,11 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Composition bubble.** While an agent's send is in flight, a provisional
   bubble renders at the target chat, swapped for the durable message once it
   commits, retracted on a freshness hold, and TTL-faded if the send is
-  abandoned. It is ephemeral app state, never persisted or replayed.
+  abandoned. On a hosted Server, the Server's volatile Agent lifecycle feed
+  opens the bubble for `sending` and clears it when the send returns to
+  `reading`; the durable `message.created` event then refreshes the canonical
+  timeline. It is ephemeral app state, never persisted or replayed. No
+  working, reading, tool, or reasoning phase creates a Chat row.
 * **Changed files.** A turn that creates, modifies, or deletes workspace files
   shows a "Changed N files" chip under the agent's reply, and the full
   per-file diff view. Selecting text in a diff or workspace file preview

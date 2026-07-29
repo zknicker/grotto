@@ -11,6 +11,7 @@ import { AgentCliError } from '../agent-error.ts';
 import { formatDeliveryEnvelope, formatHistoryLine, shortMessageId } from '../agent-format.ts';
 import { renderHistory, renderSendResponse } from '../agent-render.ts';
 import type { ParsedArgs } from '../parse.ts';
+import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
 import {
     assertAgentTarget,
@@ -264,18 +265,10 @@ function defaultDeps(): MessageDeps {
         client: createAgentApiClient(),
         compositionId: process.env.GROTTO_COMPOSITION_ID?.trim() || undefined,
         mintNonce: () => `cli-${randomUUID()}`,
-        readStdin,
+        readStdin: readAgentStdin,
         stdinIsTty: Boolean(process.stdin.isTTY),
         write: (text) => process.stdout.write(text),
     };
-}
-
-async function readStdin(): Promise<string> {
-    const chunks: Buffer[] = [];
-    for await (const chunk of process.stdin) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-    return Buffer.concat(chunks).toString('utf8');
 }
 
 export const __test = { HEREDOC_RECIPE };

@@ -2,8 +2,10 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import type { HostedAgentCommand, HostedAgentTurnSummary } from '@tavern/api';
 import { eq } from 'drizzle-orm';
-import { deleteSeenQueuedWork } from '../src/agent-delivery/cursors.ts';
+import { pullAgentEvents } from '../src/agent-api/inbox.ts';
+import { deleteSeenQueuedWork, readAgentInboxCursor } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
+import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { countQueuedPending, readDeliveryState } from '../src/agent-delivery/store.ts';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
@@ -154,6 +156,20 @@ async function countAllPending(agentId: string): Promise<number> {
     return rows.length;
 }
 
+async function insertHumanMessage(seed: Seed, content: string, sequence: number): Promise<string> {
+    const messageId = createOpaqueId('msg');
+    await connection.db.insert(chatMessagesTable).values({
+        authorUserId: seed.userId,
+        chatId: seed.chatId,
+        content,
+        id: messageId,
+        nonce: createOpaqueId('nonce'),
+        sequence,
+        serverId: seed.serverId,
+    });
+    return messageId;
+}
+
 /** Adds a second Owner↔Agent DM for the same Agent, seated by a fresh user. */
 async function addDmChat(seed: Seed): Promise<string> {
     const db = connection.db;
@@ -179,6 +195,9 @@ test('drains delivered work into one run, then settles it', async () => {
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
     const delivery = new AgentDelivery(connection.db, transport);
+    const lifecycleController = new AbortController();
+    const lifecycle = subscribeToAgentLifecycle(lifecycleController.signal)[Symbol.asyncIterator]();
+    const working = lifecycle.next();
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -194,19 +213,40 @@ test('drains delivered work into one run, then settles it', async () => {
     expect(starts[0]?.homeTimezone).toBe('UTC');
     expect(starts[0]?.inbox.map((item) => item.content)).toEqual(['hello there']);
     const runId = starts[0]?.runId ?? '';
+    expect(await working).toMatchObject({
+        done: false,
+        value: { agentId: seed.agentId, chatId: seed.chatId, phase: 'working', runId },
+    });
 
     const beforeAck = await readDeliveryState(connection.db, seed.agentId);
     expect(beforeAck?.activeRunId).toBe(runId);
     expect(beforeAck?.acceptedAt).toBeNull();
 
+    const reading = lifecycle.next();
     await delivery.onAck({ agentId: seed.agentId, runId });
     const afterAck = await readDeliveryState(connection.db, seed.agentId);
     expect(afterAck?.acceptedAt).not.toBeNull();
+    expect(await reading).toMatchObject({
+        done: false,
+        value: { agentId: seed.agentId, chatId: seed.chatId, phase: 'reading', runId },
+    });
 
+    const completed = lifecycle.next();
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
     const settled = await readDeliveryState(connection.db, seed.agentId);
     expect(settled?.activeRunId).toBeNull();
     expect(await countQueuedPending(connection.db, seed.agentId)).toBe(0);
+    expect(await completed).toMatchObject({
+        done: false,
+        value: {
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            outcome: 'completed',
+            phase: 'settled',
+            runId,
+        },
+    });
+    lifecycleController.abort();
 });
 
 test('resends an unacknowledged delivery idempotently on the retry sweep', async () => {
@@ -302,6 +342,7 @@ test('queues work for a busy Agent and notices it, then drains at the boundary',
     const notices = transport.framesOfType('notice');
     expect(notices).toHaveLength(1);
     expect(notices[0]?.inbox.map((item) => item.content)).toEqual(['second']);
+    expect(notices[0]?.totalPending).toBe(1);
     expect(transport.framesOfType('start')[0]?.inbox.map((item) => item.content)).toEqual([
         'first',
     ]);
@@ -312,6 +353,111 @@ test('queues work for a busy Agent and notices it, then drains at the boundary',
     expect(starts).toHaveLength(2);
     expect(starts[1]?.runId).not.toBe(firstRun);
     expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['second']);
+});
+
+test('settles explicitly pulled busy work with the active run without a second turn', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const firstMessageId = await insertHumanMessage(seed, 'first', 1);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'first',
+        dedupeKey: firstMessageId,
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+
+    const followUpMessageId = await insertHumanMessage(seed, 'follow up', 2);
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'follow up',
+        dedupeKey: followUpMessageId,
+        serverId: seed.serverId,
+    });
+    const pulled = await pullAgentEvents(connection.db, {
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        computerId: seed.computerId,
+        runId,
+        runnerId: createOpaqueId('arc'),
+        serverId: seed.serverId,
+    });
+    expect(pulled.messages.map((row) => row.message.content)).toEqual(['follow up']);
+    expect(
+        await readAgentInboxCursor(connection.db, {
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            serverId: seed.serverId,
+        })
+    ).toMatchObject({ seen: 0, served: 2 });
+
+    await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
+
+    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(await countAllPending(seed.agentId)).toBe(0);
+    expect(
+        await readAgentInboxCursor(connection.db, {
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            serverId: seed.serverId,
+        })
+    ).toMatchObject({ seen: 2, served: 2 });
+});
+
+test('reconnect replays busy work pulled by an unsettled active run', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const firstMessageId = await insertHumanMessage(seed, 'first', 1);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'first',
+        dedupeKey: firstMessageId,
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+
+    const followUpMessageId = await insertHumanMessage(seed, 'pull then crash', 2);
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'pull then crash',
+        dedupeKey: followUpMessageId,
+        serverId: seed.serverId,
+    });
+    await pullAgentEvents(connection.db, {
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        computerId: seed.computerId,
+        runId,
+        runnerId: createOpaqueId('arc'),
+        serverId: seed.serverId,
+    });
+
+    await delivery.onComputerReconnect(seed.computerId);
+
+    const starts = transport.framesOfType('start');
+    expect(starts).toHaveLength(2);
+    expect(starts[1]?.runId).toBe(runId);
+    expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['first', 'pull then crash']);
+    expect(await countAllPending(seed.agentId)).toBe(2);
+    expect(
+        await readAgentInboxCursor(connection.db, {
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            serverId: seed.serverId,
+        })
+    ).toMatchObject({ seen: 0, served: 2 });
 });
 
 test('Stop persists across a restart, suppresses wakes, and keeps accumulating', async () => {

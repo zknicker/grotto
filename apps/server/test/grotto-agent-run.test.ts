@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
+import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
 import { importHostedAgentSkill } from '../src/hosted-agents/import-agent-skill.ts';
 import { recordAgentTurnSummary } from '../src/hosted-agents/record-agent-turn.ts';
@@ -103,8 +104,12 @@ test('chat mention options expose only the DM Agent and its reported skills', as
 test('mints a scoped runner credential and records a durable Agent-authored message', async () => {
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_send_1' });
     expect(minted.runnerToken).toMatch(/^grtr_/u);
+    const lifecycleController = new AbortController();
+    const lifecycle = subscribeToAgentLifecycle(lifecycleController.signal)[Symbol.asyncIterator]();
+    const sending = lifecycle.next();
 
     const sent = await agentSend(minted.runnerToken, {
+        compositionId: 'cmp_send_1',
         content: 'Hello from the Agent.',
         nonce: 'agent_nonce_1',
         target: 'dm:@operator',
@@ -115,6 +120,22 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
         content: 'Hello from the Agent.',
         sender: { handle: 'cove', type: 'agent' },
     });
+    expect(await sending).toMatchObject({
+        done: false,
+        value: {
+            agentId,
+            chatId: dmChatId,
+            compositionId: 'cmp_send_1',
+            phase: 'sending',
+            runId: 'run_send_1',
+            text: 'Hello from the Agent.',
+        },
+    });
+    expect(await lifecycle.next()).toMatchObject({
+        done: false,
+        value: { agentId, chatId: dmChatId, phase: 'working', runId: 'run_send_1' },
+    });
+    lifecycleController.abort();
 
     const rows = (await harness.sql`
         select author_agent_id, author_user_id, content from chat_messages
@@ -184,6 +205,44 @@ test('an Agent send resolves its target instead of writing into the launch chat'
     });
     expect(denied.status).toBe(404);
     expect(denied.body.code).toBe('INVALID_TARGET');
+});
+
+test('an Agent send creates the canonical Thread for a visible fresh anchor', async () => {
+    const channelId = 'cht_freshthreadchan';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values (${channelId}, ${serverId}, 'channel', 'fresh-thread')
+    `;
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channelId}, ${agentId})
+    `;
+    await harness.sql`
+        insert into channel_participants (server_id, chat_id, user_id)
+        values (${serverId}, ${channelId}, ${ownerUserId})
+    `;
+    const anchor = await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: 'Please investigate this in a thread.',
+        nonce: 'fresh_thread_anchor',
+        serverId,
+    });
+    const shortAnchor = anchor.message.id.slice(4, 12);
+    const minted = await mintRunner({ chatId: channelId, runId: 'run_fresh_thread' });
+
+    const sent = await agentSend(minted.runnerToken, {
+        content: 'I am on it.',
+        nonce: 'fresh_thread_reply',
+        target: `#fresh-thread:${shortAnchor}`,
+    });
+
+    expect(sent.status).toBe(200);
+    expect(sent.body.message?.chat_id).toBe(`cht_thr_${anchor.message.id.slice(4)}`);
+    const threads = (await harness.sql`
+        select anchor_message_id, parent_chat_id from chats
+        where server_id = ${serverId} and id = ${sent.body.message?.chat_id ?? ''}
+    `) as Array<{ anchor_message_id: string; parent_chat_id: string }>;
+    expect(threads).toEqual([{ anchor_message_id: anchor.message.id, parent_chat_id: channelId }]);
 });
 
 test('an Agent resolves an exact DM thread target and fails closed on wrong peers or anchors', async () => {
@@ -284,6 +343,143 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
             status: 404,
         });
     }
+});
+
+test('As Task enters the Agent inbox with canonical unassigned task metadata', async () => {
+    const created = await owner.trpc.task.create.mutate({
+        chatId: dmChatId,
+        content: 'Prepare the weekly launch brief.',
+        nonce: 'task_delivery_fixture',
+        serverId,
+    });
+
+    expect(created.task).toMatchObject({
+        assigneeAgentId: null,
+        assigneeUserId: null,
+        origin: 'composed',
+        status: 'todo',
+    });
+    const pending = (await harness.sql`
+        select dedupe_key, pierced from agent_pending_work
+        where server_id = ${serverId}
+          and agent_id = ${agentId}
+          and dedupe_key = ${created.task.messageId}
+    `) as Array<{ dedupe_key: string; pierced: boolean }>;
+    expect(pending).toEqual([{ dedupe_key: created.task.messageId, pierced: false }]);
+
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_projection' });
+    const history = await agentGet(minted.runnerToken, '/api/agent/history', {
+        target: 'dm:@operator',
+    });
+    expect(
+        history.body.messages?.find((message) => message.id === created.task.messageId)?.task
+    ).toMatchObject({ number: created.task.number, status: 'todo' });
+});
+
+test('mute and explicit unfollow purge ordinary work while mentions pierce once', async () => {
+    const channelId = 'cht_attentioncontract';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values (${channelId}, ${serverId}, 'channel', 'attention-contract')
+    `;
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channelId}, ${agentId})
+    `;
+    await harness.sql`
+        insert into channel_participants (server_id, chat_id, user_id)
+        values (${serverId}, ${channelId}, ${ownerUserId})
+    `;
+    const ordinary = await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: 'Routine telemetry.',
+        nonce: 'attention_ordinary_before_mute',
+        serverId,
+    });
+    const minted = await mintRunner({ chatId: channelId, runId: 'run_attention_contract' });
+    const muted = await agentPost(minted.runnerToken, '/api/agent/channels/mute', {
+        target: '#attention-contract',
+    });
+    expect(muted).toMatchObject({ body: { target: '#attention-contract' }, status: 200 });
+    const purged = (await harness.sql`
+        select count(*)::int as n from agent_pending_work
+        where agent_id = ${agentId} and dedupe_key = ${ordinary.message.id}
+    `) as Array<{ n: number }>;
+    expect(purged[0]?.n).toBe(0);
+
+    const mentioned = await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: '@cove please inspect this alert.',
+        nonce: 'attention_mention_through_mute',
+        serverId,
+    });
+    await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: 'More routine telemetry.',
+        nonce: 'attention_ordinary_after_mute',
+        serverId,
+    });
+    const mutePending = (await harness.sql`
+        select dedupe_key, pierced from agent_pending_work
+        where agent_id = ${agentId}
+          and chat_id = ${channelId}
+          and dedupe_key in (${mentioned.message.id}, (
+              select id from chat_messages where nonce = 'attention_ordinary_after_mute'
+          ))
+        order by dedupe_key
+    `) as Array<{ dedupe_key: string; pierced: boolean }>;
+    expect(mutePending).toEqual([{ dedupe_key: mentioned.message.id, pierced: true }]);
+
+    const task = await owner.trpc.task.create.mutate({
+        chatId: channelId,
+        content: 'Thread attention fixture.',
+        nonce: 'attention_thread_fixture',
+        serverId,
+    });
+    await harness.sql`
+        insert into agent_thread_follows (server_id, agent_id, thread_chat_id, followed)
+        values (${serverId}, ${agentId}, ${task.task.threadChatId}, true)
+    `;
+    const threadOrdinary = await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: 'Routine child update.',
+        nonce: 'attention_thread_ordinary',
+        serverId,
+        thread: { anchorMessageId: task.task.messageId },
+    });
+    const target = `#attention-contract:${task.task.messageId.slice(4, 12)}`;
+    const unfollowed = await agentPost(minted.runnerToken, '/api/agent/threads/unfollow', {
+        target,
+    });
+    expect(unfollowed).toMatchObject({
+        body: { target, unfollowed: true },
+        status: 200,
+    });
+    const threadPurged = (await harness.sql`
+        select count(*)::int as n from agent_pending_work
+        where agent_id = ${agentId} and dedupe_key = ${threadOrdinary.message.id}
+    `) as Array<{ n: number }>;
+    expect(threadPurged[0]?.n).toBe(0);
+
+    const threadMention = await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: '@cove one direct follow-up.',
+        nonce: 'attention_thread_mention',
+        serverId,
+        thread: { anchorMessageId: task.task.messageId },
+    });
+    const explicit = (await harness.sql`
+        select followed from agent_thread_follows
+        where server_id = ${serverId}
+          and agent_id = ${agentId}
+          and thread_chat_id = ${task.task.threadChatId}
+    `) as Array<{ followed: boolean }>;
+    const threadPending = (await harness.sql`
+        select pierced from agent_pending_work
+        where agent_id = ${agentId} and dedupe_key = ${threadMention.message.id}
+    `) as Array<{ pierced: boolean }>;
+    expect(explicit).toEqual([{ followed: false }]);
+    expect(threadPending).toEqual([{ pierced: true }]);
 });
 
 test('an ambiguous Channel Thread prefix fails closed', async () => {
@@ -1226,6 +1422,7 @@ async function agentSend(
     token: string,
     body: {
         attachmentIds?: string[];
+        compositionId?: string;
         content?: string;
         continueAnyway?: boolean;
         nonce: string;
@@ -1294,6 +1491,7 @@ async function agentPost(token: string, path: string, body: Record<string, unkno
             profile?: Record<string, unknown>;
             reminder?: Record<string, unknown>;
             target?: string;
+            unfollowed?: boolean;
         },
         status: response.status,
     };

@@ -46,10 +46,13 @@ model-seen proof. An accepted run that loses its process before settlement is
 replayed at least once. Duplicate effects are preferable to silently dropping
 unseen human work.
 
-`seen` is the only consumption authority. A CLI pull advances `served` for
-freshness holds, but `served > seen` after a crash leaves the queued row intact
-for replay. A completed turn advances `seen`; a failed turn advances it only
-when a durable Agent send proves the model handled that prompt.
+`seen` is the only consumption authority. A CLI pull during an accepted run
+attaches the returned rows to that run and advances `served` for freshness
+holds. Settlement advances `seen` for both the original drain and those pulled
+rows, so already-handled work does not start a redundant turn. If the process
+crashes first, the attached rows remain durable under the unsettled run and
+replay with it. A failed turn advances `seen` only when a durable Agent send
+proves the model handled that prompt.
 
 ## Model Projection
 
@@ -62,6 +65,13 @@ A fresh session receives `Start.` before its first inbox drain. A busy Agent's
 Computer durably receives full new envelopes but injects only the content-free
 target/count/id/sender notice. Message bodies enter the model only through a
 drain or explicit `grotto message check`.
+
+Task messages use the same inbox path as ordinary messages and carry their
+canonical task number, state, priority, and assignee metadata. A mention may
+pierce a Channel mute or explicit Thread unfollow exactly once. That pierce is
+stored separately from the ordinary Chat cursor, so direct attention neither
+unmutes the Channel nor re-follows the Thread. Muting or unfollowing purges
+already-queued ordinary work for that attention scope.
 
 ## Bounds And Failures
 
@@ -77,6 +87,23 @@ policy. A human Restart clears the failure hold and redrives queued work without
 rotating the Agent's session. Raw failure evidence remains Computer-local; the
 compact failure kind crosses the Server boundary.
 
+## App Lifecycle Projection
+
+Delivery state is durable; its live App projection is not. The Server emits
+four semantic lifecycle phases from product boundaries:
+
+| Phase | Projection point | App meaning |
+| --- | --- | --- |
+| `working` | A start command reaches the assigned Computer | Agent availability becomes busy |
+| `reading` | The Computer accepts the run, or an Agent send finishes | Agent remains coarsely busy |
+| `sending` | The Agent message-send request is recording its durable message | Show one provisional bubble at that exact Chat or thread |
+| `settled` | The active run completes, fails, or is stopped | Reconcile Agent availability, delivery state, and durable Activity |
+
+These events carry no reasoning or tool transcript and are neither stored nor
+replayed. The Agent profile's Activity tab remains the durable, turn-grained
+execution evidence surface. Chat receives only the short-lived `sending`
+composition bubble; every other lifecycle phase is presentation plumbing.
+
 ## Invariant Tests
 
 | Principle | Smallest proving lane |
@@ -84,12 +111,20 @@ compact failure kind crosses the Server boundary.
 | One persistent session; cold `Start.` then resume | `apps/computer/src/harness/executor.test.ts` |
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
 | Exact structured drain and content-free busy notice | `apps/computer/src/inbox-format.test.ts` |
+| Pipe and redirected-file input reach the managed Agent CLI | `apps/computer/src/agent-cli/stdin.test.ts` |
 | Durable accepted inbox; accepted crash replays | `apps/computer/src/delivery.test.ts`, `apps/computer/src/inbox-store.test.ts` |
 | One concurrent turn per Agent | `apps/computer/src/delivery.test.ts` |
 | Server resends accepted in-flight work after reconnect | `apps/server/test/agent-delivery.test.ts` |
+| Busy pull settles with its active run; unsettled pull replays | `apps/server/test/agent-delivery.test.ts` |
 | `served` cannot consume without `seen` | `apps/server/test/agent-delivery.test.ts` |
 | Chain ceiling preserves rows and human input releases it | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
+| Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
+| Agent sends project a target-scoped provisional composition | `apps/server/test/grotto-agent-run.test.ts`, `apps/website/src/features/servers/hosted-agent-composition-bubble.test.tsx` |
+| `As Task` enters the inbox with canonical task metadata | `apps/server/test/grotto-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
+| Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/grotto-agent-run.test.ts` |
+| Mute/unfollow purge ordinary work; mentions pierce without changing attention state | `apps/server/test/grotto-agent-run.test.ts` |
+| Freshness validation and Agent send commit share one Server lock | `apps/server/test/grotto-agent-run.test.ts` |
 
 These tests are protocol guards. Live Raft-versus-Grotto behavioral scenarios
 are a later product audit and do not replace them.

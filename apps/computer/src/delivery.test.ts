@@ -119,12 +119,14 @@ test('a pending notice carries durable envelopes but persists only model-safe no
         agentId: 'agt_x',
         inbox,
         runId: 'run_x',
+        totalPending: 3,
         type: 'notice',
     });
     expect(notice).toEqual({
         agentId: 'agt_x',
         inbox,
         runId: 'run_x',
+        totalPending: 3,
         type: 'notice',
     });
 

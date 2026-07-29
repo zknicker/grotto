@@ -46,11 +46,20 @@ export interface HostedAgentInboxItem {
     content: string;
     createdAt: string;
     id: string;
+    mentioned?: boolean;
     senderDescription?: string;
     senderHandle: string;
     senderType: 'agent' | 'human' | 'system';
     sequence: number;
     target: string;
+    task?: {
+        assigneeAgentId: string | null;
+        assigneeUserId: string | null;
+        messageId: string;
+        number: number;
+        priority: 'high' | 'low' | 'medium' | 'none' | 'urgent';
+        status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
+    };
 }
 
 /** Server→Computer command to terminate the named in-flight run. */
@@ -72,6 +81,7 @@ export interface HostedAgentNoticeCommand {
     agentId: string;
     inbox: HostedAgentInboxItem[];
     runId: string;
+    totalPending: number;
     type: 'notice';
 }
 
@@ -388,6 +398,9 @@ export function parseNoticeCommand(frame: unknown): HostedAgentNoticeCommand | n
         frame.agentId.length === 0 ||
         typeof frame.runId !== 'string' ||
         frame.runId.length === 0 ||
+        typeof frame.totalPending !== 'number' ||
+        !Number.isInteger(frame.totalPending) ||
+        frame.totalPending < 1 ||
         !parseInbox(frame.inbox)?.length
     ) {
         return null;
@@ -396,6 +409,7 @@ export function parseNoticeCommand(frame: unknown): HostedAgentNoticeCommand | n
         agentId: frame.agentId,
         inbox: parseInbox(frame.inbox) ?? [],
         runId: frame.runId,
+        totalPending: frame.totalPending,
         type: 'notice',
     };
 }

@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { AttachmentAssociationError } from '../../attachments/message-attachments.ts';
 import { ChatAccessDeniedError, ChatNotFoundError } from '../../chats/chat-access.ts';
+import { ChannelAgentNotFoundError, ChannelNameTakenError } from '../../chats/create-channel.ts';
 import { DmPeerNotFoundError, InvalidDmPeerError } from '../../chats/ensure-dm.ts';
 import { ChatNonceConflictError, DirectThreadSendError } from '../../chats/send-message.ts';
 import { InvalidThreadAnchorError, NestedThreadError } from '../../threads/ensure-thread.ts';
@@ -37,6 +38,14 @@ export const chatProcedure = memberProcedure.use(async ({ next }) => {
 
     if (cause instanceof InvalidDmPeerError) {
         throw new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
+    }
+
+    if (cause instanceof ChannelAgentNotFoundError) {
+        throw new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
+    }
+
+    if (cause instanceof ChannelNameTakenError) {
+        throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 
     if (

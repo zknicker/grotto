@@ -18,3 +18,19 @@ export function computerEntrypoint(): { args: string[]; executable: string } {
         executable: process.execPath,
     };
 }
+
+export function computerRunnerEntrypoint(
+    serverId: string,
+    options: { watch: boolean }
+): { args: string[]; executable: string } {
+    const entrypoint = computerEntrypoint();
+    return {
+        args: [
+            ...(options.watch && !computerStandalone ? ['--watch'] : []),
+            ...entrypoint.args,
+            'run',
+            serverId,
+        ],
+        executable: entrypoint.executable,
+    };
+}

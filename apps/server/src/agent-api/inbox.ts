@@ -1,37 +1,65 @@
-import { advanceServedCursor } from '../agent-delivery/cursors.ts';
-import { listQueuedPending } from '../agent-delivery/store.ts';
+import { advanceServedCursor, markAgentInboxPiercesServed } from '../agent-delivery/cursors.ts';
+import {
+    attachQueuedPendingToRun,
+    listQueuedPending,
+    readDeliveryState,
+} from '../agent-delivery/store.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import { targetForChat } from './message-view.ts';
 
 const maxPulledMessages = 40;
 
 export async function pullAgentEvents(db: GrottoDatabase, runner: ResolvedRunner) {
-    const pending = await listQueuedPending(db, runner.agentId, maxPulledMessages + 1);
-    const selected = pending.slice(0, maxPulledMessages);
-    const messages = await Promise.all(
-        selected.map(async (row) => ({
-            message: await resolveAgentMessage(db, runner, row.dedupeKey),
-            target: await targetForChat(db, runner.serverId, row.chatId),
-        }))
-    );
-    const servedByChat = new Map<string, number>();
-    for (const row of messages) {
-        servedByChat.set(
-            row.message.chat_id,
-            Math.max(servedByChat.get(row.message.chat_id) ?? 0, row.message.sequence)
+    return await db.transaction(async (tx) => {
+        await lockServerRow(tx, runner.serverId);
+        const delivery = await readDeliveryState(tx, runner.agentId);
+        if (delivery?.activeRunId !== runner.runId || delivery.acceptedAt === null) {
+            throw new Error('The Agent run is no longer active.');
+        }
+
+        const pending = await listQueuedPending(tx, runner.agentId, maxPulledMessages + 1);
+        const selected = pending.slice(0, maxPulledMessages);
+        const messages = await Promise.all(
+            selected.map(async (row) => ({
+                message: await resolveAgentMessage(tx, runner, row.dedupeKey),
+                target: await targetForChat(tx, runner.serverId, row.chatId),
+            }))
         );
-    }
-    for (const [chatId, sequence] of servedByChat) {
-        await advanceServedCursor(db, {
+        await attachQueuedPendingToRun(tx, {
             agentId: runner.agentId,
-            chatId,
-            sequence,
+            pendingIds: selected.map((row) => row.id),
+            runId: runner.runId,
+        });
+        const servedByChat = new Map<string, number>();
+        const piercedMessageIds: string[] = [];
+        for (const [index, row] of messages.entries()) {
+            if (selected[index]?.pierced) {
+                piercedMessageIds.push(row.message.id);
+                continue;
+            }
+            servedByChat.set(
+                row.message.chat_id,
+                Math.max(servedByChat.get(row.message.chat_id) ?? 0, row.message.sequence)
+            );
+        }
+        for (const [chatId, sequence] of servedByChat) {
+            await advanceServedCursor(tx, {
+                agentId: runner.agentId,
+                chatId,
+                sequence,
+                serverId: runner.serverId,
+            });
+        }
+        await markAgentInboxPiercesServed(tx, {
+            agentId: runner.agentId,
+            messageIds: piercedMessageIds,
             serverId: runner.serverId,
         });
-    }
-    return { messages, more: pending.length > maxPulledMessages };
+        return { messages, more: pending.length > maxPulledMessages };
+    });
 }
 
 export async function inspectAgentInbox(db: GrottoDatabase, runner: ResolvedRunner) {

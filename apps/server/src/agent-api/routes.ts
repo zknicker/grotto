@@ -1,10 +1,12 @@
 import { hostedAgentSendInputSchema } from '@tavern/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { AgentSendConflictError, sendHostedAgentMessage } from '../chats/send-agent-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
 import { changeAgentChannelMute, unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
@@ -20,7 +22,7 @@ import { readAgentHistory, resolveAgentMessage, searchAgentMessages } from './me
 import { readAgentProfile, updateAgentProfile } from './profile.ts';
 import { registerAgentReactionRoutes } from './reaction-routes.ts';
 import { registerAgentReminderRoutes } from './reminder-routes.ts';
-import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
+import { AgentTargetError, resolveAgentSendTarget } from './resolve-target.ts';
 import { AgentSendModeError, clearAgentDraft, prepareAgentSend } from './send-hold.ts';
 import { registerAgentTaskRoutes } from './task-routes.ts';
 
@@ -303,25 +305,49 @@ export function registerAgentApiRoutes(
         }
 
         try {
-            const chatId = await resolveAgentTarget(options.db, runner, parsed.data.target);
-            const prepared = await prepareAgentSend(options.db, runner, chatId, parsed.data);
-            if (prepared.kind === 'held') {
-                return prepared.response;
+            const committed = await options.db.transaction(async (tx) => {
+                await lockServerRow(tx, runner.serverId);
+                const chatId = await resolveAgentSendTarget(tx, runner, parsed.data.target);
+                const prepared = await prepareAgentSend(tx, runner, chatId, parsed.data);
+                if (prepared.kind === 'held') {
+                    return { kind: 'held' as const, response: prepared.response };
+                }
+                const result = await sendHostedAgentMessage(
+                    tx,
+                    {
+                        agentId: runner.agentId,
+                        attachmentIds: prepared.outgoing.attachmentIds,
+                        chatId,
+                        content: prepared.outgoing.content,
+                        nonce: parsed.data.nonce,
+                        serverId: runner.serverId,
+                        target: parsed.data.target,
+                    },
+                    options.agentDelivery
+                );
+                await clearAgentDraft(tx, runner, chatId);
+                return { chatId, kind: 'sent' as const, result };
+            });
+            if (committed.kind === 'held') {
+                return committed.response;
             }
-            const result = await sendHostedAgentMessage(
-                options.db,
-                {
-                    agentId: runner.agentId,
-                    attachmentIds: prepared.outgoing.attachmentIds,
-                    chatId,
-                    content: prepared.outgoing.content,
-                    nonce: parsed.data.nonce,
-                    serverId: runner.serverId,
-                    target: parsed.data.target,
-                },
-                options.agentDelivery
-            );
-            await clearAgentDraft(options.db, runner, chatId);
+            const { chatId, result } = committed;
+            publishAgentLifecycle({
+                agentId: runner.agentId,
+                chatId,
+                compositionId: parsed.data.compositionId ?? runner.runId,
+                phase: 'sending',
+                runId: runner.runId,
+                serverId: runner.serverId,
+                text: result.message.content,
+            });
+            publishAgentLifecycle({
+                agentId: runner.agentId,
+                chatId,
+                phase: 'working',
+                runId: runner.runId,
+                serverId: runner.serverId,
+            });
             if (result.event) {
                 emitDurableChatEvent({ audienceUserId: null, event: result.event });
             }

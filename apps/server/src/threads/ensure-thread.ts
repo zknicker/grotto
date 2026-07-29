@@ -26,18 +26,55 @@ export async function ensureHostedThread(
     member: GrottoUser | null,
     input: { anchorMessageId: string; parentChatId: string; serverId: string }
 ) {
-    const parent = await requireChatAccess(db, member, {
+    await requireChatAccess(db, member, {
         chatId: input.parentChatId,
         serverId: input.serverId,
     });
+    const thread = await ensureHostedThreadRecord(db, input);
 
+    const [anchor] = await db
+        .select({ authorUserId: chatMessagesTable.authorUserId })
+        .from(chatMessagesTable)
+        .where(
+            and(
+                eq(chatMessagesTable.serverId, input.serverId),
+                eq(chatMessagesTable.chatId, input.parentChatId),
+                eq(chatMessagesTable.id, input.anchorMessageId)
+            )
+        )
+        .limit(1);
+    if (anchor?.authorUserId) {
+        await db
+            .insert(threadFollowsTable)
+            .values({
+                serverId: input.serverId,
+                threadChatId: thread.id,
+                userId: anchor.authorUserId,
+            })
+            .onConflictDoNothing();
+    }
+    return thread;
+}
+
+/** Creates the canonical thread row after the caller has proved parent authority. */
+export async function ensureHostedThreadRecord(
+    db: ThreadWriter,
+    input: { anchorMessageId: string; parentChatId: string; serverId: string }
+) {
+    const [parent] = await db
+        .select({ kind: chatsTable.kind })
+        .from(chatsTable)
+        .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.parentChatId)))
+        .limit(1);
+    if (!parent) {
+        throw new InvalidThreadAnchorError();
+    }
     if (parent.kind === 'thread') {
         throw new NestedThreadError();
     }
 
     const [anchor] = await db
         .select({
-            authorUserId: chatMessagesTable.authorUserId,
             id: chatMessagesTable.id,
         })
         .from(chatMessagesTable)
@@ -87,17 +124,6 @@ export async function ensureHostedThread(
         thread.anchorMessageId !== input.anchorMessageId
     ) {
         throw new InvalidThreadAnchorError();
-    }
-
-    if (anchor.authorUserId) {
-        await db
-            .insert(threadFollowsTable)
-            .values({
-                serverId: input.serverId,
-                threadChatId,
-                userId: anchor.authorUserId,
-            })
-            .onConflictDoNothing();
     }
 
     return { id: threadChatId, parentChatId: input.parentChatId };

@@ -15,6 +15,7 @@ export interface ResolvedRunner {
     agentId: string;
     chatId: string;
     computerId: string;
+    runId: string;
     runnerId: string;
     serverId: string;
 }
@@ -118,6 +119,7 @@ export async function resolveRunnerCredential(
             agentId: agentRunnerCredentialsTable.agentId,
             chatId: agentRunnerCredentialsTable.chatId,
             computerId: agentRunnerCredentialsTable.computerId,
+            runId: agentRunnerCredentialsTable.runId,
             runnerId: agentRunnerCredentialsTable.id,
             serverId: agentRunnerCredentialsTable.serverId,
         })

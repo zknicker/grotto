@@ -513,6 +513,7 @@ const schemaStatements = [
         content text NOT NULL,
         source text NOT NULL DEFAULT 'human',
         dedupe_key text NOT NULL,
+        pierced boolean NOT NULL DEFAULT false,
         run_id text,
         created_at timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT agent_pending_work_agent_fk
@@ -548,6 +549,27 @@ const schemaStatements = [
             AND seen_up_to_sequence >= 0
             AND session_generation > 0
         )
+    );`,
+    `CREATE TABLE agent_inbox_pierces (
+        server_id text NOT NULL,
+        agent_id text NOT NULL,
+        session_generation integer NOT NULL,
+        chat_id text NOT NULL,
+        message_id text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        served_at timestamptz,
+        seen_at timestamptz,
+        PRIMARY KEY (server_id, agent_id, session_generation, chat_id, message_id),
+        CONSTRAINT agent_inbox_pierces_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_inbox_pierces_chat_fk
+            FOREIGN KEY (server_id, chat_id)
+            REFERENCES chats (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_inbox_pierces_message_fk
+            FOREIGN KEY (server_id, message_id)
+            REFERENCES chat_messages (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT agent_inbox_pierces_generation CHECK (session_generation > 0)
     );`,
     `CREATE TABLE agent_message_drafts (
         server_id text NOT NULL,
@@ -802,7 +824,9 @@ const schemaStatements = [
         thread_chat_id text NOT NULL,
         thread_chat_kind text NOT NULL DEFAULT 'thread'
             CONSTRAINT agent_thread_follows_kind CHECK (thread_chat_kind = 'thread'),
+        followed boolean NOT NULL DEFAULT true,
         created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY (server_id, agent_id, thread_chat_id),
         CONSTRAINT agent_thread_follows_agent_fk
             FOREIGN KEY (server_id, agent_id)

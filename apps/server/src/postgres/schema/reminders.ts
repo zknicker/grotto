@@ -5,13 +5,13 @@ import {
     foreignKey,
     index,
     integer,
-    jsonb,
     pgTable,
     text,
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
+import { bunJsonb } from './bun-jsonb.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
 import { serversTable } from './servers.ts';
@@ -90,7 +90,7 @@ export const reminderCommandsTable = pgTable(
         id: text('id').primaryKey(),
         reminderId: text('reminder_id').notNull(),
         requestFingerprint: text('request_fingerprint').notNull(),
-        resultSnapshot: jsonb('result_snapshot').notNull().$type<unknown>(),
+        resultSnapshot: bunJsonb('result_snapshot').notNull().$type<unknown>(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),

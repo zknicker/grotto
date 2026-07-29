@@ -9,12 +9,12 @@ import {
     foreignKey,
     index,
     integer,
-    jsonb,
     pgTable,
     text,
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { bunJsonb } from './bun-jsonb.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
 
@@ -33,9 +33,9 @@ export const computersTable = pgTable(
         operatingSystem: text('operating_system'),
         productVersion: text('product_version'),
         protocolVersion: integer('protocol_version'),
-        reportedInventory: jsonb('reported_inventory').$type<HostedComputerInventory>(),
+        reportedInventory: bunJsonb('reported_inventory').$type<HostedComputerInventory>(),
         usageReportedAt: timestamp('usage_reported_at', { withTimezone: true }),
-        usageSnapshot: jsonb('usage_snapshot').$type<HostedUsageOverview>(),
+        usageSnapshot: bunJsonb('usage_snapshot').$type<HostedUsageOverview>(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),

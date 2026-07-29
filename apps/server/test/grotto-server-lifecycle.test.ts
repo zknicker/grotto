@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
+import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -14,6 +15,7 @@ let attachmentRoot: string;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
+    await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
     attachmentRoot = await mkdtemp(join(tmpdir(), 'grotto-lifecycle-attachments-'));
     // One connection, so the observer's own pool cannot be mistaken for the
     // application's backends.

@@ -263,6 +263,10 @@ test('the resident service keeps its state root outside executable code', () => 
     expect(plist).toContain('.grotto/computer');
     expect(plist).toContain('<key>StandardOutPath</key>');
     expect(plist).toContain('.grotto/computer/logs/computer.log');
+    expect(plist).toContain('<key>PATH</key>');
+    expect(plist).toContain('/opt/homebrew/bin');
+    expect(plist).toContain('/usr/local/bin');
+    expect(plist).toContain('/.local/bin');
     expect(plist).not.toContain('/opt/grotto/package/.grotto');
 });
 

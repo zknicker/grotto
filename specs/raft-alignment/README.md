@@ -149,8 +149,10 @@ Model-provider access is shared by the physical machine, in direct Raft parity: 
 runtimes reuse host subscriptions and sessions such as Codex OAuth. Every Server attachment may
 advertise sanitized model availability and assign its Agents to it; raw provider credentials
 never enter Grotto at all. Provider setup and login use each runtime's native local flow; Grotto
-Computer only detects and reports availability. Setup explicitly acknowledges that attaching a
-Server shares this paid compute capacity.
+Computer resolves each runtime to an absolute executable through a stable service search path,
+accepts it only after a bounded version probe, and uses that same resolved environment for Agent
+launches. Computer only reports runtimes that pass that probe. Setup explicitly acknowledges that
+attaching a Server shares this paid compute capacity.
 MCP follows Raft's hosted custody. Every configured remote HTTP MCP connection, credential,
 OAuth attempt, discovered tool, session, and Agent grant belongs to one Grotto Server. Server
 terminates MCP and auth, while Computer receives safe schemas and proxies invocation through a

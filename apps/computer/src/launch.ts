@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { computerEntrypoint } from './build-identity.ts';
 import { type NoticeSinkRegistrar, runHarnessTurn } from './harness/executor.ts';
 import { startLoopbackProxy } from './proxy.ts';
+import { resolveRuntimeExecutable, runtimeSearchPath } from './runtime-discovery.ts';
 import { createServerMcpTools } from './server-mcp-tools.ts';
 import { writeGrottoWrapper } from './wrapper.ts';
 
@@ -138,7 +139,9 @@ export async function runAgentLaunch(
     );
     await ensureNativeSkillLinks(dirs.home, dirs.skills);
 
-    if (!isRuntimeRunnable(command.runtimeId)) {
+    const runtimeCommand = runtimeCli[command.runtimeId];
+    const runtimeExecutable = runtimeCommand ? resolveRuntimeExecutable(runtimeCommand) : null;
+    if (command.runtimeId !== 'fake' && !runtimeExecutable) {
         return reportTurn(options, {
             messageCount: 0,
             startedAt,
@@ -192,7 +195,13 @@ export async function runAgentLaunch(
         GROTTO_AGENT_TOKEN_FILE: tokenFile,
         GROTTO_SERVER_URL: options.serverOrigin,
         GROTTO_WRAPPER: wrapperPath,
-        PATH: `${binDir}:${process.env.PATH ?? ''}`,
+        PATH: [
+            binDir,
+            runtimeExecutable?.path ? dirname(runtimeExecutable.path) : null,
+            runtimeExecutable?.searchPath ?? runtimeSearchPath(),
+        ]
+            .filter(Boolean)
+            .join(':'),
     };
 
     let status: 'completed' | 'failed' = 'failed';
@@ -519,14 +528,6 @@ async function writeTrace(input: RuntimeExecutionInput, content: string) {
  * runs never diverge. `fake` is the always-available deterministic lane; the
  * real runtimes require their host CLI (native provider login lives there).
  */
-function isRuntimeRunnable(runtimeId: string): boolean {
-    if (runtimeId === 'fake') {
-        return true;
-    }
-    const cli = runtimeCli[runtimeId];
-    return cli ? Bun.which(cli) !== null : false;
-}
-
 const runtimeCli: Record<string, string> = {
     'claude-code': 'claude',
     codex: 'codex',

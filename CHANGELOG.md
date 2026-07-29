@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.7 - 2026-07-28
+
+- Grotto Computer 1.1.0 now ships as a signed and notarized standalone Apple
+  Silicon executable with no npm, Homebrew, or Bun dependency. Updates verify
+  the signed descriptor, checksum, Apple identity, and executable identity
+  before atomically replacing code; `~/.grotto` data remains untouched.
+- Server Owners and Admins can check for and install Computer updates from
+  Settings with live download bytes, verification, active-Agent drain,
+  installation, restart, reconnect, completion, and exact failure-stage
+  progress.
+- Computer updates retain one verified executable for explicit local rollback.
+  Existing pre-publisher 1.0.0 Computers transition once through the standalone
+  installer and reuse their attachments, Agent workspaces, and queued work.
+- App/Server release publication now requires a compatible publicly verified
+  Computer release, while immutable publishing, version monotonicity, and
+  release-key continuity fail closed.
+
+### Release surfaces
+
+- App/Server: Publish v1.6.7
+- Desktop: Publish v1.6.7
+- Computer: Publish v1.1.0
+- Runtime: Unchanged
+
 ## v1.6.6 - 2026-07-28
 
 - Hosted Grotto restores the full desktop collaboration experience: signed-in

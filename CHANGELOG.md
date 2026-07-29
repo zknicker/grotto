@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.12 - 2026-07-29
+
+- New Servers now offer Cove as their first Agent with his orange blob
+  character, onboarding-guide identity, and the complete original onboarding
+  workspace notes.
+- Grotto Computer 1.1.3 applies Agent identity before the first turn and
+  restores the seeded workspace after a full reset without touching other
+  `~/.grotto` data.
+- Agent profile edits now refresh the Computer's durable reset seed, and
+  configuration, reset, and turn launch are serialized per Agent.
+
+### Release surfaces
+
+- App/Server: Publish v1.6.12
+- Desktop: Publish v1.6.12
+- Computer: Publish v1.1.3
+- Runtime: Unchanged
+
 ## v1.6.11 - 2026-07-29
 
 - Computer inventory and Agent effective-state reports are now applied in

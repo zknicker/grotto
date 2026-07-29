@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { HostedMcpOAuthStartResult } from '@tavern/api';
 import { eq } from 'drizzle-orm';
+import { emitServerUpdated } from '../grotto-api/server-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
 import { completeHostedMcpAuthorization, startHostedMcpAuthorization } from './oauth.ts';
@@ -71,14 +72,18 @@ export class HostedMcpOAuthRelay {
             });
             await this.runtime.closeConnection(attempt.connectionId);
             const discovery = await this.runtime.discover(attempt.connectionId);
-            await this.db
+            const [updated] = await this.db
                 .update(mcpConnectionsTable)
                 .set({
                     accountLabel: discovery.accountLabel,
                     connected: true,
                     tools: [...new Set(discovery.tools)].sort(),
                 })
-                .where(eq(mcpConnectionsTable.id, attempt.connectionId));
+                .where(eq(mcpConnectionsTable.id, attempt.connectionId))
+                .returning({ serverId: mcpConnectionsTable.serverId });
+            if (updated) {
+                emitServerUpdated({ scope: 'mcp', serverId: updated.serverId });
+            }
             return { status: 'complete' };
         } catch {
             return { status: 'failed' };

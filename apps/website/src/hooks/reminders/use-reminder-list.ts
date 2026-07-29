@@ -6,8 +6,6 @@ export function useReminderList(statuses?: ('scheduled' | 'fired' | 'canceled')[
     // undefined input, which optional-input procedures reject as bad JSON.
     return trpc.reminder.list.useQuery(statuses ? { statuses } : {}, {
         ...queryPolicy.syncedSnapshot,
-        // Agent-side snooze/update/cancel does not necessarily emit chat activity.
-        refetchInterval: 60_000,
     });
 }
 

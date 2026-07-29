@@ -12,6 +12,7 @@ import { insertMessage } from './chat-api/messages.ts';
 import { wakeAgentAfterReminder } from './delivery-planner.ts';
 import { recordInboxPierce } from './inbox-cursors.ts';
 import { nextFireAtMs, parseCadence } from './reminder-cadence.ts';
+import { publishReminderUpdated } from './reminder-events.ts';
 import {
     boundScriptText,
     type ReminderScriptRunner,
@@ -282,6 +283,7 @@ function finalizeReminderFire(
         return { message };
     });
     const finalized = transaction();
+    publishReminderUpdated();
     if (event) {
         publish(event);
     }

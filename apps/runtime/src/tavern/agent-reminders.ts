@@ -13,6 +13,7 @@ import {
     resolveMessageId,
 } from './chat-api/index.ts';
 import { nextFireAtMs, parseCadence, parseSnoozeDuration } from './reminder-cadence.ts';
+import { publishReminderUpdated } from './reminder-events.ts';
 import { reminderScheduleReceipt } from './reminder-scheduler.ts';
 import {
     cancelReminder,
@@ -127,6 +128,7 @@ export function scheduleAgentReminder(
         },
         db
     );
+    publishReminderUpdated();
     return { reminder: toView(reminder, agentId, db) };
 }
 
@@ -162,6 +164,7 @@ export function snoozeAgentReminder(
         );
     }
     const updated = rescheduleReminder(reminder.id, Date.now() + byMs, db);
+    publishReminderUpdated();
     return { reminder: toView(updated, agentId, db) };
 }
 
@@ -184,6 +187,7 @@ export function updateAgentReminder(
         },
         db
     );
+    publishReminderUpdated();
     return { reminder: toView(updated, agentId, db) };
 }
 
@@ -193,7 +197,9 @@ export function cancelAgentReminder(
     db: Database = getDb()
 ): { reminder: AgentReminderView } {
     const reminder = requireOwnReminder(agentId, input.id, db);
-    return { reminder: toView(cancelReminder(reminder.id, db), agentId, db) };
+    const canceled = cancelReminder(reminder.id, db);
+    publishReminderUpdated();
+    return { reminder: toView(canceled, agentId, db) };
 }
 
 export function readAgentReminderLog(

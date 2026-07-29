@@ -22,3 +22,21 @@ test('engine restart events reject unknown phases', () => {
         })
     );
 });
+
+test('Runtime update changes parse through the runtime event union', () => {
+    const event = agentRuntimeEventSchema.parse({
+        timestamp: '2026-06-11T12:00:00.000Z',
+        type: 'runtime.update',
+    });
+
+    assert.equal(event.type, 'runtime.update');
+});
+
+test('reminder changes parse through the runtime event union', () => {
+    const event = agentRuntimeEventSchema.parse({
+        timestamp: '2026-06-11T12:00:00.000Z',
+        type: 'reminder.updated',
+    });
+
+    assert.equal(event.type, 'reminder.updated');
+});

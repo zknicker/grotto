@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import type { AgentRuntimeUpdate } from '@tavern/api';
+import { publishRuntimeEvent } from './runtime-events.ts';
 import { getRuntimeInfo } from './status';
 
 let updateStatus: AgentRuntimeUpdate = idleUpdateStatus();
@@ -33,6 +34,7 @@ export function startRuntimeUpdate(input?: { targetVersion?: null | string }) {
         startedAt,
         targetVersion: input?.targetVersion ?? null,
     };
+    publishUpdateChanged();
 
     // After staging, pre-install the staged Runtime's pinned agent engine with
     // the staged binary (only it knows the new pin). Best-effort: a pre-stage
@@ -52,6 +54,7 @@ export function startRuntimeUpdate(input?: { targetVersion?: null | string }) {
             message: error.message,
             phase: 'failed',
         };
+        publishUpdateChanged();
     });
     child.once('exit', (code) => {
         updateStatus =
@@ -68,6 +71,7 @@ export function startRuntimeUpdate(input?: { targetVersion?: null | string }) {
                       message: `Runtime update failed with exit code ${code ?? 'unknown'}.`,
                       phase: 'failed',
                   };
+        publishUpdateChanged();
     });
 
     return updateStatus;
@@ -85,6 +89,7 @@ export function restartRuntimeForUpdate() {
         phase: 'restarting',
         startedAt: updateStatus.startedAt ?? new Date().toISOString(),
     };
+    publishUpdateChanged();
 
     const restartCommand = 'brew services restart grotto-runtime';
     const child = spawn('sh', ['-lc', restartCommand], {
@@ -99,8 +104,16 @@ export function restartRuntimeForUpdate() {
             message: error.message,
             phase: 'failed',
         };
+        publishUpdateChanged();
     });
     child.unref();
 
     return updateStatus;
+}
+
+function publishUpdateChanged() {
+    publishRuntimeEvent({
+        timestamp: new Date().toISOString(),
+        type: 'runtime.update',
+    });
 }

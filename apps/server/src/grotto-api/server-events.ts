@@ -6,7 +6,7 @@ import EventEmitter, { on } from 'node:events';
  */
 export interface ServerUpdatedEvent {
     emittedAt: string;
-    scope: 'computer' | 'server';
+    scope: 'computer' | 'mcp' | 'server';
     serverId: string;
 }
 

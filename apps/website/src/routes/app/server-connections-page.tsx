@@ -43,7 +43,7 @@ export function ServerConnectionsPage({ embedded = false }: { embedded?: boolean
     const [connectingId, setConnectingId] = React.useState<string | null>(null);
     const connections = grottoTrpc.mcp.list.useQuery(
         { serverId: server.data?.id ?? '' },
-        { enabled: Boolean(server.data), refetchInterval: connectingId ? 1000 : 4000 }
+        { enabled: Boolean(server.data) }
     );
     const agents = grottoTrpc.agent.list.useQuery(
         { serverId: server.data?.id ?? '' },

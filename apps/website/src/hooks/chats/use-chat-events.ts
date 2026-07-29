@@ -20,6 +20,11 @@ export function createChatEventHandlers(utils: ChatEventUtils) {
         onChatLogUpdate: (event: unknown) => {
             const chatId = readStringField(event, 'chatId');
 
+            // Agent-authored workspace files can change during any turn. The
+            // chat log event is the Runtime's completion signal for that work,
+            // so refresh file reads without an ambient polling loop.
+            void utils.agent.workspaceReadableFile.invalidate();
+
             if (chatId) {
                 void utils.chat.log.list.invalidate({ id: chatId });
                 void utils.chat.files.list.invalidate({ chatId });

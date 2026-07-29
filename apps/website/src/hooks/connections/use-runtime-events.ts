@@ -6,6 +6,7 @@ export function useRuntimeConnectionEvents() {
     trpc.agentRuntime.onUpdate.useSubscription(undefined, {
         onData: () => {
             utils.agentRuntime.get.invalidate().catch(() => undefined);
+            utils.agentRuntime.updateStatus.invalidate().catch(() => undefined);
         },
     });
 }

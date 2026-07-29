@@ -17,6 +17,9 @@ describe('Runtime update', () => {
         const child = createChildProcess();
         spawnMock.mockReturnValue(child);
         const update = await import('./update.ts');
+        const events = await import('./runtime-events.ts');
+        const phases: string[] = [];
+        const unsubscribe = events.subscribeToRuntimeEvents((event) => phases.push(event.type));
 
         const status = update.startRuntimeUpdate({ targetVersion: '1.2.3' });
 
@@ -41,6 +44,8 @@ describe('Runtime update', () => {
             phase: 'staged',
             targetVersion: '1.2.3',
         });
+        expect(phases).toEqual(['runtime.update', 'runtime.update']);
+        unsubscribe();
     });
 
     it('restarts Runtime only through the explicit restart step', async () => {

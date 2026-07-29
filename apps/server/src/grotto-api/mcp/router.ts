@@ -24,6 +24,7 @@ import {
 } from '../../hosted-mcp/service.ts';
 import { listHostedMcpConnections, setHostedMcpGrant } from '../../hosted-mcp/state.ts';
 import { memberProcedure } from '../server/procedure.ts';
+import { emitServerUpdated } from '../server-events.ts';
 import { createRouter } from '../trpc.ts';
 
 const guarded = memberProcedure.use(async ({ next }) => {
@@ -43,25 +44,33 @@ export const mcpRouter = createRouter({
         .input(hostedMcpConnectionCreateSchema)
         .output(hostedMcpConnectionSchema)
         .mutation(({ ctx, input }) =>
-            createHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            withMcpUpdate(input.serverId, () =>
+                createHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            )
         ),
     addPresetAccount: guarded
         .input(hostedMcpPresetAccountCreateSchema)
         .output(hostedMcpConnectionSchema)
         .mutation(({ ctx, input }) =>
-            createHostedMcpPresetAccount(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            withMcpUpdate(input.serverId, () =>
+                createHostedMcpPresetAccount(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            )
         ),
     delete: guarded
         .input(hostedMcpConnectionInputSchema)
         .output(hostedMcpConnectionSchema)
         .mutation(({ ctx, input }) =>
-            deleteHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            withMcpUpdate(input.serverId, () =>
+                deleteHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            )
         ),
     disconnect: guarded
         .input(hostedMcpConnectionInputSchema)
         .output(hostedMcpConnectionSchema)
         .mutation(({ ctx, input }) =>
-            disconnectHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            withMcpUpdate(input.serverId, () =>
+                disconnectHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            )
         ),
     list: guarded
         .input(hostedMcpConnectionListInputSchema)
@@ -73,22 +82,42 @@ export const mcpRouter = createRouter({
         .input(hostedMcpConnectionInputSchema)
         .output(hostedMcpConnectionSchema)
         .mutation(({ ctx, input }) =>
-            refreshHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            withMcpUpdate(input.serverId, () =>
+                refreshHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            )
         ),
     replaceHeaders: guarded
         .input(hostedMcpHeadersUpdateSchema)
         .output(hostedMcpConnectionSchema)
         .mutation(({ ctx, input }) =>
-            replaceHostedMcpHeaders(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            withMcpUpdate(input.serverId, () =>
+                replaceHostedMcpHeaders(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+            )
         ),
     setGrant: guarded
         .input(hostedMcpGrantInputSchema)
         .output(hostedMcpGrantSchema)
-        .mutation(({ ctx, input }) => setHostedMcpGrant(ctx.grottoDb, ctx.member, input)),
+        .mutation(({ ctx, input }) =>
+            withMcpUpdate(input.serverId, () => setHostedMcpGrant(ctx.grottoDb, ctx.member, input))
+        ),
     startOAuth: guarded
         .input(hostedMcpOAuthStartSchema)
         .output(hostedMcpOAuthStartResultSchema)
         .mutation(({ ctx, input }) =>
-            startHostedMcpOAuth(ctx.grottoDb, ctx.mcpRuntime, ctx.mcpOAuthRelay, ctx.member, input)
+            withMcpUpdate(input.serverId, () =>
+                startHostedMcpOAuth(
+                    ctx.grottoDb,
+                    ctx.mcpRuntime,
+                    ctx.mcpOAuthRelay,
+                    ctx.member,
+                    input
+                )
+            )
         ),
 });
+
+async function withMcpUpdate<Result>(serverId: string, operation: () => Promise<Result>) {
+    const result = await operation();
+    emitServerUpdated({ scope: 'mcp', serverId });
+    return result;
+}

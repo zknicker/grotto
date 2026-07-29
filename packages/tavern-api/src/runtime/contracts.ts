@@ -1756,6 +1756,16 @@ export const agentRuntimeEngineRestartEventSchema = z.object({
     type: z.literal('engine.restart'),
 });
 
+export const agentRuntimeUpdateChangedEventSchema = z.object({
+    timestamp: z.string().datetime(),
+    type: z.literal('runtime.update'),
+});
+
+export const agentRuntimeReminderUpdatedEventSchema = z.object({
+    timestamp: z.string().datetime(),
+    type: z.literal('reminder.updated'),
+});
+
 export const agentRuntimeEventSchema = z.discriminatedUnion('type', [
     agentRuntimeAgentUpdatedEventSchema,
     agentRuntimeEngineRestartEventSchema,
@@ -1771,6 +1781,8 @@ export const agentRuntimeEventSchema = z.discriminatedUnion('type', [
     agentRuntimeSessionInvalidatedEventSchema,
     agentRuntimeSessionUpdatedEventSchema,
     agentRuntimeCompositionEventSchema,
+    agentRuntimeUpdateChangedEventSchema,
+    agentRuntimeReminderUpdatedEventSchema,
 ]);
 
 export const agentRuntimeEventListSchema = z.object({

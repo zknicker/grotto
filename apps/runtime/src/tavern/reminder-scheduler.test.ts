@@ -17,6 +17,7 @@ import {
     listReminderRuns,
     listReminders,
 } from './reminder-store.ts';
+import { subscribeToRuntimeEvents } from './runtime-events.ts';
 
 describe('reminder cadence', () => {
     it('parses the D4 cadence grammar and rejects junk', () => {
@@ -136,6 +137,8 @@ describe('reminder fires', () => {
 
     it('script reminders: empty output is a quiet tick, output rides the fire', async () => {
         const quiet = seedReminder({ fireAtMs: Date.now() - 1000, script: 'true' });
+        const runtimeEvents: string[] = [];
+        const unsubscribe = subscribeToRuntimeEvents((event) => runtimeEvents.push(event.type));
         await tickReminders({
             nowMs: Date.now(),
             runScript: async () => ({ exitCode: 0, stderr: '', stdout: '' }),
@@ -146,6 +149,8 @@ describe('reminder fires', () => {
         expect(
             listMessages('cht_general').messages.filter((message) => message.role === 'system')
         ).toHaveLength(0);
+        expect(runtimeEvents).toContain('reminder.updated');
+        unsubscribe();
 
         const loud = seedReminder({ fireAtMs: Date.now() - 1000, script: 'true' });
         await tickReminders({

@@ -39,10 +39,6 @@ export function useTavernUpdate() {
         runtimeConnection.status === 'error' || runtimeConnection.status === 'unreachable';
     const runtimeUpdateStatus = trpc.agentRuntime.updateStatus.useQuery(undefined, {
         enabled: needsRuntimeUpdate,
-        refetchInterval: (query) =>
-            query.state.data?.phase === 'installing' || query.state.data?.phase === 'restarting'
-                ? 1500
-                : false,
         retry: false,
     });
     const startRuntimeUpdate = trpc.agentRuntime.startUpdate.useMutation({

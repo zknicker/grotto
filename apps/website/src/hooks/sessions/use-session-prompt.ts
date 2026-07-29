@@ -3,7 +3,7 @@ import { trpc } from '../../lib/trpc.tsx';
 
 export function useSessionPrompt(
     input: { sessionKey: string | null },
-    options?: { enabled?: boolean; refetchInterval?: false | number }
+    options?: { enabled?: boolean }
 ) {
     return trpc.session.prompt.get.useQuery(
         {

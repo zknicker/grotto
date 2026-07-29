@@ -17,11 +17,13 @@ const [
     { applyObservedAgentRuntimeEvent },
     connectionService,
     { listReachableAgentRuntimeConnections },
+    { subscribeToTavernEvent, tavernEventNames },
 ] = await Promise.all([
     import('../db/bootstrap.ts'),
     import('./event-sync.ts'),
     import('../agent-runtime-connection/service.ts'),
     import('../storage/agent-runtime-connections.ts'),
+    import('../api/invalidation-events.ts'),
 ]);
 
 ensureDatabaseSchema();
@@ -41,6 +43,34 @@ const runtimeServer = Bun.serve({
 
 test.after(() => {
     runtimeServer.stop(true);
+});
+
+test('runtime.update refreshes Runtime update status without polling', async () => {
+    const controller = new AbortController();
+    const updates = subscribeToTavernEvent(tavernEventNames.agentRuntimeUpdated, controller.signal);
+    const next = updates.next();
+
+    await applyObservedAgentRuntimeEvent({
+        timestamp: new Date().toISOString(),
+        type: 'runtime.update',
+    });
+
+    assert.ok((await next).value);
+    controller.abort();
+});
+
+test('reminder.updated refreshes reminder lists without polling', async () => {
+    const controller = new AbortController();
+    const updates = subscribeToTavernEvent(tavernEventNames.remindersUpdated, controller.signal);
+    const next = updates.next();
+
+    await applyObservedAgentRuntimeEvent({
+        timestamp: new Date().toISOString(),
+        type: 'reminder.updated',
+    });
+
+    assert.ok((await next).value);
+    controller.abort();
 });
 
 test('capability.updated refreshes the cached runtime capability snapshot', async () => {

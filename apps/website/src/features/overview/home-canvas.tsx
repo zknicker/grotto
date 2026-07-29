@@ -78,13 +78,14 @@ export function buildFaceSpriteCss(sprites: { aliases: string[]; svg: string }[]
 }
 
 export function HomeCanvas({ agents }: { agents: OverviewAgent[] }) {
-    // One bounded read per agent; the freshest authored copy wins. Polling
-    // stands in for a file-change subscription until one exists.
+    // One bounded read per agent; the freshest authored copy wins.
     const fileQueries = trpc.useQueries((query) =>
         agents.map((agent) =>
             query.agent.workspaceReadableFile(
                 { agentId: agent.id, path: homeCanvasPath },
-                { refetchInterval: 60_000, retry: false }
+                {
+                    retry: false,
+                }
             )
         )
     );

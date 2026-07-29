@@ -26,6 +26,10 @@ export function useServerEvents(serverId: string | undefined) {
                     void utils.stats.live.invalidate({ serverId });
                     return;
                 }
+                if (event.scope === 'mcp') {
+                    void utils.mcp.list.invalidate({ serverId });
+                    return;
+                }
 
                 void utils.server.bySlug.invalidate();
                 void utils.server.list.invalidate();

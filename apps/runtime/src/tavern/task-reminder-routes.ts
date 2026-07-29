@@ -18,6 +18,7 @@ import {
     updateTaskFields,
 } from './chat-api/index.ts';
 import { badRequest, json, notFound, readJson } from './http';
+import { publishReminderUpdated } from './reminder-events.ts';
 import {
     cancelReminder,
     getReminder,
@@ -200,7 +201,9 @@ export async function routeTaskReminderSurfaces(
         if (!getReminder(id)) {
             return notFound();
         }
-        return json({ reminder: reminderView(cancelReminder(id)) });
+        const reminder = cancelReminder(id);
+        publishReminderUpdated();
+        return json({ reminder: reminderView(reminder) });
     }
 
     return null;

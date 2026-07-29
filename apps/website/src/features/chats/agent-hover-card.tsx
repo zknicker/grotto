@@ -63,12 +63,7 @@ export function AgentHoverCard({
             >
                 {children}
             </PopoverTrigger>
-            <PopoverPopup
-                align="start"
-                className="w-76 rounded-2xl p-0 before:rounded-[calc(var(--radius-2xl)-1px)]"
-                side="bottom"
-                sideOffset={6}
-            >
+            <PopoverPopup align="start" className="w-76 p-0" side="bottom" sideOffset={6}>
                 <AgentHoverCardBody
                     agentId={agentId}
                     agentName={agentName}
@@ -129,12 +124,12 @@ function AgentHoverCardBody({
                 </div>
             </div>
             {bio ? (
-                <p className="line-clamp-2 border-border/60 border-t px-3 py-2 text-muted-foreground text-sm">
+                <p className="line-clamp-2 border-border-subtle border-t px-3 py-2 text-muted-foreground text-sm">
                     {bio}
                 </p>
             ) : null}
             {session ? (
-                <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 border-border/60 border-t px-3 py-2 text-meta">
+                <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 border-border-subtle border-t px-3 py-2 text-meta">
                     <dt className="text-muted-foreground">Model</dt>
                     <dd className="min-w-0 truncate text-foreground">
                         {session.effectiveModel.model} ·{' '}
@@ -142,7 +137,7 @@ function AgentHoverCardBody({
                     </dd>
                 </dl>
             ) : null}
-            <div className="border-border/60 border-t px-3 pt-2 pb-2.5">
+            <div className="border-border-subtle border-t px-3 pt-2 pb-2.5">
                 <span className="font-medium text-caption text-muted-foreground uppercase tracking-wider">
                     Recent activity
                 </span>
@@ -166,10 +161,10 @@ function AgentHoverCardBody({
                                         activityDotClassName(entry.kind)
                                     )}
                                 />
-                                <span className="w-16 shrink-0 whitespace-nowrap text-muted-foreground/80 tabular-nums">
+                                <span className="w-16 shrink-0 whitespace-nowrap text-foreground-tertiary tabular-nums">
                                     {formatAgentActivityTime(entry.at)}
                                 </span>
-                                <span className="min-w-0 truncate text-foreground/90">
+                                <span className="min-w-0 truncate text-foreground">
                                     {formatAgentActivityEntry(entry)}
                                 </span>
                             </li>
@@ -189,7 +184,7 @@ function activityDotClassName(kind: AgentActivityEntry['kind']) {
             return 'bg-destructive';
         case 'stopped':
         case 'new_session':
-            return 'bg-muted-foreground/40';
+            return 'bg-foreground-quaternary';
         default:
             return 'bg-warning';
     }

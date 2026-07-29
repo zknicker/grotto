@@ -34,7 +34,7 @@ function ParticipantsCount({ count }: { count: number }) {
             title={`${count} participants`}
         >
             <Icon className="size-[18px]" icon={UserMultiple02Icon} strokeWidth={1.8} />
-            <span className="text-xs tabular-nums">{count}</span>
+            <span className="text-meta tabular-nums">{count}</span>
         </span>
     );
 }
@@ -58,7 +58,7 @@ function ParticipantsEditButton({ chat, count }: { chat: ChatListItem; count: nu
                 variant="ghost"
             >
                 <Icon className="size-[18px]" icon={UserMultiple02Icon} strokeWidth={1.8} />
-                <span className="text-xs tabular-nums">{count}</span>
+                <span className="text-meta tabular-nums">{count}</span>
             </Button>
             <ChannelDialog
                 agents={agentsQuery.data?.agents ?? []}

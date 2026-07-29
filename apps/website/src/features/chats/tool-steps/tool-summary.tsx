@@ -48,7 +48,9 @@ export function ToolTimelineStep({
             // button's offsetParent is the row itself).
             ref={hoverItem.ref}
         >
-            {isLast ? null : <div className="absolute top-7 bottom-0 left-4 w-px bg-border/60" />}
+            {isLast ? null : (
+                <div className="absolute top-7 bottom-0 left-4 w-px bg-border-subtle" />
+            )}
             <Drawer onOpenChange={setIsOpen} open={isOpen} position="right">
                 <DrawerTrigger
                     render={
@@ -65,7 +67,7 @@ export function ToolTimelineStep({
                 >
                     <span className="-ml-1 flex size-4 shrink-0 items-center justify-center">
                         <Icon
-                            className="size-4 text-muted-foreground/75"
+                            className="size-4 text-muted-foreground"
                             icon={icon}
                             strokeWidth={1.5}
                         />
@@ -122,7 +124,7 @@ export function InlineToolLabel({
                 {visibleTarget}
             </span>
             {duration ? (
-                <span className="shrink-0 font-mono text-[11px] text-muted-foreground/70 tabular-nums">
+                <span className="shrink-0 font-mono text-caption text-foreground-tertiary tabular-nums">
                     {duration}
                 </span>
             ) : null}
@@ -136,7 +138,7 @@ export function getInlineToolVerbClassName(row: ToolStepRow) {
     }
 
     if (!row.completedAt) {
-        return 'text-muted-foreground/70';
+        return 'text-foreground-tertiary';
     }
 
     return 'text-muted-foreground';

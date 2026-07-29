@@ -36,7 +36,7 @@ export function ChatCardHeader({
                         </div>
                         {chat.latestSession?.sessionKey ? (
                             <p
-                                className="mt-1 truncate font-mono text-muted-foreground/65 text-xs"
+                                className="mt-1 truncate font-mono text-foreground-tertiary text-meta"
                                 title={chat.latestSession.sessionKey}
                             >
                                 {chat.latestSession.sessionKey}
@@ -61,7 +61,7 @@ export function ChatCardHeader({
                 ) : null}
             </div>
             {chat.agentRuntimeSyncLabel ? (
-                <div className="border-border/70 border-t px-3 py-2 text-muted-foreground text-xs">
+                <div className="border-border-subtle border-t px-3 py-2 text-meta text-muted-foreground">
                     {chat.agentRuntimeSyncLabel}
                 </div>
             ) : null}

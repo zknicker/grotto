@@ -254,7 +254,7 @@ export function ChatMessageComposer({
         <PromptInput
             className={cn(
                 isCompact
-                    ? 'border-t border-r-[3px] border-r-border/70 bg-chrome/40 px-3 py-3'
+                    ? 'border-t border-r-[3px] border-r-border-subtle bg-chrome px-3 py-3'
                     : // Match the transcript's gutter so the composer stays
                       // aligned with the messages.
                       'px-5'
@@ -268,10 +268,10 @@ export function ChatMessageComposer({
             onSubmit={handleSubmit}
             onTextEditorFocus={isComposerBlocked ? undefined : mentionComposer.focusTextEditor}
             surfaceClassName={cn(
-                isCompact ? 'rounded-2xl shadow-none' : undefined,
+                isCompact ? 'rounded-xl shadow-none' : undefined,
                 isCompact &&
                     attachmentDrop.isFileDropActive &&
-                    'border-ring/35 bg-accent/10 shadow-md shadow-ring/10 ring-2 ring-ring/35',
+                    'border-ring bg-accent ring-2 ring-ring',
                 isComposerBlocked && 'cursor-not-allowed opacity-60'
             )}
         >

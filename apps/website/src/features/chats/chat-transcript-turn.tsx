@@ -90,7 +90,7 @@ const newTurnGapClassName = '';
 // cap (the name's line box has ~3px of half-leading above the glyphs), so
 // the avatar reads inline with the sender line rather than floating high.
 const turnAvatarBaseClassName =
-    'mt-1.5 size-10 min-w-10 self-start ring-1 ring-border/50 group-has-data-[slot=message-footer]/message:translate-y-0';
+    'mt-1.5 size-10 min-w-10 self-start ring-1 ring-border-subtle group-has-data-[slot=message-footer]/message:translate-y-0';
 // The character head is the avatar: a square-ish little character at the
 // same footprint and roundedness as the people avatars beside it.
 const faceStyle = { flexShrink: 0, height: 40, overflow: 'visible', width: 40 } as const;
@@ -333,7 +333,7 @@ function TurnAvatar({
                 'rounded-lg font-semibold text-xs ring-0',
                 color
                     ? 'bg-[color-mix(in_srgb,var(--chat-avatar-color)_16%,transparent)] text-[color-mix(in_srgb,var(--chat-avatar-color)_75%,var(--foreground))]'
-                    : 'bg-brand/16 text-brand-muted-foreground'
+                    : 'bg-brand-muted text-brand-muted-foreground'
             )}
             style={style}
         >
@@ -390,7 +390,7 @@ function TurnHeader({
                 </span>
             )}
             {bio ? (
-                <span className="min-w-0 truncate text-muted-foreground/75 text-xs leading-5">
+                <span className="min-w-0 truncate text-foreground-tertiary text-meta leading-5">
                     {bio.length > turnHeaderBioMaxChars
                         ? `${bio.slice(0, turnHeaderBioMaxChars).trimEnd()}…`
                         : bio}
@@ -398,7 +398,7 @@ function TurnHeader({
             ) : null}
             {timestamp ? (
                 <time
-                    className="shrink-0 text-muted-foreground/65 text-xs tabular-nums"
+                    className="shrink-0 text-foreground-tertiary text-meta tabular-nums"
                     dateTime={timestamp}
                 >
                     {formatShortTime(timestamp)}
@@ -615,7 +615,7 @@ function AgentTurnPresentation({
                     }
                     // self-start keeps the trigger button from stretching to
                     // the row height and re-centering the avatar it wraps.
-                    triggerClassName="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    triggerClassName="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                     <TurnAvatar
                         actorKind="agent"
@@ -627,7 +627,7 @@ function AgentTurnPresentation({
             ) : chatId && actorId && profilePaneChatId ? (
                 <button
                     aria-label={`Agent details: ${displayName}`}
-                    className="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    className="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
                     type="button"
                 >
@@ -1267,7 +1267,7 @@ function TranscriptMessageActions({
 // cursor-default overrides the button primitive's cursor-pointer: clickable
 // app chrome keeps the regular arrow cursor.
 const messageActionButtonClassName =
-    'inline-flex size-5 cursor-default items-center justify-center rounded-md border-0 bg-transparent p-0 text-muted-foreground/75 shadow-none hover:bg-transparent hover:text-foreground';
+    'inline-flex size-5 cursor-default items-center justify-center rounded-md border-0 bg-transparent p-0 text-foreground-tertiary shadow-none hover:bg-transparent hover:text-foreground';
 
 function getLastMessage(items: TranscriptItem[]) {
     for (let index = items.length - 1; index >= 0; index -= 1) {

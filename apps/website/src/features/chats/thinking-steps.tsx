@@ -17,6 +17,7 @@ import {
     CollapsibleTrigger,
 } from '../../components/ui/collapsible.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { cn } from '../../lib/utils.ts';
 
 type StepStatus = 'active' | 'complete' | 'pending' | 'failed';
@@ -94,10 +95,12 @@ interface ThinkingStepsHeaderProps extends HTMLAttributes<HTMLButtonElement> {
 
 export const ThinkingStepsHeader = forwardRef<HTMLButtonElement, ThinkingStepsHeaderProps>(
     ({ children = 'Thinking', className, showIcon = true, wrapperClassName, ...props }, ref) => (
-        <div className={cn('w-fit', wrapperClassName)}>
+        // text-meta rides the wrapper: merging a size token with the trigger's
+        // color classes would collapse them into one utility.
+        <div className={cn('w-fit text-meta', wrapperClassName)}>
             <CollapsibleTrigger
                 className={cn(
-                    'group flex w-auto items-center gap-1.5 rounded-md py-1 font-medium text-[13px] text-foreground leading-tight transition-colors hover:text-foreground',
+                    'group flex w-auto items-center gap-1.5 rounded-md py-1 font-medium text-foreground leading-tight transition-colors hover:text-foreground',
                     className
                 )}
                 ref={ref}
@@ -217,33 +220,33 @@ export function ThinkingStep({
                                 />
                             ) : (
                                 <div className="flex size-4 items-center justify-center">
-                                    <div
-                                        className={cn(
-                                            'size-2 rounded-full',
+                                    <StatusDot
+                                        pulse={isActive}
+                                        status={
                                             status === 'failed'
-                                                ? 'bg-destructive'
+                                                ? 'error'
                                                 : isActive
-                                                  ? 'bg-info shadow-[0_0_0_3px] shadow-info/12'
-                                                  : 'bg-muted-foreground/60'
-                                        )}
+                                                  ? 'info'
+                                                  : 'muted'
+                                        }
                                     />
                                 </div>
                             )}
                         </div>
-                        {isLast ? null : <div className="mt-1 w-px flex-1 bg-border/60" />}
+                        {isLast ? null : <div className="mt-1 w-px flex-1 bg-border-subtle" />}
                     </div>
 
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1 text-meta">
                         <span
                             className={cn(
-                                'min-w-0 text-[13px] text-foreground leading-tight',
+                                'min-w-0 text-foreground leading-tight',
                                 isActive && 'thinking-indicator-text'
                             )}
                         >
                             {label}
                         </span>
                         {description ? (
-                            <span className="min-w-0 text-[13px] text-muted-foreground leading-snug">
+                            <span className="min-w-0 text-meta text-muted-foreground leading-snug">
                                 {description}
                             </span>
                         ) : null}
@@ -273,7 +276,7 @@ export function ThinkingStepDetails({
     return (
         <Collapsible className={cn('mt-1 -ml-3', className)} defaultOpen={defaultOpen}>
             <div className="w-fit">
-                <CollapsibleTrigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-[13px] text-muted-foreground leading-tight hover:bg-muted hover:text-foreground">
+                <CollapsibleTrigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-meta text-muted-foreground leading-tight hover:bg-muted hover:text-foreground">
                     <span>{summary}</span>
                     <Icon
                         className="size-3 -rotate-90 opacity-70 transition-transform group-data-[panel-open]:rotate-0"
@@ -285,7 +288,7 @@ export function ThinkingStepDetails({
             <CollapsiblePanel>
                 <div className="flex flex-col gap-0.5 pt-0.5">
                     {details?.map((item) => (
-                        <span className="text-[12px] text-muted-foreground leading-snug" key={item}>
+                        <span className="text-meta text-muted-foreground leading-snug" key={item}>
                             {item}
                         </span>
                     ))}

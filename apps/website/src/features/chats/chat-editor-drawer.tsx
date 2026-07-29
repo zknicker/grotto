@@ -1,7 +1,9 @@
 import * as React from 'react';
+import { Alert, AlertDescription } from '../../components/ui/alert.tsx';
 import { Drawer, DrawerPanel, DrawerPopup } from '../../components/ui/drawer.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import { Input } from '../../components/ui/primitives/input.tsx';
+import { Elevated } from '../../components/ui/surface.tsx';
 import type { ChatListItem } from './chat-list-data.ts';
 
 interface ChatEditorDrawerProps {
@@ -60,17 +62,17 @@ export function ChatEditorDrawer({
 
                     <DrawerPanel className="min-h-0 flex-1 p-0!" scrollFade={false}>
                         <div className="flex min-h-0 flex-1 flex-col px-5 pb-5">
-                            <div className="rounded-2xl border border-border/70 bg-card/60 p-4">
+                            <Elevated className="rounded-xl p-4" offset={1}>
                                 <div className="font-medium text-foreground text-sm">Agent</div>
                                 <p className="mt-1 text-muted-foreground text-sm leading-6">
                                     This chat uses Grotto&apos;s synced agent.
                                 </p>
-                            </div>
+                            </Elevated>
 
                             {errorMessage ? (
-                                <div className="mt-4 rounded-xl border border-error/20 bg-error/5 px-3 py-2 text-error text-sm">
-                                    {errorMessage}
-                                </div>
+                                <Alert className="mt-4" variant="error">
+                                    <AlertDescription>{errorMessage}</AlertDescription>
+                                </Alert>
                             ) : null}
                         </div>
                     </DrawerPanel>

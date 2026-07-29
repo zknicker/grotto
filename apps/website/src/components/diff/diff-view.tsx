@@ -21,20 +21,20 @@ export function DiffView({
     );
 
     if (hunks.length === 0) {
-        return <p className="text-muted-foreground text-xs">{emptyLabel}</p>;
+        return <p className="text-meta text-muted-foreground">{emptyLabel}</p>;
     }
 
     return (
         <div
             className={cn(
-                'overflow-hidden rounded-md border border-border/60 bg-card font-mono text-xs',
+                'overflow-hidden rounded-md border border-border-subtle bg-card font-mono text-code',
                 className
             )}
         >
             {hunks.map((hunk, hunkIndex) => (
                 <div key={hunk.header}>
                     {hunkIndex > 0 ? (
-                        <div className="border-border/60 border-t bg-muted/40 px-3 py-0.5 text-[11px] text-muted-foreground/60">
+                        <div className="border-border-subtle border-t bg-muted px-3 py-0.5 text-caption text-muted-foreground">
                             {hunk.header}
                         </div>
                     ) : null}
@@ -53,13 +53,13 @@ function DiffViewLine({ line }: { line: DiffLine }) {
             className={cn(
                 'flex min-w-0 leading-5',
                 line.kind === 'add' && 'bg-success-bg',
-                line.kind === 'del' && 'bg-destructive/10'
+                line.kind === 'del' && 'bg-error-bg'
             )}
         >
-            <span className="w-9 shrink-0 select-none pr-1.5 text-right text-muted-foreground/45 tabular-nums">
+            <span className="w-9 shrink-0 select-none pr-1.5 text-right text-foreground-quaternary tabular-nums">
                 {line.oldLine ?? ''}
             </span>
-            <span className="w-9 shrink-0 select-none pr-1.5 text-right text-muted-foreground/45 tabular-nums">
+            <span className="w-9 shrink-0 select-none pr-1.5 text-right text-foreground-quaternary tabular-nums">
                 {line.newLine ?? ''}
             </span>
             <span
@@ -82,7 +82,7 @@ export function DiffStatBadge({ additions, deletions }: { additions: number; del
         return null;
     }
     return (
-        <span className="shrink-0 font-mono text-[11px] tabular-nums">
+        <span className="shrink-0 font-mono text-caption tabular-nums">
             {additions > 0 ? <span className="text-success-foreground">+{additions}</span> : null}
             {additions > 0 && deletions > 0 ? ' ' : null}
             {deletions > 0 ? <span className="text-destructive">−{deletions}</span> : null}

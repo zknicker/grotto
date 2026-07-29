@@ -60,8 +60,8 @@ export function ChatCard({
     return (
         <div
             className={cn(
-                'relative flex h-full min-h-0 w-[40.625rem] min-w-[40.625rem] flex-col overflow-hidden bg-card transition-shadow',
-                highlighted ? 'bg-sky-500/5 shadow-lg shadow-sky-500/10' : null
+                'relative flex h-full min-h-0 w-[40.625rem] min-w-[40.625rem] flex-col overflow-hidden bg-card',
+                highlighted ? 'ring-1 ring-brand' : null
             )}
             id={getChatCardDomId(chat.id)}
         >
@@ -70,7 +70,7 @@ export function ChatCard({
                 iconClassName="size-3.5"
                 visible={isInitialTranscriptPending}
             />
-            <div className="border-r-[3px] border-r-border-strong/80">
+            <div className="border-r-[3px] border-r-border-strong">
                 <ChatCardHeader chat={chat} onArchive={onArchive} onEdit={onEdit} />
             </div>
 
@@ -78,7 +78,7 @@ export function ChatCard({
                 autoScroll={!isInitialTranscriptPending && hasTimelineContent}
                 defaultScrollPosition="end"
             >
-                <MessageScroller className="border-r-[3px] border-r-border/70">
+                <MessageScroller className="border-r-[3px] border-r-border-subtle">
                     <MessageScrollerViewport className="px-3 py-3" ref={viewportRef}>
                         {isInitialTranscriptPending ? null : hasTimelineContent ? (
                             <ChatTimeline
@@ -87,7 +87,7 @@ export function ChatCard({
                                 totalMessages={totalMessages}
                             />
                         ) : (
-                            <div className="px-3 py-3 font-mono text-muted-foreground text-xs">
+                            <div className="px-3 py-3 text-meta text-muted-foreground">
                                 No synced messages for this chat yet.
                             </div>
                         )}

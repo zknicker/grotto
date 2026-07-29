@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Card } from '../../components/ui/card.tsx';
 import { Spinner } from '../../components/ui/spinner.tsx';
 import { cn } from '../../lib/utils.ts';
 import {
@@ -54,9 +53,9 @@ export function MentionPicker({
     );
 
     return (
-        <Card
+        <div
             className={cn(
-                'absolute right-0 bottom-[calc(100%+0.4rem)] left-0 z-20 flex max-h-64 w-full flex-col overflow-hidden rounded-2xl border-border/65 bg-popover/95 p-1 text-meta shadow-black/8 shadow-lg backdrop-blur-sm',
+                'absolute right-0 bottom-[calc(100%+0.4rem)] left-0 z-20 flex max-h-64 w-full flex-col overflow-hidden rounded-lg border border-border-subtle bg-popover p-1 text-meta shadow-surface-5',
                 className
             )}
             role="listbox"
@@ -74,7 +73,7 @@ export function MentionPicker({
                         <div key={group.label}>
                             <div
                                 className={cn(
-                                    'sticky top-0 z-10 bg-popover/95 px-2 py-1 text-muted-foreground backdrop-blur-sm',
+                                    'sticky top-0 z-10 bg-popover px-2 py-1 text-muted-foreground',
                                     groupIndex > 0 && 'pt-2'
                                 )}
                                 data-mention-group-label
@@ -117,7 +116,7 @@ export function MentionPicker({
                                         <span className="flex w-full min-w-0 items-center gap-1 leading-normal">
                                             <MentionAppearanceIcon
                                                 agentFace={appearance.agentFace}
-                                                className="size-[15px] shrink-0 rounded-[3px] object-contain text-foreground"
+                                                className="size-[15px] shrink-0 rounded-sm object-contain text-foreground"
                                                 icon={appearance.icon}
                                                 iconDataUrl={appearance.iconDataUrl}
                                             />
@@ -147,7 +146,7 @@ export function MentionPicker({
                     ))}
                 </div>
             </div>
-        </Card>
+        </div>
     );
 }
 

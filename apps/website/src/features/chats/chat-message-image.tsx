@@ -17,7 +17,7 @@ export function ChatMessageImage({ attachment }: { attachment: ChatMessageImageA
         <>
             <button
                 aria-label={`Open ${attachment.filename}`}
-                className="size-16 cursor-zoom-in overflow-hidden rounded-xl border border-border/60 bg-muted/35 p-0 text-left shadow-xs outline-none transition-colors hover:bg-muted/55 focus-visible:ring-2 focus-visible:ring-ring"
+                className="size-16 cursor-zoom-in overflow-hidden rounded-xl border border-border bg-muted p-0 text-left outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => setOpen(true)}
                 title={attachment.filename}
                 type="button"

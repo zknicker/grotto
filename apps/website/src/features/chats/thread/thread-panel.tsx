@@ -140,7 +140,7 @@ export function ThreadPanel({
                                     }
                                     rows={[]}
                                     threadActionsEnabled={false}
-                                    viewportClassName="px-4 pb-6"
+                                    viewportClassName="px-5 pb-6"
                                 />
                             </div>
                             <ThreadComposerFooter
@@ -198,7 +198,7 @@ function SyncedThreadBody({
                     profilePaneChatId={chat.id}
                     rows={timeline.rows}
                     threadActionsEnabled={false}
-                    viewportClassName="px-4 pb-6"
+                    viewportClassName="px-5 pb-6"
                 />
             </div>
             <ThreadComposerFooter
@@ -230,14 +230,14 @@ function ThreadComposerFooter({
 }) {
     if (chat.archived) {
         return (
-            <div className="shrink-0 border-border/70 border-t pt-3">
+            <div className="shrink-0 border-[var(--content-card-border)] border-t pt-3">
                 <ArchivedChatBar chatId={chat.id} conversationKind={chat.conversationKind} />
             </div>
         );
     }
 
     return (
-        <div className="shrink-0 border-border/70 border-t py-3">
+        <div className="shrink-0 border-[var(--content-card-border)] border-t py-3">
             <ChatMessageComposer
                 activeRunIds={activeRunIds}
                 agents={agents}

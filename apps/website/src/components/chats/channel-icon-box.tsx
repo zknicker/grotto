@@ -8,7 +8,7 @@ import { Icon } from '../ui/icon.tsx';
 const channelIconBoxVariants = {
     inline: {
         boxClassName:
-            'size-5 rounded-[0.4375rem] bg-[var(--channel-color-bg-light,var(--sidebar-accent))] text-[var(--channel-color-light,var(--sidebar-muted))] dark:bg-[var(--channel-color-bg-dark,var(--sidebar-accent))] dark:text-[var(--channel-color-dark,var(--sidebar-muted))]',
+            'size-5 rounded-md bg-[var(--channel-color-bg-light,var(--sidebar-accent))] text-[var(--channel-color-light,var(--sidebar-muted))] dark:bg-[var(--channel-color-bg-dark,var(--sidebar-accent))] dark:text-[var(--channel-color-dark,var(--sidebar-muted))]',
         iconSize: 14,
     },
     sidebar: {

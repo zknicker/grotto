@@ -12,6 +12,7 @@ import { useChatArchive } from '../../hooks/chats/use-chat-archive.ts';
 import { useCapability } from '../../hooks/connections/use-capability.ts';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
 import { getChannelColorStyle } from '../shell/channel-color-options.ts';
+import { ContentTopbar } from '../shell/content-topbar.tsx';
 import { ToolbarDevMenu } from '../shell/toolbar-dev-menu.tsx';
 import { ToolbarDivider } from '../shell/toolbar-divider.tsx';
 import { AgentFace } from './agent-face.tsx';
@@ -87,16 +88,12 @@ export function ChatRoomTopbarPresentation({
     identity: React.ReactNode;
 }) {
     return (
-        <header
-            className="relative z-40 grid h-[var(--content-topbar-height)] shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center border-[var(--content-card-border)] border-b bg-background"
-            data-slot="chat-room-topbar"
-            data-window-drag-region=""
-        >
-            <div className="flex min-w-0 items-center gap-2 pr-2 pl-3">{identity}</div>
-            <div className="no-drag flex min-w-0 items-center justify-end gap-1.5 px-2">
-                {actions}
-            </div>
-        </header>
+        // Composes the shared 40px ContentTopbar so chat chrome stays on the
+        // same height, seam ink, and gutter as every other content topbar.
+        <ContentTopbar data-slot="chat-room-topbar">
+            <div className="flex min-w-0 flex-1 items-center gap-2">{identity}</div>
+            <div className="no-drag flex shrink-0 items-center gap-1.5">{actions}</div>
+        </ContentTopbar>
     );
 }
 

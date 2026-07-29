@@ -53,7 +53,12 @@ export function ArtifactPanelChrome({
     targets: TavernResourceTarget[];
 }) {
     return (
-        <div className={cn('flex h-10 min-w-0 flex-1 items-center gap-2 px-3', className)}>
+        <div
+            className={cn(
+                'flex h-[var(--content-topbar-height)] min-w-0 flex-1 items-center gap-2 px-3',
+                className
+            )}
+        >
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
                 <ScrollArea className="h-7 min-w-0 flex-1" orientation="horizontal">
                     <TabsPrimitive.List
@@ -98,7 +103,7 @@ function ArtifactOptionsMenu({ target }: { target: TavernResourceTarget }) {
         <Menu>
             <MenuTrigger
                 aria-label="Artifact options"
-                className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/45 hover:text-foreground"
+                className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
                 <Icon className="size-3.5" icon={MoreHorizontalIcon} />
             </MenuTrigger>
@@ -128,17 +133,19 @@ function ArtifactPanelTab({
     const label = getArtifactPanelTargetLabel(target);
 
     return (
+        // text-meta rides the wrapper: merging a size token with the tab's
+        // color classes would collapse them into one utility.
         <CloseableTab
-            className="min-w-0 max-w-40 shrink-0"
+            className="min-w-0 max-w-40 shrink-0 text-meta"
             closeLabel={`Close ${label}`}
             onClose={onClose}
         >
             <TabsPrimitive.Tab
                 className={cn(
-                    'flex h-7 w-full min-w-0 items-center gap-1.5 rounded-lg py-0 pr-7 pl-2.5 text-[0.8125rem] outline-none transition-[background-color,box-shadow,color] focus-visible:bg-muted/56',
+                    'flex h-7 w-full min-w-0 items-center gap-1.5 rounded-lg py-0 pr-7 pl-2.5 outline-none transition-[background-color,box-shadow,color] focus-visible:bg-muted',
                     active
-                        ? 'bg-muted/90 text-foreground shadow-black/4 shadow-sm'
-                        : 'text-muted-foreground hover:bg-muted/42 hover:text-foreground'
+                        ? 'bg-active text-foreground'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
                 title={target.path}
                 value={value}

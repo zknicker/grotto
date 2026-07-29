@@ -206,7 +206,7 @@ export function WorkspaceBrowserContent({
                     )}
                 </div>
             </section>
-            <aside className="relative flex min-h-0 flex-col overflow-x-hidden border-border/70 border-l bg-sidebar/35 text-sidebar-foreground">
+            <aside className="relative flex min-h-0 flex-col overflow-x-hidden border-[var(--content-card-border)] border-l bg-sidebar text-sidebar-foreground">
                 <ResizablePaneRail
                     maxWidth={440}
                     minWidth={220}
@@ -215,7 +215,7 @@ export function WorkspaceBrowserContent({
                     side="left"
                     width={fileSidebarWidth.width}
                 />
-                <SidebarHeader className="h-12 border-border/70 border-b py-2 pr-2 pl-2">
+                <SidebarHeader className="h-12 border-border-subtle border-b py-2 pr-2 pl-2">
                     <SearchInput
                         className="w-full min-w-0"
                         onChange={(event) => setQuery(event.currentTarget.value)}

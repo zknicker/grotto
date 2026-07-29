@@ -24,25 +24,25 @@ export function WorkspaceChangesChip({ chatId, row }: { chatId?: string; row: To
                                 // p-2 keeps the icon square evenly inset on
                                 // every side; the trailing chevron gets a
                                 // touch more room.
-                                'group/files-chip flex w-full min-w-0 cursor-default items-center gap-2.5 rounded-xl border border-border/60 bg-card p-2 pr-3 text-left outline-none transition-colors',
+                                'group/files-chip flex w-full min-w-0 cursor-default items-center gap-2.5 rounded-xl border border-border-subtle bg-card p-2 pr-3 text-left outline-none transition-colors',
                                 'hover:border-border hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring'
                             )}
                             type="button"
                         />
                     }
                 >
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/40">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-muted">
                         <Icon
                             className="size-4 text-muted-foreground"
                             icon={FileEditIcon}
                             strokeWidth={1.5}
                         />
                     </span>
-                    <span className="min-w-0 flex-1 truncate font-medium text-foreground/90 text-sm">
+                    <span className="min-w-0 flex-1 truncate font-medium text-foreground text-sm">
                         {label}
                     </span>
                     <Icon
-                        className="size-4 shrink-0 text-muted-foreground/60 transition-[color,translate] group-hover/files-chip:translate-x-0.5 group-hover/files-chip:text-foreground/75"
+                        className="size-4 shrink-0 text-foreground-tertiary transition-[color,translate] group-hover/files-chip:translate-x-0.5 group-hover/files-chip:text-foreground"
                         icon={ArrowRight01Icon}
                         strokeWidth={1.7}
                     />

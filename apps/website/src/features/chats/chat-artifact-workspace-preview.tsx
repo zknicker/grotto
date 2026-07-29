@@ -63,10 +63,10 @@ export function WorkspaceArtifactContent({
 
     if (file.mediaType.startsWith('image/')) {
         return (
-            <div className="grid h-full min-h-0 place-items-center overflow-auto bg-muted/20 p-6">
+            <div className="grid h-full min-h-0 place-items-center overflow-auto bg-muted p-6">
                 <img
                     alt={target.path}
-                    className="h-auto max-h-full w-auto max-w-full rounded-md border border-border/60 bg-background object-contain shadow-sm"
+                    className="h-auto max-h-full w-auto max-w-full rounded-md border border-border bg-background object-contain"
                     height={768}
                     src={`data:${file.mediaType};base64,${file.content}`}
                     width={1024}
@@ -122,7 +122,7 @@ export function WorkspaceArtifactEmpty({ detail, title }: { detail: string; titl
     return (
         <div className="grid h-full min-h-0 place-items-center px-8 text-center">
             <div className="max-w-sm">
-                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-border/70 bg-muted/35">
+                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-border bg-muted">
                     <Icon className="size-4 text-muted-foreground" icon={File01Icon} />
                 </div>
                 <div className="truncate font-medium text-sm">{title}</div>

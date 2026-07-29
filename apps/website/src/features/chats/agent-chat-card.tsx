@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ChatTitle } from '../../components/chats/chat-title.tsx';
 import { ChatTypeBadge } from '../../components/chats/chat-type-badge.tsx';
 import { Skeleton } from '../../components/ui/skeleton.tsx';
+import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { useActorProfile } from '../../hooks/actors/use-actor.ts';
 import { useChatTimeline } from '../../hooks/chats/use-chat-timeline.ts';
 import { cn } from '../../lib/utils.ts';
@@ -22,12 +23,12 @@ export function AgentChatCard({
 }) {
     const isTavernChat = chat.framework === 'tavern';
     const className = cn(
-        'group flex aspect-square flex-col rounded-xl border border-border bg-card transition-shadow duration-200',
+        'group flex aspect-square flex-col rounded-xl border border-border bg-card',
         isTavernChat
-            ? 'hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            ? 'hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
             : null,
-        highlighted ? 'bg-sky-500/5 shadow-lg shadow-sky-500/10 ring-2 ring-sky-300/80' : null,
-        hasActiveReply ? 'ring-1 ring-sky-200/80' : null
+        hasActiveReply ? 'ring-1 ring-info' : null,
+        highlighted ? 'border-brand ring-1 ring-brand' : null
     );
     const content = (
         <>
@@ -40,13 +41,11 @@ export function AgentChatCard({
                 </h2>
                 <span className="flex shrink-0 items-center gap-1.5">
                     <ChatTypeBadge chat={chat} showDetail={false} />
-                    {hasActiveReply ? (
-                        <span className="inline-flex size-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(74,222,128,0.12)]" />
-                    ) : null}
+                    {hasActiveReply ? <StatusDot pulse status="success" /> : null}
                 </span>
             </div>
             <p
-                className="truncate px-4 text-muted-foreground text-xs"
+                className="truncate px-4 text-meta text-muted-foreground"
                 title={chat.latestSession?.sessionKey ?? chat.displayName}
             >
                 {chat.latestSession?.sessionKey ?? chat.displayName}{' '}
@@ -102,7 +101,7 @@ function TavernChatPreview({ chatId }: { chatId: string }) {
     }
 
     return (
-        <div className="rounded-lg border border-border border-dashed px-3 py-3 text-muted-foreground text-xs">
+        <div className="rounded-lg border border-border border-dashed px-3 py-3 text-meta text-muted-foreground">
             No synced messages yet.
         </div>
     );
@@ -115,7 +114,7 @@ function AgentChatPreview({ chat }: { chat: ChatListItem }) {
             : `${chat.sessionCount} contributing sessions`;
 
     return (
-        <div className="rounded-lg border border-border border-dashed px-3 py-3 text-muted-foreground text-xs">
+        <div className="rounded-lg border border-border border-dashed px-3 py-3 text-meta text-muted-foreground">
             <p className="font-medium text-foreground">{chat.source.label}</p>
             <p className="mt-1">{sessionLabel}</p>
             <p className="mt-1">Read-only runtime chat reference.</p>
@@ -128,7 +127,7 @@ function AgentChatPreviewRow({ line }: { line: AgentChatPreviewLine }) {
     const sender = actorProfile?.name ?? line.sender;
 
     return (
-        <p className="flex items-baseline gap-2 text-xs leading-snug" title={line.content}>
+        <p className="flex items-baseline gap-2 text-meta leading-snug" title={line.content}>
             <span className="shrink-0 text-muted-foreground">{line.timeLabel}</span>
             <span
                 className={cn(

@@ -114,7 +114,7 @@ export function ChatActiveStatusStack({
                         aria-label="Active agent status"
                         className={cn(
                             variant === 'compact'
-                                ? 'border-r-[3px] border-r-border/70 bg-card px-5 pt-1.5 pb-0.5'
+                                ? 'border-r-[3px] border-r-border-subtle bg-card px-5 pt-1.5 pb-0.5'
                                 : // Fades toward the transcript so scrolled content
                                   // slides under it without a hard seam above the
                                   // composer.
@@ -239,7 +239,7 @@ function ChatActiveStatusItem({
 
     return (
         <button
-            className="group/status flex h-8 min-w-0 cursor-pointer items-center gap-2 text-left text-muted-foreground/75 text-sm leading-5 transition-colors hover:text-muted-foreground"
+            className="group/status flex h-8 min-w-0 cursor-pointer items-center gap-2 text-left text-foreground-tertiary text-sm leading-5 transition-colors hover:text-muted-foreground"
             onClick={onViewDetails}
             title="View turn details"
             type="button"
@@ -256,7 +256,7 @@ function ChatActiveStatusItem({
                 <span className="thinking-indicator-text whitespace-nowrap">{statusText}</span>
             </StatusSwap>
             {stableSummary ? (
-                <span className="flex h-5 min-w-0 items-center gap-1.5 text-muted-foreground/60 leading-5 transition-colors group-hover/status:text-muted-foreground/80">
+                <span className="flex h-5 min-w-0 items-center gap-1.5 text-foreground-quaternary leading-5 transition-colors group-hover/status:text-muted-foreground">
                     {workIcon ? (
                         <StatusSwap
                             className="size-3.5 shrink-0"

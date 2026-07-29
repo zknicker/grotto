@@ -48,7 +48,7 @@ function ArtifactPanelBody({
 
     return (
         <div className="flex h-full min-h-0 flex-col" style={width ? { width } : undefined}>
-            <div className="shrink-0 border-border/70 border-b">
+            <div className="shrink-0 border-[var(--content-card-border)] border-b">
                 <Tabs
                     className="flex items-center"
                     onValueChange={state.setActiveKey}
@@ -132,7 +132,7 @@ function ArtifactPanelEmpty({ detail, title }: { detail: string; title: string }
     return (
         <div className="grid h-full min-h-0 place-items-center px-8 text-center">
             <div className="max-w-sm">
-                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-border/70 bg-muted/35">
+                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-border bg-muted">
                     <Icon className="size-4 text-muted-foreground" icon={File01Icon} />
                 </div>
                 <div className="truncate font-medium text-sm">{title}</div>

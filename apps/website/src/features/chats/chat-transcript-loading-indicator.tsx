@@ -33,7 +33,7 @@ export function ChatTranscriptLoadingIndicator({
         <output
             aria-label="Loading chat transcript"
             className={cn(
-                'pointer-events-none inline-flex animate-[chat-loading-indicator-in_160ms_cubic-bezier(0.23,1,0.32,1)_both] items-center justify-center text-muted-foreground/75',
+                'pointer-events-none inline-flex animate-[chat-loading-indicator-in_160ms_cubic-bezier(0.23,1,0.32,1)_both] items-center justify-center text-foreground-tertiary',
                 className
             )}
         >

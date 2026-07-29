@@ -1,5 +1,6 @@
 import { FileTextIcon } from 'lucide-react';
 import * as React from 'react';
+import { Alert, AlertTitle } from '../../components/ui/alert.tsx';
 import {
     Attachment,
     AttachmentContent,
@@ -52,11 +53,9 @@ export function ChatTranscriptMessageContent({
 
     if (isErrorEvent) {
         return (
-            <div className="rounded-md border border-red-500/16 bg-red-500/6 px-2.5 py-1.5">
-                <p className="font-medium text-red-400 text-sm">
-                    Error - session ended unexpectedly
-                </p>
-            </div>
+            <Alert variant="error">
+                <AlertTitle>Error - session ended unexpectedly</AlertTitle>
+            </Alert>
         );
     }
 

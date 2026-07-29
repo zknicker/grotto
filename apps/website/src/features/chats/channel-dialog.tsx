@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import { Alert, AlertDescription } from '../../components/ui/alert.tsx';
 import { Checkbox } from '../../components/ui/checkbox.tsx';
 import {
     Dialog,
@@ -159,7 +160,7 @@ function ChannelDialogForm({
                             value={displayName}
                         />
                         {handleIssue ? (
-                            <p className="text-muted-foreground text-xs">{handleIssue}</p>
+                            <p className="text-meta text-muted-foreground">{handleIssue}</p>
                         ) : null}
                     </Field>
                 ) : null}
@@ -182,9 +183,9 @@ function ChannelDialogForm({
                     ) : null}
                 </Field>
                 {errorMessage ? (
-                    <div className="rounded-lg border border-error/20 bg-error/5 px-3 py-2 text-error text-sm">
-                        {errorMessage}
-                    </div>
+                    <Alert variant="error">
+                        <AlertDescription>{errorMessage}</AlertDescription>
+                    </Alert>
                 ) : null}
             </DialogPanel>
             <DialogFooter variant="bare">
@@ -213,7 +214,7 @@ function AgentCheckboxList({
     const selectedAgentIdSet = React.useMemo(() => new Set(selectedAgentIds), [selectedAgentIds]);
 
     return (
-        <div className="grid max-h-64 gap-1.5 overflow-y-auto rounded-lg border border-border/60 bg-muted/20 p-1.5">
+        <div className="grid max-h-64 gap-1.5 overflow-y-auto rounded-lg border border-border-subtle bg-muted p-1.5">
             {agents.map((agent) => {
                 const checked = selectedAgentIdSet.has(agent.id);
 
@@ -257,7 +258,7 @@ function AgentCheckboxRow({
     return (
         <label
             className={cn(
-                'flex min-w-0 cursor-pointer items-center gap-3 rounded-md px-2.5 py-2 text-sm outline-none transition-[background-color,box-shadow] hover:bg-sidebar-accent has-focus-visible:ring-[3px] has-focus-visible:ring-ring/24',
+                'flex min-w-0 cursor-pointer items-center gap-3 rounded-md px-2.5 py-2 text-sm outline-none transition-[background-color,box-shadow] hover:bg-sidebar-accent has-focus-visible:ring-2 has-focus-visible:ring-ring',
                 checked && 'bg-sidebar-accent text-sidebar-accent-foreground',
                 disabled && 'cursor-default opacity-64'
             )}

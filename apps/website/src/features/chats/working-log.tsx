@@ -113,13 +113,13 @@ export function WorkingLog({
                     className={
                         groupMode
                             ? cn(
-                                  'relative z-10 w-full py-1.5 pr-2 pl-3 font-normal text-muted-foreground/85 text-sm outline-none transition-none hover:bg-chat-log-row-hover hover:text-muted-foreground/85 focus-visible:bg-chat-log-row-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                                  'relative z-10 w-full py-1.5 pr-2 pl-3 font-normal text-muted-foreground text-sm outline-none transition-none hover:bg-chat-log-row-hover hover:text-muted-foreground focus-visible:bg-chat-log-row-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                                   // Card appearance: a true header above the
                                   // rows card, hugging its own label. Hover
                                   // lightens the text and icons instead of
                                   // painting a bg behind the tight label.
                                   appearance === 'card' &&
-                                      'h-7 w-auto items-center rounded-md py-0 pr-2 pl-1.5 font-medium text-muted-foreground hover:bg-transparent hover:text-foreground/75 focus-visible:bg-transparent hover:[&_svg]:text-foreground/75'
+                                      'h-7 w-auto items-center rounded-md py-0 pr-2 pl-1.5 font-medium text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:bg-transparent hover:[&_svg]:text-foreground'
                               )
                             : undefined
                     }
@@ -139,7 +139,7 @@ export function WorkingLog({
                             {groupIcon ? (
                                 <span className="-ml-1 flex size-4 shrink-0 items-center justify-center">
                                     <Icon
-                                        className="size-4 text-muted-foreground/75"
+                                        className="size-4 text-muted-foreground"
                                         icon={groupIcon}
                                         strokeWidth={1.5}
                                     />
@@ -168,7 +168,7 @@ export function WorkingLog({
                         // header; it owns the hover rail so the moving bg
                         // clips to the card's rounded corners.
                         <Elevated
-                            className="relative overflow-hidden rounded-2xl border border-border/45 p-1 [--tool-row-min-h:2.25rem]"
+                            className="relative overflow-hidden rounded-xl border border-border-subtle p-1 [--tool-row-min-h:2.25rem]"
                             offset={1}
                             ref={rowHover.contentRef}
                             shadowLevel={1}

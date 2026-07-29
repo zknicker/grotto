@@ -93,7 +93,7 @@ function ChatComposerAttachmentPreview({
 
     return (
         <div
-            className="group/tile relative size-20 shrink-0 cursor-default overflow-hidden rounded-xl border border-input bg-background shadow-xs"
+            className="group/tile relative size-20 shrink-0 cursor-default overflow-hidden rounded-xl border border-input bg-background"
             title={`${attachment.filename} - ${attachmentDetail(attachment)}`}
         >
             {isImage ? (
@@ -105,13 +105,13 @@ function ChatComposerAttachmentPreview({
                     width={80}
                 />
             ) : (
-                <div className="grid size-full place-items-center bg-muted/35 text-muted-foreground text-xs">
+                <div className="grid size-full place-items-center bg-muted text-meta text-muted-foreground">
                     {fileExtension(attachment.filename)}
                 </div>
             )}
             <button
                 aria-label={`Remove ${attachment.filename}`}
-                className="absolute top-1 right-1 flex size-5 cursor-pointer items-center justify-center rounded-full bg-neutral-900 text-white opacity-0 outline-none transition-opacity duration-80 hover:bg-neutral-900 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring group-hover/tile:opacity-100"
+                className="absolute top-1 right-1 flex size-5 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 outline-none transition-opacity duration-80 hover:bg-primary-deep focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring group-hover/tile:opacity-100"
                 onClick={(event) => {
                     event.stopPropagation();
                     onRemove();

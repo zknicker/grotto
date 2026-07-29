@@ -102,7 +102,7 @@ function RuntimeThreadMessageSurface({
                         >
                             <span
                                 className={cn(
-                                    'inline-flex h-6 items-center gap-1 rounded-full px-2 font-mono text-meta',
+                                    'inline-flex h-6 items-center gap-1 rounded-sm px-2 font-mono text-meta',
                                     taskStatusClasses[row.message.task.status]
                                 )}
                             >
@@ -226,7 +226,7 @@ function MessageHoverActions({
     reactionsEnabled?: boolean;
 }) {
     return (
-        <div className="absolute -top-3 right-1 z-10 flex items-center rounded-lg border bg-popover p-0.5 opacity-0 focus-within:opacity-100 group-hover/message-row:opacity-100">
+        <div className="absolute -top-3 right-1 z-10 flex items-center rounded-lg border border-border-subtle bg-popover p-0.5 opacity-0 focus-within:opacity-100 group-hover/message-row:opacity-100">
             {canOpenThread ? (
                 <button
                     aria-label="Reply in thread"
@@ -289,8 +289,8 @@ function ReactionPills({
                         className={cn(
                             'inline-flex h-6 items-center gap-1 rounded-full border px-2 text-meta',
                             own
-                                ? 'border-brand/50 bg-brand/12 text-brand-muted-foreground'
-                                : 'bg-muted text-muted-foreground'
+                                ? 'border-brand-ring bg-brand-muted text-brand-muted-foreground'
+                                : 'border-border-subtle bg-muted text-muted-foreground'
                         )}
                         key={reaction.emoji}
                         onClick={() => onToggle(reaction.emoji)}

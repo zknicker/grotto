@@ -30,17 +30,17 @@ export function ThreadPanelHeader({
     const [copied, setCopied] = React.useState(false);
 
     return (
-        <header className="flex min-h-14 shrink-0 items-center gap-2 border-border/70 border-b px-3">
+        <header className="flex h-[var(--content-topbar-height)] shrink-0 items-center gap-2 border-[var(--content-card-border)] border-b px-3">
             {takeover ? (
                 <Button aria-label="Back to chat" onClick={onBack} size="icon-xs" variant="ghost">
                     <Icon className="size-4" icon={ArrowLeft01Icon} />
                 </Button>
             ) : null}
-            <div className="min-w-0 flex-1">
-                <div className="truncate font-semibold text-sm">{header}</div>
+            <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                <div className="min-w-0 truncate font-semibold text-sm">{header}</div>
                 {target ? (
                     <button
-                        className="block max-w-full truncate text-left text-meta text-muted-foreground hover:text-foreground"
+                        className="min-w-0 shrink truncate text-left text-meta text-muted-foreground hover:text-foreground"
                         onClick={async () => {
                             try {
                                 await writeClipboardText(target);

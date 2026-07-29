@@ -272,8 +272,8 @@ function TurnPromptEvidence({ runId }: { runId: string | null }) {
     return (
         <div className="flex min-w-0 flex-col gap-3">
             <section className="grid gap-1.5">
-                <h4 className="font-medium text-muted-foreground text-xs">Prompt (dev mode)</h4>
-                <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted px-3 py-2 font-mono text-muted-foreground text-xs">
+                <h4 className="font-medium text-muted-foreground text-sm">Prompt (dev mode)</h4>
+                <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted px-3 py-2 font-mono text-code text-muted-foreground">
                     {`${evidence.data.instructions}\n\n--- turn prompt ---\n\n${evidence.data.prompt}`}
                 </pre>
             </section>

@@ -282,7 +282,7 @@ function RuntimeNoticeDrawer({
         <DrawerPopup className="max-w-xl" showCloseButton variant="inset">
             <DrawerHeader className="gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/40">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-muted">
                         <Icon
                             className="size-[18px] text-muted-foreground"
                             icon={summary.icon}
@@ -298,7 +298,7 @@ function RuntimeNoticeDrawer({
                 </div>
             </DrawerHeader>
             <DrawerPanel className="space-y-5">
-                <div className="flex flex-col gap-1 rounded-md border border-border/30 bg-muted/10 px-3 py-2.5">
+                <div className="flex flex-col gap-1 rounded-md border border-border-subtle bg-muted px-3 py-2.5">
                     {details.map((detail) => (
                         <RuntimeNoticeMetaRow
                             key={detail.label}
@@ -318,8 +318,8 @@ function RuntimeNoticeDrawer({
                                 notice.
                             </p>
                         </div>
-                        <div className="rounded-md border border-border/30 bg-muted/15 px-3 py-2">
-                            <code className="break-all font-mono text-foreground/90 text-sm leading-relaxed">
+                        <div className="rounded-md border border-border-subtle bg-muted px-3 py-2">
+                            <code className="break-all font-mono text-code text-foreground leading-relaxed">
                                 {row.runtimeNotice.text}
                             </code>
                         </div>
@@ -334,7 +334,7 @@ function RuntimeNoticeMetaRow({ label, value }: { label: string; value: string }
     return (
         <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-3 text-sm">
             <span className="text-muted-foreground">{label}</span>
-            <span className="min-w-0 break-all text-foreground/90">{value}</span>
+            <span className="min-w-0 break-all text-foreground">{value}</span>
         </div>
     );
 }

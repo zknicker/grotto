@@ -46,7 +46,7 @@ export function ChatComposerContextFullness({ fullness }: { fullness: ChatContex
                     strokeWidth="3"
                 />
                 <circle
-                    className="stroke-muted-foreground/70"
+                    className="stroke-muted-foreground"
                     cx="10"
                     cy="10"
                     fill="none"

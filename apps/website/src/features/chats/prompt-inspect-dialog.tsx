@@ -167,7 +167,7 @@ function PromptRail({
     );
 
     return (
-        <div className="flex min-h-0 w-64 shrink-0 flex-col border-border border-r bg-muted/22">
+        <div className="flex min-h-0 w-64 shrink-0 flex-col border-border border-r bg-muted">
             <div className="flex shrink-0 flex-col gap-3 px-3 pt-3 pb-1">
                 <DialogClose
                     aria-label="Close"
@@ -178,9 +178,10 @@ function PromptRail({
                 </DialogClose>
                 <div className="flex flex-col gap-1.5">
                     <Badge
-                        className="h-7 max-w-full justify-start rounded-md border-border/60 px-1.5 text-foreground text-sm normal-case tracking-normal dark:bg-input/40"
+                        className="max-w-full justify-start normal-case tracking-normal"
+                        size="chip"
                         title={agentName}
-                        variant="secondary"
+                        variant="chip"
                     >
                         <span className="min-w-0 truncate font-medium">{agentName}</span>
                     </Badge>
@@ -249,14 +250,14 @@ function PromptContentPanel({ content }: { content: string }) {
 
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <div className="flex shrink-0 items-center justify-between gap-2 border-border border-b bg-muted/16 ps-5 pe-1.5 text-muted-foreground text-sm">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-border border-b bg-muted ps-5 pe-1.5 text-muted-foreground text-sm">
                 <div className="flex min-w-0 items-center gap-1.5 py-1.5">
-                    <span className="text-foreground/82 tabular-nums">
+                    <span className="text-foreground tabular-nums">
                         {stats.lines.toLocaleString()}
                     </span>
                     <span>{stats.lines === 1 ? 'line' : 'lines'}</span>
-                    <span className="text-muted-foreground/50">·</span>
-                    <span className="text-foreground/82 tabular-nums">
+                    <span className="text-foreground-quaternary">·</span>
+                    <span className="text-foreground tabular-nums">
                         {stats.chars.toLocaleString()}
                     </span>
                     <span>{stats.chars === 1 ? 'character' : 'characters'}</span>

@@ -19,9 +19,11 @@ const faceStyle = { flexShrink: 0, height: 20, overflow: 'visible', width: 20 } 
 
 // Facepile avatars overlap (-space-x), so every variant needs an opaque fill
 // (alpha tokens let neighbors show through) plus a background-colored cutout
-// ring. Round to match user avatars everywhere else.
+// ring. Round to match user avatars everywhere else. The initials size lives
+// on the inner span: merging a size token with these color classes would
+// collapse them into one utility.
 const participantAvatarClassName =
-    'relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-subtle font-medium text-[0.625rem] text-muted-foreground shadow-[0_0_0_2px_var(--background)]';
+    'relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-subtle font-medium text-muted-foreground shadow-[0_0_0_2px_var(--background)]';
 
 /** Overlapping participant avatars for a chat, with a +N overflow count. */
 export function ChatParticipantFacepile({ chat }: { chat: ChatListItem }) {
@@ -54,7 +56,7 @@ export function ChatParticipantFacepile({ chat }: { chat: ChatListItem }) {
                 ))}
             </ul>
             {participants.length > 5 ? (
-                <span className="ml-2 font-medium text-muted-foreground text-xs tabular-nums">
+                <span className="ml-2 font-medium text-meta text-muted-foreground tabular-nums">
                     +{participants.length - 5}
                 </span>
             ) : null}
@@ -84,7 +86,7 @@ function ParticipantAvatar({
                     chatId={chatId}
                     triggerClassName={cn(
                         participantAvatarClassName,
-                        'cursor-pointer outline-none transition-transform hover:z-10 hover:scale-110 focus-visible:ring-2 focus-visible:ring-ring/50'
+                        'cursor-pointer outline-none transition-transform hover:z-10 hover:scale-110 focus-visible:ring-2 focus-visible:ring-ring'
                     )}
                 >
                     <AgentFace
@@ -127,7 +129,7 @@ function ParticipantAvatar({
                     width={24}
                 />
             ) : (
-                getParticipantInitials(participant)
+                <span className="text-micro">{getParticipantInitials(participant)}</span>
             )}
         </li>
     );

@@ -35,8 +35,8 @@ describe('ChatComposerAttachmentList', () => {
         expect(markup).toContain('flex-wrap');
         expect(markup.match(/size-20/g)).toHaveLength(2);
         expect(markup).toContain('Remove first.png');
-        expect(markup).toContain('bg-neutral-900');
-        expect(markup).toContain('text-white');
+        expect(markup).toContain('bg-primary');
+        expect(markup).toContain('text-primary-foreground');
         expect(markup).not.toContain('flex-col');
     });
 

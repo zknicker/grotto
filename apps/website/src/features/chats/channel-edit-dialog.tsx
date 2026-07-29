@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Alert, AlertDescription } from '../../components/ui/alert.tsx';
 import {
     Dialog,
     DialogContent,
@@ -95,9 +96,9 @@ function ChannelEditForm({ chat, onClose }: { chat: ChatListItem; onClose: () =>
                     />
                 </Field>
                 {updateChat.error ? (
-                    <div className="rounded-lg border border-error/20 bg-error/5 px-3 py-2 text-error text-sm">
-                        {updateChat.error.message}
-                    </div>
+                    <Alert variant="error">
+                        <AlertDescription>{updateChat.error.message}</AlertDescription>
+                    </Alert>
                 ) : null}
             </DialogPanel>
             <DialogFooter variant="bare">

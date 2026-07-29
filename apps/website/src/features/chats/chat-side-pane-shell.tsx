@@ -36,7 +36,7 @@ export function ChatSidePaneShell({
                         'relative flex h-full min-h-0 overflow-hidden bg-background',
                         takeover
                             ? 'min-w-0 flex-1'
-                            : 'z-[36] shrink-0 border-border/70 border-l bg-background/96 shadow-2xl shadow-black/8'
+                            : 'z-[36] shrink-0 border-[var(--content-card-border)] border-l'
                     )}
                     exit={takeover ? { opacity: 0, x: 18 } : { opacity: 0, width: 0, x: 36 }}
                     initial={

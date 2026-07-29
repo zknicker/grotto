@@ -204,9 +204,13 @@ The app is a traditional chat layout with a persistent 48px icon rail: the rail 
 Chat, Activity, Tasks, Reminders, Members, and Settings as icon buttons on every route. The chat
 sidebar remains beside Chat and Activity; full-width tools collapse it, Members supplies its own
 list panel, and Settings swaps in the settings nav.
-Above the main content sits a dynamic bordered topbar (`ContentTopbar`), `--content-topbar-height`
-(40px) tall to match the artifact panel's chrome row — `--topbar-height` (48px) is only the
-traffic-light headroom above the rail and panels. Chat topbars carry room identity on the left
+The inner shell is built from the Pane kit (`components/ui/pane.tsx`): `Pane` columns,
+`PaneTopbar` chrome rows, `PaneBody` content regions, and `SidePane` docked asides. Every chrome
+row is one `PaneTopbar` — `--content-topbar-height` (40px) tall with the bottom hairline drawn
+inside that height — and every docked aside is a `SidePane`, so seams land on the same pixel
+across neighboring panes. `--topbar-height` (48px) is only the traffic-light headroom above the
+rail and panels; side columns clear it with the `app-shell-sidebar-top-inset` class. Do not hand-roll
+header rows or aside seams in feature code. Chat topbars carry room identity on the left
 (channels get a name dropdown with channel actions and the clickable description, both opening
 the Edit channel dialog) and quiet controls on the right: a people-glyph participant count (opens
 the participants dialog on channels) and the pane toggle — no facepiles or card-in-card pills in

@@ -1,7 +1,7 @@
 import { Activity03Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { ReactNode } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
-import { ContentTopbar } from '../shell/content-topbar.tsx';
+import { PaneTopbar } from '../../components/ui/pane.tsx';
 import { HomeCanvas } from './home-canvas.tsx';
 import type { OverviewActivityItem } from './overview-activity.ts';
 import { OverviewActivity, OverviewAgentCards } from './overview-sections.tsx';
@@ -32,7 +32,7 @@ export function OverviewView({
 }: OverviewViewProps) {
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <ContentTopbar>
+            <PaneTopbar>
                 <Icon
                     aria-hidden="true"
                     className="size-4.5 text-muted-foreground"
@@ -40,7 +40,7 @@ export function OverviewView({
                     size={20}
                 />
                 <h1 className="font-semibold text-foreground text-sm">Activity</h1>
-            </ContentTopbar>
+            </PaneTopbar>
             <OverviewBody
                 activity={activity}
                 activityHref={activityHref}

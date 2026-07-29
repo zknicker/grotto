@@ -7,7 +7,7 @@ import {
     EmptyTitle,
 } from '../../components/ui/empty.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { ContentTopbar } from './content-topbar.tsx';
+import { PaneTopbar } from '../../components/ui/pane.tsx';
 
 /**
  * Honest empty state for a rail tab whose workstream has not landed yet
@@ -25,7 +25,7 @@ export function WorkstreamEmptyPage({
 }) {
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <ContentTopbar>
+            <PaneTopbar>
                 <Icon
                     aria-hidden="true"
                     className="size-4.5 text-muted-foreground"
@@ -33,7 +33,7 @@ export function WorkstreamEmptyPage({
                     size={20}
                 />
                 <h1 className="font-semibold text-foreground text-sm">{title}</h1>
-            </ContentTopbar>
+            </PaneTopbar>
             <Empty>
                 <EmptyHeader>
                     <EmptyMedia variant="icon">

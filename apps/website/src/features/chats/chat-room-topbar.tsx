@@ -7,12 +7,12 @@ import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Badge } from '../../components/ui/badge.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '../../components/ui/menu.tsx';
+import { PaneTopbar } from '../../components/ui/pane.tsx';
 import { useAgentAppearanceLookup } from '../../hooks/agents/use-agent-appearance.ts';
 import { useChatArchive } from '../../hooks/chats/use-chat-archive.ts';
 import { useCapability } from '../../hooks/connections/use-capability.ts';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
 import { getChannelColorStyle } from '../shell/channel-color-options.ts';
-import { ContentTopbar } from '../shell/content-topbar.tsx';
 import { ToolbarDevMenu } from '../shell/toolbar-dev-menu.tsx';
 import { ToolbarDivider } from '../shell/toolbar-divider.tsx';
 import { AgentFace } from './agent-face.tsx';
@@ -88,12 +88,12 @@ export function ChatRoomTopbarPresentation({
     identity: React.ReactNode;
 }) {
     return (
-        // Composes the shared 40px ContentTopbar so chat chrome stays on the
+        // Composes the shared 40px PaneTopbar so chat chrome stays on the
         // same height, seam ink, and gutter as every other content topbar.
-        <ContentTopbar data-slot="chat-room-topbar">
+        <PaneTopbar data-slot="chat-room-topbar">
             <div className="flex min-w-0 flex-1 items-center gap-2">{identity}</div>
             <div className="no-drag flex shrink-0 items-center gap-1.5">{actions}</div>
-        </ContentTopbar>
+        </PaneTopbar>
     );
 }
 

@@ -8,6 +8,9 @@ test('renders redacted hosted state and only scheduled cancellation actions', ()
             actionErrorMessage={null}
             activeCancelId={null}
             agentId={null}
+            agents={[
+                { character: 'owl' as const, id: 'agt_cove', name: 'Cove', primaryColor: null },
+            ]}
             connectionState="connected"
             isPending={false}
             onAgentChange={() => undefined}
@@ -54,7 +57,9 @@ test('renders redacted hosted state and only scheduled cancellation actions', ()
         />
     );
 
-    expect(markup).toContain('Hosted state catches up after reconnect');
+    // Connected state shows no reconnect note; the filters render instead.
+    expect(markup).not.toContain('Reconnecting');
+    expect(markup).toContain('All Agents');
     expect(markup).toContain('Script · 12 bytes · local execution only');
     expect(markup.match(/Cancel reminder/g)).toHaveLength(1);
     expect(markup).not.toContain('touch ');

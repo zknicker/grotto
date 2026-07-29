@@ -1,6 +1,7 @@
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
+import { PaneTopbar } from '../../components/ui/pane.tsx';
 import { Tabs } from '../../components/ui/tabs.tsx';
 import type { ChatArtifactPanelState } from '../../hooks/pane/use-chat-pane-state.ts';
 import { cn } from '../../lib/utils.ts';
@@ -48,9 +49,9 @@ function ArtifactPanelBody({
 
     return (
         <div className="flex h-full min-h-0 flex-col" style={width ? { width } : undefined}>
-            <div className="shrink-0 border-[var(--content-card-border)] border-b">
+            <PaneTopbar className="gap-0 px-0">
                 <Tabs
-                    className="flex items-center"
+                    className="flex h-full min-w-0 flex-1 items-center"
                     onValueChange={state.setActiveKey}
                     value={state.activeKey ?? undefined}
                 >
@@ -64,7 +65,7 @@ function ArtifactPanelBody({
                         targets={state.targets}
                     />
                 </Tabs>
-            </div>
+            </PaneTopbar>
             <div className="min-h-0 flex-1">
                 {activeTarget ? (
                     <ArtifactPanelContent

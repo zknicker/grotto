@@ -1,22 +1,44 @@
 import { Alert, AlertDescription } from '../../../components/ui/alert.tsx';
 import { Badge } from '../../../components/ui/badge.tsx';
+import {
+    Pane,
+    PaneBody,
+    PaneTopbar,
+    PaneTopbarTitle,
+    SidePane,
+} from '../../../components/ui/pane.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
 import { SearchInput } from '../../../components/ui/primitives/search-input.tsx';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../../../components/ui/select.tsx';
 import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { Elevated } from '../../../components/ui/surface.tsx';
 import type { ServerReminderConnectionState } from '../../../hooks/servers/use-server-reminder-events.ts';
 import { formatTimestamp } from '../../../lib/format.ts';
 import type { GrottoOutputs } from '../../../lib/grotto-server.tsx';
-import { ContentTopbar } from '../../shell/content-topbar.tsx';
+import { AgentOptionLabel, type AgentSelectOption } from '../../agents/agent-option-label.tsx';
 import type { HostedReminderListItem } from './server-reminder-view-model.ts';
 
 type ReminderRun = GrottoOutputs['reminder']['runs'][number];
 type ReminderStatus = 'all' | 'canceled' | 'fired' | 'scheduled';
 
+const statusFilterLabels: Record<ReminderStatus, string> = {
+    all: 'All statuses',
+    canceled: 'Canceled',
+    fired: 'Fired',
+    scheduled: 'Scheduled',
+};
+
 interface ServerRemindersViewProps {
     actionErrorMessage: string | null;
     activeCancelId: string | null;
     agentId: string | null;
+    agents: AgentSelectOption[];
     connectionState: ServerReminderConnectionState;
     isPending: boolean;
     onAgentChange: (agentId: string | null) => void;
@@ -37,6 +59,7 @@ export function ServerRemindersView({
     actionErrorMessage,
     activeCancelId,
     agentId,
+    agents,
     connectionState,
     isPending,
     onAgentChange,
@@ -52,56 +75,69 @@ export function ServerRemindersView({
     selectedReminder,
     status,
 }: ServerRemindersViewProps) {
-    const agents = [
-        ...new Map(
-            reminders.map((reminder) => [
-                reminder.ownerAgentId,
-                {
-                    id: reminder.ownerAgentId,
-                    label: reminder.ownerLabel,
-                },
-            ])
-        ).values(),
-    ];
+    const selectedAgent = agents.find((agent) => agent.id === agentId) ?? null;
+
     return (
         <div className="flex min-h-0 flex-1">
-            <section className="flex min-w-0 flex-1 flex-col">
-                <ContentTopbar className="no-drag">
+            <Pane>
+                <PaneTopbar className="no-drag">
+                    <Select
+                        onValueChange={(value) => {
+                            onAgentChange(value === 'all' ? null : value);
+                        }}
+                        value={agentId ?? 'all'}
+                    >
+                        <SelectTrigger aria-label="Filter by agent" className="w-44">
+                            <SelectValue>
+                                {selectedAgent ? (
+                                    <AgentOptionLabel agent={selectedAgent} />
+                                ) : (
+                                    'All Agents'
+                                )}
+                            </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Agents</SelectItem>
+                            {agents.map((agent) => (
+                                <SelectItem key={agent.id} value={agent.id}>
+                                    <AgentOptionLabel agent={agent} />
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select
+                        onValueChange={(value) => {
+                            if (value) {
+                                onStatusChange(value as ReminderStatus);
+                            }
+                        }}
+                        value={status}
+                    >
+                        <SelectTrigger aria-label="Filter by status" className="w-36">
+                            <SelectValue>{statusFilterLabels[status]}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                            {(Object.keys(statusFilterLabels) as ReminderStatus[]).map((value) => (
+                                <SelectItem key={value} value={value}>
+                                    {statusFilterLabels[value]}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <SearchInput
                         aria-label="Search hosted reminders"
-                        className="min-w-56 flex-1 sm:max-w-72"
+                        className="w-full max-w-96"
                         onChange={(event) => onQueryChange(event.target.value)}
                         placeholder="Search reminders..."
                         size="default"
                         value={query}
                     />
-                    <StatusFilters onChange={onStatusChange} value={status} />
-                </ContentTopbar>
-                {/* Second chrome row: same 40px band and seam as the topbar. */}
-                <div className="flex h-[var(--content-topbar-height)] shrink-0 items-center gap-2 overflow-x-auto border-[var(--content-card-border)] border-b px-3">
-                    <Button
-                        onClick={() => onAgentChange(null)}
-                        size="xs"
-                        variant={agentId === null ? 'secondary' : 'ghost'}
-                    >
-                        All Agents
-                    </Button>
-                    {agents.map((agent) => (
-                        <Button
-                            key={agent.id}
-                            onClick={() => onAgentChange(agent.id)}
-                            size="xs"
-                            variant={agentId === agent.id ? 'secondary' : 'ghost'}
-                        >
-                            {agent.label}
-                        </Button>
-                    ))}
-                    <span className="ml-auto shrink-0 whitespace-nowrap text-meta text-muted-foreground">
-                        {connectionState === 'connected'
-                            ? 'Hosted state catches up after reconnect'
-                            : 'Reconnecting · showing last hosted state'}
-                    </span>
-                </div>
+                    {connectionState === 'connected' ? null : (
+                        <span className="ml-auto shrink-0 whitespace-nowrap text-meta text-muted-foreground">
+                            Reconnecting · showing last hosted state
+                        </span>
+                    )}
+                </PaneTopbar>
                 {actionErrorMessage ? (
                     <Alert className="rounded-none border-x-0 border-t-0" variant="error">
                         <AlertDescription className="text-error-foreground">
@@ -109,7 +145,7 @@ export function ServerRemindersView({
                         </AlertDescription>
                     </Alert>
                 ) : null}
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                <PaneBody className="overflow-y-auto px-6 py-5">
                     {isPending ? (
                         <p className="text-muted-foreground text-sm">Loading reminders…</p>
                     ) : reminders.length === 0 ? (
@@ -178,24 +214,22 @@ export function ServerRemindersView({
                             ))}
                         </div>
                     )}
-                </div>
-            </section>
+                </PaneBody>
+            </Pane>
             {selectedReminder ? (
-                <aside className="w-80 shrink-0 border-[var(--content-card-border)] border-l bg-sidebar p-5">
-                    <div className="flex items-start justify-between gap-3">
-                        <div>
-                            <p className="font-mono text-muted-foreground text-xs uppercase">
-                                Fire log
-                            </p>
-                            <h2 className="font-medium text-foreground">
+                <SidePane className="w-80 flex-col bg-sidebar">
+                    <PaneTopbar className="bg-transparent">
+                        <PaneTopbarTitle className="font-medium">
+                            Fire log
+                            <span className="ml-2 font-normal text-muted-foreground">
                                 {selectedReminder.title}
-                            </h2>
-                        </div>
-                        <Button onClick={onCloseRuns} size="xs" variant="ghost">
+                            </span>
+                        </PaneTopbarTitle>
+                        <Button className="ml-auto" onClick={onCloseRuns} size="xs" variant="ghost">
                             Close
                         </Button>
-                    </div>
-                    <div className="mt-5 grid gap-3">
+                    </PaneTopbar>
+                    <PaneBody className="gap-3 overflow-y-auto p-4">
                         {runsPending ? (
                             <p className="text-muted-foreground text-sm">Loading fire log…</p>
                         ) : runs.length === 0 ? (
@@ -216,29 +250,9 @@ export function ServerRemindersView({
                                 </Elevated>
                             ))
                         )}
-                    </div>
-                </aside>
+                    </PaneBody>
+                </SidePane>
             ) : null}
         </div>
     );
-}
-
-function StatusFilters({
-    onChange,
-    value,
-}: {
-    onChange: (status: ReminderStatus) => void;
-    value: ReminderStatus;
-}) {
-    const statuses: ReminderStatus[] = ['all', 'scheduled', 'fired', 'canceled'];
-    return statuses.map((status) => (
-        <Button
-            key={status}
-            onClick={() => onChange(status)}
-            size="xs"
-            variant={value === status ? 'secondary' : 'ghost'}
-        >
-            {status === 'all' ? 'All' : status}
-        </Button>
-    ));
 }

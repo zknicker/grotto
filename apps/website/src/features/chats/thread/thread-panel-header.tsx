@@ -1,6 +1,7 @@
 import { ArrowLeft01Icon, Cancel01Icon, FileViewIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { PaneTopbar, PaneTopbarTitle } from '../../../components/ui/pane.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 
@@ -30,14 +31,14 @@ export function ThreadPanelHeader({
     const [copied, setCopied] = React.useState(false);
 
     return (
-        <header className="flex h-[var(--content-topbar-height)] shrink-0 items-center gap-2 border-[var(--content-card-border)] border-b px-3">
+        <PaneTopbar>
             {takeover ? (
                 <Button aria-label="Back to chat" onClick={onBack} size="icon-xs" variant="ghost">
                     <Icon className="size-4" icon={ArrowLeft01Icon} />
                 </Button>
             ) : null}
             <div className="flex min-w-0 flex-1 items-baseline gap-2">
-                <div className="min-w-0 truncate font-semibold text-sm">{header}</div>
+                <PaneTopbarTitle>{header}</PaneTopbarTitle>
                 {target ? (
                     <button
                         className="min-w-0 shrink truncate text-left text-meta text-muted-foreground hover:text-foreground"
@@ -77,6 +78,6 @@ export function ThreadPanelHeader({
             <Button aria-label="Close thread" onClick={onClose} size="icon-xs" variant="ghost">
                 <Icon className="size-4" icon={Cancel01Icon} />
             </Button>
-        </header>
+        </PaneTopbar>
     );
 }

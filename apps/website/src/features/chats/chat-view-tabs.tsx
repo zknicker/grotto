@@ -3,6 +3,7 @@ import {
     BubbleChatIcon,
     CheckListIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import { PaneTopbar } from '../../components/ui/pane.tsx';
 import { TabsSubtle, TabsSubtleItem, TabsSubtleList } from '../../components/ui/tabs-subtle.tsx';
 
 const chatViewTabs = [
@@ -28,22 +29,28 @@ export function ChatViewTabs({
     value: ChatViewTab;
 }) {
     return (
-        <TabsSubtle
-            className="h-9 shrink-0 gap-0 border-[var(--content-card-border)] border-b px-3"
-            onValueChange={(nextValue) => onValueChange(nextValue as ChatViewTab)}
-            value={value}
-        >
-            <TabsSubtleList aria-label="Chat views" className="h-full py-0" variant="underline">
-                {chatViewTabs.map((tab) => (
-                    <TabsSubtleItem
-                        icon={tab.icon}
-                        key={tab.value}
-                        label={tab.label}
-                        size="sm"
-                        value={tab.value}
-                    />
-                ))}
-            </TabsSubtleList>
-        </TabsSubtle>
+        <PaneTopbar className="gap-0 px-0">
+            <TabsSubtle
+                className="h-full min-w-0 flex-1"
+                onValueChange={(nextValue) => onValueChange(nextValue as ChatViewTab)}
+                value={value}
+            >
+                <TabsSubtleList
+                    aria-label="Chat views"
+                    className="h-full px-3 py-0"
+                    variant="underline"
+                >
+                    {chatViewTabs.map((tab) => (
+                        <TabsSubtleItem
+                            icon={tab.icon}
+                            key={tab.value}
+                            label={tab.label}
+                            size="sm"
+                            value={tab.value}
+                        />
+                    ))}
+                </TabsSubtleList>
+            </TabsSubtle>
+        </PaneTopbar>
     );
 }

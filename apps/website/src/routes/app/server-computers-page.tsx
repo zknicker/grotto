@@ -5,6 +5,7 @@ import { CodeSnippet } from '../../components/ui/code-snippet.tsx';
 import { Empty, EmptyDescription, EmptyHeader } from '../../components/ui/empty.tsx';
 import { EmptyState } from '../../components/ui/empty-state.tsx';
 import { navSelectedClass } from '../../components/ui/nav.tsx';
+import { PaneTopbar, PaneTopbarTitle, SidePane } from '../../components/ui/pane.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import { Separator } from '../../components/ui/separator.tsx';
 import {
@@ -52,12 +53,12 @@ export function ServerComputersPage() {
             role={server.role}
         >
             <div className="flex h-full min-h-0 w-full">
-                <aside className="flex w-72 shrink-0 flex-col border-[var(--content-card-border)] border-r bg-sidebar pt-[calc(var(--topbar-height)-4px)]">
-                    <div className="flex h-[var(--content-topbar-height)] shrink-0 items-center justify-between border-[var(--content-card-border)] border-b px-3">
-                        <div className="font-medium text-sm">
+                <SidePane className="app-shell-sidebar-top-inset w-72 flex-col bg-sidebar" side="left">
+                    <PaneTopbar className="bg-transparent">
+                        <PaneTopbarTitle className="font-medium">
                             Computers <span className="text-muted-foreground">{items.length}</span>
-                        </div>
-                    </div>
+                        </PaneTopbarTitle>
+                    </PaneTopbar>
                     <div className="min-h-0 flex-1 overflow-y-auto p-2">
                         {items.map((computer) => (
                             <button
@@ -98,8 +99,8 @@ export function ServerComputersPage() {
                             lines={`curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /${slug}`}
                         />
                     </div>
-                </aside>
-                <main className="min-w-0 flex-1 overflow-y-auto pt-[calc(var(--topbar-height)-4px)]">
+                </SidePane>
+                <main className="app-shell-sidebar-top-inset min-w-0 flex-1 overflow-y-auto">
                     {selected ? (
                         <ComputerDetail
                             agents={agents.filter((agent) => agent.computerId === selected.id)}

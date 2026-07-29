@@ -5,6 +5,7 @@ import {
     useServerReminderRuns,
     useServerReminders,
 } from '../../../hooks/servers/use-server-reminders.ts';
+import type { AgentSelectOption } from '../../agents/agent-option-label.tsx';
 import { CancelReminderDialog } from '../../reminders/cancel-reminder-dialog.tsx';
 import {
     filterHostedReminders,
@@ -14,7 +15,13 @@ import {
 } from './server-reminder-view-model.ts';
 import { ServerRemindersView } from './server-reminders-view.tsx';
 
-export function HostedServerReminders({ serverId }: { serverId: string }) {
+export function HostedServerReminders({
+    agents,
+    serverId,
+}: {
+    agents: AgentSelectOption[];
+    serverId: string;
+}) {
     const [filters, setFilters] = React.useState<HostedReminderFilters>({
         agentId: null,
         query: '',
@@ -47,6 +54,7 @@ export function HostedServerReminders({ serverId }: { serverId: string }) {
                 )}
                 activeCancelId={cancelMutation.isPending ? (cancelReminder?.id ?? null) : null}
                 agentId={filters.agentId}
+                agents={agents}
                 connectionState={connectionState}
                 isPending={remindersQuery.isPending}
                 onAgentChange={(agentId) => setFilters((current) => ({ ...current, agentId }))}

@@ -53,12 +53,7 @@ export function ArtifactPanelChrome({
     targets: TavernResourceTarget[];
 }) {
     return (
-        <div
-            className={cn(
-                'flex h-[var(--content-topbar-height)] min-w-0 flex-1 items-center gap-2 px-3',
-                className
-            )}
-        >
+        <div className={cn('flex h-full min-w-0 flex-1 items-center gap-2 px-3', className)}>
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
                 <ScrollArea className="h-7 min-w-0 flex-1" orientation="horizontal">
                     <TabsPrimitive.List

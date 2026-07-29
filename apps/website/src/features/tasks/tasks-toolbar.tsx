@@ -1,6 +1,7 @@
 import { Plus } from '@hugeicons/core-free-icons';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
+import { PaneTopbar } from '../../components/ui/pane.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import { SearchInput } from '../../components/ui/primitives/search-input.tsx';
 import {
@@ -13,7 +14,6 @@ import {
 import type { LabelRecord } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
 import { AgentOptionLabel, type AgentSelectOption } from '../agents/agent-option-label.tsx';
-import { ContentTopbar } from '../shell/content-topbar.tsx';
 import { LabelDot } from './label-chip.tsx';
 import { ManageLabelsDialog } from './manage-labels-dialog.tsx';
 import type { TaskAssigneeFilter, TaskLabelFilter } from './task-presentation.ts';
@@ -53,7 +53,7 @@ export function TasksToolbar({
     const [manageLabelsOpen, setManageLabelsOpen] = React.useState(false);
 
     return (
-        <ContentTopbar className="no-drag">
+        <PaneTopbar className="no-drag">
             <Select
                 onValueChange={(value) => {
                     if (value) {
@@ -129,7 +129,7 @@ export function TasksToolbar({
             )}
 
             <ManageLabelsDialog onOpenChange={setManageLabelsOpen} open={manageLabelsOpen} />
-        </ContentTopbar>
+        </PaneTopbar>
     );
 }
 

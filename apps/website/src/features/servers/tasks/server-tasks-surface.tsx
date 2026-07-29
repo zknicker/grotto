@@ -1,10 +1,10 @@
 import type { HostedChat } from '@tavern/api';
 import * as React from 'react';
+import { PaneTopbar } from '../../../components/ui/pane.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
 import { Input } from '../../../components/ui/primitives/input.tsx';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
-import { ContentTopbar } from '../../shell/content-topbar.tsx';
 import { NewServerTaskDialog } from './new-server-task-dialog.tsx';
 import { ServerTaskLabelsDialog } from './server-task-labels-dialog.tsx';
 import {
@@ -55,7 +55,7 @@ export function ServerTasksSurface({
 
     return (
         <section aria-label="Server tasks" className="flex min-h-0 flex-1 flex-col">
-            <ContentTopbar className="no-drag">
+            <PaneTopbar className="no-drag">
                 <nav aria-label="Task views" className="flex items-center gap-1">
                     {viewOptions.map((option) => (
                         <Button
@@ -100,7 +100,7 @@ export function ServerTasksSurface({
                 >
                     New task
                 </Button>
-            </ContentTopbar>
+            </PaneTopbar>
 
             {tasksQuery.error ? (
                 <ServerTaskState

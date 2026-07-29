@@ -64,7 +64,7 @@ export function ServerAgentsPage() {
             description="Agents are created and removed by Server operators."
             role={server.data.role}
         >
-            <main className="h-full overflow-y-auto pt-[calc(var(--topbar-height)-4px)]">
+            <main className="app-shell-sidebar-top-inset h-full overflow-y-auto">
                 <SettingsPage className="px-6 py-6">
                     <Link
                         className="px-3 text-muted-foreground text-sm hover:text-foreground"

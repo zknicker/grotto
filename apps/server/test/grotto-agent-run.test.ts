@@ -36,7 +36,7 @@ beforeAll(async () => {
 
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
-        values (${computerId}, ${serverId}, ${ownerUserId}, ${credentialHash}, ${JSON.stringify({ runtimes: [codexRuntime] })}::jsonb, 'healthy')
+        values (${computerId}, ${serverId}, ${ownerUserId}, ${credentialHash}, ${{ runtimes: [codexRuntime] }}::jsonb, 'healthy')
     `;
 
     const created = await owner.trpc.agent.create.mutate({
@@ -52,7 +52,7 @@ beforeAll(async () => {
     dmChatId = created.chat.id;
     await harness.sql`
         update computers
-        set reported_inventory = ${JSON.stringify({
+        set reported_inventory = ${{
             agentSkills: [
                 {
                     agentId,
@@ -67,7 +67,7 @@ beforeAll(async () => {
                 },
             ],
             runtimes: [codexRuntime],
-        })}::jsonb
+        }}::jsonb
         where id = ${computerId}
     `;
 });
@@ -924,7 +924,7 @@ test('an Owner imports a Computer-reported host skill into exactly one assigned 
     const sourceId = 'hsk_skillimport00000';
     await harness.sql`
         update computers
-        set reported_inventory = ${JSON.stringify({
+        set reported_inventory = ${{
             importableSkills: [
                 {
                     description: 'Release checks',
@@ -934,7 +934,7 @@ test('an Owner imports a Computer-reported host skill into exactly one assigned 
                 },
             ],
             runtimes: [codexRuntime],
-        })}::jsonb
+        }}::jsonb
         where id = ${computerId}
     `;
     const frames: Record<string, unknown>[] = [];
@@ -1065,8 +1065,8 @@ test('keeps MCP credentials on Server and grants one whole connection', async ()
     });
     const disconnectedSecrets = (await harness.sql`
         select secret from mcp_secrets where connection_id = ${created.id}
-    `) as { secret: string }[];
-    expect(JSON.parse(disconnectedSecrets[0]?.secret ?? '{}')).toMatchObject({
+    `) as { secret: Record<string, unknown> }[];
+    expect(disconnectedSecrets[0]?.secret).toMatchObject({
         configuredClientInformation: {
             client_id: 'server-client',
             client_secret: 'server-secret',

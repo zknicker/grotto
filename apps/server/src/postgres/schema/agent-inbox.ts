@@ -3,13 +3,13 @@ import {
     check,
     foreignKey,
     integer,
-    jsonb,
     pgTable,
     primaryKey,
     text,
     timestamp,
 } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
+import { bunJsonb } from './bun-jsonb.ts';
 import { chatsTable } from './chats.ts';
 
 export const agentInboxCursorsTable = pgTable(
@@ -52,7 +52,7 @@ export const agentMessageDraftsTable = pgTable(
     'agent_message_drafts',
     {
         agentId: text('agent_id').notNull(),
-        attachmentIds: jsonb('attachment_ids').notNull().$type<string[]>().default([]),
+        attachmentIds: bunJsonb('attachment_ids').notNull().$type<string[]>().default([]),
         chatId: text('chat_id').notNull(),
         content: text('content').notNull(),
         reholdCount: integer('rehold_count').notNull(),

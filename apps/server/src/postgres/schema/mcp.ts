@@ -1,7 +1,6 @@
 import {
     boolean,
     foreignKey,
-    jsonb,
     pgTable,
     primaryKey,
     text,
@@ -9,6 +8,7 @@ import {
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
+import { bunJsonb } from './bun-jsonb.ts';
 import { serversTable } from './servers.ts';
 
 export const mcpConnectionsTable = pgTable(
@@ -35,7 +35,7 @@ export const mcpSecretsTable = pgTable('mcp_secrets', {
     connectionId: text('connection_id')
         .primaryKey()
         .references(() => mcpConnectionsTable.id, { onDelete: 'cascade' }),
-    secret: jsonb('secret').notNull().$type<Record<string, unknown>>(),
+    secret: bunJsonb('secret').notNull().$type<Record<string, unknown>>(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

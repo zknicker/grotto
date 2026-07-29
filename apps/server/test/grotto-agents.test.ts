@@ -192,7 +192,7 @@ test('shows pending, then applied, then degraded as effective state is reported'
     expect(refreshed[0]?.status).toBe('applied');
 
     await harness.sql`
-        update agents set effective_missing = ${JSON.stringify(['model:gpt-5.6-terra'])}::jsonb
+        update agents set effective_missing = ${['model:gpt-5.6-terra']}::jsonb
         where id = ${agent.id}
     `;
     refreshed = await owner.trpc.agent.list.query({ serverId });
@@ -278,7 +278,7 @@ async function insertComputer(
             ${computerServerId},
             ${ownerUserId},
             ${hash},
-            ${JSON.stringify(inventory)}::jsonb,
+            ${inventory}::jsonb,
             'healthy'
         )
     `;

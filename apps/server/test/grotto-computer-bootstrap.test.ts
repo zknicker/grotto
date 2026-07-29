@@ -177,8 +177,11 @@ test('a compatible Computer report becomes the durable Server usage snapshot', a
         const [row] = (await harness.sql`
             select usage_snapshot, usage_reported_at
             from computers where id = ${usageComputerId}
-        `) as { usage_reported_at: Date | null; usage_snapshot: string | null }[];
-        expect(JSON.parse(row.usage_snapshot ?? '{}')).toMatchObject({
+        `) as {
+            usage_reported_at: Date | null;
+            usage_snapshot: Record<string, unknown> | null;
+        }[];
+        expect(row.usage_snapshot).toMatchObject({
             capturedAt: '2026-07-28T20:00:00.000Z',
         });
         expect(row.usage_reported_at).toBeInstanceOf(Date);

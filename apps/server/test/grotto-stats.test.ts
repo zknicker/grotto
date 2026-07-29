@@ -66,7 +66,7 @@ beforeAll(async () => {
         ) values (
             ${computerId}, ${serverId}, ${ownerRow.id}, ${'a'.repeat(64)}, 'offline',
             'arm64', 'darwin', '1.1.0', 3,
-            ${JSON.stringify(usage)}::jsonb, '2026-07-28T20:00:01.000Z'
+            ${usage}::jsonb, '2026-07-28T20:00:01.000Z'
         )
     `;
 });

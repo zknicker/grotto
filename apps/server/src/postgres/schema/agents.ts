@@ -3,13 +3,13 @@ import {
     check,
     foreignKey,
     integer,
-    jsonb,
     pgTable,
     primaryKey,
     text,
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { bunJsonb } from './bun-jsonb.ts';
 import { chatsTable } from './chats.ts';
 import { computersTable } from './computers.ts';
 import { serversTable } from './servers.ts';
@@ -28,7 +28,7 @@ export const agentsTable = pgTable(
         desiredRuntimeId: text('desired_runtime_id'),
         description: text('description'),
         displayName: text('display_name').notNull(),
-        effectiveMissing: jsonb('effective_missing').$type<string[]>(),
+        effectiveMissing: bunJsonb('effective_missing').$type<string[]>(),
         effectiveModelId: text('effective_model_id'),
         effectiveReportedAt: timestamp('effective_reported_at', { withTimezone: true }),
         effectiveRuntimeId: text('effective_runtime_id'),

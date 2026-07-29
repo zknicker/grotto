@@ -1,11 +1,29 @@
+import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { CodeSnippet } from '../../components/ui/code-snippet.tsx';
+import { Empty, EmptyDescription, EmptyHeader } from '../../components/ui/empty.tsx';
+import { EmptyState } from '../../components/ui/empty-state.tsx';
+import { navSelectedClass } from '../../components/ui/nav.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
+import { Separator } from '../../components/ui/separator.tsx';
+import {
+    SettingsGroup,
+    SettingsItem,
+    SettingsPage,
+    SettingsPageHeader,
+    SettingsRow,
+    SettingsSection,
+    SettingsValue,
+} from '../../components/ui/settings-row.tsx';
+import { StatusDot, type StatusDotProps } from '../../components/ui/status-dot.tsx';
+import { AgentFace } from '../../features/chats/agent-face.tsx';
 import { ComputerUpdateControls } from '../../features/servers/computer-update-controls.tsx';
 import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
+import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { cn } from '../../lib/utils.ts';
 import { HostedDeleteDialog } from './hosted-delete-dialog.tsx';
 
 type Computer = GrottoOutputs['computer']['list'][number];
@@ -25,104 +43,97 @@ export function ServerComputersPage() {
         },
     });
 
-    if (server.role === 'member') {
-        return (
-            <main className="grid h-full place-content-center text-muted-foreground text-sm">
-                Owner or Admin required.
-            </main>
-        );
-    }
-
     const items = computers.data ?? [];
     const selected = items.find((computer) => computer.id === selectedId) ?? items[0] ?? null;
 
     return (
-        <div className="flex h-full min-h-0 w-full">
-            <aside className="flex w-72 shrink-0 flex-col border-border border-r bg-sidebar pt-[var(--topbar-height)]">
-                <div className="flex h-12 items-center justify-between border-border border-b px-4">
-                    <div className="font-semibold text-sm">
-                        Computers <span className="text-muted-foreground">{items.length}</span>
+        <RequireOperator
+            description="Computers are attached and removed by Server operators."
+            role={server.role}
+        >
+            <div className="flex h-full min-h-0 w-full">
+                <aside className="flex w-72 shrink-0 flex-col border-[var(--content-card-border)] border-r bg-sidebar pt-[calc(var(--topbar-height)-4px)]">
+                    <div className="flex h-[var(--content-topbar-height)] shrink-0 items-center justify-between border-[var(--content-card-border)] border-b px-3">
+                        <div className="font-medium text-sm">
+                            Computers <span className="text-muted-foreground">{items.length}</span>
+                        </div>
                     </div>
-                </div>
-                <div className="min-h-0 flex-1 overflow-y-auto p-2">
-                    {items.map((computer) => (
-                        <button
-                            className={`flex w-full flex-col gap-0.5 rounded-lg px-3 py-2 text-left text-sm ${
-                                selected?.id === computer.id
-                                    ? 'bg-secondary shadow-[0_2px_0_0_var(--hard-shadow)] ring-1 ring-input ring-inset'
-                                    : 'hover:bg-[var(--nav-hover)]'
-                            }`}
-                            key={computer.id}
-                            onClick={() => setSelectedId(computer.id)}
-                            type="button"
-                        >
-                            <span className="font-medium">{computerLabel(computer)}</span>
-                            <span className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                                <span
-                                    className={`size-2 rounded-full ${
-                                        computer.health === 'healthy'
-                                            ? 'bg-success'
-                                            : computer.health === 'offline'
-                                              ? 'bg-muted-foreground'
-                                              : 'bg-warning'
-                                    }`}
-                                />
-                                {healthLabel(computer.health)} · v{computer.productVersion ?? '—'}
-                            </span>
-                        </button>
-                    ))}
-                    {items.length === 0 ? (
-                        <p className="px-3 py-4 text-muted-foreground text-sm">
-                            No Computers attached.
-                        </p>
-                    ) : null}
-                </div>
-                <div className="border-border border-t p-4">
-                    <p className="text-muted-foreground text-xs">
-                        Add one from an Apple Silicon Mac:
-                    </p>
-                    <CodeSnippet
-                        className="mt-2 h-auto py-2 text-xs"
-                        lines={`curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /${slug}`}
-                    />
-                </div>
-            </aside>
-            <main className="min-w-0 flex-1 overflow-y-auto pt-[var(--topbar-height)]">
-                {selected ? (
-                    <ComputerDetail
-                        agents={agents.filter((agent) => agent.computerId === selected.id)}
-                        computer={selected}
-                        onRemove={() => setRemoving(selected.id)}
-                        serverId={server.id}
-                        serverSlug={slug}
-                    />
-                ) : (
-                    <div className="grid min-h-full place-content-center px-6 text-center">
-                        <h1 className="font-semibold text-lg">Attach a Computer</h1>
-                        <p className="mt-1 max-w-sm text-muted-foreground text-sm">
-                            Computers run Agents and keep their workspaces, skills, connections, and
-                            execution credentials local.
-                        </p>
+                    <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                        {items.map((computer) => (
+                            <button
+                                className={cn(
+                                    'flex w-full flex-col gap-0.5 rounded-lg px-3 py-2 text-left text-sm',
+                                    selected?.id === computer.id
+                                        ? navSelectedClass
+                                        : 'hover:bg-[var(--nav-hover)]'
+                                )}
+                                key={computer.id}
+                                onClick={() => setSelectedId(computer.id)}
+                                type="button"
+                            >
+                                <span className="font-medium">{computerLabel(computer)}</span>
+                                <span className="flex items-center gap-1.5 text-meta text-muted-foreground">
+                                    <StatusDot status={healthStatus(computer.health)} />
+                                    {healthLabel(computer.health)} · v
+                                    {computer.productVersion ?? '—'}
+                                </span>
+                            </button>
+                        ))}
+                        {items.length === 0 ? (
+                            <Empty className="px-3 py-10 md:py-10">
+                                <EmptyHeader>
+                                    <EmptyDescription className="text-sm">
+                                        No Computers attached.
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
+                        ) : null}
                     </div>
-                )}
-            </main>
-            {removing ? (
-                <HostedDeleteDialog
-                    confirmation="REMOVE"
-                    description="This immediately revokes this Computer’s credential. It cannot be removed while any Agent is assigned to it."
-                    onConfirm={() =>
-                        remove.mutate({
-                            computerId: removing,
-                            confirmation: 'REMOVE',
-                            serverId: server.id,
-                        })
-                    }
-                    onOpenChange={(open) => !open && setRemoving(null)}
-                    pending={remove.isPending}
-                    title="Remove Computer"
-                />
-            ) : null}
-        </div>
+                    <div className="border-[var(--content-card-border)] border-t p-4">
+                        <p className="text-muted-foreground text-sm">
+                            Add one from an Apple Silicon Mac:
+                        </p>
+                        <CodeSnippet
+                            className="mt-2 h-auto py-2"
+                            lines={`curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /${slug}`}
+                        />
+                    </div>
+                </aside>
+                <main className="min-w-0 flex-1 overflow-y-auto pt-[calc(var(--topbar-height)-4px)]">
+                    {selected ? (
+                        <ComputerDetail
+                            agents={agents.filter((agent) => agent.computerId === selected.id)}
+                            computer={selected}
+                            onRemove={() => setRemoving(selected.id)}
+                            serverId={server.id}
+                            serverSlug={slug}
+                        />
+                    ) : (
+                        <EmptyState
+                            className="min-h-full"
+                            description="Computers run Agents and keep their workspaces, skills, connections, and execution credentials local."
+                            title="Attach a Computer"
+                        />
+                    )}
+                </main>
+                {removing ? (
+                    <HostedDeleteDialog
+                        confirmation="REMOVE"
+                        description="This immediately revokes this Computer’s credential. It cannot be removed while any Agent is assigned to it."
+                        onConfirm={() =>
+                            remove.mutate({
+                                computerId: removing,
+                                confirmation: 'REMOVE',
+                                serverId: server.id,
+                            })
+                        }
+                        onOpenChange={(open) => !open && setRemoving(null)}
+                        pending={remove.isPending}
+                        title="Remove Computer"
+                    />
+                ) : null}
+            </div>
+        </RequireOperator>
     );
 }
 
@@ -139,123 +150,148 @@ function ComputerDetail({
     serverId: string;
     serverSlug: string;
 }) {
+    const runtimes = computer.reportedInventory?.runtimes ?? [];
+
     return (
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-            <header>
-                <h1 className="font-semibold text-foreground text-xl">{computerLabel(computer)}</h1>
-                <p className="mt-1 flex items-center gap-2 text-muted-foreground text-sm">
-                    <span
-                        className={`size-2 rounded-full ${
-                            computer.health === 'healthy'
-                                ? 'bg-success'
-                                : computer.health === 'offline'
-                                  ? 'bg-muted-foreground'
-                                  : 'bg-warning'
-                        }`}
-                    />
-                    {healthLabel(computer.health)}
-                    {computer.lastConnectedAt
-                        ? ` · Last connected ${formatTimestamp(computer.lastConnectedAt)}`
-                        : ''}
-                </p>
-            </header>
+        <SettingsPage className="px-6 py-6">
+            <SettingsPageHeader
+                description={
+                    <span className="flex items-center gap-2">
+                        <StatusDot status={healthStatus(computer.health)} />
+                        {healthLabel(computer.health)}
+                        {computer.lastConnectedAt
+                            ? ` · Last connected ${formatTimestamp(computer.lastConnectedAt)}`
+                            : ''}
+                    </span>
+                }
+                title={computerLabel(computer)}
+            />
 
-            <DetailSection title="Info">
-                <DetailRow
-                    label="OS"
-                    value={
-                        [computer.operatingSystem, computer.architecture]
-                            .filter(Boolean)
-                            .join(' · ') || 'Awaiting first report'
-                    }
-                />
-                <DetailRow label="Computer version" value={`v${computer.productVersion ?? '—'}`} />
-                <DetailRow label="Protocol" value={computer.protocolVersion?.toString() ?? '—'} />
-            </DetailSection>
+            <SettingsSection title="Info">
+                <SettingsGroup>
+                    <SettingsRow title="OS">
+                        <SettingsValue>
+                            {[computer.operatingSystem, computer.architecture]
+                                .filter(Boolean)
+                                .join(' · ') || 'Awaiting first report'}
+                        </SettingsValue>
+                    </SettingsRow>
+                    <Separator />
+                    <SettingsRow title="Computer version">
+                        <SettingsValue>v{computer.productVersion ?? '—'}</SettingsValue>
+                    </SettingsRow>
+                    <Separator />
+                    <SettingsRow title="Protocol">
+                        <SettingsValue>{computer.protocolVersion?.toString() ?? '—'}</SettingsValue>
+                    </SettingsRow>
+                </SettingsGroup>
+            </SettingsSection>
 
-            <DetailSection title="Detected Agent runtimes">
-                {computer.reportedInventory?.runtimes.length ? (
-                    computer.reportedInventory.runtimes.map((runtime) => (
-                        <DetailRow
-                            key={runtime.id}
-                            label={runtime.label}
-                            value={
-                                runtime.models.map((model) => model.label).join(', ') ||
-                                'No models reported'
-                            }
-                        />
-                    ))
-                ) : (
-                    <p className="p-4 text-muted-foreground text-sm">No runtimes reported yet.</p>
-                )}
-            </DetailSection>
+            <SettingsSection title="Detected Agent runtimes">
+                <SettingsGroup>
+                    {runtimes.length > 0 ? (
+                        runtimes.map((runtime, index) => (
+                            <React.Fragment key={runtime.id}>
+                                {index > 0 ? <Separator /> : null}
+                                <SettingsRow title={runtime.label}>
+                                    <SettingsValue>
+                                        {runtime.models.map((model) => model.label).join(', ') ||
+                                            'No models reported'}
+                                    </SettingsValue>
+                                </SettingsRow>
+                            </React.Fragment>
+                        ))
+                    ) : (
+                        <SettingsItem className="text-muted-foreground text-sm">
+                            No runtimes reported yet.
+                        </SettingsItem>
+                    )}
+                </SettingsGroup>
+            </SettingsSection>
 
-            <DetailSection title="Assigned Agents">
-                {agents.length > 0 ? (
-                    agents.map((agent) => (
-                        <DetailRow
-                            key={agent.id}
-                            label={agent.displayName}
-                            value={`${agent.availability} · ${agent.desiredRuntimeId} · ${agent.desiredModelId}`}
-                        />
-                    ))
-                ) : (
-                    <p className="p-4 text-muted-foreground text-sm">No Agents assigned.</p>
-                )}
-            </DetailSection>
+            <SettingsSection title="Assigned Agents">
+                <SettingsGroup>
+                    {agents.length > 0 ? (
+                        agents.map((agent, index) => (
+                            <React.Fragment key={agent.id}>
+                                {index > 0 ? <Separator /> : null}
+                                <SettingsRow title={<AgentRowLabel agent={agent} />}>
+                                    <SettingsValue>
+                                        {agent.availability} · {agent.desiredRuntimeId} ·{' '}
+                                        {agent.desiredModelId}
+                                    </SettingsValue>
+                                </SettingsRow>
+                            </React.Fragment>
+                        ))
+                    ) : (
+                        <SettingsItem className="text-muted-foreground text-sm">
+                            No Agents assigned.
+                        </SettingsItem>
+                    )}
+                </SettingsGroup>
+            </SettingsSection>
 
-            <DetailSection title="Updates">
-                <div className="p-4">
-                    <ComputerUpdateControls computer={computer} serverId={serverId} />
-                </div>
-            </DetailSection>
+            <SettingsSection title="Updates">
+                <SettingsGroup>
+                    <SettingsItem>
+                        <ComputerUpdateControls computer={computer} serverId={serverId} />
+                    </SettingsItem>
+                </SettingsGroup>
+            </SettingsSection>
 
-            <DetailSection title="Recovery">
-                <div className="space-y-2 p-4 text-sm">
-                    <p className="text-muted-foreground">
-                        If the App and this Computer disagree, check the machine directly:
-                    </p>
-                    <code className="block">grotto-computer status</code>
-                    <code className="block">grotto-computer doctor</code>
-                    <code className="block">grotto-computer restart /{serverSlug}</code>
-                    <code className="block">grotto-computer upgrade --rollback</code>
-                </div>
-            </DetailSection>
-
-            <DetailSection title="Danger zone">
-                <div className="flex items-center justify-between gap-4 p-4">
-                    <div>
-                        <p className="font-medium text-sm">Remove Computer</p>
-                        <p className="text-muted-foreground text-xs">
-                            Every assigned Agent must be deleted first.
+            <SettingsSection title="Recovery">
+                <SettingsGroup>
+                    <SettingsItem className="space-y-2">
+                        <p className="text-muted-foreground text-sm">
+                            If the App and this Computer disagree, check the machine directly:
                         </p>
-                    </div>
-                    <Button onClick={onRemove} type="button" variant="destructive">
-                        Remove Computer
-                    </Button>
-                </div>
-            </DetailSection>
-        </div>
+                        <CodeSnippet
+                            lines={[
+                                'grotto-computer status',
+                                'grotto-computer doctor',
+                                `grotto-computer restart /${serverSlug}`,
+                                'grotto-computer upgrade --rollback',
+                            ]}
+                        />
+                    </SettingsItem>
+                </SettingsGroup>
+            </SettingsSection>
+
+            <SettingsSection title="Danger zone">
+                <SettingsGroup>
+                    <SettingsRow
+                        description="Every assigned Agent must be deleted first."
+                        title="Remove Computer"
+                        trailingWidth="intrinsic"
+                    >
+                        <div className="flex justify-start md:justify-end">
+                            <Button onClick={onRemove} type="button" variant="destructive">
+                                Remove Computer
+                            </Button>
+                        </div>
+                    </SettingsRow>
+                </SettingsGroup>
+            </SettingsSection>
+        </SettingsPage>
     );
 }
 
-function DetailSection({ children, title }: React.PropsWithChildren<{ title: string }>) {
+function AgentRowLabel({ agent }: { agent: GrottoOutputs['agent']['list'][number] }) {
     return (
-        <section>
-            <h2 className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                {title}
-            </h2>
-            <div className="overflow-hidden rounded-lg border border-border">{children}</div>
-        </section>
-    );
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="flex items-start justify-between gap-6 border-border border-b px-4 py-3 last:border-b-0">
-            <span className="font-medium text-sm">{label}</span>
-            <span className="text-right text-muted-foreground text-sm">{value}</span>
-        </div>
+        <span className="flex min-w-0 items-center gap-2">
+            <span
+                aria-hidden="true"
+                className="flex size-6 shrink-0 items-center justify-center overflow-visible"
+            >
+                <AgentFace
+                    animate={false}
+                    head={resolveAgentDefaultCharacter(agent.id)}
+                    size={24}
+                    style={{ flexShrink: 0, height: 24, overflow: 'visible', width: 24 }}
+                />
+            </span>
+            <span className="truncate">{agent.displayName}</span>
+        </span>
     );
 }
 
@@ -276,6 +312,17 @@ function healthLabel(health: Computer['health']) {
             return 'Update required';
         case 'degraded':
             return 'Needs attention';
+    }
+}
+
+function healthStatus(health: Computer['health']): StatusDotProps['status'] {
+    switch (health) {
+        case 'healthy':
+            return 'success';
+        case 'offline':
+            return 'muted';
+        default:
+            return 'warning';
     }
 }
 

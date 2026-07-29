@@ -2,6 +2,13 @@ import type { HostedAgent, HostedAgentSkillMetadata, HostedImportableSkill } fro
 import * as React from 'react';
 import { Badge } from '../../../components/ui/badge.tsx';
 import { Input } from '../../../components/ui/primitives/input.tsx';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../../../components/ui/select.tsx';
 import { Separator } from '../../../components/ui/separator.tsx';
 import {
     SettingsGroup,
@@ -15,9 +22,6 @@ import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import { withSavingToast } from '../../../lib/saving-toast.ts';
 import { PickerPopover } from '../../agents/picker-popover.tsx';
 import { formatSkillName } from '../../skills/skill-name-format.ts';
-
-const selectClass =
-    'h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground disabled:opacity-50';
 
 export function HostedAgentProfileTab({
     agent,
@@ -134,12 +138,11 @@ export function HostedAgentProfileTab({
             <SettingsSection title="Runtime config">
                 <SettingsGroup>
                     <SettingsRow title="Runtime">
-                        <select
-                            className={selectClass}
+                        <Select
                             disabled={!canEdit || configure.isPending}
-                            onChange={(event) => {
+                            onValueChange={(value) => {
                                 const runtime = runtimes.find(
-                                    (candidate) => candidate.id === event.currentTarget.value
+                                    (candidate) => candidate.id === value
                                 );
                                 const model = runtime?.models[0];
                                 if (!(runtime && model)) {
@@ -154,35 +157,45 @@ export function HostedAgentProfileTab({
                             }}
                             value={selectedRuntime?.id ?? ''}
                         >
-                            {runtimes.map((runtime) => (
-                                <option key={runtime.id} value={runtime.id}>
-                                    {runtime.label}
-                                </option>
-                            ))}
-                        </select>
+                            <SelectTrigger aria-label="Runtime">
+                                <SelectValue>{selectedRuntime?.label}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {runtimes.map((runtime) => (
+                                    <SelectItem key={runtime.id} value={runtime.id}>
+                                        {runtime.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </SettingsRow>
                     <Separator />
                     <SettingsRow title="Model">
-                        <select
-                            className={selectClass}
+                        <Select
                             disabled={!canEdit || configure.isPending || !selectedRuntime}
-                            onChange={(event) =>
+                            onValueChange={(value) =>
                                 selectedRuntime &&
+                                value &&
                                 configure.mutate({
                                     agentId: agent.id,
-                                    modelId: event.currentTarget.value,
+                                    modelId: value,
                                     runtimeId: selectedRuntime.id,
                                     serverId: server.id,
                                 })
                             }
                             value={selectedModel?.id ?? ''}
                         >
-                            {selectedRuntime?.models.map((model) => (
-                                <option key={model.id} value={model.id}>
-                                    {model.label}
-                                </option>
-                            ))}
-                        </select>
+                            <SelectTrigger aria-label="Model">
+                                <SelectValue>{selectedModel?.label}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {selectedRuntime?.models.map((model) => (
+                                    <SelectItem key={model.id} value={model.id}>
+                                        {model.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </SettingsRow>
                     <Separator />
                     <SettingsRow title="Effective">

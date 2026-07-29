@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Alert, AlertDescription } from '../../components/ui/alert.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import {
     SettingsGroup,
@@ -8,6 +9,7 @@ import {
     SettingsSection,
 } from '../../components/ui/settings-row.tsx';
 import { toastManager } from '../../components/ui/toast.tsx';
+import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import { McpConnectionDetailDialog } from '../../features/settings/mcp/mcp-connection-detail-dialog.tsx';
 import {
@@ -77,13 +79,6 @@ export function ServerConnectionsPage({ embedded = false }: { embedded?: boolean
     if (!server.data) {
         return null;
     }
-    if (server.data.role === 'member') {
-        return (
-            <main className="grid min-h-dvh place-content-center text-muted-foreground text-sm">
-                Owner or Admin required.
-            </main>
-        );
-    }
 
     const startConnectionOAuth = async (
         connection: McpConnection,
@@ -136,124 +131,129 @@ export function ServerConnectionsPage({ embedded = false }: { embedded?: boolean
     };
 
     return (
-        <SettingsPage>
-            {embedded ? null : (
-                <Link
-                    className="text-muted-foreground text-sm hover:text-foreground"
-                    to={serverRoute(slug)}
-                >
-                    Back to /{slug}
-                </Link>
-            )}
-            <SettingsPageHeader
-                action={<Button onClick={() => setIsAddOpen(true)}>Add MCP server</Button>}
-                description="Connect remote tools to this Server, then enable each connection for the Agents that need it."
-                title="MCP Servers"
-            />
-            <SettingsSection title="Recommended">
-                <HostedMcpPresetButtons
-                    onAdd={(preset, name) =>
-                        addPreset.mutate({
-                            name,
-                            preset,
-                            serverId: server.data.id,
-                        })
-                    }
+        <RequireOperator
+            description="MCP connections are managed by Server operators."
+            role={server.data.role}
+        >
+            <SettingsPage>
+                {embedded ? null : (
+                    <Link
+                        className="text-muted-foreground text-sm hover:text-foreground"
+                        to={serverRoute(slug)}
+                    >
+                        Back to /{slug}
+                    </Link>
+                )}
+                <SettingsPageHeader
+                    action={<Button onClick={() => setIsAddOpen(true)}>Add MCP server</Button>}
+                    description="Connect remote tools to this Server, then enable each connection for the Agents that need it."
+                    title="MCP Servers"
                 />
-            </SettingsSection>
-            {retryMessage ? (
-                <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive-foreground text-sm">
-                    {retryMessage}
-                </p>
-            ) : null}
-            <SettingsSection title="MCP connections">
-                <div className="px-3">
-                    <ConnectionFilters filter={filter} onChange={setFilter} />
-                </div>
-                <SettingsGroup>
-                    <div className="grid grid-cols-[minmax(0,1fr)_7rem_8rem] border-border/50 border-b bg-muted/30 px-5 py-2 text-meta text-muted-foreground">
-                        <span>Connection</span>
-                        <span>Type</span>
-                        <span>Status</span>
+                <SettingsSection title="Recommended">
+                    <HostedMcpPresetButtons
+                        onAdd={(preset, name) =>
+                            addPreset.mutate({
+                                name,
+                                preset,
+                                serverId: server.data.id,
+                            })
+                        }
+                    />
+                </SettingsSection>
+                {retryMessage ? (
+                    <Alert className="mx-3 w-auto" variant="error">
+                        <AlertDescription>{retryMessage}</AlertDescription>
+                    </Alert>
+                ) : null}
+                <SettingsSection title="MCP connections">
+                    <div className="px-3">
+                        <ConnectionFilters filter={filter} onChange={setFilter} />
                     </div>
-                    {visibleConnections(viewConnections, filter).map((connection) => (
-                        <ConnectionRow
-                            connection={connection}
-                            key={connection.id}
-                            onSelect={() => setSelectedId(connection.id)}
-                        />
-                    ))}
-                    {!connections.isPending && viewConnections.length === 0 ? (
-                        <p className="px-5 py-8 text-center text-muted-foreground text-sm">
-                            No connections.
-                        </p>
-                    ) : null}
-                </SettingsGroup>
-            </SettingsSection>
-            <McpConnectionDetailDialog
-                connection={selectedConnection}
-                onAddAccount={(connection) => {
-                    if (connection.preset) {
-                        addPreset.mutate({
-                            name: `${connection.name} account`,
-                            preset: connection.preset,
+                    <SettingsGroup>
+                        <div className="grid grid-cols-[minmax(0,1fr)_7rem_8rem] border-border-subtle border-b bg-muted px-5 py-2 text-meta text-muted-foreground">
+                            <span>Connection</span>
+                            <span>Type</span>
+                            <span>Status</span>
+                        </div>
+                        {visibleConnections(viewConnections, filter).map((connection) => (
+                            <ConnectionRow
+                                connection={connection}
+                                key={connection.id}
+                                onSelect={() => setSelectedId(connection.id)}
+                            />
+                        ))}
+                        {!connections.isPending && viewConnections.length === 0 ? (
+                            <p className="px-5 py-8 text-center text-muted-foreground text-sm">
+                                No connections.
+                            </p>
+                        ) : null}
+                    </SettingsGroup>
+                </SettingsSection>
+                <McpConnectionDetailDialog
+                    connection={selectedConnection}
+                    onAddAccount={(connection) => {
+                        if (connection.preset) {
+                            addPreset.mutate({
+                                name: `${connection.name} account`,
+                                preset: connection.preset,
+                                serverId: server.data.id,
+                            });
+                        }
+                    }}
+                    onDelete={(connection) =>
+                        remove.mutate({ connectionId: connection.id, serverId: server.data.id })
+                    }
+                    onDisconnect={(connection) =>
+                        disconnect.mutate({ connectionId: connection.id, serverId: server.data.id })
+                    }
+                    onOpenChange={(open) => !open && setSelectedId(null)}
+                    onRefresh={async (connection) => {
+                        await refresh.mutateAsync({
+                            connectionId: connection.id,
                             serverId: server.data.id,
                         });
+                    }}
+                    onStartOAuth={(connection) => void startConnectionOAuth(connection)}
+                    onUpdateHeaders={(connection, headers) =>
+                        replaceHeaders
+                            .mutateAsync({
+                                connectionId: connection.id,
+                                headers,
+                                serverId: server.data.id,
+                            })
+                            .then(() => undefined)
                     }
-                }}
-                onDelete={(connection) =>
-                    remove.mutate({ connectionId: connection.id, serverId: server.data.id })
-                }
-                onDisconnect={(connection) =>
-                    disconnect.mutate({ connectionId: connection.id, serverId: server.data.id })
-                }
-                onOpenChange={(open) => !open && setSelectedId(null)}
-                onRefresh={async (connection) => {
-                    await refresh.mutateAsync({
-                        connectionId: connection.id,
-                        serverId: server.data.id,
-                    });
-                }}
-                onStartOAuth={(connection) => void startConnectionOAuth(connection)}
-                onUpdateHeaders={(connection, headers) =>
-                    replaceHeaders
-                        .mutateAsync({
-                            connectionId: connection.id,
-                            headers,
-                            serverId: server.data.id,
-                        })
-                        .then(() => undefined)
-                }
-                open={selectedConnection !== null}
-                saving={add.isPending || addPreset.isPending || startOAuth.isPending}
-                startingOAuthId={
-                    startOAuth.isPending ? (startOAuth.variables?.connectionId ?? null) : null
-                }
-                tools={(selectedHosted?.tools ?? []).map((name) => ({
-                    description: '',
-                    name,
-                    title: null,
-                }))}
-                toolsError={null}
-                toolsPending={Boolean(connectingId === selectedId)}
-            />
-            {isAddOpen ? (
-                <McpConnectionFormDrawer
-                    onOpenChange={setIsAddOpen}
-                    onSave={saveCustom}
-                    open
-                    saving={add.isPending}
+                    open={selectedConnection !== null}
+                    saving={add.isPending || addPreset.isPending || startOAuth.isPending}
+                    startingOAuthId={
+                        startOAuth.isPending ? (startOAuth.variables?.connectionId ?? null) : null
+                    }
+                    tools={(selectedHosted?.tools ?? []).map((name) => ({
+                        description: '',
+                        name,
+                        title: null,
+                    }))}
+                    toolsError={null}
+                    toolsPending={Boolean(connectingId === selectedId)}
                 />
-            ) : null}
-            <HostedMcpTrustDialog
-                onClose={() => setTrustRequest(null)}
-                onConfirm={() => {
-                    if (trustRequest) {
-                        void startConnectionOAuth(trustRequest.connection, true);
-                    }
-                }}
-                request={trustRequest}
-            />
-        </SettingsPage>
+                {isAddOpen ? (
+                    <McpConnectionFormDrawer
+                        onOpenChange={setIsAddOpen}
+                        onSave={saveCustom}
+                        open
+                        saving={add.isPending}
+                    />
+                ) : null}
+                <HostedMcpTrustDialog
+                    onClose={() => setTrustRequest(null)}
+                    onConfirm={() => {
+                        if (trustRequest) {
+                            void startConnectionOAuth(trustRequest.connection, true);
+                        }
+                    }}
+                    request={trustRequest}
+                />
+            </SettingsPage>
+        </RequireOperator>
     );
 }

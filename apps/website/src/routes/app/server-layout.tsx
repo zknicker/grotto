@@ -7,6 +7,7 @@ import {
     AppShellMain,
 } from '../../components/ui/app-shell.tsx';
 import { SidebarProvider } from '../../components/ui/sidebar.tsx';
+import { Elevated } from '../../components/ui/surface.tsx';
 import type { HostedServerSection } from '../../features/servers/hosted-server-rail.tsx';
 import { HostedServerRail } from '../../features/servers/hosted-server-rail.tsx';
 import { HostedServerSettingsNav } from '../../features/servers/hosted-server-settings-nav.tsx';
@@ -127,9 +128,12 @@ export function ServerLayout() {
                         }
                     >
                         {server.error || connectionState !== 'connected' ? (
-                            <div className="absolute top-2 right-3 z-20 rounded-md border border-border bg-background/95 px-2 py-1 text-muted-foreground text-xs shadow-sm">
+                            <Elevated
+                                className="absolute top-2 right-3 z-20 rounded-lg px-2 py-1 text-meta text-muted-foreground"
+                                offset={2}
+                            >
                                 Server reconnecting · showing the latest data
-                            </div>
+                            </Elevated>
                         ) : null}
                         <Outlet
                             context={{

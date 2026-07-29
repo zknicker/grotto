@@ -1,5 +1,9 @@
 import type { HostedAgent, HostedMcpConnection } from '@tavern/api';
+import * as React from 'react';
 import { Badge } from '../../components/ui/badge.tsx';
+import { EmptyState } from '../../components/ui/empty-state.tsx';
+import { Separator } from '../../components/ui/separator.tsx';
+import { SettingsGroup, SettingsRow, SettingsSection } from '../../components/ui/settings-row.tsx';
 import { Switch } from '../../components/ui/switch.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
@@ -21,57 +25,55 @@ export function HostedAgentTools({
     );
 
     return (
-        <section className="grid gap-3">
-            <header>
-                <h2 className="font-semibold text-base">
-                    Agent MCP access
-                    <span className="ml-2 text-muted-foreground">{available.length}</span>
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                    Choose which Server-managed MCP connections this Agent can use.
-                </p>
-            </header>
-            {available.length === 0 ? (
-                <p className="rounded-xl border border-dashed p-6 text-muted-foreground text-sm">
-                    Connect an MCP server in Settings → Connections.
-                </p>
-            ) : (
-                available.map((connection) => {
-                    const checked = connection.grants.some((grant) => grant.agentId === agent.id);
-                    return (
-                        <label
-                            className="grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] gap-3 rounded-xl border border-border bg-card p-4"
-                            key={connection.id}
-                        >
-                            <Switch
-                                aria-label={`Enable ${connection.name} for ${agent.displayName}`}
-                                checked={checked}
-                                disabled={setGrant.isPending}
-                                onCheckedChange={(enabled) =>
-                                    setGrant.mutate({
-                                        agentId: agent.id,
-                                        connectionId: connection.id,
-                                        enabled,
-                                        serverId,
-                                    })
-                                }
-                            />
-                            <span className="min-w-0">
-                                <span className="flex items-center gap-2 font-semibold text-sm">
-                                    {connection.name}
-                                    <Badge variant="subtle">MCP</Badge>
-                                </span>
-                                <span className="mt-1 block text-muted-foreground text-sm">
-                                    {connection.url}
-                                </span>
-                            </span>
-                            <span className="text-muted-foreground text-xs">
-                                {connection.tools.length} tools
-                            </span>
-                        </label>
-                    );
-                })
-            )}
-        </section>
+        <SettingsSection title={`Agent MCP access (${available.length})`}>
+            <p className="px-3 text-meta text-muted-foreground">
+                Choose which Server-managed MCP connections this Agent can use.
+            </p>
+            <SettingsGroup>
+                {available.length === 0 ? (
+                    <EmptyState
+                        className="py-10 md:py-12"
+                        description="Connect an MCP server in Settings → Connections."
+                        title="No connections available"
+                    />
+                ) : (
+                    available.map((connection, index) => {
+                        const checked = connection.grants.some(
+                            (grant) => grant.agentId === agent.id
+                        );
+                        return (
+                            <React.Fragment key={connection.id}>
+                                {index > 0 ? <Separator /> : null}
+                                <SettingsRow
+                                    description={`${connection.tools.length} tools · ${connection.url}`}
+                                    title={
+                                        <span className="flex min-w-0 items-center gap-2">
+                                            <span className="truncate">{connection.name}</span>
+                                            <Badge variant="subtle">MCP</Badge>
+                                        </span>
+                                    }
+                                >
+                                    <div className="flex justify-start md:justify-end">
+                                        <Switch
+                                            aria-label={`Enable ${connection.name} for ${agent.displayName}`}
+                                            checked={checked}
+                                            disabled={setGrant.isPending}
+                                            onCheckedChange={(enabled) =>
+                                                setGrant.mutate({
+                                                    agentId: agent.id,
+                                                    connectionId: connection.id,
+                                                    enabled,
+                                                    serverId,
+                                                })
+                                            }
+                                        />
+                                    </div>
+                                </SettingsRow>
+                            </React.Fragment>
+                        );
+                    })
+                )}
+            </SettingsGroup>
+        </SettingsSection>
     );
 }

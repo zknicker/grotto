@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.10 - 2026-07-29
+
+- Computer update checks now remain available while an older Computer reports
+  its idle baseline, allowing the real Settings update flow to proceed through
+  download, verification, installation, restart, and reconnect.
+- Removed the redundant divider inside the Computer Updates card.
+
+### Release surfaces
+
+- App/Server: Publish v1.6.10
+- Desktop: Publish v1.6.10
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.6.9 - 2026-07-29
 
 - Restored hosted Agent directories when PostgreSQL JSON values are written

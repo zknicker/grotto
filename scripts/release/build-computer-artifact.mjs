@@ -66,7 +66,7 @@ export function signAndNotarizeComputer(artifactPath, input) {
     verifyAppleSignature(artifactPath, input);
     const archivePath = `${artifactPath}.zip`;
     run('/usr/bin/ditto', ['-c', '-k', '--keepParent', artifactPath, archivePath]);
-    const notaryArgs = ['notarytool', 'submit', archivePath, '--wait'];
+    const notaryArgs = ['notarytool', 'submit', archivePath, '--wait', '--output-format', 'json'];
     if (process.env.APPLE_API_KEY?.trim()) {
         notaryArgs.push(
             '--key',
@@ -86,9 +86,23 @@ export function signAndNotarizeComputer(artifactPath, input) {
             input.appleTeamId
         );
     }
-    run('/usr/bin/xcrun', notaryArgs);
-    run('/usr/sbin/spctl', ['-a', '-vv', '-t', 'exec', artifactPath]);
+    const notarization = runJson('/usr/bin/xcrun', notaryArgs);
+    if (!isAcceptedComputerNotarization(notarization)) {
+        fail('Apple rejected the Computer notarization submission', notarization);
+    }
+    console.log(`Apple notarization accepted: ${notarization.id}`);
+    verifyAppleSignature(artifactPath, input);
     return archivePath;
+}
+
+export function isAcceptedComputerNotarization(value) {
+    return (
+        value !== null &&
+        typeof value === 'object' &&
+        typeof value.id === 'string' &&
+        value.id.length > 0 &&
+        value.status === 'Accepted'
+    );
 }
 
 export function verifyAppleSignature(artifactPath, input) {
@@ -112,6 +126,16 @@ function hasExactLine(output, expected) {
 
 function run(command, args, env = process.env) {
     execFileSync(command, args, { cwd: repoRoot, env, stdio: 'inherit' });
+}
+
+function runJson(command, args, env = process.env) {
+    const output = execFileSync(command, args, {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        env,
+        stdio: ['inherit', 'pipe', 'inherit'],
+    });
+    return JSON.parse(output);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

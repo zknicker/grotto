@@ -22,11 +22,9 @@ export const appRoutes = {
     settingsProfile: '/settings/profile',
     settingsUpdates: '/settings/updates',
     settingsStats: '/settings/stats',
-    settingsSessions: '/settings/sessions',
     settingsSkills: '/settings/skills',
     settingsBrowser: '/settings/browser',
     settingsConnections: '/settings/connections',
     settingsChannels: '/settings/channels',
     settingsModels: '/settings/models',
-    settingsJobs: '/settings/jobs',
 } as const;

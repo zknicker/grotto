@@ -3,9 +3,7 @@ import {
     Activity01Icon,
     AiBrain01Icon,
     BrowserIcon,
-    ChatIcon,
     ComputerTerminal01Icon,
-    HourglassIcon,
     PaintBrush03Icon,
     Plug01Icon,
     SystemUpdate01Icon,
@@ -46,12 +44,6 @@ export const staticSettingsNavItems = [
         to: appRoutes.settingsStats,
     },
     {
-        icon: ChatIcon,
-        id: 'sessions',
-        label: 'Sessions',
-        to: appRoutes.settingsSessions,
-    },
-    {
         icon: AiBrain01Icon,
         id: 'models',
         label: 'Models',
@@ -74,12 +66,6 @@ export const staticSettingsNavItems = [
         id: 'browser',
         label: 'Browser',
         to: appRoutes.settingsBrowser,
-    },
-    {
-        icon: HourglassIcon,
-        id: 'jobs',
-        label: 'Jobs',
-        to: appRoutes.settingsJobs,
     },
 ] as const satisfies ReadonlyArray<{
     icon: IconSvgElement;
@@ -107,7 +93,7 @@ export const settingsNavSections = [
     },
     {
         id: 'activity',
-        itemIds: ['sessions', 'jobs', 'stats'],
+        itemIds: ['stats'],
         label: 'Activity',
     },
 ] as const;

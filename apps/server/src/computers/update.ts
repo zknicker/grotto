@@ -183,7 +183,7 @@ function parseVersion(version: string): number[] {
 }
 
 function assertCompatibleProductionRelease(release: SignedComputerRelease) {
-    if (release.release.protocolVersion < computerProtocolVersion) {
+    if (release.release.protocolVersion !== computerProtocolVersion) {
         throw new Error(
             `Production Grotto Computer ${release.release.version} does not satisfy protocol ${computerProtocolVersion}.`
         );

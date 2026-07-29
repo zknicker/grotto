@@ -31,20 +31,27 @@ describe('Computer bootstrap protocol', () => {
         ).toBe(false);
     });
 
-    test('admits an incompatible ordinary version through stable bootstrap validation', () => {
-        expect(
-            computerBootstrapHelloSchema.safeParse({
-                architecture: 'arm64',
-                bootstrapProtocolVersion: 1,
-                credential: 'c'.repeat(32),
-                health: 'healthy',
-                operatingSystem: 'darwin',
-                productVersion: '0.8.0',
-                protocolVersion: 999,
-                type: 'bootstrap',
-                update: progress,
-            }).success
-        ).toBe(true);
+    test('normalizes legacy update progress through stable bootstrap validation', () => {
+        const parsed = computerBootstrapHelloSchema.safeParse({
+            architecture: 'arm64',
+            bootstrapProtocolVersion: 1,
+            credential: 'c'.repeat(32),
+            health: 'healthy',
+            operatingSystem: 'darwin',
+            productVersion: '0.8.0',
+            protocolVersion: 999,
+            type: 'bootstrap',
+            update: {
+                detail: progress.detail,
+                phase: progress.phase,
+                targetVersion: progress.targetVersion,
+                updatedAt: progress.updatedAt,
+            },
+        });
+        expect(parsed.success).toBe(true);
+        if (parsed.success) {
+            expect(parsed.data.update).toEqual(progress);
+        }
     });
 
     test('signing payload has one stable field order', () => {

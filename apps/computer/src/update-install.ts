@@ -71,28 +71,23 @@ export async function installStandaloneExecutable(
 ): Promise<void> {
     const destination = options.destination ?? installedPath;
     const previous = `${destination}.prev`;
+    const previousNext = `${previous}.next`;
     const staged = `${destination}.next`;
-    const displaced = `${destination}.replaced`;
     await mkdir(dirname(destination), { recursive: true });
     await copyFile(artifactPath, staged);
     await chmod(staged, 0o755);
     await (options.verify ?? verifyAppleExecutable)(staged);
-    await rm(displaced, { force: true });
+    await rm(previousNext, { force: true });
     try {
         if (await exists(destination)) {
-            await rename(destination, displaced);
+            await copyFile(destination, previousNext);
+            await chmod(previousNext, 0o755);
+            await rename(previousNext, previous);
         }
         await rename(staged, destination);
-        await rm(previous, { force: true });
-        if (await exists(displaced)) {
-            await rename(displaced, previous);
-        }
     } catch (cause) {
         await rm(staged, { force: true });
-        if (await exists(displaced)) {
-            await rm(destination, { force: true });
-            await rename(displaced, destination);
-        }
+        await rm(previousNext, { force: true });
         throw new Error('The verified Computer executable could not be installed.', {
             cause,
         });
@@ -104,24 +99,24 @@ export async function rollbackStandaloneExecutable(
 ): Promise<void> {
     const destination = options.destination ?? installedPath;
     const previous = `${destination}.prev`;
-    const displaced = `${destination}.rollback`;
+    const previousNext = `${previous}.next`;
+    const staged = `${destination}.rollback`;
     if (!(await exists(previous))) {
         throw new Error('No previous verified Grotto Computer executable is available.');
     }
     await (options.verify ?? verifyAppleExecutable)(previous);
-    await rm(displaced, { force: true });
+    await rm(previousNext, { force: true });
+    await rm(staged, { force: true });
     try {
-        await rename(destination, displaced);
-        await rename(previous, destination);
-        await rename(displaced, previous);
+        await copyFile(previous, staged);
+        await chmod(staged, 0o755);
+        await copyFile(destination, previousNext);
+        await chmod(previousNext, 0o755);
+        await rename(staged, destination);
+        await rename(previousNext, previous);
     } catch (cause) {
-        if ((await exists(destination)) && !(await exists(previous))) {
-            await rename(destination, previous);
-        }
-        if (await exists(displaced)) {
-            await rm(destination, { force: true });
-            await rename(displaced, destination);
-        }
+        await rm(staged, { force: true });
+        await rm(previousNext, { force: true });
         throw new Error('Grotto Computer rollback failed.', { cause });
     }
 }

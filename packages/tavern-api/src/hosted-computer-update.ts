@@ -32,6 +32,13 @@ export const computerUpdateProgressSchema = z
     .strict();
 export type ComputerUpdateProgress = z.infer<typeof computerUpdateProgressSchema>;
 
+const computerBootstrapUpdateProgressSchema = computerUpdateProgressSchema.extend({
+    activeAgentCount: z.number().int().nonnegative().nullable().optional().default(null),
+    downloadedBytes: z.number().int().nonnegative().nullable().optional().default(null),
+    failedPhase: computerUpdatePhaseSchema.exclude(['failed']).nullable().optional().default(null),
+    totalBytes: z.number().int().positive().nullable().optional().default(null),
+});
+
 export const signedComputerReleaseSchema = z
     .object({
         release: z
@@ -61,7 +68,7 @@ export const computerBootstrapHelloSchema = z
         productVersion: z.string().min(1).max(64),
         protocolVersion: z.number().int().nonnegative(),
         type: z.literal('bootstrap'),
-        update: computerUpdateProgressSchema,
+        update: computerBootstrapUpdateProgressSchema,
     })
     .strict();
 

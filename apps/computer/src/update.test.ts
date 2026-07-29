@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createHash, generateKeyPairSync, sign } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -10,6 +10,33 @@ import {
     verifySignedRelease,
 } from './update.ts';
 import { computerReleaseSigningPayload, type SignedComputerRelease } from './update-contract.ts';
+
+test('legacy persisted progress gains the stable bootstrap fields', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-progress-test-'));
+    try {
+        await writeFile(
+            join(dataRoot, 'update.json'),
+            `${JSON.stringify({
+                detail: 'Waiting.',
+                phase: 'waiting-for-agents',
+                targetVersion: '1.1.0',
+                updatedAt: '2026-07-27T12:00:00.000Z',
+            })}\n`
+        );
+        expect(await readUpdateProgress(dataRoot)).toEqual({
+            activeAgentCount: null,
+            detail: 'Waiting.',
+            downloadedBytes: null,
+            failedPhase: null,
+            phase: 'waiting-for-agents',
+            targetVersion: '1.1.0',
+            totalBytes: null,
+            updatedAt: '2026-07-27T12:00:00.000Z',
+        });
+    } finally {
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
 
 test('a signed update waits without a kill timeout, then installs and restarts', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
@@ -88,6 +115,37 @@ test('failed signature verification never touches Computer data or installs', as
         expect(installed).toBe(false);
         expect(await readFile(durablePath, 'utf8')).toBe('{"credential":"keep"}\n');
         expect((await readUpdateProgress(dataRoot)).phase).toBe('failed');
+    } finally {
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('a future protocol release cannot strand this Computer', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
+    const keys = generateKeyPairSync('ed25519');
+    const release = signedRelease(
+        'https://example.test/grotto-computer',
+        Buffer.from('future'),
+        keys.privateKey
+    );
+    release.release.protocolVersion = 4;
+    release.signature = sign(
+        null,
+        Buffer.from(computerReleaseSigningPayload(release.release)),
+        keys.privateKey
+    ).toString('base64');
+
+    try {
+        await expect(
+            runSignedUpdate({
+                currentVersion: '1.0.0',
+                dataRoot,
+                publicKey: keys.publicKey.export({ format: 'pem', type: 'spki' }).toString(),
+                release,
+                restart: async () => undefined,
+                verifyArtifact: async () => undefined,
+            })
+        ).rejects.toThrow('protocol does not match');
     } finally {
         await rm(dataRoot, { force: true, recursive: true });
     }

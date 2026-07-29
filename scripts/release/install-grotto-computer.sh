@@ -48,20 +48,18 @@ printf '%s\n' "$signature_details" | /usr/bin/grep -Fqx "Authority=$expected_ide
 /bin/mkdir -p "$(dirname "$install_path")"
 staged="$install_path.installing"
 previous="$install_path.prev"
-displaced="$install_path.replaced"
+previous_next="$previous.next"
 /bin/cp "$artifact" "$staged"
-/bin/rm -f "$displaced"
+/bin/rm -f "$previous_next"
 if [ -e "$install_path" ]; then
-    /bin/mv "$install_path" "$displaced"
+    /bin/cp "$install_path" "$previous_next"
+    /bin/chmod 755 "$previous_next"
+    if ! /bin/mv "$previous_next" "$previous"; then
+        /bin/rm -f "$staged" "$previous_next"
+        exit 1
+    fi
 fi
 if ! /bin/mv "$staged" "$install_path"; then
-    [ ! -e "$displaced" ] || /bin/mv "$displaced" "$install_path"
-    exit 1
-fi
-/bin/rm -f "$previous"
-if [ -e "$displaced" ] && ! /bin/mv "$displaced" "$previous"; then
-    /bin/rm -f "$install_path"
-    /bin/mv "$displaced" "$install_path"
     exit 1
 fi
 

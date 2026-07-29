@@ -20,7 +20,19 @@ export const productionComputerManifestUrl = 'https://releases.grotto.sh/compute
 
 export async function readUpdateProgress(dataRoot: string): Promise<ComputerUpdateProgress> {
     try {
-        return JSON.parse(await readFile(progressPath(dataRoot), 'utf8')) as ComputerUpdateProgress;
+        const stored = JSON.parse(
+            await readFile(progressPath(dataRoot), 'utf8')
+        ) as Partial<ComputerUpdateProgress>;
+        return {
+            activeAgentCount: stored.activeAgentCount ?? null,
+            detail: stored.detail ?? null,
+            downloadedBytes: stored.downloadedBytes ?? null,
+            failedPhase: stored.failedPhase ?? null,
+            phase: stored.phase ?? 'idle',
+            targetVersion: stored.targetVersion ?? null,
+            totalBytes: stored.totalBytes ?? null,
+            updatedAt: stored.updatedAt ?? new Date().toISOString(),
+        };
     } catch {
         return progress('idle', null, null);
     }
@@ -105,8 +117,8 @@ export async function runSignedUpdate(input: {
         if (!isNewerVersion(targetVersion, input.currentVersion ?? computerVersion)) {
             throw new Error(`Grotto Computer ${targetVersion} is not a newer release.`);
         }
-        if (release.release.protocolVersion < computerProtocolVersion) {
-            throw new Error('Computer release protocol is older than this Computer.');
+        if (release.release.protocolVersion !== computerProtocolVersion) {
+            throw new Error('Computer release protocol does not match this Computer.');
         }
         await writeUpdateProgress(
             dataRoot,

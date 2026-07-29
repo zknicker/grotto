@@ -46,6 +46,7 @@ import {
 } from './launch.ts';
 import { replaceLaunchdService } from './launchd.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
+import { runtimeSearchPath } from './runtime-discovery.ts';
 import {
     admitActiveRun,
     progress,
@@ -572,7 +573,8 @@ export function launchdPlist(entrypoint: { args: string[]; executable: string })
         .map((value) => `<string>${value}</string>`)
         .join('');
     const logPath = escapeXml(join(dataRoot, 'logs', 'computer.log'));
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.grotto.computer</string><key>ProgramArguments</key><array>${programArguments}</array><key>EnvironmentVariables</key><dict><key>GROTTO_COMPUTER_DATA_ROOT</key><string>${escaped.at(-1)}</string><key>GROTTO_COMPUTER_RESIDENT</key><string>1</string></dict><key>StandardOutPath</key><string>${logPath}</string><key>StandardErrorPath</key><string>${logPath}</string><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
+    const path = escapeXml(runtimeSearchPath());
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.grotto.computer</string><key>ProgramArguments</key><array>${programArguments}</array><key>EnvironmentVariables</key><dict><key>GROTTO_COMPUTER_DATA_ROOT</key><string>${escaped.at(-1)}</string><key>GROTTO_COMPUTER_RESIDENT</key><string>1</string><key>PATH</key><string>${path}</string></dict><key>StandardOutPath</key><string>${logPath}</string><key>StandardErrorPath</key><string>${logPath}</string><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
 }
 
 function escapeXml(value: string) {

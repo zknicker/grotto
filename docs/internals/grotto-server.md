@@ -161,7 +161,12 @@ management remain Owner/Admin-only.
 
 A Computer's attachment socket reports a sanitized runtime/model inventory —
 ids and labels only, never provider credentials — stored on
-`computers.reported_inventory` and replaced wholesale on each report. Creating
+`computers.reported_inventory` and replaced wholesale on each report.
+Computer runtime discovery uses a deterministic service search path that
+includes inherited entries plus common Homebrew, local-user, and system binary
+directories. Each CLI is resolved to an absolute path and must pass a bounded
+version probe; Agent launch receives that same resolved environment, so
+advertised and runnable runtimes do not diverge. Creating
 an Agent (`agent.create`, Owner/Admin) binds it to exactly one attached
 Computer plus a runtime and model that exist in that Computer's last-reported
 inventory, then opens the ordinary Owner↔Agent DM; there is no onboarding

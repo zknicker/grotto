@@ -1,3 +1,5 @@
+import { resolveRuntimeExecutable } from './runtime-discovery.ts';
+
 interface ComputerModel {
     id: string;
     label: string;
@@ -54,13 +56,18 @@ const knownRuntimes: { command: string; runtime: ComputerRuntime }[] = [
  * overrides detection with an explicit JSON catalogue for development and tests;
  * otherwise only runtimes whose CLI is installed are reported.
  */
-export function detectInventory(): ComputerInventory {
+export function detectInventory(options: { searchPath?: string } = {}): ComputerInventory {
     const override = process.env.GROTTO_COMPUTER_INVENTORY;
     if (override) {
         return JSON.parse(override) as ComputerInventory;
     }
     const runtimes = knownRuntimes
-        .filter((entry) => Bun.which(entry.command) !== null)
+        .filter(
+            (entry) =>
+                resolveRuntimeExecutable(entry.command, {
+                    searchPath: options.searchPath,
+                }) !== null
+        )
         .map((entry) => entry.runtime);
     return { runtimes };
 }

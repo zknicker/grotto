@@ -1,7 +1,15 @@
 import { FileEmpty02Icon } from '@hugeicons/core-free-icons';
 import type { HostedImportableSkill } from '@tavern/api';
 import * as React from 'react';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '../../components/ui/empty.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { PaneTopbar, SidePane } from '../../components/ui/pane.tsx';
 import {
     ResizablePaneRail,
     useResizablePaneWidth,
@@ -12,6 +20,7 @@ import {
     SidebarGroupContent,
     SidebarHeader,
 } from '../../components/ui/sidebar.tsx';
+import { Elevated } from '../../components/ui/surface.tsx';
 import { formatSkillName } from './skill-name-format.ts';
 import { buildSkillTreePaths, type SkillTreeSubject } from './skill-tree-model.ts';
 import { SkillsFileTree } from './skills-file-tree.tsx';
@@ -53,7 +62,7 @@ export function HostedSkillsBrowser({ sources }: { sources: HostedSkillSource[] 
             className="grid h-full min-h-0 flex-1 overflow-hidden bg-background"
             style={{ gridTemplateColumns: `${sidebarWidth.width}px minmax(0, 1fr)` }}
         >
-            <aside className="relative flex h-full min-h-0 w-full shrink-0 flex-col overflow-x-hidden border-border/70 border-r bg-background text-sidebar-foreground">
+            <SidePane className="w-full flex-col text-sidebar-foreground" side="left">
                 <ResizablePaneRail
                     maxWidth={380}
                     minWidth={240}
@@ -62,15 +71,15 @@ export function HostedSkillsBrowser({ sources }: { sources: HostedSkillSource[] 
                     side="right"
                     width={sidebarWidth.width}
                 />
-                <SidebarHeader className="gap-0 border-border/70 border-b px-3 pt-4 pb-3">
+                <SidebarHeader className="gap-0 border-[var(--content-card-border)] border-b px-3 pt-4 pb-3">
                     <h2 className="h-6 truncate font-semibold text-base text-foreground">Skills</h2>
                     <p className="mt-2 text-muted-foreground text-sm">
                         Skills available on your Computers.
                     </p>
                 </SidebarHeader>
-                <div className="flex h-10 shrink-0 items-center border-border/70 border-b px-3 font-medium text-muted-foreground text-sm">
+                <PaneTopbar className="font-medium text-muted-foreground text-sm">
                     Browse skills
-                </div>
+                </PaneTopbar>
                 <SidebarContent className="min-h-0 flex-1 overflow-x-hidden">
                     <SidebarGroup className="flex min-h-0 flex-1 flex-col overflow-x-hidden px-1 py-0">
                         <SidebarGroupContent className="flex min-h-0 flex-1 overflow-x-hidden">
@@ -84,7 +93,7 @@ export function HostedSkillsBrowser({ sources }: { sources: HostedSkillSource[] 
                         </SidebarGroupContent>
                     </SidebarGroup>
                 </SidebarContent>
-            </aside>
+            </SidePane>
             <section className="flex min-h-0 min-w-0 flex-col">
                 <HostedSkillPreview source={selected} />
             </section>
@@ -95,17 +104,17 @@ export function HostedSkillsBrowser({ sources }: { sources: HostedSkillSource[] 
 function HostedSkillPreview({ source }: { source: HostedSkillSource | null }) {
     if (!source) {
         return (
-            <div className="grid h-full min-h-[28rem] place-items-center">
-                <div className="grid justify-items-center gap-3 px-8 text-center">
-                    <span className="flex size-12 items-center justify-center rounded-full border border-border/60 bg-muted/30 text-muted-foreground">
-                        <Icon className="size-6" icon={FileEmpty02Icon} />
-                    </span>
-                    <p className="font-medium text-foreground text-sm">No preview</p>
-                    <p className="max-w-sm text-muted-foreground text-sm">
+            <Empty className="min-h-[28rem]">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <Icon icon={FileEmpty02Icon} />
+                    </EmptyMedia>
+                    <EmptyTitle className="text-base">No preview</EmptyTitle>
+                    <EmptyDescription className="text-sm">
                         Connect a Computer with installed skills.
-                    </p>
-                </div>
-            </div>
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         );
     }
 
@@ -130,13 +139,15 @@ function HostedSkillPreview({ source }: { source: HostedSkillSource | null }) {
                     </p>
                 </div>
             </header>
-            <div className="mt-5 rounded-xl border border-border/70 bg-card px-9 py-7">
-                <p className="font-medium text-foreground">Add skills from an Agent profile</p>
-                <p className="mt-2 max-w-2xl text-muted-foreground text-sm leading-6">
+            <Elevated className="mt-5 max-w-[48rem] rounded-xl px-5 py-4" offset={1}>
+                <p className="font-medium text-foreground text-sm">
+                    Add skills from an Agent profile
+                </p>
+                <p className="mt-1 text-muted-foreground text-sm leading-5">
                     Open an Agent, then use the plus button in Skills to copy this skill into that
                     Agent’s library.
                 </p>
-            </div>
+            </Elevated>
         </div>
     );
 }

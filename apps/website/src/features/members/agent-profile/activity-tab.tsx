@@ -1,6 +1,7 @@
 import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
+import { SettingsGroup } from '../../../components/ui/settings-row.tsx';
 import { Spinner } from '../../../components/ui/spinner.tsx';
 import { toastManager } from '../../../components/ui/toast.tsx';
 import { useAgentActivity } from '../../../hooks/agents/use-agent-activity.ts';
@@ -40,14 +41,16 @@ export function AgentActivityTab({ agentId }: { agentId: string }) {
             ) : entries.length === 0 ? (
                 <p className="px-3 py-8 text-muted-foreground text-sm">No activity yet</p>
             ) : (
-                <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-                    {entries.map((entry) => (
-                        <ActivityRow
-                            entry={entry}
-                            key={`${entry.turnId ?? entry.at}-${entry.kind}`}
-                        />
-                    ))}
-                </ul>
+                <SettingsGroup>
+                    <ul className="divide-y divide-border">
+                        {entries.map((entry) => (
+                            <ActivityRow
+                                entry={entry}
+                                key={`${entry.turnId ?? entry.at}-${entry.kind}`}
+                            />
+                        ))}
+                    </ul>
+                </SettingsGroup>
             )}
             {/* In-chat work evidence moves here when WS2 retires transcript work groups. */}
         </div>

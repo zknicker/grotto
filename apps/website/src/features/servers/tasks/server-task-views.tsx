@@ -1,6 +1,7 @@
 import type { HostedTaskLabel } from '@tavern/api';
 import * as React from 'react';
 import { RelativeTime } from '../../../components/time/relative-time.tsx';
+import { Elevated } from '../../../components/ui/surface.tsx';
 import { LabelChip } from '../../tasks/label-chip.tsx';
 import { taskPriorityLabels, taskStatusLabels } from '../../tasks/task-presentation.ts';
 import { TaskStatusPill } from '../../tasks/task-status-menu.tsx';
@@ -78,9 +79,10 @@ export function ServerTasksList({
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
             <div className="mx-auto flex max-w-5xl flex-col gap-2">
                 {tasks.map((task) => (
-                    <article
-                        className="relative grid gap-3 rounded-lg border bg-card p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+                    <Elevated
+                        className="relative grid gap-3 rounded-lg p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
                         key={task.id}
+                        offset={1}
                     >
                         <TaskSummary onOpen={onOpen} task={task} />
                         <ServerTaskActions
@@ -90,7 +92,7 @@ export function ServerTasksList({
                             task={task}
                             viewerUserId={viewerUserId}
                         />
-                    </article>
+                    </Elevated>
                 ))}
             </div>
         </div>
@@ -113,7 +115,7 @@ function ServerTaskCard({
     viewerUserId: string;
 }) {
     return (
-        <article className="relative rounded-lg border bg-card p-3">
+        <Elevated className="relative rounded-lg p-3" offset={1}>
             <TaskSummary onOpen={onOpen} task={task} />
             <div className="mt-3">
                 <ServerTaskActions
@@ -124,7 +126,7 @@ function ServerTaskCard({
                     viewerUserId={viewerUserId}
                 />
             </div>
-        </article>
+        </Elevated>
     );
 }
 

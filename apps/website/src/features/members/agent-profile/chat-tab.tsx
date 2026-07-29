@@ -9,6 +9,7 @@ import {
     EmptyTitle,
 } from '../../../components/ui/empty.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { SettingsGroup } from '../../../components/ui/settings-row.tsx';
 import { Spinner } from '../../../components/ui/spinner.tsx';
 import { useAgentChatList } from '../../../hooks/agents/use-agent-chats.ts';
 import { appRoutes } from '../../../lib/app-routes.ts';
@@ -51,17 +52,19 @@ export function AgentChatTab({ agentId }: { agentId: string }) {
                 <h3 className="px-3 font-medium font-mono text-muted-foreground text-sm uppercase tracking-wider">
                     Agent DMs
                 </h3>
-                <Empty className="mt-2 min-h-52 rounded-xl border border-border bg-card py-10">
-                    <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                            <Icon icon={BubbleChatIcon} />
-                        </EmptyMedia>
-                        <EmptyTitle className="text-base">No agent-to-agent DMs yet</EmptyTitle>
-                        <EmptyDescription className="text-sm">
-                            Recent agent-to-agent DM activity will appear here.
-                        </EmptyDescription>
-                    </EmptyHeader>
-                </Empty>
+                <SettingsGroup className="mt-2">
+                    <Empty className="min-h-52 py-10">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Icon icon={BubbleChatIcon} />
+                            </EmptyMedia>
+                            <EmptyTitle className="text-base">No agent-to-agent DMs yet</EmptyTitle>
+                            <EmptyDescription className="text-sm">
+                                Recent agent-to-agent DM activity will appear here.
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                </SettingsGroup>
             </section>
         </div>
     );
@@ -90,22 +93,24 @@ function ChatSection({
             {rows.length === 0 ? (
                 <p className="px-3 py-4 text-muted-foreground text-sm">{empty}</p>
             ) : (
-                <ul className="mt-2 divide-y divide-border rounded-xl border border-border bg-card">
-                    {rows.map((chat) => (
-                        <li key={chat.id}>
-                            <button
-                                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-accent"
-                                onClick={() => onOpen(chat.id)}
-                                type="button"
-                            >
-                                <Icon className="size-4 text-muted-foreground" icon={icon} />
-                                <span className="truncate font-medium text-foreground">
-                                    {chat.title}
-                                </span>
-                            </button>
-                        </li>
-                    ))}
-                </ul>
+                <SettingsGroup className="mt-2">
+                    <ul className="divide-y divide-border">
+                        {rows.map((chat) => (
+                            <li key={chat.id}>
+                                <button
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-accent"
+                                    onClick={() => onOpen(chat.id)}
+                                    type="button"
+                                >
+                                    <Icon className="size-4 text-muted-foreground" icon={icon} />
+                                    <span className="truncate font-medium text-foreground">
+                                        {chat.title}
+                                    </span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </SettingsGroup>
             )}
         </section>
     );

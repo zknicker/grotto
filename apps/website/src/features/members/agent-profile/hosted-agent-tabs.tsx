@@ -17,6 +17,7 @@ import {
 } from '../../../components/ui/empty.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
+import { SettingsGroup } from '../../../components/ui/settings-row.tsx';
 import { Spinner } from '../../../components/ui/spinner.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
@@ -68,30 +69,34 @@ export function HostedAgentActivityTab({
             ) : entries.length === 0 ? (
                 <p className="px-3 py-8 text-muted-foreground text-sm">No activity yet</p>
             ) : (
-                <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-                    {entries.map((entry) => (
-                        <li
-                            className="grid grid-cols-[6rem_auto_minmax(0,1fr)] items-baseline gap-2 px-3 py-2.5 text-sm"
-                            key={entry.runId}
-                        >
-                            <time className="text-meta text-muted-foreground tabular-nums">
-                                {new Date(entry.endedAt).toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                })}
-                            </time>
-                            <span
-                                className={`size-2 rounded-full ${
-                                    entry.status === 'failed' ? 'bg-destructive' : 'bg-success'
-                                }`}
-                            />
-                            <span>
-                                <span className="font-medium capitalize">{entry.status}</span>
-                                <span className="ml-2 text-muted-foreground">{entry.summary}</span>
-                            </span>
-                        </li>
-                    ))}
-                </ul>
+                <SettingsGroup>
+                    <ul className="divide-y divide-border">
+                        {entries.map((entry) => (
+                            <li
+                                className="grid grid-cols-[6rem_auto_minmax(0,1fr)] items-baseline gap-2 px-3 py-2.5 text-sm"
+                                key={entry.runId}
+                            >
+                                <time className="text-meta text-muted-foreground tabular-nums">
+                                    {new Date(entry.endedAt).toLocaleTimeString([], {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}
+                                </time>
+                                <span
+                                    className={`size-2 rounded-full ${
+                                        entry.status === 'failed' ? 'bg-destructive' : 'bg-success'
+                                    }`}
+                                />
+                                <span>
+                                    <span className="font-medium capitalize">{entry.status}</span>
+                                    <span className="ml-2 text-muted-foreground">
+                                        {entry.summary}
+                                    </span>
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </SettingsGroup>
             )}
         </div>
     );
@@ -121,24 +126,26 @@ export function HostedAgentChatTab({
             {rows.length === 0 ? (
                 <p className="px-3 text-muted-foreground text-sm">No chats yet.</p>
             ) : (
-                <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-                    {rows.map((chat) => (
-                        <li key={chat.id}>
-                            <button
-                                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-accent"
-                                onClick={() => navigate(serverChatRoute(server.slug, chat.id))}
-                                type="button"
-                            >
-                                <span className="text-muted-foreground">
-                                    {chat.kind === 'channel' ? '#' : '◌'}
-                                </span>
-                                <span className="truncate font-medium">
-                                    {chat.name ?? `Direct · @${agent.handle}`}
-                                </span>
-                            </button>
-                        </li>
-                    ))}
-                </ul>
+                <SettingsGroup>
+                    <ul className="divide-y divide-border">
+                        {rows.map((chat) => (
+                            <li key={chat.id}>
+                                <button
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-accent"
+                                    onClick={() => navigate(serverChatRoute(server.slug, chat.id))}
+                                    type="button"
+                                >
+                                    <span className="text-muted-foreground">
+                                        {chat.kind === 'channel' ? '#' : '◌'}
+                                    </span>
+                                    <span className="truncate font-medium">
+                                        {chat.name ?? `Direct · @${agent.handle}`}
+                                    </span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </SettingsGroup>
             )}
         </div>
     );
@@ -165,17 +172,19 @@ export function HostedAgentRemindersTab({
         );
     }
     return (
-        <ul className="mx-auto my-6 w-full max-w-3xl divide-y divide-border rounded-xl border border-border bg-card">
-            {reminders.data?.map((reminder) => (
-                <li className="grid gap-1 px-4 py-3 text-sm" key={reminder.id}>
-                    <span className="font-medium">{reminder.title}</span>
-                    <span className="text-muted-foreground">
-                        {new Date(reminder.fireAt).toLocaleString()}
-                        {reminder.repeat ? ` · ${reminder.repeat}` : ''}
-                    </span>
-                </li>
-            ))}
-        </ul>
+        <SettingsGroup className="mx-auto my-6 w-full max-w-3xl">
+            <ul className="divide-y divide-border">
+                {reminders.data?.map((reminder) => (
+                    <li className="grid gap-1 px-4 py-3 text-sm" key={reminder.id}>
+                        <span className="font-medium">{reminder.title}</span>
+                        <span className="text-muted-foreground">
+                            {new Date(reminder.fireAt).toLocaleString()}
+                            {reminder.repeat ? ` · ${reminder.repeat}` : ''}
+                        </span>
+                    </li>
+                ))}
+            </ul>
+        </SettingsGroup>
     );
 }
 

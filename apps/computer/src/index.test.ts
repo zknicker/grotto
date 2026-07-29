@@ -82,10 +82,11 @@ test('setup stores only a Server credential and reruns by validation', async () 
         expect(socketFrames[0]).toMatchObject({
             bootstrapProtocolVersion: 1,
             productVersion: '1.1.5',
-            protocolVersion: 4,
+            protocolVersion: 5,
             type: 'bootstrap',
             update: { phase: 'idle' },
         });
+        expect(socketFrames[0]).not.toHaveProperty('name');
         expect(socketFrames[1]).toMatchObject({
             agents: [
                 {
@@ -95,6 +96,7 @@ test('setup stores only a Server credential and reruns by validation', async () 
                     runtimeId: 'codex',
                 },
             ],
+            inventory: { name: expect.any(String) },
             type: 'report',
         });
 

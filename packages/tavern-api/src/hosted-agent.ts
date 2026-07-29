@@ -62,6 +62,7 @@ export const hostedComputerInventorySchema = z
             .max(500)
             .optional(),
         importableSkills: z.array(hostedImportableSkillSchema).max(1000).optional(),
+        name: z.string().trim().min(1).max(100).optional(),
         runtimes: z.array(hostedComputerRuntimeSchema).max(50),
     })
     .strict();

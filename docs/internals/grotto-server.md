@@ -131,8 +131,11 @@ launchd service reconnects through the single outbound
 
 Every socket starts with bootstrap protocol version 1. The authenticated
 `bootstrap` frame carries only Computer product/protocol facts and shared update
-progress. The Server admits ordinary reports, delivery, and control only when
-the ordinary protocol is version 3. An incompatible Computer stays connected
+progress, so it remains safe across Computer-first rollout and Server rollback.
+The versioned ordinary inventory report carries the Computer's human-readable
+machine name, which the Server retains for offline presentation. The Server admits
+ordinary reports, delivery, and control only when the ordinary protocol is version 5.
+An incompatible Computer stays connected
 as `update-required`: signed update control remains available, while inventory,
 Agent delivery, and MCP control fail closed. A Computer that cannot send the
 stable bootstrap frame is rejected and must be repaired with
@@ -426,10 +429,10 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   call the hosted API directly; durable task events own exact cache invalidation.
 - `/s/<slug>/members` manages humans and invitations.
 - `/s/<slug>/computers` is the Owner/Admin Computer inventory. It shows
-  attachment health, reported runtimes/models, assigned Agents, update state,
-  recovery commands, and removal. Computer reports invalidate this inventory
-  and Agent availability through the Server websocket; the App does not poll a
-  Computer or connect to one directly.
+  the reported machine name, attachment health, reported runtimes/models,
+  assigned Agents, update state, recovery commands, and removal. Computer
+  reports invalidate this inventory and Agent availability through the Server
+  websocket; the App does not poll a Computer or connect to one directly.
 - `/s/<slug>/settings/connections` manages MCP connections on one selected
   Computer attachment. Secrets relay over the Server's existing authenticated
   Computer socket and never enter App storage.

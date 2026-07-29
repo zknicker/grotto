@@ -10,6 +10,7 @@ import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import { computerEntrypoint, computerSourceRevision, computerVersion } from './build-identity.ts';
+import { readComputerName } from './computer-name.ts';
 import {
     decideStart,
     purgeServerPartition,
@@ -605,7 +606,10 @@ async function connect(attachment: Attachment) {
     });
     const socketUrl = new URL('/computer/attachment', attachment.serverOrigin);
     socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
-    const initialProgress = await readUpdateProgress(dataRoot);
+    const [initialProgress, computerName] = await Promise.all([
+        readUpdateProgress(dataRoot),
+        readComputerName(),
+    ]);
     const socket = new WebSocket(socketUrl);
     // Live runs in this process, keyed by run so a Stop can kill the right child.
     const running = new Map<string, AbortController>();
@@ -659,6 +663,7 @@ async function connect(attachment: Attachment) {
                         attachment,
                         clearActiveRun,
                         command,
+                        computerName,
                         controller: reservation.controller,
                         noticeSinks,
                         running,
@@ -716,13 +721,15 @@ async function connect(attachment: Attachment) {
             const bootstrap = parseBootstrapAccepted(frame);
             if (bootstrap) {
                 if (bootstrap.mode === 'ordinary') {
-                    const initialReport = sendComputerReport(socket, attachment.serverId).then(
-                        async () => {
-                            if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1') {
-                                await sendUsageReport(socket);
-                            }
+                    const initialReport = sendComputerReport(
+                        socket,
+                        attachment.serverId,
+                        computerName
+                    ).then(async () => {
+                        if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1') {
+                            await sendUsageReport(socket);
                         }
-                    );
+                    });
                     void trackWriter(initialReport.catch(reportStateError)).finally(() => {
                         if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
                             socket.close();
@@ -769,7 +776,7 @@ async function connect(attachment: Attachment) {
                                 serverId: attachment.serverId,
                             });
                         })
-                        .then(() => sendComputerReport(socket, attachment.serverId))
+                        .then(() => sendComputerReport(socket, attachment.serverId, computerName))
                         .catch(reportStateError)
                 );
                 return;
@@ -795,7 +802,7 @@ async function connect(attachment: Attachment) {
                                     type: 'agent-skill-import-result',
                                 })
                             );
-                            await sendComputerReport(socket, attachment.serverId);
+                            await sendComputerReport(socket, attachment.serverId, computerName);
                         })
                         .catch((error) => {
                             socket.send(
@@ -850,7 +857,7 @@ async function connect(attachment: Attachment) {
                                 serverId: attachment.serverId,
                             });
                         })
-                        .then(() => sendComputerReport(socket, attachment.serverId))
+                        .then(() => sendComputerReport(socket, attachment.serverId, computerName))
                         .catch((error) => {
                             console.error(error instanceof Error ? error.message : error);
                         })
@@ -970,6 +977,7 @@ async function handleStartCommand(input: {
     agentRuns: Map<string, string>;
     attachment: Attachment;
     command: HostedAgentStartCommand;
+    computerName: string;
     controller: AbortController;
     clearActiveRun: () => Promise<void>;
     noticeSinks: Map<string, { deliver: (notice: string) => Promise<boolean>; runId: string }>;
@@ -981,6 +989,7 @@ async function handleStartCommand(input: {
         attachment,
         clearActiveRun,
         command,
+        computerName,
         controller,
         noticeSinks,
         running,
@@ -1055,14 +1064,14 @@ async function handleStartCommand(input: {
             runId: command.runId,
             serverId: attachment.serverId,
         });
-        await sendComputerReport(socket, attachment.serverId).catch(reportStateError);
+        await sendComputerReport(socket, attachment.serverId, computerName).catch(reportStateError);
     } finally {
         await clearActiveRun();
         releaseAgentRun(running, agentRuns, command.agentId, command.runId);
     }
 }
 
-async function sendComputerReport(socket: WebSocket, serverId: string) {
+async function sendComputerReport(socket: WebSocket, serverId: string, computerName: string) {
     socket.send(
         JSON.stringify({
             agents: await readEffectiveAgentStates(dataRoot, serverId),
@@ -1070,6 +1079,7 @@ async function sendComputerReport(socket: WebSocket, serverId: string) {
                 ...detectInventory(),
                 agentSkills: await listAgentSkillReports(dataRoot, serverId),
                 importableSkills: await listImportableSkills(),
+                name: computerName,
             },
             type: 'report',
         })

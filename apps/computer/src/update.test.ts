@@ -9,7 +9,11 @@ import {
     runSignedUpdate,
     verifySignedRelease,
 } from './update.ts';
-import { computerReleaseSigningPayload, type SignedComputerRelease } from './update-contract.ts';
+import {
+    computerProtocolVersion,
+    computerReleaseSigningPayload,
+    type SignedComputerRelease,
+} from './update-contract.ts';
 
 test('legacy persisted progress gains the stable bootstrap fields', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-progress-test-'));
@@ -126,7 +130,7 @@ test('a Server-authorized future protocol release upgrades this Computer', async
     const peer = serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
     const release = signedRelease(peer.url, tarball, keys.privateKey);
-    release.release.protocolVersion = 5;
+    release.release.protocolVersion = computerProtocolVersion + 1;
     release.signature = sign(
         null,
         Buffer.from(computerReleaseSigningPayload(release.release)),
@@ -239,7 +243,7 @@ function signedRelease(
 ): SignedComputerRelease {
     const release = {
         artifactUrl,
-        protocolVersion: 4,
+        protocolVersion: computerProtocolVersion,
         sha256: createHash('sha256').update(bytes).digest('hex'),
         sourceRevision: 'b'.repeat(40),
         version: '1.1.0',

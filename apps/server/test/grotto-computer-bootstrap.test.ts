@@ -120,6 +120,52 @@ test('a Computer without stable bootstrap fails closed', async () => {
     expect(await closed(socket)).toBe(4403);
 });
 
+test('a compatible Computer reports its name through versioned inventory', async () => {
+    const socket = new WebSocket(computerSocketUrl());
+    await opened(socket);
+    socket.send(
+        JSON.stringify({
+            architecture: 'arm64',
+            bootstrapProtocolVersion: computerBootstrapProtocolVersion,
+            credential,
+            health: 'healthy',
+            operatingSystem: 'darwin',
+            productVersion: '1.1.5',
+            protocolVersion: computerProtocolVersion,
+            type: 'bootstrap',
+            update: {
+                detail: null,
+                phase: 'idle',
+                targetVersion: null,
+                updatedAt: '2026-07-29T20:00:00.000Z',
+            },
+        })
+    );
+    expect(await message(socket)).toEqual({
+        mode: 'ordinary',
+        type: 'bootstrap-accepted',
+    });
+    socket.send(
+        JSON.stringify({
+            agents: [],
+            inventory: {
+                name: "Zach's MacBook Pro",
+                runtimes: [],
+            },
+            type: 'report',
+        })
+    );
+
+    await eventually(async () => {
+        const [row] = (await harness.sql`
+            select reported_inventory ->> 'name' as name
+            from computers where id = ${computerId}
+        `) as { name: string | null }[];
+        expect(row.name).toBe("Zach's MacBook Pro");
+    });
+    socket.close();
+});
+
 test('a compatible Computer report becomes the durable Server usage snapshot', async () => {
     const socket = new WebSocket(computerSocketUrl());
     await opened(socket);

@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { computerProtocolVersion } from '@tavern/api';
 import { bootstrapGrottoDatabase } from '../../server/src/postgres/bootstrap.ts';
 import { startClerkTestIssuer } from '../../server/test/clerk-test-issuer.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';
@@ -32,7 +33,7 @@ const computerReleaseServer = Bun.serve({
             release: {
                 artifactUrl:
                     'https://updates.grotto.test/1.1.0/grotto-computer-aarch64-apple-darwin',
-                protocolVersion: 4,
+                protocolVersion: computerProtocolVersion,
                 sha256: 'a'.repeat(64),
                 sourceRevision: 'b'.repeat(40),
                 version: '1.1.0',

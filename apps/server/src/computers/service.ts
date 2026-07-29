@@ -250,7 +250,7 @@ export async function listServerComputers(
     if (server.role !== 'owner' && server.role !== 'admin') {
         throw new ComputerSetupDeniedError('Only a Server Owner or Admin can view Computers.');
     }
-    return await db
+    const computers = await db
         .select({
             architecture: computersTable.architecture,
             createdAt: computersTable.createdAt,
@@ -273,6 +273,10 @@ export async function listServerComputers(
         .from(computersTable)
         .where(eq(computersTable.serverId, serverId))
         .orderBy(desc(computersTable.createdAt));
+    return computers.map((computer) => ({
+        ...computer,
+        name: computer.reportedInventory?.name ?? null,
+    }));
 }
 
 /** A Computer credential is deleted only after every assigned Agent is retired. */

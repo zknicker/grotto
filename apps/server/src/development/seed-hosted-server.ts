@@ -20,6 +20,7 @@ import type { ServerSummary } from '../servers/contracts.ts';
 import { ensureUserByClerkId } from '../users/grotto-user.ts';
 
 const demoInventory = {
+    name: 'Development Mac',
     runtimes: [
         {
             id: 'codex',

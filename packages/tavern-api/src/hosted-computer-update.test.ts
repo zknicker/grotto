@@ -23,6 +23,7 @@ describe('Computer bootstrap protocol', () => {
                 architecture: 'arm64',
                 credential: 'c'.repeat(32),
                 health: 'healthy',
+                name: "Zach's MacBook Pro",
                 operatingSystem: 'darwin',
                 productVersion: '1.0.0',
                 protocolVersion: 1,
@@ -52,6 +53,23 @@ describe('Computer bootstrap protocol', () => {
         if (parsed.success) {
             expect(parsed.data.update).toEqual(progress);
         }
+    });
+
+    test('keeps the stable bootstrap frame closed to ordinary report metadata', () => {
+        expect(
+            computerBootstrapHelloSchema.safeParse({
+                architecture: 'arm64',
+                bootstrapProtocolVersion: 1,
+                credential: 'c'.repeat(32),
+                health: 'healthy',
+                name: "Zach's MacBook Pro",
+                operatingSystem: 'darwin',
+                productVersion: '1.1.5',
+                protocolVersion: 5,
+                type: 'bootstrap',
+                update: progress,
+            }).success
+        ).toBe(false);
     });
 
     test('signing payload has one stable field order', () => {

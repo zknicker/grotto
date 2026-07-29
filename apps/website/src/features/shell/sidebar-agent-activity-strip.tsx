@@ -39,10 +39,7 @@ export function SidebarAgentActivityStrip() {
     const hiddenAgentCount = Math.max(0, busyAgents.length - maximumVisibleAgents);
 
     return (
-        <Elevated
-            className="absolute bottom-12 left-1 z-40 w-56 rounded-lg border border-sidebar-border p-1"
-            offset={2}
-        >
+        <Elevated className="absolute bottom-12 left-1 z-40 w-56 rounded-lg p-1" offset={2}>
             <div className="flex flex-col gap-0.5">
                 {busyAgents.slice(0, maximumVisibleAgents).map((entry) => {
                     const agent = agentById.get(entry.agentId);

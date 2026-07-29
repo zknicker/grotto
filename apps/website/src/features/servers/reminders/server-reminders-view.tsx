@@ -158,7 +158,7 @@ export function ServerRemindersView({
                         <div className="grid gap-2">
                             {reminders.map((reminder) => (
                                 <Elevated
-                                    className="flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3"
+                                    className="flex flex-wrap items-center gap-3 rounded-xl px-4 py-3"
                                     key={reminder.id}
                                     offset={1}
                                 >
@@ -235,7 +235,7 @@ export function ServerRemindersView({
                         ) : (
                             runs.map((run) => (
                                 <Elevated
-                                    className="rounded-lg border p-3 text-sm"
+                                    className="rounded-lg p-3 text-sm"
                                     key={run.id}
                                     offset={1}
                                 >

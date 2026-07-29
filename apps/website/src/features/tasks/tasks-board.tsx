@@ -120,7 +120,7 @@ function TaskBoardCard({
             : null;
 
     return (
-        <Elevated className="relative rounded-lg border p-3" offset={1}>
+        <Elevated className="relative rounded-lg p-3" offset={1}>
             <button
                 aria-label={`Open ${formatTaskNumber(task)} ${task.title}`}
                 className="absolute inset-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"

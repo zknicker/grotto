@@ -53,7 +53,10 @@ export function ServerComputersPage() {
             role={server.role}
         >
             <div className="flex h-full min-h-0 w-full">
-                <SidePane className="app-shell-sidebar-top-inset w-72 flex-col bg-sidebar" side="left">
+                <SidePane
+                    className="app-shell-sidebar-top-inset w-72 flex-col bg-sidebar"
+                    side="left"
+                >
                     <PaneTopbar className="bg-transparent">
                         <PaneTopbarTitle className="font-medium">
                             Computers <span className="text-muted-foreground">{items.length}</span>

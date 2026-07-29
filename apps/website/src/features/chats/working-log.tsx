@@ -168,7 +168,7 @@ export function WorkingLog({
                         // header; it owns the hover rail so the moving bg
                         // clips to the card's rounded corners.
                         <Elevated
-                            className="relative overflow-hidden rounded-xl border border-border-subtle p-1 [--tool-row-min-h:2.25rem]"
+                            className="relative overflow-hidden rounded-xl p-1 [--tool-row-min-h:2.25rem]"
                             offset={1}
                             ref={rowHover.contentRef}
                             shadowLevel={1}

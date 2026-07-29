@@ -98,7 +98,7 @@ export function TaskBulkActions({
                     transition={{ bounce: 0, duration: 0.18, type: 'spring' }}
                 >
                     <Elevated
-                        className="flex items-center gap-1 rounded-lg border px-2 py-1.5"
+                        className="flex items-center gap-1 rounded-lg px-2 py-1.5"
                         offset={2}
                         shadowLevel={3}
                     >

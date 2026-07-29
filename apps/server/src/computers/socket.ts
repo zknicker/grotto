@@ -62,57 +62,66 @@ export function startComputerAttachmentSocket(
         let computerId: string | null = null;
         let attachedServerId: string | null = null;
         let ordinary = false;
-        socket.on('message', async (raw) => {
-            if (computerId && attachedServerId) {
-                await ingestReport(
-                    db,
-                    connections,
-                    delivery,
-                    computerId,
-                    attachedServerId,
-                    ordinary,
-                    raw.toString()
-                );
-                return;
-            }
-            try {
-                const hello = computerBootstrapHelloSchema.parse(JSON.parse(raw.toString()));
-                const computer = await reportComputerHandshake(
-                    db,
-                    hashComputerSecret(hello.credential),
-                    hello
-                );
-                if (sockets.has(computer.id)) {
-                    socket.close(4409, 'A Computer may have one attachment socket.');
-                    return;
-                }
-                computerId = computer.id;
-                attachedServerId = computer.serverId;
-                ordinary = hello.protocolVersion === computerProtocolVersion;
-                sockets.set(computer.id, socket);
-                connections.register(computer.id, {
-                    disconnect: () => socket.close(4000, 'Server deleted'),
-                    ordinary,
-                    send: (frame) => socket.send(JSON.stringify(frame)),
-                    serverId: computer.serverId,
-                    updatePhase: hello.update.phase,
+        let messageQueue = Promise.resolve();
+        socket.on('message', (raw) => {
+            messageQueue = messageQueue
+                .then(async () => {
+                    if (computerId && attachedServerId) {
+                        await ingestReport(
+                            db,
+                            connections,
+                            delivery,
+                            computerId,
+                            attachedServerId,
+                            ordinary,
+                            raw.toString()
+                        );
+                        return;
+                    }
+                    try {
+                        const hello = computerBootstrapHelloSchema.parse(
+                            JSON.parse(raw.toString())
+                        );
+                        const computer = await reportComputerHandshake(
+                            db,
+                            hashComputerSecret(hello.credential),
+                            hello
+                        );
+                        if (sockets.has(computer.id)) {
+                            socket.close(4409, 'A Computer may have one attachment socket.');
+                            return;
+                        }
+                        computerId = computer.id;
+                        attachedServerId = computer.serverId;
+                        ordinary = hello.protocolVersion === computerProtocolVersion;
+                        sockets.set(computer.id, socket);
+                        connections.register(computer.id, {
+                            disconnect: () => socket.close(4000, 'Server deleted'),
+                            ordinary,
+                            send: (frame) => socket.send(JSON.stringify(frame)),
+                            serverId: computer.serverId,
+                            updatePhase: hello.update.phase,
+                        });
+                        socket.send(
+                            JSON.stringify({
+                                mode: ordinary ? 'ordinary' : 'update-required',
+                                type: 'bootstrap-accepted',
+                            })
+                        );
+                        emitServerUpdated({ scope: 'computer', serverId: computer.serverId });
+                        if (!ordinary) {
+                            return;
+                        }
+                        // Idempotent reconnect: resend unacknowledged deliveries and drain
+                        // any pending inbox for this Computer's Agents.
+                        void delivery.onComputerReconnect(computer.id).catch(() => undefined);
+                    } catch {
+                        socket.close(4403, 'Computer credential was rejected.');
+                    }
+                })
+                .catch(() => {
+                    socket.close(1011, 'Computer report failed.');
                 });
-                socket.send(
-                    JSON.stringify({
-                        mode: ordinary ? 'ordinary' : 'update-required',
-                        type: 'bootstrap-accepted',
-                    })
-                );
-                emitServerUpdated({ scope: 'computer', serverId: computer.serverId });
-                if (!ordinary) {
-                    return;
-                }
-                // Idempotent reconnect: resend unacknowledged deliveries and drain
-                // any pending inbox for this Computer's Agents.
-                void delivery.onComputerReconnect(computer.id).catch(() => undefined);
-            } catch {
-                socket.close(4403, 'Computer credential was rejected.');
-            }
         });
         socket.on('close', () => {
             if (computerId) {

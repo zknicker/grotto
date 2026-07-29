@@ -115,7 +115,7 @@ function reportInventory() {
                     credential: computerCredential,
                     health: 'healthy',
                     operatingSystem: 'darwin',
-                    productVersion: '1.1.4',
+                    productVersion: '1.1.5',
                     protocolVersion: computerProtocolVersion,
                     type: 'bootstrap',
                     update: {

@@ -1,7 +1,7 @@
 {
   "name": "@tavern/computer",
   "private": true,
-  "version": "1.1.4",
+  "version": "1.1.5",
   "type": "module",
   "bin": {
     "grotto-computer": "src/index.ts"

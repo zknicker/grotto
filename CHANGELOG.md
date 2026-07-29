@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.14 - 2026-07-29
+
+- Grotto Computer 1.1.5 embeds the Codex and Claude Code harness bridge
+  payloads in its standalone executable, and release validation now rejects a
+  compiled Computer that cannot load them.
+- Computer diagnostics now verify the bundled Agent runtimes before reporting
+  a healthy installation.
+- Hosted Agent Stop and Restart failures now surface their actual error instead
+  of silently returning to an unchanged profile.
+
+### Release surfaces
+
+- App/Server: Publish v1.6.14
+- Desktop: Unchanged
+- Computer: Publish v1.1.5
+- Runtime: Unchanged
+
 ## v1.6.13 - 2026-07-29
 
 - Restarting a degraded Agent now clears its failure hold and immediately

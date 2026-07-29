@@ -9,9 +9,11 @@ const serverId = 'srv_bootstrap0000000';
 const computerId = 'cmp_bootstrap0000000';
 const oldComputerId = 'cmp_oldbootstrap0000';
 const usageComputerId = 'cmp_usagebootstrap00';
+const idleComputerId = 'cmp_idlebootstrap000';
 const credential = 'computer-bootstrap-credential-00000000';
 const oldCredential = 'old-computer-bootstrap-credential-000';
 const usageCredential = 'usage-computer-bootstrap-credential-0';
+const idleCredential = 'idle-computer-bootstrap-credential-00';
 
 beforeAll(async () => {
     harness = await startGrottoServerHarness();
@@ -32,7 +34,8 @@ beforeAll(async () => {
         values
             (${computerId}, ${serverId}, ${userId}, ${digest(credential)}),
             (${oldComputerId}, ${serverId}, ${userId}, ${digest(oldCredential)}),
-            (${usageComputerId}, ${serverId}, ${userId}, ${digest(usageCredential)})
+            (${usageComputerId}, ${serverId}, ${userId}, ${digest(usageCredential)}),
+            (${idleComputerId}, ${serverId}, ${userId}, ${digest(idleCredential)})
     `;
 });
 
@@ -185,6 +188,68 @@ test('a compatible Computer report becomes the durable Server usage snapshot', a
             capturedAt: '2026-07-28T20:00:00.000Z',
         });
         expect(row.usage_reported_at).toBeInstanceOf(Date);
+    });
+    socket.close();
+});
+
+test('idle progress does not erase Server-owned update state', async () => {
+    const socket = new WebSocket(computerSocketUrl());
+    await opened(socket);
+    socket.send(
+        JSON.stringify({
+            architecture: 'arm64',
+            bootstrapProtocolVersion: computerBootstrapProtocolVersion,
+            credential: idleCredential,
+            health: 'healthy',
+            operatingSystem: 'darwin',
+            productVersion: '1.1.1',
+            protocolVersion: computerProtocolVersion,
+            type: 'bootstrap',
+            update: {
+                detail: null,
+                phase: 'idle',
+                targetVersion: null,
+                updatedAt: '2026-07-29T16:00:00.000Z',
+            },
+        })
+    );
+    expect(await message(socket)).toEqual({
+        mode: 'ordinary',
+        type: 'bootstrap-accepted',
+    });
+    await harness.sql`
+        update computers
+        set update_phase = 'available',
+            update_target_version = '1.1.2',
+            update_detail = 'Grotto Computer 1.1.2 is available.'
+        where id = ${idleComputerId}
+    `;
+
+    socket.send(
+        JSON.stringify({
+            type: 'update-progress',
+            update: {
+                detail: null,
+                phase: 'idle',
+                targetVersion: null,
+                updatedAt: '2026-07-29T16:00:01.000Z',
+            },
+        })
+    );
+    await Bun.sleep(50);
+
+    const [row] = (await harness.sql`
+        select update_detail, update_phase, update_target_version
+        from computers where id = ${idleComputerId}
+    `) as {
+        update_detail: string;
+        update_phase: string;
+        update_target_version: string;
+    }[];
+    expect(row).toEqual({
+        update_detail: 'Grotto Computer 1.1.2 is available.',
+        update_phase: 'available',
+        update_target_version: '1.1.2',
     });
     socket.close();
 });

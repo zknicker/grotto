@@ -158,9 +158,11 @@ async function ingestReport(
 
     const update = computerUpdateProgressFrameSchema.safeParse(frame);
     if (update.success) {
-        connections.setUpdatePhase(computerId, update.data.update.phase);
-        await reportComputerUpdateProgress(db, computerId, update.data.update);
-        emitServerUpdated({ scope: 'computer', serverId });
+        const recorded = await reportComputerUpdateProgress(db, computerId, update.data.update);
+        if (recorded) {
+            connections.setUpdatePhase(computerId, update.data.update.phase);
+            emitServerUpdated({ scope: 'computer', serverId });
+        }
         return;
     }
     if (!ordinary) {

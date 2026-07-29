@@ -195,6 +195,12 @@ export async function reportComputerUpdateProgress(
     computerId: string,
     update: ComputerUpdateProgress
 ) {
+    // Idle is the bootstrap baseline, not a live transition. Older Computers
+    // without a progress file report a freshly timestamped idle snapshot on
+    // every poll; accepting it would erase Server-owned check/request state.
+    if (update.phase === 'idle') {
+        return false;
+    }
     await db
         .update(computersTable)
         .set({
@@ -208,6 +214,7 @@ export async function reportComputerUpdateProgress(
             updateUpdatedAt: new Date(update.updatedAt),
         })
         .where(eq(computersTable.id, computerId));
+    return true;
 }
 
 /** Replaces a Computer's last-reported runtime/model inventory wholesale. */

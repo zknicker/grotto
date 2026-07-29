@@ -143,7 +143,7 @@ export function MembersPageFrame({
 }) {
     return (
         <main className="flex min-h-0 flex-1">
-            <aside className="w-72 shrink-0 overflow-y-auto border-[var(--content-card-border)] border-r bg-[var(--sidebar)] pt-[calc(var(--topbar-height)-4px)] pb-6">
+            <aside className="app-shell-sidebar-top-inset w-72 shrink-0 overflow-y-auto border-[var(--content-card-border)] border-r bg-[var(--sidebar)] pb-6">
                 <section>
                     <div className="mb-2 flex items-center justify-between px-3">
                         <h1 className="flex items-center gap-2 font-mono text-sidebar-muted text-xs uppercase tracking-wider">

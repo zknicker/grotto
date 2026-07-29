@@ -104,7 +104,7 @@ export function TasksView({
             >
                 <aside
                     className={cn(
-                        'flex min-h-0 flex-col border-[var(--content-card-border)] border-r bg-[var(--sidebar)] pt-[calc(var(--topbar-height)-4px)] max-md:hidden',
+                        'app-shell-sidebar-top-inset flex min-h-0 flex-col border-[var(--content-card-border)] border-r bg-[var(--sidebar)] max-md:hidden',
                         embedded && 'hidden'
                     )}
                 >

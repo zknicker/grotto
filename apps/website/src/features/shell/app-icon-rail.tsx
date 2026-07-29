@@ -83,7 +83,7 @@ export function AppIconRailView({
     return (
         <nav
             aria-label="Sections"
-            className="relative z-30 flex w-12 shrink-0 flex-col items-center gap-1 bg-[var(--sidebar)] pt-[calc(var(--topbar-height)-4px)] pb-2"
+            className="app-shell-sidebar-top-inset relative z-30 flex w-12 shrink-0 flex-col items-center gap-1 bg-[var(--sidebar)] pb-2"
         >
             {items.map((item) => (
                 <RailButton key={item.id} {...item}>

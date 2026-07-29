@@ -49,7 +49,7 @@ export function AppSidebar({ isSettingsRoute, onBackToApp }: AppSidebarProps) {
 export function AppSidebarFrame({ content, footer }: { content: ReactNode; footer?: ReactNode }) {
     return (
         <Sidebar
-            className="app-shell-sidebar z-30 shrink-0 bg-transparent pt-[calc(var(--topbar-height)-4px)]"
+            className="app-shell-sidebar app-shell-sidebar-top-inset z-30 shrink-0 bg-transparent"
             collapsible="none"
         >
             <SidebarContent className="overflow-hidden">{content}</SidebarContent>

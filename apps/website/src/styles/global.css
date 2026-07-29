@@ -528,6 +528,10 @@
         background: transparent;
     }
 
+    .app-shell-sidebar-top-inset {
+        padding-top: 12px;
+    }
+
     .app-chrome-glass {
         background: var(--app-chrome-fill);
         backdrop-filter: var(--app-chrome-backdrop);
@@ -608,6 +612,10 @@
 
     html.macos-electron .app-shell[data-app-layout='sidebar'] {
         background: var(--app-chrome-native-fill);
+    }
+
+    html.macos-electron .app-shell-sidebar-top-inset {
+        padding-top: calc(var(--topbar-height) - 4px);
     }
 
     .scrollbar-hidden {

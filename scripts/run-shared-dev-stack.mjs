@@ -8,7 +8,7 @@ function main() {
     const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
     const runnerPath = path.join(scriptDirectory, 'run-dev-stack.mjs');
     const args = process.argv.slice(2);
-    const runnerArgs = args.length > 0 ? args : ['desktop-runtime'];
+    const runnerArgs = args.length > 0 ? args : ['desktop'];
     const result = spawnSync(process.execPath, [runnerPath, ...runnerArgs], {
         cwd: path.resolve(scriptDirectory, '..'),
         env: {

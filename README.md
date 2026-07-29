@@ -53,11 +53,10 @@ Run the full local stack:
 bun run dev
 ```
 
-`bun run dev` starts Grotto Runtime, the local app backend, the website dev
-server, and the desktop shell.
+`bun run dev` starts the local app backend, PostgreSQL, Grotto Server, Grotto
+Computer, and the website dev server; `bun run dev-app` adds the desktop shell.
 
-Dev state is isolated under the worktree-specific Tavern dev root. The default
-Runtime root outside the dev stack is `~/.grotto/runtime`.
+Dev state is isolated under the worktree-specific Tavern dev root.
 
 Local dev ports are derived from the worktree path so multiple worktrees can run
 at once. Override them with:

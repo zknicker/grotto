@@ -7,14 +7,18 @@ import { DevStackScreen } from './dev-stack-screen.mjs';
 
 function main() {
     const mode = process.argv[2] ?? 'web';
+    if (!['desktop', 'web'].includes(mode)) {
+        console.error(`Unknown dev stack mode "${mode}". Use "web" or "desktop".`);
+        process.exit(1);
+    }
     const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
     const ports = resolveDevPorts({ repositoryRoot });
-    const runtimeEnvironmentOverrides = getDevEnvironmentOverrides(repositoryRoot);
+    const clerkEnvironmentOverrides = getDevEnvironmentOverrides(repositoryRoot);
     const controller = new DevStackController({
         mode,
         ports,
         repositoryRoot,
-        runtimeEnvironmentOverrides,
+        clerkEnvironmentOverrides,
     });
     const screen = new DevStackScreen(controller);
     screen.start();

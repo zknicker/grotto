@@ -24,21 +24,15 @@ const launch = {
     version: '0.0.1',
     configurations: [
         {
-            name: 'dev-stack-web-runtime',
-            runtimeExecutable: 'bun',
-            runtimeArgs: ['run', 'dev:web:runtime'],
-            port: Number(ports.websitePort),
-        },
-        {
-            name: 'dev-stack-web',
-            runtimeExecutable: 'bun',
-            runtimeArgs: ['run', 'dev:web'],
-            port: Number(ports.websitePort),
-        },
-        {
-            name: 'dev-stack-desktop-runtime',
+            name: 'dev',
             runtimeExecutable: 'bun',
             runtimeArgs: ['run', 'dev'],
+            port: Number(ports.websitePort),
+        },
+        {
+            name: 'dev-app',
+            runtimeExecutable: 'bun',
+            runtimeArgs: ['run', 'dev-app'],
             port: Number(ports.websitePort),
         },
     ],

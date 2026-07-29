@@ -1,6 +1,6 @@
 // Shared plumbing for on-demand behavioral evals (prompt-eval.mjs,
 // session-eval.mjs). Drives real model turns through a RUNNING dev stack
-// (bun run dev:web:runtime) over the server tRPC API. Grading stays
+// (bun run dev) over the server tRPC API. Grading stays
 // deterministic; scenario scripts own their assertions and domain helpers.
 import { resolveDevPorts } from './dev-ports.mjs';
 import { createDevStackEnvironment } from './dev-stack-shared.mjs';
@@ -77,7 +77,7 @@ export function createEvalHarness({ evalName }) {
     async function requireAgents(count) {
         const data = await trpc('agent.list').catch((error) => {
             throw new Error(
-                `Cannot reach the dev stack at ${serverUrl} (${error}). Start it with: bun run dev:web:runtime`
+                `Cannot reach the dev stack at ${serverUrl} (${error}). Start it with: bun run dev`
             );
         });
         const found = (data?.agents ?? []).map((agent) => ({ id: agent.id, name: agent.name }));

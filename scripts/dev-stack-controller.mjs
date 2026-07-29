@@ -13,26 +13,14 @@ import {
     cleanupStaleProcesses,
     createDevStackConfig,
     createDevStackEnvironment,
-    getRuntimeBaseUrl,
     isDesktopMode,
-    isRuntimeMode,
     isSuppressedStartupLine,
-    seedDevPreseedMerchbasePluginConfig,
     startupEventPrefix,
     stripAnsi,
     waitForPort,
-    waitForRuntimeReady,
 } from './dev-stack-shared.mjs';
 
-const shutdownProcessOrder = [
-    'desktop',
-    'website',
-    'computer',
-    'grotto',
-    'server',
-    'runtime',
-    'postgres',
-];
+const shutdownProcessOrder = ['desktop', 'website', 'computer', 'grotto', 'server', 'postgres'];
 const shutdownTimeoutMs = Number.parseInt(
     process.env.TAVERN_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000',
     10
@@ -45,14 +33,14 @@ export class DevStackController extends EventEmitter {
         mode,
         ports,
         repositoryRoot,
-        runtimeEnvironmentOverrides = {},
+        clerkEnvironmentOverrides = {},
         spawnImpl = spawn,
     }) {
         super();
         this.mode = mode;
         this.ports = ports;
         this.repositoryRoot = repositoryRoot;
-        this.runtimeEnvironmentOverrides = runtimeEnvironmentOverrides;
+        this.clerkEnvironmentOverrides = clerkEnvironmentOverrides;
         this.spawnImpl = spawnImpl;
         this.processes = new Map();
         this.backgroundProcesses = new Set();
@@ -64,7 +52,6 @@ export class DevStackController extends EventEmitter {
     }
 
     createInitialSnapshot() {
-        const hasRuntime = isRuntimeMode(this.mode);
         const isDesktop = isDesktopMode(this.mode);
 
         return {
@@ -84,7 +71,6 @@ export class DevStackController extends EventEmitter {
                 desktop: { status: isDesktop ? 'waiting' : 'disabled' },
                 grotto: { status: 'waiting' },
                 postgres: { status: 'waiting' },
-                runtime: { status: hasRuntime ? 'waiting' : 'disabled' },
                 server: { status: 'waiting' },
                 website: { status: 'waiting' },
             },
@@ -148,10 +134,6 @@ export class DevStackController extends EventEmitter {
                     );
                 }
                 return;
-            }
-
-            if (event.source === 'runtime' && event.type === 'runtime.ready') {
-                snapshot.processes.runtime.status = 'running';
             }
         });
     }
@@ -289,9 +271,7 @@ export class DevStackController extends EventEmitter {
             ports: this.ports,
             repositoryRoot: this.repositoryRoot,
         });
-        const runtimeUrl = getRuntimeBaseUrl(devStackEnvironment);
         const computerDirectory = path.join(this.repositoryRoot, 'apps', 'computer');
-        const runtimeDirectory = path.join(this.repositoryRoot, 'apps', 'runtime');
         const serverDirectory = path.join(this.repositoryRoot, 'apps', 'server');
         const websiteDirectory = path.join(this.repositoryRoot, 'apps', 'website');
         const startupUiEnv = {
@@ -306,17 +286,10 @@ export class DevStackController extends EventEmitter {
             VITE_SERVER_ORIGIN: `http://localhost:${this.ports.serverPort}`,
         };
 
-        const hasRuntime = isRuntimeMode(this.mode);
-        const serverEnv = hasRuntime
-            ? {
-                  ...startupUiEnv,
-                  TAVERN_RUNTIME_URL: runtimeUrl,
-                  TAVERN_EXIT_ON_ORPHAN: '1',
-              }
-            : {
-                  ...startupUiEnv,
-                  TAVERN_EXIT_ON_ORPHAN: '1',
-              };
+        const serverEnv = {
+            ...startupUiEnv,
+            TAVERN_EXIT_ON_ORPHAN: '1',
+        };
         let websiteReadyPromise = null;
         let desktopPrebuildPromise = null;
         let serverDependencyPrebuildPromise = null;
@@ -354,8 +327,6 @@ export class DevStackController extends EventEmitter {
 
         const getDesktopEnv = () => ({
             ...devStackEnvironment,
-            TAVERN_DEV_STACK_HAS_RUNTIME: hasRuntime ? '1' : '0',
-            TAVERN_RUNTIME_PORT: String(this.ports.runtimePort),
             TAVERN_SERVER_PORT: String(this.ports.serverPort),
             TAVERN_WEBSITE_PORT: String(this.ports.websitePort),
         });
@@ -377,37 +348,7 @@ export class DevStackController extends EventEmitter {
             );
         };
 
-        if (hasRuntime) {
-            const merchbasePreseed = seedDevPreseedMerchbasePluginConfig({
-                repositoryRoot: this.repositoryRoot,
-                runtimeRoot: devStackEnvironment.TAVERN_RUNTIME_ROOT,
-            });
-            if (merchbasePreseed.seededConfig || merchbasePreseed.seededSecret) {
-                const parts = [
-                    merchbasePreseed.seededConfig ? 'config' : null,
-                    merchbasePreseed.seededSecret ? 'secret' : null,
-                ].filter(Boolean);
-                this.addLog('tavern', `MerchBase Plugin preseeded ${parts.join(' and ')}`);
-            }
-            this.spawnProcess('runtime', 'bun', ['--watch', 'src/index.ts', 'serve'], {
-                cwd: runtimeDirectory,
-                env: {
-                    ...startupUiEnv,
-                    TAVERN_HOSTED_DEV_STACK: '1',
-                    ...this.runtimeEnvironmentOverrides,
-                },
-            });
-            startWebsite();
-            startServerDependencyPrebuild();
-            startDesktopPrebuild();
-            await waitForRuntimeReady(runtimeUrl, undefined, {
-                token: devStackEnvironment.TAVERN_RUNTIME_TOKEN,
-            });
-            this.update((snapshot) => {
-                snapshot.processes.runtime.status = 'running';
-            });
-        }
-
+        startDesktopPrebuild();
         if (!(await startServerDependencyPrebuild())) {
             throw new Error('Failed to build server workspace dependencies.');
         }
@@ -423,7 +364,7 @@ export class DevStackController extends EventEmitter {
 
         const hostedServerEnv = {
             ...startupUiEnv,
-            ...this.runtimeEnvironmentOverrides,
+            ...this.clerkEnvironmentOverrides,
             APP_ORIGIN: startupUiEnv.APP_ORIGIN ?? `http://localhost:${this.ports.websitePort}`,
             GROTTO_DATABASE_URL: postgres.databaseUrl,
             GROTTO_SERVER_PORT: String(this.ports.grottoPort),
@@ -548,7 +489,7 @@ export class DevStackController extends EventEmitter {
         this.update((snapshot) => {
             snapshot.processes[source].status = 'stopping';
         });
-        this.addLog(source, source === 'runtime' ? 'stopping runtime' : 'stopping');
+        this.addLog(source, 'stopping');
 
         if (options.expected) {
             this.expectedProcessStops.add(source);
@@ -680,10 +621,6 @@ function isStartupComplete(snapshot) {
     const desktopReady =
         snapshot.processes.desktop.status === 'disabled' ||
         snapshot.processes.desktop.status === 'running';
-    const runtimeReady =
-        snapshot.processes.runtime.status === 'disabled' ||
-        snapshot.processes.runtime.status === 'running';
-
     const grottoReady = snapshot.processes.grotto.status === 'running';
     const computerReady = snapshot.processes.computer.status === 'running';
     const postgresReady = snapshot.processes.postgres.status === 'running';
@@ -695,7 +632,6 @@ function isStartupComplete(snapshot) {
         postgresReady &&
         snapshot.processes.website.status === 'running' &&
         desktopReady &&
-        runtimeReady &&
         snapshot.jobs.state === 'ready'
     );
 }

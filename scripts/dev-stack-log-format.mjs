@@ -15,14 +15,13 @@ export const theme = {
     warning: ansi.yellow,
 };
 
-const processOrder = ['postgres', 'runtime', 'server', 'grotto', 'website', 'desktop'];
+const processOrder = ['postgres', 'server', 'grotto', 'website', 'desktop'];
 
 const sourceMeta = {
     tavern: { color: theme.accent, icon: '🎰', label: 'grotto' },
     desktop: { color: theme.accent, icon: '🪟', label: 'desktop' },
     grotto: { color: theme.warning, icon: '🏠', label: 'hosted' },
     postgres: { color: theme.warning, icon: '🐘', label: 'postgres' },
-    runtime: { color: theme.accent, icon: '🧠', label: 'runtime' },
     server: { color: theme.warning, icon: '🖥️', label: 'server' },
     website: { color: theme.accent, icon: '🌐', label: 'website' },
 };
@@ -117,7 +116,6 @@ export function formatReadyBlock(snapshot, { colorize = false } = {}) {
         colorizeText('╭─ 🎰 GROTTO', theme.accent, colorize),
         `${dim('│', colorize)}  ${colorizeText('Ready to go', theme.ok, colorize)}`,
         colorizeText('├─ Services', theme.accent, colorize),
-        readyServiceLine('Runtime', snapshot.config.runtimeUrl, colorize),
         readyServiceLine('Local API', snapshot.config.serverUrl, colorize),
         readyServiceLine('Server', snapshot.config.grottoServerUrl, colorize),
         readyServiceLine('Website', snapshot.config.websiteUrl, colorize),
@@ -143,7 +141,6 @@ export function formatReadyBlock(snapshot, { colorize = false } = {}) {
     lines.push(
         `${dim('│', colorize)}  ${dim('PG', colorize)}   ${snapshot.config.postgresDataPath}`
     );
-    lines.push(`${dim('│', colorize)}  ${dim('Root', colorize)} ${snapshot.config.runtimeRoot}`);
     lines.push(colorizeText('╰─', theme.accent, colorize));
 
     return lines.join('\n');
@@ -230,10 +227,6 @@ function getProcessValue(source, snapshot) {
 
     if (source === 'website') {
         return snapshot.config.websiteUrl;
-    }
-
-    if (source === 'runtime') {
-        return snapshot.config.runtimeUrl;
     }
 
     if (source === 'desktop') {

@@ -9,19 +9,17 @@ import {
 
 test('dev stack shutdown signals all managed processes before waiting in order', async () => {
     const controller = new DevStackController({
-        mode: 'desktop-runtime',
+        mode: 'desktop',
         ports: { serverPort: 80_800, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
     });
     const desktop = createManagedChildProcessStub(12_341, { autoExit: false });
     const website = createManagedChildProcessStub(12_342);
     const server = createManagedChildProcessStub(12_343);
-    const runtime = createManagedChildProcessStub(12_344);
 
     controller.processes.set('desktop', desktop);
     controller.processes.set('website', website);
     controller.processes.set('server', server);
-    controller.processes.set('runtime', runtime);
 
     const stopPromise = controller.stop(0);
     await new Promise((resolve) => setImmediate(resolve));
@@ -29,7 +27,6 @@ test('dev stack shutdown signals all managed processes before waiting in order',
     assert.deepEqual(desktop.signals, ['SIGTERM']);
     assert.deepEqual(website.signals, ['SIGTERM']);
     assert.deepEqual(server.signals, ['SIGTERM']);
-    assert.deepEqual(runtime.signals, ['SIGTERM']);
 
     desktop.exitCode = 0;
     desktop.emit('exit', 0, null);
@@ -38,23 +35,20 @@ test('dev stack shutdown signals all managed processes before waiting in order',
 
 test('dev stack shutdown forwards the operator signal to managed processes', async () => {
     const controller = new DevStackController({
-        mode: 'web-runtime',
-        ports: { runtimePort: 80_801, serverPort: 80_800, websitePort: 31_000 },
+        mode: 'web',
+        ports: { serverPort: 80_800, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
     });
     const website = createManagedChildProcessStub(12_342);
     const server = createManagedChildProcessStub(12_343);
-    const runtime = createManagedChildProcessStub(12_344);
 
     controller.processes.set('website', website);
     controller.processes.set('server', server);
-    controller.processes.set('runtime', runtime);
 
     await controller.stop(130, { signal: 'SIGINT' });
 
     assert.deepEqual(website.signals, ['SIGINT']);
     assert.deepEqual(server.signals, ['SIGINT']);
-    assert.deepEqual(runtime.signals, ['SIGINT']);
 });
 
 test('waitForChildShutdown waits after the shell exits until the process group is gone', async () => {
@@ -119,8 +113,8 @@ test('managed processes launch directly without an intermediate shell', () => {
     const spawnCalls = [];
     const child = createManagedChildProcessStub(12_346, { autoExit: false });
     const controller = new DevStackController({
-        mode: 'web-runtime',
-        ports: { runtimePort: 80_801, serverPort: 80_800, websitePort: 31_000 },
+        mode: 'web',
+        ports: { serverPort: 80_800, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
         spawnImpl: (...args) => {
             spawnCalls.push(args);
@@ -128,19 +122,19 @@ test('managed processes launch directly without an intermediate shell', () => {
         },
     });
 
-    controller.spawnProcess('runtime', 'bun', ['--watch', 'src/index.ts', 'serve'], {
-        cwd: '/tmp/tavern-runtime',
-        env: { TAVERN_RUNTIME_PORT: '80801' },
+    controller.spawnProcess('server', 'bun', ['--watch', 'src/index.ts'], {
+        cwd: '/tmp/tavern-server',
+        env: { TAVERN_SERVER_PORT: '80800' },
     });
 
     assert.deepEqual(spawnCalls, [
         [
             'bun',
-            ['--watch', 'src/index.ts', 'serve'],
+            ['--watch', 'src/index.ts'],
             {
-                cwd: '/tmp/tavern-runtime',
+                cwd: '/tmp/tavern-server',
                 detached: true,
-                env: { TAVERN_RUNTIME_PORT: '80801' },
+                env: { TAVERN_SERVER_PORT: '80800' },
                 shell: false,
                 stdio: ['ignore', 'pipe', 'pipe'],
             },

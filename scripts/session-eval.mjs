@@ -1,6 +1,6 @@
 // On-demand behavioral evals for the agent-global session model
 // (specs/sessions.md, ADR 0011). Drives real model turns through a RUNNING
-// dev stack (bun run dev:web:runtime) and checks the properties unit tests
+// dev stack (bun run dev) and checks the properties unit tests
 // cannot prove end-to-end: cross-chat continuity, full serialization with
 // auto-drain, mid-turn freshness, ledger-backed cross-posting, model-switch
 // rotation, and the agent-scoped reset contract.

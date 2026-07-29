@@ -7,15 +7,12 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "node scripts/run-dev-stack.mjs desktop",
+    "dev": "node scripts/run-dev-stack.mjs web",
+    "dev-app": "node scripts/run-dev-stack.mjs desktop",
     "dev:shared": "node scripts/run-shared-dev-stack.mjs",
-    "dev:web": "node scripts/run-dev-stack.mjs web",
-    "dev:web:runtime": "node scripts/run-dev-stack.mjs web-runtime",
     "build": "bun run --filter @tavern/api build && bun run --filter @tavern/sdk build && bun run --filter @tavern/claude-usage build && bun run --filter @tavern/codex-usage build && bun run --filter @tavern/server build && bun run --filter @tavern/runtime build && bun run --filter @tavern/website build",
     "build:desktop": "bun run desktop:build",
     "build:desktop:unsigned": "bun run --filter @tavern/website desktop:build:unsigned",
-    "desktop:dev": "node scripts/run-dev-stack.mjs desktop",
-    "desktop:dev:no-runtime": "node scripts/run-dev-stack.mjs desktop",
     "desktop:build": "bun run --filter @tavern/website desktop:build",
     "desktop:release": "bun run --filter @tavern/website desktop:release",
     "publish:desktop": "bun run --filter @tavern/website desktop:publish",

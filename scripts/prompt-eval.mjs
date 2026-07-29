@@ -1,7 +1,7 @@
 // On-demand behavioral evals for the agent system prompt (PRD-34, PRD-37;
 // flip scenarios per specs/raft-alignment/ws2-eval-plan.md).
 //
-// Drives real model turns through a RUNNING dev stack (bun run dev:web:runtime)
+// Drives real model turns through a RUNNING dev stack (bun run dev)
 // and checks that prompt-taught behaviors still steer the model. Post-flip,
 // agents speak only through `grotto message send`, so most scenarios assert
 // CLI actions taken — messages landing in exact targets — rather than reply

@@ -338,17 +338,6 @@ function cleanupDevPortsOnce() {
             killProcessesListeningOnPort(port);
         }
     }
-
-    if (process.env.TAVERN_DEV_STACK_HAS_RUNTIME !== '1') {
-        return;
-    }
-
-    for (const key of ['TAVERN_RUNTIME_PORT']) {
-        const port = readPort(key);
-        if (port) {
-            killProcessesListeningOnPort(port);
-        }
-    }
 }
 
 function readPort(key) {

@@ -211,7 +211,7 @@ CI by the prompt contract suite
 (`apps/runtime/src/tavern/agent-prompt-contract.test.ts`): a requirements
 ledger, reviewable full-prompt snapshots, and character budgets. Behavior loss
 is caught on demand by `bun run eval:prompt`, which drives real model turns
-through a running dev stack (`bun run dev:web:runtime`) across
+through a running dev stack (`bun run dev`) across
 silence-is-default, DM acknowledgement, cross-channel sends and unjoined
 refusals, thread-target reuse, drain batching, chain guards, injection
 resistance, visual fences riding send bodies, discovery-based bio answers,

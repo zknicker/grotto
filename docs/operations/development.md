@@ -9,15 +9,15 @@ read_when:
 
 ## Local Stack
 
-Run the full managed development stack:
+Run the managed development stack:
 
 ```bash
 bun run dev
 ```
 
 This starts the local app backend, an isolated PostgreSQL cluster, Grotto Server,
-Grotto Computer, the website dev server, and Electron. Runtime is retired from
-the normal stack. Install the PostgreSQL 16 binaries once:
+Grotto Computer, and the website dev server. `bun run dev-app` runs the same
+stack inside the Electron desktop shell. Install the PostgreSQL 16 binaries once:
 
 ```bash
 brew install postgresql@16
@@ -72,8 +72,8 @@ this checkout's real website port. The `dev-port` helper and the dev stack
 derive the same four-port group from the checkout path, or from
 `TAVERN_DEV_STACK_ID` when it is set.
 
-Use `bun run dev:web` when Electron is unnecessary. It starts the same Server,
-Computer, PostgreSQL, and web app, so Agent behavior matches the desktop stack.
+`bun run dev` and `bun run dev-app` share the same Server, Computer,
+PostgreSQL, and web app, so Agent behavior matches across both.
 
 The installed Computer keeps service output under its stable data root and
 exposes local recovery checks:
@@ -95,7 +95,7 @@ to. It is gitignored, not committed, because the port is per-checkout. A
 `SessionStart` hook in `.claude/settings.json` runs
 `scripts/generate-claude-launch.mjs`, which writes the file from the same
 `resolveDevPorts` group the dev stack uses — so the preview always points at the
-website port that `bun run dev:web` actually binds. Nothing to do by
+website port that `bun run dev` actually binds. Nothing to do by
 hand; the file regenerates each session.
 
 ## Shutdown

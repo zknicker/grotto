@@ -1,5 +1,5 @@
 // Design battery dev tool (PRD-86). Drives the fixed battery of visual
-// prompts through a RUNNING dev stack (bun run dev:web:runtime) as real model
+// prompts through a RUNNING dev stack (bun run dev) as real model
 // turns, screenshots each rendered result in dark and light themes, and
 // writes a contact sheet for human critique against
 // scripts/design-battery/RUBRIC.md.

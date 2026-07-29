@@ -5,6 +5,18 @@ import { useRender } from '@base-ui/react/use-render';
 import type React from 'react';
 import { cn } from '../../lib/utils.ts';
 
+/**
+ * The canonical selected-nav treatment: an inked press slab — solid
+ * `--secondary` fill, inset `--input` hairline, 2px `--hard-shadow` offset.
+ * Every selected nav row (sidebar sections, channels, DMs, icon rail,
+ * settings nav, file-tree rows) uses this one string; see DESIGN.md
+ * "Colors". Surface only — call sites own their own text color. The hairline
+ * rides in the same box-shadow as the slab so it never fights a `ring-*`
+ * focus treatment.
+ */
+export const navSelectedClass =
+    'bg-secondary shadow-[inset_0_0_0_1px_var(--input),0_2px_0_0_var(--hard-shadow)]';
+
 export function Nav({
     className,
     render,
@@ -58,7 +70,7 @@ export function NavItem({
         className: cn(
             'no-drag group relative flex w-full items-center gap-2 rounded-md px-2 py-1 text-left font-medium text-meta transition-colors duration-150 ease-out',
             active
-                ? 'bg-secondary text-foreground shadow-[inset_0_0_0_1px_var(--input),0_2px_0_0_var(--hard-shadow)] duration-0'
+                ? cn(navSelectedClass, 'text-foreground duration-0')
                 : 'text-foreground/75 hover:bg-[var(--nav-hover)] hover:text-foreground hover:duration-0',
             className
         ),

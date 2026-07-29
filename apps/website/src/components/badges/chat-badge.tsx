@@ -6,7 +6,6 @@ import {
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-import { cn } from '../../lib/utils.ts';
 import { Badge } from '../ui/badge.tsx';
 import { Icon } from '../ui/icon.tsx';
 
@@ -28,13 +27,11 @@ const KIND_ICON: Record<ChatBadgeKind, IconSvgElement> = {
 export function ChatBadge({ className, kind, title }: ChatBadgeProps): React.ReactElement {
     return (
         <Badge
-            className={cn(
-                'h-7 min-w-0 gap-1.5 rounded-md border-border/60 px-1.5 text-foreground text-sm dark:bg-input/40',
-                className
-            )}
+            className={className}
             data-slot="chat-badge"
+            size="chip"
             title={title}
-            variant="secondary"
+            variant="chip"
         >
             <Icon className="size-4 shrink-0 text-muted-foreground" icon={KIND_ICON[kind]} />
             <span className="min-w-0 truncate">{title}</span>

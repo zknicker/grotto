@@ -138,6 +138,8 @@ The token palette is neutral-first:
 - `background`, `foreground`, `card`, `popover`, `border`, `muted`, `input`, and `secondary` carry
   most UI surfaces.
 - `brand` is reserved for strong product emphasis, selected states, and primary actions.
+- `border-subtle` (`border-border-subtle`) is the lighter opaque hairline for quiet seams inside
+  content surfaces — use it instead of alpha washes such as `border-border/60`.
 - `success`, `warning`, `error`, and `info` are semantic status colors.
 - `sidebar-*` tokens own navigation surfaces and should not be replicated in feature code.
 

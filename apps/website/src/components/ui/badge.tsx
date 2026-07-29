@@ -15,6 +15,9 @@ export const badgeVariants = cva(
         },
         variants: {
             size: {
+                /* Label chip: a roomier badge that carries an icon plus a
+                   truncating label (chat and session badges). */
+                chip: 'h-7 min-w-0 gap-1.5 rounded-md px-1.5 text-sm',
                 default:
                     'h-5.5 min-w-5.5 px-[calc(--spacing(1)-1px)] text-sm sm:h-4.5 sm:min-w-4.5 sm:text-xs',
                 lg: 'h-6.5 min-w-6.5 px-[calc(--spacing(1.5)-1px)] text-base sm:h-5.5 sm:min-w-5.5 sm:text-sm',
@@ -22,6 +25,9 @@ export const badgeVariants = cva(
             },
             variant: {
                 brand: 'border-brand/60 bg-brand/16 text-brand-muted-foreground dark:border-brand/65 dark:bg-brand/32',
+                /* Quiet plate for label chips: same fill as `secondary`, but a
+                   lighter hairline so the chip reads as content, not a control. */
+                chip: 'border-border-subtle bg-secondary text-foreground',
                 default: 'bg-primary text-primary-foreground [button&,a&]:hover:bg-primary/90',
                 destructive: 'bg-destructive text-white [button&,a&]:hover:bg-destructive/90',
                 error: 'border-destructive/60 bg-destructive/16 text-destructive-foreground dark:border-destructive/55 dark:bg-destructive/30',

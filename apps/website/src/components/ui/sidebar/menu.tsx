@@ -5,6 +5,7 @@ import { useRender } from '@base-ui/react/use-render';
 import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 import { cn } from '../../../lib/utils.ts';
+import { navSelectedClass } from '../nav.tsx';
 import { Skeleton } from '../skeleton.tsx';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../tooltip.tsx';
 import { useSidebarOptional } from './context.tsx';
@@ -32,7 +33,7 @@ export function SidebarMenuItem({ className, ...props }: React.ComponentProps<'l
 }
 
 const sidebarMenuButtonVariants = cva(
-    'no-drag peer/menu-button group/menu-button flex w-full cursor-default items-center gap-2 overflow-hidden rounded-[9px] px-2 py-1 text-left font-medium text-sidebar-foreground text-sm outline-hidden ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 data-active:bg-secondary data-active:text-foreground data-disabled:opacity-50 data-active:shadow-[inset_0_0_0_1px_var(--input),0_2px_0_0_var(--hard-shadow)] data-active:active:bg-secondary data-disabled:active:bg-transparent data-active:hover:bg-secondary data-disabled:hover:bg-transparent data-active:hover:text-foreground data-disabled:hover:text-sidebar-foreground group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-2.5! [&>span:last-child]:truncate [&_svg]:size-5 [&_svg]:shrink-0',
+    'no-drag peer/menu-button group/menu-button flex w-full cursor-default items-center gap-2 overflow-hidden rounded-[9px] px-2 py-1 text-left font-medium text-sidebar-foreground text-sm outline-hidden ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 data-active:text-foreground data-disabled:opacity-50 data-active:active:bg-secondary data-disabled:active:bg-transparent data-active:hover:bg-secondary data-disabled:hover:bg-transparent data-active:hover:text-foreground data-disabled:hover:text-sidebar-foreground group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-2.5! [&>span:last-child]:truncate [&_svg]:size-5 [&_svg]:shrink-0',
     {
         defaultVariants: {
             size: 'default',
@@ -80,7 +81,11 @@ export function SidebarMenuButton({
         props: mergeProps<'button'>(
             {
                 'aria-disabled': renderTooltipDisabledState ? true : undefined,
-                className: cn(sidebarMenuButtonVariants({ variant, size }), className),
+                className: cn(
+                    sidebarMenuButtonVariants({ variant, size }),
+                    isActive && navSelectedClass,
+                    className
+                ),
                 disabled: renderTooltipDisabledState ? undefined : disabled,
                 onClick: renderTooltipDisabledState
                     ? (event) => {

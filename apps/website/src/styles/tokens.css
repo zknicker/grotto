@@ -87,6 +87,7 @@
     --color-destructive-foreground: var(--destructive-foreground);
 
     --color-border: var(--border);
+    --color-border-subtle: var(--border-subtle);
     --color-border-strong: var(--border-strong);
     --color-input: var(--input);
     --color-ring: var(--ring);
@@ -351,6 +352,11 @@
         /* Solid inked hairlines — opaque lines like the avatar outlines, not
            translucent washes. */
         --border: color-mix(in srgb, var(--background) 84%, var(--color-white));
+        /* Lighter hairline for quiet seams inside content surfaces — the
+           opaque stand-in for the `border-border/60` alpha washes. Derived
+           from vars, so the light block inherits the correct value without
+           redefining it. */
+        --border-subtle: color-mix(in srgb, var(--border) 60%, var(--card));
         --border-strong: color-mix(in srgb, var(--background) 72%, var(--color-white));
         --input: color-mix(in srgb, var(--background) 79%, var(--color-white));
         /* Hard press/slab shadow color for brutalist offsets. */

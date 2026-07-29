@@ -8,6 +8,7 @@ import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { Tooltip } from '../../../components/ui/tooltip.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import { withSaveErrorToast } from '../../../lib/saving-toast.ts';
 import { cn } from '../../../lib/utils.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
 import { HostedAgentFace } from '../hosted-agent-face.tsx';
@@ -90,13 +91,21 @@ export function HostedAgentProfileHeader({
                     disabled={!state.data?.running || stop.isPending}
                     icon={StopIcon}
                     label="Stop"
-                    onClick={() => stop.mutate({ agentId: agent.id, serverId: server.id })}
+                    onClick={() =>
+                        withSaveErrorToast(() =>
+                            stop.mutateAsync({ agentId: agent.id, serverId: server.id })
+                        ).catch(() => undefined)
+                    }
                 />
                 <ActionButton
                     disabled={restart.isPending}
                     icon={RefreshIcon}
                     label="Restart"
-                    onClick={() => restart.mutate({ agentId: agent.id, serverId: server.id })}
+                    onClick={() =>
+                        withSaveErrorToast(() =>
+                            restart.mutateAsync({ agentId: agent.id, serverId: server.id })
+                        ).catch(() => undefined)
+                    }
                 />
                 {onClose ? (
                     <ActionButton icon={Cancel01Icon} label="Close" onClick={onClose} />

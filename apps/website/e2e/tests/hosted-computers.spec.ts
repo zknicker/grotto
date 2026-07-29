@@ -92,6 +92,11 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     sendBootstrap(reconnectedComputer, credential, 'complete');
     expect(await reconnected).toMatchObject({ mode: 'ordinary' });
     await expect(page.getByText('Update complete')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Check' }).click();
+    await expect(page.getByText('Up to date', { exact: true })).toBeVisible();
+    await expect(page.getByText('Grotto Computer 1.1.0 is the latest version.')).toBeVisible();
+    await expect(page.getByRole('button', { exact: true, name: 'Update' })).toBeDisabled();
     reconnectedComputer.close();
 
     await expect(

@@ -32,8 +32,8 @@ export async function checkComputerUpdate(input: {
             .set({
                 updateDetail: available
                     ? `Grotto Computer ${release.release.version} is available.`
-                    : 'Grotto Computer is up to date.',
-                updatePhase: available ? 'available' : 'complete',
+                    : currentVersionDetail(release.release.version),
+                updatePhase: available ? 'available' : 'idle',
                 updateTargetVersion: release.release.version,
                 updateUpdatedAt: new Date(),
             })
@@ -63,8 +63,8 @@ export async function startComputerUpdate(input: {
             await input.db
                 .update(computersTable)
                 .set({
-                    updateDetail: 'Grotto Computer is up to date.',
-                    updatePhase: 'complete',
+                    updateDetail: currentVersionDetail(release.release.version),
+                    updatePhase: 'idle',
                     updateTargetVersion: release.release.version,
                     updateUpdatedAt: new Date(),
                 })
@@ -172,6 +172,10 @@ function isNewer(candidate: string, installed: string | null): boolean {
         }
     }
     return false;
+}
+
+function currentVersionDetail(version: string): string {
+    return `Grotto Computer ${version} is the latest version.`;
 }
 
 function parseVersion(version: string): number[] {

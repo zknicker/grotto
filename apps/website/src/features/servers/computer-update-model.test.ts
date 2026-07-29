@@ -53,3 +53,26 @@ test('shows checking immediately while a Settings mutation is pending', () => {
         label: 'Checking production release…',
     });
 });
+
+test('distinguishes a current-version check from a completed update', () => {
+    expect(
+        computerUpdateView({
+            health: 'healthy',
+            phase: 'idle',
+            targetVersion: '1.1.5',
+        })
+    ).toMatchObject({
+        canCheck: true,
+        canUpdate: false,
+        label: 'Up to date',
+    });
+    expect(
+        computerUpdateView({
+            health: 'healthy',
+            phase: 'complete',
+            targetVersion: '1.1.5',
+        })
+    ).toMatchObject({
+        label: 'Update complete',
+    });
+});

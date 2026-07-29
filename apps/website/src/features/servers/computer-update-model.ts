@@ -18,6 +18,7 @@ export function computerUpdateView(input: {
     health: 'degraded' | 'healthy' | 'offline' | 'update-required';
     isChecking?: boolean;
     phase: ComputerUpdatePhase;
+    targetVersion?: string | null;
 }) {
     const connected = input.health !== 'offline';
     const busy =
@@ -34,7 +35,11 @@ export function computerUpdateView(input: {
     return {
         canCheck: connected && !busy,
         canUpdate: connected && input.phase === 'available' && !busy,
-        label: input.isChecking ? phaseLabels.checking : phaseLabels[input.phase],
+        label: input.isChecking
+            ? phaseLabels.checking
+            : input.phase === 'idle' && input.targetVersion
+              ? 'Up to date'
+              : phaseLabels[input.phase],
         needsLocalRecovery:
             input.health === 'update-required' ||
             (input.health === 'offline' && input.phase !== 'restarting'),

@@ -18,6 +18,7 @@ export function ComputerUpdateControls({
         health: computer.health,
         isChecking: update.isChecking || update.isStarting,
         phase: computer.updatePhase,
+        targetVersion: computer.updateTargetVersion,
     });
     const isUpdateActive = [
         'requested',

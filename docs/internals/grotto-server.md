@@ -151,6 +151,12 @@ Only Owners and Admins can approve or view Computers. The Server never opens
 an inbound Computer connection and never receives a human login session from a
 Computer.
 
+Every compatible Computer also reports a sanitized provider-usage snapshot
+after attaching and once per minute. The Server stores the latest snapshot and
+its receipt time on that Computer row. All Server members can read these Stats,
+including when the Computer is offline; Computer inventory and lifecycle
+management remain Owner/Admin-only.
+
 ## Agent configuration
 
 A Computer's attachment socket reports a sanitized runtime/model inventory —

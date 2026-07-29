@@ -52,7 +52,7 @@ export function BrowserSettingsCard({
     if (!settings) {
         return (
             <SettingsRow
-                description={error ?? 'Grotto Runtime unavailable.'}
+                description={error ?? 'Grotto Computer unavailable.'}
                 title="Browser"
                 trailingWidth="intrinsic"
             >

@@ -7,19 +7,21 @@ read_when:
 # Browser
 
 Browser is a first-party host tool, not an external integration or MCP server.
-Runtime supervises one visible Chrome instance with a durable named profile
-under `~/.tavern/browser/profiles`.
+Each Grotto Computer attachment supervises one visible Chrome instance with a
+durable named profile under that attachment's `browser/profiles` directory.
+Profiles and processes never cross Server attachments.
 
-The implementation lives under `apps/runtime/src/browser/`. It detects Chrome,
+The implementation lives under `apps/computer/src/browser/`. It detects Chrome,
 owns the launch contract, adopts only matching managed processes, serializes
-commands through one FIFO, and exposes Open and Restart through `/browser/*`.
-Failures update the `browser` Runtime capability without blocking startup.
+commands through one FIFO, and exposes settings, Open, and Restart through the
+typed Computer attachment protocol. Failures degrade Browser without blocking
+Computer startup.
 
-Browser access is an explicit per-agent host-tool grant. Enabling Browser
-globally starts supervision; disabling it warns about affected agents and clears
-their Browser grants. `web_fetch` is a separate host tool and remains granted by
-default.
+The App always calls authenticated Server tRPC. The Server verifies current
+Server membership plus Owner or Admin authority, verifies the selected Computer
+belongs to that Server, and relays the operation to that Computer's outbound
+socket. The browser never connects to a Computer directly.
 
-The generated Browser skill documents `agent-browser` vocabulary. The executable
-AI SDK tool rechecks the grant before forwarding a command to the supervised
-Chrome endpoint.
+Enabling Browser starts supervision for that attachment. Disabling it stops
+supervision without deleting the profile. Browser availability is
+attachment-level rather than a per-tool Agent grant.

@@ -9,14 +9,17 @@ import {
     hostedAgentSkillImportResultSchema,
     hostedAgentTurnSummarySchema,
     hostedAgentWorkspaceResultSchema,
+    hostedBrowserResultSchema,
     hostedComputerInventorySchema,
     hostedReminderScriptResultSchema,
+    hostedUsageReportSchema,
 } from '@tavern/api';
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitServerUpdated } from '../grotto-api/server-events.ts';
 import { recordAgentEffectiveState } from '../hosted-agents/record-agent-effective-state.ts';
+import { recordHostedComputerUsage } from '../hosted-operations/computer-usage.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import type { ComputerConnections } from './connections.ts';
 import {
@@ -193,6 +196,23 @@ async function ingestReport(
     const workspace = hostedAgentWorkspaceResultSchema.safeParse(frame);
     if (workspace.success) {
         connections.acceptWorkspaceResult(computerId, workspace.data);
+        return;
+    }
+
+    const browser = hostedBrowserResultSchema.safeParse(frame);
+    if (browser.success) {
+        connections.acceptBrowserResult(computerId, browser.data);
+        return;
+    }
+
+    const usage = hostedUsageReportSchema.safeParse(frame);
+    if (usage.success) {
+        await recordHostedComputerUsage(db, {
+            computerId,
+            serverId,
+            usage: usage.data.usage,
+        });
+        emitServerUpdated({ scope: 'computer', serverId });
         return;
     }
 

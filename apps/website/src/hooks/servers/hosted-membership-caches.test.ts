@@ -16,6 +16,7 @@ function hostedCaches() {
         invitation: { list: cache() },
         member: { list: cache() },
         server: { bySlug: cache(), list: cache() },
+        stats: { live: cache() },
         task: { assignees: cache(), list: cache() },
         taskLabel: { list: cache() },
     };
@@ -36,11 +37,12 @@ test('losing membership clears every hosted cache that names the Server', () => 
         utils.task.list,
         utils.task.assignees,
         utils.taskLabel.list,
+        utils.stats.live,
     ]) {
         assert.ok(cleared.has(cache));
     }
 
-    assert.equal(cleared.size, 10);
+    assert.equal(cleared.size, 11);
 });
 
 test('the Server list is cleared, not merely refreshed', () => {

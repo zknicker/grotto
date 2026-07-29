@@ -24,26 +24,12 @@ import {
     serverComputersRoute,
 } from '../../features/servers/server-routes.ts';
 import { AppearanceSettings } from '../../features/settings/appearance/page.tsx';
+import { HostedBrowserSettingsPage } from '../../features/settings/browser/hosted-page.tsx';
 import { ProfileSettings } from '../../features/settings/profile/page.tsx';
 import { UpdatesSettings } from '../../features/settings/updates/page.tsx';
+import { HostedStatsSettings } from '../../features/stats/hosted-stats.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { ServerConnectionsPage } from './server-connections-page.tsx';
-
-const sectionCopy: Record<string, { description: string; title: string }> = {
-    appearance: { description: 'Choose how Grotto looks on this device.', title: 'Appearance' },
-    browser: { description: 'Browser tools available to your Agents.', title: 'Browser' },
-    connections: {
-        description: 'Connect MCP servers and grant Agent tools.',
-        title: 'Connections',
-    },
-    jobs: { description: 'Background work running on this Server.', title: 'Jobs' },
-    models: { description: 'Models reported by attached Computers.', title: 'Models' },
-    profile: { description: 'Your Grotto account and identity.', title: 'Profile' },
-    sessions: { description: 'Recent Agent sessions and activity.', title: 'Sessions' },
-    skills: { description: 'Skills available to Agents on this Server.', title: 'Skills' },
-    stats: { description: 'Server and Agent activity.', title: 'Stats' },
-    updates: { description: 'Grotto App and Computer updates.', title: 'Updates' },
-};
 
 export function ServerSettingsSectionPage() {
     const { section = 'agent-runtime' } = useParams();
@@ -51,7 +37,7 @@ export function ServerSettingsSectionPage() {
     const computers = grottoTrpc.computer.list.useQuery(
         { serverId: server.id },
         {
-            enabled: section === 'models' || section === 'skills',
+            enabled: section === 'browser' || section === 'models' || section === 'skills',
             refetchInterval: section === 'skills' ? 1000 : false,
         }
     );
@@ -72,6 +58,22 @@ export function ServerSettingsSectionPage() {
         return <ServerConnectionsPage embedded />;
     }
 
+    if (section === 'stats') {
+        return <HostedStatsSettings serverId={server.id} />;
+    }
+
+    if (section === 'browser') {
+        const computer = computers.data?.find((item) => item.health === 'healthy');
+        return computer ? (
+            <HostedBrowserSettingsPage computerId={computer.id} serverId={server.id} />
+        ) : (
+            <MissingComputerSettings
+                description="Attach an online Computer to manage its Browser."
+                title="Browser"
+            />
+        );
+    }
+
     if (section === 'models') {
         return <HostedModelsSettings computers={computers.data ?? []} />;
     }
@@ -90,17 +92,17 @@ export function ServerSettingsSectionPage() {
         return <UpdatesSettings computerSettingsHref={serverComputersRoute(server.slug)} />;
     }
 
-    const copy = sectionCopy[section] ?? { description: '', title: section };
+    return <Navigate replace to="../appearance" />;
+}
+
+function MissingComputerSettings({ description, title }: { description: string; title: string }) {
     return (
         <SettingsPage>
-            <SettingsPageHeader description={copy.description} title={copy.title} />
-            <SettingsSection title={copy.title}>
+            <SettingsPageHeader title={title} />
+            <SettingsSection title={title}>
                 <SettingsGroup>
-                    <SettingsRow
-                        description="This legacy settings surface has not moved to the Server and Computer contract."
-                        title={copy.title}
-                    >
-                        <SettingsValue>Not available yet</SettingsValue>
+                    <SettingsRow description={description} title={`No ${title} available`}>
+                        <SettingsValue>Waiting for a Computer</SettingsValue>
                     </SettingsRow>
                 </SettingsGroup>
             </SettingsSection>

@@ -1,4 +1,8 @@
-import type { ComputerUpdatePhase, HostedComputerInventory } from '@tavern/api';
+import type {
+    ComputerUpdatePhase,
+    HostedComputerInventory,
+    HostedUsageOverview,
+} from '@tavern/api';
 import { sql } from 'drizzle-orm';
 import {
     check,
@@ -30,6 +34,8 @@ export const computersTable = pgTable(
         productVersion: text('product_version'),
         protocolVersion: integer('protocol_version'),
         reportedInventory: jsonb('reported_inventory').$type<HostedComputerInventory>(),
+        usageReportedAt: timestamp('usage_reported_at', { withTimezone: true }),
+        usageSnapshot: jsonb('usage_snapshot').$type<HostedUsageOverview>(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),

@@ -229,6 +229,11 @@ export async function markComputerOffline(db: GrottoDatabase, computerId: string
         .where(eq(computersTable.id, computerId));
 }
 
+/** Process startup has no live attachment registry, so persisted online state is stale. */
+export async function markAllComputersOffline(db: GrottoDatabase) {
+    await db.update(computersTable).set({ health: 'offline' });
+}
+
 export async function listServerComputers(
     db: GrottoDatabase,
     member: GrottoUser | null,

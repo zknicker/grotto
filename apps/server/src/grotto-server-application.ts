@@ -9,6 +9,7 @@ import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { reconcileHostedAttachments } from './attachments/reconcile-attachments.ts';
 import { ComputerConnections } from './computers/connections.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
+import { markAllComputersOffline } from './computers/service.ts';
 import { startComputerAttachmentSocket } from './computers/socket.ts';
 import { productionComputerManifestUrl } from './computers/update.ts';
 import { createGrottoContextFactory } from './grotto-api/context.ts';
@@ -78,6 +79,7 @@ export async function createGrottoServerApplication(
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot);
         await reconcileHostedAttachments(grotto.db, attachmentRoot);
         await purgeDeletedServers(grotto.db, attachmentRoot);
+        await markAllComputersOffline(grotto.db);
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
         const computerConnections = new ComputerConnections();
         const agentDelivery = new AgentDelivery(grotto.db, computerConnections);

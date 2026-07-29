@@ -4,6 +4,8 @@ import type {
     HostedAgentSkillMetadata,
     HostedAgentWorkspaceRequest,
     HostedAgentWorkspaceResult,
+    HostedBrowserRequest,
+    HostedBrowserResult,
     SignedComputerRelease,
 } from '@tavern/api';
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
@@ -33,6 +35,13 @@ interface PendingWorkspaceRequest {
     timeout: ReturnType<typeof setTimeout>;
 }
 
+interface PendingBrowserRequest {
+    computerId: string;
+    reject(error: Error): void;
+    resolve(result: NonNullable<HostedBrowserResult['result']>): void;
+    timeout: ReturnType<typeof setTimeout>;
+}
+
 /**
  * The live registry of Computer attachment sockets — the Server→Computer side of
  * the typed protocol. It is pure transport: durable run, stop, and pending state
@@ -44,6 +53,7 @@ export class ComputerConnections implements DeliveryTransport {
     private readonly attached = new Map<string, AttachedComputer>();
     private readonly pendingSkillImports = new Map<string, PendingSkillImport>();
     private readonly pendingWorkspaceRequests = new Map<string, PendingWorkspaceRequest>();
+    private readonly pendingBrowserRequests = new Map<string, PendingBrowserRequest>();
 
     register(computerId: string, computer: AttachedComputer): void {
         this.attached.set(computerId, computer);
@@ -62,6 +72,13 @@ export class ComputerConnections implements DeliveryTransport {
             if (pending.computerId === computerId) {
                 clearTimeout(pending.timeout);
                 this.pendingWorkspaceRequests.delete(requestId);
+                pending.reject(new Error('The selected Computer went offline.'));
+            }
+        }
+        for (const [requestId, pending] of this.pendingBrowserRequests) {
+            if (pending.computerId === computerId) {
+                clearTimeout(pending.timeout);
+                this.pendingBrowserRequests.delete(requestId);
                 pending.reject(new Error('The selected Computer went offline.'));
             }
         }
@@ -207,6 +224,45 @@ export class ComputerConnections implements DeliveryTransport {
             pending.resolve(result.result);
         } else {
             pending.reject(new Error(result.error ?? 'The workspace request failed.'));
+        }
+        return true;
+    }
+
+    requestBrowser(
+        computerId: string,
+        operation: HostedBrowserRequest['operation']
+    ): Promise<NonNullable<HostedBrowserResult['result']>> {
+        const requestId = createOpaqueId('req');
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                this.pendingBrowserRequests.delete(requestId);
+                reject(new Error('The Computer did not answer the Browser request.'));
+            }, 10_000);
+            this.pendingBrowserRequests.set(requestId, {
+                computerId,
+                reject,
+                resolve,
+                timeout,
+            });
+            if (!this.send(computerId, { operation, requestId, type: 'browser-request' })) {
+                clearTimeout(timeout);
+                this.pendingBrowserRequests.delete(requestId);
+                reject(new Error('The selected Computer is offline.'));
+            }
+        });
+    }
+
+    acceptBrowserResult(computerId: string, result: HostedBrowserResult): boolean {
+        const pending = this.pendingBrowserRequests.get(result.requestId);
+        if (!pending || pending.computerId !== computerId) {
+            return false;
+        }
+        clearTimeout(pending.timeout);
+        this.pendingBrowserRequests.delete(result.requestId);
+        if (result.result) {
+            pending.resolve(result.result);
+        } else {
+            pending.reject(new Error(result.error ?? 'The Browser request failed.'));
         }
         return true;
     }

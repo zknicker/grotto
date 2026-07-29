@@ -161,3 +161,49 @@ test('workspace relay accepts a response only from the requested Computer and Ag
     ).toBe(true);
     expect(await pending).toEqual(result);
 });
+
+test('Browser relay accepts a response only from the requested Computer', async () => {
+    const frames: Record<string, unknown>[] = [];
+    const connections = new ComputerConnections();
+    connections.register(computerId, {
+        ordinary: true,
+        send: (frame) => frames.push(frame as Record<string, unknown>),
+        serverId: 'srv_1234567890123456',
+        updatePhase: 'idle',
+    });
+
+    const pending = connections.requestBrowser(computerId, { kind: 'get' });
+    const requestId = String(frames[0]?.requestId);
+    expect(frames[0]).toEqual({
+        operation: { kind: 'get' },
+        requestId,
+        type: 'browser-request',
+    });
+    const result = {
+        kind: 'settings' as const,
+        value: {
+            affectedAgents: [],
+            application: null,
+            enabled: false,
+            profileName: 'default',
+            skillConflict: null,
+            status: null,
+            updatedAt: null,
+        },
+    };
+    expect(
+        connections.acceptBrowserResult('cmp_0000000000000000', {
+            requestId,
+            result,
+            type: 'browser-result',
+        })
+    ).toBe(false);
+    expect(
+        connections.acceptBrowserResult(computerId, {
+            requestId,
+            result,
+            type: 'browser-result',
+        })
+    ).toBe(true);
+    expect(await pending).toEqual(result);
+});

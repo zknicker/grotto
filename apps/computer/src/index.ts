@@ -5,6 +5,8 @@ import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { runAgentCli } from './agent-cli.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
+import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
+import { reconcileComputerBrowser } from './browser/settings.ts';
 import { computerEntrypoint, computerSourceRevision, computerVersion } from './build-identity.ts';
 import {
     decideStart,
@@ -59,6 +61,11 @@ import {
     parseBootstrapAccepted,
     parseComputerUpdateCommand,
 } from './update-contract.ts';
+import {
+    readOpenRouterManagementKey,
+    saveOpenRouterManagementKey,
+} from './usage/openrouter-settings.ts';
+import { readComputerUsage } from './usage/read-usage.ts';
 import { parseAgentWorkspaceRequest, runAgentWorkspaceRequest } from './workspace-files.ts';
 
 interface SetupResponse {
@@ -129,6 +136,11 @@ async function main(args: string[]) {
         );
         return;
     }
+    if (command === 'configure-openrouter') {
+        await saveOpenRouterManagementKey(dataRoot, await Bun.stdin.text());
+        console.log('OpenRouter account usage is configured on this Grotto Computer.');
+        return;
+    }
     if (command === 'start') {
         await recoverInterruptedUpdate();
         await finishRestart();
@@ -169,7 +181,7 @@ async function main(args: string[]) {
     }
     if (command !== 'setup' || !target?.startsWith('/')) {
         throw new Error(
-            'Usage: grotto-computer <install|upgrade [--rollback]|start|stop|restart|status|doctor|logs|version|setup /server-slug>'
+            'Usage: grotto-computer <install|upgrade [--rollback]|start|stop|restart|status|doctor|logs|version|configure-openrouter|setup /server-slug>'
         );
     }
     const slug = target.slice(1);
@@ -401,6 +413,12 @@ async function startAttachment(attachment: Attachment) {
         `${JSON.stringify({ credentialHash: hash(attachment.credential), pid: child.pid })}\n`,
         { mode: 0o600 }
     );
+    void child.exited.then(async () => {
+        const marker = await readRunnerMarker(attachment);
+        if (marker?.pid === child.pid) {
+            await rm(runnerPath(attachment), { force: true });
+        }
+    });
 }
 
 async function stopAttachment(attachment: Attachment) {
@@ -569,6 +587,10 @@ function escapeXml(value: string) {
 }
 
 async function connect(attachment: Attachment) {
+    const browserRoot = join(dataRoot, 'servers', attachment.serverId, 'browser');
+    void reconcileComputerBrowser(browserRoot).catch((error) => {
+        console.error(error instanceof Error ? error.message : error);
+    });
     const socketUrl = new URL('/computer/attachment', attachment.serverOrigin);
     socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
     const initialProgress = await readUpdateProgress(dataRoot);
@@ -592,6 +614,7 @@ async function connect(attachment: Attachment) {
         return operation;
     };
     let lastProgress = JSON.stringify(initialProgress);
+    let usageTimer: ReturnType<typeof setInterval> | null = null;
     const progressTimer = setInterval(() => {
         void readUpdateProgress(dataRoot).then((update) => {
             const serialized = JSON.stringify(update);
@@ -602,10 +625,14 @@ async function connect(attachment: Attachment) {
             socket.send(JSON.stringify({ type: 'update-progress', update }));
         });
     }, 500);
-    socket.addEventListener('close', () => {
-        clearInterval(progressTimer);
-    });
     await new Promise<void>((resolve, reject) => {
+        socket.addEventListener('close', () => {
+            clearInterval(progressTimer);
+            if (usageTimer) {
+                clearInterval(usageTimer);
+            }
+            resolve();
+        });
         socket.addEventListener('error', () => {
             reject(new Error('Computer attachment socket failed.'));
         });
@@ -630,20 +657,28 @@ async function connect(attachment: Attachment) {
             const bootstrap = parseBootstrapAccepted(frame);
             if (bootstrap) {
                 if (bootstrap.mode === 'ordinary') {
-                    void trackWriter(
-                        sendComputerReport(socket, attachment.serverId).catch(reportStateError)
-                    ).finally(() => {
+                    const initialReport = sendComputerReport(socket, attachment.serverId).then(
+                        async () => {
+                            if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1') {
+                                await sendUsageReport(socket);
+                            }
+                        }
+                    );
+                    void trackWriter(initialReport.catch(reportStateError)).finally(() => {
                         if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
                             socket.close();
                         }
-                        resolve();
                     });
+                    if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1' && usageTimer === null) {
+                        usageTimer = setInterval(() => {
+                            void trackWriter(sendUsageReport(socket).catch(reportStateError));
+                        }, 60_000);
+                    }
                     return;
                 }
                 if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
                     socket.close();
                 }
-                resolve();
                 return;
             }
             const update = parseComputerUpdateCommand(frame);
@@ -723,6 +758,15 @@ async function connect(attachment: Attachment) {
                         request: workspaceRequest,
                         serverId: attachment.serverId,
                     }).then((result) => socket.send(JSON.stringify(result)))
+                );
+                return;
+            }
+            const browserRequest = parseBrowserRequest(frame);
+            if (browserRequest) {
+                void trackWriter(
+                    runBrowserRequest(browserRoot, browserRequest).then((result) =>
+                        socket.send(JSON.stringify(result))
+                    )
                 );
                 return;
             }
@@ -1000,6 +1044,15 @@ async function sendComputerReport(socket: WebSocket, serverId: string) {
             type: 'report',
         })
     );
+}
+
+async function sendUsageReport(socket: WebSocket) {
+    const usage = await readComputerUsage({
+        openRouterManagementKey: await readOpenRouterManagementKey(dataRoot),
+    });
+    if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'usage-report', usage }));
+    }
 }
 
 function reportStateError(error: unknown) {

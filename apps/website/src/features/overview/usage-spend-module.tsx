@@ -13,12 +13,13 @@ import { Field, FieldDescription, FieldError } from '../../components/ui/primiti
 import { Form } from '../../components/ui/primitives/form.tsx';
 import { Input } from '../../components/ui/primitives/input.tsx';
 import { useSaveOpenRouterSettings } from '../../hooks/connections/use-save-openrouter-settings.ts';
-import type { LiveUsageOutput } from '../../lib/trpc.tsx';
+import type { UsageOverview } from './usage-modules.tsx';
 import { UsageSpendSummary } from './usage-spend-summary.tsx';
 import { useUsageSpend } from './use-usage-spend.ts';
 
 interface UsageSpendModuleProps {
-    liveUsage: LiveUsageOutput | undefined;
+    allowManagementKeyForm?: boolean;
+    liveUsage: UsageOverview | undefined;
 }
 
 const keyColors = [
@@ -32,7 +33,10 @@ const keyColors = [
     '#f472b6',
 ];
 
-export function UsageSpendModule({ liveUsage }: UsageSpendModuleProps) {
+export function UsageSpendModule({
+    allowManagementKeyForm = true,
+    liveUsage,
+}: UsageSpendModuleProps) {
     const { chartData, emptyChartMessage, grandTotal, hasChart, keyStats, keys } =
         useUsageSpend(liveUsage);
     const needsManagementKey =
@@ -50,10 +54,14 @@ export function UsageSpendModule({ liveUsage }: UsageSpendModuleProps) {
                 </CardHeader>
                 <CardContent className="p-4">
                     <div className="flex h-52 items-center justify-center">
-                        {needsManagementKey ? (
+                        {needsManagementKey && allowManagementKeyForm ? (
                             <OpenRouterManagementKeyForm />
                         ) : (
-                            <p className="text-muted-foreground text-sm">{emptyChartMessage}</p>
+                            <p className="text-muted-foreground text-sm">
+                                {needsManagementKey
+                                    ? 'Configure OpenRouter account usage on this Computer with grotto-computer configure-openrouter.'
+                                    : emptyChartMessage}
+                            </p>
                         )}
                     </div>
                 </CardContent>

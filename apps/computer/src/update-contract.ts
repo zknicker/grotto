@@ -1,5 +1,7 @@
-export const computerBootstrapProtocolVersion = 1;
-export const computerProtocolVersion = 3;
+export {
+    computerBootstrapProtocolVersion,
+    computerProtocolVersion,
+} from '@tavern/api';
 
 export type ComputerUpdatePhase =
     | 'available'

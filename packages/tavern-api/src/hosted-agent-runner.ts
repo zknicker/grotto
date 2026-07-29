@@ -1,5 +1,10 @@
 import * as z from 'zod';
 import { hostedIdSchema } from './hosted-chat.ts';
+import {
+    agentRuntimeBrowserActionResultSchema,
+    agentRuntimeBrowserSettingsSchema,
+    agentRuntimeSaveBrowserSettingsSchema,
+} from './runtime/contracts.ts';
 
 const hostedTimestampSchema = z.iso.datetime({ offset: true });
 
@@ -209,6 +214,31 @@ export const hostedAgentWorkspaceRequestSchema = z
 
 export type HostedAgentWorkspaceRequest = z.infer<typeof hostedAgentWorkspaceRequestSchema>;
 
+/**
+ * One authenticated Server request against the Browser service owned by this
+ * Computer attachment. Browser settings and lifecycle never bypass the
+ * Server or expose the Computer socket to the App.
+ */
+export const hostedBrowserRequestSchema = z
+    .object({
+        operation: z.discriminatedUnion('kind', [
+            z.object({ kind: z.literal('get') }).strict(),
+            z
+                .object({
+                    input: agentRuntimeSaveBrowserSettingsSchema,
+                    kind: z.literal('save'),
+                })
+                .strict(),
+            z.object({ kind: z.literal('open') }).strict(),
+            z.object({ kind: z.literal('restart') }).strict(),
+        ]),
+        requestId: hostedIdSchema,
+        type: z.literal('browser-request'),
+    })
+    .strict();
+
+export type HostedBrowserRequest = z.infer<typeof hostedBrowserRequestSchema>;
+
 /** Every typed frame the Server sends down a Computer attachment socket. */
 export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
     hostedAgentStartCommandSchema,
@@ -217,12 +247,40 @@ export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
     hostedAgentConfigureCommandSchema,
     hostedAgentSkillImportCommandSchema,
     hostedAgentWorkspaceRequestSchema,
+    hostedBrowserRequestSchema,
     hostedReminderScriptCommandSchema,
     hostedAgentNoticeCommandSchema,
     hostedServerDeleteCommandSchema,
 ]);
 
 export type HostedAgentCommand = z.infer<typeof hostedAgentCommandSchema>;
+
+export const hostedBrowserResultSchema = z
+    .object({
+        error: z.string().trim().min(1).max(500).optional(),
+        requestId: hostedIdSchema,
+        result: z
+            .discriminatedUnion('kind', [
+                z
+                    .object({
+                        kind: z.literal('settings'),
+                        value: agentRuntimeBrowserSettingsSchema,
+                    })
+                    .strict(),
+                z
+                    .object({
+                        kind: z.literal('action'),
+                        value: agentRuntimeBrowserActionResultSchema,
+                    })
+                    .strict(),
+            ])
+            .optional(),
+        type: z.literal('browser-result'),
+    })
+    .strict()
+    .refine((value) => Boolean(value.error) !== Boolean(value.result));
+
+export type HostedBrowserResult = z.infer<typeof hostedBrowserResultSchema>;
 
 /**
  * The Computer's local-acceptance acknowledgement for a start command. An ack

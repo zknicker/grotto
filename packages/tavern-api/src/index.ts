@@ -65,6 +65,7 @@ export * from './hosted-mcp.ts';
 export * from './hosted-membership.ts';
 export * from './hosted-mentions.ts';
 export * from './hosted-reminders.ts';
+export * from './hosted-stats.ts';
 export * from './hosted-task.ts';
 export * from './hosted-task-shared.ts';
 export * from './rich-references.ts';

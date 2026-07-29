@@ -62,6 +62,7 @@ test('setup stores only a Server credential and reruns by validation', async () 
             ...process.env,
             GROTTO_COMPUTER_DATA_ROOT: dataRoot,
             GROTTO_COMPUTER_ONESHOT: '1',
+            GROTTO_COMPUTER_USAGE_DISABLED: '1',
             GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
         };
         await runCli(environment);
@@ -162,6 +163,86 @@ test('run keeps the attachment connected until the Server closes it', async () =
         ]);
         await Bun.sleep(50);
         expect(child.exitCode).toBeNull();
+    } finally {
+        for (const socket of sockets) {
+            socket.close();
+        }
+        child.kill();
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('resident start reconnects an attachment after the Server closes it', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const reconnected = Promise.withResolvers<void>();
+    const sockets = new Set<ServerWebSocket<undefined>>();
+    let connections = 0;
+    const peer = Bun.serve({
+        fetch(request, server) {
+            const pathname = new URL(request.url).pathname;
+            if (pathname === '/computer/validate') {
+                return Response.json({ valid: true });
+            }
+            if (pathname === '/computer/attachment' && server.upgrade(request)) {
+                return;
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+        websocket: {
+            message(socket, message) {
+                sockets.add(socket);
+                const frame = JSON.parse(String(message)) as { type?: string };
+                if (frame.type !== 'bootstrap') {
+                    return;
+                }
+                connections += 1;
+                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                if (connections === 1) {
+                    setTimeout(() => socket.terminate(), 10);
+                } else {
+                    reconnected.resolve();
+                }
+            },
+        },
+    });
+    const serverId = 'srv_test';
+    const attachmentRoot = join(dataRoot, 'servers', serverId);
+    await mkdir(attachmentRoot, { recursive: true });
+    await writeFile(
+        join(attachmentRoot, 'attachment.json'),
+        JSON.stringify({
+            computerId: 'cmp_1234567890123456',
+            credential: 'credential',
+            serverId,
+            serverOrigin: `http://127.0.0.1:${peer.port}`,
+            slug: 'hq',
+        })
+    );
+    const child = Bun.spawn(['bun', entrypoint, 'start'], {
+        env: {
+            ...process.env,
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_COMPUTER_RESIDENT: '1',
+            GROTTO_COMPUTER_USAGE_DISABLED: '1',
+        },
+        stderr: 'pipe',
+        stdout: 'pipe',
+    });
+    try {
+        await Promise.race([
+            reconnected.promise,
+            Bun.sleep(2000).then(async () => {
+                const marker = await readFile(join(attachmentRoot, 'runner.pid'), 'utf8').catch(
+                    () => 'missing'
+                );
+                throw new Error(
+                    `Computer did not reconnect after the Server closed its socket. Runner: ${marker}`
+                );
+            }),
+        ]);
+        expect(connections).toBe(2);
     } finally {
         for (const socket of sockets) {
             socket.close();

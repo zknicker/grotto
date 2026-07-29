@@ -23,6 +23,7 @@ export function useServerEvents(serverId: string | undefined) {
                 if (event.scope === 'computer') {
                     void utils.computer.list.invalidate({ serverId });
                     void utils.agent.list.invalidate({ serverId });
+                    void utils.stats.live.invalidate({ serverId });
                     return;
                 }
 

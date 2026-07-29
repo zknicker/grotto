@@ -20,3 +20,17 @@ Stats turn runtime and provider activity into something users can scan.
   to read account activity.
 * **Runtime health.** Show whether the agent runtime is connected and working.
 * **Operational clues.** Help users understand slow, failed, or expensive work.
+
+## Hosted data flow
+
+Each compatible Computer reads its local provider usage once after attaching
+and every minute while connected. It reports only sources it can actually read.
+The Server stores the latest timestamped snapshot for each Computer and serves
+all of them to every Server member. Disconnecting a Computer changes its
+freshness and health; it does not erase the last reported Stats.
+
+Codex usage uses the Computer's native Codex session. Configure OpenRouter
+account activity by piping its management key to
+`grotto-computer configure-openrouter`. Grotto Computer stores the key in a
+mode-`0600` local file; the key and provider request never pass through the
+Server or an Agent process.

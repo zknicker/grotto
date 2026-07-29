@@ -20,6 +20,8 @@ not require clients to parse logs or runtime internals.
 * Runtime health is a freshness signal, not a gate for reading durable app data.
 * Aggregates point back to source records when useful.
 * Realtime events can refresh stats, but reads are the source of truth.
+* Hosted usage is stored as the latest source-attributed snapshot per Computer.
+  Members can read those snapshots while a Computer is offline.
 
 ## Surface
 
@@ -33,8 +35,9 @@ The API covers:
 
 ## Runtime Boundary
 
-Runtime and providers produce raw activity. Tavern turns that activity into
-app-visible usage, spend, and health views.
+Computers and providers produce raw activity. The hosted Server persists
+sanitized per-Computer snapshots and turns them into app-visible usage, spend,
+freshness, and health views.
 
 ## Related Docs
 

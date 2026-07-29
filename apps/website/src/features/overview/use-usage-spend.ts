@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { LiveUsageOutput } from '../../lib/trpc.tsx';
+import type { UsageOverview } from './usage-modules.tsx';
 
 const keyColors = [
     '#f97316',
@@ -20,7 +20,7 @@ export interface UsageKeyStat {
     total: number;
 }
 
-export function useUsageSpend(liveUsage: LiveUsageOutput | undefined) {
+export function useUsageSpend(liveUsage: UsageOverview | undefined) {
     const openRouter = liveUsage?.openRouter;
     const activity = openRouter?.overview;
     const keys = activity?.keys ?? [];

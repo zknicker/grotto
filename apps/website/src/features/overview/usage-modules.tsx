@@ -1,5 +1,6 @@
 import type { IconSvgElement } from '@hugeicons/react';
 import { ChatGptIcon } from '@hugeicons-pro/core-stroke-rounded';
+import type { HostedUsageOverview } from '@tavern/api';
 import { Card, CardContent } from '../../components/ui/card.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { Progress } from '../../components/ui/progress.tsx';
@@ -11,6 +12,7 @@ import type { LiveUsageOutput } from '../../lib/trpc.tsx';
 import { UsageSpendModule } from './usage-spend-module.tsx';
 
 const usageAccent = 'var(--color-brand)';
+export type UsageOverview = HostedUsageOverview | LiveUsageOutput;
 
 export function UsageModules() {
     const [liveUsage] = useLiveUsageSuspense();
@@ -20,8 +22,25 @@ export function UsageModules() {
             .filter((provider) => provider.isConnected)
             .map((provider) => provider.provider)
     );
-    const showCodex = connectedProviders.has('openai-codex');
-    const showOpenRouter = connectedProviders.has('openrouter');
+
+    return <UsageModulesView connectedProviders={[...connectedProviders]} liveUsage={liveUsage} />;
+}
+
+export function UsageModulesView({
+    allowOpenRouterConfiguration = true,
+    connectedProviders,
+    liveUsage,
+}: {
+    allowOpenRouterConfiguration?: boolean;
+    connectedProviders: string[];
+    liveUsage: HostedUsageOverview | LiveUsageOutput | undefined;
+}) {
+    const providerSet = new Set(connectedProviders);
+    const showCodex = providerSet.has('openai-codex');
+    const showOpenRouter =
+        providerSet.has('openrouter') ||
+        liveUsage?.openRouter.status === 'error' ||
+        liveUsage?.openRouter.overview.status === 'unconfigured';
 
     return (
         <div className="grid gap-3">
@@ -36,7 +55,12 @@ export function UsageModules() {
                 />
             ) : null}
 
-            {showOpenRouter ? <UsageSpendModule liveUsage={liveUsage} /> : null}
+            {showOpenRouter ? (
+                <UsageSpendModule
+                    allowManagementKeyForm={allowOpenRouterConfiguration}
+                    liveUsage={liveUsage}
+                />
+            ) : null}
 
             {showCodex || showOpenRouter ? null : <NoSupportedUsageSources />}
         </div>
@@ -74,7 +98,7 @@ function UsageCard({
 }: {
     accent: string;
     icon: IconSvgElement;
-    state: LiveUsageOutput['codex'] | undefined;
+    state: UsageOverview['codex'] | undefined;
     title: string;
     windowIds: string[];
     windowLabels: string[];

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-import { computerBootstrapProtocolVersion } from '@tavern/api';
+import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@tavern/api';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
 let harness: GrottoServerHarness;
@@ -8,8 +8,10 @@ const userId = 'usr_bootstrap0000000';
 const serverId = 'srv_bootstrap0000000';
 const computerId = 'cmp_bootstrap0000000';
 const oldComputerId = 'cmp_oldbootstrap0000';
+const usageComputerId = 'cmp_usagebootstrap00';
 const credential = 'computer-bootstrap-credential-00000000';
 const oldCredential = 'old-computer-bootstrap-credential-000';
+const usageCredential = 'usage-computer-bootstrap-credential-0';
 
 beforeAll(async () => {
     harness = await startGrottoServerHarness();
@@ -29,7 +31,8 @@ beforeAll(async () => {
         insert into computers (id, server_id, attached_by_user_id, credential_hash)
         values
             (${computerId}, ${serverId}, ${userId}, ${digest(credential)}),
-            (${oldComputerId}, ${serverId}, ${userId}, ${digest(oldCredential)})
+            (${oldComputerId}, ${serverId}, ${userId}, ${digest(oldCredential)}),
+            (${usageComputerId}, ${serverId}, ${userId}, ${digest(usageCredential)})
     `;
 });
 
@@ -112,6 +115,75 @@ test('a Computer without stable bootstrap fails closed', async () => {
         })
     );
     expect(await closed(socket)).toBe(4403);
+});
+
+test('a compatible Computer report becomes the durable Server usage snapshot', async () => {
+    const socket = new WebSocket(computerSocketUrl());
+    await opened(socket);
+    socket.send(
+        JSON.stringify({
+            architecture: 'arm64',
+            bootstrapProtocolVersion: computerBootstrapProtocolVersion,
+            credential: usageCredential,
+            health: 'healthy',
+            operatingSystem: 'darwin',
+            productVersion: '1.1.0',
+            protocolVersion: computerProtocolVersion,
+            type: 'bootstrap',
+            update: {
+                detail: null,
+                phase: 'idle',
+                targetVersion: null,
+                updatedAt: '2026-07-28T20:00:00.000Z',
+            },
+        })
+    );
+    expect(await message(socket)).toEqual({
+        mode: 'ordinary',
+        type: 'bootstrap-accepted',
+    });
+
+    socket.send(
+        JSON.stringify({
+            type: 'usage-report',
+            usage: {
+                capturedAt: '2026-07-28T20:00:00.000Z',
+                codex: {
+                    error: { code: 'auth', message: 'Not signed in', name: 'UsageError' },
+                    provider: 'codex',
+                    status: 'error',
+                },
+                connectedProviders: [],
+                openRouter: {
+                    error: null,
+                    overview: {
+                        days: 30,
+                        keys: [],
+                        message: 'Not configured',
+                        note: null,
+                        series: [],
+                        status: 'unconfigured',
+                        totalByokUsageUsd: 0,
+                        totalRequests: 0,
+                        totalUsageUsd: 0,
+                    },
+                    status: 'ok',
+                },
+            },
+        })
+    );
+
+    await eventually(async () => {
+        const [row] = (await harness.sql`
+            select usage_snapshot, usage_reported_at
+            from computers where id = ${usageComputerId}
+        `) as { usage_reported_at: Date | null; usage_snapshot: string | null }[];
+        expect(JSON.parse(row.usage_snapshot ?? '{}')).toMatchObject({
+            capturedAt: '2026-07-28T20:00:00.000Z',
+        });
+        expect(row.usage_reported_at).toBeInstanceOf(Date);
+    });
+    socket.close();
 });
 
 function digest(value: string) {

@@ -65,6 +65,8 @@ const schemaStatements = [
         operating_system text,
         architecture text,
         reported_inventory jsonb,
+        usage_snapshot jsonb,
+        usage_reported_at timestamptz,
         health text NOT NULL DEFAULT 'offline'
             CONSTRAINT computers_health CHECK (
                 health IN ('offline', 'healthy', 'degraded', 'update-required')

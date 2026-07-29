@@ -70,11 +70,12 @@ export function ProviderCatalogPopover({
                     <div className="sticky top-0 z-10 border-b bg-popover">
                         <SearchInput
                             aria-label="Search providers"
-                            className="[&_[data-slot=input-control]]:h-12 [&_[data-slot=input-control]]:rounded-none [&_[data-slot=input-control]]:border-0 [&_[data-slot=input-control]]:bg-transparent [&_[data-slot=input-control]]:shadow-none [&_[data-slot=input-control]]:has-focus-visible:ring-0"
                             name="provider-search"
                             onChange={(event) => setQuery(event.target.value)}
                             placeholder="Search providers..."
+                            size="xl"
                             value={query}
+                            variant="flush"
                         />
                     </div>
 

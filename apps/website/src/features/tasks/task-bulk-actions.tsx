@@ -119,11 +119,10 @@ export function TaskBulkActions({
 
                         <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-border" />
                         <Button
-                            className="text-destructive-foreground"
                             onClick={() => applyPatch({ status: 'closed' }, 'close')}
                             size="sm"
                             type="button"
-                            variant="ghost"
+                            variant="destructive-ghost"
                         >
                             <Icon aria-hidden="true" className="size-4" icon={CancelCircleIcon} />
                             Close

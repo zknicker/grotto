@@ -8,9 +8,15 @@ export type InputProps = Omit<
     InputPrimitive.Props & React.RefAttributes<HTMLInputElement>,
     'size'
 > & {
-    size?: 'sm' | 'default' | 'lg' | number;
+    size?: 'sm' | 'default' | 'lg' | 'xl' | number;
     unstyled?: boolean;
     nativeInput?: boolean;
+    /**
+     * `flush` drops the field chrome — border, fill, radius, and focus ring —
+     * so the input can sit as a seam-free header inside a popover or panel
+     * that already draws its own edges.
+     */
+    variant?: 'default' | 'flush';
 };
 
 export function Input({
@@ -18,6 +24,7 @@ export function Input({
     size = 'default',
     unstyled = false,
     nativeInput = false,
+    variant = 'default',
     ...props
 }: InputProps): React.ReactElement {
     const inputClassName = cn(
@@ -34,11 +41,15 @@ export function Input({
         <span
             className={
                 cn(
+                    !unstyled && 'relative inline-flex w-full cursor-text text-foreground',
                     !unstyled &&
-                        'relative inline-flex w-full cursor-text rounded-lg border border-border/70 bg-muted/55 text-foreground ring-ring/24 transition-[background-color,border-color,box-shadow] hover:border-border hover:bg-muted/80 has-focus-visible:has-aria-invalid:border-destructive/64 has-focus-visible:has-aria-invalid:ring-destructive/16 has-aria-invalid:border-destructive/36 has-focus-visible:border-ring has-autofill:bg-muted/80 has-disabled:opacity-64 has-focus-visible:ring-[3px] dark:border-border/55 dark:bg-input/45 dark:has-autofill:bg-foreground/8 dark:has-aria-invalid:ring-destructive/24 dark:hover:border-border/75 dark:hover:bg-input/60',
+                        variant === 'default' &&
+                        'rounded-lg border border-border/70 bg-muted/55 ring-ring/24 transition-[background-color,border-color,box-shadow] hover:border-border hover:bg-muted/80 has-focus-visible:has-aria-invalid:border-destructive/64 has-focus-visible:has-aria-invalid:ring-destructive/16 has-aria-invalid:border-destructive/36 has-focus-visible:border-ring has-autofill:bg-muted/80 has-disabled:opacity-64 has-focus-visible:ring-[3px] dark:border-border/55 dark:bg-input/45 dark:has-autofill:bg-foreground/8 dark:has-aria-invalid:ring-destructive/24 dark:hover:border-border/75 dark:hover:bg-input/60',
+                    !unstyled && variant === 'flush' && 'bg-transparent has-disabled:opacity-64',
                     !unstyled && size === 'default' && 'h-8',
                     !unstyled && size === 'sm' && 'h-7',
                     !unstyled && size === 'lg' && 'h-10 sm:h-9',
+                    !unstyled && size === 'xl' && 'h-11',
                     className
                 ) || undefined
             }

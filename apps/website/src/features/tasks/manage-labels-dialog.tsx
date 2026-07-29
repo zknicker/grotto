@@ -117,7 +117,7 @@ function LabelRow({ label, onDelete }: { label: LabelRecord; onDelete: () => voi
             />
             <Input
                 aria-label={`Rename ${label.name}`}
-                className="h-8 flex-1"
+                className="flex-1"
                 disabled={updateMutation.isPending}
                 onBlur={commitName}
                 onChange={(event) => setName(event.currentTarget.value)}

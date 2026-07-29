@@ -64,11 +64,12 @@ export function PickerPopover<Item extends PickerPopoverItem>({
                             <div className="sticky top-0 z-10 border-border-subtle border-b bg-popover">
                                 <SearchInput
                                     aria-label={searchPlaceholder}
-                                    className="[&_[data-slot=input-control]]:h-10 [&_[data-slot=input-control]]:rounded-none [&_[data-slot=input-control]]:border-0 [&_[data-slot=input-control]]:bg-transparent [&_[data-slot=input-control]]:shadow-none [&_[data-slot=input-control]]:has-focus-visible:ring-0"
                                     name="picker-search"
                                     onChange={(event) => setQuery(event.target.value)}
                                     placeholder={searchPlaceholder}
+                                    size="xl"
                                     value={query}
+                                    variant="flush"
                                 />
                             </div>
                             {visibleItems.length > 0 ? (

@@ -64,9 +64,9 @@ export function ProfileSettings() {
                                         ? 'Change profile photo'
                                         : 'Upload profile photo'
                                 }
-                                className="group/avatar size-10 overflow-visible rounded-full p-0 hover:bg-transparent sm:size-10"
+                                className="group/avatar overflow-visible rounded-full hover:bg-transparent"
                                 onClick={() => fileInputRef.current?.click()}
-                                size="icon-lg"
+                                size="icon-xl"
                                 variant="ghost"
                             >
                                 <AvatarPreview avatarUrl={profile.avatarUrl} name={displayName} />

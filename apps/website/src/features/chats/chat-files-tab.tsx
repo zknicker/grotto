@@ -42,8 +42,8 @@ export function ChatFilesTab({ chatId, enabled }: { chatId: string; enabled: boo
                     <EmptyMedia variant="icon">
                         <Icon icon={Attachment01Icon} />
                     </EmptyMedia>
-                    <EmptyTitle className="text-base">No files yet</EmptyTitle>
-                    <EmptyDescription className="text-sm">
+                    <EmptyTitle size="sm">No files yet</EmptyTitle>
+                    <EmptyDescription size="sm">
                         Attach files in Chat, or drag files into the message composer. They will
                         appear here after the message is sent.
                     </EmptyDescription>

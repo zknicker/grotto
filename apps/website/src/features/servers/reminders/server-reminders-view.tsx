@@ -140,9 +140,7 @@ export function ServerRemindersView({
                 </PaneTopbar>
                 {actionErrorMessage ? (
                     <Alert className="rounded-none border-x-0 border-t-0" variant="error">
-                        <AlertDescription className="text-error-foreground">
-                            {actionErrorMessage}
-                        </AlertDescription>
+                        <AlertDescription>{actionErrorMessage}</AlertDescription>
                     </Alert>
                 ) : null}
                 <PaneBody className="overflow-y-auto px-6 py-5">

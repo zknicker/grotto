@@ -39,8 +39,8 @@ export function WorkstreamEmptyPage({
                     <EmptyMedia variant="icon">
                         <Icon icon={icon} />
                     </EmptyMedia>
-                    <EmptyTitle className="text-base">{title}</EmptyTitle>
-                    <EmptyDescription className="text-sm">{description}</EmptyDescription>
+                    <EmptyTitle size="sm">{title}</EmptyTitle>
+                    <EmptyDescription size="sm">{description}</EmptyDescription>
                 </EmptyHeader>
             </Empty>
         </div>

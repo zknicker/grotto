@@ -98,7 +98,13 @@ function ArtifactOptionsMenu({ target }: { target: TavernResourceTarget }) {
         <Menu>
             <MenuTrigger
                 aria-label="Artifact options"
-                className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                render={
+                    <Button
+                        className="text-muted-foreground hover:text-foreground"
+                        size="icon-sm"
+                        variant="ghost"
+                    />
+                }
             >
                 <Icon className="size-3.5" icon={MoreHorizontalIcon} />
             </MenuTrigger>

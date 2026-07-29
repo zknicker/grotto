@@ -79,13 +79,44 @@ export function EmptyMedia({
     );
 }
 
+/* Empty states come in two scales: `default` for a full page or route, `sm`
+   for an empty region inside a panel, tab, or drawer where the page-level
+   scale would shout. */
+const emptyTitleVariants = cva('font-heading font-semibold', {
+    defaultVariants: {
+        size: 'default',
+    },
+    variants: {
+        size: {
+            default: 'text-xl',
+            sm: 'text-base',
+        },
+    },
+});
+
+const emptyDescriptionVariants = cva(
+    'text-muted-foreground [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4 [[data-slot=empty-title]+&]:mt-1',
+    {
+        defaultVariants: {
+            size: 'default',
+        },
+        variants: {
+            size: {
+                default: 'text-base',
+                sm: 'text-sm',
+            },
+        },
+    }
+);
+
 export function EmptyTitle({
     className,
+    size,
     ...props
-}: React.ComponentProps<'div'>): React.ReactElement {
+}: React.ComponentProps<'div'> & VariantProps<typeof emptyTitleVariants>): React.ReactElement {
     return (
         <div
-            className={cn('font-heading font-semibold text-xl', className)}
+            className={cn(emptyTitleVariants({ className, size }))}
             data-slot="empty-title"
             {...props}
         />
@@ -94,14 +125,12 @@ export function EmptyTitle({
 
 export function EmptyDescription({
     className,
+    size,
     ...props
-}: React.ComponentProps<'p'>): React.ReactElement {
+}: React.ComponentProps<'p'> & VariantProps<typeof emptyDescriptionVariants>): React.ReactElement {
     return (
         <div
-            className={cn(
-                'text-base text-muted-foreground [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4 [[data-slot=empty-title]+&]:mt-1',
-                className
-            )}
+            className={cn(emptyDescriptionVariants({ className, size }))}
             data-slot="empty-description"
             {...props}
         />

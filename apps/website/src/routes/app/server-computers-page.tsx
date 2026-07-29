@@ -83,7 +83,7 @@ export function ServerComputersPage() {
                         {items.length === 0 ? (
                             <Empty className="px-3 py-10 md:py-10">
                                 <EmptyHeader>
-                                    <EmptyDescription className="text-sm">
+                                    <EmptyDescription size="sm">
                                         No Computers attached.
                                     </EmptyDescription>
                                 </EmptyHeader>
@@ -95,7 +95,7 @@ export function ServerComputersPage() {
                             Add one from an Apple Silicon Mac:
                         </p>
                         <CodeSnippet
-                            className="mt-2 h-auto py-2"
+                            className="mt-2"
                             lines={`curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /${slug}`}
                         />
                     </div>

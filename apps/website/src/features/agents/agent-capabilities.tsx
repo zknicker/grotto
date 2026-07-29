@@ -66,9 +66,7 @@ export function AgentCapabilities({
             </CapabilityRow>
             {skillsError ? (
                 <Alert variant="error">
-                    <AlertDescription className="text-error-foreground">
-                        Skills are unavailable: {skillsError}
-                    </AlertDescription>
+                    <AlertDescription>Skills are unavailable: {skillsError}</AlertDescription>
                 </Alert>
             ) : null}
         </section>

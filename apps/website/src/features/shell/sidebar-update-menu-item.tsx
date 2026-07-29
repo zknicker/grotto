@@ -19,7 +19,7 @@ export function SidebarUpdateMenuItem() {
         <SidebarMenuItem>
             <Button
                 aria-label={`${update.sidebarLabel}: ${update.status.detail}`}
-                className="h-[1.875rem] w-full max-w-full justify-start overflow-hidden px-2 text-sm"
+                className="w-full max-w-full justify-start overflow-hidden px-2"
                 disabled={!update.canAct}
                 onClick={update.activate}
                 variant={isIssue ? 'destructive-soft' : 'brand-soft'}

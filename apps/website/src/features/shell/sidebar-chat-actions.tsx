@@ -222,9 +222,7 @@ function SidebarChatSystemPromptForm({
                 </div>
                 {errorMessage ? (
                     <Alert variant="error">
-                        <AlertDescription className="text-error-foreground">
-                            {errorMessage}
-                        </AlertDescription>
+                        <AlertDescription>{errorMessage}</AlertDescription>
                     </Alert>
                 ) : null}
             </DialogPanel>
@@ -319,9 +317,7 @@ function SidebarChatRenameForm({
                 </div>
                 {errorMessage ? (
                     <Alert variant="error">
-                        <AlertDescription className="text-error-foreground">
-                            {errorMessage}
-                        </AlertDescription>
+                        <AlertDescription>{errorMessage}</AlertDescription>
                     </Alert>
                 ) : null}
             </DialogPanel>

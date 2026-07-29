@@ -178,7 +178,7 @@ function PromptRail({
                 </DialogClose>
                 <div className="flex flex-col gap-1.5">
                     <Badge
-                        className="max-w-full justify-start normal-case tracking-normal"
+                        className="max-w-full justify-start"
                         size="chip"
                         title={agentName}
                         variant="chip"

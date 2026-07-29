@@ -9,6 +9,7 @@ import {
     MenuPopup,
     MenuTrigger,
 } from '../../components/ui/menu.tsx';
+import { Button } from '../../components/ui/primitives/button.tsx';
 import type { TavernResourceTarget } from './tavern-resource-link.ts';
 
 export function ArtifactPanelSourceMenu({
@@ -22,7 +23,13 @@ export function ArtifactPanelSourceMenu({
         <Menu>
             <MenuTrigger
                 aria-label="Open from source"
-                className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                render={
+                    <Button
+                        className="text-muted-foreground hover:text-foreground"
+                        size="icon-sm"
+                        variant="ghost"
+                    />
+                }
                 title="Open from source"
             >
                 <Icon aria-hidden="true" className="size-3.5" icon={PlusSignIcon} />

@@ -16,8 +16,10 @@ export const badgeVariants = cva(
         variants: {
             size: {
                 /* Label chip: a roomier badge that carries an icon plus a
-                   truncating label (chat and session badges). */
-                chip: 'h-7 min-w-0 gap-1.5 rounded-md px-1.5 text-sm',
+                   truncating label (chat, session, and skill badges). Chip
+                   content is a name, not structure, so it drops the badge
+                   mono-uppercase treatment and reads sentence case. */
+                chip: 'h-7 min-w-0 gap-1.5 rounded-md px-1.5 text-sm normal-case tracking-normal',
                 default:
                     'h-5.5 min-w-5.5 px-[calc(--spacing(1)-1px)] text-sm sm:h-4.5 sm:min-w-4.5 sm:text-xs',
                 lg: 'h-6.5 min-w-6.5 px-[calc(--spacing(1.5)-1px)] text-base sm:h-5.5 sm:min-w-5.5 sm:text-sm',

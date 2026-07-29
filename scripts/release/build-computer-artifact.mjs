@@ -8,6 +8,12 @@ import { computerArtifactName, computerProtocolVersion } from './computer-releas
 import { fail, repoRoot } from './release-utils.mjs';
 
 export const computerReleaseRoot = path.join(repoRoot, 'apps', 'computer', 'release');
+const computerEntitlementsPath = path.join(
+    repoRoot,
+    'scripts',
+    'release',
+    'computer-entitlements.plist'
+);
 
 export async function buildComputerArtifact(input) {
     const artifactPath = path.join(computerReleaseRoot, computerArtifactName);
@@ -59,6 +65,8 @@ export function signAndNotarizeComputer(artifactPath, input) {
         '--options',
         'runtime',
         '--timestamp',
+        '--entitlements',
+        computerEntitlementsPath,
         '--sign',
         input.appleSigningIdentity,
         artifactPath,

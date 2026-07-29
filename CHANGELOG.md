@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.9 - 2026-07-29
+
+- Restored hosted Agent directories when PostgreSQL JSON values are written
+  through Bun, and replaced the misleading empty-directory state with a clear
+  loading or unavailable state.
+- Grotto Computer 1.1.2 discovers Codex and other supported runtimes from the
+  deterministic service environment used for Agent launches, including
+  Homebrew and local-user installs. Broken executable shims are ignored without
+  hiding healthy runtimes.
+
+### Release surfaces
+
+- App/Server: Publish v1.6.9
+- Desktop: Publish v1.6.9
+- Computer: Publish v1.1.2
+- Runtime: Unchanged
+
 ## v1.6.8 - 2026-07-29
 
 - Hosted Grotto now serves its public privacy policy from the same Mac mini

@@ -1,6 +1,5 @@
 import { Activity03Icon, ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
-import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import {
@@ -12,7 +11,7 @@ import {
 } from '../../components/ui/sidebar.tsx';
 import { StatusDot, type StatusDotProps } from '../../components/ui/status-dot.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
-import { AgentFace } from '../chats/agent-face.tsx';
+import { HostedAgentFace } from '../members/hosted-agent-face.tsx';
 import { AppSidebarFrame } from '../shell/sidebar.tsx';
 import { SidebarAuthItems } from '../shell/sidebar-auth-items.tsx';
 import { HostedServerChooser } from './hosted-server-chooser.tsx';
@@ -164,9 +163,9 @@ function ChatIcon({ agent }: { agent: HostedAgent | null }) {
 
     return (
         <span className="relative flex size-6 shrink-0 items-center justify-center overflow-visible">
-            <AgentFace
+            <HostedAgentFace
+                agent={agent}
                 animate={false}
-                head={resolveAgentDefaultCharacter(agent.id)}
                 size={24}
                 style={{ flexShrink: 0, height: 24, overflow: 'visible', width: 24 }}
             />

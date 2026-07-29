@@ -1,4 +1,8 @@
-import type { HostedAgentCreated, HostedCreateAgentInput } from '@tavern/api';
+import {
+    type HostedAgentCreated,
+    type HostedCreateAgentInput,
+    resolveAgentDefaultCharacter,
+} from '@tavern/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
@@ -59,7 +63,11 @@ export async function createHostedAgent(
 
         try {
             await tx.insert(agentsTable).values({
+                archetype: input.archetype ?? null,
+                character:
+                    input.archetype === 'guide' ? 'blob' : resolveAgentDefaultCharacter(agentId),
                 computerId: input.computerId,
+                description: input.description ?? null,
                 desiredModelId: input.modelId,
                 desiredRuntimeId: input.runtimeId,
                 displayName: input.displayName,
@@ -91,11 +99,13 @@ export async function createHostedAgent(
 
         const agentRow = {
             activeRunId: null,
+            archetype: input.archetype ?? null,
+            character: input.archetype === 'guide' ? 'blob' : resolveAgentDefaultCharacter(agentId),
             computerId: input.computerId,
             computerHealth,
             consecutiveFailures: 0,
             createdAt: new Date(),
-            description: null,
+            description: input.description ?? null,
             desiredModelId: input.modelId,
             desiredRuntimeId: input.runtimeId,
             displayName: input.displayName,

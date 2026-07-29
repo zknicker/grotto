@@ -1,4 +1,3 @@
-import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { CodeSnippet } from '../../components/ui/code-snippet.tsx';
@@ -18,7 +17,7 @@ import {
     SettingsValue,
 } from '../../components/ui/settings-row.tsx';
 import { StatusDot, type StatusDotProps } from '../../components/ui/status-dot.tsx';
-import { AgentFace } from '../../features/chats/agent-face.tsx';
+import { HostedAgentFace } from '../../features/members/hosted-agent-face.tsx';
 import { ComputerUpdateControls } from '../../features/servers/computer-update-controls.tsx';
 import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
 import { RequireOperator } from '../../features/servers/require-operator.tsx';
@@ -287,9 +286,9 @@ function AgentRowLabel({ agent }: { agent: GrottoOutputs['agent']['list'][number
                 aria-hidden="true"
                 className="flex size-6 shrink-0 items-center justify-center overflow-visible"
             >
-                <AgentFace
+                <HostedAgentFace
+                    agent={agent}
                     animate={false}
-                    head={resolveAgentDefaultCharacter(agent.id)}
                     size={24}
                     style={{ flexShrink: 0, height: 24, overflow: 'visible', width: 24 }}
                 />

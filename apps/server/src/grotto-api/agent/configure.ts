@@ -11,7 +11,10 @@ export const configureAgentProcedure = memberProcedure
         try {
             const agent = await configureHostedAgent(ctx.grottoDb, ctx.member, input);
             ctx.agentDelivery.configureAgent({
+                agentDescription: agent.description,
                 agentId: agent.id,
+                agentName: agent.displayName,
+                archetype: agent.archetype,
                 computerId: agent.computerId,
                 modelId: agent.desiredModelId,
                 runtimeId: agent.desiredRuntimeId,

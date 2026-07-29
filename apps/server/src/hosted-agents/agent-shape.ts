@@ -1,7 +1,15 @@
-import type { HostedAgent, HostedAgentAvailability, HostedAgentStatus } from '@tavern/api';
+import type {
+    AgentArchetypeId,
+    AgentCharacter,
+    HostedAgent,
+    HostedAgentAvailability,
+    HostedAgentStatus,
+} from '@tavern/api';
 
 export interface ConfiguredAgentRow {
     activeRunId: string | null;
+    archetype: AgentArchetypeId | null;
+    character: AgentCharacter;
     computerHealth: 'degraded' | 'healthy' | 'offline' | 'update-required';
     computerId: string | null;
     consecutiveFailures: number;
@@ -66,7 +74,9 @@ export function toHostedAgent(row: ConfiguredAgentRow): HostedAgent {
     }
 
     return {
+        archetype: row.archetype,
         availability: deriveAgentAvailability(row),
+        character: row.character,
         computerId: row.computerId,
         createdAt: row.createdAt.toISOString(),
         description: row.description,

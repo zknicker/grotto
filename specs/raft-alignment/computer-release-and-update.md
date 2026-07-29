@@ -40,7 +40,7 @@ never part of an install, update, rollback, or release artifact.
 {
   "release": {
     "artifactUrl": "https://releases.grotto.sh/computer/1.2.3/grotto-computer-aarch64-apple-darwin",
-    "protocolVersion": 3,
+    "protocolVersion": 4,
     "sha256": "<lowercase artifact sha256>",
     "sourceRevision": "<full lowercase git sha>",
     "version": "1.2.3"

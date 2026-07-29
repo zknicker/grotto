@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { hostedIdSchema } from './hosted-chat.ts';
 import {
+    agentArchetypeIdSchema,
     agentRuntimeBrowserActionResultSchema,
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
@@ -77,7 +78,10 @@ export type HostedAgentResetCommand = z.infer<typeof hostedAgentResetCommandSche
 /** Full desired executor snapshot applied by the assigned Computer. */
 export const hostedAgentConfigureCommandSchema = z
     .object({
+        agentDescription: z.string().trim().min(1).max(500).nullable(),
         agentId: hostedIdSchema,
+        agentName: z.string().trim().min(1).max(80),
+        archetype: agentArchetypeIdSchema.nullable(),
         modelId: z.string().trim().min(1).max(128),
         runtimeId: z.string().trim().min(1).max(64),
         type: z.literal('agent-configure'),

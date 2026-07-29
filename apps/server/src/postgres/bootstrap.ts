@@ -150,6 +150,17 @@ const schemaStatements = [
     `CREATE TABLE agents (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        archetype text
+            CONSTRAINT agents_archetype CHECK (
+                archetype IS NULL OR archetype IN (
+                    'operator', 'analyst', 'designer', 'writer',
+                    'coordinator', 'patrol', 'gate', 'guide'
+                )
+            ),
+        character text NOT NULL
+            CONSTRAINT agents_character CHECK (
+                character IN ('knight', 'owl', 'bird', 'robot', 'alien', 'blob')
+            ),
         handle text NOT NULL,
         display_name text NOT NULL,
         description text

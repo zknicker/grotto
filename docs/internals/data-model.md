@@ -134,11 +134,13 @@ only join table. These tables do not form a generic taxonomy. Task mutations
 write `task.created`, `task.updated`, or `task.label.updated` events in the
 same transaction; task and label reads remain the recovery source.
 
-Hosted Agent rows are deliberately narrower than the target Agent product:
-identity, role, home timezone, retirement, and Channel participation exist so
-reminders can have an explicit author and enforce Channel/Thread access. They
-do not represent creation/configuration, Computer assignment, credentials,
-execution, or transport.
+Hosted Agent rows own identity, persisted character and creation archetype,
+role, home timezone, retirement, immutable Computer assignment, Server-desired
+runtime/model configuration, the Computer-reported effective snapshot, and
+Channel participation. The creation archetype is retained so durable
+Computer configuration replay produces the same initial workspace seed.
+Computer credentials, execution transport, and turn evidence remain separate
+records.
 
 `reminders` owns the current schedule and anchor. `reminder_commands` makes
 schedule/update/snooze/cancel retries idempotent per actor and command id,

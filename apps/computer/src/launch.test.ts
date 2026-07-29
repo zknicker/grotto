@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { setHarnessAgentFactoryForTesting } from './harness/executor.ts';
 import {
     type Attachment,
@@ -277,7 +278,34 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
 });
 
 test('session and full reset preserve only the intended Agent-local state', async () => {
-    const agentRoot = join(dataRoot, 'servers', 'srv_reset', 'agents', 'agt_reset');
+    const agentId = 'agt_resetxxxxxxxxxxx';
+    const agentRoot = join(dataRoot, 'servers', 'srv_reset', 'agents', agentId);
+    const configuration = parseAgentConfigureCommand({
+        agentDescription: 'Onboarding guide',
+        agentId,
+        agentName: 'Cove',
+        archetype: 'guide',
+        modelId: 'gpt-5.6-sol',
+        runtimeId: 'codex',
+        type: 'agent-configure',
+    });
+    if (!configuration) {
+        throw new Error('Reset configuration fixture did not parse.');
+    }
+    await applyAgentConfiguration({
+        command: configuration,
+        dataRoot,
+        inventory: {
+            runtimes: [
+                {
+                    id: 'codex',
+                    label: 'Codex',
+                    models: [{ id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' }],
+                },
+            ],
+        },
+        serverId: 'srv_reset',
+    });
     await Promise.all(
         ['home', 'skills', 'workspace', 'runtime', '.agent-runs'].map((dir) =>
             mkdir(join(agentRoot, dir), { recursive: true })
@@ -297,7 +325,7 @@ test('session and full reset preserve only the intended Agent-local state', asyn
     );
 
     await resetAgentState({
-        agentId: 'agt_reset',
+        agentId: configuration.agentId,
         dataRoot,
         kind: 'session',
         serverId: 'srv_reset',
@@ -307,10 +335,14 @@ test('session and full reset preserve only the intended Agent-local state', asyn
     expect(await readFile(join(agentRoot, 'workspace', 'kept.txt'), 'utf8')).toBe('kept');
 
     await resetAgentState({
-        agentId: 'agt_reset',
+        agentId: configuration.agentId,
         dataRoot,
         kind: 'full',
         serverId: 'srv_reset',
     });
-    await expect(stat(agentRoot)).rejects.toThrow();
+    expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toContain(
+        'notes/onboarding-playbook.md'
+    );
+    await expect(stat(join(agentRoot, 'workspace', 'kept.txt'))).rejects.toThrow();
+    expect((await stat(join(agentRoot, 'configuration.json'))).isFile()).toBe(true);
 });

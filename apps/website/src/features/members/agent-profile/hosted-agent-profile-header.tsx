@@ -1,7 +1,6 @@
 import { StopIcon } from '@hugeicons-pro/core-solid-rounded';
 import { Cancel01Icon, Message01Icon, RefreshIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent } from '@tavern/api';
-import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
@@ -10,8 +9,8 @@ import { Tooltip } from '../../../components/ui/tooltip.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import { cn } from '../../../lib/utils.ts';
-import { AgentFace } from '../../chats/agent-face.tsx';
 import { serverChatRoute } from '../../servers/server-routes.ts';
+import { HostedAgentFace } from '../hosted-agent-face.tsx';
 
 export function HostedAgentProfileHeader({
     agent,
@@ -49,9 +48,9 @@ export function HostedAgentProfileHeader({
         >
             <div className="flex min-w-0 items-center gap-3">
                 <span className="flex size-14 shrink-0 items-center justify-center">
-                    <AgentFace
+                    <HostedAgentFace
+                        agent={agent}
                         animate={agent.availability === 'working'}
-                        head={resolveAgentDefaultCharacter(agent.id)}
                         size={variant === 'page' ? 52 : 44}
                     />
                 </span>

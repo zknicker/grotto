@@ -1,3 +1,4 @@
+import type { AgentArchetypeId } from '@tavern/api';
 import { and, eq, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -374,7 +375,10 @@ export async function listComputerAgents(
     computerId: string
 ): Promise<
     {
+        agentDescription: string | null;
         agentId: string;
+        agentName: string;
+        archetype: AgentArchetypeId | null;
         desiredModelId: string | null;
         desiredRuntimeId: string | null;
         serverId: string;
@@ -382,7 +386,10 @@ export async function listComputerAgents(
 > {
     const rows = await db
         .select({
+            agentDescription: agentsTable.description,
             agentId: agentsTable.id,
+            agentName: agentsTable.displayName,
+            archetype: agentsTable.archetype,
             desiredModelId: agentsTable.desiredModelId,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
             serverId: agentsTable.serverId,

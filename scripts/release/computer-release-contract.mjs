@@ -1,7 +1,7 @@
 import { createHash, createPublicKey, sign, timingSafeEqual, verify } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
-export const computerProtocolVersion = 3;
+export const computerProtocolVersion = 4;
 export const computerArtifactName = 'grotto-computer-aarch64-apple-darwin';
 
 export function computerReleaseSigningPayload(release) {

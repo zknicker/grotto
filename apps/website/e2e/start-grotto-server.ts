@@ -32,7 +32,7 @@ const computerReleaseServer = Bun.serve({
             release: {
                 artifactUrl:
                     'https://updates.grotto.test/1.1.0/grotto-computer-aarch64-apple-darwin',
-                protocolVersion: 3,
+                protocolVersion: 4,
                 sha256: 'a'.repeat(64),
                 sourceRevision: 'b'.repeat(40),
                 version: '1.1.0',

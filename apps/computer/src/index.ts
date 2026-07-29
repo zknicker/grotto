@@ -5,6 +5,7 @@ import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { runAgentCli } from './agent-cli.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
+import { AgentConfigurationQueue } from './agent-configuration-queue.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import { computerEntrypoint, computerSourceRevision, computerVersion } from './build-identity.ts';
@@ -602,6 +603,7 @@ async function connect(attachment: Attachment) {
         { deliver: (pending: number) => Promise<boolean>; runId: string }
     >();
     const resettingAgents = new Set<string>();
+    const agentConfigurations = new AgentConfigurationQueue();
     const pendingWriters = new Set<Promise<unknown>>();
     let deleting = false;
     const trackWriter = <Result>(operation: Promise<Result>) => {
@@ -611,6 +613,51 @@ async function connect(attachment: Attachment) {
             () => pendingWriters.delete(operation)
         );
         return operation;
+    };
+    const startAgent = (command: HostedAgentStartCommand) => {
+        if (resettingAgents.has(command.agentId)) {
+            return;
+        }
+        // Reserve the run synchronously, before any async marker I/O, so a
+        // duplicate start frame that arrives mid-launch is deduped here
+        // instead of racing into a second concurrent child.
+        const reservation = reserveAgentRun(running, agentRuns, command.agentId, command.runId);
+        if (reservation.kind === 'duplicate') {
+            socket.send(
+                JSON.stringify({
+                    agentId: command.agentId,
+                    runId: command.runId,
+                    type: 'ack',
+                })
+            );
+            return;
+        }
+        if (reservation.kind === 'busy') {
+            return;
+        }
+        void trackWriter(
+            admitActiveRun(dataRoot, command.runId)
+                .then((clearActiveRun) => {
+                    if (!clearActiveRun) {
+                        releaseAgentRun(running, agentRuns, command.agentId, command.runId);
+                        return;
+                    }
+                    return handleStartCommand({
+                        agentRuns,
+                        attachment,
+                        clearActiveRun,
+                        command,
+                        controller: reservation.controller,
+                        noticeSinks,
+                        running,
+                        socket,
+                    });
+                })
+                .catch((error) => {
+                    releaseAgentRun(running, agentRuns, command.agentId, command.runId);
+                    console.error(error instanceof Error ? error.message : error);
+                })
+        );
     };
     let lastProgress = JSON.stringify(initialProgress);
     let usageTimer: ReturnType<typeof setInterval> | null = null;
@@ -699,15 +746,16 @@ async function connect(attachment: Attachment) {
             const configuration = parseAgentConfigureCommand(frame);
             if (configuration) {
                 void trackWriter(
-                    waitForAgentRunToSettle(agentRuns, configuration.agentId)
-                        .then(() =>
-                            applyAgentConfiguration({
+                    agentConfigurations
+                        .enqueue(configuration.agentId, async () => {
+                            await waitForAgentRunToSettle(agentRuns, configuration.agentId);
+                            await applyAgentConfiguration({
                                 command: configuration,
                                 dataRoot,
                                 inventory: detectInventory(),
                                 serverId: attachment.serverId,
-                            })
-                        )
+                            });
+                        })
                         .then(() => sendComputerReport(socket, attachment.serverId))
                         .catch(reportStateError)
                 );
@@ -777,7 +825,9 @@ async function connect(attachment: Attachment) {
                     running.get(runId)?.abort();
                 }
                 void trackWriter(
-                    waitForAgentRunToSettle(agentRuns, reset.agentId)
+                    agentConfigurations
+                        .wait(reset.agentId)
+                        .then(() => waitForAgentRunToSettle(agentRuns, reset.agentId))
                         .then(() =>
                             resetAgentState({
                                 agentId: reset.agentId,
@@ -836,53 +886,9 @@ async function connect(attachment: Attachment) {
             }
             const command = parseStartCommand(frame);
             if (command) {
-                if (resettingAgents.has(command.agentId)) {
-                    return;
-                }
-                // Reserve the run synchronously, before any async marker I/O, so a
-                // duplicate start frame that arrives mid-launch is deduped here
-                // instead of racing into a second concurrent child.
-                const reservation = reserveAgentRun(
-                    running,
-                    agentRuns,
-                    command.agentId,
-                    command.runId
-                );
-                if (reservation.kind === 'duplicate') {
-                    socket.send(
-                        JSON.stringify({
-                            agentId: command.agentId,
-                            runId: command.runId,
-                            type: 'ack',
-                        })
-                    );
-                    return;
-                }
-                if (reservation.kind === 'busy') {
-                    return;
-                }
+                const pendingConfiguration = agentConfigurations.wait(command.agentId);
                 void trackWriter(
-                    admitActiveRun(dataRoot, command.runId)
-                        .then((clearActiveRun) => {
-                            if (!clearActiveRun) {
-                                releaseAgentRun(running, agentRuns, command.agentId, command.runId);
-                                return;
-                            }
-                            return handleStartCommand({
-                                agentRuns,
-                                attachment,
-                                clearActiveRun,
-                                command,
-                                controller: reservation.controller,
-                                noticeSinks,
-                                running,
-                                socket,
-                            });
-                        })
-                        .catch((error) => {
-                            releaseAgentRun(running, agentRuns, command.agentId, command.runId);
-                            console.error(error instanceof Error ? error.message : error);
-                        })
+                    pendingConfiguration.then(() => startAgent(command)).catch(reportStateError)
                 );
             }
         });

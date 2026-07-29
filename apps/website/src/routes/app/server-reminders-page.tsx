@@ -1,4 +1,3 @@
-import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
 import { HostedServerReminders } from '../../features/servers/reminders/hosted-server-reminders.tsx';
 import { RequireOperator } from '../../features/servers/require-operator.tsx';
@@ -12,7 +11,7 @@ export function ServerRemindersPage() {
         >
             <HostedServerReminders
                 agents={agents.map((agent) => ({
-                    character: resolveAgentDefaultCharacter(agent.id),
+                    character: agent.character,
                     id: agent.id,
                     name: agent.displayName,
                     primaryColor: null,

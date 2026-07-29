@@ -1,6 +1,8 @@
 import * as z from 'zod';
+import { agentCharacterSchema } from './agent-appearance.ts';
 import { hostedWorkspacePathSchema } from './hosted-agent-runner.ts';
 import { hostedChatSchema, hostedIdSchema } from './hosted-chat.ts';
+import { agentArchetypeIdSchema } from './runtime/contracts.ts';
 
 const hostedTimestampSchema = z.iso.datetime({ offset: true });
 
@@ -90,7 +92,9 @@ export type HostedAgentAvailability = z.infer<typeof hostedAgentAvailabilitySche
 
 export const hostedAgentSchema = z
     .object({
+        archetype: agentArchetypeIdSchema.nullable(),
         availability: hostedAgentAvailabilitySchema,
+        character: agentCharacterSchema,
         computerId: hostedIdSchema,
         createdAt: hostedTimestampSchema,
         description: z.string().max(500).nullable(),
@@ -124,7 +128,9 @@ export const hostedAgentHandleSchema = z
 /** Creating an Agent binds it to exactly one reported Computer, runtime, and model. */
 export const hostedCreateAgentInputSchema = z
     .object({
+        archetype: agentArchetypeIdSchema.optional(),
         computerId: hostedIdSchema,
+        description: z.string().trim().min(1).max(500).nullable().optional(),
         displayName: z.string().trim().min(1).max(80),
         handle: hostedAgentHandleSchema,
         modelId: z.string().trim().min(1).max(128),

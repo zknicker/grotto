@@ -26,7 +26,9 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     await page.goto('/s/computer-hq/computers');
     await expect(page.getByText('Computers 1', { exact: true })).toBeVisible();
     await expect(page.getByText('Awaiting first report')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Copy code' })).toBeVisible();
+    await expect(
+        page.getByRole('complementary').getByRole('button', { name: 'Copy code' })
+    ).toBeVisible();
 
     const computer = new WebSocket(
         `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
@@ -118,7 +120,7 @@ function sendBootstrap(socket: WebSocket, credential: string, phase: 'complete' 
             health: 'healthy',
             operatingSystem: 'darwin',
             productVersion: phase === 'complete' ? '1.1.0' : '1.0.0',
-            protocolVersion: phase === 'complete' ? 3 : 999,
+            protocolVersion: phase === 'complete' ? 4 : 999,
             type: 'bootstrap',
             update: {
                 activeAgentCount: null,

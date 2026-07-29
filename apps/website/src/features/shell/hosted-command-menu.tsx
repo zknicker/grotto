@@ -1,5 +1,4 @@
 import type { HostedAgent, HostedChat } from '@tavern/api';
-import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { buildHostedCommandGroups } from '../../commands/hosted-commands.ts';
@@ -46,7 +45,7 @@ export function HostedCommandMenu({
             agents.map((agent) => [
                 agent.id,
                 {
-                    character: resolveAgentDefaultCharacter(agent.id),
+                    character: agent.character,
                     primaryColor: null,
                 },
             ])

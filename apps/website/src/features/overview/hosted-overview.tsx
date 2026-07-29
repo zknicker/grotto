@@ -1,5 +1,4 @@
 import type { HostedAgent, HostedChat } from '@tavern/api';
-import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import {
     serverActivityRoute,
@@ -53,7 +52,7 @@ export function HostedOverview({
 
 export function toOverviewAgent(agent: HostedAgent): OverviewAgent {
     return {
-        effectiveCharacter: resolveAgentDefaultCharacter(agent.id),
+        effectiveCharacter: agent.character,
         effectivePrimaryColor: null,
         id: agent.id,
         name: agent.displayName,

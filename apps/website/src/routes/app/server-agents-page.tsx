@@ -1,5 +1,4 @@
 import type { HostedAgent, HostedComputerInventory, HostedMcpConnection } from '@tavern/api';
-import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge.tsx';
@@ -23,7 +22,7 @@ import {
     SettingsRow,
     SettingsSection,
 } from '../../components/ui/settings-row.tsx';
-import { AgentFace } from '../../features/chats/agent-face.tsx';
+import { HostedAgentFace } from '../../features/members/hosted-agent-face.tsx';
 import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
@@ -139,6 +138,10 @@ function CreateAgentForm({
     const [displayName, setDisplayName] = React.useState(firstAgent ? 'Cove' : '');
     const [handle, setHandle] = React.useState(firstAgent ? 'cove' : '');
     const model = models.find((entry) => entry.id === modelId) ?? models[0];
+    const coveProposal =
+        firstAgent &&
+        displayName.trim().toLowerCase() === 'cove' &&
+        handle.trim().toLowerCase() === 'cove';
 
     return (
         <Form
@@ -146,7 +149,11 @@ function CreateAgentForm({
                 event.preventDefault();
                 create.mutate(
                     {
+                        archetype: coveProposal ? 'guide' : undefined,
                         computerId: computer?.id ?? '',
+                        description: coveProposal
+                            ? 'Onboarding guide — helps you shape your team and start real work'
+                            : undefined,
                         displayName: displayName.trim(),
                         handle: handle.trim(),
                         modelId: model?.id ?? modelId,
@@ -362,9 +369,9 @@ function AgentRowLabel({ agent }: { agent: HostedAgent }) {
                 aria-hidden="true"
                 className="flex size-6 shrink-0 items-center justify-center overflow-visible"
             >
-                <AgentFace
+                <HostedAgentFace
+                    agent={agent}
                     animate={false}
-                    head={resolveAgentDefaultCharacter(agent.id)}
                     size={24}
                     style={{ flexShrink: 0, height: 24, overflow: 'visible', width: 24 }}
                 />

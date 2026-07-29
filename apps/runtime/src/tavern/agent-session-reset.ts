@@ -1,9 +1,9 @@
 import fs from 'node:fs/promises';
+import { seedAgentWorkspace } from '@tavern/agent-workspace';
 import { closeMcpClientsForAgent } from '../agent-engine/mcp-clients.ts';
 import { agentSkillsDir, seedManagedSkills } from '../agent-engine/skill-library.ts';
 import { getDb } from '../db/connection.ts';
 import { registerAgentWorkspace } from '../workspace/instructions.ts';
-import { seedAgentWorkspace } from '../workspace/starter-kit.ts';
 import { startNewAgentSession } from './agent-session-store.ts';
 import { rotateAgentToken } from './agent-tokens.ts';
 import { getStoredAgent } from './agents-store.ts';

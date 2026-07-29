@@ -126,7 +126,7 @@ test('a Server-authorized future protocol release upgrades this Computer', async
     const peer = serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
     const release = signedRelease(peer.url, tarball, keys.privateKey);
-    release.release.protocolVersion = 4;
+    release.release.protocolVersion = 5;
     release.signature = sign(
         null,
         Buffer.from(computerReleaseSigningPayload(release.release)),
@@ -239,7 +239,7 @@ function signedRelease(
 ): SignedComputerRelease {
     const release = {
         artifactUrl,
-        protocolVersion: 3,
+        protocolVersion: 4,
         sha256: createHash('sha256').update(bytes).digest('hex'),
         sourceRevision: 'b'.repeat(40),
         version: '1.1.0',

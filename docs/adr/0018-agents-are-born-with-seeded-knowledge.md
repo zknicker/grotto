@@ -35,8 +35,11 @@ Raft's seven archetypes (operator, analyst, designer, writer, coordinator,
 patrol, verify gate) plus the onboarding guide. A proposal supplies a
 suggested handle, a one-line description (the personality surface — it rides
 every envelope), and a workspace lane note with the archetype's lane design
-and failure modes. The archetype is not stored on the agent record — it only
-shapes the seed, and everything remains editable.
+and failure modes. Runtime-created Agents use the archetype only while creating
+their workspace. Hosted Agents retain it as Server-owned configuration so a
+Computer can apply the same seed when it first configures the Agent or
+reconnects before configuration completes. Everything in the seeded workspace
+remains editable.
 
 **Onboarding is an agent, and Cove is the recommended first Agent.** The
 Grotto onboarding experience ships as the `guide` archetype — an Agent
@@ -75,6 +78,7 @@ characters (Otto → robot, Wren → bird).
   Grotto service registry or agent-login until the WS6 era), and the cards'
   "Proof it works" sections are dropped — they cite another team's history,
   and seeding them would fabricate the agent's own memory.
-- Sources live in `apps/runtime/src/workspace/`(`starter-kit.ts`,
+- Sources live in `packages/agent-workspace/src/` (`starter-kit.ts`,
   `practice-notes.ts`, `archetype-notes.ts`, `guide-notes.ts`); the recipe
-  corpus of record is `specs/raft-alignment/raft-recipes/`.
+  corpus of record is `specs/raft-alignment/raft-recipes/`. Runtime and
+  Computer both call this package; they do not maintain separate seed copies.

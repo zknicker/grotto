@@ -34,8 +34,8 @@ beforeAll(async () => {
     anchorMessageId = anchor.message.id;
     agentId = 'agt_reminder_api';
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone, role)
-        values (${agentId}, ${serverId}, 'Cove', 'Cove', 'America/New_York', 'member')
+        insert into agents (id, server_id, character, handle, display_name, home_timezone, role)
+        values (${agentId}, ${serverId}, 'blob', 'Cove', 'Cove', 'America/New_York', 'member')
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

@@ -1,7 +1,7 @@
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { archetypeSeedNotes } from './archetype-notes.ts';
 import { practiceNotes } from './practice-notes.ts';
 import { seedAgentWorkspace } from './starter-kit.ts';

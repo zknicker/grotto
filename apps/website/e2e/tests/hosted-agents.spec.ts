@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@tavern/api';
+import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
 import { createTRPCClient, httpLink } from '@trpc/client';
 import { WebSocket } from 'ws';
 import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
@@ -42,14 +44,15 @@ test('creates Cove after inventory is reported and fails closed on unreported co
     await reportInventory();
 
     await page.goto('/s/agent-hq/agents');
-    await expect(page.getByRole('heading', { name: 'Agents' })).toBeVisible();
-    await expect(page.getByLabel('Runtime')).toHaveValue('codex');
-    await expect(page.getByLabel('Model')).toHaveValue('gpt-5.6-sol');
+    await expect(page.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible();
+    await expect(page.getByLabel('Runtime')).toContainText('Codex');
+    await expect(page.getByLabel('Model')).toContainText('GPT-5.6 Sol');
     // Guided creation offers Cove as the default first Agent.
-    await expect(page.getByLabel('Name')).toHaveValue('Cove');
+    await expect(page.locator('#agent-name')).toHaveValue('Cove');
     await page.getByRole('button', { name: 'Create Agent' }).click();
 
     await expect(page.getByText('Cove')).toBeVisible();
+    await expect(page.getByLabel('blob agent')).toBeVisible();
     await expect(page.getByText('pending')).toBeVisible();
 
     // Deletion requires the exact Agent name. Cancel leaves this isolated
@@ -69,7 +72,7 @@ test('creates Cove after inventory is reported and fails closed on unreported co
 
     // The DM appears as an ordinary Agent DM, not a special onboarding Channel.
     await page.goto('/s/agent-hq');
-    await expect(page.getByRole('button', { name: 'Direct · @cove' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /blob agent.*Cove/iu })).toBeVisible();
 
     // Cross-Computer / unreported references fail closed at the contract.
     const [computer] = await owner.computer.list.query({ serverId: setup.serverId });
@@ -92,8 +95,14 @@ function reportInventory() {
             `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
         );
         socket.on('error', reject);
+        socket.on('close', (code, reason) => {
+            if (code !== 1005) {
+                reject(new Error(`Attachment socket closed ${code}: ${reason.toString()}`));
+            }
+        });
         socket.on('message', (raw) => {
-            if (JSON.parse(raw.toString()).type === 'accepted') {
+            if (JSON.parse(raw.toString()).type === 'bootstrap-accepted') {
+                socket.send(JSON.stringify({ agents: [], inventory, type: 'report' }));
                 socket.close();
                 resolve();
             }
@@ -102,13 +111,19 @@ function reportInventory() {
             socket.send(
                 JSON.stringify({
                     architecture: 'arm64',
+                    bootstrapProtocolVersion: computerBootstrapProtocolVersion,
                     credential: computerCredential,
                     health: 'healthy',
-                    inventory,
                     operatingSystem: 'darwin',
-                    productVersion: '1.0.0',
-                    protocolVersion: 1,
-                    type: 'hello',
+                    productVersion: '1.1.3',
+                    protocolVersion: computerProtocolVersion,
+                    type: 'bootstrap',
+                    update: {
+                        detail: null,
+                        phase: 'idle',
+                        targetVersion: null,
+                        updatedAt: new Date().toISOString(),
+                    },
                 })
             );
         });
@@ -119,7 +134,11 @@ function hostedClient(token: string) {
     return createTRPCClient<GrottoRouter>({
         links: [
             httpLink({
-                headers: { authorization: `Bearer ${token}` },
+                headers: {
+                    [appProtocolHeaders.productVersion]: 'e2e',
+                    [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
+                    authorization: `Bearer ${token}`,
+                },
                 url: `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/trpc`,
             }),
         ],

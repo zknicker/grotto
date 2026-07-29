@@ -3,7 +3,9 @@ import type { HostedAgent, HostedChat } from '@tavern/api';
 import { buildHostedOverviewActivity, toOverviewAgent } from './hosted-overview.tsx';
 
 const hostedAgent = {
+    archetype: null,
     availability: 'idle',
+    character: 'robot',
     computerId: 'computer-1',
     createdAt: '2026-07-28T12:00:00-04:00',
     description: null,
@@ -24,6 +26,7 @@ const hostedAgent = {
 
 test('hosted agents map into the preserved Overview presentation model', () => {
     expect(toOverviewAgent(hostedAgent)).toMatchObject({
+        effectiveCharacter: 'robot',
         effectivePrimaryColor: null,
         id: 'agent-1',
         name: 'Otto',

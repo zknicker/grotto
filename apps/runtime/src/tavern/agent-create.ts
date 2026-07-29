@@ -9,6 +9,7 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { seedAgentWorkspace } from '@tavern/agent-workspace';
 import type { AgentArchetypeId } from '@tavern/api';
 import {
     agentSkillsDir,
@@ -20,7 +21,6 @@ import { AGENT_HOME } from '../config.ts';
 import { getDb } from '../db/connection.ts';
 import type { Database } from '../db/sqlite.ts';
 import { registerAgentWorkspace } from '../workspace/instructions.ts';
-import { seedAgentWorkspace } from '../workspace/starter-kit.ts';
 import { upsertStoredAgent } from './agents-store.ts';
 
 // Seeded skills every new agent starts with. The pre-flip `tasks` skill is

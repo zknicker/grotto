@@ -32,6 +32,7 @@
     "@merchbase/http-client": "4.0.0",
     "@mozilla/readability": "0.6.0",
     "@tavern/api": "workspace:*",
+    "@tavern/agent-workspace": "workspace:*",
     "@tavern/codex-usage": "workspace:*",
     "@tobilu/qmd": "2.5.3",
     "agent-browser": "0.31.1",

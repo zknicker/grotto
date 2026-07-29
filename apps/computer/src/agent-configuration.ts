@@ -1,6 +1,12 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { HostedAgentConfigureCommand, HostedComputerInventory } from '@tavern/api';
+import { seedAgentWorkspace } from '@tavern/agent-workspace';
+import {
+    type AgentArchetypeId,
+    type HostedAgentConfigureCommand,
+    type HostedComputerInventory,
+    hostedAgentConfigureCommandSchema,
+} from '@tavern/api';
 
 export interface AppliedAgentConfiguration {
     missingResources: string[];
@@ -8,21 +14,15 @@ export interface AppliedAgentConfiguration {
     runtimeId: string | null;
 }
 
+export interface AgentSeedConfiguration {
+    agentDescription: string | null;
+    agentName: string;
+    archetype: AgentArchetypeId | null;
+}
+
 export function parseAgentConfigureCommand(frame: unknown): HostedAgentConfigureCommand | null {
-    if (
-        !isRecord(frame) ||
-        frame.type !== 'agent-configure' ||
-        !isId(frame.agentId) ||
-        typeof frame.modelId !== 'string' ||
-        frame.modelId.length === 0 ||
-        frame.modelId.length > 128 ||
-        typeof frame.runtimeId !== 'string' ||
-        frame.runtimeId.length === 0 ||
-        frame.runtimeId.length > 64
-    ) {
-        return null;
-    }
-    return frame as unknown as HostedAgentConfigureCommand;
+    const parsed = hostedAgentConfigureCommandSchema.safeParse(frame);
+    return parsed.success ? parsed.data : null;
 }
 
 export async function applyAgentConfiguration(input: {
@@ -45,9 +45,26 @@ export async function applyAgentConfiguration(input: {
             mkdir(join(agentRoot, directory), { mode: 0o700, recursive: true })
         )
     );
+    await seedAgentWorkspace({
+        agentName: input.command.agentName,
+        archetype: input.command.archetype,
+        bio: input.command.agentDescription,
+        workspaceDir: join(agentRoot, 'workspace'),
+    });
     const destination = join(agentRoot, 'configuration.json');
     const temporary = `${destination}.${process.pid}.tmp`;
-    await writeFile(temporary, `${JSON.stringify(applied)}\n`, { mode: 0o600 });
+    await writeFile(
+        temporary,
+        `${JSON.stringify({
+            ...applied,
+            seed: {
+                agentDescription: input.command.agentDescription,
+                agentName: input.command.agentName,
+                archetype: input.command.archetype,
+            },
+        })}\n`,
+        { mode: 0o600 }
+    );
     await rename(temporary, destination);
     return applied;
 }
@@ -59,7 +76,26 @@ export async function readAppliedAgentConfiguration(
         const value = JSON.parse(
             await readFile(join(agentRoot, 'configuration.json'), 'utf8')
         ) as unknown;
-        return isAppliedConfiguration(value) ? value : null;
+        return isAppliedConfiguration(value)
+            ? {
+                  missingResources: value.missingResources,
+                  modelId: value.modelId,
+                  runtimeId: value.runtimeId,
+              }
+            : null;
+    } catch {
+        return null;
+    }
+}
+
+export async function readAgentSeedConfiguration(
+    agentRoot: string
+): Promise<AgentSeedConfiguration | null> {
+    try {
+        const value = JSON.parse(
+            await readFile(join(agentRoot, 'configuration.json'), 'utf8')
+        ) as unknown;
+        return isRecord(value) && isAgentSeedConfiguration(value.seed) ? value.seed : null;
     } catch {
         return null;
     }
@@ -101,8 +137,28 @@ function isAppliedConfiguration(value: unknown): value is AppliedAgentConfigurat
     );
 }
 
-function isId(value: unknown) {
-    return typeof value === 'string' && /^[a-z]+_[A-Za-z0-9_-]{16}$/u.test(value);
+function isAgentSeedConfiguration(value: unknown): value is AgentSeedConfiguration {
+    return (
+        isRecord(value) &&
+        typeof value.agentName === 'string' &&
+        value.agentName.length > 0 &&
+        value.agentName.length <= 80 &&
+        (value.agentDescription === null ||
+            (typeof value.agentDescription === 'string' &&
+                value.agentDescription.length > 0 &&
+                value.agentDescription.length <= 500)) &&
+        (value.archetype === null ||
+            [
+                'operator',
+                'analyst',
+                'designer',
+                'writer',
+                'coordinator',
+                'patrol',
+                'gate',
+                'guide',
+            ].includes(value.archetype as string))
+    );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

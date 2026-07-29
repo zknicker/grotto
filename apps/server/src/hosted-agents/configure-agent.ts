@@ -63,6 +63,8 @@ export async function configureHostedAgent(
         const [row] = await tx
             .select({
                 activeRunId: agentDeliveryTable.activeRunId,
+                archetype: agentsTable.archetype,
+                character: agentsTable.character,
                 computerId: agentsTable.computerId,
                 consecutiveFailures: agentDeliveryTable.consecutiveFailures,
                 createdAt: agentsTable.createdAt,

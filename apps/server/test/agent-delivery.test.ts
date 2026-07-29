@@ -91,6 +91,7 @@ async function seedAgent(): Promise<Seed> {
         serverId,
     });
     await db.insert(agentsTable).values({
+        character: 'owl',
         computerId,
         desiredModelId: 'fake-model',
         desiredRuntimeId: 'fake',
@@ -252,7 +253,10 @@ test('ignores a duplicate delivery of the same message', async () => {
     await delivery.onComputerReconnect(seed.computerId);
     expect(transport.framesOfType('agent-configure')).toEqual([
         {
+            agentDescription: null,
             agentId: seed.agentId,
+            agentName: 'Ada',
+            archetype: null,
             modelId: 'fake-model',
             runtimeId: 'fake',
             type: 'agent-configure',

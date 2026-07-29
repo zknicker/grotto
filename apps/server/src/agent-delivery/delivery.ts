@@ -1,4 +1,5 @@
 import type {
+    AgentArchetypeId,
     HostedAgentCommand,
     HostedAgentInboxItem,
     HostedAgentTurnSummary,
@@ -317,7 +318,10 @@ export class AgentDelivery {
         for (const agent of agents) {
             if (agent.desiredModelId && agent.desiredRuntimeId) {
                 this.transport.send(computerId, {
+                    agentDescription: agent.agentDescription,
                     agentId: agent.agentId,
+                    agentName: agent.agentName,
+                    archetype: agent.archetype,
                     modelId: agent.desiredModelId,
                     runtimeId: agent.desiredRuntimeId,
                     type: 'agent-configure',
@@ -329,13 +333,19 @@ export class AgentDelivery {
 
     /** Best-effort immediate apply; reconnect reconciliation resends the full snapshot. */
     configureAgent(input: {
+        agentDescription: string | null;
         agentId: string;
+        agentName: string;
+        archetype: AgentArchetypeId | null;
         computerId: string;
         modelId: string;
         runtimeId: string;
     }): void {
         this.transport.send(input.computerId, {
+            agentDescription: input.agentDescription,
             agentId: input.agentId,
+            agentName: input.agentName,
+            archetype: input.archetype,
             modelId: input.modelId,
             runtimeId: input.runtimeId,
             type: 'agent-configure',

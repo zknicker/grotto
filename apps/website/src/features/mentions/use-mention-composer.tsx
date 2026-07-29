@@ -1,5 +1,4 @@
 import type { HostedAgent } from '@tavern/api';
-import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import { parseAgentReferenceTarget } from '@tavern/api/rich-references';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
@@ -114,7 +113,7 @@ export function useHostedMentionComposer({
     const mentionAgents = React.useMemo<MentionAgent[]>(
         () =>
             agents.map((agent) => ({
-                effectiveCharacter: resolveAgentDefaultCharacter(agent.id),
+                effectiveCharacter: agent.character,
                 effectivePrimaryColor: null,
                 id: agent.id,
                 name: agent.displayName,

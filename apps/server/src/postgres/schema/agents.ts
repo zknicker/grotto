@@ -1,3 +1,4 @@
+import type { AgentArchetypeId, AgentCharacter } from '@tavern/api';
 import { sql } from 'drizzle-orm';
 import {
     check,
@@ -22,6 +23,8 @@ import { serversTable } from './servers.ts';
 export const agentsTable = pgTable(
     'agents',
     {
+        archetype: text('archetype').$type<AgentArchetypeId>(),
+        character: text('character').notNull().$type<AgentCharacter>(),
         computerId: text('computer_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         desiredModelId: text('desired_model_id'),
@@ -51,6 +54,14 @@ export const agentsTable = pgTable(
             name: 'agents_computer_fk',
         }),
         check('agents_role', sql`${table.role} in ('admin', 'member')`),
+        check(
+            'agents_archetype',
+            sql`${table.archetype} is null or ${table.archetype} in ('operator', 'analyst', 'designer', 'writer', 'coordinator', 'patrol', 'gate', 'guide')`
+        ),
+        check(
+            'agents_character',
+            sql`${table.character} in ('knight', 'owl', 'bird', 'robot', 'alien', 'blob')`
+        ),
         check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
         check(
             'agents_configuration',

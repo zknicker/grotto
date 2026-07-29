@@ -1,5 +1,5 @@
 /**
- * Workspace starter kit (WS8, D7): every agent is born with a starter
+ * Shared workspace starter kit (WS8, D7): every agent is born with a starter
  * MEMORY.md and seed-practice notes adapted from Raft's seeded recipe tier.
  * The seed is a starting point the agent grows — identity accumulates in
  * memory (ruling W2) — so seeding never touches a workspace that already has

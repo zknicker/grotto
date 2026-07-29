@@ -81,8 +81,8 @@ test('setup stores only a Server credential and reruns by validation', async () 
         expect((await stat(attachmentPath)).mode & 0o777).toBe(0o600);
         expect(socketFrames[0]).toMatchObject({
             bootstrapProtocolVersion: 1,
-            productVersion: '1.1.2',
-            protocolVersion: 3,
+            productVersion: '1.1.3',
+            protocolVersion: 4,
             type: 'bootstrap',
             update: { phase: 'idle' },
         });

@@ -2,6 +2,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readlink, rm, symlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedAgentWorkspace } from '@tavern/agent-workspace';
+import { readAgentSeedConfiguration } from './agent-configuration.ts';
 import { computerEntrypoint } from './build-identity.ts';
 import { type NoticeSinkRegistrar, runHarnessTurn } from './harness/executor.ts';
 import { startLoopbackProxy } from './proxy.ts';
@@ -348,7 +350,20 @@ export async function resetAgentState(input: {
 }): Promise<void> {
     const agentRoot = join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId);
     if (input.kind === 'full') {
-        await rm(agentRoot, { force: true, recursive: true });
+        const seed = await readAgentSeedConfiguration(agentRoot);
+        await Promise.all(
+            ['home', 'runtime', 'skills', 'workspace', '.agent-runs', 'session.json'].map((entry) =>
+                rm(join(agentRoot, entry), { force: true, recursive: true })
+            )
+        );
+        if (seed) {
+            await seedAgentWorkspace({
+                agentName: seed.agentName,
+                archetype: seed.archetype,
+                bio: seed.agentDescription,
+                workspaceDir: join(agentRoot, 'workspace'),
+            });
+        }
         return;
     }
     await Promise.all([

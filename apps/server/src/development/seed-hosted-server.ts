@@ -252,6 +252,7 @@ function demoAgent(
     reportedAt: Date
 ) {
     return {
+        character: displayName === 'Otto' ? ('robot' as const) : ('bird' as const),
         computerId,
         desiredModelId: modelId,
         desiredRuntimeId: 'codex',

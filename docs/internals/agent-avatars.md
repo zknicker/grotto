@@ -103,4 +103,6 @@ Replace that head's art constant in `agent-face.tsx`. No contract change.
 - Adding is additive — `character` is a stored string enum, so there is no
   migration. Renaming or removing a character orphans agents already set to it;
   prefer adding.
+- Hosted surfaces render the Server-persisted `character`; they do not derive a
+  default from the Agent id after creation.
 - Current characters are `knight`, `owl`, `bird`, `robot`, `alien`, and `blob`.

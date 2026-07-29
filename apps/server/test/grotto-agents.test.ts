@@ -65,7 +65,9 @@ afterAll(async () => {
 
 test('creates an Agent on a reported Computer with its DM, pending until effective', async () => {
     const created = await owner.trpc.agent.create.mutate({
+        archetype: 'guide',
         computerId: computerA,
+        description: 'Onboarding guide — helps you shape your team and start real work',
         displayName: 'Cove',
         handle: 'cove',
         modelId: 'gpt-5.6-sol',
@@ -75,6 +77,8 @@ test('creates an Agent on a reported Computer with its DM, pending until effecti
     });
 
     expect(created.agent).toMatchObject({
+        archetype: 'guide',
+        character: 'blob',
         computerId: computerA,
         desiredModelId: 'gpt-5.6-sol',
         desiredRuntimeId: 'codex',
@@ -92,6 +96,7 @@ test('creates an Agent on a reported Computer with its DM, pending until effecti
 
     const agents = await owner.trpc.agent.list.query({ serverId });
     expect(agents.map((agent) => agent.handle)).toEqual(['cove']);
+    expect(agents[0]).toMatchObject({ archetype: 'guide', character: 'blob' });
     expect(agents[0]?.dmChatId).toBe(created.chat.id);
 });
 

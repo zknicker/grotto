@@ -23,6 +23,8 @@ export async function listHostedAgents(
     const rows = await db
         .select({
             activeRunId: agentDeliveryTable.activeRunId,
+            archetype: agentsTable.archetype,
+            character: agentsTable.character,
             computerId: agentsTable.computerId,
             computerHealth: computersTable.health,
             consecutiveFailures: agentDeliveryTable.consecutiveFailures,

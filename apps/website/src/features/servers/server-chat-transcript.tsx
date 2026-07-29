@@ -5,7 +5,6 @@ import type {
     HostedChatMessage,
     HostedThreadSummary,
 } from '@tavern/api';
-import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import * as React from 'react';
 import {
     Attachment,
@@ -78,7 +77,7 @@ export function ServerChatTranscript({
                     ? {
                           avatarUrl: null,
                           bio: agent.description,
-                          character: resolveAgentDefaultCharacter(agent.id),
+                          character: agent.character,
                           id: agent.id,
                           isSelf: false,
                           kind: 'agent',

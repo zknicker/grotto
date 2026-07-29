@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
 import { createTRPCClient, httpLink } from '@trpc/client';
 import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
 import { clerkSessionFile, signInAsClerkHuman } from '../support/clerk-session.ts';
@@ -12,7 +13,8 @@ test('hosted reminder operator state cancels and catches up after reconnect', as
     await page.getByLabel('Name').fill('Hosted Reminders');
     await page.getByLabel('Address').fill('hosted-reminders');
     await page.getByRole('button', { name: 'Create Server' }).click();
-    await page.getByPlaceholder('Message #all').fill('Reminder anchor');
+    await page.getByRole('button', { name: 'all', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Message all' }).fill('Reminder anchor');
     await page.getByRole('button', { name: 'Send' }).click();
     await expect(page.getByText('Reminder anchor', { exact: true })).toBeVisible();
 
@@ -46,10 +48,9 @@ test('hosted reminder operator state cancels and catches up after reconnect', as
     });
 
     await page.goto('/s/hosted-reminders/reminders');
-    await expect(page.getByText('Hosted state catches up after reconnect')).toBeVisible();
     const watchdog = page
-        .getByRole('heading', { name: 'Local watchdog' })
-        .locator('xpath=ancestor::article');
+        .getByText('Local watchdog', { exact: true })
+        .locator('xpath=../../..');
     await expect(watchdog).toContainText('Script ·');
     await expect(watchdog).toContainText('local execution only');
     expect(existsSync(canaryPath)).toBe(false);
@@ -73,8 +74,8 @@ test('hosted reminder operator state cancels and catches up after reconnect', as
     });
     await page.context().setOffline(false);
     const offlineReminder = page
-        .getByRole('heading', { name: 'Offline follow-up' })
-        .locator('xpath=ancestor::article');
+        .getByText('Offline follow-up', { exact: true })
+        .locator('xpath=../../..');
     await expect(offlineReminder).toContainText('canceled');
     await expect(offlineReminder.getByRole('button', { name: 'Cancel reminder' })).toHaveCount(0);
 
@@ -103,9 +104,9 @@ function seedReminderState(input: {
         input.databaseUrl,
         `begin;
          insert into agents (
-           id, server_id, handle, display_name, home_timezone, role
+           id, server_id, handle, display_name, character, home_timezone, role
          ) values (
-           'agt_e2e_reminder', '${input.serverId}', 'Cove', 'Cove',
+           'agt_e2e_reminder', '${input.serverId}', 'Cove', 'Cove', 'blob',
            'America/New_York', 'member'
          );
          insert into channel_agent_participants (server_id, chat_id, agent_id)
@@ -161,7 +162,11 @@ function createHostedClient(token: string) {
     return createTRPCClient<GrottoRouter>({
         links: [
             httpLink({
-                headers: { authorization: `Bearer ${token}` },
+                headers: {
+                    [appProtocolHeaders.productVersion]: 'e2e',
+                    [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
+                    authorization: `Bearer ${token}`,
+                },
                 url: `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/trpc`,
             }),
         ],

@@ -1,10 +1,9 @@
 import { Plus } from '@hugeicons/core-free-icons';
 import type { HostedAgent } from '@tavern/api';
-import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import { NavLink, useLocation, useParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
-import { AgentFace } from '../../features/chats/agent-face.tsx';
 import { HostedAgentProfile } from '../../features/members/agent-profile/hosted-agent-profile.tsx';
+import { HostedAgentFace } from '../../features/members/hosted-agent-face.tsx';
 import { HumanMemberSection } from '../../features/members/human-member-list.tsx';
 import { MembersPageFrame } from '../../features/members/members-page.tsx';
 import { HostedHumanDirectory } from '../../features/servers/hosted-human-directory.tsx';
@@ -109,9 +108,9 @@ function AgentRow({ agent, slug }: { agent: HostedAgent; slug: string }) {
         >
             <span className="flex min-w-0 items-center gap-3">
                 <span className="relative flex size-8 shrink-0 items-center justify-center overflow-visible">
-                    <AgentFace
+                    <HostedAgentFace
+                        agent={agent}
                         animate={false}
-                        head={resolveAgentDefaultCharacter(agent.id)}
                         size={32}
                         style={{
                             flexShrink: 0,

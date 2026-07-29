@@ -6,8 +6,9 @@ import {
     readProductionComputerRelease,
 } from './computer-release-publication.mjs';
 
-test('an absent immutable S3 key is empty output, not a collision', () => {
-    const missing = () => ({ status: 0, stderr: '', stdout: '' });
+test('an absent immutable S3 key accepts both AWS CLI missing-object results', () => {
+    const missingEmpty = () => ({ status: 0, stderr: '', stdout: '' });
+    const missingStatus = () => ({ status: 1, stderr: '', stdout: '' });
     const existing = () => ({
         status: 0,
         stderr: '',
@@ -15,7 +16,8 @@ test('an absent immutable S3 key is empty output, not a collision', () => {
     });
     const failed = () => ({ status: 1, stderr: 'AccessDenied', stdout: '' });
 
-    expect(() => assertImmutableObjectAbsent('s3://bucket/key', missing)).not.toThrow();
+    expect(() => assertImmutableObjectAbsent('s3://bucket/key', missingEmpty)).not.toThrow();
+    expect(() => assertImmutableObjectAbsent('s3://bucket/key', missingStatus)).not.toThrow();
     expect(() => assertImmutableObjectAbsent('s3://bucket/key', existing)).toThrow(
         'already exists'
     );

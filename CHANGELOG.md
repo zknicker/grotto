@@ -7,11 +7,17 @@ All notable changes to this project will be documented in this file.
 - New Servers now offer Cove as their first Agent with his orange blob
   character, onboarding-guide identity, and the complete original onboarding
   workspace notes.
-- Grotto Computer 1.1.3 applies Agent identity before the first turn and
-  restores the seeded workspace after a full reset without touching other
-  `~/.grotto` data.
+- Grotto Computer 1.1.4 applies Agent identity before the first turn, restores
+  seeded workspaces after full resets without touching other `~/.grotto` data,
+  and keeps one resident execution host per Agent.
+- Agent delivery now uses durable structured inboxes, explicit model-seen
+  settlement, bounded Agent-only chains, exact replay after interrupted turns,
+  and terminal-versus-retryable failure policy.
 - Agent profile edits now refresh the Computer's durable reset seed, and
   configuration, reset, and turn launch are serialized per Agent.
+- Desktop v1.6.12 is a signed native shell for the canonical hosted App, with
+  native Clerk session storage, strict origin routing, and desktop updates
+  behind a narrow preload bridge.
 - macOS release publishers now read the established Computer signing keys
   directly from Keychain, so release worktrees no longer need duplicate key
   entries in `.env`; interrupted immutable uploads also resume safely after
@@ -21,7 +27,7 @@ All notable changes to this project will be documented in this file.
 
 - App/Server: Publish v1.6.12
 - Desktop: Publish v1.6.12
-- Computer: Publish v1.1.3
+- Computer: Publish v1.1.4
 - Runtime: Unchanged
 
 ## v1.6.11 - 2026-07-29

@@ -2,6 +2,7 @@ import {
     computerProtocolVersion,
     verifySignedComputerRelease,
 } from './computer-release-contract.mjs';
+import { readComputerReleasePublicKey } from './computer-release-keys.mjs';
 
 export async function checkComputerReleasePrerequisite(
     manifestUrl = process.env.GROTTO_COMPUTER_RELEASE_MANIFEST_URL ??
@@ -23,9 +24,11 @@ export async function checkComputerReleasePrerequisite(
 }
 
 function requiredReleasePublicKey() {
-    const value = process.env.GROTTO_COMPUTER_RELEASE_PUBLIC_KEY?.trim();
+    const value = readComputerReleasePublicKey();
     if (!value) {
-        throw new Error('GROTTO_COMPUTER_RELEASE_PUBLIC_KEY is required');
+        throw new Error(
+            'GROTTO_COMPUTER_RELEASE_PUBLIC_KEY or its macOS Keychain item is required'
+        );
     }
-    return value.replaceAll('\\n', '\n');
+    return value;
 }

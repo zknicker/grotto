@@ -343,6 +343,14 @@ corresponding trusted public key. The publisher verifies that pair and verifies
 the current production descriptor with the public key before building. The
 public key is compiled into the Computer executable; normal installation does
 not accept a public-key environment override.
+
+On macOS, both variables automatically fall back to the release keys in the
+login Keychain. Their generic-password service names are
+`grotto-computer-release-ed25519-private` and
+`grotto-computer-release-ed25519-public`, with the macOS username as the
+account. The current records store PEM as hex; the publishers decode that
+representation in memory. Operators do not need to copy these keys into each
+checkout's `.env`.
 `GROTTO_COMPUTER_RELEASE_BASE_URL` defaults to
 `https://releases.grotto.sh/computer`; Computer objects publish below the
 `computer/` prefix of `TAVERN_RELEASE_S3_URI`. Standalone Computer codesigning

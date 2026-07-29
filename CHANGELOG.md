@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file.
   `~/.grotto` data.
 - Agent profile edits now refresh the Computer's durable reset seed, and
   configuration, reset, and turn launch are serialized per Agent.
+- macOS release publishers now read the established Computer signing keys
+  directly from Keychain, so release worktrees no longer need duplicate key
+  entries in `.env`.
 
 ### Release surfaces
 

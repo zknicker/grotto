@@ -48,9 +48,7 @@ test('hosted reminder operator state cancels and catches up after reconnect', as
     });
 
     await page.goto('/s/hosted-reminders/reminders');
-    const watchdog = page
-        .getByText('Local watchdog', { exact: true })
-        .locator('xpath=../../..');
+    const watchdog = page.getByText('Local watchdog', { exact: true }).locator('xpath=../../..');
     await expect(watchdog).toContainText('Script ·');
     await expect(watchdog).toContainText('local execution only');
     expect(existsSync(canaryPath)).toBe(false);

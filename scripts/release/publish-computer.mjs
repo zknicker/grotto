@@ -21,6 +21,10 @@ import {
     verifySignedComputerRelease,
 } from './computer-release-contract.mjs';
 import {
+    readComputerReleasePrivateKey,
+    readComputerReleasePublicKey,
+} from './computer-release-keys.mjs';
+import {
     promoteInstaller,
     promoteLatest,
     publishImmutableObjects,
@@ -49,7 +53,7 @@ async function main() {
     requireMacArm64();
     const sourceRevision = git('rev-parse', 'HEAD').trim();
     const privateKey =
-        process.env.GROTTO_COMPUTER_RELEASE_PRIVATE_KEY?.replaceAll('\\n', '\n') ??
+        readComputerReleasePrivateKey() ??
         (dryRun
             ? generateKeyPairSync('ed25519').privateKey.export({
                   format: 'pem',
@@ -58,7 +62,7 @@ async function main() {
             : requiredEnv('GROTTO_COMPUTER_RELEASE_PRIVATE_KEY').replaceAll('\\n', '\n'));
     const releasePublicKey = dryRun
         ? publicKeyFromPrivate(privateKey)
-        : requiredEnv('GROTTO_COMPUTER_RELEASE_PUBLIC_KEY').replaceAll('\\n', '\n');
+        : (readComputerReleasePublicKey() ?? requiredEnv('GROTTO_COMPUTER_RELEASE_PUBLIC_KEY'));
     assertComputerReleaseKey(privateKey, releasePublicKey);
     const appleTeamId = dryRun
         ? (process.env.APPLE_TEAM_ID ?? 'DRYRUN0000')

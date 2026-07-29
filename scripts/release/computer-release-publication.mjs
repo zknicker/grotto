@@ -25,10 +25,15 @@ export async function publishImmutableObjects(input) {
 
 export function assertImmutableObjectAbsent(uri, execute = spawnSync) {
     const result = execute('aws', ['s3', 'ls', uri], { encoding: 'utf8' });
+    const stdout = result.stdout?.trim() ?? '';
+    const stderr = result.stderr?.trim() ?? '';
+    if (result.status === 1 && !result.error && !stdout && !stderr) {
+        return;
+    }
     if (result.status !== 0) {
         throw new Error(`Could not check immutable Computer release object: ${uri}`);
     }
-    if (result.stdout.trim()) {
+    if (stdout) {
         throw new Error(`Immutable Computer release object already exists: ${uri}`);
     }
 }

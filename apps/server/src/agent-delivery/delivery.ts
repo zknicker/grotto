@@ -192,7 +192,12 @@ export class AgentDelivery {
                 type: 'stop',
             });
         }
-        await this.dispatchAgent(input.agentId, input.serverId);
+        const plan = await this.db.transaction(async (tx) => {
+            await lockServerRow(tx, input.serverId);
+            await store.clearDeliveryFailures(tx, input.agentId);
+            return this.planDispatch(tx, input.agentId);
+        });
+        this.emit(plan);
     }
 
     /** Rotates session identity; full reset also recreates Computer-local Agent state. */

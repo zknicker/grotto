@@ -528,6 +528,34 @@ test('a degraded Agent stops auto-retrying until fresh human intent', async () =
     expect((await readDeliveryState(connection.db, seed.agentId))?.consecutiveFailures).toBe(0);
 });
 
+test('Restart clears a degraded Agent failure hold and redrives queued work', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await connection.db
+        .insert(agentDeliveryTable)
+        .values({ agentId: seed.agentId, consecutiveFailures: 5, serverId: seed.serverId });
+    await connection.db.insert(agentPendingWorkTable).values({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'retry after repair',
+        dedupeKey: 'msg-restart-degraded',
+        id: createOpaqueId('apw'),
+        serverId: seed.serverId,
+        source: 'human',
+    });
+
+    await delivery.restart({ agentId: seed.agentId, serverId: seed.serverId });
+
+    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(transport.framesOfType('start')[0]?.inbox.map((item) => item.content)).toEqual([
+        'retry after repair',
+    ]);
+    expect((await readDeliveryState(connection.db, seed.agentId))?.consecutiveFailures).toBe(0);
+});
+
 test('a floating-session run drains queued work across every target', async () => {
     const seed = await seedAgent();
     const chatB = await addDmChat(seed);

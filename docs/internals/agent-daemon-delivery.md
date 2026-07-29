@@ -73,8 +73,9 @@ containing human input resets the counter.
 Authentication, invalid model/runtime configuration, and oversized input
 failures degrade immediately because retrying cannot repair them. Rate limits,
 timeouts, transport failures, and unknown failures use the bounded retry
-policy. Raw failure evidence remains Computer-local; the compact failure kind
-crosses the Server boundary.
+policy. A human Restart clears the failure hold and redrives queued work without
+rotating the Agent's session. Raw failure evidence remains Computer-local; the
+compact failure kind crosses the Server boundary.
 
 ## Invariant Tests
 

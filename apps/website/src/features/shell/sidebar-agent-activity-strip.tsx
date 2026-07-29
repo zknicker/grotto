@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import { StatusDot } from '../../components/ui/status-dot.tsx';
+import { Elevated } from '../../components/ui/surface.tsx';
 import { useAgentList } from '../../hooks/agents/use-agent-list.ts';
 import { useAgentPresence } from '../../hooks/agents/use-agent-presence.ts';
 import type { ChatTimelineState } from '../../hooks/chats/chat-timeline-state.ts';
@@ -37,7 +39,10 @@ export function SidebarAgentActivityStrip() {
     const hiddenAgentCount = Math.max(0, busyAgents.length - maximumVisibleAgents);
 
     return (
-        <div className="absolute bottom-12 left-1 z-40 w-56 rounded-lg border border-sidebar-border bg-sidebar p-1 shadow-lg">
+        <Elevated
+            className="absolute bottom-12 left-1 z-40 w-56 rounded-lg border border-sidebar-border p-1"
+            offset={2}
+        >
             <div className="flex flex-col gap-0.5">
                 {busyAgents.slice(0, maximumVisibleAgents).map((entry) => {
                     const agent = agentById.get(entry.agentId);
@@ -74,23 +79,20 @@ export function SidebarAgentActivityStrip() {
                                     style={faceStyle}
                                 />
                             </span>
-                            <span
-                                aria-hidden="true"
-                                className="size-2 shrink-0 animate-pulse rounded-full bg-warning"
-                            />
-                            <span className="min-w-0 truncate text-muted-foreground text-xs">
+                            <StatusDot className="motion-safe:animate-pulse" status="warning" />
+                            <span className="min-w-0 truncate text-meta text-muted-foreground">
                                 {label}
                             </span>
                         </button>
                     );
                 })}
                 {hiddenAgentCount > 0 ? (
-                    <span className="px-2 text-muted-foreground text-xs">
+                    <span className="px-2 text-meta text-muted-foreground">
                         +{hiddenAgentCount} more
                     </span>
                 ) : null}
             </div>
-        </div>
+        </Elevated>
     );
 }
 

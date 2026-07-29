@@ -244,7 +244,7 @@ function CommandMenuIcon({
             <span
                 aria-hidden="true"
                 className={cn(
-                    'flex size-5 shrink-0 items-center justify-center rounded-[0.4375rem] bg-muted font-medium text-[0.625rem] text-muted-foreground',
+                    'flex size-5 shrink-0 items-center justify-center rounded-md bg-muted font-medium text-micro text-muted-foreground',
                     disabled && 'opacity-60'
                 )}
             >

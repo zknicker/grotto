@@ -48,7 +48,7 @@ export function BriefVariationsView({ agents }: { agents: VariationProps['agents
     return (
         <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
             <div className="w-full max-w-4xl px-10 pt-8 pb-24">
-                <h1 className="font-mono text-[11px] text-muted-foreground uppercase tracking-widest">
+                <h1 className="font-mono text-caption text-muted-foreground uppercase tracking-widest">
                     Brief variations
                 </h1>
 
@@ -239,14 +239,14 @@ function WordmarkLab() {
                         <p className="font-light text-3xl text-muted-foreground italic leading-snug">
                             sparkles over the <TrialMark trial={trial} /> tonight
                         </p>
-                        <figcaption className="mt-1 font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                        <figcaption className="mt-1 font-mono text-micro text-muted-foreground uppercase tracking-widest">
                             {trial.label}
                         </figcaption>
                     </figure>
                 ))}
             </div>
             <div>
-                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                <div className="font-mono text-micro text-muted-foreground uppercase tracking-widest">
                     Color · at the current cut
                 </div>
                 <div className="mt-3 flex flex-wrap items-end gap-x-10 gap-y-6">
@@ -263,7 +263,7 @@ function WordmarkLab() {
                             >
                                 Grotto
                             </div>
-                            <figcaption className="mt-2 font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                            <figcaption className="mt-2 font-mono text-micro text-muted-foreground uppercase tracking-widest">
                                 {color.label}
                             </figcaption>
                         </figure>
@@ -368,7 +368,7 @@ function ChipLab({ agents, dark }: VariationProps) {
         <div className="flex flex-col gap-8">
             {chipGroups.map((group) => (
                 <div key={group.label}>
-                    <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                    <div className="font-mono text-micro text-muted-foreground uppercase tracking-widest">
                         {group.label}
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-3 text-3xl">
@@ -386,7 +386,7 @@ function ChipLab({ agents, dark }: VariationProps) {
                 </div>
             ))}
             <div>
-                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                <div className="font-mono text-micro text-muted-foreground uppercase tracking-widest">
                     Agents
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-3 text-3xl">

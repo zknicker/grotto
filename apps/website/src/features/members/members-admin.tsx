@@ -184,7 +184,7 @@ function MemberAvatar({ user }: { user: RuntimeUser }) {
 
 function NewInvite({ invite }: { invite: RuntimeInvite }) {
     return (
-        <SettingsItem className="flex items-center gap-3 bg-muted/40">
+        <SettingsItem className="flex items-center gap-3 bg-muted">
             <div className="min-w-0 flex-1">
                 <p className="font-medium text-sm">New invite code</p>
                 <code className="block truncate font-mono text-muted-foreground text-xs">

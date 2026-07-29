@@ -38,7 +38,7 @@ export function TaskStatusGroup({
 }: TaskStatusGroupProps) {
     return (
         <section>
-            <div className="mx-2 flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-1.5">
+            <div className="mx-2 flex items-center gap-2 rounded-lg bg-muted px-3 py-1.5">
                 <Icon
                     aria-hidden="true"
                     className="size-4 shrink-0 text-muted-foreground"
@@ -47,9 +47,7 @@ export function TaskStatusGroup({
                 <span className="font-medium text-foreground text-sm">
                     {taskStatusLabels[status]}
                 </span>
-                <span className="text-muted-foreground/72 text-sm tabular-nums">
-                    {tasks.length}
-                </span>
+                <span className="text-muted-foreground text-sm tabular-nums">{tasks.length}</span>
             </div>
             <FluidList className="px-2 py-1" highlightClassName="rounded-lg">
                 {tasks.map((task, index) => (
@@ -82,7 +80,7 @@ function TaskRowAssignee({
 
     if (assignee.kind === 'user') {
         return (
-            <span className="hidden max-w-28 truncate text-muted-foreground text-xs md:inline">
+            <span className="hidden max-w-28 truncate text-meta text-muted-foreground md:inline">
                 You
             </span>
         );
@@ -91,7 +89,7 @@ function TaskRowAssignee({
     const agent = agents.find((candidate) => candidate.id === assignee.agentId);
 
     return (
-        <span className="hidden max-w-32 text-muted-foreground text-xs md:flex md:min-w-0">
+        <span className="hidden max-w-32 text-meta text-muted-foreground md:flex md:min-w-0">
             {agent ? <AgentOptionLabel agent={agent} /> : <span>{assignee.agentId}</span>}
         </span>
     );
@@ -162,12 +160,12 @@ function TaskRow({
                 />
             </span>
 
-            <span className="pointer-events-none relative z-10 flex w-12 shrink-0 items-center gap-1.5 font-mono text-muted-foreground text-xs tabular-nums">
+            <span className="pointer-events-none relative z-10 flex w-12 shrink-0 items-center gap-1.5 font-mono text-caption text-muted-foreground tabular-nums">
                 {formatTaskNumber(task)}
             </span>
 
             <div className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center gap-2 text-left">
-                <span className="min-w-0 truncate font-medium text-[15px] text-foreground">
+                <span className="min-w-0 truncate font-medium text-base text-foreground">
                     {task.title}
                 </span>
                 {task.labels.map((label) => (
@@ -177,12 +175,12 @@ function TaskRow({
 
             <div className="pointer-events-none relative z-10 ml-auto flex shrink-0 items-center gap-2">
                 {task.priority !== 'none' ? (
-                    <span className="hidden text-muted-foreground text-xs sm:inline">
+                    <span className="hidden text-meta text-muted-foreground sm:inline">
                         {taskPriorityLabels[task.priority]}
                     </span>
                 ) : null}
                 <TaskRowAssignee agents={agents} assignee={task.assignee} />
-                <span className="hidden w-16 text-right text-muted-foreground text-xs sm:inline">
+                <span className="hidden w-16 text-right text-meta text-muted-foreground sm:inline">
                     <RelativeTime value={task.updatedAt} />
                 </span>
             </div>

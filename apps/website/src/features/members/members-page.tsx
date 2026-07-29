@@ -9,6 +9,7 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from '../../components/ui/menu.tsx';
+import { navSelectedClass } from '../../components/ui/nav.tsx';
 import { useAgentList } from '../../hooks/agents/use-agent-list.ts';
 import { appRoutes } from '../../lib/app-routes.ts';
 import { withSavingToast } from '../../lib/saving-toast.ts';
@@ -93,9 +94,7 @@ export function MembersPage() {
                     className={({ isActive }) =>
                         cn(
                             'block rounded-lg px-2 py-2 hover:bg-[var(--nav-hover)]',
-                            isActive
-                                ? 'bg-secondary shadow-[0_2px_0_0_var(--hard-shadow)] ring-1 ring-input ring-inset'
-                                : null
+                            isActive ? navSelectedClass : null
                         )
                     }
                     key={agent.id}

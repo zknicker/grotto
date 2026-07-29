@@ -95,7 +95,7 @@ export function ServerThreadPanel({
                             ))}
                         </div>
                     </div>
-                    <div className="shrink-0 border-border/70 border-t py-3">
+                    <div className="shrink-0 border-border-subtle border-t py-3">
                         <ServerChatComposer
                             agents={agents}
                             chatId={chat.id}

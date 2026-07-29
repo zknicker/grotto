@@ -235,8 +235,8 @@ function AgentCharacterPicker({
                                 className={cn(
                                     'flex aspect-square items-center justify-center rounded-xl border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
                                     isSelected
-                                        ? 'border-brand bg-input/40'
-                                        : 'border-transparent bg-input/24 hover:bg-input/48'
+                                        ? 'border-brand bg-active'
+                                        : 'border-transparent bg-muted hover:bg-hover'
                                 )}
                                 key={character}
                                 onClick={() => onSelect(character)}

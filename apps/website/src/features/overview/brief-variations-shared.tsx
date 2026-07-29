@@ -71,7 +71,7 @@ export function VariationSection({
 }) {
     return (
         <section className="border-border border-t pt-6 first:border-t-0 first:pt-0">
-            <div className="font-mono text-[11px] text-muted-foreground uppercase tracking-widest">
+            <div className="font-mono text-caption text-muted-foreground uppercase tracking-widest">
                 {eyebrow}
             </div>
             <p className="mt-1 max-w-[60ch] text-muted-foreground text-sm">{note}</p>

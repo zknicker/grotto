@@ -7,6 +7,7 @@ import {
     ColorsIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+import { Alert, AlertDescription } from '../../components/ui/alert.tsx';
 import {
     ContextMenu,
     ContextMenuItem,
@@ -220,9 +221,11 @@ function SidebarChatSystemPromptForm({
                     />
                 </div>
                 {errorMessage ? (
-                    <div className="rounded-lg border border-error/20 bg-error/5 px-3 py-2 text-error text-sm">
-                        {errorMessage}
-                    </div>
+                    <Alert variant="error">
+                        <AlertDescription className="text-error-foreground">
+                            {errorMessage}
+                        </AlertDescription>
+                    </Alert>
                 ) : null}
             </DialogPanel>
             <DialogFooter>
@@ -315,9 +318,11 @@ function SidebarChatRenameForm({
                     />
                 </div>
                 {errorMessage ? (
-                    <div className="rounded-lg border border-error/20 bg-error/5 px-3 py-2 text-error text-sm">
-                        {errorMessage}
-                    </div>
+                    <Alert variant="error">
+                        <AlertDescription className="text-error-foreground">
+                            {errorMessage}
+                        </AlertDescription>
+                    </Alert>
                 ) : null}
             </DialogPanel>
             <DialogFooter>

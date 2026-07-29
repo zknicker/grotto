@@ -1,9 +1,13 @@
+import { Alert, AlertDescription } from '../../../components/ui/alert.tsx';
 import { Badge } from '../../../components/ui/badge.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
 import { SearchInput } from '../../../components/ui/primitives/search-input.tsx';
+import { StatusDot } from '../../../components/ui/status-dot.tsx';
+import { Elevated } from '../../../components/ui/surface.tsx';
 import type { ServerReminderConnectionState } from '../../../hooks/servers/use-server-reminder-events.ts';
 import { formatTimestamp } from '../../../lib/format.ts';
 import type { GrottoOutputs } from '../../../lib/grotto-server.tsx';
+import { ContentTopbar } from '../../shell/content-topbar.tsx';
 import type { HostedReminderListItem } from './server-reminder-view-model.ts';
 
 type ReminderRun = GrottoOutputs['reminder']['runs'][number];
@@ -62,7 +66,7 @@ export function ServerRemindersView({
     return (
         <div className="flex min-h-0 flex-1">
             <section className="flex min-w-0 flex-1 flex-col">
-                <div className="flex flex-wrap items-center gap-2 border-border border-b px-6 py-3">
+                <ContentTopbar className="no-drag">
                     <SearchInput
                         aria-label="Search hosted reminders"
                         className="min-w-56 flex-1 sm:max-w-72"
@@ -72,8 +76,9 @@ export function ServerRemindersView({
                         value={query}
                     />
                     <StatusFilters onChange={onStatusChange} value={status} />
-                </div>
-                <div className="flex flex-wrap items-center gap-2 border-border border-b px-6 py-2">
+                </ContentTopbar>
+                {/* Second chrome row: same 40px band and seam as the topbar. */}
+                <div className="flex h-[var(--content-topbar-height)] shrink-0 items-center gap-2 overflow-x-auto border-[var(--content-card-border)] border-b px-3">
                     <Button
                         onClick={() => onAgentChange(null)}
                         size="xs"
@@ -91,16 +96,18 @@ export function ServerRemindersView({
                             {agent.label}
                         </Button>
                     ))}
-                    <span className="ml-auto text-muted-foreground text-xs">
+                    <span className="ml-auto shrink-0 whitespace-nowrap text-meta text-muted-foreground">
                         {connectionState === 'connected'
                             ? 'Hosted state catches up after reconnect'
                             : 'Reconnecting · showing last hosted state'}
                     </span>
                 </div>
                 {actionErrorMessage ? (
-                    <p className="border-error/40 border-b bg-error-bg px-6 py-3 text-error-foreground text-sm">
-                        {actionErrorMessage}
-                    </p>
+                    <Alert className="rounded-none border-x-0 border-t-0" variant="error">
+                        <AlertDescription className="text-error-foreground">
+                            {actionErrorMessage}
+                        </AlertDescription>
+                    </Alert>
                 ) : null}
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
                     {isPending ? (
@@ -116,16 +123,15 @@ export function ServerRemindersView({
                     ) : (
                         <div className="grid gap-2">
                             {reminders.map((reminder) => (
-                                <article
-                                    className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
+                                <Elevated
+                                    className="flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3"
                                     key={reminder.id}
+                                    offset={1}
                                 >
-                                    <span
-                                        className={`size-2 rounded-full ${
-                                            reminder.status === 'scheduled'
-                                                ? 'bg-success'
-                                                : 'bg-muted-foreground/35'
-                                        }`}
+                                    <StatusDot
+                                        status={
+                                            reminder.status === 'scheduled' ? 'success' : 'muted'
+                                        }
                                     />
                                     <div className="min-w-52 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
@@ -142,11 +148,11 @@ export function ServerRemindersView({
                                                 {reminder.status}
                                             </Badge>
                                         </div>
-                                        <p className="text-muted-foreground text-xs">
+                                        <p className="text-meta text-muted-foreground">
                                             {reminder.ownerLabel} · {reminder.schedule}
                                         </p>
                                         {reminder.scriptLabel ? (
-                                            <p className="mt-1 font-mono text-muted-foreground text-xs">
+                                            <p className="mt-1 font-mono text-meta text-muted-foreground">
                                                 {reminder.scriptLabel}
                                             </p>
                                         ) : null}
@@ -168,14 +174,14 @@ export function ServerRemindersView({
                                             Cancel reminder
                                         </Button>
                                     ) : null}
-                                </article>
+                                </Elevated>
                             ))}
                         </div>
                     )}
                 </div>
             </section>
             {selectedReminder ? (
-                <aside className="w-80 shrink-0 border-border border-l bg-sidebar p-5">
+                <aside className="w-80 shrink-0 border-[var(--content-card-border)] border-l bg-sidebar p-5">
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <p className="font-mono text-muted-foreground text-xs uppercase">
@@ -196,17 +202,18 @@ export function ServerRemindersView({
                             <p className="text-muted-foreground text-sm">No fires yet.</p>
                         ) : (
                             runs.map((run) => (
-                                <div
-                                    className="rounded-lg border border-border bg-card p-3 text-sm"
+                                <Elevated
+                                    className="rounded-lg border p-3 text-sm"
                                     key={run.id}
+                                    offset={1}
                                 >
                                     <p className="text-foreground">
                                         Fired {formatTimestamp(run.firedAt)}
                                     </p>
-                                    <p className="text-muted-foreground text-xs">
+                                    <p className="text-meta text-muted-foreground">
                                         Scheduled {formatTimestamp(run.scheduledFor)}
                                     </p>
-                                </div>
+                                </Elevated>
                             ))
                         )}
                     </div>

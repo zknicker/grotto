@@ -5,6 +5,7 @@ import { resolveAgentDefaultCharacter } from '@tavern/api/agent-appearance';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
+import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { Tooltip } from '../../../components/ui/tooltip.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
@@ -64,15 +65,14 @@ export function HostedAgentProfileHeader({
                         </p>
                     ) : null}
                     <span className="mt-0.5 flex items-center gap-1.5 text-meta text-muted-foreground">
-                        <span
-                            className={cn(
-                                'size-2 rounded-full',
+                        <StatusDot
+                            status={
                                 agent.availability === 'working'
-                                    ? 'bg-warning'
+                                    ? 'warning'
                                     : agent.availability === 'idle'
-                                      ? 'bg-success'
-                                      : 'bg-muted-foreground'
-                            )}
+                                      ? 'success'
+                                      : 'muted'
+                            }
                         />
                         <span className="capitalize">{agent.availability}</span>
                     </span>

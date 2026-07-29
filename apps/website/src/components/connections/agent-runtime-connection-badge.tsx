@@ -3,6 +3,8 @@ import {
     useRuntimeConnection,
 } from '../../hooks/connections/use-runtime-connection.ts';
 import type { AgentRuntimeConnectionOutput } from '../../lib/trpc.tsx';
+import { Badge } from '../ui/badge.tsx';
+import { StatusDot } from '../ui/status-dot.tsx';
 
 function getAgentRuntimeTitle(
     status: RuntimeConnectionStatus,
@@ -29,25 +31,18 @@ export function AgentRuntimeConnectionBadge() {
     const isChecking = status === 'checking';
 
     return (
-        <div
-            className="pointer-events-auto inline-flex items-center gap-2 font-medium text-muted-foreground text-xs tracking-wide"
+        <Badge
+            className="pointer-events-auto text-caption"
             title={getAgentRuntimeTitle(status, connection)}
+            variant={isLive ? 'success' : 'subtle'}
         >
-            <span className="relative flex size-3">
-                {isLive && (
-                    <span className="absolute inline-flex size-full animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite] rounded-full bg-emerald-400 opacity-60" />
-                )}
-                <span
-                    className={`relative inline-flex size-3 rounded-full ${
-                        isLive
-                            ? 'bg-emerald-500'
-                            : isChecking
-                              ? 'animate-pulse bg-muted-foreground/50'
-                              : 'bg-muted-foreground/40'
-                    }`}
-                />
-            </span>
-            {isLive ? 'LIVE' : isChecking ? 'CHECKING' : 'DISCONNECTED'}
-        </div>
+            <StatusDot
+                className={isChecking ? 'motion-safe:animate-pulse' : undefined}
+                pulse={isLive}
+                size="md"
+                status={isLive ? 'success' : 'muted'}
+            />
+            {isLive ? 'Live' : isChecking ? 'Checking' : 'Disconnected'}
+        </Badge>
     );
 }

@@ -2,6 +2,7 @@ import { Setting07Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
+import { navSelectedClass } from '../../components/ui/nav.tsx';
 import {
     formatCapabilityDisabledReason,
     routeTabCapabilityRequirements,
@@ -119,9 +120,7 @@ function RailButton({
             aria-label={label}
             className={cn(
                 'no-drag relative flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-sidebar-foreground outline-none',
-                isActive
-                    ? 'bg-secondary shadow-[0_2px_0_0_var(--hard-shadow)] ring-1 ring-input ring-inset'
-                    : 'hover:bg-[var(--nav-hover)]',
+                isActive ? navSelectedClass : 'hover:bg-[var(--nav-hover)]',
                 disabled ? 'cursor-default opacity-50' : null
             )}
             disabled={disabled}

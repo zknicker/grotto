@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Card } from '../../components/ui/card.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { Table, TableBody, TableCell, TableRow } from '../../components/ui/table.tsx';
 import { appRoutes } from '../../lib/app-routes.ts';
 import { formatRelativeTime } from '../../lib/format.ts';
@@ -49,7 +50,7 @@ export function OverviewAgentCards({
                         key={agent.id}
                         to={resolveAgentHref(agent.id)}
                     >
-                        <Card className="flex h-full flex-col gap-2.5 px-3.5 py-3 transition-colors group-hover:bg-accent/40">
+                        <Card className="flex h-full flex-col gap-2.5 px-3.5 py-3 transition-colors group-hover:bg-hover">
                             <div className="flex items-center gap-2.5">
                                 <span aria-hidden="true" className="flex shrink-0 items-center">
                                     <AgentFace
@@ -64,28 +65,26 @@ export function OverviewAgentCards({
                                 <span className="min-w-0 flex-1 truncate font-semibold text-foreground text-sm">
                                     {agent.name}
                                 </span>
-                                <span className="flex shrink-0 items-center gap-1.5 text-muted-foreground text-xs">
-                                    <span
-                                        className={`size-2 rounded-full ${
-                                            statusTone === 'warning' ? 'bg-warning' : 'bg-success'
-                                        }`}
+                                <span className="flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
+                                    <StatusDot
+                                        status={statusTone === 'warning' ? 'warning' : 'success'}
                                     />
                                     {statusLabel}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between gap-3">
                                 {modelName ? (
-                                    <span className="truncate rounded-sm border border-border bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                                    <span className="truncate rounded-sm border border-border bg-subtle px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
                                         {modelName}
                                     </span>
                                 ) : (
-                                    <span className="text-muted-foreground/60 text-xs">
+                                    <span className="text-meta text-muted-foreground">
                                         No model set
                                     </span>
                                 )}
                                 <span className="flex shrink-0 items-center gap-2">
                                     <ActivitySparkline series={series} />
-                                    <span className="whitespace-nowrap text-[11px] text-muted-foreground/70 tabular-nums">
+                                    <span className="whitespace-nowrap text-caption text-muted-foreground tabular-nums">
                                         {weekTotal} · 7d
                                     </span>
                                 </span>
@@ -116,9 +115,9 @@ export function OverviewActivity({
 
     return (
         <Card className="overflow-hidden">
-            <header className="flex items-center justify-between border-border border-b px-4 py-2.5">
-                <h2 className="font-medium text-foreground text-sm">Activity</h2>
-                <span className="text-muted-foreground text-xs tabular-nums">
+            <header className="flex items-center justify-between border-border-subtle border-b px-4 py-2.5">
+                <h2 className="font-medium text-base text-foreground">Activity</h2>
+                <span className="text-meta text-muted-foreground tabular-nums">
                     {activity.length}
                 </span>
             </header>
@@ -141,7 +140,7 @@ export function OverviewActivity({
 
                             return (
                                 <TableRow
-                                    className="cursor-pointer border-border/45 outline-hidden focus-visible:bg-hover"
+                                    className="cursor-pointer border-border-subtle outline-hidden focus-visible:bg-hover"
                                     index={index}
                                     key={item.key}
                                     onClick={() => navigate(target)}
@@ -172,7 +171,7 @@ export function OverviewActivity({
                                             </span>
                                         </span>
                                     </TableCell>
-                                    <TableCell className="h-9 px-3 py-1 text-right text-muted-foreground text-xs tabular-nums">
+                                    <TableCell className="h-9 px-3 py-1 text-right text-meta text-muted-foreground tabular-nums">
                                         <span className="relative z-20">
                                             {formatRelativeTime(item.at, now)}
                                         </span>

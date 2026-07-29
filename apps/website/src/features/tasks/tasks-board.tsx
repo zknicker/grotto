@@ -1,6 +1,7 @@
 import { ArrowDown01Icon, ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
+import { Elevated } from '../../components/ui/surface.tsx';
 import { AgentOptionLabel, type AgentSelectOption } from '../agents/agent-option-label.tsx';
 import { LabelChip } from './label-chip.tsx';
 import {
@@ -79,9 +80,7 @@ function TaskBoardColumn({
                     icon={collapsed ? ArrowRight01Icon : ArrowDown01Icon}
                 />
                 <TaskStatusPill status={status} />
-                <span className="text-muted-foreground/72 text-sm tabular-nums">
-                    {tasks.length}
-                </span>
+                <span className="text-muted-foreground text-sm tabular-nums">{tasks.length}</span>
             </button>
             {collapsed ? null : (
                 <div className="mt-2 flex flex-col gap-2">
@@ -95,7 +94,7 @@ function TaskBoardColumn({
                             />
                         ))
                     ) : (
-                        <div className="rounded-lg border border-border border-dashed px-3 py-6 text-center text-muted-foreground/72 text-sm">
+                        <div className="rounded-lg border border-border-subtle border-dashed px-3 py-6 text-center text-muted-foreground text-sm">
                             No {taskStatusLabels[status].toLowerCase()} tasks.
                         </div>
                     )}
@@ -121,7 +120,7 @@ function TaskBoardCard({
             : null;
 
     return (
-        <div className="relative rounded-lg border bg-card p-3">
+        <Elevated className="relative rounded-lg border p-3" offset={1}>
             <button
                 aria-label={`Open ${formatTaskNumber(task)} ${task.title}`}
                 className="absolute inset-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -134,11 +133,11 @@ function TaskBoardCard({
                     className="size-3.5 shrink-0 text-muted-foreground"
                     icon={taskStatusIcons[task.status]}
                 />
-                <span className="font-mono text-muted-foreground text-xs tabular-nums">
+                <span className="font-mono text-caption text-muted-foreground tabular-nums">
                     {formatTaskNumber(task)}
                 </span>
             </span>
-            <p className="pointer-events-none relative z-10 mt-1 font-medium text-[15px] text-foreground">
+            <p className="pointer-events-none relative z-10 mt-1 font-medium text-base text-foreground">
                 {task.title}
             </p>
             <div className="pointer-events-none relative z-10 mt-2 flex flex-wrap items-center gap-1.5">
@@ -147,7 +146,7 @@ function TaskBoardCard({
                 ))}
             </div>
             <div className="relative z-20 mt-2 flex items-center justify-between">
-                <span className="min-w-0 text-muted-foreground text-xs">
+                <span className="min-w-0 text-meta text-muted-foreground">
                     {task.assignee === null ? null : agent ? (
                         <AgentOptionLabel agent={agent} />
                     ) : task.assignee.kind === 'user' ? (
@@ -162,6 +161,6 @@ function TaskBoardCard({
                     status={task.status}
                 />
             </div>
-        </div>
+        </Elevated>
     );
 }

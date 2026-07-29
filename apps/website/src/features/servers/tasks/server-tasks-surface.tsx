@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/primitives/button.tsx';
 import { Input } from '../../../components/ui/primitives/input.tsx';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
+import { ContentTopbar } from '../../shell/content-topbar.tsx';
 import { NewServerTaskDialog } from './new-server-task-dialog.tsx';
 import { ServerTaskLabelsDialog } from './server-task-labels-dialog.tsx';
 import {
@@ -54,7 +55,7 @@ export function ServerTasksSurface({
 
     return (
         <section aria-label="Server tasks" className="flex min-h-0 flex-1 flex-col">
-            <div className="flex flex-wrap items-center gap-2 border-border border-b px-4 py-3">
+            <ContentTopbar className="no-drag">
                 <nav aria-label="Task views" className="flex items-center gap-1">
                     {viewOptions.map((option) => (
                         <Button
@@ -76,7 +77,7 @@ export function ServerTasksSurface({
                     type="search"
                     value={query}
                 />
-                <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
+                <div className="flex items-center gap-1 rounded-lg bg-muted p-0.5">
                     {(['board', 'list'] as const).map((option) => (
                         <Button
                             aria-pressed={mode === option}
@@ -99,7 +100,7 @@ export function ServerTasksSurface({
                 >
                     New task
                 </Button>
-            </div>
+            </ContentTopbar>
 
             {tasksQuery.error ? (
                 <ServerTaskState

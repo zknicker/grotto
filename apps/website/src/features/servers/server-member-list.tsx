@@ -23,7 +23,7 @@ export function ServerMemberList({
         <ul className="flex flex-col gap-1">
             {directory.members.map((member) => (
                 <li
-                    className="flex items-center justify-between gap-4 rounded-lg px-3 py-2 hover:bg-muted/40"
+                    className="flex items-center justify-between gap-4 rounded-lg px-3 py-2 hover:bg-hover"
                     data-member-id={member.userId}
                     key={member.userId}
                 >

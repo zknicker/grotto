@@ -10,6 +10,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '../../components/ui/sidebar.tsx';
+import { StatusDot, type StatusDotProps } from '../../components/ui/status-dot.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { AgentFace } from '../chats/agent-face.tsx';
 import { AppSidebarFrame } from '../shell/sidebar.tsx';
@@ -126,7 +127,7 @@ function ChatGroup({
                                             : (agent?.displayName ?? 'Direct message')}
                                     </span>
                                     {chat.unreadCount > 0 ? (
-                                        <span className="flex min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 py-0.5 text-[10px] text-background tabular-nums">
+                                        <span className="flex min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 py-0.5 text-background text-micro tabular-nums">
                                             {chat.unreadCount}
                                         </span>
                                     ) : null}
@@ -138,6 +139,22 @@ function ChatGroup({
             </SidebarGroupContent>
         </SidebarGroup>
     );
+}
+
+/** Hosted availability mapped onto the shared status-dot vocabulary. */
+function hostedAvailabilityStatus(
+    availability: HostedAgent['availability']
+): StatusDotProps['status'] {
+    switch (availability) {
+        case 'idle':
+            return 'success';
+        case 'working':
+            return 'warning';
+        case 'error':
+            return 'error';
+        default:
+            return 'muted';
+    }
 }
 
 function ChatIcon({ agent }: { agent: HostedAgent | null }) {
@@ -153,16 +170,10 @@ function ChatIcon({ agent }: { agent: HostedAgent | null }) {
                 size={24}
                 style={{ flexShrink: 0, height: 24, overflow: 'visible', width: 24 }}
             />
-            <span
-                className={`absolute right-0 bottom-0 size-2.5 rounded-full border-2 border-[var(--sidebar)] ${
-                    agent.availability === 'idle'
-                        ? 'bg-success'
-                        : agent.availability === 'working'
-                          ? 'bg-warning'
-                          : agent.availability === 'error'
-                            ? 'bg-error'
-                            : 'bg-muted-foreground'
-                }`}
+            <StatusDot
+                className="absolute right-0 bottom-0 border-2 border-[var(--sidebar)]"
+                size="md"
+                status={hostedAvailabilityStatus(agent.availability)}
                 title={agent.availability}
             />
         </span>

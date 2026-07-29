@@ -1,4 +1,5 @@
 import type * as React from 'react';
+import { Alert, AlertDescription } from '../../components/ui/alert.tsx';
 import { withSavingToast } from '../../lib/saving-toast.ts';
 import type { AgentListOutput, SkillListOutput } from '../../lib/trpc.tsx';
 import { SkillBadge } from '../skills/skill-badge.tsx';
@@ -64,9 +65,11 @@ export function AgentCapabilities({
                 ) : null}
             </CapabilityRow>
             {skillsError ? (
-                <p className="rounded-md border border-error/20 bg-error/5 px-3 py-2 text-error text-sm">
-                    Skills are unavailable: {skillsError}
-                </p>
+                <Alert variant="error">
+                    <AlertDescription className="text-error-foreground">
+                        Skills are unavailable: {skillsError}
+                    </AlertDescription>
+                </Alert>
             ) : null}
         </section>
     );

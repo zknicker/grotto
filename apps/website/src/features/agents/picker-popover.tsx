@@ -61,7 +61,7 @@ export function PickerPopover<Item extends PickerPopoverItem>({
                         <p className="px-3 py-4 text-muted-foreground text-sm">{emptyText}</p>
                     ) : (
                         <>
-                            <div className="sticky top-0 z-10 border-b bg-popover">
+                            <div className="sticky top-0 z-10 border-border-subtle border-b bg-popover">
                                 <SearchInput
                                     aria-label={searchPlaceholder}
                                     className="[&_[data-slot=input-control]]:h-10 [&_[data-slot=input-control]]:rounded-none [&_[data-slot=input-control]]:border-0 [&_[data-slot=input-control]]:bg-transparent [&_[data-slot=input-control]]:shadow-none [&_[data-slot=input-control]]:has-focus-visible:ring-0"
@@ -72,12 +72,12 @@ export function PickerPopover<Item extends PickerPopoverItem>({
                                 />
                             </div>
                             {visibleItems.length > 0 ? (
-                                <ul className="divide-y">
+                                <ul className="divide-y divide-border-subtle">
                                     {visibleItems.map((item) => (
                                         <li key={item.id}>
                                             <button
                                                 aria-label={`Add ${item.name}`}
-                                                className="flex min-h-10 w-full cursor-pointer items-center px-3 py-2 text-left outline-none hover:bg-accent/30 focus-visible:bg-accent/30 disabled:cursor-default disabled:opacity-64"
+                                                className="flex min-h-10 w-full cursor-pointer items-center px-3 py-2 text-left outline-none hover:bg-hover focus-visible:bg-hover disabled:cursor-default disabled:opacity-64"
                                                 disabled={isPending}
                                                 onClick={() => {
                                                     setOpen(false);

@@ -275,7 +275,7 @@ function TasksEmptyResults({ onClearFilters }: { onClearFilters: () => void }) {
                 No tasks match the current view, filters, or search.
             </p>
             <button
-                className="mt-2 text-muted-foreground text-xs underline underline-offset-2 hover:text-foreground"
+                className="mt-2 text-muted-foreground text-sm underline underline-offset-2 hover:text-foreground"
                 onClick={onClearFilters}
                 type="button"
             >

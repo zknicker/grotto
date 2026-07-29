@@ -5,6 +5,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { NavSectionLabel } from '../../components/ui/nav.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import {
     SidebarGroup,
@@ -123,10 +124,8 @@ export function AppSidebarChatList() {
         <>
             <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
                 <SidebarGroup className="group/channels pt-1">
-                    <div className="relative flex h-8 items-center px-2">
-                        <div className="font-medium font-mono text-[var(--nav-section-label)] text-xs uppercase tracking-wider">
-                            Channels
-                        </div>
+                    <NavSectionLabel className="relative flex h-8 items-center px-2 py-0">
+                        Channels
                         <Button
                             aria-label="New channel"
                             className="absolute top-1/2 right-[0.0625rem] -translate-y-1/2 opacity-0 group-focus-within/channels:opacity-100 group-hover/channels:opacity-100 [&_svg]:size-[1.0625rem]"
@@ -141,7 +140,7 @@ export function AppSidebarChatList() {
                         >
                             <Icon aria-hidden="true" icon={Plus} />
                         </Button>
-                    </div>
+                    </NavSectionLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {sidebarChats.channels.map((chat) => (
@@ -171,11 +170,9 @@ export function AppSidebarChatList() {
                     </SidebarGroupContent>
                 </SidebarGroup>
                 <SidebarGroup className="group/dms pt-1">
-                    <div className="relative flex h-8 items-center px-2">
-                        <div className="font-medium font-mono text-[var(--nav-section-label)] text-xs uppercase tracking-wider">
-                            Direct messages
-                        </div>
-                    </div>
+                    <NavSectionLabel className="relative flex h-8 items-center px-2 py-0">
+                        Direct messages
+                    </NavSectionLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {sidebarChats.directMessages.map((chat) => (
@@ -206,11 +203,9 @@ export function AppSidebarChatList() {
                 </SidebarGroup>
                 {sidebarChats.taskChats.length > 0 ? (
                     <SidebarGroup className="group/tasks pt-1">
-                        <div className="relative flex h-8 items-center px-2">
-                            <div className="font-medium font-mono text-[var(--nav-section-label)] text-xs uppercase tracking-wider">
-                                Task chats
-                            </div>
-                        </div>
+                        <NavSectionLabel className="relative flex h-8 items-center px-2 py-0">
+                            Task chats
+                        </NavSectionLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
                                 {sidebarChats.taskChats.map((chat) => (
@@ -475,7 +470,7 @@ function SidebarAgentPresenceDot({ chat }: { chat: ChatListItem }) {
 
 function SidebarUnreadPill({ count }: { count: number }) {
     return (
-        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary px-1 font-medium text-[0.625rem] text-primary-foreground tabular-nums leading-none">
+        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary px-1 font-medium text-micro text-primary-foreground tabular-nums leading-none">
             {count > 99 ? '99+' : count}
         </span>
     );
@@ -483,7 +478,7 @@ function SidebarUnreadPill({ count }: { count: number }) {
 
 function SidebarUnreadCount({ count }: { count: number }) {
     return (
-        <span className="shrink-0 font-semibold text-[0.6875rem] text-muted-foreground tabular-nums leading-none">
+        <span className="shrink-0 font-semibold text-caption text-muted-foreground tabular-nums leading-none">
             {count > 99 ? '99+' : count}
         </span>
     );
@@ -530,7 +525,7 @@ function SidebarChatIcon({
     return (
         <span
             aria-hidden="true"
-            className="flex size-5 shrink-0 items-center justify-center rounded-[0.4375rem] bg-sidebar-accent font-medium text-[0.625rem] text-sidebar-muted"
+            className="flex size-5 shrink-0 items-center justify-center rounded-md bg-sidebar-accent font-medium text-micro text-sidebar-muted"
         >
             {getSidebarParticipantInitial(chat)}
         </span>

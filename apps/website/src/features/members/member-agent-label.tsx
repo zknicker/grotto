@@ -1,4 +1,5 @@
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import { StatusDot } from '../../components/ui/status-dot.tsx';
 import type { AgentListOutput } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
@@ -36,11 +37,10 @@ export function MemberAgentLabel({
                     style={faceStyle}
                 />
                 {presence ? (
-                    <span
-                        className={cn(
-                            'absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-sidebar',
-                            presence.state === 'busy' ? 'bg-warning' : 'bg-success'
-                        )}
+                    <StatusDot
+                        className="absolute -right-0.5 -bottom-0.5 ring-2 ring-sidebar"
+                        size="md"
+                        status={presence.state === 'busy' ? 'warning' : 'success'}
                     />
                 ) : null}
             </span>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useResolvedThemeOptional } from '../../../components/theme-provider.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { Button } from '../../../components/ui/primitives/button.tsx';
+import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { Tooltip } from '../../../components/ui/tooltip.tsx';
 import { useAgentChatList } from '../../../hooks/agents/use-agent-chats.ts';
 import { useStopAgent } from '../../../hooks/agents/use-agent-inbox.ts';
@@ -72,16 +73,14 @@ export function AgentProfileHeader({
                         <p className="truncate text-muted-foreground text-sm">{agent.bio}</p>
                     ) : null}
                     <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-meta text-muted-foreground">
-                        <span
-                            aria-hidden="true"
-                            className={cn(
-                                'size-2 shrink-0 rounded-full',
+                        <StatusDot
+                            status={
                                 presence?.state === 'busy'
-                                    ? 'bg-warning'
+                                    ? 'warning'
                                     : presence
-                                      ? 'bg-success'
-                                      : 'bg-muted-foreground'
-                            )}
+                                      ? 'success'
+                                      : 'muted'
+                            }
                         />
                         <span className="truncate">{presenceLabel}</span>
                     </span>

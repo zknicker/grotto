@@ -24,7 +24,7 @@ export function LabelSwatchPicker({
         <Popover>
             <PopoverTrigger
                 aria-label={`Color: ${taskLabelColorNames[color]}`}
-                className="flex size-6 shrink-0 items-center justify-center rounded-md outline-none hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+                className="flex size-6 shrink-0 items-center justify-center rounded-md outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
                 disabled={disabled}
             >
                 <LabelDot color={color} />
@@ -35,8 +35,8 @@ export function LabelSwatchPicker({
                         <PopoverClose
                             aria-label={taskLabelColorNames[option]}
                             className={cn(
-                                'flex size-7 items-center justify-center rounded-md outline-none hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring',
-                                option === color && 'bg-accent/40'
+                                'flex size-7 items-center justify-center rounded-md outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring',
+                                option === color && 'bg-active'
                             )}
                             key={option}
                             onClick={() => onChange(option)}

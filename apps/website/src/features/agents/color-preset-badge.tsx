@@ -22,7 +22,7 @@ export function ColorPresetBadge({
                 'inline-flex h-7 items-center gap-1.5 rounded-md border px-2 font-medium text-meta transition-colors disabled:cursor-not-allowed disabled:opacity-64',
                 isSelected
                     ? 'border-border-strong bg-secondary text-secondary-foreground ring-1 ring-ring/20'
-                    : 'border-border-strong bg-card text-muted-foreground hover:bg-accent/50'
+                    : 'border-border-strong bg-card text-muted-foreground hover:bg-hover'
             )}
             disabled={disabled}
             onClick={onClick}

@@ -30,7 +30,7 @@ export function AgentModelCard({
     const copy = splitModelLabel(model);
 
     return (
-        <Card className={cn('transition-colors hover:bg-accent/24', className)}>
+        <Card className={cn('transition-colors hover:bg-hover', className)}>
             <CardContent className="flex items-start gap-3 p-4">
                 <div className="min-w-0 flex-1">
                     <div className="text-muted-foreground text-xs uppercase tracking-[0.12em]">

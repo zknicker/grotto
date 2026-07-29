@@ -1,10 +1,22 @@
 import fastifyStatic from '@fastify/static';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 export async function registerGrottoStaticApp(app: FastifyInstance, staticAppRoot: string) {
     await app.register(fastifyStatic, {
         root: staticAppRoot,
     });
+
+    const sendPrivacyPage = (_request: FastifyRequest, reply: FastifyReply) =>
+        reply
+            .header(
+                'content-security-policy',
+                "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+            )
+            .header('referrer-policy', 'no-referrer')
+            .header('x-content-type-options', 'nosniff')
+            .sendFile('privacy.html');
+    app.get('/privacy', sendPrivacyPage);
+    app.get('/privacy/', sendPrivacyPage);
 
     app.setNotFoundHandler((request, reply) => {
         if (request.method === 'GET' && request.headers.accept?.includes('text/html')) {

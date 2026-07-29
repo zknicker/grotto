@@ -7,6 +7,7 @@ import {
     createGrottoServerApplication,
     type GrottoServerApplication,
 } from '../src/grotto-server-application.ts';
+import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -19,12 +20,17 @@ let attachmentRoot: string;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
+    await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
     clerk = await startClerkTestIssuer(appOrigin);
     attachmentRoot = mkdtempSync(join(tmpdir(), 'grotto-production-attachments-'));
     staticAppRoot = mkdtempSync(join(tmpdir(), 'grotto-static-app-'));
     writeFileSync(
         join(staticAppRoot, 'index.html'),
         '<!doctype html><title>Grotto</title><script src="/assets/app.js"></script>'
+    );
+    writeFileSync(
+        join(staticAppRoot, 'privacy.html'),
+        '<!doctype html><title>Privacy · Grotto</title><h1>Privacy</h1>'
     );
     mkdirSync(join(staticAppRoot, 'assets'));
     writeFileSync(join(staticAppRoot, 'assets', 'app.js'), 'window.__grotto = true;');
@@ -45,6 +51,25 @@ test('serves the hosted App assets from the same origin', async () => {
 
     expect(response.status).toBe(200);
     expect(await response.text()).toBe('window.__grotto = true;');
+});
+
+test('serves the public privacy page with its security policy', async () => {
+    const address = application.app.server.address() as AddressInfo;
+    const response = await fetch(`http://127.0.0.1:${address.port}/privacy`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-security-policy')).toContain("default-src 'none'");
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(await response.text()).toContain('<h1>Privacy</h1>');
+});
+
+test('serves the trailing-slash privacy URL instead of the App shell', async () => {
+    const address = application.app.server.address() as AddressInfo;
+    const response = await fetch(`http://127.0.0.1:${address.port}/privacy/`);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('<title>Privacy · Grotto</title>');
 });
 
 afterAll(async () => {

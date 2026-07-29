@@ -63,18 +63,19 @@
         <main>
             <a href="/">← Grotto</a>
             <h1>Privacy</h1>
-            <p>Last updated July 24, 2026.</p>
-            <h2>Local data</h2>
+            <p>Last updated July 29, 2026.</p>
+            <h2>Grotto data</h2>
             <p>
-                Grotto stores agent workspaces, credentials, and conversation state in the Runtime
-                you control. Connected services receive only the requests made through tools you
-                grant to an agent.
+                Grotto stores shared conversations, memberships, tasks, reminders, connection
+                settings, and connected-service credentials on the hosted Grotto Server. Agent
+                workspaces, execution credentials, and model-provider credentials stay on the
+                attached Computer that runs the Agent.
             </p>
             <h2>Connected services</h2>
             <p>
                 When you connect an MCP server, its authorization service may provide Grotto with
-                access tokens and account information. Grotto keeps those credentials in Runtime and
-                does not expose them to agents.
+                access tokens and account information. Grotto Server stores the credentials needed
+                to make authorized requests and does not expose raw credentials to Agents.
             </p>
             <h2>Contact</h2>
             <p>

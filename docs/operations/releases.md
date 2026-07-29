@@ -369,6 +369,12 @@ also requires the Developer ID certificate in the macOS keychain, selected by
 `CSC_NAME` or `APPLE_SIGNING_IDENTITY`; a `CSC_LINK` file alone is not a
 codesign identity.
 
+On macOS, `VITE_CLERK_PUBLISHABLE_KEY` also falls back to the login Keychain
+generic-password service `grotto-release-clerk-publishable-key`, using the
+macOS username as the account. The publisher resolves this value before
+committing or pushing release metadata, so checkout-local `.env` files are not
+required for the hosted App build.
+
 Runtime releases additionally require `TAVERN_GOOGLE_OAUTH_CLIENT_ID` and
 `TAVERN_GOOGLE_OAUTH_CLIENT_SECRET` for the Runtime artifact. App-only releases
 do not.

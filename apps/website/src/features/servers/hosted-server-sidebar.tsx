@@ -1,7 +1,9 @@
+import { Plus } from '@hugeicons/core-free-icons';
 import { Activity03Icon, ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { Button } from '../../components/ui/primitives/button.tsx';
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -20,6 +22,7 @@ export function HostedServerSidebar({
     agents,
     chats,
     currentServer,
+    onCreateChannel,
     onOpenActivity,
     onOpenChat,
     selectedChatId,
@@ -28,6 +31,7 @@ export function HostedServerSidebar({
     agents: HostedAgent[];
     chats: HostedChat[];
     currentServer: ServerSummary;
+    onCreateChannel: () => void;
     onOpenActivity: () => void;
     onOpenChat: (chatId: string) => void;
     selectedChatId: string | undefined;
@@ -59,6 +63,7 @@ export function HostedServerSidebar({
                             agents={agentById}
                             chats={channels}
                             label="Channels"
+                            onCreateChannel={onCreateChannel}
                             onOpenChat={onOpenChat}
                             selectedChatId={selectedChatId}
                         />
@@ -93,19 +98,33 @@ function ChatGroup({
     agents,
     chats,
     label,
+    onCreateChannel,
     onOpenChat,
     selectedChatId,
 }: {
     agents: Map<string, HostedAgent>;
     chats: HostedChat[];
     label: string;
+    onCreateChannel?: () => void;
     onOpenChat: (chatId: string) => void;
     selectedChatId: string | undefined;
 }) {
     return (
         <SidebarGroup className="pt-1">
-            <div className="flex h-8 items-center px-2 font-medium font-mono text-[var(--nav-section-label)] text-xs uppercase tracking-wider">
+            <div className="group/channels relative flex h-8 items-center px-2 font-medium font-mono text-[var(--nav-section-label)] text-xs uppercase tracking-wider">
                 {label}
+                {onCreateChannel ? (
+                    <Button
+                        aria-label="New channel"
+                        className="absolute top-1/2 right-[0.0625rem] -translate-y-1/2 opacity-0 group-focus-within/channels:opacity-100 group-hover/channels:opacity-100 [&_svg]:size-[1.0625rem]"
+                        onClick={onCreateChannel}
+                        size="icon-xs"
+                        title="New channel"
+                        variant="ghost"
+                    >
+                        <Icon aria-hidden="true" icon={Plus} />
+                    </Button>
+                ) : null}
             </div>
             <SidebarGroupContent>
                 <SidebarMenu>

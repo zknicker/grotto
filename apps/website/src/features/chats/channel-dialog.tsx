@@ -16,15 +16,19 @@ import { Field, FieldDescription, FieldLabel } from '../../components/ui/primiti
 import { Form } from '../../components/ui/primitives/form.tsx';
 import { Input } from '../../components/ui/primitives/input.tsx';
 import { Spinner } from '../../components/ui/spinner.tsx';
-import type { AgentListOutput } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
 import { AgentFace } from './agent-face.tsx';
 
-type AgentOption = AgentListOutput['agents'][number];
+export interface ChannelAgentOption {
+    effectiveCharacter: React.ComponentProps<typeof AgentFace>['head'];
+    effectivePrimaryColor: string | null;
+    id: string;
+    name: string;
+}
 
 interface ChannelDialogProps {
-    agents: AgentOption[];
+    agents: ChannelAgentOption[];
     agentsPending: boolean;
     errorMessage: string | null;
     initialAgentIds: string[];
@@ -206,7 +210,7 @@ function AgentCheckboxList({
     onSelectedAgentIdsChange,
     selectedAgentIds,
 }: {
-    agents: AgentOption[];
+    agents: ChannelAgentOption[];
     disabled: boolean;
     onSelectedAgentIdsChange: (agentIds: string[]) => void;
     selectedAgentIds: string[];
@@ -248,7 +252,7 @@ function AgentCheckboxRow({
     disabled,
     onCheckedChange,
 }: {
-    agent: AgentOption;
+    agent: ChannelAgentOption;
     checked: boolean;
     disabled: boolean;
     onCheckedChange: (checked: boolean) => void;
@@ -277,7 +281,7 @@ function AgentCheckboxRow({
     );
 }
 
-function AgentAvatar({ agent }: { agent: AgentOption }) {
+function AgentAvatar({ agent }: { agent: ChannelAgentOption }) {
     const dark = useResolvedThemeOptional() === 'dark';
 
     return (

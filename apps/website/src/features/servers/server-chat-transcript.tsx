@@ -38,6 +38,7 @@ export function ServerChatTranscript({
     activeThreadAnchorId,
     agents,
     chatId,
+    composition,
     messages,
     onOpenThread,
     onStartDm,
@@ -47,6 +48,7 @@ export function ServerChatTranscript({
     activeThreadAnchorId?: string;
     agents: HostedAgent[];
     chatId: string;
+    composition?: React.ReactNode;
     messages: HostedChatMessage[] | undefined;
     onOpenThread?: (message: HostedChatMessage, summary: HostedThreadSummary | null) => void;
     onStartDm: (userId: string) => void;
@@ -174,6 +176,7 @@ export function ServerChatTranscript({
 
     return (
         <ChatTranscriptPresentation
+            composition={composition}
             leadingContent={
                 download.error ? (
                     <p className="px-2 text-destructive text-xs">{download.error.message}</p>

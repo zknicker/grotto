@@ -1,4 +1,10 @@
-import type { HostedAgent, HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
+import type {
+    HostedAgent,
+    HostedAgentLifecycleEvent,
+    HostedChat,
+    HostedChatMessage,
+    HostedThreadSummary,
+} from '@tavern/api';
 import * as React from 'react';
 import { Button } from '../../../components/ui/primitives/button.tsx';
 import { useMarkServerChatReadOnView } from '../../../hooks/servers/use-mark-server-chat-read.ts';
@@ -7,11 +13,15 @@ import { useSetServerThreadFollow } from '../../../hooks/servers/use-set-server-
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import { ChatSidePaneShell } from '../../chats/chat-side-pane-shell.tsx';
 import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
+import { HostedAgentFace } from '../../members/hosted-agent-face.tsx';
+import { HostedAgentCompositionBubbles } from '../hosted-agent-composition-bubble.tsx';
 import { ServerChatComposer } from '../server-chat-composer.tsx';
+import { serverThreadAuthor } from './server-thread-author.ts';
 import { serverThreadTitles } from './server-thread-target.ts';
 
 export function ServerThreadPanel({
     agents,
+    agentLifecycles,
     anchor,
     chat,
     initialThreadChatId,
@@ -21,6 +31,7 @@ export function ServerThreadPanel({
     takeover,
 }: {
     agents: HostedAgent[];
+    agentLifecycles: ReadonlyMap<string, HostedAgentLifecycleEvent>;
     anchor: HostedChatMessage;
     chat: HostedChat;
     initialThreadChatId?: string;
@@ -38,6 +49,10 @@ export function ServerThreadPanel({
     const replyCount = Math.max(summary?.replyCount ?? 0, replies.length);
     const follow = useSetServerThreadFollow(chat.id);
     const titles = serverThreadTitles(chat, anchor.id);
+    const agentsById = React.useMemo(
+        () => new Map(agents.map((agent) => [agent.id, agent])),
+        [agents]
+    );
 
     useMarkServerChatReadOnView({
         chatId: messages.data ? threadChatId : undefined,
@@ -73,7 +88,7 @@ export function ServerThreadPanel({
                         threadExists={threadChatId !== undefined}
                     />
                     <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-                        <ThreadMessage message={anchor} />
+                        <ThreadMessage agentsById={agentsById} message={anchor} />
                         <ReplyDivider replyCount={replyCount} />
                         {messages.hasOlderHistory ? (
                             <div className="mb-5 flex justify-center">
@@ -91,8 +106,17 @@ export function ServerThreadPanel({
                         ) : null}
                         <div className="flex flex-col gap-5">
                             {replies.map((reply) => (
-                                <ThreadMessage key={reply.id} message={reply} />
+                                <ThreadMessage
+                                    agentsById={agentsById}
+                                    key={reply.id}
+                                    message={reply}
+                                />
                             ))}
+                            <HostedAgentCompositionBubbles
+                                agents={agents}
+                                chatId={threadChatId}
+                                lifecycles={agentLifecycles}
+                            />
                         </div>
                     </div>
                     <div className="shrink-0 border-border-subtle border-t py-3">
@@ -113,14 +137,22 @@ export function ServerThreadPanel({
     );
 }
 
-function ThreadMessage({ message }: { message: HostedChatMessage }) {
+function ThreadMessage({
+    agentsById,
+    message,
+}: {
+    agentsById: ReadonlyMap<string, HostedAgent>;
+    message: HostedChatMessage;
+}) {
+    const author = serverThreadAuthor(message, agentsById);
     return (
         <article className="flex min-w-0 flex-col gap-1">
             <div className="flex items-baseline gap-2">
+                {author.kind === 'agent' ? (
+                    <HostedAgentFace agent={author.agent} animate={false} size={20} />
+                ) : null}
                 <span className="font-medium text-sm">
-                    {message.author.kind === 'human'
-                        ? `Human ${message.author.userId.slice(-6)}`
-                        : 'Reminder'}
+                    {author.kind === 'agent' ? author.agent.displayName : author.label}
                 </span>
                 <time className="text-muted-foreground text-xs" dateTime={message.createdAt}>
                     {new Date(message.createdAt).toLocaleTimeString([], {

@@ -31,6 +31,7 @@ export function ChatDetailFrame({
     hasOlderHistory = false,
     header,
     historyLoaded,
+    hasTransientTimelineContent = false,
     isFetchingOlderHistory = false,
     isPending,
     rows,
@@ -53,6 +54,7 @@ export function ChatDetailFrame({
     hasOlderHistory?: boolean;
     header?: React.ReactNode;
     historyLoaded: boolean;
+    hasTransientTimelineContent?: boolean;
     isFetchingOlderHistory?: boolean;
     isPending: boolean;
     rows: NonNullable<ChatLogOutput>['rows'];
@@ -62,7 +64,11 @@ export function ChatDetailFrame({
     const viewportRef = React.useRef<HTMLDivElement | null>(null);
     const contentRef = React.useRef<HTMLDivElement | null>(null);
     const hasActiveReply = activeReplies.length > 0;
-    const hasTimelineContent = rows.length > 0 || hasActiveReply;
+    const hasTimelineContent = chatTimelineHasContent({
+        activeReplyCount: activeReplies.length,
+        hasTransientTimelineContent,
+        rowCount: rows.length,
+    });
     const isInitialTranscriptPending = isPending && !historyLoaded && !hasActiveReply;
     const handleScroll = () => {
         const viewport = viewportRef.current;
@@ -158,4 +164,12 @@ export function ChatDetailFrame({
             </div>
         </MessageScrollerProvider>
     );
+}
+
+export function chatTimelineHasContent(input: {
+    activeReplyCount: number;
+    hasTransientTimelineContent: boolean;
+    rowCount: number;
+}) {
+    return input.rowCount > 0 || input.activeReplyCount > 0 || input.hasTransientTimelineContent;
 }

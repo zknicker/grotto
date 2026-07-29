@@ -227,12 +227,14 @@ export function ChatTranscript({
 
 export function ChatTranscriptPresentation({
     agentStatusCharacter = null,
+    composition,
     leadingContent,
     renderContext,
     rows,
     scrollContentRef,
 }: {
     agentStatusCharacter?: AgentCharacter | null;
+    composition?: React.ReactNode;
     leadingContent?: React.ReactNode;
     renderContext: TranscriptRenderContextValue;
     rows: TranscriptRow[];
@@ -248,6 +250,7 @@ export function ChatTranscriptPresentation({
     return (
         <ChatTranscriptRowsPresentation
             agentStatusCharacter={agentStatusCharacter}
+            composition={composition}
             leadingContent={leadingContent}
             renderContext={renderContext}
             scrollContentRef={scrollContentRef}

@@ -8,6 +8,7 @@ import {
 } from '../../components/ui/app-shell.tsx';
 import { SidebarProvider } from '../../components/ui/sidebar.tsx';
 import { Elevated } from '../../components/ui/surface.tsx';
+import { type ChannelAgentOption, ChannelDialog } from '../../features/chats/channel-dialog.tsx';
 import type { HostedServerSection } from '../../features/servers/hosted-server-rail.tsx';
 import { HostedServerRail } from '../../features/servers/hosted-server-rail.tsx';
 import { HostedServerSettingsNav } from '../../features/servers/hosted-server-settings-nav.tsx';
@@ -25,7 +26,9 @@ import {
     serverTasksRoute,
 } from '../../features/servers/server-routes.ts';
 import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx';
+import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
+import { useServerAgentLifecycle } from '../../hooks/servers/use-server-agent-lifecycle.ts';
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
 import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
@@ -38,12 +41,15 @@ export function ServerLayout() {
     const server = useServer(slug);
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
+    const createChannel = useCreateServerChannel();
     const agents = grottoTrpc.agent.list.useQuery(
         { serverId: server.data?.id ?? '' },
         { enabled: Boolean(server.data) }
     );
     const connectionState = useGrottoServerConnectionState();
     const currentServerSlug = server.data?.slug;
+    const [creatingChannel, setCreatingChannel] = React.useState(false);
+    const agentLifecycles = useServerAgentLifecycle(server.data?.id);
 
     useServerChatEvents(server.data?.id);
     React.useEffect(() => {
@@ -69,6 +75,12 @@ export function ServerLayout() {
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
     const agentListStatus = agents.data ? 'ready' : agents.isPending ? 'loading' : 'error';
     const serverChoices = servers.data ?? [server.data];
+    const channelAgents: ChannelAgentOption[] = (agents.data ?? []).map((agent) => ({
+        effectiveCharacter: agent.character,
+        effectivePrimaryColor: null,
+        id: agent.id,
+        name: agent.displayName,
+    }));
     const openChat = (chatId: string) => navigate(serverChatRoute(slug, chatId));
     const selectSection = (section: HostedServerSection) => {
         const route = {
@@ -116,6 +128,10 @@ export function ServerLayout() {
                             agents={agents.data ?? []}
                             chats={chats.data ?? []}
                             currentServer={server.data}
+                            onCreateChannel={() => {
+                                createChannel.reset();
+                                setCreatingChannel(true);
+                            }}
                             onOpenActivity={() => navigate(serverActivityRoute(slug))}
                             onOpenChat={openChat}
                             selectedChatId={selectedChatId}
@@ -141,6 +157,7 @@ export function ServerLayout() {
                         <Outlet
                             context={{
                                 agentListStatus,
+                                agentLifecycles,
                                 agents: agents.data ?? [],
                                 chats: chats.data ?? [],
                                 server: server.data,
@@ -148,6 +165,30 @@ export function ServerLayout() {
                             }}
                         />
                     </AppShellMain>
+                    <ChannelDialog
+                        agents={channelAgents}
+                        agentsPending={agents.isPending}
+                        errorMessage={createChannel.error?.message ?? null}
+                        initialAgentIds={[]}
+                        initialDisplayName=""
+                        isPending={createChannel.isPending}
+                        onClose={() => {
+                            createChannel.reset();
+                            setCreatingChannel(false);
+                        }}
+                        onSubmit={async ({ agentIds, displayName }) => {
+                            const channel = await createChannel.mutateAsync({
+                                agentIds,
+                                name: displayName,
+                                serverId: server.data.id,
+                            });
+                            setCreatingChannel(false);
+                            openChat(channel.id);
+                        }}
+                        open={creatingChannel}
+                        submitLabel="Create"
+                        title="New channel"
+                    />
                 </AppShellBody>
             </AppShell>
         </SidebarProvider>

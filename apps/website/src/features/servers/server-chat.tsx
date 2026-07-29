@@ -20,7 +20,12 @@ import { ChatDetailFrame } from '../chats/chat-detail-frame.tsx';
 import { ChatRoomTopbarPresentation } from '../chats/chat-room-topbar.tsx';
 import { type ChatViewTab, ChatViewTabs } from '../chats/chat-view-tabs.tsx';
 import { ToolbarDivider } from '../shell/toolbar-divider.tsx';
+import {
+    HostedAgentCompositionBubbles,
+    hasHostedAgentComposition,
+} from './hosted-agent-composition-bubble.tsx';
 import { HostedAgentProfilePanel } from './hosted-agent-profile-panel.tsx';
+import { useHostedServerContext } from './hosted-server-context.ts';
 import { ServerChatComposer } from './server-chat-composer.tsx';
 import { projectHostedChatMessages, ServerChatTranscript } from './server-chat-transcript.tsx';
 import { ServerTasksSurface } from './tasks/server-tasks-surface.tsx';
@@ -48,6 +53,7 @@ export function ServerChat({
     viewerUserId: string;
 }) {
     const [viewTab, setViewTab] = React.useState<ChatViewTab>('chat');
+    const { agentLifecycles } = useHostedServerContext();
     const [artifactVisible, setArtifactVisible] = React.useState(false);
     const activeSidePane = useChatSidePane(chat.id);
     const [threadSelection, setThreadSelection] = React.useState<{
@@ -111,6 +117,7 @@ export function ServerChat({
     };
     const threadPanel = threadSelection ? (
         <ServerThreadPanel
+            agentLifecycles={agentLifecycles}
             agents={agents}
             anchor={threadSelection.anchor}
             chat={chat}
@@ -185,6 +192,10 @@ export function ServerChat({
                             </>
                         ) : null
                     }
+                    hasTransientTimelineContent={hasHostedAgentComposition(
+                        chat.id,
+                        agentLifecycles
+                    )}
                     header={
                         <>
                             <HostedChatTopbar
@@ -224,6 +235,13 @@ export function ServerChat({
                             activeThreadAnchorId={threadSelection?.anchor.id}
                             agents={agents}
                             chatId={chat.id}
+                            composition={
+                                <HostedAgentCompositionBubbles
+                                    agents={agents}
+                                    chatId={chat.id}
+                                    lifecycles={agentLifecycles}
+                                />
+                            }
                             messages={transcriptMessages}
                             onOpenThread={(anchor, summary) =>
                                 setThreadSelection({ anchor, initialSummary: summary })

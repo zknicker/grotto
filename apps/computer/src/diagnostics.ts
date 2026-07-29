@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import type { Attachment } from './launch.ts';
 
 interface AttachmentStatus {
@@ -41,6 +42,12 @@ export async function doctorComputer(
     });
     const attachments = await readAttachments(dataRoot);
     checks.push({ label: 'At least one Server is attached', ok: attachments.length > 0 });
+    checks.push({
+        label: 'Bundled Agent runtimes are ready',
+        ok: await validateComputerBridgeAssets()
+            .then(() => true)
+            .catch(() => false),
+    });
     for (const attachment of attachments) {
         const path = join(dataRoot, 'servers', attachment.serverId, 'attachment.json');
         const info = await stat(path).catch(() => null);

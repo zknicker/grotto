@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { HarnessV1 } from '@ai-sdk/harness';
-import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
+import { validateComputerBridgeAssets, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 
 test('Computer ships the proven pinned Codex bridge bootstrap', async () => {
     const harness = withComputerBridgeBootstrap({} as HarnessV1, 'codex');
@@ -21,4 +21,14 @@ test('Computer ships the proven pinned Codex bridge bootstrap', async () => {
             'CI=true pnpm install --frozen-lockfile --store-dir /tmp/harness/codex/.pnpm-store',
         workingDirectory: '/tmp/harness/codex',
     });
+    expect(bootstrap.files?.find((file) => file.path.endsWith('/bridge.mjs'))?.content).toContain(
+        'Codex'
+    );
+    expect(
+        bootstrap.files?.find((file) => file.path.endsWith('/host-tool-mcp.mjs'))?.content
+    ).toContain('Server');
+});
+
+test('Computer embeds every packaged harness bridge asset', async () => {
+    await expect(validateComputerBridgeAssets()).resolves.toBeUndefined();
 });

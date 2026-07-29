@@ -43,6 +43,7 @@ export async function buildComputerArtifact(input) {
         }
     );
     await verifyComputerIdentity(artifactPath, input);
+    verifyComputerReleaseAssets(artifactPath);
     return { artifactPath, publicKey };
 }
 
@@ -56,6 +57,15 @@ export async function verifyComputerIdentity(artifactPath, expected) {
         identity.sourceRevision !== expected.sourceRevision
     ) {
         fail('compiled Computer identity does not match its release', { expected, identity });
+    }
+}
+
+export function verifyComputerReleaseAssets(artifactPath) {
+    const output = execFileSync(artifactPath, ['__release-check'], {
+        encoding: 'utf8',
+    }).trim();
+    if (output !== 'Grotto Computer release assets are ready.') {
+        fail('compiled Computer is missing required release assets');
     }
 }
 

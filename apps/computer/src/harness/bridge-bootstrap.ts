@@ -3,6 +3,26 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { HarnessV1, HarnessV1Bootstrap } from '@ai-sdk/harness';
+import codexPackage from '../../assets/harness-bridges/codex/package.json' with { type: 'text' };
+import codexLockfile from '../../assets/harness-bridges/codex/pnpm-lock.yaml' with { type: 'text' };
+// @ts-expect-error -- Bun's text loader embeds this bridge in the standalone executable.
+import claudeCodeBridge from '../../node_modules/@ai-sdk/harness-claude-code/dist/bridge/index.mjs' with {
+    type: 'text',
+};
+import claudeCodePackage from '../../node_modules/@ai-sdk/harness-claude-code/dist/bridge/package.json' with {
+    type: 'text',
+};
+import claudeCodeLockfile from '../../node_modules/@ai-sdk/harness-claude-code/dist/bridge/pnpm-lock.yaml' with {
+    type: 'text',
+};
+// @ts-expect-error -- Bun's text loader embeds this bridge in the standalone executable.
+import codexHostToolMcp from '../../node_modules/@ai-sdk/harness-codex/dist/bridge/host-tool-mcp.mjs' with {
+    type: 'text',
+};
+// @ts-expect-error -- Bun's text loader embeds this bridge in the standalone executable.
+import codexBridge from '../../node_modules/@ai-sdk/harness-codex/dist/bridge/index.mjs' with {
+    type: 'text',
+};
 
 const require = createRequire(import.meta.url);
 
@@ -33,6 +53,20 @@ const bridgeSpecs = {
     },
 } as const;
 
+const embeddedBridgeAssets: Record<BridgeHarnessId, Readonly<Record<string, string>>> = {
+    'claude-code': {
+        'index.mjs': claudeCodeBridge,
+        'package.json': claudeCodePackage as unknown as string,
+        'pnpm-lock.yaml': claudeCodeLockfile,
+    },
+    codex: {
+        'host-tool-mcp.mjs': codexHostToolMcp,
+        'index.mjs': codexBridge,
+        'package.json': codexPackage as unknown as string,
+        'pnpm-lock.yaml': codexLockfile,
+    },
+};
+
 /** The proven Runtime bridge bootstrap, now owned and shipped by Computer. */
 export function withComputerBridgeBootstrap<T extends HarnessV1>(
     harness: T,
@@ -47,6 +81,15 @@ export function withComputerBridgeBootstrap<T extends HarnessV1>(
             return cachedBootstrap;
         },
     };
+}
+
+/** Release/doctor gate: every bridge file required by a real Agent turn is embedded. */
+export async function validateComputerBridgeAssets(): Promise<void> {
+    await Promise.all(
+        (Object.keys(bridgeSpecs) as BridgeHarnessId[]).map((harnessId) =>
+            readBridgeBootstrap(harnessId, bridgeSpecs[harnessId])
+        )
+    );
 }
 
 async function readBridgeBootstrap(
@@ -82,6 +125,10 @@ async function readBridgeBootstrap(
 }
 
 async function readBridgeAsset(harnessId: BridgeHarnessId, packageName: string, name: string) {
+    const embedded = embeddedBridgeAssets[harnessId][name];
+    if (embedded?.length) {
+        return embedded;
+    }
     const roots = bridgeAssetRoots(harnessId, packageName);
     for (const root of roots) {
         try {

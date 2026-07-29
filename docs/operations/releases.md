@@ -181,6 +181,9 @@ Use this lane when the release decision marks Computer **publish**:
 The publisher creates the annotated Computer tag and GitHub Release. It never
 promotes `latest.json` before the immutable public artifact passes signature,
 notarization, digest, version, protocol, and source-revision checks.
+The compiled artifact must also load every embedded Codex and Claude Code
+harness bridge payload. The publisher runs that check from the standalone
+executable, so source-tree fallback files cannot make a broken release pass.
 
 If publication is interrupted after an immutable object uploads but before
 promotion, rerun the same command from the same source revision. The publisher

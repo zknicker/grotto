@@ -27,6 +27,7 @@ import {
     readComputerStatus,
 } from './diagnostics.ts';
 import { readEffectiveAgentStates } from './effective-state.ts';
+import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import {
     importHostSkill,
     listAgentSkillReports,
@@ -89,6 +90,11 @@ async function main(args: string[]) {
     // entrypoint; it is a separate command surface, not a separate artifact.
     if (command === '__agent') {
         process.exitCode = await runAgentCli(args.slice(1));
+        return;
+    }
+    if (command === '__release-check') {
+        await validateComputerBridgeAssets();
+        console.log('Grotto Computer release assets are ready.');
         return;
     }
     if (command === 'install') {
@@ -419,6 +425,9 @@ async function startAttachment(attachment: Attachment) {
         `${JSON.stringify({ credentialHash: hash(attachment.credential), pid: child.pid })}\n`,
         { mode: 0o600 }
     );
+    // The durable marker and resident supervisor own the runner, not this
+    // one-shot CLI invocation.
+    child.unref();
     void child.exited.then(async () => {
         const marker = await readRunnerMarker(attachment);
         if (marker?.pid === child.pid) {

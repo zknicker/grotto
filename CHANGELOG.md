@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.8 - 2026-07-29
+
+- Hosted Grotto now serves its public privacy policy from the same Mac mini
+  Server as the App. `www.grotto.sh` redirects to the matching apex path
+  entirely through Cloudflare, and Vercel no longer serves production traffic.
+
+### Release surfaces
+
+- App/Server: Publish v1.6.8
+- Desktop: Publish v1.6.8
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.6.7 - 2026-07-28
 
 - Grotto Computer 1.1.1 now ships as a signed and notarized standalone Apple

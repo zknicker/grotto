@@ -1,17 +1,17 @@
 {
-  "targetVersion": "1.6.7",
+  "targetVersion": "1.6.8",
   "surfaces": {
     "appServer": {
       "action": "publish",
-      "version": "1.6.7"
+      "version": "1.6.8"
     },
     "desktop": {
       "action": "publish",
-      "version": "1.6.7"
+      "version": "1.6.8"
     },
     "computer": {
-      "action": "publish",
-      "version": "1.1.1"
+      "action": "unchanged",
+      "version": null
     },
     "runtime": {
       "action": "unchanged",

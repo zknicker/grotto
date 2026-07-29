@@ -44,6 +44,7 @@ import {
     resetAgentState,
     runAgentLaunch,
 } from './launch.ts';
+import { replaceLaunchdService } from './launchd.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import {
     admitActiveRun,
@@ -480,20 +481,16 @@ async function installResidentService() {
         mode: 0o600,
     });
     const domain = `gui/${userInfo().uid}`;
-    const existing = Bun.spawnSync(['/bin/launchctl', 'bootout', domain, plistPath], {
-        stderr: 'ignore',
-        stdout: 'ignore',
+    replaceLaunchdService({
+        domain,
+        label: 'com.grotto.computer',
+        plistPath,
+        run: (args) =>
+            Bun.spawnSync(['/bin/launchctl', ...args], {
+                stderr: 'ignore',
+                stdout: 'ignore',
+            }).exitCode,
     });
-    if (existing.exitCode !== 0 && existing.exitCode !== 3) {
-        throw new Error('Could not replace Grotto Computer service.');
-    }
-    const loaded = Bun.spawnSync(['/bin/launchctl', 'bootstrap', domain, plistPath], {
-        stderr: 'ignore',
-        stdout: 'ignore',
-    });
-    if (loaded.exitCode !== 0) {
-        throw new Error('Could not start Grotto Computer service.');
-    }
 }
 
 async function stopResidentService() {

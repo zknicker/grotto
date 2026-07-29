@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## v1.6.7 - 2026-07-28
 
-- Grotto Computer 1.1.0 now ships as a signed and notarized standalone Apple
+- Grotto Computer 1.1.1 now ships as a signed and notarized standalone Apple
   Silicon executable with no npm, Homebrew, or Bun dependency. Updates verify
   the signed descriptor, checksum, Apple identity, and executable identity
   before atomically replacing code; `~/.grotto` data remains untouched.
@@ -23,7 +23,7 @@ All notable changes to this project will be documented in this file.
 
 - App/Server: Publish v1.6.7
 - Desktop: Publish v1.6.7
-- Computer: Publish v1.1.0
+- Computer: Publish v1.1.1
 - Runtime: Unchanged
 
 ## v1.6.6 - 2026-07-28

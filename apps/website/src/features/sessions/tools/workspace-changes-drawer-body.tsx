@@ -47,7 +47,7 @@ export function WorkspaceChangesDrawerBody({ call }: { call: ToolDrawerCall }) {
                 const evidence = evidenceByPath.get(change.path);
                 return (
                     <Collapsible
-                        className="rounded-lg border border-border/40 bg-background/60"
+                        className="rounded-lg border border-border-subtle bg-muted"
                         defaultOpen={change.omitted === null}
                         key={change.path}
                     >
@@ -59,7 +59,7 @@ export function WorkspaceChangesDrawerBody({ call }: { call: ToolDrawerCall }) {
                             />
                             <span
                                 className={cn(
-                                    'shrink-0 font-medium text-[11px] uppercase tracking-wide',
+                                    'shrink-0 font-medium text-caption uppercase tracking-wide',
                                     change.change === 'created' && 'text-success-foreground',
                                     change.change === 'deleted' && 'text-destructive',
                                     change.change === 'modified' && 'text-muted-foreground'
@@ -67,7 +67,7 @@ export function WorkspaceChangesDrawerBody({ call }: { call: ToolDrawerCall }) {
                             >
                                 {change.change}
                             </span>
-                            <span className="min-w-0 flex-1 truncate font-mono text-foreground text-xs">
+                            <span className="min-w-0 flex-1 truncate font-mono text-code text-foreground">
                                 {change.path}
                             </span>
                             <DiffStatBadge

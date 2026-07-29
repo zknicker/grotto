@@ -23,7 +23,7 @@ export function SessionLinkButton({
                     ? 'border-[color:var(--warning-border)] bg-[var(--warning-bg)]'
                     : tone === 'sky'
                       ? 'border-[color:var(--info-border)] bg-[var(--info-bg)]'
-                      : 'border-border/60 bg-muted/30',
+                      : 'border-border-subtle bg-muted',
                 className
             )}
         >
@@ -41,22 +41,22 @@ export function SessionLinkButton({
                     {label}
                 </span>
             ) : null}
-            <span className="min-w-0 truncate text-foreground/90 text-sm">{title}</span>
+            <span className="min-w-0 truncate text-foreground text-sm">{title}</span>
             {subtitle ? (
                 <span
                     className={cn(
                         'min-w-0 truncate text-caption',
                         tone === 'amber'
-                            ? 'text-warning/78'
+                            ? 'text-warning-foreground'
                             : tone === 'sky'
-                              ? 'text-info/78'
-                              : 'text-muted-foreground/80'
+                              ? 'text-info-foreground'
+                              : 'text-muted-foreground'
                     )}
                 >
                     {subtitle}
                 </span>
             ) : null}
-            <span className="min-w-0 truncate font-mono text-caption text-muted-foreground/60">
+            <span className="min-w-0 truncate font-mono text-caption text-muted-foreground">
                 {sessionKey}
             </span>
         </div>

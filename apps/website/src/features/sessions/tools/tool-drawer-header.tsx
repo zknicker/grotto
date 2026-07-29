@@ -16,7 +16,7 @@ export function ToolDrawerHeader({ call }: { call: ToolDrawerCall }) {
     return (
         <DrawerHeader>
             <div className="flex items-center gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/40">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-muted">
                     <Icon
                         className="size-4.5 text-muted-foreground"
                         icon={resolveToolDrawerIcon(call.name)}

@@ -1,4 +1,5 @@
 import { DrawerPanel } from '../../../components/ui/drawer.tsx';
+import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { SessionLinkButton } from '../session-link-button.tsx';
 import { buildToolDrawerCall, type ToolDrawerDetails } from './tool-drawer-call.ts';
 import { resolveToolDrawerBody } from './tool-drawer-registry.tsx';
@@ -25,14 +26,14 @@ export function ToolDrawerBody({ details, isPending, queryError }: ToolDrawerBod
                 />
             ))}
             {isPending ? (
-                <div className="flex items-center gap-2.5 rounded-lg border border-border/30 bg-muted/10 px-3.5 py-3">
-                    <div className="size-1 animate-pulse rounded-full bg-muted-foreground/40" />
+                <div className="flex items-center gap-2.5 rounded-lg border border-border-subtle bg-muted px-3.5 py-3">
+                    <StatusDot className="animate-pulse" status="muted" />
                     <p className="text-muted-foreground text-sm">Loading tool details...</p>
                 </div>
             ) : null}
             {!isPending && queryError ? (
-                <div className="rounded-lg border border-red-500/12 bg-red-500/4 px-3.5 py-3">
-                    <p className="text-red-400 text-sm">Tool details not available.</p>
+                <div className="rounded-lg border border-[color:var(--error-border)] bg-[var(--error-bg)] px-3.5 py-3">
+                    <p className="text-error-foreground text-sm">Tool details not available.</p>
                 </div>
             ) : null}
             {details && BodyRenderer ? <BodyRenderer call={buildToolDrawerCall(details)} /> : null}

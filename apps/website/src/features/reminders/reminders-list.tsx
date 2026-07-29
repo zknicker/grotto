@@ -1,5 +1,5 @@
 import { FluidList, FluidListItem } from '../../components/ui/fluid-list.tsx';
-import { cn } from '../../lib/utils.ts';
+import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { ReminderActions } from './reminder-actions.tsx';
 import type { ReminderListItem } from './reminder-list-data.ts';
 
@@ -44,24 +44,27 @@ function ReminderRow({
                 />
             )}
 
-            <span
+            <StatusDot
+                aria-hidden={false}
                 aria-label={dotState.label}
-                className={cn(
-                    'pointer-events-none relative z-10 size-2 shrink-0 rounded-full',
-                    dotState.tone === 'scheduled' && 'bg-success',
-                    dotState.tone === 'canceled' && 'bg-muted-foreground/35',
-                    dotState.tone === 'error' && 'bg-error'
-                )}
+                className="pointer-events-none relative z-10"
                 role="img"
+                status={
+                    dotState.tone === 'scheduled'
+                        ? 'success'
+                        : dotState.tone === 'error'
+                          ? 'error'
+                          : 'muted'
+                }
             />
 
             <div className="pointer-events-none relative z-10 flex min-w-0 flex-1 flex-col gap-1 text-left">
                 <div className="flex min-w-0 items-center gap-2">
-                    <span className="min-w-0 truncate font-medium text-[15px] text-foreground">
+                    <span className="min-w-0 truncate font-medium text-base text-foreground">
                         {reminder.name}
                     </span>
                     {reminder.isScript ? (
-                        <span className="shrink-0 rounded-md bg-muted/60 px-1.5 py-0.5 font-medium text-[11px] text-muted-foreground">
+                        <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 font-medium text-caption text-muted-foreground">
                             Script
                         </span>
                     ) : null}
@@ -72,17 +75,17 @@ function ReminderRow({
                 </div>
                 {reminder.lastErrorMessage ? (
                     <p
-                        className="max-w-[36rem] truncate text-error-foreground text-xs"
+                        className="max-w-[36rem] truncate text-error-foreground text-meta"
                         title={reminder.lastErrorMessage}
                     >
                         {reminder.lastErrorMessage}
                     </p>
                 ) : reminder.nextRun !== 'unknown' ? (
-                    <p className="max-w-[36rem] truncate text-muted-foreground text-xs">
+                    <p className="max-w-[36rem] truncate text-meta text-muted-foreground">
                         Next fire {reminder.nextRun}
                     </p>
                 ) : reminder.lastRun !== 'unknown' ? (
-                    <p className="max-w-[36rem] truncate text-muted-foreground text-xs">
+                    <p className="max-w-[36rem] truncate text-meta text-muted-foreground">
                         Last fired {reminder.lastRun}
                     </p>
                 ) : null}

@@ -14,26 +14,22 @@ export function DeliveryCard({
     return (
         <div
             className={`flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left ${
-                outgoing ? 'border-sky-500/25 bg-sky-500/10' : 'border-amber-500/25 bg-amber-500/10'
+                outgoing
+                    ? 'border-[color:var(--info-border)] bg-[var(--info-bg)]'
+                    : 'border-[color:var(--warning-border)] bg-[var(--warning-bg)]'
             }`}
         >
             <span
-                className={`font-medium text-xs uppercase tracking-[0.16em] ${
-                    outgoing ? 'text-sky-300' : 'text-amber-300'
+                className={`font-medium text-caption uppercase tracking-[0.16em] ${
+                    outgoing ? 'text-info' : 'text-warning'
                 }`}
             >
                 {outgoing ? `Delivered to ${targetLabel}` : `Delivered from ${targetLabel}`}
             </span>
-            <span className="line-clamp-3 text-foreground/85 text-sm">
+            <span className="line-clamp-3 text-foreground text-sm">
                 {delivery.messageText ?? targetLabel}
             </span>
-            <span
-                className={
-                    outgoing ? 'text-caption text-sky-200/80' : 'text-amber-200/80 text-caption'
-                }
-            >
-                {targetSessionKey}
-            </span>
+            <span className="font-mono text-caption text-muted-foreground">{targetSessionKey}</span>
         </div>
     );
 }

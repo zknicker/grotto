@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.6.11 - 2026-07-29
+
+- Computer inventory and Agent effective-state reports are now applied in
+  WebSocket order, preventing an older reconnect snapshot from overwriting the
+  resolved runtime state reported immediately after configuration.
+
+### Release surfaces
+
+- App/Server: Publish v1.6.11
+- Desktop: Publish v1.6.11
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.6.10 - 2026-07-29
 
 - Computer update checks now remain available while an older Computer reports

@@ -1,12 +1,6 @@
-import {
-    Copy01Icon,
-    Folder01Icon,
-    Link04Icon,
-    Notification03Icon,
-} from '@hugeicons-pro/core-stroke-rounded';
+import { Folder01Icon, Link04Icon, Notification03Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { CopyButton } from '../../../components/ui/copy-button.tsx';
 import {
     Empty,
@@ -16,140 +10,16 @@ import {
     EmptyTitle,
 } from '../../../components/ui/empty.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
 import { SettingsGroup } from '../../../components/ui/settings-row.tsx';
-import { Spinner } from '../../../components/ui/spinner.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import { HostedAgentTools } from '../../../routes/app/hosted-agent-tools.tsx';
 import { WorkspaceBrowserContent } from '../../chats/chat-artifact-workspace-content.tsx';
-import { serverChatRoute } from '../../servers/server-routes.ts';
 import { HostedAgentProfileTab } from './hosted-agent-profile-tab.tsx';
 
+export { HostedAgentActivityTab } from './hosted-agent-activity-tab.tsx';
+export { HostedAgentChatTab } from './hosted-agent-chat-tab.tsx';
 export { HostedAgentProfileTab };
-
-export function HostedAgentActivityTab({
-    agent,
-    server,
-}: {
-    agent: HostedAgent;
-    server: ServerDetail;
-}) {
-    const activity = grottoTrpc.agent.activity.useQuery({
-        agentId: agent.id,
-        limit: 50,
-        serverId: server.id,
-    });
-    const entries = activity.data ?? [];
-    return (
-        <div className="mx-auto w-full max-w-4xl py-6">
-            <header className="mb-3 flex items-center justify-between gap-4 px-3">
-                <h2 className="font-semibold text-base">Activity diagnostics</h2>
-                <Button
-                    disabled={entries.length === 0}
-                    onClick={() =>
-                        void navigator.clipboard.writeText(
-                            entries
-                                .map(
-                                    (entry) =>
-                                        `${entry.endedAt} · ${entry.status} · ${entry.summary}`
-                                )
-                                .join('\n')
-                        )
-                    }
-                    size="sm"
-                    variant="outline"
-                >
-                    <Icon icon={Copy01Icon} />
-                    Copy Diagnostic Info
-                </Button>
-            </header>
-            {activity.isPending ? (
-                <Loading label="Loading activity..." />
-            ) : entries.length === 0 ? (
-                <p className="px-3 py-8 text-muted-foreground text-sm">No activity yet</p>
-            ) : (
-                <SettingsGroup>
-                    <ul className="divide-y divide-border">
-                        {entries.map((entry) => (
-                            <li
-                                className="grid grid-cols-[6rem_auto_minmax(0,1fr)] items-baseline gap-2 px-3 py-2.5 text-sm"
-                                key={entry.runId}
-                            >
-                                <time className="text-meta text-muted-foreground tabular-nums">
-                                    {new Date(entry.endedAt).toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                    })}
-                                </time>
-                                <span
-                                    className={`size-2 rounded-full ${
-                                        entry.status === 'failed' ? 'bg-destructive' : 'bg-success'
-                                    }`}
-                                />
-                                <span>
-                                    <span className="font-medium capitalize">{entry.status}</span>
-                                    <span className="ml-2 text-muted-foreground">
-                                        {entry.summary}
-                                    </span>
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                </SettingsGroup>
-            )}
-        </div>
-    );
-}
-
-export function HostedAgentChatTab({
-    agent,
-    server,
-}: {
-    agent: HostedAgent;
-    server: ServerDetail;
-}) {
-    const navigate = useNavigate();
-    const chats = grottoTrpc.agent.chats.useQuery({
-        agentId: agent.id,
-        serverId: server.id,
-    });
-    if (chats.isPending) {
-        return <Loading label="Loading chats..." />;
-    }
-    const rows = chats.data ?? [];
-    return (
-        <div className="mx-auto grid w-full max-w-3xl gap-8 py-6">
-            <header className="px-3">
-                <h2 className="font-semibold text-base">Agent channels and DMs</h2>
-            </header>
-            {rows.length === 0 ? (
-                <p className="px-3 text-muted-foreground text-sm">No chats yet.</p>
-            ) : (
-                <SettingsGroup>
-                    <ul className="divide-y divide-border">
-                        {rows.map((chat) => (
-                            <li key={chat.id}>
-                                <button
-                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-accent"
-                                    onClick={() => navigate(serverChatRoute(server.slug, chat.id))}
-                                    type="button"
-                                >
-                                    <span className="text-muted-foreground">
-                                        {chat.kind === 'channel' ? '#' : '◌'}
-                                    </span>
-                                    <span className="truncate font-medium">
-                                        {chat.name ?? `Direct · @${agent.handle}`}
-                                    </span>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </SettingsGroup>
-            )}
-        </div>
-    );
-}
 
 export function HostedAgentRemindersTab({
     agent,
@@ -257,15 +127,6 @@ export function HostedAgentMcpTab({ agent, server }: { agent: HostedAgent; serve
                 serverId={server.id}
             />
         </div>
-    );
-}
-
-function Loading({ label }: { label: string }) {
-    return (
-        <p className="flex items-center gap-2 px-6 py-10 text-muted-foreground text-sm">
-            <Spinner className="size-4" />
-            {label}
-        </p>
     );
 }
 

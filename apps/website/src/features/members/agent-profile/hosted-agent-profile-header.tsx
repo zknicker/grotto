@@ -44,19 +44,19 @@ export function HostedAgentProfileHeader({
         <header
             className={cn(
                 'flex shrink-0 items-center justify-between gap-4 border-[var(--content-card-border)] border-b',
-                variant === 'page' ? 'px-6 py-4' : 'px-4 py-3'
+                variant === 'page' ? 'px-5 py-3.5 sm:px-7' : 'px-4 py-3'
             )}
         >
             <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-14 shrink-0 items-center justify-center">
+                <span className="flex size-12 shrink-0 items-center justify-center">
                     <HostedAgentFace
                         agent={agent}
                         animate={agent.availability === 'working'}
-                        size={variant === 'page' ? 52 : 44}
+                        size={variant === 'page' ? 44 : 40}
                     />
                 </span>
-                <div className="min-w-0">
-                    <h1 className="truncate font-bold text-foreground text-xl">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                    <h1 className="truncate font-semibold text-foreground text-xl tracking-tight">
                         {agent.displayName}
                     </h1>
                     {agent.description ? (
@@ -64,7 +64,7 @@ export function HostedAgentProfileHeader({
                             {agent.description}
                         </p>
                     ) : null}
-                    <span className="mt-0.5 flex items-center gap-1.5 text-meta text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-meta text-muted-foreground">
                         <StatusDot
                             status={
                                 agent.availability === 'working'
@@ -75,7 +75,7 @@ export function HostedAgentProfileHeader({
                             }
                         />
                         <span className="capitalize">{agent.availability}</span>
-                    </span>
+                    </div>
                 </div>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">

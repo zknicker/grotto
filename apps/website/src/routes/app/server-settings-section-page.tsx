@@ -1,7 +1,4 @@
-import type { HostedComputerInventory } from '@tavern/api';
-import * as React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { Separator } from '../../components/ui/separator.tsx';
 import {
     SettingsGroup,
     SettingsPage,
@@ -17,6 +14,7 @@ import {
 } from '../../features/servers/server-routes.ts';
 import { AppearanceSettings } from '../../features/settings/appearance/page.tsx';
 import { HostedBrowserSettingsPage } from '../../features/settings/browser/hosted-page.tsx';
+import { HostedModelsSettings } from '../../features/settings/models/hosted-page.tsx';
 import { ProfileSettings } from '../../features/settings/profile/page.tsx';
 import { UpdatesSettings } from '../../features/settings/updates/page.tsx';
 import { HostedSkillsBrowser } from '../../features/skills/hosted-skills-browser.tsx';
@@ -100,56 +98,4 @@ function MissingComputerSettings({ description, title }: { description: string; 
             </SettingsSection>
         </SettingsPage>
     );
-}
-
-function HostedModelsSettings({ computers }: { computers: SkillsComputer[] }) {
-    const runtimes = computers.flatMap((computer) =>
-        (computer.reportedInventory?.runtimes ?? []).map((runtime) => ({
-            computerId: computer.id,
-            runtime,
-        }))
-    );
-
-    return (
-        <SettingsPage>
-            <SettingsPageHeader
-                description="Models detected by each attached Computer."
-                title="Models"
-            />
-            <SettingsSection title="Computer Inventory">
-                <SettingsGroup>
-                    {runtimes.length > 0 ? (
-                        runtimes.map(({ computerId, runtime }, index) => (
-                            <React.Fragment key={`${computerId}:${runtime.id}`}>
-                                {index > 0 ? <Separator /> : null}
-                                <SettingsRow
-                                    description={`${computerId.slice(-6)} · ${runtime.models
-                                        .map((model) => model.label)
-                                        .join(', ')}`}
-                                    title={runtime.label}
-                                >
-                                    <SettingsValue>
-                                        {runtime.models.length}{' '}
-                                        {runtime.models.length === 1 ? 'model' : 'models'}
-                                    </SettingsValue>
-                                </SettingsRow>
-                            </React.Fragment>
-                        ))
-                    ) : (
-                        <SettingsRow
-                            description="Attach an online Computer to discover local runtimes and models."
-                            title="No models reported"
-                        >
-                            <SettingsValue>Waiting for a Computer</SettingsValue>
-                        </SettingsRow>
-                    )}
-                </SettingsGroup>
-            </SettingsSection>
-        </SettingsPage>
-    );
-}
-
-interface SkillsComputer {
-    id: string;
-    reportedInventory: HostedComputerInventory | null;
 }

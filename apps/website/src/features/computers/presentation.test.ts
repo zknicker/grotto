@@ -1,0 +1,85 @@
+import { expect, test } from 'bun:test';
+import {
+    agentExecutionLabels,
+    computerLabel,
+    computerRuntimePresentations,
+    computerSystemLabel,
+} from './presentation.ts';
+
+const inventory = {
+    runtimes: [
+        {
+            id: 'codex',
+            label: 'Codex',
+            models: [{ id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' }],
+        },
+    ],
+};
+
+test('presents Computer and execution ids as customer-facing labels', () => {
+    const computer = {
+        architecture: 'arm64',
+        id: 'cmp_12345678',
+        name: "Zach's MacBook Pro",
+        operatingSystem: 'darwin',
+    };
+
+    expect(computerLabel(computer)).toBe("Zach's MacBook Pro");
+    expect(computerSystemLabel(computer)).toBe('Mac · Apple Silicon');
+    expect(
+        agentExecutionLabels(
+            { desiredModelId: 'gpt-5.6-sol', desiredRuntimeId: 'codex' },
+            inventory
+        )
+    ).toEqual({
+        model: 'GPT-5.6 Sol',
+        modelAvailable: true,
+        runtime: 'Codex',
+        runtimeAvailable: true,
+    });
+});
+
+test('uses a neutral platform label before a Computer reports its name', () => {
+    expect(
+        computerLabel({
+            architecture: null,
+            id: 'cmp_12345678',
+            name: null,
+            operatingSystem: 'darwin',
+        })
+    ).toBe('Mac Computer');
+});
+
+test('does not silently substitute another runtime or model', () => {
+    expect(
+        agentExecutionLabels(
+            { desiredModelId: 'missing-model', desiredRuntimeId: 'missing-runtime' },
+            inventory
+        )
+    ).toEqual({
+        model: 'missing-model',
+        modelAvailable: false,
+        runtime: 'missing-runtime',
+        runtimeAvailable: false,
+    });
+});
+
+test('presents every supported runtime and preserves newly reported runtimes', () => {
+    expect(
+        computerRuntimePresentations({
+            runtimes: [
+                inventory.runtimes[0],
+                {
+                    id: 'future-runtime',
+                    label: 'Future Runtime',
+                    models: [],
+                },
+            ],
+        }).map(({ detected, id, label }) => ({ detected, id, label }))
+    ).toEqual([
+        { detected: true, id: 'codex', label: 'Codex' },
+        { detected: false, id: 'claude-code', label: 'Claude Code' },
+        { detected: false, id: 'pi', label: 'Pi' },
+        { detected: true, id: 'future-runtime', label: 'Future Runtime' },
+    ]);
+});

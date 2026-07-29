@@ -93,7 +93,8 @@ export function HostedAgentProfile({
             <TabsSubtlePanel
                 className={cn(
                     'min-h-0',
-                    activeTab === 'workspace' ? 'overflow-hidden' : 'overflow-y-auto px-3'
+                    activeTab === 'workspace' ? 'overflow-hidden' : 'overflow-y-auto',
+                    !['activity', 'chat', 'profile'].includes(activeTab) && 'px-3'
                 )}
                 value={activeTab}
             >

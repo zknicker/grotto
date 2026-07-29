@@ -22,6 +22,8 @@ import {
     SettingsRow,
     SettingsSection,
 } from '../../components/ui/settings-row.tsx';
+import { agentExecutionLabels, computerLabel } from '../../features/computers/presentation.ts';
+import { runtimeConfigStatusLabel } from '../../features/members/agent-profile/runtime-config-model.ts';
 import { HostedAgentFace } from '../../features/members/hosted-agent-face.tsx';
 import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
@@ -31,6 +33,7 @@ import { HostedAgentTools } from './hosted-agent-tools.tsx';
 import { HostedDeleteDialog } from './hosted-delete-dialog.tsx';
 
 interface ReportedComputer {
+    health: 'degraded' | 'healthy' | 'offline' | 'update-required';
     id: string;
     inventory: HostedComputerInventory;
     label: string;
@@ -53,9 +56,10 @@ export function ServerAgentsPage() {
     const reported: ReportedComputer[] = (computers.data ?? [])
         .filter((computer) => (computer.reportedInventory?.runtimes.length ?? 0) > 0)
         .map((computer) => ({
+            health: computer.health,
             id: computer.id,
             inventory: computer.reportedInventory as HostedComputerInventory,
-            label: `${computer.operatingSystem ?? 'Computer'} · ${computer.architecture ?? '—'}`,
+            label: computerLabel(computer),
         }));
 
     return (
@@ -104,6 +108,7 @@ export function ServerAgentsPage() {
                     <AgentList
                         agents={agents.data ?? []}
                         connections={connections.data ?? []}
+                        reported={reported}
                         serverId={serverId}
                     />
                 </SettingsPage>
@@ -286,10 +291,12 @@ function CreateAgentForm({
 function AgentList({
     agents,
     connections,
+    reported,
     serverId,
 }: {
     agents: HostedAgent[];
     connections: HostedMcpConnection[];
+    reported: ReportedComputer[];
     serverId: string;
 }) {
     const utils = grottoTrpc.useUtils();
@@ -322,12 +329,12 @@ function AgentList({
                 <SettingsSection className="space-y-4" key={agent.id} title={`@${agent.handle}`}>
                     <SettingsGroup>
                         <SettingsRow
-                            description={<AgentConfigSummary agent={agent} />}
+                            description={<AgentConfigSummary agent={agent} reported={reported} />}
                             title={<AgentRowLabel agent={agent} />}
                             trailingWidth="intrinsic"
                         >
                             <div className="flex items-center gap-2 md:justify-end">
-                                <AgentStatusBadge agent={agent} />
+                                <AgentStatusBadge agent={agent} reported={reported} />
                                 <Button
                                     onClick={() => setDeleting(agent)}
                                     size="sm"
@@ -381,30 +388,44 @@ function AgentRowLabel({ agent }: { agent: HostedAgent }) {
     );
 }
 
-function AgentConfigSummary({ agent }: { agent: HostedAgent }) {
+function AgentConfigSummary({
+    agent,
+    reported,
+}: {
+    agent: HostedAgent;
+    reported: ReportedComputer[];
+}) {
+    const computer = reported.find((candidate) => candidate.id === agent.computerId);
+    const execution = agentExecutionLabels(agent, computer?.inventory ?? null);
+
     return (
         <>
             <span className="block">
-                Wants {agent.desiredRuntimeId} · {agent.desiredModelId}
-                {agent.effectiveReportedAt
-                    ? ` · running ${agent.effectiveRuntimeId ?? '—'} · ${agent.effectiveModelId ?? '—'}`
-                    : ' · never reported'}
+                {execution.runtime} · {execution.model}
+                {computer ? ` · ${computer.label}` : ''}
             </span>
             {agent.status === 'degraded' ? (
                 <span className="block text-destructive">
-                    Missing: {agent.missingResources.join(', ')}
+                    Selected runtime or model is not installed.
                 </span>
             ) : null}
         </>
     );
 }
 
-function AgentStatusBadge({ agent }: { agent: HostedAgent }) {
+function AgentStatusBadge({
+    agent,
+    reported,
+}: {
+    agent: HostedAgent;
+    reported: ReportedComputer[];
+}) {
     if (agent.status === 'applied') {
-        return <Badge variant="success">applied</Badge>;
+        return <Badge variant="success">Current</Badge>;
     }
     if (agent.status === 'degraded') {
-        return <Badge variant="destructive">degraded</Badge>;
+        return <Badge variant="destructive">Needs attention</Badge>;
     }
-    return <Badge variant="secondary">pending</Badge>;
+    const computer = reported.find((candidate) => candidate.id === agent.computerId);
+    return <Badge variant="secondary">{runtimeConfigStatusLabel(agent, computer?.health)}</Badge>;
 }

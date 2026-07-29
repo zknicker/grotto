@@ -15,7 +15,6 @@ export const appRoutes = {
     },
 
     designFaces: '/design/faces',
-    workspace: '/workspace',
     settings: '/settings',
     settingsAgentRuntime: '/settings/agent-runtime',
     settingsAppearance: '/settings/appearance',
@@ -25,6 +24,5 @@ export const appRoutes = {
     settingsSkills: '/settings/skills',
     settingsBrowser: '/settings/browser',
     settingsConnections: '/settings/connections',
-    settingsChannels: '/settings/channels',
     settingsModels: '/settings/models',
 } as const;

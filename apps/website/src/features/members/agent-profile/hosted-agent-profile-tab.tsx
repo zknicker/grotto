@@ -1,5 +1,6 @@
-import type { HostedAgent } from '@tavern/api';
+import type { HostedAgent, HostedAgentSkillMetadata, HostedImportableSkill } from '@tavern/api';
 import * as React from 'react';
+import { Badge } from '../../../components/ui/badge.tsx';
 import { Input } from '../../../components/ui/primitives/input.tsx';
 import { Separator } from '../../../components/ui/separator.tsx';
 import {
@@ -12,6 +13,8 @@ import { Textarea } from '../../../components/ui/textarea.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import { withSavingToast } from '../../../lib/saving-toast.ts';
+import { PickerPopover } from '../../agents/picker-popover.tsx';
+import { formatSkillName } from '../../skills/skill-name-format.ts';
 
 const selectClass =
     'h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground disabled:opacity-50';
@@ -43,7 +46,12 @@ export function HostedAgentProfileTab({
     const agentSkills =
         computer?.reportedInventory?.agentSkills?.find((entry) => entry.agentId === agent.id)
             ?.skills ?? [];
+    const importableSkills = selectAddableHostedSkills(
+        computer?.reportedInventory?.importableSkills ?? [],
+        agentSkills
+    );
     const canEdit = server.role === 'owner' || server.role === 'admin';
+    const importSkill = grottoTrpc.agent.importSkill.useMutation();
 
     React.useEffect(() => setDisplayName(agent.displayName), [agent.displayName]);
     React.useEffect(() => setDescription(agent.description ?? ''), [agent.description]);
@@ -187,7 +195,39 @@ export function HostedAgentProfileTab({
                 </SettingsGroup>
             </SettingsSection>
 
-            <SettingsSection title={`Skills (${agentSkills.length})`}>
+            <SettingsSection
+                action={
+                    canEdit ? (
+                        <PickerPopover
+                            emptyText="Every available skill is already added."
+                            isPending={importSkill.isPending}
+                            items={importableSkills.map((skill) => ({
+                                id: skill.id,
+                                name: formatSkillName(skill.name),
+                            }))}
+                            label="Add skills"
+                            onAdd={(skill) =>
+                                void withSavingToast(() =>
+                                    importSkill.mutateAsync({
+                                        agentId: agent.id,
+                                        serverId: server.id,
+                                        sourceId: skill.id,
+                                    })
+                                ).catch(() => undefined)
+                            }
+                            searchPlaceholder="Search skills..."
+                        />
+                    ) : null
+                }
+                title={
+                    <span className="flex items-center gap-2">
+                        Skills
+                        <Badge size="sm" variant="subtle">
+                            {agentSkills.length}
+                        </Badge>
+                    </span>
+                }
+            >
                 <SettingsGroup>
                     {agentSkills.length > 0 ? (
                         agentSkills.map((skill, index) => (
@@ -204,12 +244,21 @@ export function HostedAgentProfileTab({
                             </React.Fragment>
                         ))
                     ) : (
-                        <p className="px-4 py-3 text-muted-foreground text-sm">
-                            No Agent-owned skills reported.
-                        </p>
+                        <p className="px-4 py-3 text-muted-foreground text-sm">No skills yet.</p>
                     )}
+                    {importSkill.error ? (
+                        <p className="px-4 py-3 text-error text-sm">{importSkill.error.message}</p>
+                    ) : null}
                 </SettingsGroup>
             </SettingsSection>
         </div>
     );
+}
+
+export function selectAddableHostedSkills(
+    sources: HostedImportableSkill[],
+    owned: HostedAgentSkillMetadata[]
+) {
+    const ownedNames = new Set(owned.map((skill) => skill.name));
+    return sources.filter((source) => !ownedNames.has(source.name));
 }

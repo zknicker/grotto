@@ -19,11 +19,15 @@ the operator's standard skill directories. The Server stores the latest report
 so Settings -> Skills remains useful while the Computer is offline. Skill
 contents never pass through or persist on the Server.
 
-An Owner or Admin can import a reported source into one Agent while that
-Computer is online. The Computer copies the complete bundle into the Agent's
-library. The source is unchanged, the Agent copy is independent, and no later
-sync occurs. A same-name copy must be removed or renamed explicitly before it
-can be imported again.
+Settings -> Skills is the Server's browse-only view of these reported sources.
+An Owner or Admin adds one from the searchable Skills picker on an Agent's
+Profile while that Computer is online. The Computer copies the complete bundle
+into the Agent's library. The source is unchanged, the Agent copy is
+independent, and no later sync occurs. A same-name copy must be removed or
+renamed explicitly before it can be imported again.
+
+Computer inventory changes arrive through the Server update subscription. The
+App does not poll for skill or import changes.
 
 Imports wait for an active turn to finish. The next turn receives the updated
 library; a running turn is never mutated.

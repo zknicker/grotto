@@ -13,6 +13,7 @@ test('promotes only published Grotto versions or an explicit published-version c
         concurrency: { 'cancel-in-progress': boolean; group: string };
         jobs: {
             deploy: {
+                if: string;
                 permissions: { contents: string };
                 steps: {
                     'continue-on-error'?: boolean;
@@ -68,6 +69,9 @@ test('promotes only published Grotto versions or an explicit published-version c
     const activateCommands =
         job.steps.find((step) => step.name === 'Activate installed release')?.run ?? '';
     expect(job['runs-on']).toEqual(['self-hosted', 'grotto']);
+    expect(job.if).toBe(
+        "github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')"
+    );
     expect(job.permissions).toEqual({ contents: 'read' });
     expect(source).toContain('/Users/zknicker/srv/grotto');
     expect(commands).toContain('.published_at');

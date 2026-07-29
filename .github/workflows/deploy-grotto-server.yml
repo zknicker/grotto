@@ -24,6 +24,7 @@ concurrency:
 jobs:
   deploy:
     name: Deploy published Grotto version
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     runs-on: [self-hosted, grotto]
     permissions:
       contents: read

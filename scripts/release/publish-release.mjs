@@ -61,6 +61,7 @@ const main = async () => {
     stageReleasePaths(releasePaths);
     commitReleaseIfNeeded(tagName);
     const sourceRevision = readSourceRevision();
+    pushReleaseCommit(pushBranch);
     run('bun', ['run', 'build:grotto-server-artifact'], {
         env: { ...process.env, GROTTO_SOURCE_REVISION: sourceRevision },
     });
@@ -80,7 +81,7 @@ const main = async () => {
     });
 
     createTag(tagName);
-    pushRelease({ pushBranch, tagName });
+    pushReleaseTag({ pushBranch, tagName });
     createGithubRelease({ artifacts, notesPath, tagName });
     if (publishRuntime) {
         run('bun', ['run', 'release:publish-homebrew-formula']);
@@ -199,8 +200,24 @@ function readSourceRevision() {
     return sourceRevision;
 }
 
-function pushRelease({ pushBranch, tagName }) {
+function pushReleaseCommit(pushBranch) {
     run('git', ['push', 'origin', `HEAD:${pushBranch}`]);
+}
+
+function pushReleaseTag({ pushBranch, tagName }) {
+    run('git', ['fetch', 'origin', pushBranch]);
+    const containsRelease = spawnSync(
+        'git',
+        ['merge-base', '--is-ancestor', 'HEAD', `origin/${pushBranch}`],
+        {
+            cwd: repoRoot,
+            env: process.env,
+            stdio: 'ignore',
+        }
+    );
+    if (containsRelease.status !== 0) {
+        fail(`origin/${pushBranch} no longer contains the release commit`);
+    }
     run('git', ['push', 'origin', tagName]);
 }
 

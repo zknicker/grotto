@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
   deterministic service environment used for Agent launches, including
   Homebrew and local-user installs. Broken executable shims are ignored without
   hiding healthy runtimes.
+- Release publishing lands the immutable source revision before slow signing
+  and uploads, so unrelated commits can continue landing on `main`.
 
 ### Release surfaces
 

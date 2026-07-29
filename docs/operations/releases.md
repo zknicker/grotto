@@ -82,12 +82,14 @@ as **Required Runtime** even if the HTTP/API shape is unchanged.
 6. Run `bun run release:publish` from macOS with signing, notarization, updater,
    S3, and GitHub auth configured.
 
-`release:publish` commits release metadata first so the future tag commit has a
-stable full SHA. It builds the hosted Server and hosted App artifact once with
-that SHA, verifies its archive and sidecar, then builds and notarizes the signed
-desktop app. It uploads the desktop updater files to
-`TAVERN_RELEASE_S3_URI`, pushes `main` and the version tag, and creates the
-GitHub Release with the desktop files plus the Server archive and sidecar.
+`release:publish` commits and pushes release metadata first so the future tag
+commit has a stable full SHA. It builds the hosted Server and hosted App
+artifact once with that SHA, verifies its archive and sidecar, then builds and
+notarizes the signed desktop app. It uploads the desktop updater files to
+`TAVERN_RELEASE_S3_URI`, verifies that remote `main` still contains the release
+commit, pushes the version tag, and creates the GitHub Release with the desktop
+files plus the Server archive and sidecar. New commits may land on `main` during
+the build without invalidating the immutable release commit.
 
 ## Hosted Server Promotion
 

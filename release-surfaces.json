@@ -1,20 +1,20 @@
 {
-  "targetVersion": null,
+  "targetVersion": "1.6.7",
   "surfaces": {
     "appServer": {
-      "action": "undecided",
-      "version": null
-    },
-    "computer": {
-      "action": "undecided",
-      "version": null
+      "action": "publish",
+      "version": "1.6.7"
     },
     "desktop": {
-      "action": "undecided",
-      "version": null
+      "action": "publish",
+      "version": "1.6.7"
+    },
+    "computer": {
+      "action": "publish",
+      "version": "1.1.0"
     },
     "runtime": {
-      "action": "undecided",
+      "action": "unchanged",
       "version": null
     }
   }

@@ -72,8 +72,7 @@ export function signAndNotarizeComputer(artifactPath, input) {
         artifactPath,
     ]);
     verifyAppleSignature(artifactPath, input);
-    const archivePath = `${artifactPath}.zip`;
-    run('/usr/bin/ditto', ['-c', '-k', '--keepParent', artifactPath, archivePath]);
+    const archivePath = archiveComputerArtifact(artifactPath);
     const notaryArgs = ['notarytool', 'submit', archivePath, '--wait', '--output-format', 'json'];
     if (process.env.APPLE_API_KEY?.trim()) {
         notaryArgs.push(
@@ -100,6 +99,12 @@ export function signAndNotarizeComputer(artifactPath, input) {
     }
     console.log(`Apple notarization accepted: ${notarization.id}`);
     verifyAppleSignature(artifactPath, input);
+    return archivePath;
+}
+
+export function archiveComputerArtifact(artifactPath) {
+    const archivePath = `${artifactPath}.zip`;
+    run('/usr/bin/ditto', ['-c', '-k', '--keepParent', artifactPath, archivePath]);
     return archivePath;
 }
 

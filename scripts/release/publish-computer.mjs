@@ -5,6 +5,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
+    archiveComputerArtifact,
     buildComputerArtifact,
     signAndNotarizeComputer,
     verifyComputerIdentity,
@@ -29,6 +30,7 @@ import {
     promoteLatest,
     publishImmutableObjects,
     readProductionComputerRelease,
+    recoverImmutableComputerArtifact,
     verifyPublicDescriptor,
     verifyPublicObjects,
 } from './computer-release-publication.mjs';
@@ -79,21 +81,35 @@ async function main() {
     run('bun', ['run', '--filter', '@tavern/api', 'typecheck']);
     run('bun', ['run', '--filter', '@tavern/computer', 'test']);
     run('bun', ['run', '--filter', '@tavern/computer', 'typecheck']);
-    const built = await buildComputerArtifact({
-        appleSigningIdentity,
-        appleTeamId,
-        publicKey: releasePublicKey,
-        sourceRevision,
-        version,
-    });
+    const s3Root = dryRun ? null : requiredEnv('TAVERN_RELEASE_S3_URI').replace(/\/+$/u, '');
+    const recoveredArtifactPath = dryRun
+        ? null
+        : await recoverImmutableComputerArtifact({
+              appleSigningIdentity,
+              appleTeamId,
+              s3Root,
+              sourceRevision,
+              version,
+          });
+    const built = recoveredArtifactPath
+        ? { artifactPath: recoveredArtifactPath, publicKey: releasePublicKey }
+        : await buildComputerArtifact({
+              appleSigningIdentity,
+              appleTeamId,
+              publicKey: releasePublicKey,
+              sourceRevision,
+              version,
+          });
     if (dryRun) {
         console.log(`Computer ${version} dry run passed: ${built.artifactPath}`);
         return;
     }
-    const notarizationArchive = signAndNotarizeComputer(built.artifactPath, {
-        appleSigningIdentity,
-        appleTeamId,
-    });
+    const notarizationArchive = recoveredArtifactPath
+        ? archiveComputerArtifact(built.artifactPath)
+        : signAndNotarizeComputer(built.artifactPath, {
+              appleSigningIdentity,
+              appleTeamId,
+          });
     await verifyComputerIdentity(built.artifactPath, { sourceRevision, version });
     const release = {
         artifactUrl: `${releaseBaseUrl}/${version}/${computerArtifactName}`,
@@ -107,7 +123,6 @@ async function main() {
     const descriptorPath = path.join(path.dirname(built.artifactPath), 'release.json');
     await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
     const installerPath = await renderInstaller({ appleSigningIdentity, appleTeamId });
-    const s3Root = requiredEnv('TAVERN_RELEASE_S3_URI').replace(/\/+$/u, '');
     await publishComputerInOrder({
         promoteLatest: async () => promoteLatest(descriptorPath, s3Root),
         publishImmutable: async () =>

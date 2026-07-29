@@ -1,8 +1,12 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { verifyAppleSignature, verifyComputerIdentity } from './build-computer-artifact.mjs';
+import {
+    computerReleaseRoot,
+    verifyAppleSignature,
+    verifyComputerIdentity,
+} from './build-computer-artifact.mjs';
 import {
     computerArtifactName,
     sha256File,
@@ -18,24 +22,59 @@ export async function publishImmutableObjects(input) {
         [input.installerPath, 'install.sh'],
     ]) {
         const uri = `${root}/${name}`;
-        assertImmutableObjectAbsent(uri);
-        run('aws', ['s3', 'cp', file, uri]);
+        await ensureImmutableObject(file, uri);
     }
 }
 
 export function assertImmutableObjectAbsent(uri, execute = spawnSync) {
+    if (immutableObjectExists(uri, execute)) {
+        throw new Error(`Immutable Computer release object already exists: ${uri}`);
+    }
+}
+
+export function immutableObjectExists(uri, execute = spawnSync) {
     const result = execute('aws', ['s3', 'ls', uri], { encoding: 'utf8' });
     const stdout = result.stdout?.trim() ?? '';
     const stderr = result.stderr?.trim() ?? '';
     if (result.status === 1 && !result.error && !stdout && !stderr) {
-        return;
+        return false;
     }
     if (result.status !== 0) {
         throw new Error(`Could not check immutable Computer release object: ${uri}`);
     }
-    if (stdout) {
-        throw new Error(`Immutable Computer release object already exists: ${uri}`);
+    return Boolean(stdout);
+}
+
+export async function ensureImmutableObject(file, uri, options = {}) {
+    const exists = options.exists ?? immutableObjectExists;
+    const copy = options.copy ?? copyS3Object;
+    if (!exists(uri)) {
+        copy(file, uri);
+        return 'published';
     }
+    const sha256 = options.sha256 ?? sha256File;
+    const readRemoteSha256 = options.readRemoteSha256 ?? downloadImmutableSha256;
+    if ((await sha256(file)) !== (await readRemoteSha256(uri))) {
+        throw new Error(`Immutable Computer release object differs from local release: ${uri}`);
+    }
+    console.log(`Reusing matching immutable Computer release object: ${uri}`);
+    return 'reused';
+}
+
+export async function recoverImmutableComputerArtifact(input) {
+    const uri = `${input.s3Root}/computer/${input.version}/${computerArtifactName}`;
+    if (!immutableObjectExists(uri)) {
+        return null;
+    }
+    await rm(computerReleaseRoot, { force: true, recursive: true });
+    await mkdir(computerReleaseRoot, { recursive: true });
+    const artifactPath = path.join(computerReleaseRoot, computerArtifactName);
+    copyS3Object(uri, artifactPath);
+    await chmod(artifactPath, 0o755);
+    verifyAppleSignature(artifactPath, input);
+    await verifyComputerIdentity(artifactPath, input);
+    console.log(`Recovered verified immutable Computer artifact: ${uri}`);
+    return artifactPath;
 }
 
 export async function readProductionComputerRelease(url, publicKey, request = fetch) {
@@ -141,6 +180,21 @@ async function retryPublicVerification(description, verify) {
     fail(`${description} verification failed`, {
         message: lastError instanceof Error ? lastError.message : String(lastError),
     });
+}
+
+async function downloadImmutableSha256(uri) {
+    const root = await mkdtemp(path.join(tmpdir(), 'grotto-computer-immutable-'));
+    try {
+        const file = path.join(root, 'object');
+        copyS3Object(uri, file);
+        return await sha256File(file);
+    } finally {
+        await rm(root, { force: true, recursive: true });
+    }
+}
+
+function copyS3Object(source, destination) {
+    run('aws', ['s3', 'cp', source, destination]);
 }
 
 function run(command, args) {

@@ -14,7 +14,8 @@ All notable changes to this project will be documented in this file.
   configuration, reset, and turn launch are serialized per Agent.
 - macOS release publishers now read the established Computer signing keys
   directly from Keychain, so release worktrees no longer need duplicate key
-  entries in `.env`.
+  entries in `.env`; interrupted immutable uploads also resume safely after
+  verifying the published artifact and exact source revision.
 
 ### Release surfaces
 

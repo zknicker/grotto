@@ -182,6 +182,13 @@ The publisher creates the annotated Computer tag and GitHub Release. It never
 promotes `latest.json` before the immutable public artifact passes signature,
 notarization, digest, version, protocol, and source-revision checks.
 
+If publication is interrupted after an immutable object uploads but before
+promotion, rerun the same command from the same source revision. The publisher
+recovers an existing executable only after verifying its Apple identity,
+version, protocol, and full source revision, and reuses other immutable objects
+only when their SHA-256 digests match. It never overwrites differing immutable
+bytes.
+
 The pre-publisher 1.0.0 development install is a one-time clean transition, not
 a Computer release lane. Run the new standalone installer and setup command; it
 reuses `~/.grotto` state. Do not publish an npm compatibility bridge.

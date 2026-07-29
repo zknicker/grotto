@@ -3,6 +3,8 @@ import { generateKeyPairSync } from 'node:crypto';
 import { createSignedComputerRelease } from './computer-release-contract.mjs';
 import {
     assertImmutableObjectAbsent,
+    ensureImmutableObject,
+    immutableObjectExists,
     readProductionComputerRelease,
 } from './computer-release-publication.mjs';
 
@@ -22,6 +24,34 @@ test('an absent immutable S3 key accepts both AWS CLI missing-object results', (
         'already exists'
     );
     expect(() => assertImmutableObjectAbsent('s3://bucket/key', failed)).toThrow('Could not check');
+    expect(immutableObjectExists('s3://bucket/key', existing)).toBe(true);
+    expect(immutableObjectExists('s3://bucket/key', missingEmpty)).toBe(false);
+});
+
+test('an interrupted publish reuses only byte-identical immutable objects', async () => {
+    const copies = [];
+    await expect(
+        ensureImmutableObject('/local', 's3://bucket/key', {
+            copy: (source, destination) => copies.push([source, destination]),
+            exists: () => false,
+        })
+    ).resolves.toBe('published');
+    expect(copies).toEqual([['/local', 's3://bucket/key']]);
+
+    await expect(
+        ensureImmutableObject('/local', 's3://bucket/key', {
+            exists: () => true,
+            readRemoteSha256: async () => 'same',
+            sha256: async () => 'same',
+        })
+    ).resolves.toBe('reused');
+    await expect(
+        ensureImmutableObject('/local', 's3://bucket/key', {
+            exists: () => true,
+            readRemoteSha256: async () => 'remote',
+            sha256: async () => 'local',
+        })
+    ).rejects.toThrow('differs from local release');
 });
 
 test('production release reads verify continuity and allow only an initial 404', async () => {

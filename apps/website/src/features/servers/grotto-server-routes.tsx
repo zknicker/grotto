@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Outlet } from 'react-router-dom';
 import { GrottoServerProvider, grottoTrpc } from '../../lib/grotto-server.tsx';
+import { DevAutoSignIn } from '../auth/dev-auto-sign-in.tsx';
 import { SignInGate } from '../auth/sign-in-gate.tsx';
 import { HostedServerEventListeners } from './hosted-server-event-listeners.tsx';
 
@@ -9,13 +10,14 @@ import { HostedServerEventListeners } from './hosted-server-event-listeners.tsx'
  */
 export function GrottoServerRoutes() {
     return (
-        <SignInGate>
-            <GrottoServerProvider>
+        <GrottoServerProvider>
+            <DevAutoSignIn />
+            <SignInGate>
                 <HostedDevelopmentBootstrap />
                 <HostedServerEventListeners />
                 <Outlet />
-            </GrottoServerProvider>
-        </SignInGate>
+            </SignInGate>
+        </GrottoServerProvider>
     );
 }
 

@@ -9,7 +9,7 @@ function main() {
     const mode = process.argv[2] ?? 'web';
     const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
     const ports = resolveDevPorts({ repositoryRoot });
-    const runtimeEnvironmentOverrides = getRuntimeEnvironmentOverrides(repositoryRoot);
+    const runtimeEnvironmentOverrides = getDevEnvironmentOverrides(repositoryRoot);
     const controller = new DevStackController({
         mode,
         ports,
@@ -40,18 +40,25 @@ function main() {
     });
 }
 
-function getRuntimeEnvironmentOverrides(repositoryRoot) {
-    const envPath = path.join(repositoryRoot, 'apps', 'website', '.env.development');
+export function getDevEnvironmentOverrides(repositoryRoot, environment = process.env) {
+    const rootEnvPath = path.join(repositoryRoot, '.env');
+    const websiteEnvPath = path.join(repositoryRoot, 'apps', 'website', '.env.development');
     const publishableKey =
-        process.env.TAVERN_CLERK_PUBLISHABLE_KEY ??
-        readEnvValue(envPath, 'VITE_CLERK_PUBLISHABLE_KEY');
+        environment.TAVERN_CLERK_PUBLISHABLE_KEY ??
+        readEnvValue(websiteEnvPath, 'VITE_CLERK_PUBLISHABLE_KEY');
     const overrides = {};
 
-    if (publishableKey && process.env.TAVERN_CLERK_PUBLISHABLE_KEY === undefined) {
+    if (publishableKey && environment.TAVERN_CLERK_PUBLISHABLE_KEY === undefined) {
         overrides.TAVERN_CLERK_PUBLISHABLE_KEY = publishableKey;
     }
-    if (publishableKey && process.env.CLERK_ISSUER_URL === undefined) {
+    if (publishableKey && environment.CLERK_ISSUER_URL === undefined) {
         overrides.CLERK_ISSUER_URL = clerkIssuerFromPublishableKey(publishableKey);
+    }
+    for (const key of ['CLERK_SECRET_KEY', 'DEV_CLERK_SIGN_IN_USER_ID']) {
+        const value = environment[key] ?? readEnvValue(rootEnvPath, key);
+        if (value && environment[key] === undefined) {
+            overrides[key] = value;
+        }
     }
 
     return overrides;

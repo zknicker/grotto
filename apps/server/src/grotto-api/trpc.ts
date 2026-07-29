@@ -17,6 +17,7 @@ const appProcedure = t.procedure.use(({ ctx, next }) => {
 });
 
 export const computerProcedure = appProcedure;
+export const publicProcedure = appProcedure;
 
 /**
  * Verifies the Clerk session and carries its external subject for this request

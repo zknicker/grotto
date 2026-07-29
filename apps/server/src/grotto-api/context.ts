@@ -35,6 +35,8 @@ export interface GrottoContext {
     grottoDb: GrottoDatabase;
     mcpOAuthRelay: HostedMcpOAuthRelay;
     mcpRuntime: HostedMcpRuntime;
+    /** HTTP Host header, used only to constrain localhost development procedures. */
+    requestHost: string | null;
 }
 
 export interface GrottoContextDependencies {
@@ -60,6 +62,7 @@ export function createGrottoContextFactory(dependencies: GrottoContextDependenci
         ...dependencies,
         appProtocol: readAppProtocol(opts),
         clerkSessionToken: readClerkSessionToken(opts),
+        requestHost: readRequestHost(opts),
     });
 }
 
@@ -101,4 +104,8 @@ function readClerkSessionToken(opts?: ContextCarrier) {
     const value = Array.isArray(header) ? header[0] : header;
 
     return typeof value === 'string' && value.startsWith('Bearer ') ? value.slice(7) : null;
+}
+
+function readRequestHost(opts?: ContextCarrier) {
+    return readHeader(opts?.req?.headers, 'host') ?? null;
 }

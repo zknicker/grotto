@@ -1,11 +1,16 @@
 import { describe, expect, mock, test } from 'bun:test';
+import { appProtocolVersion } from '@tavern/api';
+import type { GrottoContext } from '../context.ts';
 import { createRouter } from '../trpc.ts';
 import { createClerkSignInTokenProcedure } from './create-clerk-sign-in-token.ts';
 
 const localContext = {
-    clerkSessionToken: null,
+    appProtocol: {
+        productVersion: 'test',
+        protocolVersion: appProtocolVersion,
+    },
     requestHost: 'localhost:8080',
-};
+} as GrottoContext;
 
 interface DependencyOverrides {
     clerkSecretKey?: string;

@@ -3,6 +3,7 @@ import { attachmentRouter } from './attachment/router.ts';
 import { hostedBrowserRouter } from './browser/router.ts';
 import { chatRouter } from './chat/router.ts';
 import { computerRouter } from './computer/router.ts';
+import { devRouter } from './dev/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
@@ -23,6 +24,7 @@ export const grottoRouter = createRouter({
     browser: hostedBrowserRouter,
     chat: chatRouter,
     computer: computerRouter,
+    dev: devRouter,
     invitation: invitationRouter,
     member: memberRouter,
     mcp: mcpRouter,

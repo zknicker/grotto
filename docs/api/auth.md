@@ -107,7 +107,9 @@ implemented surface:
   the `grotto://sso-callback` protocol.
 - Dev builds automatically sign in as the configured dev user when
   `CLERK_SECRET_KEY` and `DEV_CLERK_SIGN_IN_USER_ID` are set in the
-  machine-local root `.env`. E2e remains keyless and does not use this flow.
+  machine-local root `.env`. The dev stack forwards those values to the Server,
+  which mints a short-lived Clerk ticket only for localhost App requests. E2e
+  remains keyless and does not use this flow.
 - The app attaches the Clerk session token to server requests
   (`Authorization: Bearer`, websocket `connectionParams.clerkSessionToken`);
   the server exposes it as `ctx.clerkSessionToken`.

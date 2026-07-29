@@ -1,7 +1,7 @@
 import { useAuth, useSignIn } from '@clerk/clerk-react';
 import { useEffect, useRef } from 'react';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
-import { trpc } from '../../lib/trpc.tsx';
+import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
 export function DevAutoSignIn() {
     const shouldAutoSignIn =
@@ -19,7 +19,8 @@ export function DevAutoSignIn() {
 function DevAutoSignInInner() {
     const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
     const { isLoaded: isSignInLoaded, setActive, signIn } = useSignIn();
-    const { mutateAsync: createClerkSignInToken } = trpc.dev.createClerkSignInToken.useMutation();
+    const { mutateAsync: createClerkSignInToken } =
+        grottoTrpc.dev.createClerkSignInToken.useMutation();
     const attemptedRef = useRef(false);
 
     useEffect(() => {

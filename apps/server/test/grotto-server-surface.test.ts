@@ -4,9 +4,8 @@ import { getCurrentSessionToken } from '../src/identity/session-token-store.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
 /**
- * The hosted Server exposes only the authenticated Grotto Server contract.
- * Legacy local-owner procedures belong to the local sidecar and must be
- * unreachable here — CORS is not authorization.
+ * The hosted Server exposes the Grotto Server contract plus its localhost-only
+ * dev sign-in bootstrap. Legacy local-owner procedures remain unreachable here.
  */
 let harness: GrottoServerHarness;
 
@@ -25,7 +24,6 @@ const legacyProcedures = [
     'agentRuntime.connect',
     'skill.list',
     'model.list',
-    'dev.createClerkSignInToken',
 ];
 
 test('exposes no legacy local-owner procedure', async () => {
@@ -39,6 +37,23 @@ test('exposes no legacy local-owner procedure', async () => {
         expect({ path, status: response.status }).toEqual({ path, status: 404 });
         expect(await response.text()).toContain('No procedure found');
     }
+});
+
+test('exposes the localhost-only dev sign-in bootstrap', async () => {
+    const response = await fetch(new URL('/trpc/dev.createClerkSignInToken', harness.url), {
+        body: '{}',
+        headers: {
+            [appProtocolHeaders.productVersion]: 'test',
+            [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
+            'content-type': 'application/json',
+        },
+        method: 'POST',
+    });
+    const body = await response.text();
+
+    expect(response.status).toBe(404);
+    expect(body).toContain('Dev Clerk sign-in requires');
+    expect(body).not.toContain('No procedure found');
 });
 
 test('never publishes a session token to the shared Runtime transport', async () => {

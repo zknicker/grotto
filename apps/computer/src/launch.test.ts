@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
+import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { setHarnessAgentFactoryForTesting } from './harness/executor.ts';
 import {
     type Attachment,
@@ -105,6 +106,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+    disposeServerLaunchHosts('srv_launchtest');
     state.server.stop(true);
     await rm(dataRoot, { force: true, recursive: true });
 });
@@ -120,13 +122,19 @@ test('runs a deterministic Agent launch that lands a durable hosted message', as
     const command: HostedAgentStartCommand = {
         agentId: 'agt_launchtest',
         chatId: 'cht_test',
+        inbox: [
+            {
+                chatId: 'cht_test',
+                content: 'ping the operator',
+                createdAt: '2026-07-27T00:00:00.000Z',
+                id: 'msg_launchtest',
+                senderHandle: 'operator',
+                senderType: 'human',
+                sequence: 1,
+                target: 'dm:@operator',
+            },
+        ],
         modelId: 'fake-model',
-        prompt: [
-            '--- New messages ---',
-            '[target=dm type=human] ping the operator',
-            '',
-            'Reply.',
-        ].join('\n'),
         runId: 'run_launchtest',
         runtimeId: 'fake',
         type: 'start',
@@ -177,9 +185,9 @@ test('runs a deterministic Agent launch that lands a durable hosted message', as
         expect(await realpath(join(agentRoot, 'home', nativeRoot, 'skills'))).toBe(canonicalSkills);
     }
 
-    // The per-launch proxy token is swept at launch end; the raw trace stays
-    // local and carries no runner secret.
-    await expect(stat(join(agentRoot, 'runtime', 'proxy-token'))).rejects.toThrow();
+    // The stable local proxy token survives between turns; the scoped Server
+    // runner credential does not. Raw traces carry neither secret.
+    expect((await stat(join(agentRoot, 'runtime', 'proxy-token'))).isFile()).toBe(true);
     const trace = await readFile(join(agentRoot, 'runtime', `turn-${command.runId}.log`), 'utf8');
     expect(trace).not.toContain(runnerToken);
 });
@@ -197,8 +205,8 @@ test('reports a failed turn when the runtime is not installed', async () => {
         command: {
             agentId: 'agt_launchtest',
             chatId: 'cht_test',
+            inbox: [],
             modelId: 'gpt',
-            prompt: 'x',
             runId: 'run_missing',
             runtimeId: 'unsupported-runtime',
             type: 'start',
@@ -223,8 +231,19 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
     const base: HostedAgentStartCommand = {
         agentId: 'agt_launchtest',
         chatId: 'cht_test',
+        inbox: [
+            {
+                chatId: 'cht_test',
+                content: 'Use the granted tool.',
+                createdAt: '2026-07-27T00:00:00.000Z',
+                id: 'msg_mcp',
+                senderHandle: 'operator',
+                senderType: 'human',
+                sequence: 1,
+                target: 'dm:@operator',
+            },
+        ],
         modelId: 'gpt-5.6-sol',
-        prompt: 'Use the granted tool.',
         runId: 'run_mcp_granted',
         runtimeId: 'codex',
         type: 'start',
@@ -235,9 +254,10 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
         tools = input.tools;
         return {
             createSession: (async () => ({
+                detach: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
                 destroy: async () => undefined,
+                isResume: false,
                 sessionId: 'mcp-session',
-                stop: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
             })) as unknown as HarnessAgent['createSession'],
             stream: (async () => {
                 const [visibleName] = Object.keys(input.tools);

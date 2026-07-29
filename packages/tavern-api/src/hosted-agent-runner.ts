@@ -16,6 +16,7 @@ export const hostedAgentInboxItemSchema = z
         content: z.string().max(32_000),
         createdAt: hostedTimestampSchema,
         id: hostedIdSchema,
+        senderDescription: z.string().trim().max(500).optional(),
         senderHandle: z.string().trim().min(1).max(128),
         senderType: z.enum(['agent', 'human', 'system']),
         sequence: z.number().int().positive(),
@@ -27,8 +28,8 @@ export type HostedAgentInboxItem = z.infer<typeof hostedAgentInboxItemSchema>;
 
 /**
  * The Server→Computer typed launch command. It carries only identity, the
- * resolved runtime/model to run, the durable collaboration chat the launch
- * answers, and the composed turn prompt. It never carries a Server-valid
+ * resolved runtime/model to run, and structured durable inbox envelopes. The
+ * Computer owns the model-visible projection. It never carries a Server-valid
  * credential: the Computer mints its own scoped runner authority (below).
  */
 export const hostedAgentStartCommandSchema = z
@@ -40,7 +41,6 @@ export const hostedAgentStartCommandSchema = z
         homeTimezone: z.string().trim().min(1).max(128).optional(),
         inbox: z.array(hostedAgentInboxItemSchema).max(100).default([]),
         modelId: z.string().trim().min(1).max(128),
-        prompt: z.string().max(200_000),
         runId: hostedIdSchema,
         runtimeId: z.string().trim().min(1).max(64),
         type: z.literal('start'),
@@ -116,14 +116,14 @@ export const hostedReminderScriptCommandSchema = z
 export type HostedReminderScriptCommand = z.infer<typeof hostedReminderScriptCommandSchema>;
 
 /**
- * Work landed for a busy Agent. The Server retains canonical queue ownership;
- * the notice is deliberately content-free. `grotto message check` pulls
- * canonical rows through the scoped proxy when the Agent chooses to inspect.
+ * Work landed for a busy Agent. The full envelopes are accepted into the
+ * Computer's durable inbox; only their content-free metadata projection is
+ * injected into the live model turn.
  */
 export const hostedAgentNoticeCommandSchema = z
     .object({
         agentId: hostedIdSchema,
-        pending: z.number().int().nonnegative().max(100_000),
+        inbox: z.array(hostedAgentInboxItemSchema).min(1).max(100),
         runId: hostedIdSchema,
         type: z.literal('notice'),
     })
@@ -436,17 +436,27 @@ export type HostedAgentSendReceipt = z.infer<typeof hostedAgentSendReceiptSchema
  * logs, and workspace stay Computer-local behind the authorized live relay.
  */
 export const hostedAgentTurnStatusSchema = z.enum(['completed', 'failed']);
+export const hostedAgentTurnFailureKindSchema = z.enum([
+    'authentication',
+    'configuration',
+    'input',
+    'rate-limit',
+    'timeout',
+    'transport',
+    'unknown',
+]);
 
 export const hostedAgentTurnSummarySchema = z
     .object({
         agentId: hostedIdSchema,
         endedAt: hostedTimestampSchema,
+        failureKind: hostedAgentTurnFailureKindSchema.optional(),
         messageCount: z.number().int().nonnegative().max(10_000),
         /**
          * Whether the turn produced model-visible output (any durable send).
          * A failed turn that produced output must not have its work requeued —
-         * doing so would re-trigger the output. A recovered, interrupted run
-         * reports this true conservatively, since its output is unknown.
+         * doing so would re-trigger the output. Acceptance alone never sets
+         * this flag; an accepted crash replays at least once.
          */
         outputProduced: z.boolean(),
         runId: hostedIdSchema,

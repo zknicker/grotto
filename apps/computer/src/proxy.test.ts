@@ -105,6 +105,38 @@ test('counts only committed messages as produced output', async () => {
     }
 });
 
+test('keeps one local proxy while rotating per-turn Server authority', async () => {
+    const seen: string[] = [];
+    const upstream = Bun.serve({
+        fetch(request) {
+            seen.push(request.headers.get('authorization') ?? '');
+            return Response.json({ messages: [], more: false });
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    servers.push(upstream);
+    const proxy = startLoopbackProxy({
+        proxyToken: 'local-token',
+        runnerToken: 'runner-one',
+        serverOrigin: `http://127.0.0.1:${upstream.port}`,
+    });
+    try {
+        const request = () =>
+            fetch(`${proxy.url}/api/agent/inbox`, {
+                headers: { authorization: 'Bearer local-token' },
+            });
+        expect((await request()).status).toBe(200);
+        proxy.clearRunnerToken();
+        expect((await request()).status).toBe(409);
+        proxy.setRunnerToken('runner-two');
+        expect((await request()).status).toBe(200);
+        expect(seen).toEqual(['Bearer runner-one', 'Bearer runner-two']);
+    } finally {
+        proxy.close();
+    }
+});
+
 test('counts a send whose upstream response is lost after connection', async () => {
     const upstream = createServer((socket) => {
         socket.once('data', () => socket.destroy());

@@ -468,10 +468,11 @@ const schemaStatements = [
         stopped boolean NOT NULL DEFAULT false,
         active_run_id text,
         active_run_chat_id text,
-        active_run_prompt text,
         active_run_computer_id text,
         active_run_runtime_id text,
         active_run_model_id text,
+        agent_chain_turns integer NOT NULL DEFAULT 0
+            CONSTRAINT agent_delivery_nonnegative_chain_turns CHECK (agent_chain_turns >= 0),
         accepted_at timestamptz,
         dispatched_at timestamptz,
         consecutive_failures integer NOT NULL DEFAULT 0
@@ -485,7 +486,6 @@ const schemaStatements = [
             (
                 active_run_id IS NULL
                 AND active_run_chat_id IS NULL
-                AND active_run_prompt IS NULL
                 AND active_run_computer_id IS NULL
                 AND active_run_runtime_id IS NULL
                 AND active_run_model_id IS NULL
@@ -495,7 +495,6 @@ const schemaStatements = [
             OR (
                 active_run_id IS NOT NULL
                 AND active_run_chat_id IS NOT NULL
-                AND active_run_prompt IS NOT NULL
                 AND active_run_computer_id IS NOT NULL
                 AND active_run_runtime_id IS NOT NULL
                 AND active_run_model_id IS NOT NULL

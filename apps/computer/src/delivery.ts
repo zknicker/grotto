@@ -7,18 +7,15 @@ import type { HostedAgentStartCommand, HostedAgentTurnFrame } from './launch.ts'
  * A Computer-local, restart-durable record of one run. `accepted` is written the
  * instant the Computer commits to a start (its local acceptance); `settled` adds
  * the final turn summary. Duplicate or replayed start frames are resolved
- * against this marker, so a run is never launched twice and a lost turn summary
- * is replayed instead of re-run.
+ * against this marker. Concurrent duplicates are suppressed; an accepted run
+ * replays after a process crash because acceptance is not model-seen proof.
  */
 export interface RunMarker {
     status: 'accepted' | 'settled';
     summary?: HostedAgentTurnFrame;
 }
 
-export type StartDecision =
-    | { kind: 'replay'; summary: HostedAgentTurnFrame }
-    | { kind: 'recover' }
-    | { kind: 'run' };
+export type StartDecision = { kind: 'replay'; summary: HostedAgentTurnFrame } | { kind: 'run' };
 
 export async function purgeServerPartition(
     dataRoot: string,
@@ -37,17 +34,14 @@ export async function purgeServerPartition(
  * duplicate frame for a live run is already deduped synchronously by
  * {@link reserveRun}):
  * - a settled marker → replay its summary (the Server missed the turn frame),
- * - an `accepted` marker → recover: the Computer crashed after accepting this
- *   run, so its output is unknown; it is never rerun (that could duplicate
- *   effectful work) but reported as a failed, interrupted turn instead,
+ * - an `accepted` marker → rerun: acceptance is transport evidence, not proof
+ *   that the model saw the inbox. At-least-once replay after a crash is
+ *   intentional; losing unseen work is not,
  * - otherwise → run it fresh.
  */
 export function decideStart(marker: RunMarker | null): StartDecision {
     if (marker?.status === 'settled' && marker.summary) {
         return { kind: 'replay', summary: marker.summary };
-    }
-    if (marker?.status === 'accepted') {
-        return { kind: 'recover' };
     }
     return { kind: 'run' };
 }
@@ -131,7 +125,7 @@ function markerPath(dataRoot: string, serverId: string, runId: string): string {
  */
 export async function writePendingNotice(
     dataRoot: string,
-    input: { agentId: string; pending: number; serverId: string }
+    input: { agentId: string; notice: string; serverId: string }
 ): Promise<void> {
     const runtimeDir = join(
         dataRoot,
@@ -144,7 +138,7 @@ export async function writePendingNotice(
     await mkdir(runtimeDir, { mode: 0o700, recursive: true });
     const destination = join(runtimeDir, 'pending-notice.json');
     const temporary = `${destination}.${randomBytes(8).toString('hex')}.tmp`;
-    await writeFile(temporary, `${JSON.stringify({ pending: input.pending })}\n`, { mode: 0o600 });
+    await writeFile(temporary, `${JSON.stringify({ notice: input.notice })}\n`, { mode: 0o600 });
     await rename(temporary, destination);
 }
 

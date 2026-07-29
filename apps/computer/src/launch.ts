@@ -1,13 +1,15 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { mkdir, readlink, rm, symlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { seedAgentWorkspace } from '@tavern/agent-workspace';
 import { readAgentSeedConfiguration } from './agent-configuration.ts';
+import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { computerEntrypoint } from './build-identity.ts';
 import { type NoticeSinkRegistrar, runHarnessTurn } from './harness/executor.ts';
-import { startLoopbackProxy } from './proxy.ts';
 import { resolveRuntimeExecutable, runtimeSearchPath } from './runtime-discovery.ts';
+import { composeInboxDrain } from './inbox-format.ts';
+import { classifyRuntimeFailure, type RuntimeFailureKind } from './runtime-failure.ts';
 import { createServerMcpTools } from './server-mcp-tools.ts';
 import { writeGrottoWrapper } from './wrapper.ts';
 
@@ -33,7 +35,6 @@ export interface HostedAgentStartCommand {
     homeTimezone?: string;
     inbox?: HostedAgentInboxItem[];
     modelId: string;
-    prompt: string;
     runId: string;
     runtimeId: string;
     type: 'start';
@@ -45,6 +46,7 @@ export interface HostedAgentInboxItem {
     content: string;
     createdAt: string;
     id: string;
+    senderDescription?: string;
     senderHandle: string;
     senderType: 'agent' | 'human' | 'system';
     sequence: number;
@@ -68,7 +70,7 @@ export interface HostedAgentResetCommand {
 /** Server→Computer notice that a busy Agent has queued work. */
 export interface HostedAgentNoticeCommand {
     agentId: string;
-    pending: number;
+    inbox: HostedAgentInboxItem[];
     runId: string;
     type: 'notice';
 }
@@ -82,6 +84,7 @@ export interface HostedServerDeleteCommand {
 export interface HostedAgentTurnFrame {
     agentId: string;
     endedAt: string;
+    failureKind?: RuntimeFailureKind;
     messageCount: number;
     /** Whether the turn produced any durable send — governs safe requeue. */
     outputProduced: boolean;
@@ -109,7 +112,6 @@ export interface RunAgentLaunchOptions {
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 const fakeRuntimePath = resolve(moduleDir, 'fake-runtime.ts');
-
 /**
  * Runs one Agent launch: isolated logical home/workspace/skills/runtime, a
  * Computer-minted scoped runner credential kept behind a loopback proxy, and the
@@ -145,6 +147,7 @@ export async function runAgentLaunch(
     const runtimeExecutable = runtimeCommand ? resolveRuntimeExecutable(runtimeCommand) : null;
     if (command.runtimeId !== 'fake' && !runtimeExecutable) {
         return reportTurn(options, {
+            failureKind: 'configuration',
             messageCount: 0,
             startedAt,
             status: 'failed',
@@ -157,6 +160,7 @@ export async function runAgentLaunch(
         runner = await mintRunner(options);
     } catch (error) {
         return reportTurn(options, {
+            failureKind: 'transport',
             messageCount: 0,
             startedAt,
             status: 'failed',
@@ -164,16 +168,15 @@ export async function runAgentLaunch(
         });
     }
 
-    const proxyToken = `grta_${randomBytes(32).toString('base64url')}`;
-    const proxy = startLoopbackProxy({
+    const host = acquireAgentLaunchHost({
         agentId: command.agentId,
         dataRoot: options.dataRoot,
-        proxyToken,
         runnerToken: runner.runnerToken,
         serverId: options.attachment.serverId,
         serverOrigin: options.serverOrigin,
         skillsDir: dirs.skills,
     });
+    const { proxy, proxyToken } = host;
     const tokenFile = join(dirs.runtime, 'proxy-token');
     const binDir = join(dirs.runtime, 'bin');
     await mkdir(binDir, { mode: 0o700, recursive: true });
@@ -206,12 +209,21 @@ export async function runAgentLaunch(
             .join(':'),
     };
 
-    let status: 'completed' | 'failed' = 'failed';
+    let result: { failureKind?: RuntimeFailureKind; status: 'completed' | 'failed' } = {
+        status: 'failed',
+    };
     try {
         await options.onRuntimeReady?.();
-        status =
+        result =
             command.runtimeId === 'fake'
-                ? await runFakeRuntime({ agentEnv, command, dirs, signal: options.signal })
+                ? {
+                      status: await runFakeRuntime({
+                          agentEnv,
+                          command,
+                          dirs,
+                          signal: options.signal,
+                      }),
+                  }
                 : await runRealRuntime({
                       agentEnv,
                       agentRoot,
@@ -226,18 +238,17 @@ export async function runAgentLaunch(
                   });
     } finally {
         await revokeRunner(options, runner.runnerId).catch(() => undefined);
-        await rm(tokenFile, { force: true });
-        proxy.close();
+        proxy.clearRunnerToken();
     }
 
     return reportTurn(options, {
         messageCount: proxy.sendCount(),
         startedAt,
-        status,
+        ...result,
         summary:
-            status === 'completed'
+            result.status === 'completed'
                 ? `Sent ${proxy.sendCount()} message(s).`
-                : 'The Agent turn did not complete.',
+                : `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`,
     });
 }
 
@@ -275,9 +286,6 @@ export function parseStartCommand(frame: unknown): HostedAgentStartCommand | nul
             return null;
         }
     }
-    if (typeof frame.prompt !== 'string') {
-        return null;
-    }
     const inbox = parseInbox(frame.inbox);
     if (!inbox) {
         return null;
@@ -300,7 +308,6 @@ export function parseStartCommand(frame: unknown): HostedAgentStartCommand | nul
         ...(typeof frame.homeTimezone === 'string' ? { homeTimezone: frame.homeTimezone } : {}),
         inbox,
         modelId: frame.modelId as string,
-        prompt: frame.prompt as string,
         runId: frame.runId as string,
         runtimeId: frame.runtimeId as string,
         type: 'start',
@@ -372,7 +379,7 @@ export async function resetAgentState(input: {
     ]);
 }
 
-/** Validates a Server→Computer frame as a content-free notice. Fails closed to null. */
+/** Validates a Server→Computer busy-inbox snapshot. Fails closed to null. */
 export function parseNoticeCommand(frame: unknown): HostedAgentNoticeCommand | null {
     if (
         !isRecord(frame) ||
@@ -381,14 +388,13 @@ export function parseNoticeCommand(frame: unknown): HostedAgentNoticeCommand | n
         frame.agentId.length === 0 ||
         typeof frame.runId !== 'string' ||
         frame.runId.length === 0 ||
-        typeof frame.pending !== 'number' ||
-        !Number.isFinite(frame.pending)
+        !parseInbox(frame.inbox)?.length
     ) {
         return null;
     }
     return {
         agentId: frame.agentId,
-        pending: frame.pending,
+        inbox: parseInbox(frame.inbox) ?? [],
         runId: frame.runId,
         type: 'notice',
     };
@@ -406,6 +412,8 @@ function parseInbox(value: unknown): HostedAgentInboxItem[] | null {
                 ['chatId', 'content', 'createdAt', 'id', 'senderHandle', 'target'].every(
                     (field) => typeof item[field] === 'string' && item[field].length > 0
                 ) &&
+                (item.senderDescription === undefined ||
+                    typeof item.senderDescription === 'string') &&
                 ['agent', 'human', 'system'].includes(item.senderType as string)
             ) ||
             typeof item.sequence !== 'number' ||
@@ -433,6 +441,7 @@ function reportTurn(
     options: RunAgentLaunchOptions,
     input: {
         messageCount: number;
+        failureKind?: RuntimeFailureKind;
         startedAt: string;
         status: 'completed' | 'failed';
         summary: string;
@@ -441,6 +450,7 @@ function reportTurn(
     const frame: HostedAgentTurnFrame = {
         agentId: options.command.agentId,
         endedAt: new Date().toISOString(),
+        ...(input.failureKind ? { failureKind: input.failureKind } : {}),
         messageCount: input.messageCount,
         outputProduced: input.messageCount > 0,
         runId: options.command.runId,
@@ -472,7 +482,10 @@ async function runFakeRuntime(input: RuntimeExecutionInput): Promise<'completed'
         env: {
             ...process.env,
             ...input.agentEnv,
-            GROTTO_TURN_PROMPT: input.command.prompt,
+            GROTTO_TURN_PROMPT: composeInboxDrain(
+                input.command.inbox ?? [],
+                input.command.homeTimezone ?? 'UTC'
+            ),
             HOME: input.dirs.home,
         },
         signal: input.signal,
@@ -499,7 +512,7 @@ async function runRealRuntime(
         agentRoot: string;
         tools: import('@ai-sdk/provider-utils').ToolSet;
     }
-): Promise<'completed' | 'failed'> {
+): Promise<{ failureKind?: RuntimeFailureKind; status: 'completed' | 'failed' }> {
     const { command } = input;
     try {
         await runHarnessTurn({
@@ -513,7 +526,7 @@ async function runRealRuntime(
             homeTimezone: command.homeTimezone ?? 'UTC',
             initialRole: command.agentDescription ?? null,
             modelId: command.modelId,
-            prompt: command.prompt,
+            inbox: command.inbox ?? [],
             registerNoticeSink: input.registerNoticeSink,
             runtimeId: command.runtimeId,
             signal: input.signal,
@@ -523,10 +536,10 @@ async function runRealRuntime(
             tools: input.tools,
         });
         await writeTrace(input, 'Harness turn completed.\n');
-        return 'completed';
+        return { status: 'completed' };
     } catch (error) {
         await writeTrace(input, `Harness turn failed: ${messageOf(error)}\n`);
-        return 'failed';
+        return { failureKind: classifyRuntimeFailure(error), status: 'failed' };
     }
 }
 

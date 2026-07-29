@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
     acceptRunInbox,
-    appendPendingInbox,
     drainPendingInbox,
     readPendingInbox,
+    replacePendingInbox,
 } from './inbox-store.ts';
 import type { HostedAgentInboxItem } from './launch.ts';
 
@@ -24,28 +24,29 @@ beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'grotto-inbox-'));
 });
 
-test('persists busy work, dedupes notices, drains once, and removes next-run claims', async () => {
+test('mirrors the latest busy snapshot, drains once, and removes next-run claims', async () => {
     const first = item('msg_first', '#general', 1);
     const second = item('msg_second', '#general', 2);
 
-    await appendPendingInbox(location(), [first]);
-    await appendPendingInbox(location(), [first, second]);
+    await replacePendingInbox(location(), [first, second]);
     expect(await readPendingInbox(location())).toEqual([first, second]);
 
-    expect(await drainPendingInbox(location())).toEqual([first, second]);
+    await replacePendingInbox(location(), [second]);
+    expect(await readPendingInbox(location())).toEqual([second]);
+
+    expect(await drainPendingInbox(location())).toEqual([second]);
     expect(await drainPendingInbox(location())).toEqual([]);
 
-    await appendPendingInbox(location(), [first, second]);
+    await replacePendingInbox(location(), [first, second]);
     await acceptRunInbox(location(), 'run_next', [first]);
     expect(await readPendingInbox(location())).toEqual([second]);
 });
 
-test('serializes concurrent inbox writes without dropping messages', async () => {
-    const items = Array.from({ length: 20 }, (_, index) =>
-        item(`msg_concurrent_${index}`, '#general', index + 1)
-    );
-    await Promise.all(items.map(async (entry) => appendPendingInbox(location(), [entry])));
-    expect(await readPendingInbox(location())).toEqual(items);
+test('dedupes and orders a replacement snapshot', async () => {
+    const first = item('msg_first', '#general', 1);
+    const second = item('msg_second', '#general', 2);
+    await replacePendingInbox(location(), [second, first, second]);
+    expect(await readPendingInbox(location())).toEqual([first, second]);
 });
 
 function item(id: string, target: string, sequence: number): HostedAgentInboxItem {

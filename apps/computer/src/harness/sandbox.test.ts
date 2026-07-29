@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
@@ -68,5 +68,33 @@ test('sandbox file operations reject another Agent root', async () => {
     await expect(session.readTextFile?.({ path: join(root, 'agent-b-token') })).rejects.toThrow(
         'inside this Agent root'
     );
+    await session.destroy?.();
+});
+
+test('sandbox permits only the shared derived harness bootstrap outside the Agent root', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-bootstrap-'));
+    roots.push(root);
+    const session = await createLocalTrustedSandboxProvider({
+        rootDir: join(root, 'agent'),
+    }).createSession?.();
+    if (!session) {
+        throw new Error('Sandbox provider did not create a session.');
+    }
+    const bootstrapDir = join('/tmp/harness', `sandbox-test-${root.split('/').at(-1)}`);
+    roots.push(bootstrapDir);
+
+    await expect(
+        session.writeTextFile?.({
+            content: 'bridge',
+            path: join(bootstrapDir, 'bridge.mjs'),
+        })
+    ).resolves.toBeUndefined();
+    const canonicalBootstrapDir = await realpath(bootstrapDir);
+    await expect(
+        session.run?.({ command: 'pwd', workingDirectory: bootstrapDir })
+    ).resolves.toMatchObject({
+        exitCode: 0,
+        stdout: `${canonicalBootstrapDir}\n`,
+    });
     await session.destroy?.();
 });

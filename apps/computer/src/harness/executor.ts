@@ -11,6 +11,8 @@ import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { createCodex } from '@ai-sdk/harness-codex';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import { composeInboxDrain } from '../inbox-format.ts';
+import type { HostedAgentInboxItem } from '../launch.ts';
 import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { projectHostedMessageForAgent } from './rich-reference-projection.ts';
@@ -46,11 +48,11 @@ export interface HarnessTurnInput {
     homeDir: string;
     /** Home timezone for the Current Runtime Context section. */
     homeTimezone: string;
+    /** Structured Server-owned inbox rows. Computer owns their model projection. */
+    inbox: HostedAgentInboxItem[];
     /** The Agent's description — the personality surface (ruling W2). */
     initialRole: string | null;
     modelId: string;
-    /** The composed turn prompt. */
-    prompt: string;
     registerNoticeSink?: NoticeSinkRegistrar;
     runtimeId: string;
     signal?: AbortSignal;
@@ -62,7 +64,7 @@ export interface HarnessTurnInput {
     workspaceDir: string;
 }
 
-export type NoticeSinkRegistrar = (sink: (pending: number) => Promise<boolean>) => () => void;
+export type NoticeSinkRegistrar = (sink: (notice: string) => Promise<boolean>) => () => void;
 
 export interface HarnessTurnResult {
     contextTokens: number | null;
@@ -153,10 +155,24 @@ async function executeHarnessTurn(
             throw new AgentSessionResumeRejectedError(input.agentId, { cause: error });
         }
 
+        if (!live.isResume) {
+            await runTurn(
+                agent,
+                live,
+                projectHostedMessageForAgent({
+                    content:
+                        session.generation === 1
+                            ? 'Start.'
+                            : 'Start.\nFresh session: your previous conversation context is gone. Your workspace and MEMORY.md are intact — MEMORY.md is your recovery point.',
+                    enabledSkillIds: skills.map((skill) => skill.name),
+                }),
+                input.signal
+            );
+        }
         const turn = await agent.stream({
             abortSignal: input.signal,
             prompt: projectHostedMessageForAgent({
-                content: input.prompt,
+                content: composeInboxDrain(input.inbox, input.homeTimezone),
                 enabledSkillIds: skills.map((skill) => skill.name),
             }),
             session: live,
@@ -170,7 +186,10 @@ async function executeHarnessTurn(
         } finally {
             unregisterNoticeSink?.();
         }
-        const resumeState = await live.stop();
+        // Detach parks the Harness session while leaving its underlying runtime
+        // process alive. The next delivery reattaches to this same per-Agent
+        // daemon instead of cold-spawning a new runtime.
+        const resumeState = await live.detach();
         await writeAgentSessionState(input.agentRoot, {
             effectiveModel: { modelId: input.modelId, runtimeId: input.runtimeId },
             generation: session.generation,
@@ -185,19 +204,14 @@ async function executeHarnessTurn(
 }
 
 function createNoticeDelivery(session: HarnessAgentSession, agentRoot: string) {
-    let lastDelivered: number | null = null;
-    return async (pending: number) => {
-        if (!Number.isInteger(pending) || pending < 1) {
+    let lastDelivered: string | null = null;
+    return async (notice: string) => {
+        if (!notice.trim()) {
             return false;
         }
-        const accepted =
-            (lastDelivered !== null && pending <= lastDelivered) ||
-            (await session.sendUserMessage(
-                `[Grotto inbox notice: ${pending} pending message${pending === 1 ? '' : 's'}. ` +
-                    'No message bodies are included. Use `grotto message check` when ready.]'
-            ));
+        const accepted = notice === lastDelivered || (await session.sendUserMessage(notice));
         if (accepted) {
-            lastDelivered = pending;
+            lastDelivered = notice;
             await rm(pendingNoticePath(agentRoot), { force: true });
         }
         return accepted;
@@ -206,20 +220,30 @@ function createNoticeDelivery(session: HarnessAgentSession, agentRoot: string) {
 
 async function deliverStoredNotice(
     agentRoot: string,
-    deliver: (pending: number) => Promise<boolean>
+    deliver: (notice: string) => Promise<boolean>
 ) {
     try {
         const value = JSON.parse(await readFile(pendingNoticePath(agentRoot), 'utf8')) as {
-            pending?: unknown;
+            notice?: unknown;
         };
-        if (typeof value.pending === 'number') {
-            await deliver(value.pending);
+        if (typeof value.notice === 'string') {
+            await deliver(value.notice);
         }
     } catch (cause) {
         if (!(isRecord(cause) && cause.code === 'ENOENT')) {
             throw cause;
         }
     }
+}
+
+async function runTurn(
+    agent: Pick<HarnessAgent, 'stream'>,
+    session: HarnessAgentSession,
+    prompt: string,
+    signal?: AbortSignal
+): Promise<void> {
+    const turn = await agent.stream({ abortSignal: signal, prompt, session });
+    await observeTurnStream(turn.fullStream);
 }
 
 function pendingNoticePath(agentRoot: string) {

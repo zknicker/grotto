@@ -26,7 +26,7 @@ async function main(): Promise<number> {
 }
 
 function readLatestHumanMessage(prompt: string): string | null {
-    const matches = [...prompt.matchAll(/\[target=\S+ type=human\]\s*(.*)/gu)];
+    const matches = [...prompt.matchAll(/\[target=\S+[^\]]*type=human\]\s*@[^:]+:\s*(.*)/gu)];
     return matches.at(-1)?.[1]?.trim() ?? null;
 }
 

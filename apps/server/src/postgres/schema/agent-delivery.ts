@@ -29,8 +29,8 @@ export const agentDeliveryTable = pgTable(
         activeRunComputerId: text('active_run_computer_id'),
         activeRunId: text('active_run_id'),
         activeRunModelId: text('active_run_model_id'),
-        activeRunPrompt: text('active_run_prompt'),
         activeRunRuntimeId: text('active_run_runtime_id'),
+        agentChainTurns: integer('agent_chain_turns').notNull().default(0),
         agentId: text('agent_id').primaryKey(),
         consecutiveFailures: integer('consecutive_failures').notNull().default(0),
         dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
@@ -47,12 +47,12 @@ export const agentDeliveryTable = pgTable(
             foreignColumns: [agentsTable.serverId, agentsTable.id],
             name: 'agent_delivery_agent_fk',
         }).onDelete('cascade'),
+        check('agent_delivery_nonnegative_chain_turns', sql`${table.agentChainTurns} >= 0`),
         check(
             'agent_delivery_active_run',
             sql`(
                 ${table.activeRunId} is null
                 and ${table.activeRunChatId} is null
-                and ${table.activeRunPrompt} is null
                 and ${table.activeRunComputerId} is null
                 and ${table.activeRunRuntimeId} is null
                 and ${table.activeRunModelId} is null
@@ -61,7 +61,6 @@ export const agentDeliveryTable = pgTable(
             ) or (
                 ${table.activeRunId} is not null
                 and ${table.activeRunChatId} is not null
-                and ${table.activeRunPrompt} is not null
                 and ${table.activeRunComputerId} is not null
                 and ${table.activeRunRuntimeId} is not null
                 and ${table.activeRunModelId} is not null

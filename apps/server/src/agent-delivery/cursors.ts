@@ -108,8 +108,12 @@ export async function advanceSeenForRun(
     }
 }
 
-/** Removes queued rows already exposed by a pull/hold in the current session. */
-export async function deleteServedQueuedWork(
+/**
+ * Removes queued rows only after model-seen proof. `served` is a hold-decision
+ * assist, never consumption authority: a pull followed by a crash must replay
+ * from `seen` instead of deleting unseen work.
+ */
+export async function deleteSeenQueuedWork(
     db: GrottoDatabase,
     input: { agentId: string; serverId: string }
 ) {
@@ -126,10 +130,7 @@ export async function deleteServedQueuedWork(
           and cursor.agent_id = pending.agent_id
           and cursor.session_generation = ${generation}
           and cursor.chat_id = pending.chat_id
-          and message.sequence <= greatest(
-              cursor.seen_up_to_sequence,
-              cursor.served_up_to_sequence
-          )
+          and message.sequence <= cursor.seen_up_to_sequence
     `);
 }
 

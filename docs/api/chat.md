@@ -141,12 +141,12 @@ scoped runner surface. The boundary follows ADR 0019: the Server owns durable
 collaboration and compact activity; the Computer owns isolated execution and
 raw traces.
 
-- **Typed start.** The Server sends a `start` command down the Computer's
+- **Typed delivery.** The Server sends a `start` command down the Computer's
   attachment socket (`{ type: 'start', agentId, chatId, runId, runtimeId,
-  modelId, prompt }`). A new top-level human DM message wakes the seated Agent
-  if its Computer is online; hosted collaboration never waits on a Computer.
-  The Server admits one in-flight run per Agent, so a launch never
-  double-starts an Agent's single session.
+  modelId, inbox }`). `inbox` contains structured Server-owned envelopes; the
+  Computer owns their exact model projection. Hosted collaboration never waits
+  on a Computer. The Server and Computer each admit one in-flight turn per
+  Agent, while the parked AI SDK Harness session persists across deliveries.
 - **Runner authority (least credentials).** Before spawning the Agent, the
   Computer mints a per-launch runner credential from its Computer credential:
 
@@ -159,9 +159,10 @@ raw traces.
   The runner credential is scoped to one Agent and run on one Server. The
   launch chat carries turn context; each Agent API action still resolves its
   product target and access Server-side. Only the credential hash is stored,
-  and it is revoked when the launch ends. The Computer keeps it behind a
-  loopback proxy; the Agent process receives only a per-launch local proxy
-  token.
+  and it is revoked when the turn ends. The Computer keeps it behind a
+  resident per-Agent loopback proxy; the Agent receives only that host's stable
+  local proxy token. The next turn rotates the Server-valid runner authority
+  behind the same local boundary.
 
 - **Agent output.** The embedded managed `grotto` wrapper is the Agent's only
   collaboration output channel. `grotto message send` reaches the Computer's

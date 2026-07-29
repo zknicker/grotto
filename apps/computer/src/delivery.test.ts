@@ -48,9 +48,8 @@ test('a settled run replays its stored summary instead of re-running', () => {
     expect(decideStart(marker)).toEqual({ kind: 'replay', summary });
 });
 
-test('an accepted-but-unsettled run recovers as failed, never re-runs', () => {
-    // A crash after acceptance must not rerun possibly-effectful work.
-    expect(decideStart({ status: 'accepted' })).toEqual({ kind: 'recover' });
+test('an accepted-but-unsettled run replays because acceptance is not model-seen proof', () => {
+    expect(decideStart({ status: 'accepted' })).toEqual({ kind: 'run' });
 });
 
 test('run markers survive a Computer restart and drive idempotent replay', async () => {
@@ -76,11 +75,10 @@ test('a missing marker reads as null', async () => {
     expect(await readRunMarker(dataRoot, { runId: 'run_absent' }, serverId)).toBeNull();
 });
 
-test('an interrupted (accepted-only) run recovers, then replays its terminal result', async () => {
-    // A crash leaves only an accepted marker: recovery, never rerun.
+test('an interrupted accepted-only run stays replayable until it settles', async () => {
     await writeRunMarker(dataRoot, { marker: { status: 'accepted' }, runId: 'run_x', serverId });
     expect(decideStart(await readRunMarker(dataRoot, { runId: 'run_x' }, serverId))).toEqual({
-        kind: 'recover',
+        kind: 'run',
     });
 
     // Recovery reports a failed, interrupted turn and settles the marker, so a
@@ -115,26 +113,32 @@ test('run admission serializes every turn for one Agent while allowing other Age
     expect(reserveAgentRun(running, agentRuns, 'agt_x', 'run_y').kind).toBe('reserved');
 });
 
-test('a pending notice parses and records its compact count for the running turn', async () => {
+test('a pending notice carries durable envelopes but persists only model-safe notice text', async () => {
+    const inbox = [inboxItem()];
     const notice = parseNoticeCommand({
         agentId: 'agt_x',
-        pending: 3,
+        inbox,
         runId: 'run_x',
         type: 'notice',
     });
     expect(notice).toEqual({
         agentId: 'agt_x',
-        pending: 3,
+        inbox,
         runId: 'run_x',
         type: 'notice',
     });
 
-    await writePendingNotice(dataRoot, { agentId: 'agt_x', pending: 3, serverId });
+    await writePendingNotice(dataRoot, {
+        agentId: 'agt_x',
+        notice: '[Grotto inbox notice:\\n#general pending: 1 message(s)\\n]',
+        serverId,
+    });
     const written = JSON.parse(
         await readFile(noticePath(dataRoot, { agentId: 'agt_x', serverId }), 'utf8')
     );
-    // Notice state is count-only; canonical bodies stay Server-side.
-    expect(written).toEqual({ pending: 3 });
+    expect(written).toEqual({
+        notice: '[Grotto inbox notice:\\n#general pending: 1 message(s)\\n]',
+    });
 });
 
 test('a Server deletion command is exact and content-free', () => {
@@ -160,6 +164,19 @@ test('Server cleanup waits for local writers before removing their partition', a
 
 test('parseNoticeCommand fails closed on a malformed frame', () => {
     expect(parseNoticeCommand({ agentId: 'agt_x', runId: 'run_x', type: 'notice' })).toBeNull();
-    expect(parseNoticeCommand({ pending: 1, runId: 'run_x', type: 'notice' })).toBeNull();
+    expect(parseNoticeCommand({ inbox: [inboxItem()], runId: 'run_x', type: 'notice' })).toBeNull();
     expect(parseNoticeCommand({ type: 'start' })).toBeNull();
 });
+
+function inboxItem() {
+    return {
+        chatId: 'cht_x',
+        content: 'secret body',
+        createdAt: '2026-07-27T00:00:00.000Z',
+        id: 'msg_x',
+        senderHandle: 'operator',
+        senderType: 'human' as const,
+        sequence: 1,
+        target: '#general',
+    };
+}

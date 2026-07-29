@@ -10,8 +10,8 @@ export interface AgentDeliveryRow {
     activeRunComputerId: string | null;
     activeRunId: string | null;
     activeRunModelId: string | null;
-    activeRunPrompt: string | null;
     activeRunRuntimeId: string | null;
+    agentChainTurns: number;
     agentId: string;
     consecutiveFailures: number;
     retryAfter: Date | null;
@@ -25,6 +25,7 @@ export interface PendingWorkRow {
     createdAt: Date;
     dedupeKey: string;
     id: string;
+    serverId: string;
     source: string;
 }
 
@@ -149,7 +150,7 @@ export async function countQueuedPending(db: GrottoDatabase, agentId: string): P
  * preserving the floating-session contract instead of hiding work behind one
  * launch chat.
  */
-export async function claimQueuedPendingForNextChat(
+export async function claimQueuedPending(
     db: GrottoDatabase,
     input: { agentId: string; maxChars: number; maxRows: number; runId: string }
 ): Promise<PendingWorkRow[]> {
@@ -160,6 +161,7 @@ export async function claimQueuedPendingForNextChat(
             createdAt: agentPendingWorkTable.createdAt,
             dedupeKey: agentPendingWorkTable.dedupeKey,
             id: agentPendingWorkTable.id,
+            serverId: agentPendingWorkTable.serverId,
             source: agentPendingWorkTable.source,
         })
         .from(agentPendingWorkTable)
@@ -207,6 +209,7 @@ export async function listPendingForRun(
             createdAt: agentPendingWorkTable.createdAt,
             dedupeKey: agentPendingWorkTable.dedupeKey,
             id: agentPendingWorkTable.id,
+            serverId: agentPendingWorkTable.serverId,
             source: agentPendingWorkTable.source,
         })
         .from(agentPendingWorkTable)
@@ -231,6 +234,7 @@ export async function listQueuedPending(
             createdAt: agentPendingWorkTable.createdAt,
             dedupeKey: agentPendingWorkTable.dedupeKey,
             id: agentPendingWorkTable.id,
+            serverId: agentPendingWorkTable.serverId,
             source: agentPendingWorkTable.source,
         })
         .from(agentPendingWorkTable)
@@ -246,7 +250,6 @@ export async function beginActiveRun(
         chatId: string;
         computerId: string;
         modelId: string;
-        prompt: string;
         runId: string;
         runtimeId: string;
     }
@@ -259,7 +262,6 @@ export async function beginActiveRun(
             activeRunComputerId: input.computerId,
             activeRunId: input.runId,
             activeRunModelId: input.modelId,
-            activeRunPrompt: input.prompt,
             activeRunRuntimeId: input.runtimeId,
             dispatchedAt: new Date(),
             updatedAt: new Date(),
@@ -308,7 +310,6 @@ export async function clearActiveRun(db: GrottoDatabase, agentId: string): Promi
             activeRunComputerId: null,
             activeRunId: null,
             activeRunModelId: null,
-            activeRunPrompt: null,
             activeRunRuntimeId: null,
             dispatchedAt: null,
             updatedAt: new Date(),
@@ -337,6 +338,16 @@ export async function clearDeliveryFailures(db: GrottoDatabase, agentId: string)
         .update(agentDeliveryTable)
         .set({ consecutiveFailures: 0, retryAfter: null, updatedAt: new Date() })
         .where(eq(agentDeliveryTable.agentId, agentId));
+}
+
+export async function setAgentChainTurns(
+    db: GrottoDatabase,
+    input: { agentId: string; turns: number }
+): Promise<void> {
+    await db
+        .update(agentDeliveryTable)
+        .set({ agentChainTurns: input.turns, updatedAt: new Date() })
+        .where(eq(agentDeliveryTable.agentId, input.agentId));
 }
 
 export async function deletePendingForRun(

@@ -5,7 +5,8 @@ session, per §2 of the [program contract](README.md). Formats are Raft's
 captured shapes ([raft-system-prompt.md](raft-system-prompt.md) "Per-turn
 envelopes"), renamed. WS2 implementation is transcription of this file.
 
-Status: DRAFT for operator review. Not implemented.
+Status: Implemented for hosted Server-to-Computer delivery. Attachment and task
+suffixes remain part of WS5.
 
 ## Placeholder conventions
 

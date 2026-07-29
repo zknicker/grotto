@@ -84,8 +84,9 @@ The harness executor creates a session and sends the prompt. The agent's
 final reply is not derived from the model's text output — the model speaks
 only by running `grotto message send` from inside the turn (ADR 0014); text
 emitted outside a `grotto` command is delivered to no one. After the turn
-settles, Runtime stores the opaque harness resume state on the Agent session
-and stops the session handle.
+settles, the executor stores the opaque Harness resume state and detaches the
+local handle, parking the underlying Agent execution host for the next
+delivery. Reset or retirement destroys that host.
 
 A fresh session's first turn is a bare `Start.` turn. After that, an idle
 agent's next turn is a drain: it batches every pending inbox target — every

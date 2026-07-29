@@ -30,14 +30,13 @@ export async function acceptRunInbox(
     });
 }
 
-/** Mirrors a busy-Agent notice locally, idempotently by canonical message id. */
-export async function appendPendingInbox(
+/** Mirrors the Server's complete current busy-Agent inbox snapshot locally. */
+export async function replacePendingInbox(
     location: AgentInboxLocation,
     items: HostedAgentInboxItem[]
 ): Promise<void> {
     await withInboxWrite(location, async () => {
-        const current = await readPendingInbox(location);
-        const byId = new Map(current.map((item) => [item.id, item]));
+        const byId = new Map<string, HostedAgentInboxItem>();
         for (const item of items) {
             byId.set(item.id, item);
         }

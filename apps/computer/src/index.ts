@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { runAgentCli } from './agent-cli.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { AgentConfigurationQueue } from './agent-configuration-queue.ts';
+import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import { computerEntrypoint, computerSourceRevision, computerVersion } from './build-identity.ts';
@@ -32,6 +33,8 @@ import {
     listImportableSkills,
     parseAgentSkillImportCommand,
 } from './host-skills.ts';
+import { composeInboxNotice } from './inbox-format.ts';
+import { acceptRunInbox, readPendingInbox, replacePendingInbox } from './inbox-store.ts';
 import { detectInventory } from './inventory.ts';
 import {
     type Attachment,
@@ -600,7 +603,7 @@ async function connect(attachment: Attachment) {
     const agentRuns = new Map<string, string>();
     const noticeSinks = new Map<
         string,
-        { deliver: (pending: number) => Promise<boolean>; runId: string }
+        { deliver: (notice: string) => Promise<boolean>; runId: string }
     >();
     const resettingAgents = new Set<string>();
     const agentConfigurations = new AgentConfigurationQueue();
@@ -686,6 +689,7 @@ async function connect(attachment: Attachment) {
             const frame = JSON.parse(String(event.data)) as { type?: string };
             if (parseServerDeleteCommand(frame)) {
                 deleting = true;
+                disposeServerLaunchHosts(attachment.serverId);
                 socket.close();
                 for (const controller of running.values()) {
                     controller.abort();
@@ -828,14 +832,15 @@ async function connect(attachment: Attachment) {
                     agentConfigurations
                         .wait(reset.agentId)
                         .then(() => waitForAgentRunToSettle(agentRuns, reset.agentId))
-                        .then(() =>
-                            resetAgentState({
+                        .then(() => {
+                            disposeAgentLaunchHost(attachment.serverId, reset.agentId);
+                            return resetAgentState({
                                 agentId: reset.agentId,
                                 dataRoot,
                                 kind: reset.kind,
                                 serverId: attachment.serverId,
-                            })
-                        )
+                            });
+                        })
                         .then(() => sendComputerReport(socket, attachment.serverId))
                         .catch((error) => {
                             console.error(error instanceof Error ? error.message : error);
@@ -866,16 +871,26 @@ async function connect(attachment: Attachment) {
             }
             const notice = parseNoticeCommand(frame);
             if (notice) {
+                const location = {
+                    agentId: notice.agentId,
+                    dataRoot,
+                    serverId: attachment.serverId,
+                };
                 void trackWriter(
-                    writePendingNotice(dataRoot, {
-                        agentId: notice.agentId,
-                        pending: notice.pending,
-                        serverId: attachment.serverId,
-                    })
+                    replacePendingInbox(location, notice.inbox)
                         .then(async () => {
+                            const projected = composeInboxNotice(await readPendingInbox(location));
+                            if (!projected) {
+                                return;
+                            }
+                            await writePendingNotice(dataRoot, {
+                                agentId: notice.agentId,
+                                notice: projected,
+                                serverId: attachment.serverId,
+                            });
                             const sink = noticeSinks.get(notice.agentId);
                             if (sink?.runId === notice.runId) {
-                                await sink.deliver(notice.pending);
+                                await sink.deliver(projected);
                             }
                         })
                         .catch((error) => {
@@ -938,8 +953,9 @@ async function waitForAgentRunToSettle(
  * Handles one start command idempotently. The run is already reserved in
  * `running` (synchronously, by the caller), so only one launch per run can exist.
  * Local acceptance (the durable marker plus the ack) is recorded before any model
- * work, so a dropped ack or a Computer restart resolves against the marker: a
- * settled run replays its summary and only a genuinely fresh run launches.
+ * work. A settled run replays its summary; an accepted-but-unsettled run
+ * intentionally replays after restart because acceptance is not model-seen
+ * proof.
  */
 async function handleStartCommand(input: {
     agentRuns: Map<string, string>;
@@ -947,7 +963,7 @@ async function handleStartCommand(input: {
     command: HostedAgentStartCommand;
     controller: AbortController;
     clearActiveRun: () => Promise<void>;
-    noticeSinks: Map<string, { deliver: (pending: number) => Promise<boolean>; runId: string }>;
+    noticeSinks: Map<string, { deliver: (notice: string) => Promise<boolean>; runId: string }>;
     running: Map<string, AbortController>;
     socket: WebSocket;
 }): Promise<void> {
@@ -981,15 +997,6 @@ async function handleStartCommand(input: {
             send(decision.summary);
             return;
         }
-        if (decision.kind === 'recover') {
-            // Crashed after accepting this run; never rerun possibly-effectful
-            // work. Report a failed, interrupted turn whose output is unknown, so
-            // the Server does not requeue and duplicate it.
-            ack();
-            await settle(interruptedTurn(command, startedAt));
-            return;
-        }
-
         let summary: HostedAgentTurnFrame;
         try {
             summary = await runAgentLaunch({
@@ -997,6 +1004,15 @@ async function handleStartCommand(input: {
                 command,
                 dataRoot,
                 onRuntimeReady: async () => {
+                    await acceptRunInbox(
+                        {
+                            agentId: command.agentId,
+                            dataRoot,
+                            serverId: attachment.serverId,
+                        },
+                        command.runId,
+                        command.inbox ?? []
+                    );
                     await writeRunMarker(dataRoot, {
                         marker: { status: 'accepted' },
                         runId: command.runId,
@@ -1064,25 +1080,6 @@ function reportStateError(error: unknown) {
     console.error(
         `Computer state report failed: ${error instanceof Error ? error.message : error}`
     );
-}
-
-function interruptedTurn(
-    command: HostedAgentStartCommand,
-    startedAt: string
-): HostedAgentTurnFrame {
-    return {
-        agentId: command.agentId,
-        endedAt: new Date().toISOString(),
-        messageCount: 0,
-        // Output is unknown after a crash; assume it happened so the Server does
-        // not requeue and risk duplicating it.
-        outputProduced: true,
-        runId: command.runId,
-        startedAt,
-        status: 'failed',
-        summary: 'The Agent turn was interrupted and could not be resumed.',
-        type: 'turn',
-    };
 }
 
 function launchCrashTurn(

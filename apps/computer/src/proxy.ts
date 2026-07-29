@@ -26,8 +26,11 @@ const skillFileSchema = z.object({
 });
 
 export interface LoopbackProxy {
+    clearRunnerToken(): void;
     close(): void;
+    resetSendCount(): void;
     sendCount(): number;
+    setRunnerToken(token: string): void;
     url: string;
 }
 
@@ -47,6 +50,7 @@ export function startLoopbackProxy(input: {
     skillsDir?: string;
 }): LoopbackProxy {
     let sends = 0;
+    let runnerToken: string | null = input.runnerToken;
     const server = Bun.serve({
         fetch: async (request) => {
             const url = new URL(request.url);
@@ -60,6 +64,12 @@ export function startLoopbackProxy(input: {
             if (skillResponse) {
                 return skillResponse;
             }
+            if (!runnerToken) {
+                return Response.json(
+                    { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
+                    { status: 409 }
+                );
+            }
             const body = await request.text();
             const upstreamUrl = new URL(url.pathname, input.serverOrigin);
             upstreamUrl.search = url.search;
@@ -69,7 +79,7 @@ export function startLoopbackProxy(input: {
                 upstream = await fetch(upstreamUrl, {
                     body: request.method === 'GET' ? undefined : body,
                     headers: {
-                        authorization: `Bearer ${input.runnerToken}`,
+                        authorization: `Bearer ${runnerToken}`,
                         'content-type': request.headers.get('content-type') ?? 'application/json',
                     },
                     method: request.method,
@@ -104,8 +114,17 @@ export function startLoopbackProxy(input: {
         port: 0,
     });
     return {
+        clearRunnerToken: () => {
+            runnerToken = null;
+        },
         close: () => server.stop(true),
+        resetSendCount: () => {
+            sends = 0;
+        },
         sendCount: () => sends,
+        setRunnerToken: (token) => {
+            runnerToken = token;
+        },
         url: `http://127.0.0.1:${server.port}`,
     };
 }

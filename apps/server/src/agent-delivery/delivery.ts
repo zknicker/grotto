@@ -6,7 +6,7 @@ import type {
     HostedReminderScriptCommand,
     HostedReminderScriptResult,
 } from '@tavern/api';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import { recordAgentTurnSummary } from '../hosted-agents/record-agent-turn.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -22,8 +22,9 @@ import {
     settleReminderScript,
 } from '../reminders/reminder-script-delivery.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { advanceDeliveredCursor, advanceSeenForRun, deleteServedQueuedWork } from './cursors.ts';
-import { composeDrainPrompt } from './prompt.ts';
+import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
+import { advanceDeliveredCursor, advanceSeenForRun, deleteSeenQueuedWork } from './cursors.ts';
+import { shouldRetryFailure } from './failure-policy.ts';
 import type { AgentDeliveryRow, AgentDispatchConfig } from './store.ts';
 import * as store from './store.ts';
 
@@ -87,6 +88,7 @@ export class AgentDelivery {
      * separate, recoverable step {@link dispatchAgent}.
      */
     async enqueue(tx: GrottoDatabase, input: EnqueueInput): Promise<void> {
+        const source = input.source ?? 'human';
         await store.ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
         await store.enqueuePendingWork(tx, {
             agentId: input.agentId,
@@ -94,7 +96,7 @@ export class AgentDelivery {
             content: input.content,
             dedupeKey: input.dedupeKey,
             serverId: input.serverId,
-            source: input.source ?? 'human',
+            source,
         });
         if (input.sequence) {
             await advanceDeliveredCursor(tx, {
@@ -104,8 +106,12 @@ export class AgentDelivery {
                 serverId: input.serverId,
             });
         }
-        // Fresh human work re-enables a backed-off or degraded Agent.
+        // Fresh work re-enables delivery. Human intent also releases the
+        // Agent-authored chain ceiling even when older Agent rows precede it.
         await store.clearDeliveryFailures(tx, input.agentId);
+        if (source === 'human') {
+            await store.setAgentChainTurns(tx, { agentId: input.agentId, turns: 0 });
+        }
     }
 
     /** Enqueues work in its own transaction and dispatches — the direct-caller path. */
@@ -265,6 +271,10 @@ export class AgentDelivery {
                 serverId,
             });
             if (summary.status === 'completed') {
+                const completedRows = await store.listPendingForRun(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                });
                 await advanceSeenForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
@@ -275,6 +285,10 @@ export class AgentDelivery {
                     runId: summary.runId,
                 });
                 await store.clearDeliveryFailures(tx, summary.agentId);
+                await store.setAgentChainTurns(tx, {
+                    agentId: summary.agentId,
+                    turns: nextAgentChainTurns(completedRows, state.agentChainTurns),
+                });
                 await store.clearActiveRun(tx, summary.agentId);
                 return this.planDispatch(tx, summary.agentId);
             }
@@ -283,6 +297,13 @@ export class AgentDelivery {
             // failure with no output is safe to retry. Either way it does not
             // re-drive immediately: repeated failures back off, then degrade.
             if (summary.outputProduced) {
+                // A durable Agent send proves the model handled this prompt,
+                // even if the runtime failed during later cleanup.
+                await advanceSeenForRun(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                    serverId,
+                });
                 await store.deletePendingForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
@@ -294,11 +315,13 @@ export class AgentDelivery {
                 });
             }
             await store.clearActiveRun(tx, summary.agentId);
-            const failures = state.consecutiveFailures + 1;
+            const retryable = shouldRetryFailure(summary.failureKind);
+            const failures = retryable ? state.consecutiveFailures + 1 : maxDeliveryFailures;
             await store.recordDeliveryFailure(tx, {
                 agentId: summary.agentId,
                 consecutiveFailures: failures,
-                retryAfter: failures >= maxDeliveryFailures ? null : nextRetryAt(failures),
+                retryAfter:
+                    retryable && failures < maxDeliveryFailures ? nextRetryAt(failures) : null,
             });
             return null;
         });
@@ -399,7 +422,7 @@ export class AgentDelivery {
         if (!this.transport.isOnline(config.computerId)) {
             return null;
         }
-        await deleteServedQueuedWork(tx, { agentId, serverId: state.serverId });
+        await deleteSeenQueuedWork(tx, { agentId, serverId: state.serverId });
         if (state.activeRunId && state.activeRunComputerId) {
             if (!state.acceptedAt || options?.resendActive) {
                 await store.markDispatched(tx, { agentId, runId: state.activeRunId });
@@ -417,7 +440,7 @@ export class AgentDelivery {
                     computerId: state.activeRunComputerId,
                     frame: {
                         agentId,
-                        pending: await store.countQueuedPending(tx, agentId),
+                        inbox: await buildInboxItems(tx, pending),
                         runId: state.activeRunId,
                         type: 'notice',
                     },
@@ -429,7 +452,7 @@ export class AgentDelivery {
             return null;
         }
         const runId = createOpaqueId('run');
-        const claimed = await store.claimQueuedPendingForNextChat(tx, {
+        const claimed = await store.claimQueuedPending(tx, {
             agentId,
             maxChars: maxDrainChars,
             maxRows: maxDrainRows,
@@ -439,15 +462,17 @@ export class AgentDelivery {
         if (!first) {
             return null;
         }
+        if (!canBeginAgentDrain(claimed, state.agentChainTurns)) {
+            await store.requeuePendingForRun(tx, { agentId, runId });
+            return null;
+        }
         const chatId = first.chatId;
-        const prompt = composeDrainPrompt(claimed);
         // Freeze runtime/model onto the run so every resend uses these values.
         await store.beginActiveRun(tx, {
             agentId,
             chatId,
             computerId: config.computerId,
             modelId: config.desiredModelId,
-            prompt,
             runId,
             runtimeId: config.desiredRuntimeId,
         });
@@ -461,7 +486,6 @@ export class AgentDelivery {
                 homeTimezone: config.homeTimezone,
                 inbox: await buildInboxItems(tx, claimed),
                 modelId: config.desiredModelId,
-                prompt,
                 runId,
                 runtimeId: config.desiredRuntimeId,
                 type: 'start',
@@ -543,7 +567,6 @@ async function startFrame(
                 : []
         ),
         modelId: state.activeRunModelId ?? '',
-        prompt: state.activeRunPrompt ?? '',
         runId: state.activeRunId ?? '',
         runtimeId: state.activeRunRuntimeId ?? '',
         type: 'start',
@@ -565,11 +588,24 @@ async function buildInboxItems(
             const agentHandle = row.source.startsWith('agent:')
                 ? row.source.slice('agent:'.length)
                 : null;
+            const [senderAgent] = agentHandle
+                ? await db
+                      .select({ description: agentsTable.description })
+                      .from(agentsTable)
+                      .where(
+                          and(
+                              eq(agentsTable.serverId, row.serverId),
+                              eq(agentsTable.handle, agentHandle)
+                          )
+                      )
+                      .limit(1)
+                : [];
             return {
                 chatId: row.chatId,
                 content: row.content,
                 createdAt: row.createdAt.toISOString(),
                 id: row.dedupeKey,
+                ...(senderAgent?.description ? { senderDescription: senderAgent.description } : {}),
                 senderHandle: row.source === 'human' ? 'operator' : (agentHandle ?? row.source),
                 senderType:
                     row.source === 'human'

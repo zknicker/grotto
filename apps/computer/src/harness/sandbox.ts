@@ -227,8 +227,16 @@ async function stopProcesses(processes: Set<ChildProcessWithoutNullStreams>) {
 
 function resolveLocalPath(rootDir: string, value: string) {
     const target = path.resolve(rootDir, value);
-    if (target !== rootDir && !target.startsWith(`${rootDir}${path.sep}`)) {
-        throw new Error('Sandbox paths must stay inside this Agent root.');
+    const harnessBootstrapRoot = path.resolve('/tmp/harness');
+    const insideAgentRoot =
+        target === rootDir || target.startsWith(`${rootDir}${path.sep}`);
+    const insideHarnessBootstrap =
+        target === harnessBootstrapRoot ||
+        target.startsWith(`${harnessBootstrapRoot}${path.sep}`);
+    if (!(insideAgentRoot || insideHarnessBootstrap)) {
+        throw new Error(
+            `Sandbox path ${JSON.stringify(value)} must stay inside this Agent root ${JSON.stringify(rootDir)}.`
+        );
     }
     return target;
 }

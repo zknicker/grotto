@@ -24,12 +24,14 @@ let createSessionCalls: CreateSessionCall[];
 let restore: () => void;
 let rejectResume: boolean;
 let sentUserMessages: string[];
+let streamedPrompts: string[];
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'grotto-harness-'));
     createSessionCalls = [];
     rejectResume = false;
     sentUserMessages = [];
+    streamedPrompts = [];
     restore = setHarnessAgentFactoryForTesting((_input, _options) => fakeAgent());
 });
 
@@ -49,23 +51,27 @@ function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
                 throw new Error('runtime session gone');
             }
             return {
+                detach: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
                 destroy: async () => undefined,
+                isResume: Boolean(options.resumeFrom),
                 sendUserMessage: async (message: string) => {
                     sentUserMessages.push(message);
                     return true;
                 },
                 sessionId: 'engine_session_1',
-                stop: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
             };
         }) as unknown as HarnessAgent['createSession'],
-        stream: (async () => ({
-            fullStream: (async function* () {
-                yield {
-                    type: 'finish-step',
-                    usage: { inputTokens: { total: 10 }, outputTokens: { total: 5 } },
-                };
-            })(),
-        })) as unknown as HarnessAgent['stream'],
+        stream: (async (options: { prompt: string }) => {
+            streamedPrompts.push(options.prompt);
+            return {
+                fullStream: (async function* () {
+                    yield {
+                        type: 'finish-step',
+                        usage: { inputTokens: { total: 10 }, outputTokens: { total: 5 } },
+                    };
+                })(),
+            };
+        }) as unknown as HarnessAgent['stream'],
     };
 }
 
@@ -78,8 +84,19 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
         homeDir: join(agentRoot, 'home'),
         homeTimezone: 'UTC',
         initialRole: null,
+        inbox: [
+            {
+                chatId: 'cht_test',
+                content: 'Hello Cove',
+                createdAt: '2026-07-27T00:00:00.000Z',
+                id: 'msg_test',
+                senderHandle: 'operator',
+                senderType: 'human',
+                sequence: 1,
+                target: 'dm:@operator',
+            },
+        ],
         modelId: 'gpt-5.6-sol',
-        prompt: 'Start.',
         runtimeId: 'codex',
         skillsDir: join(agentRoot, 'skills'),
         webAccess: null,
@@ -103,6 +120,10 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     expect(afterFirst.generation).toBe(1);
     expect(afterFirst.runtimeSessionId).toBe('engine_session_1');
     expect(afterFirst.resumeState).toMatchObject({ type: 'resume-session' });
+    expect(streamedPrompts[0]).toContain('Start.');
+    expect(streamedPrompts[1]).toContain(
+        '[target=dm:@operator msg=test time=2026-07-27 00:00:00 type=human] @operator: Hello Cove'
+    );
 
     await runHarnessTurn(turnInput());
     // Second turn resumes: the stored resume state is handed back to the engine.
@@ -148,8 +169,10 @@ test('a rejected resume rotates the generation and cold-starts once', async () =
 test('delivers a pending busy notice into the live harness turn', async () => {
     const runtimeDir = join(agentRoot, 'runtime');
     await mkdir(runtimeDir, { recursive: true });
-    await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ pending: 3 }));
-    let registeredSink: ((pending: number) => Promise<boolean>) | undefined;
+    const notice =
+        '[Grotto inbox notice:\nInbox update: 3 unread messages total; 1 changed target(s)\ndm:@operator pending: 3 message(s)\n]';
+    await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ notice }));
+    let registeredSink: ((notice: string) => Promise<boolean>) | undefined;
     let unregistered = false;
 
     await runHarnessTurn(
@@ -164,10 +187,7 @@ test('delivers a pending busy notice into the live harness turn', async () => {
     );
 
     expect(registeredSink).toBeDefined();
-    expect(sentUserMessages).toEqual([
-        '[Grotto inbox notice: 3 pending messages. No message bodies are included. ' +
-            'Use `grotto message check` when ready.]',
-    ]);
+    expect(sentUserMessages).toEqual([notice]);
     expect(unregistered).toBe(true);
     await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
 });

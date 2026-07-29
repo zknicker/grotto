@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import type { HostedAgentCommand, HostedAgentTurnSummary } from '@tavern/api';
 import { eq } from 'drizzle-orm';
+import { deleteSeenQueuedWork } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { countQueuedPending, readDeliveryState } from '../src/agent-delivery/store.ts';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
@@ -9,10 +10,12 @@ import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/co
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentDeliveryTable,
+    agentInboxCursorsTable,
     agentPendingWorkTable,
     agentRunnerCredentialsTable,
     agentsTable,
     agentTurnsTable,
+    chatMessagesTable,
     chatsTable,
     computersTable,
     serverMembershipsTable,
@@ -67,6 +70,7 @@ interface Seed {
     chatId: string;
     computerId: string;
     serverId: string;
+    userId: string;
 }
 
 async function seedAgent(): Promise<Seed> {
@@ -110,18 +114,20 @@ async function seedAgent(): Promise<Seed> {
         kind: 'dm',
         serverId,
     });
-    return { agentHandle, agentId, chatId, computerId, serverId };
+    return { agentHandle, agentId, chatId, computerId, serverId, userId };
 }
 
 function turnSummary(
     agentId: string,
     runId: string,
     status: 'completed' | 'failed',
-    outputProduced: boolean = status === 'completed'
+    outputProduced: boolean = status === 'completed',
+    failureKind?: HostedAgentTurnSummary['failureKind']
 ): HostedAgentTurnSummary {
     return {
         agentId,
         endedAt: new Date().toISOString(),
+        ...(failureKind ? { failureKind } : {}),
         messageCount: outputProduced ? 1 : 0,
         outputProduced,
         runId,
@@ -186,7 +192,7 @@ test('drains delivered work into one run, then settles it', async () => {
     expect(starts).toHaveLength(1);
     expect(starts[0]?.agentName).toBe(seed.agentHandle);
     expect(starts[0]?.homeTimezone).toBe('UTC');
-    expect(starts[0]?.prompt).toContain('hello there');
+    expect(starts[0]?.inbox.map((item) => item.content)).toEqual(['hello there']);
     const runId = starts[0]?.runId ?? '';
 
     const beforeAck = await readDeliveryState(connection.db, seed.agentId);
@@ -264,7 +270,7 @@ test('ignores a duplicate delivery of the same message', async () => {
     ]);
     const starts = transport.framesOfType('start');
     expect(starts).toHaveLength(1);
-    expect(starts[0]?.prompt.match(/once/g)).toHaveLength(1);
+    expect(starts[0]?.inbox.map((item) => item.content)).toEqual(['once']);
 });
 
 test('queues work for a busy Agent and notices it, then drains at the boundary', async () => {
@@ -283,8 +289,8 @@ test('queues work for a busy Agent and notices it, then drains at the boundary',
     const firstRun = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: firstRun });
 
-    // Busy: the wire notice is content-free, starts no second model turn, and
-    // does not append the new body to the active model prompt.
+    // Busy: the Computer receives the full durable envelope, starts no second
+    // model turn, and projects only content-free metadata into the live turn.
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.chatId,
@@ -295,17 +301,17 @@ test('queues work for a busy Agent and notices it, then drains at the boundary',
     expect(transport.framesOfType('start')).toHaveLength(1);
     const notices = transport.framesOfType('notice');
     expect(notices).toHaveLength(1);
-    expect(notices[0]?.pending).toBe(1);
-    expect('inbox' in (notices[0] ?? {})).toBe(false);
-    expect(transport.framesOfType('start')[0]?.prompt).not.toContain('second');
+    expect(notices[0]?.inbox.map((item) => item.content)).toEqual(['second']);
+    expect(transport.framesOfType('start')[0]?.inbox.map((item) => item.content)).toEqual([
+        'first',
+    ]);
 
     // The safe boundary: the run settles and the queued work drains into a run.
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, firstRun, 'completed'));
     const starts = transport.framesOfType('start');
     expect(starts).toHaveLength(2);
     expect(starts[1]?.runId).not.toBe(firstRun);
-    expect(starts[1]?.prompt).toContain('second');
-    expect(starts[1]?.prompt).not.toContain('first');
+    expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['second']);
 });
 
 test('Stop persists across a restart, suppresses wakes, and keeps accumulating', async () => {
@@ -348,8 +354,7 @@ test('Stop persists across a restart, suppresses wakes, and keeps accumulating',
     await restarted.start({ agentId: seed.agentId, serverId: seed.serverId });
     const starts = transport.framesOfType('start');
     expect(starts).toHaveLength(2);
-    expect(starts[1]?.prompt).toContain('live work');
-    expect(starts[1]?.prompt).toContain('while stopped');
+    expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['live work', 'while stopped']);
     expect((await readDeliveryState(connection.db, seed.agentId))?.stopped).toBe(false);
 });
 
@@ -459,6 +464,34 @@ test('a failed turn backs off instead of tight-looping', async () => {
     expect(transport.framesOfType('start')).toHaveLength(1);
 });
 
+test('an operator-action failure degrades immediately instead of spending retries', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'work',
+        dedupeKey: 'msg-auth',
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, runId, 'failed', false, 'authentication')
+    );
+
+    const state = await readDeliveryState(connection.db, seed.agentId);
+    expect(state?.consecutiveFailures).toBe(5);
+    expect(state?.retryAfter).toBeNull();
+    expect(await countAllPending(seed.agentId)).toBe(1);
+    await delivery.sweep();
+    expect(transport.framesOfType('start')).toHaveLength(1);
+});
+
 test('a degraded Agent stops auto-retrying until fresh human intent', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
@@ -521,8 +554,7 @@ test('a floating-session run drains queued work across every target', async () =
     await delivery.onComputerReconnect(seed.computerId);
     const first = transport.framesOfType('start')[0];
     expect(first?.chatId).toBe(seed.chatId);
-    expect(first?.prompt).toContain('from chat A');
-    expect(first?.prompt).toContain('from chat B');
+    expect(first?.inbox.map((item) => item.content)).toEqual(['from chat A', 'from chat B']);
     expect(first?.inbox.map((item) => item.chatId)).toEqual([seed.chatId, chatB]);
 });
 
@@ -647,6 +679,89 @@ test('a failed turn that produced output does not requeue its work', async () =>
     expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
 });
 
+test('served cursor never consumes queued work without seen proof', async () => {
+    const seed = await seedAgent();
+    const messageId = createOpaqueId('msg');
+    await connection.db.insert(chatMessagesTable).values({
+        authorUserId: seed.userId,
+        chatId: seed.chatId,
+        content: 'pull then crash',
+        id: messageId,
+        nonce: createOpaqueId('nonce'),
+        sequence: 1,
+        serverId: seed.serverId,
+    });
+    await connection.db.insert(agentPendingWorkTable).values({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'pull then crash',
+        dedupeKey: messageId,
+        id: createOpaqueId('apw'),
+        serverId: seed.serverId,
+        source: 'human',
+    });
+    await connection.db.insert(agentInboxCursorsTable).values({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        deliveredUpToSequence: 1,
+        seenUpToSequence: 0,
+        servedUpToSequence: 1,
+        serverId: seed.serverId,
+        sessionGeneration: 1,
+    });
+
+    await deleteSeenQueuedWork(connection.db, {
+        agentId: seed.agentId,
+        serverId: seed.serverId,
+    });
+    expect(await countAllPending(seed.agentId)).toBe(1);
+
+    await connection.db
+        .update(agentInboxCursorsTable)
+        .set({ seenUpToSequence: 1 })
+        .where(eq(agentInboxCursorsTable.agentId, seed.agentId));
+    await deleteSeenQueuedWork(connection.db, {
+        agentId: seed.agentId,
+        serverId: seed.serverId,
+    });
+    expect(await countAllPending(seed.agentId)).toBe(0);
+});
+
+test('agent-only chain ceiling preserves work until human intent arrives', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    await connection.db.insert(agentDeliveryTable).values({
+        agentChainTurns: 16,
+        agentId: seed.agentId,
+        serverId: seed.serverId,
+    });
+    await connection.db.insert(agentPendingWorkTable).values({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'agent ping',
+        dedupeKey: 'msg-agent-chain',
+        id: createOpaqueId('apw'),
+        serverId: seed.serverId,
+        source: 'agent:wren',
+    });
+
+    await delivery.sweep();
+    expect(transport.framesOfType('start')).toHaveLength(0);
+    expect(await countAllPending(seed.agentId)).toBe(1);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'human reset',
+        dedupeKey: 'msg-human-reset',
+        serverId: seed.serverId,
+    });
+    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(transport.framesOfType('start')[0]?.inbox).toHaveLength(2);
+});
+
 test('a resent run keeps the runtime and model frozen at first dispatch', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
@@ -702,10 +817,7 @@ test('bounds one drain and carries the overflow in a later run', async () => {
 
     await delivery.sweep();
     const first = transport.framesOfType('start')[0];
-    expect(first?.prompt).toContain('msg-1-');
-    expect(first?.prompt).toContain('msg-2-');
-    expect(first?.prompt).not.toContain('msg-3-');
-    expect(first?.prompt.length).toBeLessThan(200_000);
+    expect(first?.inbox.map((item) => item.content.slice(0, 6))).toEqual(['msg-1-', 'msg-2-']);
 
     await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
     await delivery.onTurnSettled(
@@ -713,6 +825,5 @@ test('bounds one drain and carries the overflow in a later run', async () => {
         turnSummary(seed.agentId, first?.runId ?? '', 'completed')
     );
     const second = transport.framesOfType('start')[1];
-    expect(second?.prompt).toContain('msg-3-');
-    expect(second?.prompt).not.toContain('msg-1-');
+    expect(second?.inbox.map((item) => item.content.slice(0, 6))).toEqual(['msg-3-']);
 });

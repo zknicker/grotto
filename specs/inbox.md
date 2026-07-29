@@ -18,8 +18,8 @@ surface in [grotto-cli.md](grotto-cli.md).
 
 ## Delivery planning (I1)
 
-A durable `message.created` is planned once, runtime-side
-(`delivery-planner.ts`):
+A durable `message.created` is planned once by Server delivery
+(`apps/server/src/agent-delivery/`):
 
 - Ordinary delivery reaches joined channels, followed threads, and DMs.
   The author never receives their own message.

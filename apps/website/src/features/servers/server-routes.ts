@@ -38,10 +38,6 @@ export function serverConnectionsRoute(slug: string) {
     return `${serverRoute(slug)}/connections`;
 }
 
-export function serverAgentsRoute(slug: string) {
-    return `${serverRoute(slug)}/agents`;
-}
-
 export function serverRemindersRoute(slug: string) {
     return `${serverRoute(slug)}/reminders`;
 }

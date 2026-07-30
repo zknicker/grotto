@@ -11,7 +11,7 @@ import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
 import { getModelProviderConfig } from '../../lib/model-provider-config.ts';
 import { HostedAgentFace } from '../members/hosted-agent-face.tsx';
 import { ComputerUpdateControls } from '../servers/computer-update-controls.tsx';
-import { serverAgentsRoute, serverMembersRoute } from '../servers/server-routes.ts';
+import { serverMembersRoute } from '../servers/server-routes.ts';
 import {
     agentExecutionLabels,
     availabilityLabel,
@@ -84,19 +84,7 @@ export function ComputerDetail({
                 </section>
 
                 <section className="grid gap-4 py-5">
-                    <BadgeDivider
-                        action={
-                            <Button
-                                render={<Link to={serverAgentsRoute(serverSlug)} />}
-                                size="sm"
-                                variant="secondary"
-                            >
-                                Create Agent
-                            </Button>
-                        }
-                        subtext={agents.length.toString()}
-                        variant="subtle"
-                    >
+                    <BadgeDivider subtext={agents.length.toString()} variant="subtle">
                         Agents on this Computer
                     </BadgeDivider>
                     {agents.length > 0 ? (

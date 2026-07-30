@@ -120,13 +120,6 @@ export function createAppRouter() {
                                     ),
                                 },
                                 {
-                                    path: 'agents',
-                                    lazy: lazyRoute(
-                                        () => import('./routes/app/server-agents-page.tsx'),
-                                        'ServerAgentsPage'
-                                    ),
-                                },
-                                {
                                     path: 'computers',
                                     lazy: lazyRoute(
                                         () => import('./routes/app/server-computers-page.tsx'),

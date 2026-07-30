@@ -1,21 +1,25 @@
 import { Plus } from '@hugeicons/core-free-icons';
 import type { HostedAgent } from '@tavern/api';
-import { NavLink, useLocation, useParams } from 'react-router-dom';
+import * as React from 'react';
+import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { HostedAgentProfile } from '../../features/members/agent-profile/hosted-agent-profile.tsx';
+import { CreateHostedAgentDialog } from '../../features/members/create-hosted-agent-dialog.tsx';
 import { HostedAgentFace } from '../../features/members/hosted-agent-face.tsx';
 import { HumanMemberSection } from '../../features/members/human-member-list.tsx';
 import { MembersPageFrame } from '../../features/members/members-page.tsx';
 import { HostedHumanDirectory } from '../../features/servers/hosted-human-directory.tsx';
 import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
-import { serverAgentsRoute, serverMembersRoute } from '../../features/servers/server-routes.ts';
+import { serverMembersRoute } from '../../features/servers/server-routes.ts';
 import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
 import { cn } from '../../lib/utils.ts';
 
 export function ServerMembersPage() {
     const { agentId } = useParams();
     const location = useLocation();
+    const navigate = useNavigate();
     const { agentListStatus, agents, server } = useHostedServerContext();
+    const [creatingAgent, setCreatingAgent] = React.useState(false);
     const directory = useServerMembers(server.id);
     const selectedAgent = agents.find((agent) => agent.id === agentId) ?? null;
     const humansSelected = location.pathname.endsWith('/humans');
@@ -29,14 +33,31 @@ export function ServerMembersPage() {
                 <AgentRow agent={agent} key={agent.id} slug={server.slug} />
             ))}
             createControl={
-                <NavLink
-                    aria-label="Create agent"
-                    className="no-drag flex size-5 items-center justify-center rounded-md text-sidebar-muted hover:bg-[var(--nav-hover)] hover:text-foreground"
-                    title="Create agent"
-                    to={serverAgentsRoute(server.slug)}
-                >
-                    <Icon aria-hidden="true" icon={Plus} size={14} />
-                </NavLink>
+                server.role === 'owner' || server.role === 'admin' ? (
+                    <>
+                        <button
+                            aria-label="Create agent"
+                            className="no-drag flex size-5 cursor-pointer items-center justify-center rounded-md text-sidebar-muted hover:bg-[var(--nav-hover)] hover:text-foreground"
+                            onClick={() => setCreatingAgent(true)}
+                            title="Create agent"
+                            type="button"
+                        >
+                            <Icon aria-hidden="true" icon={Plus} size={14} />
+                        </button>
+                        <CreateHostedAgentDialog
+                            agents={agents}
+                            onCreated={(createdAgentId) => {
+                                setCreatingAgent(false);
+                                navigate(
+                                    `${serverMembersRoute(server.slug)}/agents/${createdAgentId}`
+                                );
+                            }}
+                            onOpenChange={setCreatingAgent}
+                            open={creatingAgent}
+                            serverId={server.id}
+                        />
+                    </>
+                ) : null
             }
             detail={
                 selectedAgent ? (

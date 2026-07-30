@@ -13,14 +13,17 @@ import { computerLabel } from '../../computers/presentation.ts';
 import { serverComputersRoute } from '../../servers/server-routes.ts';
 import { formatSkillName } from '../../skills/skill-name-format.ts';
 import { AgentIdentityDialog } from './agent-identity-dialog.tsx';
+import { HostedAgentDangerSection } from './hosted-agent-danger-section.tsx';
 import { RuntimeConfigDialog } from './runtime-config-dialog.tsx';
 import { resolveRuntimeConfig, runtimeConfigStatusLabel } from './runtime-config-model.ts';
 
 export function HostedAgentProfileTab({
     agent,
+    onDeleted,
     server,
 }: {
     agent: HostedAgent;
+    onDeleted: () => void;
     server: ServerDetail;
 }) {
     const utils = grottoTrpc.useUtils();
@@ -155,7 +158,6 @@ export function HostedAgentProfileTab({
                         ) : null
                     }
                     count={agentSkills.length}
-                    last
                     title="Skills"
                 >
                     {agentSkills.length > 0 ? (
@@ -186,6 +188,7 @@ export function HostedAgentProfileTab({
                         <p className="text-error text-sm">{importSkill.error.message}</p>
                     ) : null}
                 </DetailSection>
+                <HostedAgentDangerSection agent={agent} onDeleted={onDeleted} server={server} />
             </div>
             <AgentIdentityDialog
                 agent={agent}

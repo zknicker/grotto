@@ -206,9 +206,6 @@ function resolveActiveSection(pathname: string, slug: string): HostedServerSecti
     if (suffix.startsWith('/members')) {
         return 'members';
     }
-    if (suffix.startsWith('/agents')) {
-        return 'members';
-    }
     if (suffix.startsWith('/computers')) {
         return 'computers';
     }

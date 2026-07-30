@@ -9,6 +9,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     TabsSubtle,
     TabsSubtleItem,
@@ -17,6 +18,7 @@ import {
 } from '../../../components/ui/tabs-subtle.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { cn } from '../../../lib/utils.ts';
+import { serverMembersRoute } from '../../servers/server-routes.ts';
 import { HostedAgentProfileHeader } from './hosted-agent-profile-header.tsx';
 import {
     HostedAgentActivityTab,
@@ -52,6 +54,7 @@ export function HostedAgentProfile({
     server: ServerDetail;
     variant: 'page' | 'pane';
 }) {
+    const navigate = useNavigate();
     const [activeTab, setActiveTabState] = React.useState<HostedAgentTab>(
         () => activeTabByAgent.get(agent.id) ?? 'profile'
     );
@@ -98,7 +101,18 @@ export function HostedAgentProfile({
                 )}
                 value={activeTab}
             >
-                <ActiveTab agent={agent} server={server} tab={activeTab} />
+                <ActiveTab
+                    agent={agent}
+                    onDeleted={() => {
+                        if (variant === 'pane') {
+                            onClose?.();
+                            return;
+                        }
+                        navigate(serverMembersRoute(server.slug), { replace: true });
+                    }}
+                    server={server}
+                    tab={activeTab}
+                />
             </TabsSubtlePanel>
         </TabsSubtle>
     );
@@ -106,16 +120,18 @@ export function HostedAgentProfile({
 
 function ActiveTab({
     agent,
+    onDeleted,
     server,
     tab,
 }: {
     agent: HostedAgent;
+    onDeleted: () => void;
     server: ServerDetail;
     tab: HostedAgentTab;
 }) {
     switch (tab) {
         case 'profile':
-            return <HostedAgentProfileTab agent={agent} server={server} />;
+            return <HostedAgentProfileTab agent={agent} onDeleted={onDeleted} server={server} />;
         case 'activity':
             return <HostedAgentActivityTab agent={agent} server={server} />;
         case 'chat':

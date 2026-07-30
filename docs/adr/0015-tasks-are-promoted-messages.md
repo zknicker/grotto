@@ -21,16 +21,16 @@ A task is a chat message promoted with task metadata stored in a
 status (`todo → in_progress → in_review → done`, reversible `closed`),
 assignee + claim timestamp, priority, and label references. The message body
 is the task title, verbatim. The message's thread is the work surface.
-Claim-before-work is the concurrency lock: a claim held by someone else fails
-closed. Board, list, priority, label, and filter views are lenses over
-task-messages — never a second store. Creation receipts are quiet system
-messages whose copy is conditioned on the creation path (composed vs
-converted), matching Raft.
+Claim-before-work is one human-or-Agent concurrency lock: a claim held by
+someone else fails closed. Board, list, priority, label, and filter views are
+lenses over task-messages — never a second store. Task state changes do not
+create receipt messages.
 
 ## Consequences
 
-- Nothing schedules or dispatches tasks: pull replaces push (agents wake via
-  assignment mentions and claim). A dated follow-up is a reminder anchored on
+- Nothing schedules tasks. Agents normally pull and claim work, while direct
+  peer assignment of a newly created task wakes only the assigned Agent through
+  the ordinary durable delivery path. A dated follow-up is a reminder anchored on
   the task message (ADR 0016), so `scheduledFor` and the calendar lens died.
 - Epics, dependency edges, per-task work chats, attachment promotion, and the
   `tasks_*` engine tools all retired with the old tracker.

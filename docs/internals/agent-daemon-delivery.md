@@ -73,6 +73,11 @@ stored separately from the ordinary Chat cursor, so direct attention neither
 unmutes the Channel nor re-follows the Thread. Muting or unfollowing purges
 already-queued ordinary work for that attention scope.
 
+An Agent-created peer assignment is direct attention without a synthetic
+receipt message. The Server creates the canonical task message once, reserves
+its single ownership slot for the peer, follows the deterministic task Thread
+for that peer, and enqueues a pierced delivery for only that Agent.
+
 ## Bounds And Failures
 
 One Agent admits one turn at a time; different Agents run concurrently.
@@ -125,6 +130,9 @@ composition bubble; every other lifecycle phase is presentation plumbing.
 | Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/grotto-agent-run.test.ts` |
 | Mute/unfollow purge ordinary work; mentions pierce without changing attention state | `apps/server/test/grotto-agent-run.test.ts` |
 | Freshness validation and Agent send commit share one Server lock | `apps/server/test/grotto-agent-run.test.ts` |
+| Human and Agent claims share one ownership lock | `apps/server/test/grotto-agent-run.test.ts` |
+| Agent peer assignment is idempotent, follows its Thread, and wakes only the peer | `apps/server/test/grotto-agent-run.test.ts` |
+| Agent retirement releases task ownership and emits durable updates | `apps/server/test/grotto-agents.test.ts` |
 
 These tests are protocol guards. Live Raft-versus-Grotto behavioral scenarios
 are a later product audit and do not replace them.

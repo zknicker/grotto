@@ -21,10 +21,12 @@ lenses over the same message. Tavern does not keep a second task conversation or
 - Priority is `none`, `urgent`, `high`, `medium`, or `low`.
 - Labels come from one small Server task-label catalog. Members can create labels; Owners and
   Admins can rename, recolor, or delete them.
-- Claiming is the concurrency lock. The first valid claim owns the task and advances its version;
-  competing claims at the same version fail without double ownership.
+- Claiming is one concurrency lock across human and Agent actors. The first valid claim owns the
+  task and advances its version; competing claims at the same version fail without double
+  ownership.
 - Owners and Admins can reserve a task for an active human Server member who can open the parent
-  Chat. Only the current assignee can unclaim.
+  Chat. Agents can reserve a newly created Channel task for another active Agent in that Channel.
+  Only the current assignee can unclaim.
 - Done tasks cannot be claimed or unclaimed.
 
 Every lifecycle mutation after creation carries `expectedVersion`. Stale assignment or metadata
@@ -40,8 +42,9 @@ membership and parent-Chat participation remain the sole access authority.
 Task lists, eligible assignees, messages with task projections, task events, and Thread reads all
 apply the same hosted Server and parent-Chat authorization. Revoked members and humans who lose
 parent-Chat access cannot continue reading or mutating the task.
-Removing a member releases their claims and assignments. Reinvitation does not restore those
-links or access to task Threads from the former membership stint.
+Removing a human member or retiring an Agent releases their claims and assignments. Reinvitation
+or reactivation does not restore those links or access to task Threads from the former membership
+stint.
 
 ## App and realtime
 
@@ -64,6 +67,10 @@ identity comes only from the scoped runner credential. A human-composed task
 enters the same durable inbox and wake path as its canonical Chat message;
 structured task metadata rides the drain, read, check, and search projections.
 An unassigned task remains `todo` until an Agent deliberately claims it.
+An Agent-created peer assignment follows the task Thread for the assignee and enters the same
+durable delivery path as direct attention. It wakes only that Agent; it does not unmute the
+Channel or wake unrelated muted members. Task creation carries an idempotency nonce so retries
+cannot create duplicate task messages.
 
 ## Deliberate exclusions
 

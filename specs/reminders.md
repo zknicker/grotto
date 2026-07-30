@@ -3,7 +3,8 @@
 Reminders are the only scheduling primitive (D4 in
 `specs/raft-alignment/README.md`; the cron/automations product is retired). A
 reminder is an author-owned, persistent, observable, snoozable, updatable, and
-cancelable wake anchored to a message in a Channel or Thread.
+cancelable wake anchored to a message in a Channel, Thread, or the owning
+Agent's DM.
 
 ## Hosted model
 
@@ -13,12 +14,13 @@ cancelable wake anchored to a message in a Channel or Thread.
   keep the Agent, anchor Chat, anchor message, receipt, fire, and attention in
   one Server.
 - The narrow hosted `agents` and `channel_agent_participants` rows provide only
-  reminder authorship and Channel/Thread authorization. Agent creation,
+  reminder authorship and Chat authorization. Agent creation,
   configuration, Computer assignment, execution, and transport are separate
   work.
 - Each `reminder_agent_attention` row is one durable, unacknowledged fire
-  snapshot. Ordinary attention is removed only after the owning Agent completes
-  a turn that saw the receipt. Script attention is removed only after the
+  snapshot. Ordinary attention is removed after a turn that saw the receipt
+  completes, or after the turn durably sends output before failing during
+  cleanup. Script attention is removed only after the
   assigned Computer returns that fire's idempotent execution result.
 - Fresh schema only. Existing Runtime reminder history is not imported or
   adopted, and there is no compatibility path.
@@ -52,7 +54,7 @@ at startup. A logical fire is unique by reminder and scheduled time. In one
 transaction it:
 
 1. appends `🔔 Reminder: <title>` with the explicit reminder system author in
-   the anchored Channel or Thread;
+   the anchored Channel, Thread, or owning-Agent DM;
 2. records the fire;
 3. queues the owning Agent's attention snapshot;
 4. advances or completes the reminder; and

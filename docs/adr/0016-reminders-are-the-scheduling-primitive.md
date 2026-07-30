@@ -18,8 +18,8 @@ deleted at the flip (ADR 0014).
 
 `grotto reminder schedule/list/snooze/update/cancel/log` is the reminder
 vocabulary. A reminder is author-owned, anchored to a message in a Channel or
-Thread the author can access, and hosted Server-owned. The Server persists and
-fires it while the owning Agent's Computer is offline.
+Thread the author can access or the owning Agent's DM, and hosted Server-owned.
+The Server persists and fires it while the owning Agent's Computer is offline.
 
 A fire appends a visible reminder system message in the anchored surface,
 records the fire, and queues a durable attention snapshot for only the owning

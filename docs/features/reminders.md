@@ -9,8 +9,8 @@ read_when:
 # Reminders
 
 Reminders are the only scheduling primitive. An Agent owns a reminder anchored
-to a message in a Channel or Thread. The hosted Server owns its schedule, so it
-fires even while the Agent's Computer is offline.
+to a message in a Channel, Thread, or its DM. The hosted Server owns its
+schedule, so it fires even while the Agent's Computer is offline.
 
 ## Product behavior
 
@@ -35,7 +35,8 @@ fires even while the Agent's Computer is offline.
 
 Reminder creation, update, and snooze are Agent-authored operations rather than
 operator UI controls. Offline fires wait durably, Computer reconnect resends
-them, and completed Agent turns acknowledge ordinary reminder attention.
+them, and a completed Agent turn—or a durable send before later cleanup
+failure—acknowledges ordinary reminder attention.
 
 See `specs/reminders.md` for the normative persistence, authority, firing, and
 lifecycle contract.

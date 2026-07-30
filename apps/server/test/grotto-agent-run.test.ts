@@ -556,8 +556,10 @@ test('a reminder preserves its canonical Channel Thread target', async () => {
     `;
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_thread_reminder_1' });
 
+    const fireAt = new Date(Date.now() + 3_600_000).toISOString();
     const scheduled = await agentPost(minted.runnerToken, '/api/agent/reminders/schedule', {
-        delaySeconds: 3600,
+        commandId: 'thread-reminder-schedule',
+        fireAt,
         messageId: reminderMessageId,
         title: 'Follow up inside the Channel Thread',
     });
@@ -1173,8 +1175,10 @@ test('the ported Agent reminder flow schedules against a DM message and can mana
     });
     expect(anchor.status).toBe(200);
 
+    const fireAt = new Date(Date.now() + 3_600_000).toISOString();
     const scheduled = await agentPost(minted.runnerToken, '/api/agent/reminders/schedule', {
-        delaySeconds: 3600,
+        commandId: 'dm-reminder-schedule',
+        fireAt,
         messageId: anchor.body.message?.id,
         title: 'Follow up on the DM',
     });
@@ -1186,6 +1190,13 @@ test('the ported Agent reminder flow schedules against a DM message and can mana
         title: 'Follow up on the DM',
     });
     const reminderId = scheduled.body.reminder?.id as string;
+    const scheduledAgain = await agentPost(minted.runnerToken, '/api/agent/reminders/schedule', {
+        commandId: 'dm-reminder-schedule',
+        fireAt,
+        messageId: anchor.body.message?.id,
+        title: 'Follow up on the DM',
+    });
+    expect(scheduledAgain.body.reminder).toEqual(scheduled.body.reminder);
 
     const listed = await agentGet(minted.runnerToken, '/api/agent/reminders', {
         status: 'scheduled',
@@ -1195,14 +1206,25 @@ test('the ported Agent reminder flow schedules against a DM message and can mana
         expect.arrayContaining([expect.objectContaining({ id: reminderId })])
     );
 
-    const snoozed = await agentPost(minted.runnerToken, '/api/agent/reminders/snooze', {
+    const snoozeInput = {
         by: '2h',
+        commandId: 'dm-reminder-snooze',
+        expectedVersion: scheduled.body.reminder?.version,
         id: reminderId,
-    });
+    };
+    const snoozed = await agentPost(minted.runnerToken, '/api/agent/reminders/snooze', snoozeInput);
     expect(snoozed.status).toBe(200);
     expect(snoozed.body.reminder).toMatchObject({ id: reminderId, status: 'scheduled' });
+    const snoozedAgain = await agentPost(
+        minted.runnerToken,
+        '/api/agent/reminders/snooze',
+        snoozeInput
+    );
+    expect(snoozedAgain.body.reminder).toEqual(snoozed.body.reminder);
 
     const canceled = await agentPost(minted.runnerToken, '/api/agent/reminders/cancel', {
+        commandId: 'dm-reminder-cancel',
+        expectedVersion: snoozed.body.reminder?.version,
         id: reminderId,
     });
     expect(canceled.status).toBe(200);

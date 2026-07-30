@@ -11,20 +11,22 @@ import {
     updateAgentReminder,
 } from './reminders.ts';
 
-const scheduleSchema = z
-    .object({
-        delaySeconds: z.number().int().positive().optional(),
-        fireAt: z.string().min(1).optional(),
-        messageId: z.string().min(1),
-        repeat: z.string().min(1).optional(),
-        script: z.string().min(1).optional(),
-        title: z.string().trim().min(1).max(300),
-    })
-    .refine((input) => Boolean(input.delaySeconds) !== Boolean(input.fireAt));
-const idSchema = z.object({ id: z.string().min(1) });
-const updateSchema = idSchema
+const scheduleSchema = z.object({
+    commandId: z.string().min(1),
+    fireAt: z.string().datetime(),
+    messageId: z.string().min(1),
+    repeat: z.string().min(1).optional(),
+    script: z.string().min(1).optional(),
+    title: z.string().trim().min(1).max(300),
+});
+const mutationSchema = z.object({
+    commandId: z.string().min(1),
+    expectedVersion: z.number().int().positive(),
+    id: z.string().min(1),
+});
+const updateSchema = mutationSchema
     .extend({
-        fireAt: z.string().min(1).optional(),
+        fireAt: z.string().datetime().optional(),
         repeat: z.string().min(1).nullable().optional(),
         script: z.string().min(1).nullable().optional(),
         title: z.string().trim().min(1).max(300).optional(),
@@ -59,7 +61,7 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: GrottoData
 
     app.post('/api/agent/reminders/snooze', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
-        const parsed = idSchema.extend({ by: z.string().min(1) }).safeParse(request.body);
+        const parsed = mutationSchema.extend({ by: z.string().min(1) }).safeParse(request.body);
         if (!(runner && parsed.success)) {
             return sendError(reply, 400, 'The reminder request was invalid.');
         }
@@ -77,11 +79,11 @@ export function registerAgentReminderRoutes(app: FastifyInstance, db: GrottoData
 
     app.post('/api/agent/reminders/cancel', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
-        const parsed = idSchema.safeParse(request.body);
+        const parsed = mutationSchema.safeParse(request.body);
         if (!(runner && parsed.success)) {
             return sendError(reply, 400, 'The reminder request was invalid.');
         }
-        return await runAction(reply, () => cancelAgentReminder(db, runner, parsed.data.id));
+        return await runAction(reply, () => cancelAgentReminder(db, runner, parsed.data));
     });
 
     app.get('/api/agent/reminders/log', async (request, reply) => {

@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -19,8 +18,8 @@ export async function scheduleAgentReminder(
     db: GrottoDatabase,
     runner: ResolvedRunner,
     input: {
-        delaySeconds?: number;
-        fireAt?: string;
+        commandId: string;
+        fireAt: string;
         messageId: string;
         repeat?: string;
         script?: string;
@@ -28,17 +27,14 @@ export async function scheduleAgentReminder(
     }
 ) {
     const anchor = await resolveAgentMessage(db, runner, input.messageId);
-    const now = clock.now();
-    const fireAt = input.delaySeconds
-        ? new Date(now.getTime() + input.delaySeconds * 1000)
-        : new Date(input.fireAt ?? '');
+    const fireAt = new Date(input.fireAt);
     const result = await scheduleHostedReminder(
         db,
         runner.agentId,
         {
             anchorChatId: anchor.chat_id,
             anchorMessageId: anchor.id,
-            commandId: `cli-${randomUUID()}`,
+            commandId: input.commandId,
             fireAt,
             repeat: input.repeat,
             script: input.script,
@@ -72,13 +68,13 @@ export async function listAgentReminders(
 export async function snoozeAgentReminder(
     db: GrottoDatabase,
     runner: ResolvedRunner,
-    input: { by: string; id: string }
+    input: { by: string; commandId: string; expectedVersion: number; id: string }
 ) {
-    const current = await ownedReminder(db, runner, input.id);
+    await ownedReminder(db, runner, input.id);
     const result = await snoozeHostedReminder(
         db,
         runner.agentId,
-        commandInput(runner, current, input.id, { duration: input.by }),
+        commandInput(runner, input, { duration: input.by }),
         clock
     );
     return { reminder: await toCliReminder(db, runner.serverId, result.reminder) };
@@ -89,17 +85,19 @@ export async function updateAgentReminder(
     runner: ResolvedRunner,
     input: {
         fireAt?: string;
+        commandId: string;
+        expectedVersion: number;
         id: string;
         repeat?: string | null;
         script?: string | null;
         title?: string;
     }
 ) {
-    const current = await ownedReminder(db, runner, input.id);
+    await ownedReminder(db, runner, input.id);
     const result = await updateHostedReminder(
         db,
         runner.agentId,
-        commandInput(runner, current, input.id, {
+        commandInput(runner, input, {
             ...(input.fireAt ? { fireAt: new Date(input.fireAt) } : {}),
             ...('repeat' in input ? { repeat: input.repeat } : {}),
             ...('script' in input ? { script: input.script } : {}),
@@ -110,12 +108,16 @@ export async function updateAgentReminder(
     return { reminder: await toCliReminder(db, runner.serverId, result.reminder) };
 }
 
-export async function cancelAgentReminder(db: GrottoDatabase, runner: ResolvedRunner, id: string) {
-    const current = await ownedReminder(db, runner, id);
+export async function cancelAgentReminder(
+    db: GrottoDatabase,
+    runner: ResolvedRunner,
+    input: { commandId: string; expectedVersion: number; id: string }
+) {
+    await ownedReminder(db, runner, input.id);
     const result = await cancelHostedReminder(
         db,
         runner.agentId,
-        commandInput(runner, current, id, {}),
+        commandInput(runner, input, {}),
         clock
     );
     return { reminder: await toCliReminder(db, runner.serverId, result.reminder) };
@@ -176,14 +178,13 @@ async function ownedReminder(db: GrottoDatabase, runner: ResolvedRunner, id: str
 
 function commandInput<Extra extends object>(
     runner: ResolvedRunner,
-    reminder: HostedReminder,
-    reminderId: string,
+    input: { commandId: string; expectedVersion: number; id: string },
     extra: Extra
 ) {
     return {
-        commandId: `cli-${randomUUID()}`,
-        expectedVersion: reminder.version,
-        reminderId,
+        commandId: input.commandId,
+        expectedVersion: input.expectedVersion,
+        reminderId: input.id,
         serverId: runner.serverId,
         ...extra,
     };
@@ -198,5 +199,6 @@ async function toCliReminder(db: GrottoDatabase, serverId: string, reminder: Hos
         script: reminder.hasScript,
         status: reminder.status,
         title: reminder.title,
+        version: reminder.version,
     };
 }

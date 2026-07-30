@@ -312,6 +312,59 @@ describe('hosted reminder scheduler lifecycle', () => {
             scriptTimedOut: false,
         });
     });
+
+    test('delivers one ordinary overdue reminder after reconnect and clears attention on completion', async () => {
+        cluster = await startPostgresCluster();
+        await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
+        connection = await connectGrottoDatabase(cluster.databaseUrl);
+        await seedOverdueReminder(connection);
+        await configureHostedComputer(connection);
+        await connection.db
+            .update(remindersTable)
+            .set({ repeat: null })
+            .where(eq(remindersTable.id, 'rem_scheduler'));
+
+        const transport = new RecordingTransport();
+        transport.online = false;
+        const delivery = new AgentDelivery(connection.db, transport);
+        await tickHostedReminders(connection.db, { now: () => now }, delivery);
+
+        expect(transport.frames).toHaveLength(0);
+        expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(1);
+
+        transport.online = true;
+        await delivery.onComputerReconnect('cmp_ssssssssssssssss');
+        const starts = transport.frames.filter((frame) => frame.type === 'start');
+        expect(starts).toHaveLength(1);
+        const start = starts[0];
+        if (!start || start.type !== 'start') {
+            throw new Error('Ordinary reminder did not start the Agent.');
+        }
+        expect(start.inbox).toEqual([
+            expect.objectContaining({
+                content: '🔔 Reminder: Recover me',
+                senderType: 'system',
+                target: '#all',
+            }),
+        ]);
+
+        await delivery.onAck({ agentId: start.agentId, runId: start.runId });
+        await delivery.onTurnSettled('cmp_ssssssssssssssss', {
+            agentId: start.agentId,
+            endedAt: '2026-07-26T14:00:02.000Z',
+            messageCount: 1,
+            outputProduced: true,
+            runId: start.runId,
+            startedAt: '2026-07-26T14:00:01.000Z',
+            status: 'completed',
+            summary: 'followed up',
+            type: 'turn',
+        });
+
+        expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(0);
+        await delivery.onComputerReconnect('cmp_ssssssssssssssss');
+        expect(transport.frames.filter((frame) => frame.type === 'start')).toHaveLength(1);
+    });
 });
 
 class RecordingTransport implements DeliveryTransport {

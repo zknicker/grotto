@@ -43,6 +43,24 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     );
     expect(instructions).not.toContain('acknowledge it briefly even when it is an FYI');
 
+    // Durable scheduling belongs to Grotto reminders, not sleeps, memory, or
+    // runtime-native schedulers. Fires wake only the author.
+    expect(instructions).toContain(
+        'Use reminders for follow-up that depends on future state you cannot resolve now, whether user-requested or self-driven.'
+    );
+    expect(instructions).toContain(
+        'when it fires, it wakes the author who scheduled it, not other people'
+    );
+    expect(instructions).toContain(
+        'Use reminders instead of keeping the current turn alive with a long sleep or relying on MEMORY to wake you.'
+    );
+    expect(instructions).toContain(
+        'Use `grotto reminder schedule` rather than runtime-native wake or cron tools'
+    );
+    expect(instructions).toContain(
+        'When a reminder already exists, prefer `grotto reminder snooze` to push it later, `grotto reminder update` to change its meaning or schedule'
+    );
+
     // Identity + authoritative runtime context are personalized per Agent.
     expect(instructions).toContain('You are "Cove"');
     expect(instructions).toContain('- Agent: @Cove (agt_cove)');

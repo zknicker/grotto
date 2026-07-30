@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import * as z from 'zod';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
@@ -22,6 +23,7 @@ const reminderViewSchema = z.object({
     script: z.boolean(),
     status: z.string(),
     title: z.string(),
+    version: z.number().int().positive(),
 });
 
 const reminderSingleSchema = z.object({ reminder: reminderViewSchema });
@@ -175,16 +177,18 @@ export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps):
     if (delaySeconds !== undefined && (!Number.isInteger(delaySeconds) || delaySeconds < 1)) {
         throw new AgentCliError('INVALID_ARG', `Invalid --delay-seconds "${delaySecondsRaw}".`);
     }
-    const fireAt = args.values['--fire-at'];
-    if (Boolean(delaySeconds) === Boolean(fireAt)) {
+    const requestedFireAt = args.values['--fire-at'];
+    if (Boolean(delaySeconds) === Boolean(requestedFireAt)) {
         throw new AgentCliError('INVALID_ARG', 'Pass exactly one of --delay-seconds or --fire-at.');
     }
-    const response = await deps.client.request(
+    const fireAt =
+        requestedFireAt ?? new Date(Date.now() + (delaySeconds ?? 0) * 1000).toISOString();
+    const response = await requestReminderMutation(
+        deps,
         '/api/agent/reminders/schedule',
-        reminderSingleSchema,
         {
             body: {
-                delaySeconds,
+                commandId: `cli-${randomUUID()}`,
                 fireAt,
                 messageId,
                 repeat: args.values['--repeat'],
@@ -192,7 +196,8 @@ export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps):
                 title,
             },
             method: 'POST',
-        }
+        },
+        reminderSingleSchema
     );
     deps.write(
         `${describeReminder(response.reminder)}\nSnooze or cancel later: grotto reminder snooze --id ${response.reminder.id} --by 2h\n`
@@ -217,13 +222,20 @@ export async function runReminderList(args: ParsedArgs, deps: ReminderDeps): Pro
 }
 
 export async function runReminderSnooze(args: ParsedArgs, deps: ReminderDeps): Promise<number> {
-    const response = await deps.client.request(
+    const current = await readReminderForMutation(deps, requireFlag(args, '--id'));
+    const response = await requestReminderMutation(
+        deps,
         '/api/agent/reminders/snooze',
-        reminderSingleSchema,
         {
-            body: { by: requireFlag(args, '--by'), id: requireFlag(args, '--id') },
+            body: {
+                by: requireFlag(args, '--by'),
+                commandId: `cli-${randomUUID()}`,
+                expectedVersion: current.version,
+                id: current.id,
+            },
             method: 'POST',
-        }
+        },
+        reminderSingleSchema
     );
     deps.write(`Snoozed. ${describeReminder(response.reminder)}\n`);
     return 0;
@@ -244,20 +256,39 @@ export async function runReminderUpdate(args: ParsedArgs, deps: ReminderDeps): P
             'Update exactly one field: --title, --fire-at, --repeat, or --script.'
         );
     }
-    const response = await deps.client.request(
+    const current = await readReminderForMutation(deps, id);
+    const response = await requestReminderMutation(
+        deps,
         '/api/agent/reminders/update',
-        reminderSingleSchema,
-        { body: { id, ...fields }, method: 'POST' }
+        {
+            body: {
+                commandId: `cli-${randomUUID()}`,
+                expectedVersion: current.version,
+                id,
+                ...fields,
+            },
+            method: 'POST',
+        },
+        reminderSingleSchema
     );
     deps.write(`Updated. ${describeReminder(response.reminder)}\n`);
     return 0;
 }
 
 export async function runReminderCancel(args: ParsedArgs, deps: ReminderDeps): Promise<number> {
-    const response = await deps.client.request(
+    const current = await readReminderForMutation(deps, requireFlag(args, '--id'));
+    const response = await requestReminderMutation(
+        deps,
         '/api/agent/reminders/cancel',
-        reminderSingleSchema,
-        { body: { id: requireFlag(args, '--id') }, method: 'POST' }
+        {
+            body: {
+                commandId: `cli-${randomUUID()}`,
+                expectedVersion: current.version,
+                id: current.id,
+            },
+            method: 'POST',
+        },
+        reminderSingleSchema
     );
     deps.write(`Canceled reminder ${response.reminder.id} ("${response.reminder.title}").\n`);
     return 0;
@@ -296,6 +327,33 @@ function describeReminder(reminder: z.infer<typeof reminderViewSchema>): string 
     const repeat = reminder.repeat ? ` repeats ${reminder.repeat}` : '';
     const script = reminder.script ? ' (script)' : '';
     return `${reminder.id} [${reminder.status}] "${reminder.title}" — fires ${formatLocalTime(reminder.fireAt)}${repeat}${script}, anchored in ${reminder.anchorTarget}`;
+}
+
+async function readReminderForMutation(deps: ReminderDeps, id: string) {
+    const response = await deps.client.request('/api/agent/reminders', reminderListSchema, {
+        method: 'GET',
+    });
+    const reminder = response.reminders.find((candidate) => candidate.id === id);
+    if (!reminder) {
+        throw new AgentCliError('INVALID_ARG', 'The reminder is not owned by this Agent.');
+    }
+    return reminder;
+}
+
+async function requestReminderMutation<T>(
+    deps: ReminderDeps,
+    route: string,
+    input: Parameters<AgentApiRequester['request']>[2],
+    schema: z.ZodType<T>
+): Promise<T> {
+    try {
+        return await deps.client.request(route, schema, input);
+    } catch (cause) {
+        if (!(cause instanceof AgentCliError) || cause.code !== 'SERVER_5XX') {
+            throw cause;
+        }
+        return await deps.client.request(route, schema, input);
+    }
 }
 
 function normalizeClearable(value: string | undefined): string | null | undefined {

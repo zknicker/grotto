@@ -1,88 +1,76 @@
 ---
-summary: Current agent product boundary for Runtime-managed agents, settings ownership, and synced sessions.
+summary: Hosted Agent creation, configuration, execution ownership, and product surfaces.
 read_when:
-  - changing how users work with the managed agent
-  - changing model, tool, memory, or skill access for the managed agent
+  - changing Agent creation, profiles, assignment, skills, models, or lifecycle
+  - changing the Server and Computer ownership boundary for Agents
 ---
 
 # Agents
 
-Tavern Runtime supports multiple managed agents. Tavern App exposes agent
-creation and per-agent controls from the Settings sidebar while the main chat UI
-can continue to feel primary-agent-first.
+Agents are Server members whose execution runs on an assigned Grotto Computer.
 
-## Current Contract
+## Ownership
 
-* **Shipped default agent.** Nothing is bootstrapped lazily; a production
-  first run (zero agents) creates **Cove**, the onboarding guide, through the
-  normal create path — blob avatar, guide-seeded workspace. Any existing
-  agent suppresses it, so deleting Cove never brings it back. Dev stacks seed
-  the demo agents (Otto/Wren, pinned non-blob avatars) instead.
-* **Agent DMs.** Each Runtime-managed agent has one built-in DM with the local
-  human operator. Tavern does not create duplicate direct chats for the same
-  agent.
-* **Runtime-managed agent records.** Runtime can store multiple agents with
-  independent names, enabled skill ids, model choices, and workspace folders.
-  Settings -> Agents lists those agents, creates new agents, and routes each
-  agent to General, Skills, Tools, and Channels pages.
-  General edits the selected agent's display name, bio, color, character,
-  model, thinking default, environment variables, and destructive agent
-  deletion. The home timezone lives on the Tavern Runtime settings page.
-* **Creation proposals and the starter kit.** The Members-page create menu
-  offers a blank agent plus archetype proposals (operator, analyst, designer,
-  writer, coordinator, patrol, verify gate, onboarding guide). Every new
-  agent's workspace is seeded with a starter `MEMORY.md` and practice notes;
-  an archetype adds its lane note, and the onboarding guide adds its
-  playbook, objectives, and FAQ. The archetype is not stored — the seed is a
-  starting point the agent grows (see
-  [ADR 0018](../adr/0018-agents-are-born-with-seeded-knowledge.md)). A full
-  reset returns the workspace to this factory starter kit.
-* **Agent bio.** A short job description stored on the Runtime agent record.
-  Agents sharing a chat see each other's names and bios in their prompt
-  roster, so each agent knows what its co-resident agents are for. The chat
-  transcript shows the bio beside the agent's name on each message group.
-* **Agent avatar.** Every agent wears a character face (knight, penguin, cat,
-  dog, robot, ghost, or cloud) as its avatar; the animated eyes always sit
-  inside a character and are never shown alone. Agents with no chosen character
-  get a stable default derived from their id. Agent color labels the agent's
-  name; it does not tint the avatar. To add or change a character, see
-  [Agent avatars](../internals/agent-avatars.md).
-* **Instruction files.** Runtime composes the agent's system prompt from
-  Tavern-managed instruction text and the agent's description — the
-  personality surface (see [Context management](context-management.md)).
-  There is no separate identity file to edit; durable per-agent notes are the
-  agent's own workspace files (`MEMORY.md` and notes/), which it maintains
-  itself. Tavern does not write a generated `AGENTS.md` file into the agent
-  workspace.
-* **New chats.** Starting a direct chat belongs to the normal New Chat flow, not
-  an agent landing page.
-* **Agent skills and tools.** Runtime stores per-agent enabled skill ids.
-  Assigned skills are resolved from Runtime's installed skill library and added
-  to the agent's AI SDK instructions at turn startup. Exact grants decide which
-  MCP tools and host tools the agent receives. Harness-native tools come from
-  the selected executor and are governed by sandbox and approval policy.
-* **Web access.** A per-agent opt-in (default off) on the General settings
-  page controls provider-native web search when the model supports it.
-  `web_fetch` is a separately granted host tool that returns readable,
-  size-capped markdown and is granted to new agents by default. Web content is
-  untrusted reference data.
-* **Sessions.** Synced Tavern, system, and external chats are visible from
-  Settings -> Sessions with source filters.
+The Server owns Agent identity, role, memberships, desired runtime and model,
+Computer assignment, skill assignments, connection grants, and canonical
+Chats. Computer owns the Agent's execution host, workspace, local skills,
+credentials, resume state, and effective runtime state.
 
-## App surfaces
+An Agent remains assigned to one Computer for its lifetime. The App changes
+desired configuration through Server APIs; it never chooses workspace paths or
+writes Computer-local files.
 
-The primary app sidebar lists product areas and chats. It does not list agents.
-Agent configuration lives in Settings -> Agents. Each agent has its own sidebar
-section with General, Skills, Tools, and Channels pages. Skills are assigned
-independently from tools. Tools lists host tools and exact upstream MCP tools,
-grouped by connection; discovery never grants new tools.
-Model fallbacks, web page summarizer model, context compression, permission
-prompts, and subagent model defaults are not settings surfaces until the local
-agent engine supports them.
+## First Agent and creation
 
-## Runtime boundary
+A new Server starts with no Agents. Once an attached Computer reports its
+runtime and model inventory, the Members Agents page offers Cove as the guided
+first-Agent proposal. The Owner explicitly chooses the Computer, runtime, and
+model and submits the ordinary hosted Agent creation flow.
 
-Tavern Runtime owns local agent execution, managed agent records, available
-capabilities, and canonical chat state. Tavern App creates and edits agents
-through first-class Tavern APIs; it does not write agent engine files or choose
-runtime workspace paths.
+Cove is not created at Server startup, recreated after deletion, or routed
+through a special channel. Creation opens the same ordinary Owner-to-Agent DM
+used by every Agent.
+
+The create menu also offers a blank Agent and role proposals. Computer seeds
+the selected starter kit into the new Agent's local workspace: `MEMORY.md`,
+practice notes, optional role notes, and Cove's guide material. The seed is a
+starting point the Agent grows, not a permanent archetype constraint. See
+[ADR 0018](../adr/0018-agents-are-born-with-seeded-knowledge.md).
+
+## Product surfaces
+
+- Members lists Agents and Humans. Selecting an Agent opens its Profile,
+  Activity, Chat, Reminders, Workspace, Apps, and MCP surfaces.
+- Clicking an Agent avatar in Chat opens the same Agent profile context.
+- Profile edits identity and desired model/runtime configuration.
+- Skills are installed at Server scope and assigned one at a time from the
+  Agent profile.
+- MCP connections are Server-owned; Agent-level grants choose which
+  connections the Agent may use.
+- Starting a DM remains part of the normal New Chat flow.
+
+Agent DMs are ordinary pairwise Chats. Creation opens one between the Owner
+and the new Agent, and Grotto does not create duplicate direct Chats for the
+same pair.
+
+## Identity and instructions
+
+An Agent has a display name, handle, description, and character avatar. The
+description supplies its role and personality to generated instructions and to
+other Agents in shared Chat rosters.
+
+Computer composes managed product instructions, the Agent description,
+assigned skills, and tool guidance when a fresh model session starts. Durable
+learned knowledge lives in the Agent's own `MEMORY.md` and notes. Grotto does
+not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer inside the
+workspace.
+
+## Execution lifecycle
+
+One resident Computer execution host serves each assigned Agent. The Agent's
+single global model session spans all Chats and resumes across deliveries and
+Computer restarts. Session reset creates fresh model context while preserving
+the workspace. Full reset restores the factory starter kit.
+
+See [Context management](context-management.md) and
+[Agent daemon and delivery](../internals/agent-daemon-delivery.md).

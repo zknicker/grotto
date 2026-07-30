@@ -1,42 +1,53 @@
-# Workspace
+# Agent Workspace
 
-Tavern owns the local workspace it creates for Tavern agents.
-
-The workspace is the trusted filesystem home used by local tools and harness
-processes for one Agent:
+Grotto Computer owns one isolated local root for each assigned Agent:
 
 ```text
-.tavern/agents/<agent-id>/workspace
+agents/<agent-id>/
+  workspace/
+  home/
+  skills/
+  runtime/
 ```
 
-Sandbox mode `none` runs child processes directly from this workspace. This is
-working-directory organization, not security isolation.
+The Server owns the Agent's identity, desired configuration, membership, and
+immutable Computer assignment. It never owns or synchronizes the Agent's local
+workspace. The workspace is the Agent's durable working environment and the
+default working directory for its execution harness. It is organization, not a
+security boundary.
 
-Child processes may receive a workspace-local process home for harnesses that
-need CLI OAuth state. Runtime may seed credential files into that home, but it
-must not copy broad host configuration into the workspace. The agent workspace
-is local runtime state and must not be committed.
+## Durable knowledge
 
-## Managed Files
+The Agent controls the structure of its workspace. The starter kit provides:
 
-- **`NOTES.md`** carries editable user notes for the Agent.
-- **`SOUL.md`** carries identity, voice, tone, and durable personality.
-- **`workbench/`** is the Agent's seeded working directory. Files produced
-  while working belong under it: dispatched task work under
-  `workbench/tasks/<T-number>/`, ad-hoc work organized however the Agent
-  likes. It is scratch space: deliverables that must outlive it are
-  promoted elsewhere (tracked work promotes them to task attachments), and
-  the Agent may reorganize or clean it freely. Managed instructions teach
-  this convention. Keeping the rest of the workspace text-light keeps
-  workspaces cheap to back up.
-- Generated instruction context is composed by Runtime from Agent settings,
-  enabled skills, tools, Memory context, and Tavern product guidance.
+- `MEMORY.md`, a concise recovery index;
+- `notes/`, for durable detail and operating knowledge;
+- optional archetype notes and, for Cove, guide objectives and playbooks.
 
-Runtime may seed bootstrapped files for the primary Agent. After that, user
-authored files should remain user-editable.
+The seed establishes a useful starting point and never overwrites an existing
+workspace. The Agent may add, rename, organize, and remove task-specific files
+as its work requires.
 
-## Skills
+There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section,
+automatic extraction or dreaming pipeline, or separate Wiki primitive.
+Personality comes from the Server-owned Agent description. Durable learned
+role and context live in the Agent-owned workspace.
 
-Runtime owns the skill catalog and enablement state. Skill search/import tools
-may read external sources, but Tavern stores the resulting skill as a Tavern
-skill record and composes it into Agent instructions through Runtime.
+## Skills and credentials
+
+Installed skills live in the Agent's sibling `skills/` directory and are
+exposed according to Server-owned assignments. Harness credentials and CLI
+state live under the Agent-specific `home/`; Computer must not copy broad host
+configuration into the Agent root or commit local state.
+
+## Lifecycle
+
+The local root survives ordinary idle periods, Computer restarts, model or
+runtime changes, and session reset. Session reset creates fresh model context
+without erasing the workspace. Full reset restores the factory starter kit.
+Retirement removes the local execution host after Server retirement has
+completed.
+
+Canonical chat history remains on the Server. Agents recover older
+conversation context through the Grotto CLI rather than treating the workspace
+as a transcript mirror.

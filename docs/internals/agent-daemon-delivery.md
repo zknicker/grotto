@@ -78,6 +78,28 @@ receipt message. The Server creates the canonical task message once, reserves
 its single ownership slot for the peer, follows the deterministic task Thread
 for that peer, and enqueues a pierced delivery for only that Agent.
 
+## Long-Horizon Continuity
+
+Computer maintains one resident execution host and one global model session
+per assigned Agent. The session spans every Chat and does not rotate because
+of age or idle time. A settled turn parks its harness state for the next
+delivery; a Computer restart resumes that stored state.
+
+Initial creation, runtime or model switch, and manual session reset start a
+fresh session. If the harness rejects stored resume state, Computer discards
+only that state, advances the generation, and cold-starts once. The Agent then
+recovers durable context from its unchanged `MEMORY.md`, notes, and canonical
+Server history.
+
+Session reset preserves workspace, skills, identity, and Server history. Full
+reset restores the Agent's factory starter kit. Retirement is the only normal
+lifecycle operation that removes the Agent execution host.
+
+Reminders are canonical Server schedules anchored to an Agent and Chat
+target. When due, they enter the same delivery path as other work. Computer
+executes the resulting turn; it does not own an independent reminder
+scheduler.
+
 ## Bounds And Failures
 
 One Agent admits one turn at a time; different Agents run concurrently.
@@ -114,6 +136,8 @@ composition bubble; every other lifecycle phase is presentation plumbing.
 | Principle | Smallest proving lane |
 | --- | --- |
 | One persistent session; cold `Start.` then resume | `apps/computer/src/harness/executor.test.ts` |
+| Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
+| Session reset preserves workspace; full reset restores only the starter kit | `apps/computer/src/launch.test.ts` |
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
 | Exact structured drain and content-free busy notice | `apps/computer/src/inbox-format.test.ts` |
 | Pipe and redirected-file input reach the managed Agent CLI | `apps/computer/src/agent-cli/stdin.test.ts` |

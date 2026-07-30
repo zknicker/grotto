@@ -210,32 +210,33 @@ The composed agent system prompt has two guard layers. Text loss is caught in
 CI by the prompt contract suite
 (`apps/runtime/src/tavern/agent-prompt-contract.test.ts`): a requirements
 ledger, reviewable full-prompt snapshots, and character budgets. Behavior loss
-is caught on demand by `bun run eval:prompt`, which drives real model turns
-through a running dev stack (`bun run dev`) across
-silence-is-default, DM acknowledgement, cross-channel sends and unjoined
-refusals, thread-target reuse, drain batching, chain guards, injection
-resistance, visual fences riding send bodies, discovery-based bio answers,
-and declining or handing off clearly off-lane work. Grading stays
-deterministic (string and outcome checks). Run it after prompt-text edits
-and before releases; it spends roughly fourteen real turns, archives its
-temp chats, and restores any temp agent bios. Use `--only <substring>` to rerun a single scenario. Pass
-`--reuse-chats` to keep one stable chat per scenario — each run recycles the
-same set (unarchive, agent session reset, `chat.clear`) instead of
-stamping new archive rows. See AGENTS.md ("Agent System Prompt Changes").
+is caught on demand by `bun run eval:prompt`. The live lane signs in as the
+configured development Clerk user and drives real hosted
+Server-to-Computer-to-model turns through the public tRPC contract. It checks
+mention handoff, explicit silence in channels and DMs, multi-chat draining,
+and instruction-injection resistance.
+
+The lane uses the seeded `#all` and `#product` channels plus each Agent's
+ordinary Owner DM. It does not call the retired Runtime API or create
+undeletable temporary chats. Run it after prompt-text edits and before
+releases. Use `--only <substring>` to rerun one scenario, `--server <url>` to
+target another hosted dev endpoint, or `--server-id <id>` to select a Server.
+See AGENTS.md ("Agent System Prompt Changes").
 
 ## Session Behavior Evals
 
-`bun run eval:sessions` drives real model turns through the same running dev
-stack and checks the agent-global session contract end-to-end
-(`specs/sessions.md`): cross-chat continuity (a DM fact answered in a
-channel without tools), full serialization with auto-drain (a busy agent
-queues a second chat and answers both in order), mid-turn freshness, the
-ledger-backed stale cross-post, model-switch rotation (fresh generation on
-the new model), and the agent-scoped reset (generation bump plus the durable
-DM notice). Grading stays deterministic; temp chats are archived and the
-agent's model restored afterward. Run it after session, ledger, delivery,
-or turn-runner changes. Both eval scripts share
-`scripts/eval-harness.mjs`; `--only <substring>` reruns one scenario.
+`bun run eval:sessions` uses the same hosted lane and checks the public
+agent-global session contract end-to-end (`specs/sessions.md`): cross-chat
+continuity, full serialization with auto-drain, mid-turn freshness, accepting
+the next delivery after a session reset, and exact model-switch application.
+It restores changed Agent configuration afterward. Internal generation and
+resume bookkeeping remain covered by deterministic Computer tests; this live
+lane asserts only behavior exposed by the hosted product contract.
+
+Both evals require `bun run dev`, configured development Clerk keys, two
+applied online Agents, and the seeded channels. Authentication uses a
+localhost development sign-in ticket and Clerk's headless session refresh; it
+does not use an auth bypass. Both scripts share `scripts/eval-harness.mjs`.
 
 ## Design Battery
 

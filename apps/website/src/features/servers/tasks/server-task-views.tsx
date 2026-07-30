@@ -132,20 +132,17 @@ function ServerTaskCard({
 
 function TaskSummary({ onOpen, task }: { onOpen: (task: ServerTask) => void; task: ServerTask }) {
     return (
-        <div className="min-w-0">
-            <button
-                aria-label={`Open task #${task.number} ${task.title}`}
-                className="absolute inset-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => onOpen(task)}
-                type="button"
-            />
-            <p className="pointer-events-none relative z-10 font-mono text-muted-foreground text-xs">
+        <button
+            aria-label={`Open task #${task.number} ${task.title}`}
+            className="block w-full min-w-0 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => onOpen(task)}
+            type="button"
+        >
+            <p className="font-mono text-muted-foreground text-xs">
                 #{task.number} · {task.chatLabel}
             </p>
-            <p className="pointer-events-none relative z-10 mt-1 font-medium text-foreground">
-                {task.title}
-            </p>
-            <div className="pointer-events-none relative z-10 mt-2 flex flex-wrap items-center gap-1.5">
+            <p className="mt-1 font-medium text-foreground">{task.title}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {task.labels.map((label) => (
                     <LabelChip color={label.color} key={label.id} name={label.name} />
                 ))}
@@ -154,7 +151,11 @@ function TaskSummary({ onOpen, task }: { onOpen: (task: ServerTask) => void; tas
                         {taskPriorityLabels[task.priority]}
                     </span>
                 )}
-                {task.assigneeUserId ? (
+                {task.assigneeAgentId ? (
+                    <span className="text-muted-foreground text-xs">
+                        Agent {task.assigneeAgentId.slice(-6)}
+                    </span>
+                ) : task.assigneeUserId ? (
                     <span className="text-muted-foreground text-xs">
                         Human {task.assigneeUserId.slice(-6)}
                     </span>
@@ -165,6 +166,6 @@ function TaskSummary({ onOpen, task }: { onOpen: (task: ServerTask) => void; tas
                     <RelativeTime value={task.updatedAt} />
                 </span>
             </div>
-        </div>
+        </button>
     );
 }

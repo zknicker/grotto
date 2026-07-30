@@ -17,6 +17,11 @@ export function serverChatRoute(slug: string, chatId: string) {
     return `${serverRoute(slug)}/chats/${encodeURIComponent(chatId)}`;
 }
 
+export function serverTaskThreadRoute(slug: string, chatId: string, messageId: string) {
+    const route = serverChatRoute(slug, chatId);
+    return `${route}?task=${encodeURIComponent(messageId)}`;
+}
+
 export function serverTasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }

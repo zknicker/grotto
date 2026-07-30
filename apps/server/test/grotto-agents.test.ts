@@ -226,6 +226,16 @@ test('retires an Agent immediately, preserves authored history, and then permits
         insert into chat_messages (id, server_id, chat_id, author_agent_id, content, nonce, sequence)
         values ('msg_agent_tombstone', ${serverId}, ${chat.id}, ${agent.id}, 'Keep this history.', 'tombstone', 1)
     `;
+    await harness.sql`
+        insert into message_tasks (
+            server_id, message_id, chat_id, number, status, origin,
+            created_by_agent_id, assignee_agent_id, claimed_at
+        )
+        values (
+            ${serverId}, 'msg_agent_tombstone', ${chat.id}, 1, 'in_progress', 'composed',
+            ${agent.id}, ${agent.id}, now()
+        )
+    `;
 
     await expect(
         owner.trpc.computer.remove.mutate({
@@ -258,6 +268,22 @@ test('retires an Agent immediately, preserves authored history, and then permits
         select author_agent_id, content from chat_messages where id = 'msg_agent_tombstone'
     `) as { author_agent_id: string; content: string }[];
     expect(history).toEqual([{ author_agent_id: agent.id, content: 'Keep this history.' }]);
+    const released = (await harness.sql`
+        select assignee_agent_id, claimed_at, version
+        from message_tasks
+        where server_id = ${serverId} and message_id = 'msg_agent_tombstone'
+    `) as Array<{
+        assignee_agent_id: string | null;
+        claimed_at: Date | null;
+        version: number;
+    }>;
+    expect(released).toEqual([{ assignee_agent_id: null, claimed_at: null, version: 2 }]);
+    const taskEvents = (await harness.sql`
+        select event_type from chat_events
+        where server_id = ${serverId} and message_id = 'msg_agent_tombstone'
+        order by cursor
+    `) as Array<{ event_type: string }>;
+    expect(taskEvents.map((event) => event.event_type)).toEqual(['task.updated']);
 
     await owner.trpc.computer.remove.mutate({
         computerId: computerA,

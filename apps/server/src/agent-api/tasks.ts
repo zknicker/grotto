@@ -1,5 +1,7 @@
 import type { HostedDurableEvent } from '@tavern/api';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -7,6 +9,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
     agentThreadFollowsTable,
+    channelAgentParticipantsTable,
     chatEventsTable,
     chatMessagesTable,
     chatsTable,
@@ -14,6 +17,7 @@ import {
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { insertHostedTaskEvent } from '../tasks/task-events.ts';
+import { agentOwnsTask, taskHasOtherOwnerForAgent } from '../tasks/task-ownership.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import {
     type MessageRow,
@@ -23,6 +27,7 @@ import {
     visibleChatSql,
 } from './message-view.ts';
 import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
+import { hasUnseenTaskThreadContext } from './task-freshness.ts';
 
 type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done' | 'closed';
 
@@ -67,21 +72,35 @@ export async function listAgentTasks(
 export async function createAgentTasks(
     db: GrottoDatabase,
     runner: ResolvedRunner,
-    input: { assignee?: string; content?: string; target: string; titles?: string[] }
+    input: {
+        assignee?: string;
+        content?: string;
+        nonce: string;
+        target: string;
+        titles?: string[];
+    },
+    agentDelivery: AgentDelivery
 ) {
     const titles = input.titles?.length ? input.titles : input.content ? [input.content] : [];
     if (titles.length === 0 || titles.some((title) => !title.trim())) {
         throw new AgentTaskError('Task content is required.');
     }
-    if (input.assignee && stripAt(input.assignee) !== (await agentHandle(db, runner))) {
-        throw new AgentTaskError('An Agent may assign a task only to itself.');
-    }
     const chatId = await resolveAgentTarget(db, runner, input.target);
+    const assigneeAgentId = input.assignee
+        ? await resolveTaskAssignee(db, runner, chatId, input.assignee)
+        : null;
+    const selfClaim = assigneeAgentId === runner.agentId;
+    const nonces = titles.map((_, index) => `${input.nonce}:${index}`);
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
+        const replay = await replayAgentTasks(tx, runner, chatId, titles, nonces, assigneeAgentId);
+        if (replay) {
+            return { events: [], tasks: replay, wakes: [] };
+        }
         const created: Awaited<ReturnType<typeof taskRow>>[] = [];
         const events: HostedDurableEvent[] = [];
-        for (const title of titles) {
+        const wakes = new Set<string>();
+        for (const [index, title] of titles.entries()) {
             const [numberedChat] = await tx
                 .update(chatsTable)
                 .set({
@@ -104,14 +123,13 @@ export async function createAgentTasks(
                     chatId,
                     content: title.trim(),
                     id: createOpaqueId('msg'),
-                    nonce: createOpaqueId('nonce'),
+                    nonce: nonces[index],
                     sequence: numberedChat.messageSequence,
                     serverId: runner.serverId,
                 })
                 .returning(messageSelection);
-            const selfClaim = Boolean(input.assignee);
             await tx.insert(messageTasksTable).values({
-                assigneeAgentId: selfClaim ? runner.agentId : null,
+                assigneeAgentId,
                 chatId,
                 claimedAt: selfClaim ? sql`now()` : null,
                 createdByAgentId: runner.agentId,
@@ -121,7 +139,35 @@ export async function createAgentTasks(
                 serverId: runner.serverId,
                 status: selfClaim ? 'in_progress' : 'todo',
             });
-            await createAgentTaskThread(tx, runner, chatId, message.id);
+            await createAgentTaskThread(
+                tx,
+                runner,
+                chatId,
+                message.id,
+                assigneeAgentId ?? runner.agentId
+            );
+            const recipients = await planAgentMessageRecipients(tx, {
+                authorAgentId: runner.agentId,
+                chatId,
+                content: title.trim(),
+                serverId: runner.serverId,
+            });
+            if (assigneeAgentId && assigneeAgentId !== runner.agentId) {
+                recipients.push({ agentId: assigneeAgentId, pierced: true });
+            }
+            for (const recipient of dedupeRecipients(recipients)) {
+                await agentDelivery.enqueue(tx, {
+                    agentId: recipient.agentId,
+                    chatId,
+                    content: title.trim(),
+                    dedupeKey: message.id,
+                    pierced: recipient.pierced,
+                    sequence: message.sequence,
+                    serverId: runner.serverId,
+                    source: `agent:${await agentHandle(tx, runner)}`,
+                });
+                wakes.add(recipient.agentId);
+            }
             events.push(
                 await insertAgentMessageCreatedEvent(tx, {
                     chatId,
@@ -147,7 +193,11 @@ export async function createAgentTasks(
                 );
             created.push(await taskRow(tx, runner, message, task));
         }
-        return { events, tasks: created };
+        return {
+            events,
+            tasks: created,
+            wakes: [...wakes].map((agentId) => ({ agentId, serverId: runner.serverId })),
+        };
     });
 }
 
@@ -231,14 +281,24 @@ async function mutateAgentTask(
             throw new AgentTaskError('That task changed; refresh it before updating.');
         }
         if (
-            action === 'claim' &&
-            current.assigneeAgentId &&
-            current.assigneeAgentId !== runner.agentId
+            (action === 'claim' || action === 'update') &&
+            (await hasUnseenTaskThreadContext(tx, runner, messageId))
         ) {
-            throw new AgentTaskError('That task is already claimed by another Agent.');
+            throw new AgentTaskError(
+                'New context exists in this task thread. Run grotto message check before retrying.'
+            );
+        }
+        if (action === 'claim' && taskHasOtherOwnerForAgent(current, runner.agentId)) {
+            throw new AgentTaskError('That task is already owned by another assignee.');
         }
         if (action === 'unclaim' && current.assigneeAgentId !== runner.agentId) {
             throw new AgentTaskError('Only the current assignee may unclaim this task.');
+        }
+        if (
+            action === 'update' &&
+            (!agentOwnsTask(current, runner.agentId) || current.claimedAt === null)
+        ) {
+            throw new AgentTaskError('Only the current assignee may update this task.');
         }
         if ((action === 'claim' || action === 'unclaim') && current.status === 'done') {
             throw new AgentTaskError('Done tasks cannot be claimed or unclaimed.');
@@ -399,11 +459,16 @@ async function taskRow(
     task: typeof messageTasksTable.$inferSelect
 ) {
     const [message] = await toAgentMessages(db, runner.serverId, [messageRow]);
-    const handle = task.assigneeAgentId
-        ? await agentHandle(db, { ...runner, agentId: task.assigneeAgentId })
-        : null;
+    const assignee = task.assigneeAgentId
+        ? {
+              handle: await agentHandle(db, { ...runner, agentId: task.assigneeAgentId }),
+              id: task.assigneeAgentId,
+          }
+        : task.assigneeUserId
+          ? { handle: null, id: task.assigneeUserId }
+          : null;
     return {
-        assignee: handle,
+        assignee,
         message,
         number: task.number,
         status: task.status,
@@ -447,7 +512,8 @@ async function createAgentTaskThread(
     db: GrottoDatabase,
     runner: ResolvedRunner,
     parentChatId: string,
-    messageId: string
+    messageId: string,
+    followingAgentId = runner.agentId
 ) {
     const [parent] = await db
         .select({ kind: chatsTable.kind })
@@ -482,6 +548,123 @@ async function createAgentTaskThread(
                 agentThreadFollowsTable.threadChatId,
             ],
         });
+    if (followingAgentId !== runner.agentId) {
+        await db
+            .insert(agentThreadFollowsTable)
+            .values({
+                agentId: followingAgentId,
+                followed: true,
+                serverId: runner.serverId,
+                threadChatId,
+                updatedAt: new Date(),
+            })
+            .onConflictDoUpdate({
+                set: { followed: true, updatedAt: new Date() },
+                target: [
+                    agentThreadFollowsTable.serverId,
+                    agentThreadFollowsTable.agentId,
+                    agentThreadFollowsTable.threadChatId,
+                ],
+            });
+    }
+}
+
+async function resolveTaskAssignee(
+    db: GrottoDatabase,
+    runner: ResolvedRunner,
+    chatId: string,
+    value: string
+) {
+    const handle = stripAt(value);
+    const [agent] = await db
+        .select({ id: agentsTable.id })
+        .from(agentsTable)
+        .where(
+            and(
+                eq(agentsTable.serverId, runner.serverId),
+                eq(agentsTable.handle, handle),
+                isNull(agentsTable.retiredAt)
+            )
+        )
+        .limit(1);
+    if (!agent) {
+        throw new AgentTaskError(`No active Agent has handle @${handle}.`);
+    }
+    if (agent.id === runner.agentId) {
+        return agent.id;
+    }
+    const [joined] = await db
+        .select({ agentId: channelAgentParticipantsTable.agentId })
+        .from(channelAgentParticipantsTable)
+        .where(
+            and(
+                eq(channelAgentParticipantsTable.serverId, runner.serverId),
+                eq(channelAgentParticipantsTable.chatId, chatId),
+                eq(channelAgentParticipantsTable.agentId, agent.id)
+            )
+        )
+        .limit(1);
+    if (!joined) {
+        throw new AgentTaskError('The assigned Agent must belong to the target Channel.');
+    }
+    return agent.id;
+}
+
+async function replayAgentTasks(
+    db: GrottoDatabase,
+    runner: ResolvedRunner,
+    chatId: string,
+    titles: string[],
+    nonces: string[],
+    assigneeAgentId: string | null
+) {
+    const existing = await db
+        .select(messageSelection)
+        .from(chatMessagesTable)
+        .where(
+            and(
+                eq(chatMessagesTable.serverId, runner.serverId),
+                eq(chatMessagesTable.chatId, chatId),
+                inArray(chatMessagesTable.nonce, nonces)
+            )
+        );
+    if (existing.length === 0) {
+        return null;
+    }
+    if (existing.length !== titles.length) {
+        throw new AgentTaskError('That task creation nonce belongs to an incomplete replay.');
+    }
+    const byNonce = new Map(existing.map((message) => [message.nonce, message]));
+    return await Promise.all(
+        titles.map(async (title, index) => {
+            const message = byNonce.get(nonces[index] ?? '');
+            if (message?.authorAgentId !== runner.agentId || message.content !== title.trim()) {
+                throw new AgentTaskError('That task creation nonce belongs to different content.');
+            }
+            const [task] = await queryAgentTasks(db, runner, chatId, { messageId: message.id });
+            if (!task) {
+                throw new AgentTaskError('That task creation nonce has no canonical task.');
+            }
+            if (task.assigneeAgentId !== assigneeAgentId) {
+                throw new AgentTaskError(
+                    'That task creation nonce belongs to a different assignee.'
+                );
+            }
+            return await taskRow(db, runner, message, task);
+        })
+    );
+}
+
+function dedupeRecipients(recipients: Array<{ agentId: string; pierced: boolean }>) {
+    const byAgent = new Map<string, { agentId: string; pierced: boolean }>();
+    for (const recipient of recipients) {
+        const current = byAgent.get(recipient.agentId);
+        byAgent.set(recipient.agentId, {
+            agentId: recipient.agentId,
+            pierced: Boolean(current?.pierced || recipient.pierced),
+        });
+    }
+    return [...byAgent.values()];
 }
 
 async function agentHandle(

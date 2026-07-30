@@ -4,6 +4,7 @@ import {
     isServerRemindersPath,
     serverBriefVariationsRoute,
     serverSearchRoute,
+    serverTaskThreadRoute,
 } from './server-routes.ts';
 
 test('invitation links use the configured browser-reachable App origin', () => {
@@ -23,4 +24,10 @@ test('the brief lab stays inside the Server route', () => {
 
 test('hosted search stays inside the current Server route', () => {
     expect(serverSearchRoute('dev')).toBe('/s/dev/search');
+});
+
+test('a task row opens its canonical Chat with the exact task selected', () => {
+    expect(serverTaskThreadRoute('dev', 'chat/one', 'message?one')).toBe(
+        '/s/dev/chats/chat%2Fone?task=message%3Fone'
+    );
 });

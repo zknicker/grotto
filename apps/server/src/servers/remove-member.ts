@@ -93,7 +93,10 @@ export async function removeServerMember(
                 )
             );
 
-        const taskEvents = await clearHostedTaskAssignments(tx, server.id, target.userId);
+        const taskEvents = await clearHostedTaskAssignments(tx, server.id, {
+            id: target.userId,
+            kind: 'user',
+        });
         const departedChatIds = await clearHostedPersonalWork(tx, server.id, target.userId);
 
         return { departedChatIds, serverId: server.id, taskEvents, userId: target.userId };

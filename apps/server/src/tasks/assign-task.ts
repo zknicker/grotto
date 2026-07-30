@@ -86,7 +86,6 @@ export async function assignHostedTask(
         if (current.version !== input.expectedVersion) {
             throw new TaskConflictError('That task changed; refresh it before assigning.');
         }
-
         if (input.assigneeUserId) {
             const [active] = await tx
                 .select({ userId: serverMembershipsTable.userId })
@@ -113,6 +112,7 @@ export async function assignHostedTask(
         await tx
             .update(messageTasksTable)
             .set({
+                assigneeAgentId: null,
                 assigneeUserId: input.assigneeUserId,
                 claimedAt: null,
                 updatedAt: sql`now()`,

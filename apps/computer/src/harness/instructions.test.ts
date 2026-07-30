@@ -31,6 +31,11 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     expect(instructions).toContain('## Startup sequence');
     expect(instructions).toContain('## Message Notifications');
     expect(instructions).toContain(
+        '`--assignee @peer` reserves a `todo` task for another Agent in that Channel'
+    );
+    expect(instructions).toContain('The peer must still claim it before starting work.');
+    expect(instructions).not.toContain('A server owner/admin may use `--assignee @someone-else`');
+    expect(instructions).toContain(
         'explicit FYI / no-response-needed messages should settle with zero sends'
     );
     expect(instructions).not.toContain('acknowledge it briefly even when it is an FYI');

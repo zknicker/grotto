@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { advanceServedCursor } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
@@ -821,6 +822,7 @@ test('the ported Agent directory can inspect and change channel membership', asy
 test('the ported Agent task flow creates, claims, updates, and releases its own work', async () => {
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_tasks_1' });
     const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
+        nonce: 'agent_tasks_create_1',
         target: '#dispatch',
         titles: ['Audit the delivery boundary'],
     });
@@ -844,7 +846,7 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         target: '#dispatch',
     });
     expect(claimed.body.claimed[0]).toMatchObject({
-        assignee: 'cove',
+        assignee: { handle: 'cove', id: agentId },
         status: 'in_progress',
         version: 2,
     });
@@ -854,7 +856,7 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         target: '#dispatch',
     });
     expect(updated.body.task).toMatchObject({
-        assignee: 'cove',
+        assignee: { handle: 'cove', id: agentId },
         status: 'in_review',
         version: 3,
     });
@@ -913,7 +915,7 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         body: {
             claimed: [
                 {
-                    assignee: 'cove',
+                    assignee: { handle: 'cove', id: agentId },
                     number: 2,
                     status: 'in_progress',
                     target: '#dispatch',
@@ -943,6 +945,185 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         'task.created',
         'task.updated',
     ]);
+});
+
+test('task ownership is one lock across human and Agent actors', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_actor_lock' });
+    const humanOwned = await owner.trpc.task.create.mutate({
+        assigneeUserId: ownerUserId,
+        chatId: 'cht_targetchannel01',
+        content: 'Human-owned task must stay human-owned.',
+        nonce: 'human_owned_task_actor_lock',
+        serverId,
+    });
+
+    const agentClaim = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
+        numbers: [humanOwned.task.number],
+        target: '#dispatch',
+    });
+    expect(agentClaim).toMatchObject({
+        body: { code: 'TASK_CONFLICT' },
+        status: 409,
+    });
+
+    const agentOwned = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
+        assignee: '@cove',
+        nonce: 'agent_owned_task_actor_lock',
+        target: '#dispatch',
+        titles: ['Agent-owned task must stay Agent-owned.'],
+    });
+    const agentTask = agentOwned.body.tasks[0] as {
+        message: { id: string };
+        number: number;
+        version: number;
+    };
+    await expect(
+        owner.trpc.task.claim.mutate({
+            expectedVersion: agentTask.version,
+            messageId: agentTask.message.id,
+            serverId,
+        })
+    ).rejects.toThrow(/already owned/i);
+});
+
+test('task status updates wait for newer exact-thread context', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_freshness' });
+    const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
+        assignee: '@cove',
+        nonce: 'agent_task_freshness',
+        target: 'dm:@operator',
+        titles: ['Incorporate every late correction.'],
+    });
+    const task = created.body.tasks[0] as {
+        message: { id: string };
+        number: number;
+        version: number;
+    };
+    const correction = await owner.trpc.chat.send.mutate({
+        chatId: dmChatId,
+        content: 'Late correction: include the hostname.',
+        nonce: 'task_freshness_correction',
+        serverId,
+        thread: { anchorMessageId: task.message.id },
+    });
+
+    const held = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
+        number: task.number,
+        status: 'in_review',
+        target: 'dm:@operator',
+    });
+    expect(held).toMatchObject({
+        body: {
+            code: 'TASK_CONFLICT',
+            message: expect.stringMatching(/grotto message check/u),
+        },
+        status: 409,
+    });
+
+    await advanceServedCursor(connection.db, {
+        agentId,
+        chatId: correction.message.chatId,
+        sequence: correction.message.sequence,
+        serverId,
+    });
+    const updated = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
+        number: task.number,
+        status: 'in_review',
+        target: 'dm:@operator',
+    });
+    expect(updated).toMatchObject({
+        body: { task: { status: 'in_review' } },
+        status: 200,
+    });
+});
+
+test('Agent task creation is replay-safe and directly wakes an assigned peer', async () => {
+    const channelId = 'cht_taskdelegation01';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values (${channelId}, ${serverId}, 'channel', 'task-delegation')
+    `;
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channelId}, ${agentId})
+    `;
+    await harness.sql`
+        insert into channel_participants (server_id, chat_id, user_id)
+        values (${serverId}, ${channelId}, ${ownerUserId})
+    `;
+    const peer = await owner.trpc.agent.create.mutate({
+        computerId,
+        displayName: 'Scout',
+        handle: 'scout',
+        modelId: 'gpt-5.6-sol',
+        role: 'member',
+        runtimeId: 'codex',
+        serverId,
+    });
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channelId}, ${peer.agent.id})
+    `;
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_peer_assignment' });
+    const body = {
+        assignee: '@scout',
+        nonce: 'agent_task_peer_assignment',
+        target: '#task-delegation',
+        titles: ['Scout the release notes.'],
+    };
+    const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', body);
+    expect(created).toMatchObject({
+        body: {
+            tasks: [
+                {
+                    assignee: {
+                        handle: 'scout',
+                        id: peer.agent.id,
+                    },
+                    status: 'todo',
+                },
+            ],
+        },
+        status: 200,
+    });
+    const messageId = String(created.body.tasks[0]?.message.id);
+    const replayed = await agentPost(minted.runnerToken, '/api/agent/tasks/create', body);
+    expect(replayed.body.tasks[0]?.message.id).toBe(messageId);
+    const conflictingReplay = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
+        ...body,
+        assignee: undefined,
+    });
+    expect(conflictingReplay).toMatchObject({
+        body: { code: 'TASK_CONFLICT' },
+        status: 409,
+    });
+    const rows = (await harness.sql`
+        select count(*)::int as count
+        from chat_messages
+        where server_id = ${serverId}
+          and chat_id = ${channelId}
+          and nonce = 'agent_task_peer_assignment:0'
+    `) as Array<{ count: number }>;
+    expect(rows).toEqual([{ count: 1 }]);
+    const pending = (await harness.sql`
+        select agent_id, pierced
+        from agent_pending_work
+        where server_id = ${serverId} and dedupe_key = ${messageId}
+    `) as Array<{ agent_id: string; pierced: boolean }>;
+    expect(pending).toEqual([{ agent_id: peer.agent.id, pierced: true }]);
+    const follows = (await harness.sql`
+        select followed
+        from agent_thread_follows
+        where server_id = ${serverId}
+          and agent_id = ${peer.agent.id}
+          and thread_chat_id = ${`cht_thr_${messageId.slice(4)}`}
+    `) as Array<{ followed: boolean }>;
+    expect(follows).toEqual([{ followed: true }]);
+    await owner.trpc.agent.delete.mutate({
+        agentId: peer.agent.id,
+        confirmation: peer.agent.displayName,
+        serverId,
+    });
 });
 
 test('an Agent owns its profile description and that description rides its messages', async () => {

@@ -3,7 +3,7 @@ import * as z from 'zod';
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
 
-const taskActorSchema = z.object({
+export const taskActorSchema = z.object({
     handle: z.string().nullable(),
     id: z.string(),
 });

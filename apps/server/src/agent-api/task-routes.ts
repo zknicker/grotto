@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
@@ -13,7 +14,11 @@ import {
 
 const taskStatusSchema = z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']);
 
-export function registerAgentTaskRoutes(app: FastifyInstance, db: GrottoDatabase) {
+export function registerAgentTaskRoutes(
+    app: FastifyInstance,
+    options: { agentDelivery: AgentDelivery; db: GrottoDatabase }
+) {
+    const { agentDelivery, db } = options;
     app.get('/api/agent/tasks', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);
         const parsed = z
@@ -35,6 +40,7 @@ export function registerAgentTaskRoutes(app: FastifyInstance, db: GrottoDatabase
             .object({
                 assignee: z.string().optional(),
                 content: z.string().optional(),
+                nonce: z.string().min(1).max(100),
                 target: z.string().min(1),
                 titles: z.array(z.string().min(1)).max(20).optional(),
             })
@@ -43,8 +49,13 @@ export function registerAgentTaskRoutes(app: FastifyInstance, db: GrottoDatabase
             return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The task request was invalid.');
         }
         try {
-            const result = await createAgentTasks(db, runner, parsed.data);
+            const result = await createAgentTasks(db, runner, parsed.data, agentDelivery);
             emitTaskEvents(result.events);
+            await Promise.all(
+                result.wakes.map(({ agentId, serverId }) =>
+                    agentDelivery.dispatchAgent(agentId, serverId).catch(() => undefined)
+                )
+            );
             return { tasks: result.tasks };
         } catch (cause) {
             return sendAgentReadError(reply, cause);

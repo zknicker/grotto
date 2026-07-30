@@ -6,6 +6,7 @@ import { messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { insertHostedTaskEvent } from './task-events.ts';
+import { taskHasOtherOwnerForUser } from './task-ownership.ts';
 import { findHostedMessageTask } from './task-shape.ts';
 
 export class TaskConflictError extends Error {
@@ -68,8 +69,8 @@ export async function claimHostedTask(
         if (current.assigneeUserId === member.id && current.claimedAt !== null) {
             return { event: null, task: current };
         }
-        if (current.assigneeUserId && current.assigneeUserId !== member.id) {
-            throw new TaskConflictError('That task is already claimed by another member.');
+        if (taskHasOtherOwnerForUser(current, member.id)) {
+            throw new TaskConflictError('That task is already owned by another assignee.');
         }
         if (current.status === 'done') {
             throw new TaskConflictError('Done tasks cannot be claimed.');
@@ -81,6 +82,7 @@ export async function claimHostedTask(
         await tx
             .update(messageTasksTable)
             .set({
+                assigneeAgentId: null,
                 assigneeUserId: member.id,
                 claimedAt: sql`now()`,
                 status: current.status === 'todo' ? 'in_progress' : current.status,

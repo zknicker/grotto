@@ -9,6 +9,7 @@ import type { TaskPriority, TaskStatus } from '../../tasks/task-presentation.ts'
 export type ServerTaskView = 'all' | 'active' | 'unassigned';
 
 export interface ServerTask {
+    assigneeAgentId: string | null;
     assigneeUserId: string | null;
     chatId: string;
     chatLabel: string;
@@ -42,6 +43,9 @@ export function serverTaskClaimAction(
     if (task.status === 'done') {
         return null;
     }
+    if (task.assigneeAgentId !== null) {
+        return null;
+    }
     if (task.assigneeUserId === null) {
         return 'claim';
     }
@@ -63,6 +67,7 @@ export function serverTaskChatOptions(chats: HostedChat[]) {
 
 export function toServerTask(item: HostedTaskListItem): ServerTask {
     return {
+        assigneeAgentId: item.task.assigneeAgentId,
         assigneeUserId: item.task.assigneeUserId,
         chatId: item.task.chatId,
         chatLabel:
@@ -97,7 +102,10 @@ export function filterServerTasks(
         if (input.view === 'active' && (task.status === 'done' || task.status === 'closed')) {
             return false;
         }
-        if (input.view === 'unassigned' && task.assigneeUserId !== null) {
+        if (
+            input.view === 'unassigned' &&
+            (task.assigneeAgentId !== null || task.assigneeUserId !== null)
+        ) {
             return false;
         }
         if (!query) {

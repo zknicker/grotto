@@ -20,6 +20,7 @@ import {
     chatMessagesTable,
     chatsTable,
     computersTable,
+    messageTasksTable,
     serverMembershipsTable,
     serversTable,
     usersTable,
@@ -428,6 +429,17 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     const followUpMessageId = await insertHumanMessage(seed, 'pull then crash', 2);
+    await connection.db.insert(messageTasksTable).values({
+        assigneeAgentId: seed.agentId,
+        chatId: seed.chatId,
+        claimedAt: new Date(),
+        createdByUserId: seed.userId,
+        messageId: followUpMessageId,
+        number: 1,
+        origin: 'composed',
+        serverId: seed.serverId,
+        status: 'in_progress',
+    });
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.chatId,
@@ -450,6 +462,11 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
     expect(starts).toHaveLength(2);
     expect(starts[1]?.runId).toBe(runId);
     expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['first', 'pull then crash']);
+    expect(starts[1]?.inbox[1]?.task).toMatchObject({
+        assigneeAgentId: seed.agentId,
+        number: 1,
+        status: 'in_progress',
+    });
     expect(await countAllPending(seed.agentId)).toBe(2);
     expect(
         await readAgentInboxCursor(connection.db, {

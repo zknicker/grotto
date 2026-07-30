@@ -1,4 +1,4 @@
-import type { HostedDeleteAgentInput } from '@tavern/api';
+import type { HostedDeleteAgentInput, HostedDurableEvent } from '@tavern/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -13,6 +13,7 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { clearHostedTaskAssignments } from '../tasks/clear-task-assignments.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { AgentDeleteDeniedError } from './agent-config-errors.ts';
 
@@ -21,7 +22,7 @@ export async function deleteHostedAgent(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: HostedDeleteAgentInput
-): Promise<{ agentId: string }> {
+): Promise<{ agentId: string; taskEvents: HostedDurableEvent[] }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);
@@ -101,6 +102,10 @@ export async function deleteHostedAgent(
                 )
             );
         await tx.delete(agentDeliveryTable).where(owner);
+        const taskEvents = await clearHostedTaskAssignments(tx, input.serverId, {
+            id: agent.id,
+            kind: 'agent',
+        });
         await tx
             .update(agentsTable)
             .set({
@@ -114,6 +119,6 @@ export async function deleteHostedAgent(
                 retiredAt: new Date(),
             })
             .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, agent.id)));
-        return { agentId: agent.id };
+        return { agentId: agent.id, taskEvents };
     });
 }

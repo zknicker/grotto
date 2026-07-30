@@ -51,7 +51,8 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
                     valueName: '<text>',
                 },
                 {
-                    description: 'Only your own handle: creates the task claimed (in_progress)',
+                    description:
+                        'Assign to an Agent in the target; assigning yourself claims immediately',
                     name: '--assignee',
                     valueName: '<@handle>',
                 },
@@ -60,7 +61,7 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
             positionals: [],
             run: (args) => runTaskCreate(args, resolveDeps()),
             summary: 'Post a new message and publish it as a task',
-            usage: 'grotto task create --target <target> [--title <text>]... [--assignee @you]',
+            usage: 'grotto task create --target <target> [--title <text>]... [--assignee @agent]',
         },
         {
             examples: [

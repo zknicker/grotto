@@ -84,6 +84,30 @@ test('promotes one canonical hosted message into its deterministic Thread work s
     });
 });
 
+test('does not promote a system message into human work', async () => {
+    const server = await owner.trpc.server.create.mutate({
+        displayName: 'Untaskable System Message',
+        slug: 'untaskable-system-message',
+    });
+    const chatId = server.channels[0].id;
+    await harness.sql`
+        insert into chat_messages (
+            id, server_id, chat_id, sequence, nonce, content, system_author
+        )
+        values (
+            'msg_system_untaskable', ${server.id}, ${chatId}, 1,
+            'system_untaskable', 'Reminder fired.', 'reminder'
+        )
+    `;
+
+    await expect(
+        owner.trpc.task.promote.mutate({
+            messageId: 'msg_system_untaskable',
+            serverId: server.id,
+        })
+    ).rejects.toThrow(/human or Agent messages.*top-level Channel or DM/i);
+});
+
 test('creates a task-message atomically and replays the same nonce idempotently', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Create',

@@ -1,10 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import * as z from 'zod';
 import {
     type AgentApiRequest,
     type AgentApiRequester,
     createAgentApiClient,
 } from '../agent-api-client.ts';
-import { agentMessageSchema } from '../agent-api-schemas.ts';
+import { agentMessageSchema, taskActorSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { shortMessageId } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
@@ -16,6 +17,7 @@ import { readAgentStdin } from '../stdin.ts';
 
 export interface TaskDeps {
     client: AgentApiRequester;
+    mintNonce(): string;
     readStdin(): Promise<string>;
     signal?: AbortSignal;
     stdinIsTty(): boolean;
@@ -23,7 +25,7 @@ export interface TaskDeps {
 }
 
 const taskRowSchema = z.object({
-    assignee: z.string().nullable(),
+    assignee: taskActorSchema.nullable(),
     message: agentMessageSchema,
     number: z.number().int().positive(),
     status: z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']),
@@ -91,6 +93,7 @@ export async function runTaskCreate(args: ParsedArgs, deps: TaskDeps): Promise<n
             body: {
                 assignee: args.values['--assignee'],
                 content,
+                nonce: deps.mintNonce(),
                 target,
                 titles: titles.length > 0 ? titles : undefined,
             },
@@ -176,17 +179,24 @@ export async function runTaskUpdate(args: ParsedArgs, deps: TaskDeps): Promise<n
     );
     const task = response.task;
     deps.write(
-        `Task #${task.number} is now [${task.status}]${task.assignee ? ` (assignee @${task.assignee})` : ''}.\n`
+        `Task #${task.number} is now [${task.status}]${task.assignee ? ` (assignee ${assigneeLabel(task.assignee)})` : ''}.\n`
     );
     return 0;
 }
 
 function taskLine(task: z.infer<typeof taskRowSchema>): string {
-    const assignee = task.assignee ? ` @${task.assignee}` : ' unassigned';
+    const assignee = task.assignee ? ` ${assigneeLabel(task.assignee)}` : ' unassigned';
     const where = task.target ? ` in ${task.target}` : '';
     const title = task.message.content.replaceAll(/\s+/gu, ' ').trim();
     const clipped = title.length > 80 ? `${title.slice(0, 79)}…` : title;
     return `#${task.number} [${task.status}]${assignee}${where} msg=${shortMessageId(task.message.id)}: ${clipped}`;
+}
+
+function assigneeLabel(assignee: z.infer<typeof taskRowSchema>['assignee']) {
+    if (!assignee) {
+        return 'unassigned';
+    }
+    return assignee.handle ? `@${assignee.handle}` : `human:${assignee.id}`;
 }
 
 function requireTarget(args: ParsedArgs, nextAction: string): string {
@@ -222,6 +232,7 @@ function withTaskSignal(deps: TaskDeps, input: AgentApiRequest): AgentApiRequest
 export function defaultTaskDeps(): TaskDeps {
     return {
         client: createAgentApiClient(),
+        mintNonce: () => `task-${randomUUID()}`,
         readStdin: readAgentStdin,
         stdinIsTty: () => process.stdin.isTTY === true,
         write: (text) => process.stdout.write(text),

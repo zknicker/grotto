@@ -74,7 +74,10 @@ export function registerAgentApiRoutes(
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });
     registerAgentReactionRoutes(app, options.db);
     registerAgentReminderRoutes(app, options.db);
-    registerAgentTaskRoutes(app, options.db);
+    registerAgentTaskRoutes(app, {
+        agentDelivery: options.agentDelivery,
+        db: options.db,
+    });
 
     app.get('/api/agent/profile', async (request, reply) => {
         const runner = await authorizeAgentRunner(options.db, request);

@@ -69,6 +69,15 @@ test('shows claim controls only when the viewer can perform the action', () => {
         )
     ).toBeNull();
     expect(serverTaskClaimAction({ ...task, status: 'done' }, 'user_viewer')).toBeNull();
+    expect(
+        serverTaskClaimAction({ ...task, assigneeAgentId: 'agent_owner' }, 'user_viewer')
+    ).toBeNull();
+});
+
+test('treats Agent-owned tasks as assigned in task filters', () => {
+    const task = { ...toServerTask(item()), assigneeAgentId: 'agent_owner' };
+
+    expect(filterServerTasks([task], { query: '', view: 'unassigned' })).toEqual([]);
 });
 
 test('offers both Channels and DMs as task creation work surfaces', () => {

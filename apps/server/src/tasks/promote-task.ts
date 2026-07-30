@@ -18,7 +18,7 @@ export class TaskMessageNotFoundError extends Error {
 
 export class UntaskableMessageError extends Error {
     constructor() {
-        super('Only top-level Channel or DM messages can become tasks.');
+        super('Only human or Agent messages in a top-level Channel or DM can become tasks.');
         this.name = 'UntaskableMessageError';
     }
 }
@@ -46,6 +46,7 @@ export async function promoteHostedMessageTask(
             .select({
                 chatId: chatMessagesTable.chatId,
                 id: chatMessagesTable.id,
+                systemAuthor: chatMessagesTable.systemAuthor,
             })
             .from(chatMessagesTable)
             .where(
@@ -63,7 +64,7 @@ export async function promoteHostedMessageTask(
             chatId: message.chatId,
             serverId: input.serverId,
         });
-        if (chat.kind === 'thread') {
+        if (chat.kind === 'thread' || message.systemAuthor) {
             throw new UntaskableMessageError();
         }
 

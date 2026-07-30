@@ -23,8 +23,13 @@ export function ServerTaskAssignmentControl({
     const [open, setOpen] = React.useState(false);
     const assignees = useServerTaskAssignees(serverId, task.id, enabled && open);
     const assign = useAssignServerTask();
-    const value = task.assigneeUserId ?? 'unassigned';
-    const valueLabel = task.assigneeUserId ? humanLabel(task.assigneeUserId) : 'Unassigned';
+    const agentValue = task.assigneeAgentId ? `agent:${task.assigneeAgentId}` : null;
+    const value = agentValue ?? task.assigneeUserId ?? 'unassigned';
+    const valueLabel = task.assigneeAgentId
+        ? agentLabel(task.assigneeAgentId)
+        : task.assigneeUserId
+          ? humanLabel(task.assigneeUserId)
+          : 'Unassigned';
 
     if (!enabled) {
         return null;
@@ -36,6 +41,9 @@ export function ServerTaskAssignmentControl({
                 disabled={assign.isPending || (open && assignees.isPending)}
                 onOpenChange={setOpen}
                 onValueChange={(userId) => {
+                    if (!userId || userId.startsWith('agent:')) {
+                        return;
+                    }
                     const next = userId === 'unassigned' ? null : userId;
                     if (next !== task.assigneeUserId) {
                         assign.mutate(serverTaskAssignmentInput(serverId, task, next));
@@ -47,6 +55,11 @@ export function ServerTaskAssignmentControl({
                     <SelectValue>{valueLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
+                    {agentValue ? (
+                        <SelectItem disabled value={agentValue}>
+                            {valueLabel}
+                        </SelectItem>
+                    ) : null}
                     <SelectItem value="unassigned">Unassigned</SelectItem>
                     {assignees.data?.map((assignee) => (
                         <SelectItem key={assignee.userId} value={assignee.userId}>
@@ -66,4 +79,8 @@ export function ServerTaskAssignmentControl({
 
 function humanLabel(userId: string) {
     return `Human ${userId.slice(-6)}`;
+}
+
+function agentLabel(agentId: string) {
+    return `Agent ${agentId.slice(-6)}`;
 }

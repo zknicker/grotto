@@ -2,11 +2,15 @@ import { createHash } from 'node:crypto';
 import { mkdir, readlink, rm, symlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { seedAgentWorkspace } from '@tavern/agent-workspace';
+import { seedAgentWorkspace, seedFactoryManagedSkills } from '@tavern/agent-workspace';
 import { readAgentSeedConfiguration } from './agent-configuration.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { computerEntrypoint } from './build-identity.ts';
-import { type NoticeSinkRegistrar, runHarnessTurn } from './harness/executor.ts';
+import {
+    AgentSessionResumeRejectedError,
+    type NoticeSinkRegistrar,
+    runHarnessTurn,
+} from './harness/executor.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { resolveRuntimeExecutable, runtimeSearchPath } from './runtime-discovery.ts';
 import { classifyRuntimeFailure, type RuntimeFailureKind } from './runtime-failure.ts';
@@ -37,6 +41,7 @@ export interface HostedAgentStartCommand {
     modelId: string;
     runId: string;
     runtimeId: string;
+    sessionGeneration: number;
     type: 'start';
     webAccess?: 'fetch-only' | 'search' | 'search-only';
 }
@@ -73,6 +78,7 @@ export interface HostedAgentStopCommand {
 export interface HostedAgentResetCommand {
     agentId: string;
     kind: 'full' | 'session';
+    sessionGeneration: number;
     type: 'agent-reset';
 }
 
@@ -300,6 +306,13 @@ export function parseStartCommand(frame: unknown): HostedAgentStartCommand | nul
     if (!inbox) {
         return null;
     }
+    if (
+        typeof frame.sessionGeneration !== 'number' ||
+        !Number.isInteger(frame.sessionGeneration) ||
+        frame.sessionGeneration < 1
+    ) {
+        return null;
+    }
     for (const field of ['agentDescription', 'agentName', 'homeTimezone'] as const) {
         if (frame[field] !== undefined && typeof frame[field] !== 'string') {
             return null;
@@ -320,6 +333,7 @@ export function parseStartCommand(frame: unknown): HostedAgentStartCommand | nul
         modelId: frame.modelId as string,
         runId: frame.runId as string,
         runtimeId: frame.runtimeId as string,
+        sessionGeneration: frame.sessionGeneration,
         type: 'start',
         ...(webAccess ? { webAccess } : {}),
     };
@@ -347,13 +361,17 @@ export function parseResetCommand(frame: unknown): HostedAgentResetCommand | nul
         frame.type !== 'agent-reset' ||
         typeof frame.agentId !== 'string' ||
         frame.agentId.length === 0 ||
-        !['full', 'session'].includes(frame.kind as string)
+        !['full', 'session'].includes(frame.kind as string) ||
+        typeof frame.sessionGeneration !== 'number' ||
+        !Number.isInteger(frame.sessionGeneration) ||
+        frame.sessionGeneration < 1
     ) {
         return null;
     }
     return {
         agentId: frame.agentId,
         kind: frame.kind as 'full' | 'session',
+        sessionGeneration: frame.sessionGeneration,
         type: 'agent-reset',
     };
 }
@@ -374,12 +392,15 @@ export async function resetAgentState(input: {
             )
         );
         if (seed) {
-            await seedAgentWorkspace({
-                agentName: seed.agentName,
-                archetype: seed.archetype,
-                bio: seed.agentDescription,
-                workspaceDir: join(agentRoot, 'workspace'),
-            });
+            await Promise.all([
+                seedAgentWorkspace({
+                    agentName: seed.agentName,
+                    archetype: seed.archetype,
+                    bio: seed.agentDescription,
+                    workspaceDir: join(agentRoot, 'workspace'),
+                }),
+                seedFactoryManagedSkills(join(agentRoot, 'skills')),
+            ]);
         }
         return;
     }
@@ -543,6 +564,7 @@ async function runRealRuntime(
             inbox: command.inbox ?? [],
             registerNoticeSink: input.registerNoticeSink,
             runtimeId: command.runtimeId,
+            sessionGeneration: command.sessionGeneration,
             signal: input.signal,
             skillsDir: input.dirs.skills,
             webAccess: command.webAccess ?? null,
@@ -553,7 +575,13 @@ async function runRealRuntime(
         return { status: 'completed' };
     } catch (error) {
         await writeTrace(input, `Harness turn failed: ${messageOf(error)}\n`);
-        return { failureKind: classifyRuntimeFailure(error), status: 'failed' };
+        return {
+            failureKind:
+                error instanceof AgentSessionResumeRejectedError
+                    ? 'session-resume'
+                    : classifyRuntimeFailure(error),
+            status: 'failed',
+        };
     }
 }
 

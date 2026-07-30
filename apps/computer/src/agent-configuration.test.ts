@@ -23,6 +23,8 @@ test('applies desired runtime and model without waiting for the first turn', asy
         archetype: 'guide',
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
+        sessionGeneration: 1,
+        sessionResetKind: 'full',
         type: 'agent-configure',
     });
     if (!command) {
@@ -82,6 +84,20 @@ test('applies desired runtime and model without waiting for the first turn', asy
     expect(await readFile(join(workspace, 'notes', 'onboarding-objectives.md'), 'utf8')).toContain(
         "# What I'm here to help the owner do"
     );
+    const skills = join(
+        dataRoot,
+        'servers',
+        'srv_configuration',
+        'agents',
+        command.agentId,
+        'skills'
+    );
+    await expect(readFile(join(skills, 'tavern-agent', 'SKILL.md'), 'utf8')).resolves.toContain(
+        '# Grotto Agent'
+    );
+    await expect(readFile(join(skills, 'visuals', 'SKILL.md'), 'utf8')).resolves.toContain(
+        'name: visuals'
+    );
 });
 
 test('reports a missing desired model instead of substituting one', async () => {
@@ -92,6 +108,8 @@ test('reports a missing desired model instead of substituting one', async () => 
         archetype: null,
         modelId: 'missing-model',
         runtimeId: 'codex',
+        sessionGeneration: 1,
+        sessionResetKind: 'full',
         type: 'agent-configure',
     });
     if (!command) {

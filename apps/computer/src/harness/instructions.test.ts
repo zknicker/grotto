@@ -38,6 +38,9 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     expect(instructions).toContain(
         'explicit FYI / no-response-needed messages should settle with zero sends'
     );
+    expect(instructions).toContain(
+        'use every relevant durable user preference as an execution constraint'
+    );
     expect(instructions).not.toContain('acknowledge it briefly even when it is an FYI');
 
     // Identity + authoritative runtime context are personalized per Agent.

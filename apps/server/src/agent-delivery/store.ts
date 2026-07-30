@@ -32,11 +32,15 @@ export interface PendingWorkRow {
 
 export interface AgentDispatchConfig {
     agentDescription: string | null;
+    agentDisplayName: string;
     agentName: string;
+    archetype: AgentArchetypeId | null;
     computerId: string | null;
     desiredModelId: string | null;
     desiredRuntimeId: string | null;
     homeTimezone: string;
+    sessionGeneration: number;
+    sessionResetKind: 'full' | 'session';
 }
 
 /** The Agent's assigned Computer and desired runtime/model, or nulls when unconfigured. */
@@ -46,12 +50,16 @@ export async function readAgentDispatchConfig(
 ): Promise<AgentDispatchConfig | null> {
     const [row] = await db
         .select({
+            archetype: agentsTable.archetype,
             agentDescription: agentsTable.description,
+            agentDisplayName: agentsTable.displayName,
             agentName: agentsTable.handle,
             computerId: agentsTable.computerId,
             desiredModelId: agentsTable.desiredModelId,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
             homeTimezone: agentsTable.homeTimezone,
+            sessionGeneration: agentsTable.sessionGeneration,
+            sessionResetKind: agentsTable.sessionResetKind,
         })
         .from(agentsTable)
         .where(eq(agentsTable.id, agentId))
@@ -442,6 +450,9 @@ export async function listComputerAgents(
         archetype: AgentArchetypeId | null;
         desiredModelId: string | null;
         desiredRuntimeId: string | null;
+        retiredAt: Date | null;
+        sessionGeneration: number;
+        sessionResetKind: 'full' | 'session';
         serverId: string;
     }[]
 > {
@@ -453,6 +464,9 @@ export async function listComputerAgents(
             archetype: agentsTable.archetype,
             desiredModelId: agentsTable.desiredModelId,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
+            retiredAt: agentsTable.retiredAt,
+            sessionGeneration: agentsTable.sessionGeneration,
+            sessionResetKind: agentsTable.sessionResetKind,
             serverId: agentsTable.serverId,
         })
         .from(agentsTable)

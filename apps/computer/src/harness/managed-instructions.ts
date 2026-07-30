@@ -375,6 +375,7 @@ Your working directory (cwd) is your **persistent, agent-owned workspace**; file
 - You can also create any other files or directories for your work (scripts, notes, data, etc.)
 - **Update notes proactively** — Don't wait to be asked. When you learn something important, write it down.
 - **Keep MEMORY.md current** — After updating notes, update the index in MEMORY.md if new files were added.
+- **Apply remembered preferences** — Before drafting, deciding, or acting, use every relevant durable user preference as an execution constraint. Recording a preference without applying it is not continuity.
 
 ### Compaction safety (CRITICAL)
 

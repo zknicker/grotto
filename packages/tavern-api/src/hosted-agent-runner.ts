@@ -46,6 +46,7 @@ export const hostedAgentStartCommandSchema = z
         modelId: z.string().trim().min(1).max(128),
         runId: hostedIdSchema,
         runtimeId: z.string().trim().min(1).max(64),
+        sessionGeneration: z.number().int().positive(),
         type: z.literal('start'),
         webAccess: z.enum(['fetch-only', 'search', 'search-only']).optional(),
     })
@@ -72,11 +73,22 @@ export const hostedAgentResetCommandSchema = z
     .object({
         agentId: hostedIdSchema,
         kind: z.enum(['full', 'session']),
+        sessionGeneration: z.number().int().positive(),
         type: z.literal('agent-reset'),
     })
     .strict();
 
 export type HostedAgentResetCommand = z.infer<typeof hostedAgentResetCommandSchema>;
+
+/** Retires one Agent and erases only that Agent's Computer-local execution state. */
+export const hostedAgentRetireCommandSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        type: z.literal('agent-retire'),
+    })
+    .strict();
+
+export type HostedAgentRetireCommand = z.infer<typeof hostedAgentRetireCommandSchema>;
 
 /** Full desired executor snapshot applied by the assigned Computer. */
 export const hostedAgentConfigureCommandSchema = z
@@ -87,6 +99,8 @@ export const hostedAgentConfigureCommandSchema = z
         archetype: agentArchetypeIdSchema.nullable(),
         modelId: z.string().trim().min(1).max(128),
         runtimeId: z.string().trim().min(1).max(64),
+        sessionGeneration: z.number().int().positive(),
+        sessionResetKind: z.enum(['full', 'session']),
         type: z.literal('agent-configure'),
     })
     .strict();
@@ -252,6 +266,7 @@ export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
     hostedAgentStartCommandSchema,
     hostedAgentStopCommandSchema,
     hostedAgentResetCommandSchema,
+    hostedAgentRetireCommandSchema,
     hostedAgentConfigureCommandSchema,
     hostedAgentSkillImportCommandSchema,
     hostedAgentWorkspaceRequestSchema,
@@ -445,6 +460,7 @@ export const hostedAgentTurnFailureKindSchema = z.enum([
     'configuration',
     'input',
     'rate-limit',
+    'session-resume',
     'timeout',
     'transport',
     'unknown',

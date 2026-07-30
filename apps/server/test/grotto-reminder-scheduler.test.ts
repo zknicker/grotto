@@ -253,13 +253,73 @@ describe('hosted reminder scheduler lifecycle', () => {
             scriptTimedOut: false,
         });
     });
+
+    test('replays one offline script fire on reconnect and settles it exactly once', async () => {
+        cluster = await startPostgresCluster();
+        await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
+        connection = await connectGrottoDatabase(cluster.databaseUrl);
+        await seedOverdueReminder(connection);
+        await configureHostedComputer(connection);
+        await connection.db
+            .update(remindersTable)
+            .set({ repeat: 'daily@09:00', script: 'printf changed' })
+            .where(eq(remindersTable.id, 'rem_scheduler'));
+
+        const transport = new RecordingTransport();
+        transport.online = false;
+        const delivery = new AgentDelivery(connection.db, transport);
+        await tickHostedReminders(connection.db, { now: () => now }, delivery);
+
+        expect(transport.frames).toHaveLength(0);
+        expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(1);
+
+        transport.online = true;
+        await delivery.onComputerReconnect('cmp_ssssssssssssssss');
+        const command = transport.frames.find((frame) => frame.type === 'reminder-script');
+        expect(command).toMatchObject({
+            agentId: 'agt_scheduler',
+            script: 'printf changed',
+            type: 'reminder-script',
+        });
+        if (!command || command.type !== 'reminder-script') {
+            throw new Error('Reminder script did not replay on reconnect.');
+        }
+
+        const result = {
+            agentId: command.agentId,
+            attentionId: command.attentionId,
+            exitCode: 0,
+            fireId: command.fireId,
+            output: 'changed',
+            timedOut: false,
+            type: 'reminder-script-result' as const,
+        };
+        await delivery.onReminderScriptResult('cmp_ssssssssssssssss', result);
+        await delivery.onReminderScriptResult('cmp_ssssssssssssssss', result);
+        await delivery.onComputerReconnect('cmp_ssssssssssssssss');
+
+        expect(transport.frames.filter((frame) => frame.type === 'reminder-script')).toHaveLength(
+            1
+        );
+        const starts = transport.frames.filter((frame) => frame.type === 'start');
+        expect(starts.length).toBeGreaterThanOrEqual(1);
+        expect(new Set(starts.map((frame) => frame.runId))).toHaveLength(1);
+        expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(0);
+        const [fire] = await connection.db.select().from(reminderFiresTable);
+        expect(fire).toMatchObject({
+            scriptExitCode: 0,
+            scriptOutput: 'changed',
+            scriptTimedOut: false,
+        });
+    });
 });
 
 class RecordingTransport implements DeliveryTransport {
     readonly frames: HostedAgentCommand[] = [];
+    online = true;
 
     isOnline(computerId: string): boolean {
-        return computerId === 'cmp_ssssssssssssssss';
+        return this.online && computerId === 'cmp_ssssssssssssssss';
     }
 
     send(computerId: string, frame: HostedAgentCommand): boolean {

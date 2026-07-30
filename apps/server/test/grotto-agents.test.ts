@@ -63,7 +63,12 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('creates an Agent on a reported Computer with its DM, pending until effective', async () => {
+test('keeps a new Server Agent-free until an Owner explicitly provisions one', async () => {
+    const agents = await owner.trpc.agent.list.query({ serverId });
+    expect(agents).toEqual([]);
+});
+
+test('provisions Cove through hosted Agent creation with its ordinary DM', async () => {
     const created = await owner.trpc.agent.create.mutate({
         archetype: 'guide',
         computerId: computerA,
@@ -171,6 +176,49 @@ test('saves desired config from last inventory while the Computer is offline, im
         desiredModelId: 'gpt-5.6-terra',
         status: 'pending',
     });
+    const [rotated] = await harness.sql`
+        select session_generation, session_reset_kind
+        from agents
+        where id = ${agent.id}
+    `;
+    expect(rotated).toMatchObject({
+        session_generation: 2,
+        session_reset_kind: 'session',
+    });
+    const receipts = await harness.sql`
+        select content, system_author
+        from chat_messages
+        where author_agent_id is null
+          and system_author = 'session'
+          and chat_id = ${agent.dmChatId}
+    `;
+    expect(receipts).toEqual([
+        {
+            content:
+                'Started a fresh session with the newly selected runtime and model. The workspace and MEMORY.md are intact.',
+            system_author: 'session',
+        },
+    ]);
+
+    await owner.trpc.agent.configure.mutate({
+        agentId: agent.id,
+        modelId: 'gpt-5.6-terra',
+        runtimeId: 'codex',
+        serverId,
+    });
+    const [unchanged] = await harness.sql`
+        select session_generation
+        from agents
+        where id = ${agent.id}
+    `;
+    expect(unchanged?.session_generation).toBe(2);
+    const [receiptCount] = await harness.sql`
+        select count(*)::int as count
+        from chat_messages
+        where system_author = 'session'
+          and chat_id = ${agent.dmChatId}
+    `;
+    expect(receiptCount?.count).toBe(1);
 
     await expect(
         owner.trpc.agent.configure.mutate({
@@ -224,7 +272,7 @@ test('retires an Agent immediately, preserves authored history, and then permits
 
     await harness.sql`
         insert into chat_messages (id, server_id, chat_id, author_agent_id, content, nonce, sequence)
-        values ('msg_agent_tombstone', ${serverId}, ${chat.id}, ${agent.id}, 'Keep this history.', 'tombstone', 1)
+        values ('msg_agent_tombstone', ${serverId}, ${chat.id}, ${agent.id}, 'Keep this history.', 'tombstone', 1000)
     `;
     await harness.sql`
         insert into message_tasks (
@@ -262,7 +310,7 @@ test('retires an Agent immediately, preserves authored history, and then permits
     const retired = (await harness.sql`
         select computer_id, retired_at from agents where id = ${agent.id}
     `) as { computer_id: string | null; retired_at: Date | null }[];
-    expect(retired[0]).toMatchObject({ computer_id: null });
+    expect(retired[0]).toMatchObject({ computer_id: computerA });
     expect(retired[0]?.retired_at).toBeTruthy();
     const history = (await harness.sql`
         select author_agent_id, content from chat_messages where id = 'msg_agent_tombstone'
@@ -294,6 +342,10 @@ test('retires an Agent immediately, preserves authored history, and then permits
         id: string;
     }[];
     expect(gone).toEqual([]);
+    const detachedTombstone = (await harness.sql`
+        select computer_id from agents where id = ${agent.id}
+    `) as { computer_id: string | null }[];
+    expect(detachedTombstone).toEqual([{ computer_id: null }]);
 });
 
 async function insertComputer(

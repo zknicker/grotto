@@ -1,4 +1,4 @@
-// Regenerates src/agent-engine/visuals-skill/icons.ts from the app's
+// Regenerates packages/agent-workspace/src/visuals-skill/icons.ts from the app's
 // HugeIcons solid-rounded set. Run from apps/runtime:
 //   bun scripts/generate-visuals-skill-icons.mjs
 // The curated catalog below is the source of truth for which icons the
@@ -13,7 +13,7 @@ const iconPackage = path.join(
     here,
     '../../website/node_modules/@hugeicons-pro/core-solid-rounded/dist/esm/index.js'
 );
-const outFile = path.join(here, '../src/agent-engine/visuals-skill/icons.ts');
+const outFile = path.join(here, '../../../packages/agent-workspace/src/visuals-skill/icons.ts');
 
 // name: skill-facing file stem (kebab). export: HugeIcons export name.
 // aliases/useFor/avoidFor mirror the Kimi manifest shape for agent lookup.

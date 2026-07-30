@@ -55,6 +55,7 @@ export interface HarnessTurnInput {
     modelId: string;
     registerNoticeSink?: NoticeSinkRegistrar;
     runtimeId: string;
+    sessionGeneration: number;
     signal?: AbortSignal;
     skillsDir: string;
     /** Runtime's grant-filtered MCP tools, now composed by Computer. */
@@ -84,28 +85,14 @@ export class AgentSessionResumeRejectedError extends Error {
 export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTurnResult> {
     const stored = await readAgentSessionState(input.agentRoot);
     const session = resolveTurnSession(stored, {
+        generation: input.sessionGeneration,
         modelId: input.modelId,
         runtimeId: input.runtimeId,
     });
     // A rotated generation (fresh Agent or a runtime/model change) drops resume
     // state and cold-starts; matching Runtime, instructions only ride a cold
     // start — the adapter persists them in the runtime's own first message.
-    try {
-        return await executeHarnessTurn(input, session);
-    } catch (error) {
-        if (!(error instanceof AgentSessionResumeRejectedError)) {
-            throw error;
-        }
-        // The stored runtime session is gone or replay was rejected: rotate the
-        // generation and cold-start once (specs/sessions.md).
-        const rotated: AgentSessionState = {
-            effectiveModel: { modelId: input.modelId, runtimeId: input.runtimeId },
-            generation: session.generation + 1,
-            resumeState: null,
-            runtimeSessionId: null,
-        };
-        return await executeHarnessTurn(input, rotated);
-    }
+    return await executeHarnessTurn(input, session);
 }
 
 async function executeHarnessTurn(

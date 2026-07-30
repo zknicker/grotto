@@ -41,6 +41,10 @@ export const agentsTable = pgTable(
         retiredAt: timestamp('retired_at', { withTimezone: true }),
         role: text('role').notNull().$type<'admin' | 'member'>(),
         sessionGeneration: integer('session_generation').notNull().default(1),
+        sessionResetKind: text('session_reset_kind')
+            .notNull()
+            .default('session')
+            .$type<'full' | 'session'>(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -63,6 +67,7 @@ export const agentsTable = pgTable(
             sql`${table.character} in ('knight', 'owl', 'bird', 'robot', 'alien', 'blob')`
         ),
         check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
+        check('agents_session_reset_kind', sql`${table.sessionResetKind} in ('full', 'session')`),
         check(
             'agents_configuration',
             sql`(

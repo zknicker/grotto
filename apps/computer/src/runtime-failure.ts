@@ -3,6 +3,7 @@ export type RuntimeFailureKind =
     | 'configuration'
     | 'input'
     | 'rate-limit'
+    | 'session-resume'
     | 'timeout'
     | 'transport'
     | 'unknown';

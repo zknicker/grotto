@@ -1,5 +1,6 @@
 import type {
     AgentArchetypeId,
+    HostedAgent,
     HostedAgentCommand,
     HostedAgentInboxItem,
     HostedAgentTurnSummary,
@@ -7,7 +8,9 @@ import type {
     HostedReminderScriptResult,
 } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
+import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
+import type { HostedAgentConfigurationRotation } from '../hosted-agents/configure-agent.ts';
 import { recordAgentTurnSummary } from '../hosted-agents/record-agent-turn.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -32,6 +35,7 @@ import {
 } from './cursors.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
+import { recordHostedSessionRotationReceipts } from './session-rotation.ts';
 import type { AgentDeliveryRow, AgentDispatchConfig } from './store.ts';
 import * as store from './store.ts';
 
@@ -258,23 +262,41 @@ export class AgentDelivery {
                 });
                 await store.clearActiveRun(tx, input.agentId);
             }
-            await tx
+            const [rotated] = await tx
                 .update(agentsTable)
-                .set({ sessionGeneration: sql`${agentsTable.sessionGeneration} + 1` })
+                .set({
+                    sessionGeneration: sql`${agentsTable.sessionGeneration} + 1`,
+                    sessionResetKind: input.kind,
+                })
                 .where(
                     sql`${agentsTable.serverId} = ${input.serverId}
                         and ${agentsTable.id} = ${input.agentId}`
-                );
+                )
+                .returning({ sessionGeneration: agentsTable.sessionGeneration });
+            if (!rotated) {
+                throw new Error('The Agent session could not be rotated.');
+            }
             await tx
                 .delete(agentMessageDraftsTable)
                 .where(eq(agentMessageDraftsTable.agentId, input.agentId));
             const config = await store.readAgentDispatchConfig(tx, input.agentId);
+            const events = await recordHostedSessionRotationReceipts(tx, {
+                agentId: input.agentId,
+                generation: rotated.sessionGeneration,
+                reason: input.kind,
+                serverId: input.serverId,
+            });
             return {
                 chatId: state?.activeRunChatId ?? null,
                 computerId: config?.computerId ?? null,
+                events,
                 runId: state?.activeRunId ?? null,
+                sessionGeneration: rotated.sessionGeneration,
             };
         });
+        for (const event of result.events) {
+            emitDurableChatEvent({ audienceUserId: null, event });
+        }
         if (!result.computerId) {
             return;
         }
@@ -298,6 +320,7 @@ export class AgentDelivery {
         this.transport.send(result.computerId, {
             agentId: input.agentId,
             kind: input.kind,
+            sessionGeneration: result.sessionGeneration,
             type: 'agent-reset',
         });
     }
@@ -322,6 +345,77 @@ export class AgentDelivery {
         await recordAgentTurnSummary(this.db, computerId, summary);
         const serverId = await store.readAgentServerId(this.db, summary.agentId);
         if (!serverId) {
+            return;
+        }
+        if (summary.failureKind === 'session-resume' && !summary.outputProduced) {
+            const recovery = await this.db.transaction(async (tx) => {
+                await lockServerRow(tx, serverId);
+                const state = await store.readDeliveryState(tx, summary.agentId);
+                if (state?.activeRunId !== summary.runId || !state.activeRunChatId) {
+                    return null;
+                }
+                await revokeRunnerCredentialsForRun(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                    serverId,
+                });
+                await store.requeuePendingForRun(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                });
+                await store.clearActiveRun(tx, summary.agentId);
+                const [rotated] = await tx
+                    .update(agentsTable)
+                    .set({
+                        sessionGeneration: sql`${agentsTable.sessionGeneration} + 1`,
+                        sessionResetKind: 'session',
+                    })
+                    .where(
+                        and(eq(agentsTable.serverId, serverId), eq(agentsTable.id, summary.agentId))
+                    )
+                    .returning({ sessionGeneration: agentsTable.sessionGeneration });
+                if (!rotated) {
+                    throw new Error('The Agent recovery session could not be rotated.');
+                }
+                await tx
+                    .delete(agentMessageDraftsTable)
+                    .where(eq(agentMessageDraftsTable.agentId, summary.agentId));
+                await store.clearDeliveryFailures(tx, summary.agentId);
+                const config = await store.readAgentDispatchConfig(tx, summary.agentId);
+                const events = await recordHostedSessionRotationReceipts(tx, {
+                    agentId: summary.agentId,
+                    generation: rotated.sessionGeneration,
+                    reason: 'recovery',
+                    serverId,
+                });
+                return {
+                    chatId: state.activeRunChatId,
+                    config,
+                    events,
+                    plan: await this.planDispatch(tx, summary.agentId),
+                };
+            });
+            if (!recovery) {
+                return;
+            }
+            for (const event of recovery.events) {
+                emitDurableChatEvent({ audienceUserId: null, event });
+            }
+            if (isConfigured(recovery.config)) {
+                this.transport.send(
+                    recovery.config.computerId,
+                    configureFrame(summary.agentId, recovery.config)
+                );
+            }
+            publishAgentLifecycle({
+                agentId: summary.agentId,
+                chatId: recovery.chatId,
+                outcome: 'failed',
+                phase: 'settled',
+                runId: summary.runId,
+                serverId,
+            });
+            this.emit(recovery.plan);
             return;
         }
         const settlement = await this.db.transaction(async (tx) => {
@@ -418,6 +512,13 @@ export class AgentDelivery {
         }
         const agents = await store.listComputerAgents(this.db, computerId);
         for (const agent of agents) {
+            if (agent.retiredAt) {
+                this.transport.send(computerId, {
+                    agentId: agent.agentId,
+                    type: 'agent-retire',
+                });
+                continue;
+            }
             if (agent.desiredModelId && agent.desiredRuntimeId) {
                 this.transport.send(computerId, {
                     agentDescription: agent.agentDescription,
@@ -426,6 +527,8 @@ export class AgentDelivery {
                     archetype: agent.archetype,
                     modelId: agent.desiredModelId,
                     runtimeId: agent.desiredRuntimeId,
+                    sessionGeneration: agent.sessionGeneration,
+                    sessionResetKind: agent.sessionResetKind,
                     type: 'agent-configure',
                 });
             }
@@ -433,8 +536,62 @@ export class AgentDelivery {
         }
     }
 
+    /** Best-effort immediate cleanup; the durable retirement tombstone replays on reconnect. */
+    retireAgent(input: { agentId: string; computerId: string }): void {
+        this.transport.send(input.computerId, {
+            agentId: input.agentId,
+            type: 'agent-retire',
+        });
+    }
+
+    /**
+     * Applies a validated desired runtime/model snapshot. A changed pair rotates
+     * the authoritative session before the Computer receives the new config;
+     * a no-op pair only resends configuration.
+     */
+    async applyAgentConfiguration(input: {
+        agent: HostedAgent;
+        rotation: HostedAgentConfigurationRotation | null;
+    }): Promise<void> {
+        const { agent, rotation } = input;
+        if (rotation) {
+            for (const event of rotation.events) {
+                emitDurableChatEvent({ audienceUserId: null, event });
+            }
+            if (rotation.runId) {
+                if (rotation.chatId) {
+                    publishAgentLifecycle({
+                        agentId: agent.id,
+                        chatId: rotation.chatId,
+                        outcome: 'stopped',
+                        phase: 'settled',
+                        runId: rotation.runId,
+                        serverId: agent.serverId,
+                    });
+                }
+                this.transport.send(rotation.computerId, {
+                    agentId: agent.id,
+                    runId: rotation.runId,
+                    type: 'stop',
+                });
+            }
+        }
+        await this.configureAgent({
+            agentDescription: agent.description,
+            agentId: agent.id,
+            agentName: agent.displayName,
+            archetype: agent.archetype,
+            computerId: agent.computerId,
+            modelId: agent.desiredModelId,
+            runtimeId: agent.desiredRuntimeId,
+        });
+        if (rotation) {
+            await this.dispatchAgent(agent.id, agent.serverId);
+        }
+    }
+
     /** Best-effort immediate apply; reconnect reconciliation resends the full snapshot. */
-    configureAgent(input: {
+    async configureAgent(input: {
         agentDescription: string | null;
         agentId: string;
         agentName: string;
@@ -442,7 +599,11 @@ export class AgentDelivery {
         computerId: string;
         modelId: string;
         runtimeId: string;
-    }): void {
+    }): Promise<void> {
+        const config = await store.readAgentDispatchConfig(this.db, input.agentId);
+        if (!config) {
+            return;
+        }
         this.transport.send(input.computerId, {
             agentDescription: input.agentDescription,
             agentId: input.agentId,
@@ -450,6 +611,8 @@ export class AgentDelivery {
             archetype: input.archetype,
             modelId: input.modelId,
             runtimeId: input.runtimeId,
+            sessionGeneration: config.sessionGeneration,
+            sessionResetKind: config.sessionResetKind,
             type: 'agent-configure',
         });
     }
@@ -570,6 +733,7 @@ export class AgentDelivery {
                 modelId: config.desiredModelId,
                 runId,
                 runtimeId: config.desiredRuntimeId,
+                sessionGeneration: config.sessionGeneration,
                 type: 'start',
             },
             serverId: state.serverId,
@@ -619,15 +783,33 @@ export class AgentDelivery {
 
 interface ConfiguredAgent {
     agentDescription: string | null;
+    agentDisplayName: string;
     agentName: string;
+    archetype: AgentArchetypeId | null;
     computerId: string;
     desiredModelId: string;
     desiredRuntimeId: string;
     homeTimezone: string;
+    sessionGeneration: number;
+    sessionResetKind: 'full' | 'session';
 }
 
 function isConfigured(config: AgentDispatchConfig | null): config is ConfiguredAgent {
     return Boolean(config?.computerId && config.desiredRuntimeId && config.desiredModelId);
+}
+
+function configureFrame(agentId: string, config: ConfiguredAgent): HostedAgentCommand {
+    return {
+        agentDescription: config.agentDescription,
+        agentId,
+        agentName: config.agentDisplayName,
+        archetype: config.archetype,
+        modelId: config.desiredModelId,
+        runtimeId: config.desiredRuntimeId,
+        sessionGeneration: config.sessionGeneration,
+        sessionResetKind: config.sessionResetKind,
+        type: 'agent-configure',
+    };
 }
 
 function isBackedOff(state: AgentDeliveryRow): boolean {
@@ -645,7 +827,10 @@ function nextRetryAt(failures: number): Date {
 async function startFrame(
     db: GrottoDatabase,
     state: AgentDeliveryRow,
-    config: Pick<AgentDispatchConfig, 'agentDescription' | 'agentName' | 'homeTimezone'>
+    config: Pick<
+        AgentDispatchConfig,
+        'agentDescription' | 'agentName' | 'homeTimezone' | 'sessionGeneration'
+    >
 ): Promise<HostedAgentCommand> {
     return {
         agentId: state.agentId,
@@ -665,6 +850,7 @@ async function startFrame(
         modelId: state.activeRunModelId ?? '',
         runId: state.activeRunId ?? '',
         runtimeId: state.activeRunRuntimeId ?? '',
+        sessionGeneration: config.sessionGeneration,
         type: 'start',
     };
 }

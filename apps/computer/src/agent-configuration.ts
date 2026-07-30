@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { seedAgentWorkspace } from '@tavern/agent-workspace';
+import { seedAgentWorkspace, seedFactoryManagedSkills } from '@tavern/agent-workspace';
 import {
     type AgentArchetypeId,
     type HostedAgentConfigureCommand,
@@ -51,6 +51,7 @@ export async function applyAgentConfiguration(input: {
         bio: input.command.agentDescription,
         workspaceDir: join(agentRoot, 'workspace'),
     });
+    await seedFactoryManagedSkills(join(agentRoot, 'skills'));
     const destination = join(agentRoot, 'configuration.json');
     const temporary = `${destination}.${process.pid}.tmp`;
     await writeFile(

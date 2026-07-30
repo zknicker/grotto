@@ -315,7 +315,8 @@ export async function removeServerComputer(
             .where(
                 and(
                     eq(agentsTable.serverId, input.serverId),
-                    eq(agentsTable.computerId, computer.id)
+                    eq(agentsTable.computerId, computer.id),
+                    isNull(agentsTable.retiredAt)
                 )
             )
             .limit(1);
@@ -324,6 +325,15 @@ export async function removeServerComputer(
                 'Delete every assigned Agent before removing this Computer.'
             );
         }
+        await tx
+            .update(agentsTable)
+            .set({ computerId: null, desiredModelId: null, desiredRuntimeId: null })
+            .where(
+                and(
+                    eq(agentsTable.serverId, input.serverId),
+                    eq(agentsTable.computerId, computer.id)
+                )
+            );
         await tx.delete(computersTable).where(eq(computersTable.id, computer.id));
         return { computerId: computer.id };
     });

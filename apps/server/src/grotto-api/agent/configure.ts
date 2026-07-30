@@ -9,17 +9,12 @@ export const configureAgentProcedure = memberProcedure
     .output(hostedAgentSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            const agent = await configureHostedAgent(ctx.grottoDb, ctx.member, input);
-            ctx.agentDelivery.configureAgent({
-                agentDescription: agent.description,
-                agentId: agent.id,
-                agentName: agent.displayName,
-                archetype: agent.archetype,
-                computerId: agent.computerId,
-                modelId: agent.desiredModelId,
-                runtimeId: agent.desiredRuntimeId,
+            const result = await configureHostedAgent(ctx.grottoDb, ctx.member, input);
+            await ctx.agentDelivery.applyAgentConfiguration({
+                agent: result.agent,
+                rotation: result.rotation,
             });
-            return agent;
+            return result.agent;
         } catch (cause) {
             if (cause instanceof AgentConfigDeniedError) {
                 throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });

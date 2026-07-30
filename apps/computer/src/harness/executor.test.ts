@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import {
+    AgentSessionResumeRejectedError,
     type HarnessTurnInput,
     runHarnessTurn,
     setHarnessAgentFactoryForTesting,
@@ -98,6 +99,7 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
         ],
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
+        sessionGeneration: 1,
         skillsDir: join(agentRoot, 'skills'),
         webAccess: null,
         workspaceDir: join(agentRoot, 'workspace'),
@@ -141,9 +143,15 @@ test('a cold start removes only its stale unresumable harness run', async () => 
     await expect(access(join(staleRun, 'stale'))).rejects.toThrow();
 });
 
-test('a runtime/model change rotates the generation and cold-starts', async () => {
+test('a Server generation change cold-starts the assigned runtime and model', async () => {
     await runHarnessTurn(turnInput());
-    await runHarnessTurn(turnInput({ modelId: 'claude-opus-4-8', runtimeId: 'claude-code' }));
+    await runHarnessTurn(
+        turnInput({
+            modelId: 'claude-opus-4-8',
+            runtimeId: 'claude-code',
+            sessionGeneration: 2,
+        })
+    );
 
     expect(createSessionCalls[1]?.resumeFrom).toBeUndefined();
     const session = await readSession();
@@ -154,16 +162,18 @@ test('a runtime/model change rotates the generation and cold-starts', async () =
     });
 });
 
-test('a rejected resume rotates the generation and cold-starts once', async () => {
+test('a rejected resume returns control to the Server without local rotation', async () => {
     await runHarnessTurn(turnInput());
     rejectResume = true;
 
-    await runHarnessTurn(turnInput());
+    await expect(runHarnessTurn(turnInput())).rejects.toBeInstanceOf(
+        AgentSessionResumeRejectedError
+    );
 
-    // The resume attempt was rejected, then a fresh cold start succeeded.
+    // The Server must authorize the next generation before a cold start.
     expect(createSessionCalls[1]?.resumeFrom).toMatchObject({ type: 'resume-session' });
-    expect(createSessionCalls[2]?.resumeFrom).toBeUndefined();
-    expect((await readSession()).generation).toBe(2);
+    expect(createSessionCalls).toHaveLength(2);
+    expect((await readSession()).generation).toBe(1);
 });
 
 test('delivers a pending busy notice into the live harness turn', async () => {

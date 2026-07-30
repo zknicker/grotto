@@ -13,6 +13,10 @@ export const deleteAgentProcedure = memberProcedure
             for (const event of result.taskEvents) {
                 emitDurableChatEvent({ audienceUserId: null, event });
             }
+            ctx.agentDelivery.retireAgent({
+                agentId: result.agentId,
+                computerId: result.computerId,
+            });
             return { agentId: result.agentId };
         } catch (cause) {
             if (cause instanceof AgentDeleteDeniedError) {

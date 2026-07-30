@@ -10,7 +10,7 @@ export const updateAgentProfileProcedure = memberProcedure
     .mutation(async ({ ctx, input }) => {
         try {
             const agent = await updateHostedAgentProfile(ctx.grottoDb, ctx.member, input);
-            ctx.agentDelivery.configureAgent({
+            await ctx.agentDelivery.configureAgent({
                 agentDescription: agent.description,
                 agentId: agent.id,
                 agentName: agent.displayName,

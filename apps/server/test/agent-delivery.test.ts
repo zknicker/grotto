@@ -306,12 +306,40 @@ test('ignores a duplicate delivery of the same message', async () => {
             archetype: null,
             modelId: 'fake-model',
             runtimeId: 'fake',
+            sessionGeneration: 1,
+            sessionResetKind: 'session',
             type: 'agent-configure',
         },
     ]);
     const starts = transport.framesOfType('start');
     expect(starts).toHaveLength(1);
     expect(starts[0]?.inbox.map((item) => item.content)).toEqual(['once']);
+});
+
+test('replays durable Agent retirement tombstones on Computer reconnect', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    const delivery = new AgentDelivery(connection.db, transport);
+    transport.online.add(seed.computerId);
+
+    delivery.retireAgent({ agentId: seed.agentId, computerId: seed.computerId });
+    expect(transport.framesOfType('agent-retire')).toEqual([
+        { agentId: seed.agentId, type: 'agent-retire' },
+    ]);
+    transport.sent.length = 0;
+
+    await connection.db
+        .update(agentsTable)
+        .set({ retiredAt: new Date() })
+        .where(eq(agentsTable.id, seed.agentId));
+
+    await delivery.onComputerReconnect(seed.computerId);
+
+    expect(transport.framesOfType('agent-retire')).toEqual([
+        { agentId: seed.agentId, type: 'agent-retire' },
+    ]);
+    expect(transport.framesOfType('agent-configure')).toEqual([]);
+    expect(transport.framesOfType('start')).toEqual([]);
 });
 
 test('queues work for a busy Agent and notices it, then drains at the boundary', async () => {
@@ -828,6 +856,16 @@ test('Reset rotates the session and tells the assigned Computer to clear local s
         serverId: seed.serverId,
     });
     const first = transport.framesOfType('start')[0];
+    const runnerId = createOpaqueId('arc');
+    await connection.db.insert(agentRunnerCredentialsTable).values({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        computerId: seed.computerId,
+        id: runnerId,
+        runId: first?.runId ?? '',
+        serverId: seed.serverId,
+        tokenHash: randomBytes(32).toString('hex'),
+    });
 
     await delivery.reset({ agentId: seed.agentId, kind: 'session', serverId: seed.serverId });
 
@@ -835,7 +873,12 @@ test('Reset rotates the session and tells the assigned Computer to clear local s
         { agentId: seed.agentId, runId: first?.runId, type: 'stop' },
     ]);
     expect(transport.framesOfType('agent-reset')).toEqual([
-        { agentId: seed.agentId, kind: 'session', type: 'agent-reset' },
+        {
+            agentId: seed.agentId,
+            kind: 'session',
+            sessionGeneration: 2,
+            type: 'agent-reset',
+        },
     ]);
     expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
     expect(await countQueuedPending(connection.db, seed.agentId)).toBe(1);
@@ -844,6 +887,105 @@ test('Reset rotates the session and tells the assigned Computer to clear local s
         .from(agentsTable)
         .where(eq(agentsTable.id, seed.agentId));
     expect(agent?.generation).toBe(2);
+    const [credential] = await connection.db
+        .select({ revokedAt: agentRunnerCredentialsTable.revokedAt })
+        .from(agentRunnerCredentialsTable)
+        .where(eq(agentRunnerCredentialsTable.id, runnerId));
+    expect(credential?.revokedAt).not.toBeNull();
+    const receipts = await connection.db
+        .select({
+            content: chatMessagesTable.content,
+            systemAuthor: chatMessagesTable.systemAuthor,
+        })
+        .from(chatMessagesTable)
+        .where(eq(chatMessagesTable.chatId, seed.chatId));
+    expect(receipts).toEqual([
+        {
+            content:
+                'Started a fresh session. New messages start with fresh context; the workspace and MEMORY.md are intact.',
+            systemAuthor: 'session',
+        },
+    ]);
+});
+
+test('offline reset reconnects with authoritative configuration before redelivery', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'resume after reset',
+        dedupeKey: 'msg-offline-reset',
+        serverId: seed.serverId,
+    });
+    await delivery.reset({ agentId: seed.agentId, kind: 'full', serverId: seed.serverId });
+    expect(transport.sent).toEqual([]);
+
+    transport.online.add(seed.computerId);
+    await delivery.onComputerReconnect(seed.computerId);
+
+    expect(transport.sent.map(({ frame }) => frame.type)).toEqual(['agent-configure', 'start']);
+    expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
+        agentId: seed.agentId,
+        sessionGeneration: 2,
+        sessionResetKind: 'full',
+    });
+    expect(transport.framesOfType('start')[0]).toMatchObject({
+        agentId: seed.agentId,
+        sessionGeneration: 2,
+    });
+});
+
+test('resume rejection rotates on the Server and retries from a fresh session', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'continue this work',
+        dedupeKey: 'msg-resume-rejected',
+        serverId: seed.serverId,
+    });
+    const firstRunId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, firstRunId, 'failed', false, 'session-resume')
+    );
+
+    expect(transport.sent.map(({ frame }) => frame.type)).toEqual([
+        'start',
+        'agent-configure',
+        'start',
+    ]);
+    expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
+        agentId: seed.agentId,
+        sessionGeneration: 2,
+        sessionResetKind: 'session',
+    });
+    const retry = transport.framesOfType('start')[1];
+    expect(retry).toMatchObject({
+        agentId: seed.agentId,
+        inbox: [expect.objectContaining({ content: 'continue this work' })],
+        sessionGeneration: 2,
+    });
+    expect(retry?.runId).not.toBe(firstRunId);
+    const [receipt] = await connection.db
+        .select({
+            content: chatMessagesTable.content,
+            systemAuthor: chatMessagesTable.systemAuthor,
+        })
+        .from(chatMessagesTable)
+        .where(eq(chatMessagesTable.chatId, seed.chatId));
+    expect(receipt).toEqual({
+        content:
+            'Started a fresh session because the previous runtime context could not be resumed. The workspace and MEMORY.md are intact.',
+        systemAuthor: 'session',
+    });
 });
 
 test('a failed turn that produced output does not requeue its work', async () => {

@@ -22,7 +22,7 @@ export async function deleteHostedAgent(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: HostedDeleteAgentInput
-): Promise<{ agentId: string; taskEvents: HostedDurableEvent[] }> {
+): Promise<{ agentId: string; computerId: string; taskEvents: HostedDurableEvent[] }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);
@@ -30,7 +30,11 @@ export async function deleteHostedAgent(
             throw new AgentDeleteDeniedError('Only a Server Owner or Admin can delete an Agent.');
         }
         const [agent] = await tx
-            .select({ displayName: agentsTable.displayName, id: agentsTable.id })
+            .select({
+                computerId: agentsTable.computerId,
+                displayName: agentsTable.displayName,
+                id: agentsTable.id,
+            })
             .from(agentsTable)
             .where(
                 and(
@@ -42,6 +46,9 @@ export async function deleteHostedAgent(
             .for('update');
         if (!agent) {
             throw new AgentDeleteDeniedError('That Agent no longer exists.');
+        }
+        if (!agent.computerId) {
+            throw new AgentDeleteDeniedError('That Agent has no assigned Computer.');
         }
         if (input.confirmation !== agent.displayName) {
             throw new AgentDeleteDeniedError('Type the Agent name exactly to delete it.');
@@ -109,9 +116,6 @@ export async function deleteHostedAgent(
         await tx
             .update(agentsTable)
             .set({
-                computerId: null,
-                desiredModelId: null,
-                desiredRuntimeId: null,
                 effectiveMissing: null,
                 effectiveModelId: null,
                 effectiveReportedAt: null,
@@ -119,6 +123,6 @@ export async function deleteHostedAgent(
                 retiredAt: new Date(),
             })
             .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, agent.id)));
-        return { agentId: agent.id, taskEvents };
+        return { agentId: agent.id, computerId: agent.computerId, taskEvents };
     });
 }

@@ -137,6 +137,7 @@ test('runs a deterministic Agent launch that lands a durable hosted message', as
         modelId: 'fake-model',
         runId: 'run_launchtest',
         runtimeId: 'fake',
+        sessionGeneration: 1,
         type: 'start',
     };
     const turnFrames: Record<string, unknown>[] = [];
@@ -209,6 +210,7 @@ test('reports a failed turn when the runtime is not installed', async () => {
             modelId: 'gpt',
             runId: 'run_missing',
             runtimeId: 'unsupported-runtime',
+            sessionGeneration: 1,
             type: 'start',
         },
         dataRoot,
@@ -246,6 +248,7 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
         modelId: 'gpt-5.6-sol',
         runId: 'run_mcp_granted',
         runtimeId: 'codex',
+        sessionGeneration: 1,
         type: 'start',
     };
     let tools: ToolSet = {};
@@ -307,6 +310,8 @@ test('session and full reset preserve only the intended Agent-local state', asyn
         archetype: 'guide',
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
+        sessionGeneration: 1,
+        sessionResetKind: 'full',
         type: 'agent-configure',
     });
     if (!configuration) {
@@ -338,11 +343,26 @@ test('session and full reset preserve only the intended Agent-local state', asyn
     ]);
 
     expect(
-        parseResetCommand({ agentId: 'agt_reset', kind: 'session', type: 'agent-reset' })
-    ).toEqual({ agentId: 'agt_reset', kind: 'session', type: 'agent-reset' });
-    expect(parseResetCommand({ agentId: 'agt_reset', kind: 'unknown', type: 'agent-reset' })).toBe(
-        null
-    );
+        parseResetCommand({
+            agentId: 'agt_reset',
+            kind: 'session',
+            sessionGeneration: 2,
+            type: 'agent-reset',
+        })
+    ).toEqual({
+        agentId: 'agt_reset',
+        kind: 'session',
+        sessionGeneration: 2,
+        type: 'agent-reset',
+    });
+    expect(
+        parseResetCommand({
+            agentId: 'agt_reset',
+            kind: 'unknown',
+            sessionGeneration: 2,
+            type: 'agent-reset',
+        })
+    ).toBe(null);
 
     await resetAgentState({
         agentId: configuration.agentId,
@@ -365,4 +385,10 @@ test('session and full reset preserve only the intended Agent-local state', asyn
     );
     await expect(stat(join(agentRoot, 'workspace', 'kept.txt'))).rejects.toThrow();
     expect((await stat(join(agentRoot, 'configuration.json'))).isFile()).toBe(true);
+    await expect(
+        readFile(join(agentRoot, 'skills', 'tavern-agent', 'SKILL.md'), 'utf8')
+    ).resolves.toContain('# Grotto Agent');
+    await expect(
+        readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
+    ).resolves.toContain('name: visuals');
 });

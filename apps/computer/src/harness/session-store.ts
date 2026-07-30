@@ -55,16 +55,16 @@ export async function writeAgentSessionState(
  */
 export function resolveTurnSession(
     stored: AgentSessionState | null,
-    assigned: { modelId: string; runtimeId: string }
+    assigned: { generation: number; modelId: string; runtimeId: string }
 ): AgentSessionState {
     const modelChanged =
         stored !== null &&
         (stored.effectiveModel.runtimeId !== assigned.runtimeId ||
             stored.effectiveModel.modelId !== assigned.modelId);
-    if (stored === null || modelChanged) {
+    if (stored === null || modelChanged || stored.generation !== assigned.generation) {
         return {
-            effectiveModel: { ...assigned },
-            generation: (stored?.generation ?? 0) + 1,
+            effectiveModel: { modelId: assigned.modelId, runtimeId: assigned.runtimeId },
+            generation: assigned.generation,
             resumeState: null,
             runtimeSessionId: null,
         };

@@ -10,7 +10,7 @@ interface StoredChatMessage {
     nonce: string;
     sequence: number;
     serverId: string;
-    systemAuthor: 'reminder' | null;
+    systemAuthor: 'reminder' | 'session' | null;
 }
 
 export function toHostedChatMessage(
@@ -33,6 +33,9 @@ export function toHostedChatMessage(
 function readAuthor(message: StoredChatMessage): HostedChatMessage['author'] {
     if (message.systemAuthor === 'reminder') {
         return { kind: 'system', system: 'reminder' };
+    }
+    if (message.systemAuthor === 'session') {
+        return { kind: 'system', system: 'session' };
     }
     if (message.authorAgentId !== null) {
         return { agentId: message.authorAgentId, kind: 'agent' };

@@ -7,6 +7,8 @@ import { runAgentCli } from './agent-cli.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { AgentConfigurationQueue } from './agent-configuration-queue.ts';
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
+import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
+import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
@@ -623,6 +625,7 @@ async function connect(attachment: Attachment) {
         { deliver: (notice: string) => Promise<boolean>; runId: string }
     >();
     const resettingAgents = new Set<string>();
+    const retiredAgents = new Set<string>();
     const agentConfigurations = new AgentConfigurationQueue();
     const pendingWriters = new Set<Promise<unknown>>();
     let deleting = false;
@@ -635,7 +638,7 @@ async function connect(attachment: Attachment) {
         return operation;
     };
     const startAgent = (command: HostedAgentStartCommand) => {
-        if (resettingAgents.has(command.agentId)) {
+        if (resettingAgents.has(command.agentId) || retiredAgents.has(command.agentId)) {
             return;
         }
         // Reserve the run synchronously, before any async marker I/O, so a
@@ -767,12 +770,62 @@ async function connect(attachment: Attachment) {
                 running.get(stop.runId)?.abort();
                 return;
             }
+            const retirement = parseAgentRetireCommand(frame);
+            if (retirement) {
+                retiredAgents.add(retirement.agentId);
+                const runId = agentRuns.get(retirement.agentId);
+                if (runId) {
+                    running.get(runId)?.abort();
+                }
+                void trackWriter(
+                    agentConfigurations
+                        .wait(retirement.agentId)
+                        .then(() => waitForAgentRunToSettle(agentRuns, retirement.agentId))
+                        .then(() => {
+                            disposeAgentLaunchHost(attachment.serverId, retirement.agentId);
+                            return purgeRetiredAgent({
+                                agentId: retirement.agentId,
+                                dataRoot,
+                                serverId: attachment.serverId,
+                            });
+                        })
+                        .then(() => sendComputerReport(socket, attachment.serverId, computerName))
+                        .catch(reportStateError)
+                );
+                return;
+            }
             const configuration = parseAgentConfigureCommand(frame);
             if (configuration) {
+                if (retiredAgents.has(configuration.agentId)) {
+                    return;
+                }
                 void trackWriter(
                     agentConfigurations
                         .enqueue(configuration.agentId, async () => {
                             await waitForAgentRunToSettle(agentRuns, configuration.agentId);
+                            const agentRoot = join(
+                                dataRoot,
+                                'servers',
+                                attachment.serverId,
+                                'agents',
+                                configuration.agentId
+                            );
+                            await applyAuthoritativeSession({
+                                agentRoot,
+                                generation: configuration.sessionGeneration,
+                                reset: async () => {
+                                    disposeAgentLaunchHost(
+                                        attachment.serverId,
+                                        configuration.agentId
+                                    );
+                                    await resetAgentState({
+                                        agentId: configuration.agentId,
+                                        dataRoot,
+                                        kind: configuration.sessionResetKind,
+                                        serverId: attachment.serverId,
+                                    });
+                                },
+                            });
                             await applyAgentConfiguration({
                                 command: configuration,
                                 dataRoot,
@@ -843,6 +896,9 @@ async function connect(attachment: Attachment) {
             }
             const reset = parseResetCommand(frame);
             if (reset) {
+                if (retiredAgents.has(reset.agentId)) {
+                    return;
+                }
                 resettingAgents.add(reset.agentId);
                 const runId = agentRuns.get(reset.agentId);
                 if (runId) {
@@ -852,13 +908,25 @@ async function connect(attachment: Attachment) {
                     agentConfigurations
                         .wait(reset.agentId)
                         .then(() => waitForAgentRunToSettle(agentRuns, reset.agentId))
-                        .then(() => {
-                            disposeAgentLaunchHost(attachment.serverId, reset.agentId);
-                            return resetAgentState({
-                                agentId: reset.agentId,
-                                dataRoot,
-                                kind: reset.kind,
-                                serverId: attachment.serverId,
+                        .then(async () => {
+                            await applyAuthoritativeSession({
+                                agentRoot: join(
+                                    dataRoot,
+                                    'servers',
+                                    attachment.serverId,
+                                    'agents',
+                                    reset.agentId
+                                ),
+                                generation: reset.sessionGeneration,
+                                reset: async () => {
+                                    disposeAgentLaunchHost(attachment.serverId, reset.agentId);
+                                    await resetAgentState({
+                                        agentId: reset.agentId,
+                                        dataRoot,
+                                        kind: reset.kind,
+                                        serverId: attachment.serverId,
+                                    });
+                                },
                             });
                         })
                         .then(() => sendComputerReport(socket, attachment.serverId, computerName))
@@ -891,6 +959,9 @@ async function connect(attachment: Attachment) {
             }
             const notice = parseNoticeCommand(frame);
             if (notice) {
+                if (retiredAgents.has(notice.agentId)) {
+                    return;
+                }
                 const location = {
                     agentId: notice.agentId,
                     dataRoot,

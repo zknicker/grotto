@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { defaultTavernAgentSkill } from '@tavern/agent-workspace';
 import {
     type AgentRuntimeAgent,
     type AgentRuntimeSkill,
@@ -45,10 +46,7 @@ function resolveAgentSkillsDir(agentId: string | undefined): string {
     return agentId ? agentSkillsDir(agentId) : agentEngineSkillsDir;
 }
 
-export const defaultTavernSkill = `# Grotto Agent
-
-Use Grotto chat context, memory, files, and local tools. Keep replies direct and action-oriented.
-`;
+export const defaultTavernSkill = defaultTavernAgentSkill;
 
 const seededSkillDefaults: Record<string, string> = {
     [tavernAgentSkillId]: defaultTavernSkill,

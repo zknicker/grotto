@@ -10,21 +10,8 @@
  * together.
  */
 
-import designSystemMd from './visuals-skill/design-system.md' with { type: 'text' };
-import iconsMd from './visuals-skill/icons.md' with { type: 'text' };
-import { visualsSkillIconFiles, visualsSkillIconManifest } from './visuals-skill/icons.ts';
-import skillMd from './visuals-skill/SKILL.md' with { type: 'text' };
-
-export const visualsSkillId = 'visuals';
-
-export const defaultVisualsSkill: string = skillMd;
-
-/** Reference and asset files seeded beside SKILL.md, keyed by relative path. */
-export const visualsSkillFiles: Record<string, string> = {
-    'references/design-system.md': designSystemMd,
-    'references/icons.md': iconsMd,
-    'references/icons/manifest.json': `${JSON.stringify({ icons: visualsSkillIconManifest }, null, 2)}\n`,
-    ...Object.fromEntries(
-        Object.entries(visualsSkillIconFiles).map(([file, svg]) => [`assets/icons/${file}`, svg])
-    ),
-};
+export {
+    defaultVisualsSkill,
+    visualsSkillFiles,
+    visualsSkillId,
+} from '@tavern/agent-workspace';

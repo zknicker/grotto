@@ -171,6 +171,8 @@ const schemaStatements = [
         role text NOT NULL CONSTRAINT agents_role CHECK (role IN ('admin', 'member')),
         session_generation integer NOT NULL DEFAULT 1
             CONSTRAINT agents_positive_session_generation CHECK (session_generation > 0),
+        session_reset_kind text NOT NULL DEFAULT 'session'
+            CONSTRAINT agents_session_reset_kind CHECK (session_reset_kind IN ('full', 'session')),
         computer_id text,
         desired_runtime_id text,
         desired_model_id text,
@@ -386,7 +388,7 @@ const schemaStatements = [
             OR
             (author_agent_id IS NOT NULL AND author_user_id IS NULL AND system_author IS NULL)
             OR
-            (author_user_id IS NULL AND author_agent_id IS NULL AND system_author = 'reminder')
+            (author_user_id IS NULL AND author_agent_id IS NULL AND system_author IN ('reminder', 'session'))
         )
     );`,
     'CREATE UNIQUE INDEX chat_messages_server_id_key ON chat_messages (server_id, id);',

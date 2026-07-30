@@ -1,22 +1,5 @@
-import { Attachment01Icon, Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type {
-    HostedAgent,
-    HostedAttachmentMetadata,
-    HostedChatMessage,
-    HostedThreadSummary,
-} from '@tavern/api';
+import type { HostedAgent, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
 import * as React from 'react';
-import {
-    Attachment,
-    AttachmentAction,
-    AttachmentActions,
-    AttachmentContent,
-    AttachmentDescription,
-    AttachmentGroup,
-    AttachmentMedia,
-    AttachmentTitle,
-} from '../../components/ui/attachment.tsx';
-import { Icon } from '../../components/ui/icon.tsx';
 import type { ActorProfile } from '../../hooks/actors/use-actor.ts';
 import { useDownloadServerAttachment } from '../../hooks/servers/use-download-server-attachment.ts';
 import type { ChatLogOutput } from '../../lib/trpc.tsx';
@@ -28,6 +11,9 @@ import type {
     TranscriptMessageRow,
     TranscriptRenderContextValue,
 } from '../chats/chat-transcript-render-context.tsx';
+import type { TavernResourceTarget } from '../chats/tavern-resource-link.ts';
+import { HostedArtifactMessage } from './hosted-artifact-message.tsx';
+import { HostedMessageAttachments } from './hosted-message-attachments.tsx';
 
 const hostedConversationLayout = {
     showAgentIdentity: true,
@@ -40,6 +26,7 @@ export function ServerChatTranscript({
     chatId,
     composition,
     messages,
+    onOpenArtifact,
     onOpenThread,
     onStartDm,
     scrollContentRef,
@@ -50,6 +37,7 @@ export function ServerChatTranscript({
     chatId: string;
     composition?: React.ReactNode;
     messages: HostedChatMessage[] | undefined;
+    onOpenArtifact: (target: TavernResourceTarget) => void;
     onOpenThread?: (message: HostedChatMessage, summary: HostedThreadSummary | null) => void;
     onStartDm: (userId: string) => void;
     scrollContentRef?: React.RefObject<HTMLDivElement | null>;
@@ -152,7 +140,16 @@ export function ServerChatTranscript({
                 onUnfollowThread: () => undefined,
                 profilePaneChatId: chatId,
                 renderMessageAttachments,
-                renderMessageContent: (message) => <ChatMarkdownText content={message.content} />,
+                renderMessageContent: (message) =>
+                    message.tavernAgentId ? (
+                        <HostedArtifactMessage
+                            agentId={message.tavernAgentId}
+                            content={message.content}
+                            onOpenArtifact={onOpenArtifact}
+                        />
+                    ) : (
+                        <ChatMarkdownText content={message.content} />
+                    ),
                 repliedRunIds: new Set<string>(),
                 resolveActorProfile,
                 shouldAnimateItemEnter: () => false,
@@ -164,6 +161,7 @@ export function ServerChatTranscript({
             chatId,
             handleOpenThread,
             onOpenThread,
+            onOpenArtifact,
             onStartDm,
             renderMessageAttachments,
             resolveActorProfile,
@@ -250,51 +248,4 @@ function hostedMessageActor(message: HostedChatMessage): TranscriptActor {
         return { id: message.author.userId, kind: 'participant' };
     }
     return null;
-}
-
-function HostedMessageAttachments({
-    attachments,
-    disabled,
-    onDownload,
-}: {
-    attachments: HostedAttachmentMetadata[];
-    disabled: boolean;
-    onDownload: (attachment: HostedAttachmentMetadata) => void;
-}) {
-    return (
-        <AttachmentGroup>
-            {attachments.map((attachment) => (
-                <Attachment key={attachment.id} size="sm">
-                    <AttachmentMedia>
-                        <Icon icon={Attachment01Icon} />
-                    </AttachmentMedia>
-                    <AttachmentContent>
-                        <AttachmentTitle>{attachment.filename}</AttachmentTitle>
-                        <AttachmentDescription>
-                            {attachment.mediaType} · {formatBytes(attachment.sizeBytes)}
-                        </AttachmentDescription>
-                    </AttachmentContent>
-                    <AttachmentActions>
-                        <AttachmentAction
-                            aria-label={`Download ${attachment.filename}`}
-                            disabled={disabled}
-                            onClick={() => onDownload(attachment)}
-                        >
-                            <Icon className="size-3.5" icon={Download04Icon} />
-                        </AttachmentAction>
-                    </AttachmentActions>
-                </Attachment>
-            ))}
-        </AttachmentGroup>
-    );
-}
-
-function formatBytes(sizeBytes: number) {
-    if (sizeBytes < 1024) {
-        return `${sizeBytes} B`;
-    }
-    if (sizeBytes < 1024 * 1024) {
-        return `${(sizeBytes / 1024).toFixed(1)} KB`;
-    }
-    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }

@@ -24,6 +24,7 @@
     "@tavern/api": "workspace:*",
     "@tavern/agent-workspace": "workspace:*",
     "@tavern/codex-usage": "workspace:*",
+    "yaml": "2.9.0",
     "zod": "4.1.11"
   }
 }

@@ -1,20 +1,13 @@
-import {
-    Attachment01Icon,
-    SidebarRightIcon,
-    UserMultiple02Icon,
-} from '@hugeicons-pro/core-stroke-rounded';
+import { SidebarRightIcon, UserMultiple02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
 import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
-import type { ChatArtifactPanelState } from '../../hooks/pane/use-chat-pane-state.ts';
-import { setChatSidePane, useChatSidePane } from '../../hooks/pane/use-chat-side-pane.ts';
 import { useEnsureServerDm } from '../../hooks/servers/use-ensure-server-dm.ts';
 import { useMarkServerChatReadOnView } from '../../hooks/servers/use-mark-server-chat-read.ts';
 import { useServerChatMessages } from '../../hooks/servers/use-server-chat-messages.ts';
 import { useViewportBelow } from '../../hooks/use-viewport-below.ts';
-import { ArtifactPanelOpenProvider } from '../chats/artifact-panel-context.tsx';
 import { ChatArtifactPanel } from '../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../chats/chat-detail-frame.tsx';
 import { ChatRoomTopbarPresentation } from '../chats/chat-room-topbar.tsx';
@@ -25,11 +18,13 @@ import {
     hasHostedAgentComposition,
 } from './hosted-agent-composition-bubble.tsx';
 import { HostedAgentProfilePanel } from './hosted-agent-profile-panel.tsx';
+import { HostedChatFiles } from './hosted-chat-files.tsx';
 import { useHostedServerContext } from './hosted-server-context.ts';
 import { ServerChatComposer } from './server-chat-composer.tsx';
 import { projectHostedChatMessages, ServerChatTranscript } from './server-chat-transcript.tsx';
 import { ServerTasksSurface } from './tasks/server-tasks-surface.tsx';
 import { ServerThreadPanel } from './thread/server-thread-panel.tsx';
+import { useHostedChatArtifactPanel } from './use-hosted-chat-artifact-panel.ts';
 
 export function ServerChat({
     agents,
@@ -54,8 +49,7 @@ export function ServerChat({
 }) {
     const [viewTab, setViewTab] = React.useState<ChatViewTab>('chat');
     const { agentLifecycles } = useHostedServerContext();
-    const [artifactVisible, setArtifactVisible] = React.useState(false);
-    const activeSidePane = useChatSidePane(chat.id);
+    const artifactState = useHostedChatArtifactPanel(chat.id);
     const [threadSelection, setThreadSelection] = React.useState<{
         anchor: HostedChatMessage;
         initialSummary: HostedThreadSummary | null;
@@ -84,13 +78,6 @@ export function ServerChat({
         serverId: messages.data ? chat.serverId : undefined,
     });
     const ensureDm = useEnsureServerDm(onOpenChat);
-    const toggleArtifacts = () => {
-        if (!artifactVisible) {
-            setChatSidePane(chat.id, 'artifact');
-        }
-        setArtifactVisible((visible) => !visible);
-    };
-
     const chatName =
         chat.kind === 'channel'
             ? (chat.name ?? 'channel')
@@ -130,133 +117,104 @@ export function ServerChat({
         />
     ) : null;
 
-    const artifactState: ChatArtifactPanelState = {
-        activeKey: null,
-        closeActiveTarget: () => undefined,
-        closeTarget: () => undefined,
-        open: () => {
-            setChatSidePane(chat.id, 'artifact');
-            setArtifactVisible(true);
-        },
-        setActiveKey: () => undefined,
-        targets: [],
-        toggleVisible: () => {
-            setChatSidePane(chat.id, 'artifact');
-            setArtifactVisible((visible) => !visible);
-        },
-        visible: artifactVisible && activeSidePane === 'artifact',
-    };
-    const hostedAgentId = chat.peerAgentId ?? agents[0]?.id ?? '';
-
     return (
-        <ArtifactPanelOpenProvider onOpen={artifactState.open}>
-            <section aria-label={chatName} className="flex min-h-0 flex-1">
-                <ChatDetailFrame
-                    activeReplies={[]}
-                    body={
-                        viewTab === 'tasks' ? (
-                            <ServerTasksSurface
-                                chats={[chat]}
-                                onOpenTask={() => setViewTab('chat')}
-                                role={role}
-                                serverId={chat.serverId}
-                                viewerUserId={viewerUserId}
-                            />
-                        ) : viewTab === 'files' ? (
-                            <HostedChatFiles messages={messages.data?.messages} />
-                        ) : undefined
-                    }
-                    canRequestMention
-                    chatId={chat.id}
-                    emptyLabel="No messages yet."
-                    error={messages.error}
-                    footer={
-                        viewTab === 'chat' ? (
-                            <>
-                                {ensureDm.error ? (
-                                    <p className="px-9 text-destructive text-xs">
-                                        {ensureDm.error.message}
-                                    </p>
-                                ) : null}
-                                <span className="sr-only" data-testid="read-state">
-                                    {read.data ? `Read through ${read.data.sequence}` : ''}
-                                </span>
-                                <ServerChatComposer
-                                    agents={agents}
-                                    chatId={chat.id}
-                                    chatName={chatName}
-                                    compositionChatId={chat.id}
-                                    placeholder="Let's go on an adventure..."
-                                    serverId={chat.serverId}
-                                />
-                            </>
-                        ) : null
-                    }
-                    hasTransientTimelineContent={hasHostedAgentComposition(
-                        chat.id,
-                        agentLifecycles
-                    )}
-                    header={
+        <section aria-label={chatName} className="flex min-h-0 flex-1">
+            <ChatDetailFrame
+                activeReplies={[]}
+                body={
+                    viewTab === 'tasks' ? (
+                        <ServerTasksSurface
+                            chats={[chat]}
+                            onOpenTask={() => setViewTab('chat')}
+                            role={role}
+                            serverId={chat.serverId}
+                            viewerUserId={viewerUserId}
+                        />
+                    ) : viewTab === 'files' ? (
+                        <HostedChatFiles messages={messages.data?.messages} />
+                    ) : undefined
+                }
+                canRequestMention
+                chatId={chat.id}
+                emptyLabel="No messages yet."
+                error={messages.error}
+                footer={
+                    viewTab === 'chat' ? (
                         <>
-                            <HostedChatTopbar
-                                artifactVisible={artifactVisible && !threadSelection}
-                                chat={chat}
-                                chatName={chatName}
-                                onToggleArtifacts={toggleArtifacts}
-                            />
-                            <ChatViewTabs onValueChange={setViewTab} value={viewTab} />
-                        </>
-                    }
-                    historyLoaded={Boolean(messages.data)}
-                    isPending={messages.isPending}
-                    rows={transcriptRows}
-                    sidePanel={
-                        <>
-                            <ChatArtifactPanel
-                                agentId={hostedAgentId}
-                                open={
-                                    artifactVisible &&
-                                    activeSidePane === 'artifact' &&
-                                    !threadSelection
-                                }
-                                state={artifactState}
-                            />
-                            <HostedAgentProfilePanel
+                            {ensureDm.error ? (
+                                <p className="px-9 text-destructive text-xs">
+                                    {ensureDm.error.message}
+                                </p>
+                            ) : null}
+                            <span className="sr-only" data-testid="read-state">
+                                {read.data ? `Read through ${read.data.sequence}` : ''}
+                            </span>
+                            <ServerChatComposer
                                 agents={agents}
                                 chatId={chat.id}
-                                server={server}
+                                chatName={chatName}
+                                compositionChatId={chat.id}
+                                placeholder="Let's go on an adventure..."
+                                serverId={chat.serverId}
                             />
-                            {threadTakeover ? null : threadPanel}
                         </>
-                    }
-                    takeoverPanel={threadPanel && threadTakeover ? threadPanel : undefined}
-                    timelineContent={(scrollContentRef) => (
-                        <ServerChatTranscript
-                            activeThreadAnchorId={threadSelection?.anchor.id}
-                            agents={agents}
-                            chatId={chat.id}
-                            composition={
-                                <HostedAgentCompositionBubbles
-                                    agents={agents}
-                                    chatId={chat.id}
-                                    lifecycles={agentLifecycles}
-                                />
-                            }
-                            messages={transcriptMessages}
-                            onOpenThread={(anchor, summary) =>
-                                setThreadSelection({ anchor, initialSummary: summary })
-                            }
-                            onStartDm={(peerUserId) =>
-                                ensureDm.mutate({ peerUserId, serverId: chat.serverId })
-                            }
-                            scrollContentRef={scrollContentRef}
-                            threads={messages.data?.threads}
+                    ) : null
+                }
+                hasTransientTimelineContent={hasHostedAgentComposition(chat.id, agentLifecycles)}
+                header={
+                    <>
+                        <HostedChatTopbar
+                            artifactVisible={artifactState.visible && !threadSelection}
+                            chat={chat}
+                            chatName={chatName}
+                            onToggleArtifacts={artifactState.toggleVisible}
                         />
-                    )}
-                    totalMessages={transcriptRows.length}
-                />
-            </section>
-        </ArtifactPanelOpenProvider>
+                        <ChatViewTabs onValueChange={setViewTab} value={viewTab} />
+                    </>
+                }
+                historyLoaded={Boolean(messages.data)}
+                isPending={messages.isPending}
+                rows={transcriptRows}
+                sidePanel={
+                    <>
+                        <ChatArtifactPanel
+                            agentId={chat.peerAgentId ?? ''}
+                            open={artifactState.visible && !threadSelection}
+                            serverId={chat.serverId}
+                            state={artifactState}
+                        />
+                        <HostedAgentProfilePanel agents={agents} chatId={chat.id} server={server} />
+                        {threadTakeover ? null : threadPanel}
+                    </>
+                }
+                takeoverPanel={threadPanel && threadTakeover ? threadPanel : undefined}
+                timelineContent={(scrollContentRef) => (
+                    <ServerChatTranscript
+                        activeThreadAnchorId={threadSelection?.anchor.id}
+                        agents={agents}
+                        chatId={chat.id}
+                        composition={
+                            <HostedAgentCompositionBubbles
+                                agents={agents}
+                                chatId={chat.id}
+                                lifecycles={agentLifecycles}
+                            />
+                        }
+                        messages={transcriptMessages}
+                        onOpenArtifact={artifactState.open}
+                        onOpenThread={(anchor, summary) =>
+                            setThreadSelection({ anchor, initialSummary: summary })
+                        }
+                        onStartDm={(peerUserId) =>
+                            ensureDm.mutate({ peerUserId, serverId: chat.serverId })
+                        }
+                        scrollContentRef={scrollContentRef}
+                        threads={messages.data?.threads}
+                    />
+                )}
+                totalMessages={transcriptRows.length}
+            />
+        </section>
     );
 }
 
@@ -304,27 +262,6 @@ function HostedChatTopbar({
                 </>
             }
         />
-    );
-}
-
-function HostedChatFiles({ messages }: { messages: HostedChatMessage[] | undefined }) {
-    const attachments = messages?.flatMap((message) => message.attachments) ?? [];
-    return (
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
-            {attachments.length === 0 ? (
-                <p className="m-auto text-muted-foreground text-sm">No files in this chat.</p>
-            ) : (
-                attachments.map((attachment) => (
-                    <div
-                        className="flex items-center gap-3 border-border border-b py-3"
-                        key={attachment.id}
-                    >
-                        <Icon className="size-4 text-muted-foreground" icon={Attachment01Icon} />
-                        <span className="text-sm">{attachment.filename}</span>
-                    </div>
-                ))
-            )}
-        </div>
     );
 }
 

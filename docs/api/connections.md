@@ -41,3 +41,17 @@ POST /api/agent/mcp/invoke
 The first returns safe tool names, descriptions, and input schemas for currently granted
 connections. The second resolves the tool, rechecks the grant, and invokes the upstream MCP from
 Server. Computer never receives MCP secrets, OAuth tokens, or upstream session state.
+
+Discovery runs concurrently with a five-second deadline for each granted connection. Unavailable
+connections contribute no tools to that launch; healthy connections remain available. Invocation
+has a 30-second upstream deadline.
+
+Runner failures use stable codes:
+
+- `MCP_DENIED` — the connection grant or requested tool is absent or revoked
+- `MCP_AUTH_REQUIRED` — the upstream account must be reconnected
+- `MCP_TIMEOUT` — the bounded upstream operation expired
+- `MCP_UNAVAILABLE` — another upstream or Server MCP failure
+
+`connected` describes retained connection identity, not momentary upstream health. These transient
+failures do not disconnect the account or erase its connection-level Agent grants.

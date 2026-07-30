@@ -225,7 +225,11 @@ export async function runAgentLaunch(
             .join(':'),
     };
 
-    let result: { failureKind?: RuntimeFailureKind; status: 'completed' | 'failed' } = {
+    let result: {
+        failureKind?: RuntimeFailureKind;
+        status: 'completed' | 'failed';
+        toolNames?: string[];
+    } = {
         status: 'failed',
     };
     try {
@@ -263,9 +267,23 @@ export async function runAgentLaunch(
         ...result,
         summary:
             result.status === 'completed'
-                ? `Sent ${proxy.sendCount()} message(s).`
+                ? completedTurnSummary(proxy.sendCount(), result.toolNames ?? [])
                 : `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`,
     });
+}
+
+function completedTurnSummary(messageCount: number, toolNames: string[]) {
+    const tools = toolNames.map(formatToolName).filter(Boolean);
+    const evidence = tools.length > 0 ? ` Tools: ${tools.join(', ')}.` : '';
+    return `Sent ${messageCount} message(s).${evidence}`;
+}
+
+function formatToolName(toolName: string) {
+    if (toolName.startsWith('mcp__')) {
+        const upstreamName = toolName.split('__').at(-1);
+        return upstreamName ? `MCP ${upstreamName.slice(0, 80)}` : 'MCP';
+    }
+    return toolName.replaceAll('_', ' ').slice(0, 80);
 }
 
 async function ensureNativeSkillLinks(homeDir: string, skillsDir: string) {
@@ -547,10 +565,14 @@ async function runRealRuntime(
         agentRoot: string;
         tools: import('@ai-sdk/provider-utils').ToolSet;
     }
-): Promise<{ failureKind?: RuntimeFailureKind; status: 'completed' | 'failed' }> {
+): Promise<{
+    failureKind?: RuntimeFailureKind;
+    status: 'completed' | 'failed';
+    toolNames?: string[];
+}> {
     const { command } = input;
     try {
-        await runHarnessTurn({
+        const turn = await runHarnessTurn({
             agentId: command.agentId,
             // The Server owns the Agent handle/description; sensible defaults keep
             // the managed contract intact when a facet is omitted.
@@ -572,7 +594,7 @@ async function runRealRuntime(
             tools: input.tools,
         });
         await writeTrace(input, 'Harness turn completed.\n');
-        return { status: 'completed' };
+        return { status: 'completed', toolNames: turn.toolNames };
     } catch (error) {
         await writeTrace(input, `Harness turn failed: ${messageOf(error)}\n`);
         return {

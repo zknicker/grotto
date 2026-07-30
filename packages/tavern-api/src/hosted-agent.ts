@@ -37,6 +37,40 @@ export const hostedAgentSkillMetadataSchema = z
 
 export type HostedAgentSkillMetadata = z.infer<typeof hostedAgentSkillMetadataSchema>;
 
+export const hostedAgentSkillImportRecordSchema = z.discriminatedUnion('status', [
+    z
+        .object({
+            agentId: hostedIdSchema,
+            requestId: hostedIdSchema,
+            sourceId: hostedIdSchema,
+            status: z.literal('accepted'),
+            updatedAt: hostedTimestampSchema,
+        })
+        .strict(),
+    z
+        .object({
+            agentId: hostedIdSchema,
+            requestId: hostedIdSchema,
+            skill: hostedAgentSkillMetadataSchema,
+            sourceId: hostedIdSchema,
+            status: z.literal('applied'),
+            updatedAt: hostedTimestampSchema,
+        })
+        .strict(),
+    z
+        .object({
+            agentId: hostedIdSchema,
+            error: z.string().trim().min(1).max(300),
+            requestId: hostedIdSchema,
+            sourceId: hostedIdSchema,
+            status: z.literal('failed'),
+            updatedAt: hostedTimestampSchema,
+        })
+        .strict(),
+]);
+
+export type HostedAgentSkillImportRecord = z.infer<typeof hostedAgentSkillImportRecordSchema>;
+
 export const hostedImportableSkillSchema = z
     .object({
         description: z.string().max(500),
@@ -50,6 +84,7 @@ export type HostedImportableSkill = z.infer<typeof hostedImportableSkillSchema>;
 
 export const hostedComputerInventorySchema = z
     .object({
+        agentSkillImports: z.array(hostedAgentSkillImportRecordSchema).max(100).optional(),
         agentSkills: z
             .array(
                 z
@@ -256,11 +291,33 @@ export const hostedAgentLifecycleSubscriptionInputSchema = z
     .strict();
 
 export const hostedAgentWorkspaceListInputSchema = hostedAgentDetailInputSchema.extend({
+    includeHidden: z.boolean().optional().default(false),
     path: hostedWorkspacePathSchema.default(''),
 });
 
 export const hostedAgentWorkspaceReadInputSchema = hostedAgentDetailInputSchema.extend({
+    includeHidden: z.boolean().optional().default(false),
     path: hostedWorkspacePathSchema.refine((value) => value.length > 0),
+});
+
+const hostedAgentSkillNameInputSchema = z
+    .string()
+    .trim()
+    .min(1)
+    .max(128)
+    .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/u);
+
+export const hostedAgentSkillFileReadInputSchema = hostedAgentDetailInputSchema.extend({
+    name: hostedAgentSkillNameInputSchema,
+});
+
+export const hostedAgentSkillFileUpdateInputSchema = hostedAgentSkillFileReadInputSchema.extend({
+    content: z.string().max(2 * 1024 * 1024),
+    expectedHash: z.string().regex(/^[a-f0-9]{64}$/u),
+});
+
+export const hostedAgentSkillFileDeleteInputSchema = hostedAgentSkillFileReadInputSchema.extend({
+    expectedHash: z.string().regex(/^[a-f0-9]{64}$/u),
 });
 
 /** Targets one Agent for a delivery control action or read. */
@@ -287,7 +344,10 @@ export const hostedAgentImportSkillInputSchema = z
 export type HostedAgentImportSkillInput = z.infer<typeof hostedAgentImportSkillInputSchema>;
 
 export const hostedAgentImportSkillResultSchema = z
-    .object({ skill: hostedAgentSkillMetadataSchema })
+    .object({
+        requestId: hostedIdSchema,
+        status: z.literal('accepted'),
+    })
     .strict();
 
 /**

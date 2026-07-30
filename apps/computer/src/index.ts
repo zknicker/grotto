@@ -3,12 +3,15 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
+import type { HostedAgentSkillImportCommand, HostedAgentSkillImportRecord } from '@tavern/api';
 import { runAgentCli } from './agent-cli.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { AgentConfigurationQueue } from './agent-configuration-queue.ts';
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
+import { AgentRunSettlements } from './agent-run-settlements.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
+import { parseAgentSkillFileRequest, runAgentSkillFileRequest } from './agent-skill-files.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
@@ -37,7 +40,11 @@ import {
 import { readEffectiveAgentStates } from './effective-state.ts';
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import {
+    acceptHostSkillImport,
+    finishHostSkillImport,
     importHostSkill,
+    listAcceptedHostSkillImports,
+    listAgentSkillImportReports,
     listAgentSkillReports,
     listImportableSkills,
     parseAgentSkillImportCommand,
@@ -627,6 +634,7 @@ async function connect(attachment: Attachment) {
     const resettingAgents = new Set<string>();
     const retiredAgents = new Set<string>();
     const agentConfigurations = new AgentConfigurationQueue();
+    const runSettlements = new AgentRunSettlements(agentRuns);
     const pendingWriters = new Set<Promise<unknown>>();
     let deleting = false;
     const trackWriter = <Result>(operation: Promise<Result>) => {
@@ -658,30 +666,89 @@ async function connect(attachment: Attachment) {
         if (reservation.kind === 'busy') {
             return;
         }
+        const releaseRun = () => {
+            releaseAgentRun(running, agentRuns, command.agentId, command.runId);
+            runSettlements.released(command.agentId);
+        };
         void trackWriter(
             admitActiveRun(dataRoot, command.runId)
                 .then((clearActiveRun) => {
                     if (!clearActiveRun) {
-                        releaseAgentRun(running, agentRuns, command.agentId, command.runId);
+                        releaseRun();
                         return;
                     }
                     return handleStartCommand({
-                        agentRuns,
                         attachment,
                         clearActiveRun,
                         command,
                         computerName,
                         controller: reservation.controller,
                         noticeSinks,
-                        running,
+                        releaseRun,
                         socket,
                     });
                 })
                 .catch((error) => {
-                    releaseAgentRun(running, agentRuns, command.agentId, command.runId);
+                    releaseRun();
                     console.error(error instanceof Error ? error.message : error);
                 })
         );
+    };
+    const sendSkillImportRecord = (record: HostedAgentSkillImportRecord) => {
+        if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ ...record, type: 'agent-skill-import-result' }));
+        }
+    };
+    const applyAcceptedSkillImport = async (
+        record: Extract<HostedAgentSkillImportRecord, { status: 'accepted' }>
+    ) => {
+        let settled: HostedAgentSkillImportRecord;
+        try {
+            await runSettlements.wait(record.agentId);
+            const skill = await importHostSkill({
+                agentId: record.agentId,
+                dataRoot,
+                serverId: attachment.serverId,
+                sourceId: record.sourceId,
+            });
+            settled = await finishHostSkillImport({
+                dataRoot,
+                record: {
+                    agentId: record.agentId,
+                    requestId: record.requestId,
+                    skill,
+                    sourceId: record.sourceId,
+                    status: 'applied',
+                },
+                serverId: attachment.serverId,
+            });
+        } catch (error) {
+            settled = await finishHostSkillImport({
+                dataRoot,
+                record: {
+                    agentId: record.agentId,
+                    error: safeSkillImportError(error),
+                    requestId: record.requestId,
+                    sourceId: record.sourceId,
+                    status: 'failed',
+                },
+                serverId: attachment.serverId,
+            });
+        }
+        sendSkillImportRecord(settled);
+        await sendComputerReport(socket, attachment.serverId, computerName);
+    };
+    const acceptSkillImport = async (command: HostedAgentSkillImportCommand) => {
+        const record = await acceptHostSkillImport({
+            command,
+            dataRoot,
+            serverId: attachment.serverId,
+        });
+        sendSkillImportRecord(record);
+        await sendComputerReport(socket, attachment.serverId, computerName);
+        if (record.status === 'accepted') {
+            await applyAcceptedSkillImport(record);
+        }
     };
     let lastProgress = JSON.stringify(initialProgress);
     let usageTimer: ReturnType<typeof setInterval> | null = null;
@@ -733,6 +800,13 @@ async function connect(attachment: Attachment) {
                         attachment.serverId,
                         computerName
                     ).then(async () => {
+                        const acceptedImports = await listAcceptedHostSkillImports(
+                            dataRoot,
+                            attachment.serverId
+                        );
+                        for (const record of acceptedImports) {
+                            await applyAcceptedSkillImport(record);
+                        }
                         if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1') {
                             await sendUsageReport(socket);
                         }
@@ -780,7 +854,7 @@ async function connect(attachment: Attachment) {
                 void trackWriter(
                     agentConfigurations
                         .wait(retirement.agentId)
-                        .then(() => waitForAgentRunToSettle(agentRuns, retirement.agentId))
+                        .then(() => runSettlements.wait(retirement.agentId))
                         .then(() => {
                             disposeAgentLaunchHost(attachment.serverId, retirement.agentId);
                             return purgeRetiredAgent({
@@ -802,7 +876,7 @@ async function connect(attachment: Attachment) {
                 void trackWriter(
                     agentConfigurations
                         .enqueue(configuration.agentId, async () => {
-                            await waitForAgentRunToSettle(agentRuns, configuration.agentId);
+                            await runSettlements.wait(configuration.agentId);
                             const agentRoot = join(
                                 dataRoot,
                                 'servers',
@@ -840,37 +914,30 @@ async function connect(attachment: Attachment) {
             }
             const skillImport = parseAgentSkillImportCommand(frame);
             if (skillImport) {
+                void trackWriter(acceptSkillImport(skillImport).catch(reportStateError));
+                return;
+            }
+            const skillFileRequest = parseAgentSkillFileRequest(frame);
+            if (skillFileRequest) {
                 void trackWriter(
-                    waitForAgentRunToSettle(agentRuns, skillImport.agentId)
+                    (skillFileRequest.operation.kind === 'read'
+                        ? Promise.resolve()
+                        : runSettlements.wait(skillFileRequest.agentId)
+                    )
                         .then(() =>
-                            importHostSkill({
-                                agentId: skillImport.agentId,
+                            runAgentSkillFileRequest({
                                 dataRoot,
+                                request: skillFileRequest,
                                 serverId: attachment.serverId,
-                                sourceId: skillImport.sourceId,
                             })
                         )
-                        .then(async (skill) => {
-                            socket.send(
-                                JSON.stringify({
-                                    agentId: skillImport.agentId,
-                                    requestId: skillImport.requestId,
-                                    skill,
-                                    type: 'agent-skill-import-result',
-                                })
-                            );
-                            await sendComputerReport(socket, attachment.serverId, computerName);
+                        .then(async (result) => {
+                            socket.send(JSON.stringify(result));
+                            if (skillFileRequest.operation.kind !== 'read' && result.result) {
+                                await sendComputerReport(socket, attachment.serverId, computerName);
+                            }
                         })
-                        .catch((error) => {
-                            socket.send(
-                                JSON.stringify({
-                                    agentId: skillImport.agentId,
-                                    error: safeSkillImportError(error),
-                                    requestId: skillImport.requestId,
-                                    type: 'agent-skill-import-result',
-                                })
-                            );
-                        })
+                        .catch(reportStateError)
                 );
                 return;
             }
@@ -907,7 +974,7 @@ async function connect(attachment: Attachment) {
                 void trackWriter(
                     agentConfigurations
                         .wait(reset.agentId)
-                        .then(() => waitForAgentRunToSettle(agentRuns, reset.agentId))
+                        .then(() => runSettlements.wait(reset.agentId))
                         .then(async () => {
                             await applyAuthoritativeSession({
                                 agentRoot: join(
@@ -942,7 +1009,8 @@ async function connect(attachment: Attachment) {
             const reminderScript = parseReminderScriptCommand(frame);
             if (reminderScript) {
                 void trackWriter(
-                    waitForAgentRunToSettle(agentRuns, reminderScript.agentId)
+                    runSettlements
+                        .wait(reminderScript.agentId)
                         .then(() =>
                             runReminderScript({
                                 command: reminderScript,
@@ -1034,15 +1102,6 @@ function safeSkillImportError(error: unknown) {
     return 'The skill could not be imported.';
 }
 
-async function waitForAgentRunToSettle(
-    agentRuns: Map<string, string>,
-    agentId: string
-): Promise<void> {
-    while (agentRuns.has(agentId)) {
-        await Bun.sleep(10);
-    }
-}
-
 /**
  * Handles one start command idempotently. The run is already reserved in
  * `running` (synchronously, by the caller), so only one launch per run can exist.
@@ -1052,25 +1111,23 @@ async function waitForAgentRunToSettle(
  * proof.
  */
 async function handleStartCommand(input: {
-    agentRuns: Map<string, string>;
     attachment: Attachment;
     command: HostedAgentStartCommand;
     computerName: string;
     controller: AbortController;
     clearActiveRun: () => Promise<void>;
     noticeSinks: Map<string, { deliver: (notice: string) => Promise<boolean>; runId: string }>;
-    running: Map<string, AbortController>;
+    releaseRun: () => void;
     socket: WebSocket;
 }): Promise<void> {
     const {
-        agentRuns,
         attachment,
         clearActiveRun,
         command,
         computerName,
         controller,
         noticeSinks,
-        running,
+        releaseRun,
         socket,
     } = input;
     const startedAt = new Date().toISOString();
@@ -1145,7 +1202,7 @@ async function handleStartCommand(input: {
         await sendComputerReport(socket, attachment.serverId, computerName).catch(reportStateError);
     } finally {
         await clearActiveRun();
-        releaseAgentRun(running, agentRuns, command.agentId, command.runId);
+        releaseRun();
     }
 }
 
@@ -1155,6 +1212,7 @@ async function sendComputerReport(socket: WebSocket, serverId: string, computerN
             agents: await readEffectiveAgentStates(dataRoot, serverId),
             inventory: {
                 ...detectInventory(),
+                agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
                 agentSkills: await listAgentSkillReports(dataRoot, serverId),
                 importableSkills: await listImportableSkills(),
                 name: computerName,

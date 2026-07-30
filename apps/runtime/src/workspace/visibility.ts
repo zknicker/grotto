@@ -21,6 +21,16 @@ const skippedDirectoryNames = new Set([
 ]);
 
 const skippedDirectoryPatterns = [/^(?:claude-code|codex)-ags_/u];
+const sensitiveFileNames = new Set([
+    '.env',
+    '.netrc',
+    '.npmrc',
+    'auth.json',
+    'credentials',
+    'credentials.json',
+    'token.json',
+]);
+const sensitiveDirectoryNames = new Set(['.gnupg', '.ssh']);
 
 export function isHiddenWorkspaceName(name: string) {
     return name.startsWith('.') && name !== '.github';
@@ -37,7 +47,13 @@ export function isSensitiveWorkspacePath(relativePath: string) {
     const normalized = relativePath.toLowerCase();
     const basename = path.posix.basename(normalized);
     const extension = path.posix.extname(basename);
-    if (basename === '.env' || basename === '.npmrc' || basename === '.netrc') {
+    if (
+        sensitiveFileNames.has(basename) ||
+        normalized
+            .split('/')
+            .filter(Boolean)
+            .some((segment) => sensitiveDirectoryNames.has(segment))
+    ) {
         return true;
     }
     if (basename.startsWith('.env.') && !/\.(example|sample|template)$/u.test(basename)) {

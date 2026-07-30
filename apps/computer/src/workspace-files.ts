@@ -10,11 +10,13 @@ import type {
 } from '@tavern/api';
 import { hostedAgentWorkspaceRequestSchema } from '@tavern/api';
 import {
-    isHiddenWorkspaceName,
-    isSensitiveWorkspacePath,
-    isSkippedWorkspaceDirectory,
-    looksBinary,
-} from './workspace-visibility.ts';
+    isVisibleWorkspaceEntry,
+    normalizeWorkspacePath,
+    rejectSensitiveWorkspacePath,
+    rejectUnbrowseableWorkspacePath,
+    resolveWorkspaceChild,
+} from './workspace-file-paths.ts';
+import { looksBinary } from './workspace-visibility.ts';
 
 const imageExtensions = new Set(['.bmp', '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp']);
 const imageMaxBytes = 16 * 1024 * 1024;
@@ -102,11 +104,19 @@ export async function runAgentWorkspaceRequest(input: {
             input.request.operation.kind === 'list'
                 ? {
                       kind: 'list' as const,
-                      value: await listWorkspaceFiles(workspaceRoot, input.request.operation.path),
+                      value: await listWorkspaceFiles(
+                          workspaceRoot,
+                          input.request.operation.path,
+                          input.request.operation.includeHidden
+                      ),
                   }
                 : {
                       kind: 'read' as const,
-                      value: await readWorkspaceFile(workspaceRoot, input.request.operation.path),
+                      value: await readWorkspaceFile(
+                          workspaceRoot,
+                          input.request.operation.path,
+                          input.request.operation.includeHidden
+                      ),
                   };
         return {
             agentId: input.request.agentId,
@@ -126,10 +136,11 @@ export async function runAgentWorkspaceRequest(input: {
 
 export async function listWorkspaceFiles(
     workspaceRoot: string,
-    requestedPath: string
+    requestedPath: string,
+    includeHidden = false
 ): Promise<HostedWorkspaceFileList> {
     const relativePath = normalizeWorkspacePath(requestedPath, true);
-    rejectUnbrowseableWorkspacePath(relativePath);
+    rejectUnbrowseableWorkspacePath(relativePath, { includeHidden });
     const directory = await resolveWorkspaceChild(workspaceRoot, relativePath);
     const stat = await fs.stat(directory).catch(() => null);
     if (!stat?.isDirectory()) {
@@ -138,7 +149,7 @@ export async function listWorkspaceFiles(
     const entries = await fs.readdir(directory, { withFileTypes: true });
     const visibleEntries = await Promise.all(
         entries
-            .filter(isVisibleEntry)
+            .filter((entry) => isVisibleWorkspaceEntry(entry, includeHidden))
             .map((entry) => toWorkspaceEntry(workspaceRoot, relativePath, entry))
     );
     const files: HostedWorkspaceFileEntry[] = [];
@@ -156,11 +167,12 @@ export async function listWorkspaceFiles(
 
 export async function readWorkspaceFile(
     workspaceRoot: string,
-    requestedPath: string
+    requestedPath: string,
+    includeHidden = false
 ): Promise<HostedWorkspaceFileContent> {
     const relativePath = normalizeWorkspacePath(requestedPath, false);
     rejectSensitiveWorkspacePath(relativePath);
-    rejectUnbrowseableWorkspacePath(relativePath, true);
+    rejectUnbrowseableWorkspacePath(relativePath, { includeHidden });
     const absolutePath = await resolveWorkspaceChild(workspaceRoot, relativePath);
     const stat = await fs.stat(absolutePath).catch(() => null);
     if (!stat?.isFile()) {
@@ -212,51 +224,6 @@ export async function readWorkspaceFile(
     }
 }
 
-async function resolveWorkspaceChild(root: string, relativePath: string) {
-    const candidate = path.resolve(root, ...relativePath.split('/').filter(Boolean));
-    const realPath = await fs.realpath(candidate);
-    if (!(realPath === root || realPath.startsWith(`${root}${path.sep}`))) {
-        throw new Error('Workspace path must stay inside the workspace.');
-    }
-    return realPath;
-}
-
-function normalizeWorkspacePath(value: string, allowEmpty: boolean) {
-    const trimmed = value.trim().replaceAll('\\', '/');
-    if (!trimmed) {
-        if (allowEmpty) {
-            return '';
-        }
-        throw new Error('Workspace path is required.');
-    }
-    if (trimmed.startsWith('/')) {
-        throw new Error('Workspace path must be relative.');
-    }
-    const segments = trimmed.split('/');
-    if (segments.some((segment) => !segment || segment === '.' || segment === '..')) {
-        throw new Error('Workspace path must stay inside the workspace.');
-    }
-    return path.posix.normalize(trimmed);
-}
-
-function isVisibleEntry(entry: Dirent) {
-    return !(
-        isHiddenWorkspaceName(entry.name) ||
-        (entry.isDirectory() && isSkippedWorkspaceDirectory(entry.name))
-    );
-}
-
-function rejectUnbrowseableWorkspacePath(relativePath: string, allowSkipped = false) {
-    for (const segment of relativePath.split('/').filter(Boolean)) {
-        if (
-            isHiddenWorkspaceName(segment) ||
-            (!allowSkipped && isSkippedWorkspaceDirectory(segment))
-        ) {
-            throw new Error('Workspace path is not browseable.');
-        }
-    }
-}
-
 async function toWorkspaceEntry(root: string, parentPath: string, entry: Dirent) {
     if (entry.isSymbolicLink()) {
         return null;
@@ -282,14 +249,6 @@ function compareWorkspaceEntries(left: HostedWorkspaceFileEntry, right: HostedWo
         return left.kind === 'directory' ? -1 : 1;
     }
     return left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' });
-}
-
-function rejectSensitiveWorkspacePath(relativePath: string) {
-    if (isSensitiveWorkspacePath(relativePath)) {
-        throw new Error(
-            'Workspace file is blocked because it may contain secrets or key material.'
-        );
-    }
 }
 
 function mediaTypeForPath(filePath: string) {

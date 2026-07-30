@@ -69,6 +69,7 @@ export type NoticeSinkRegistrar = (sink: (notice: string) => Promise<boolean>) =
 
 export interface HarnessTurnResult {
     contextTokens: number | null;
+    toolNames: string[];
 }
 
 /** Resume was rejected; the caller rotates the generation and cold-starts once. */
@@ -166,10 +167,10 @@ async function executeHarnessTurn(
         });
         const deliverNotice = createNoticeDelivery(live, input.agentRoot);
         const unregisterNoticeSink = input.registerNoticeSink?.(deliverNotice);
-        let contextTokens: number | null;
+        let observation: HarnessTurnResult;
         try {
             await deliverStoredNotice(input.agentRoot, deliverNotice);
-            contextTokens = await observeTurnStream(turn.fullStream);
+            observation = await observeTurnStream(turn.fullStream);
         } finally {
             unregisterNoticeSink?.();
         }
@@ -183,7 +184,7 @@ async function executeHarnessTurn(
             resumeState: resumeState as Record<string, unknown>,
             runtimeSessionId: live.sessionId,
         });
-        return { contextTokens };
+        return observation;
     } catch (error) {
         await live?.destroy().catch(() => undefined);
         throw error;
@@ -243,15 +244,21 @@ function pendingNoticePath(agentRoot: string) {
  * durable reply left through `grotto message send`. A simplified port of
  * Runtime's `harness-stream-observer.ts` with the composition wiring dropped.
  */
-async function observeTurnStream(stream: AsyncIterable<unknown>): Promise<number | null> {
+async function observeTurnStream(stream: AsyncIterable<unknown>): Promise<HarnessTurnResult> {
     let contextTokens: number | null = null;
     let streamError: unknown;
     let aborted = false;
+    const toolNames = new Set<string>();
     for await (const part of stream) {
         if (!isRecord(part) || typeof part.type !== 'string') {
             continue;
         }
         switch (part.type) {
+            case 'tool-call':
+                if (typeof part.toolName === 'string' && toolNames.size < 6) {
+                    toolNames.add(part.toolName.slice(0, 128));
+                }
+                break;
             case 'finish-step':
                 contextTokens = usageContextTokens(part.usage) ?? contextTokens;
                 break;
@@ -272,7 +279,7 @@ async function observeTurnStream(stream: AsyncIterable<unknown>): Promise<number
     if (streamError && !aborted) {
         throw streamError instanceof Error ? streamError : new Error(String(streamError));
     }
-    return contextTokens;
+    return { contextTokens, toolNames: [...toolNames] };
 }
 
 // The construction seam. Tests inject a fake harness Agent to exercise the

@@ -1,8 +1,4 @@
-import type {
-    HostedAgentImportSkillInput,
-    HostedAgentSkillMetadata,
-    HostedComputerInventory,
-} from '@tavern/api';
+import type { HostedAgentImportSkillInput, HostedComputerInventory } from '@tavern/api';
 import { and, eq } from 'drizzle-orm';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -16,7 +12,7 @@ export async function importHostedAgentSkill(
     connections: ComputerConnections,
     member: GrottoUser | null,
     input: HostedAgentImportSkillInput
-): Promise<HostedAgentSkillMetadata> {
+): Promise<{ requestId: string; status: 'accepted' }> {
     const server = await requireServerMembership(db, member, input.serverId);
     if (!member || (server.role !== 'owner' && server.role !== 'admin')) {
         throw new AgentConfigDeniedError('Only a Server Owner or Admin can import an Agent skill.');

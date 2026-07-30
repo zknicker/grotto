@@ -1,86 +1,72 @@
-# Skills and tools
+# Skills
 
-Skills are reusable instruction packages. Tools are executable agent actions.
-MCP connections expose external tools. Channels are chat frontends.
-
-## Product expectations
-
-- A skill has a stable Runtime source identity and may include scripts,
-  references, or assets.
-- Skill assignment affects instruction access only. It does not grant tools.
-- A tool has a stable Runtime identity.
-- Host tools and MCP tools are granted independently per agent.
-- MCP discovery never grants access. A grant identifies one connection and one
-  exact upstream tool name.
-- Channels are not MCP connections. They are places where humans talk with
-  Tavern agents.
+Skills are reusable instruction bundles. Tools are executable Agent actions. A
+skill may include `SKILL.md`, scripts, references, assets, and templates; owning
+a skill never grants a host tool or MCP connection.
 
 ## Ownership
 
-- Runtime is canonical for installed skills, skill assignments, MCP
-  connections, connection credentials, host-tool grants, and MCP tool grants.
-- Skill packages remain owned by their source location. Tavern shows the
-  Runtime inventory without copying packages into an app-owned store.
-- External service logic and tool schemas belong to the MCP server.
-- Runtime owns AI SDK tool composition, call-time grant checks, MCP client
-  lifecycle, sandboxing, durable turns, and metadata-only tool-call audit.
-- Credentials stay in the Runtime vault and are never included in prompts,
-  tool arguments, or audit rows.
+Each Agent has one canonical writable skill library on its assigned Computer:
 
-## Sources
+```text
+agents/<agent-id>/skills/
+```
 
-### Skills
+The selected harness reads that exact library. Agents may view, create, patch,
+extend, and delete their copies through `grotto skill`. Another Agent's library
+and the operator's host skill directories are never ambient inputs.
 
-Runtime reports installed skill packages from managed and external locations.
-The App shows Installed and Available views. Globally disabling a skill removes
-its current agent assignments after user confirmation; enabling it later does
-not restore them.
+The Server stores only the Computer's compact skill inventory. Skill bytes stay
+on the Computer except while an Owner/Admin request carries one `SKILL.md`
+through the authenticated live relay; those transient bytes are never stored.
 
-### Host tools
+## Host imports
 
-Browser and `web_fetch` are Tavern host tools. Both use explicit per-agent
-grants. New agents receive `web_fetch` by default; Browser remains ungranted
-until selected.
+A Computer discovers importable bundles in the operator's standard Agent,
+Claude, and Codex skill roots. It:
 
-Harness-native tools such as shell and file editing come from the selected
-executor and remain governed by sandbox and approval policy.
+- resolves each candidate to its canonical path before deriving its opaque id;
+- deduplicates overlapping roots and symlinked aliases by canonical path;
+- reports only the first bundle for each destination name, using configured
+  root precedence;
+- parses YAML frontmatter for description metadata;
+- reports metadata only;
+- skips symlinks inside a bundle; and
+- rejects bundles that exceed the file-count, depth, per-file, or total-byte
+  limits before copying.
 
-### MCP tools
+An Owner or Admin explicitly imports one reported source from an Agent Profile.
+The Computer first durably accepts the request, then waits for the Agent's
+active turn to settle and atomically copies the complete binary-safe bundle.
+The App distinguishes accepted, applied, and failed states from Computer
+reports; it does not infer failure from elapsed time or poll for completion.
 
-Settings -> Connections manages remote HTTP MCP connections. A connection
-represents one server account. Built-in presets reduce configuration but use
-the same storage, auth, discovery, and grant path as custom connections.
+The copy is independent. The host source is unchanged, no later synchronization
+occurs, and a same-name Agent copy blocks another import until it is explicitly
+removed or renamed.
 
-Grotto Server discovers upstream tools and presents every tool from an Agent's
-granted connections with stable namespaced model-visible names. Server rechecks
-the connection grant immediately before forwarding a call.
+## Operator management
 
-OAuth connections use Connect/Reconnect and Disconnect. There is no connection
-enable switch. Disconnect clears credentials and grants. Custom connections may
-also be deleted.
+An Owner or Admin may open one reported Agent skill from the Agent Profile,
+edit its `SKILL.md`, or explicitly confirm deletion of the whole independent
+bundle. Each read and mutation goes directly through the Server's authenticated
+Computer attachment. The Server authorizes current membership and Agent
+assignment but never persists the returned content.
 
-### Channels
+Edits and deletes carry the bundle hash observed by the operator. The Computer
+rejects a stale hash rather than overwriting a change made by the Agent or
+another operator. Mutations wait for an active turn to settle, use an atomic
+file replacement for edits, and publish a new Computer inventory event.
 
-Settings -> Channels manages frontend bindings for Tavern agents. Tavern chat
-is built in. Discord and other frontends have their own bindings and session
-routing.
+## Tools
 
-## UI model
+Skills teach; tools act. Harness-native tools, Computer host capabilities, and
+Server-owned MCP connections use their own availability and grant contracts.
+Discovering or importing a skill never expands executable authority.
 
-- Settings -> Skills manages global skill inventory and enablement.
-- Settings -> Connections manages MCP connection setup, auth, discovery,
-  testing, disconnect, and custom-connection deletion.
-- Settings -> Browser manages the local Browser host service.
-- An agent's Tools tab manages host-tool and exact MCP tool grants.
-- Skills remain assigned separately from tools.
-- Runtime tool inventory may remain available as diagnostics; it is not the
-  source of per-agent grants.
+## Non-goals
 
-## Failure behavior
-
-- Cached skill and connection records remain visible when Runtime is
-  temporarily unavailable.
-- Missing dependencies do not silently remove a skill.
-- An unavailable granted MCP tool stays visible to the agent and returns the
-  connection failure so the agent can report it.
-- A failed MCP test does not remove the connection or change grants.
+- Ambient execution of globally installed host skills.
+- Automatic synchronization between host and Agent copies.
+- A persistent Server-side skill-content store.
+- Skill assignment records separate from the Agent-local library.

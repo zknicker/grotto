@@ -1,4 +1,9 @@
-import type { HostedAgent, HostedAgentSkillMetadata, HostedImportableSkill } from '@tavern/api';
+import type {
+    HostedAgent,
+    HostedAgentSkillImportRecord,
+    HostedAgentSkillMetadata,
+    HostedImportableSkill,
+} from '@tavern/api';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../../components/ui/badge.tsx';
@@ -13,6 +18,7 @@ import { computerLabel } from '../../computers/presentation.ts';
 import { serverComputersRoute } from '../../servers/server-routes.ts';
 import { formatSkillName } from '../../skills/skill-name-format.ts';
 import { AgentIdentityDialog } from './agent-identity-dialog.tsx';
+import { AgentSkillFileDialog } from './agent-skill-file-dialog.tsx';
 import { HostedAgentDangerSection } from './hosted-agent-danger-section.tsx';
 import { RuntimeConfigDialog } from './runtime-config-dialog.tsx';
 import { resolveRuntimeConfig, runtimeConfigStatusLabel } from './runtime-config-model.ts';
@@ -30,6 +36,7 @@ export function HostedAgentProfileTab({
     const computers = grottoTrpc.computer.list.useQuery({ serverId: server.id });
     const [identityOpen, setIdentityOpen] = React.useState(false);
     const [runtimeConfigOpen, setRuntimeConfigOpen] = React.useState(false);
+    const [selectedSkill, setSelectedSkill] = React.useState<HostedAgentSkillMetadata | null>(null);
     const updateProfile = grottoTrpc.agent.updateProfile.useMutation({
         onSuccess: () => utils.agent.list.invalidate({ serverId: server.id }),
     });
@@ -45,6 +52,10 @@ export function HostedAgentProfileTab({
     const importableSkills = selectAddableHostedSkills(
         computer?.reportedInventory?.importableSkills ?? [],
         agentSkills
+    );
+    const skillImports = selectOutstandingSkillImports(
+        computer?.reportedInventory?.agentSkillImports ?? [],
+        agent.id
     );
     const canEdit = server.role === 'owner' || server.role === 'admin';
     const importSkill = grottoTrpc.agent.importSkill.useMutation();
@@ -145,13 +156,11 @@ export function HostedAgentProfileTab({
                                 }))}
                                 label="Add skills"
                                 onAdd={(skill) =>
-                                    void withSavingToast(() =>
-                                        importSkill.mutateAsync({
-                                            agentId: agent.id,
-                                            serverId: server.id,
-                                            sourceId: skill.id,
-                                        })
-                                    ).catch(() => undefined)
+                                    importSkill.mutate({
+                                        agentId: agent.id,
+                                        serverId: server.id,
+                                        sourceId: skill.id,
+                                    })
                                 }
                                 searchPlaceholder="Search skills..."
                             />
@@ -168,9 +177,19 @@ export function HostedAgentProfileTab({
                                     key={skill.name}
                                 >
                                     <div className="min-w-0">
-                                        <p className="font-medium text-foreground text-sm">
-                                            {skill.name}
-                                        </p>
+                                        {canEdit ? (
+                                            <button
+                                                className="font-medium text-foreground text-sm hover:underline"
+                                                onClick={() => setSelectedSkill(skill)}
+                                                type="button"
+                                            >
+                                                {skill.name}
+                                            </button>
+                                        ) : (
+                                            <p className="font-medium text-foreground text-sm">
+                                                {skill.name}
+                                            </p>
+                                        )}
                                         <p className="text-base text-muted-foreground sm:text-sm">
                                             {skill.description}
                                         </p>
@@ -187,6 +206,25 @@ export function HostedAgentProfileTab({
                     {importSkill.error ? (
                         <p className="text-error text-sm">{importSkill.error.message}</p>
                     ) : null}
+                    {skillImports.map((record) => {
+                        const source = computer?.reportedInventory?.importableSkills?.find(
+                            (candidate) => candidate.id === record.sourceId
+                        );
+                        return (
+                            <p
+                                className={
+                                    record.status === 'failed'
+                                        ? 'text-error text-sm'
+                                        : 'text-muted-foreground text-sm'
+                                }
+                                key={record.requestId}
+                            >
+                                {record.status === 'failed'
+                                    ? `${formatSkillName(source?.name ?? 'Skill')} import failed: ${record.error}`
+                                    : `Importing ${formatSkillName(source?.name ?? 'skill')}…`}
+                            </p>
+                        );
+                    })}
                 </DetailSection>
                 <HostedAgentDangerSection agent={agent} onDeleted={onDeleted} server={server} />
             </div>
@@ -206,6 +244,16 @@ export function HostedAgentProfileTab({
                 }}
                 open={identityOpen}
                 pending={updateProfile.isPending}
+            />
+            <AgentSkillFileDialog
+                agent={agent}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedSkill(null);
+                    }
+                }}
+                server={server}
+                skill={selectedSkill}
             />
             <RuntimeConfigDialog
                 agent={agent}
@@ -294,4 +342,18 @@ export function selectAddableHostedSkills(
 ) {
     const ownedNames = new Set(owned.map((skill) => skill.name));
     return sources.filter((source) => !ownedNames.has(source.name));
+}
+
+export function selectOutstandingSkillImports(
+    records: HostedAgentSkillImportRecord[],
+    agentId: string
+) {
+    const latestBySource = new Map<string, HostedAgentSkillImportRecord>();
+    for (const record of records) {
+        if (record.agentId !== agentId || latestBySource.has(record.sourceId)) {
+            continue;
+        }
+        latestBySource.set(record.sourceId, record);
+    }
+    return [...latestBySource.values()].filter((record) => record.status !== 'applied');
 }

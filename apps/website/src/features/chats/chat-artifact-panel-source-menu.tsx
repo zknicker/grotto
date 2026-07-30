@@ -40,7 +40,13 @@ export function ArtifactPanelSourceMenu({
                     <MenuItem
                         className="items-start gap-2 py-2"
                         disabled={!agentId}
-                        onClick={() => onOpenTarget({ kind: 'workspaceDirectory', path: '' })}
+                        onClick={() =>
+                            onOpenTarget({
+                                agentId,
+                                kind: 'workspaceDirectory',
+                                path: '',
+                            })
+                        }
                     >
                         <Icon className="mt-0.5" icon={FileSearchIcon} />
                         <SourceMenuText

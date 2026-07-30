@@ -679,6 +679,7 @@ export const agentRuntimeWorkspaceFileEntrySchema = z.object({
 });
 
 export const agentRuntimeWorkspaceFileListInputSchema = z.object({
+    includeHidden: z.boolean().optional().default(false),
     path: agentRuntimeWorkspaceFilePathSchema.default(''),
 });
 

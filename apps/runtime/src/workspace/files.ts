@@ -7,13 +7,15 @@ import type {
     AgentRuntimeWorkspaceFileList,
 } from '@tavern/api';
 import type { Database } from '../db/sqlite.ts';
-import { getAgentWorkspaceSource } from './instructions.ts';
 import {
-    isHiddenWorkspaceName,
-    isSensitiveWorkspacePath,
-    isSkippedWorkspaceDirectory,
-    looksBinary,
-} from './visibility.ts';
+    isVisibleWorkspaceEntry,
+    normalizeWorkspacePath,
+    rejectSensitiveWorkspacePath,
+    rejectUnbrowseableWorkspacePath,
+    resolveWorkspaceChild,
+} from './file-paths.ts';
+import { getAgentWorkspaceSource } from './instructions.ts';
+import { looksBinary } from './visibility.ts';
 
 const imageExtensions = new Set(['.bmp', '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp']);
 const dataUrlReadMaxBytes = 16 * 1024 * 1024;
@@ -80,11 +82,12 @@ const mediaTypeByExtension: Record<string, string> = {
 
 export async function listWorkspaceFiles(
     db: Database,
-    input: { agentId: string; path?: string | null }
+    input: { agentId: string; includeHidden?: boolean; path?: string | null }
 ): Promise<AgentRuntimeWorkspaceFileList> {
     const root = await resolveWorkspaceRoot(db, input.agentId);
     const relativePath = normalizeWorkspacePath(input.path ?? '', { allowEmpty: true });
-    rejectUnbrowseableWorkspacePath(relativePath);
+    const includeHidden = input.includeHidden ?? false;
+    rejectUnbrowseableWorkspacePath(relativePath, { includeHidden });
     const directory = await resolveWorkspaceChild(root, relativePath);
     const stat = await fs.stat(directory).catch(() => null);
     if (!stat?.isDirectory()) {
@@ -93,7 +96,9 @@ export async function listWorkspaceFiles(
 
     const entries = await fs.readdir(directory, { withFileTypes: true });
     const visibleEntries = await Promise.all(
-        entries.filter(isVisibleEntry).map((entry) => toWorkspaceEntry(root, relativePath, entry))
+        entries
+            .filter((entry) => isVisibleWorkspaceEntry(entry, includeHidden))
+            .map((entry) => toWorkspaceEntry(root, relativePath, entry))
     );
 
     return {
@@ -116,7 +121,7 @@ export async function workspacePathExists(
         const relativePath = normalizeWorkspacePath(input.path, {
             allowEmpty: input.kind === 'directory',
         });
-        rejectUnbrowseableWorkspacePath(relativePath);
+        rejectUnbrowseableWorkspacePath(relativePath, { includeHidden: false });
         if (input.kind === 'file') {
             rejectSensitiveWorkspacePath(relativePath);
         }
@@ -130,14 +135,12 @@ export async function workspacePathExists(
 
 export async function readWorkspaceFile(
     db: Database,
-    input: { agentId: string; path: string }
+    input: { agentId: string; includeHidden?: boolean; path: string }
 ): Promise<AgentRuntimeWorkspaceFileContent> {
     const root = await resolveWorkspaceRoot(db, input.agentId);
     const relativePath = normalizeWorkspacePath(input.path, { allowEmpty: false });
     rejectSensitiveWorkspacePath(relativePath);
-    // Direct reads may follow links into legacy harness session directories,
-    // which stay hidden from listings; dot directories remain unreadable.
-    rejectUnbrowseableWorkspacePath(relativePath, { allowSkippedDirectories: true });
+    rejectUnbrowseableWorkspacePath(relativePath, { includeHidden: input.includeHidden ?? false });
     const absolutePath = await resolveWorkspaceChild(root, relativePath);
 
     const stat = await fs.stat(absolutePath).catch(() => null);
@@ -203,64 +206,6 @@ async function resolveWorkspaceRoot(db: Database, agentId: string) {
     return await fs.realpath(source.workspaceDir);
 }
 
-async function resolveWorkspaceChild(root: string, relativePath: string) {
-    const absolutePath = path.resolve(root, ...relativePath.split('/').filter(Boolean));
-    const realPath = await fs.realpath(absolutePath);
-    if (!isPathInside(realPath, root)) {
-        throw new Error('Workspace path must stay inside the workspace.');
-    }
-    return realPath;
-}
-
-function normalizeWorkspacePath(value: string, { allowEmpty }: { allowEmpty: boolean }) {
-    const trimmed = value.trim().replaceAll('\\', '/');
-    if (!trimmed) {
-        if (allowEmpty) {
-            return '';
-        }
-        throw new Error('Workspace path is required.');
-    }
-    if (trimmed.startsWith('/')) {
-        throw new Error('Workspace path must be relative.');
-    }
-    const segments = trimmed.split('/');
-    if (segments.some((segment) => !segment || segment === '.' || segment === '..')) {
-        throw new Error('Workspace path must stay inside the workspace.');
-    }
-    const normalized = path.posix.normalize(trimmed);
-    if (normalized === '.' || normalized === '..' || normalized.startsWith('../')) {
-        throw new Error('Workspace path must stay inside the workspace.');
-    }
-    return normalized;
-}
-
-function isVisibleEntry(entry: Dirent) {
-    if (isHiddenWorkspaceName(entry.name)) {
-        return false;
-    }
-    if (entry.isDirectory() && isSkippedWorkspaceDirectory(entry.name)) {
-        return false;
-    }
-    return true;
-}
-
-function rejectUnbrowseableWorkspacePath(
-    relativePath: string,
-    options: { allowSkippedDirectories?: boolean } = {}
-) {
-    if (!relativePath) {
-        return;
-    }
-    for (const segment of relativePath.split('/')) {
-        if (isHiddenWorkspaceName(segment)) {
-            throw new Error('Workspace path is not browseable.');
-        }
-        if (!options.allowSkippedDirectories && isSkippedWorkspaceDirectory(segment)) {
-            throw new Error('Workspace path is not browseable.');
-        }
-    }
-}
-
 async function toWorkspaceEntry(
     root: string,
     parentPath: string,
@@ -298,18 +243,6 @@ function compareWorkspaceEntries(
     return left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' });
 }
 
-function rejectSensitiveWorkspacePath(relativePath: string) {
-    if (isSensitiveWorkspacePath(relativePath)) {
-        throw new Error(
-            'Workspace file is blocked because it may contain secrets or key material.'
-        );
-    }
-}
-
 function mediaTypeForPath(filePath: string) {
     return mediaTypeByExtension[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream';
-}
-
-function isPathInside(filePath: string, root: string) {
-    return filePath === root || filePath.startsWith(`${root}${path.sep}`);
 }

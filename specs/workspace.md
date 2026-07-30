@@ -35,10 +35,15 @@ role and context live in the Agent-owned workspace.
 
 ## Skills and credentials
 
-Installed skills live in the Agent's sibling `skills/` directory and are
-exposed according to Server-owned assignments. Harness credentials and CLI
-state live under the Agent-specific `home/`; Computer must not copy broad host
+Installed skills live in the Agent's sibling `skills/` directory. That
+directory is the assignment: the selected harness reads it directly, and
+imports create independent copies there. Harness credentials and CLI state live
+under the Agent-specific `home/`; Computer must not copy broad host
 configuration into the Agent root or commit local state.
+
+Owners and Admins may read, edit, or delete an Agent copy through the
+authenticated Server-to-Computer relay. The Server never persists `SKILL.md`
+bytes; edits and deletes are guarded by the Computer-reported bundle hash.
 
 ## Lifecycle
 
@@ -51,3 +56,10 @@ completed.
 Canonical chat history remains on the Server. Agents recover older
 conversation context through the Grotto CLI rather than treating the workspace
 as a transcript mirror.
+
+## Browsing
+
+The App browses the real workspace through the owning Computer. Hidden files
+are excluded by default and appear only while the user enables the hidden-files
+toggle. Sensitive files and credential directories, symlinks, and skipped
+heavy directories remain unavailable regardless of that toggle.

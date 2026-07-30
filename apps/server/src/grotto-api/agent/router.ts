@@ -10,6 +10,11 @@ import { listAgentsProcedure } from './list.ts';
 import { onAgentLifecycleProcedure } from './on-lifecycle.ts';
 import { resetAgentProcedure } from './reset.ts';
 import { restartAgentProcedure } from './restart.ts';
+import {
+    agentSkillFileProcedure,
+    deleteAgentSkillFileProcedure,
+    updateAgentSkillFileProcedure,
+} from './skill-file.ts';
 import { startAgentProcedure } from './start.ts';
 import { stopAgentProcedure } from './stop.ts';
 import { updateAgentProfileProcedure } from './update-profile.ts';
@@ -24,6 +29,8 @@ export const agentRouter = createRouter({
     delete: deleteAgentProcedure,
     deliveryState: agentDeliveryStateProcedure,
     importSkill: importAgentSkillProcedure,
+    skillFile: agentSkillFileProcedure,
+    deleteSkillFile: deleteAgentSkillFileProcedure,
     list: listAgentsProcedure,
     onLifecycle: onAgentLifecycleProcedure,
     reset: resetAgentProcedure,
@@ -31,6 +38,7 @@ export const agentRouter = createRouter({
     start: startAgentProcedure,
     stop: stopAgentProcedure,
     updateProfile: updateAgentProfileProcedure,
+    updateSkillFile: updateAgentSkillFileProcedure,
     workspaceFile: agentWorkspaceFileProcedure,
     workspaceFiles: agentWorkspaceFilesProcedure,
 });

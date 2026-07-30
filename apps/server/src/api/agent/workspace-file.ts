@@ -22,11 +22,13 @@ const saveAgentWorkspaceFileInputSchema = agentWorkspaceFileInputSchema.extend({
 
 const agentWorkspaceFileListInputSchema = z.object({
     agentId: z.string().trim().min(1),
+    includeHidden: agentRuntimeWorkspaceFileListInputSchema.shape.includeHidden,
     path: agentRuntimeWorkspaceFileListInputSchema.shape.path.optional().default(''),
 });
 
 const agentWorkspaceReadableFileInputSchema = z.object({
     agentId: z.string().trim().min(1),
+    includeHidden: z.boolean().optional().default(false),
     path: agentRuntimeWorkspaceFilePathSchema.refine((value) => value.length > 0, {
         message: 'Workspace file path is required.',
     }),
@@ -66,7 +68,10 @@ export const listAgentWorkspaceFiles = publicProcedure
         const client = await createClientForAgent(input.agentId);
 
         try {
-            return await client.listWorkspaceFiles(input.agentId, { path: input.path });
+            return await client.listWorkspaceFiles(input.agentId, {
+                includeHidden: input.includeHidden,
+                path: input.path,
+            });
         } finally {
             client.close();
         }
@@ -78,7 +83,7 @@ export const getAgentWorkspaceReadableFile = publicProcedure
         const client = await createClientForAgent(input.agentId);
 
         try {
-            return await client.getWorkspaceFile(input.agentId, input.path);
+            return await client.getWorkspaceFile(input.agentId, input.path, input.includeHidden);
         } finally {
             client.close();
         }

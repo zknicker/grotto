@@ -118,6 +118,53 @@ export const hostedAgentSkillImportCommandSchema = z
 
 export type HostedAgentSkillImportCommand = z.infer<typeof hostedAgentSkillImportCommandSchema>;
 
+const hostedAgentSkillNameSchema = z
+    .string()
+    .trim()
+    .min(1)
+    .max(128)
+    .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/u);
+const hostedAgentSkillHashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
+
+export const hostedAgentSkillFileSchema = z
+    .object({
+        content: z.string().max(2 * 1024 * 1024),
+        hash: hostedAgentSkillHashSchema,
+        name: hostedAgentSkillNameSchema,
+        updatedAt: hostedTimestampSchema,
+    })
+    .strict();
+
+export type HostedAgentSkillFile = z.infer<typeof hostedAgentSkillFileSchema>;
+
+export const hostedAgentSkillFileRequestSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        operation: z.discriminatedUnion('kind', [
+            z.object({ kind: z.literal('read'), name: hostedAgentSkillNameSchema }).strict(),
+            z
+                .object({
+                    content: z.string().max(2 * 1024 * 1024),
+                    expectedHash: hostedAgentSkillHashSchema,
+                    kind: z.literal('update'),
+                    name: hostedAgentSkillNameSchema,
+                })
+                .strict(),
+            z
+                .object({
+                    expectedHash: hostedAgentSkillHashSchema,
+                    kind: z.literal('delete'),
+                    name: hostedAgentSkillNameSchema,
+                })
+                .strict(),
+        ]),
+        requestId: hostedIdSchema,
+        type: z.literal('agent-skill-file-request'),
+    })
+    .strict();
+
+export type HostedAgentSkillFileRequest = z.infer<typeof hostedAgentSkillFileRequestSchema>;
+
 /** Runs one persisted reminder script inside the owning Agent's Computer workspace. */
 export const hostedReminderScriptCommandSchema = z
     .object({
@@ -221,9 +268,16 @@ export const hostedAgentWorkspaceRequestSchema = z
     .object({
         agentId: hostedIdSchema,
         operation: z.discriminatedUnion('kind', [
-            z.object({ kind: z.literal('list'), path: hostedWorkspacePathSchema }).strict(),
             z
                 .object({
+                    includeHidden: z.boolean().optional().default(false),
+                    kind: z.literal('list'),
+                    path: hostedWorkspacePathSchema,
+                })
+                .strict(),
+            z
+                .object({
+                    includeHidden: z.boolean().optional().default(false),
                     kind: z.literal('read'),
                     path: hostedWorkspacePathSchema.refine((value) => value.length > 0),
                 })
@@ -269,6 +323,7 @@ export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
     hostedAgentRetireCommandSchema,
     hostedAgentConfigureCommandSchema,
     hostedAgentSkillImportCommandSchema,
+    hostedAgentSkillFileRequestSchema,
     hostedAgentWorkspaceRequestSchema,
     hostedBrowserRequestSchema,
     hostedReminderScriptCommandSchema,
@@ -335,26 +390,70 @@ export const hostedReminderScriptResultSchema = z
 
 export type HostedReminderScriptResult = z.infer<typeof hostedReminderScriptResultSchema>;
 
-export const hostedAgentSkillImportResultSchema = z
+export const hostedAgentSkillImportResultSchema = z.discriminatedUnion('status', [
+    z
+        .object({
+            agentId: hostedIdSchema,
+            requestId: hostedIdSchema,
+            sourceId: hostedIdSchema,
+            status: z.literal('accepted'),
+            type: z.literal('agent-skill-import-result'),
+            updatedAt: hostedTimestampSchema,
+        })
+        .strict(),
+    z
+        .object({
+            agentId: hostedIdSchema,
+            requestId: hostedIdSchema,
+            skill: z
+                .object({
+                    description: z.string().max(500),
+                    hash: z.string().regex(/^[a-f0-9]{64}$/u),
+                    modifiedAt: hostedTimestampSchema,
+                    name: z.string().trim().min(1).max(128),
+                })
+                .strict(),
+            sourceId: hostedIdSchema,
+            status: z.literal('applied'),
+            type: z.literal('agent-skill-import-result'),
+            updatedAt: hostedTimestampSchema,
+        })
+        .strict(),
+    z
+        .object({
+            agentId: hostedIdSchema,
+            error: z.string().trim().min(1).max(300),
+            requestId: hostedIdSchema,
+            sourceId: hostedIdSchema,
+            status: z.literal('failed'),
+            type: z.literal('agent-skill-import-result'),
+            updatedAt: hostedTimestampSchema,
+        })
+        .strict(),
+]);
+
+export type HostedAgentSkillImportResult = z.infer<typeof hostedAgentSkillImportResultSchema>;
+
+export const hostedAgentSkillFileResultSchema = z
     .object({
         agentId: hostedIdSchema,
         error: z.string().trim().min(1).max(300).optional(),
         requestId: hostedIdSchema,
-        skill: z
-            .object({
-                description: z.string().max(500),
-                hash: z.string().regex(/^[a-f0-9]{64}$/u),
-                modifiedAt: hostedTimestampSchema,
-                name: z.string().trim().min(1).max(128),
-            })
-            .strict()
+        result: z
+            .discriminatedUnion('kind', [
+                z.object({ kind: z.literal('read'), value: hostedAgentSkillFileSchema }).strict(),
+                z
+                    .object({ kind: z.literal('updated'), value: hostedAgentSkillFileSchema })
+                    .strict(),
+                z.object({ kind: z.literal('deleted') }).strict(),
+            ])
             .optional(),
-        type: z.literal('agent-skill-import-result'),
+        type: z.literal('agent-skill-file-result'),
     })
     .strict()
-    .refine((value) => Boolean(value.error) !== Boolean(value.skill));
+    .refine((value) => Boolean(value.error) !== Boolean(value.result));
 
-export type HostedAgentSkillImportResult = z.infer<typeof hostedAgentSkillImportResultSchema>;
+export type HostedAgentSkillFileResult = z.infer<typeof hostedAgentSkillFileResultSchema>;
 
 export const hostedAgentWorkspaceResultSchema = z
     .object({

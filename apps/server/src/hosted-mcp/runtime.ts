@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -7,8 +6,17 @@ import {
     mcpConnectionsTable,
     mcpSecretsTable,
 } from '../postgres/schema.ts';
+import {
+    classifyHostedMcpUpstreamError,
+    HostedMcpDeniedError,
+    withHostedMcpTimeout,
+} from './errors.ts';
 import { createHostedMcpOAuthProvider } from './oauth.ts';
 import { secureMcpFetch } from './secure-fetch.ts';
+import { listAllTools, modelToolName } from './tool-catalog.ts';
+
+const DEFAULT_DISCOVERY_TIMEOUT_MS = 5000;
+const DEFAULT_INVOCATION_TIMEOUT_MS = 30_000;
 
 export interface HostedMcpSecret {
     approvedAuthorizationServerOrigins: string[];
@@ -30,19 +38,34 @@ export interface HostedMcpToolDefinition {
     title: string | null;
 }
 
+interface HostedMcpRuntimeOptions {
+    discoveryTimeoutMs?: number;
+    invocationTimeoutMs?: number;
+}
+
 /** Server-owned remote MCP clients, credentials, discovery, and invocation. */
 export class HostedMcpRuntime {
     private readonly clients = new Map<string, Promise<MCPClient>>();
+    private readonly discoveryTimeoutMs: number;
+    private readonly invocationTimeoutMs: number;
 
-    constructor(private readonly db: GrottoDatabase) {}
+    constructor(
+        private readonly db: GrottoDatabase,
+        options: HostedMcpRuntimeOptions = {}
+    ) {
+        this.discoveryTimeoutMs = options.discoveryTimeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS;
+        this.invocationTimeoutMs = options.invocationTimeoutMs ?? DEFAULT_INVOCATION_TIMEOUT_MS;
+    }
 
     async discover(connectionId: string) {
-        const client = await this.client(connectionId);
-        const definitions = await listAllTools(client);
-        return {
-            accountLabel: client.serverInfo.name,
-            tools: definitions.map((tool) => tool.name),
-        };
+        return await this.runUpstream(connectionId, 'discovery', async () => {
+            const client = await this.client(connectionId);
+            const definitions = await listAllTools(client);
+            return {
+                accountLabel: client.serverInfo.name,
+                tools: definitions.map((tool) => tool.name),
+            };
+        });
     }
 
     async listAgentTools(serverId: string, agentId: string): Promise<HostedMcpToolDefinition[]> {
@@ -50,7 +73,9 @@ export class HostedMcpRuntime {
         const definitions = await Promise.all(
             connections.map(async (connection) => {
                 try {
-                    const tools = await listAllTools(await this.client(connection.id));
+                    const tools = await this.runUpstream(connection.id, 'discovery', async () =>
+                        listAllTools(await this.client(connection.id))
+                    );
                     return tools.map((tool) => ({
                         description:
                             tool.description ?? `Run ${tool.name} through ${connection.name}.`,
@@ -77,23 +102,28 @@ export class HostedMcpRuntime {
             input.agentId,
             input.toolName
         );
-        const tools = await (await this.client(resolved.connectionId)).tools();
-        const tool = tools[resolved.upstreamName];
-        if (!tool?.execute) {
-            throw new Error(`MCP tool ${resolved.upstreamName} is unavailable.`);
-        }
         await this.requireGrant(input.serverId, input.agentId, resolved.connectionId);
-        return await tool.execute(input.args, {
-            context: undefined,
-            messages: [],
-            toolCallId: 'hosted-mcp',
+        return await this.runUpstream(resolved.connectionId, 'invocation', async () => {
+            const client = await this.client(resolved.connectionId);
+            return await client.callTool({
+                arguments: asMcpArguments(input.args),
+                name: resolved.upstreamName,
+                options: { timeout: this.invocationTimeoutMs },
+            });
         });
     }
 
     async closeConnection(connectionId: string): Promise<void> {
         const pending = this.clients.get(connectionId);
         this.clients.delete(connectionId);
-        await pending?.then((client) => client.close()).catch(() => undefined);
+        if (!pending) {
+            return;
+        }
+        await withHostedMcpTimeout(
+            pending.then((client) => client.close()),
+            this.discoveryTimeoutMs,
+            'discovery'
+        ).catch(() => undefined);
     }
 
     async close(): Promise<void> {
@@ -182,7 +212,11 @@ export class HostedMcpRuntime {
 
     private async grantedConnections(serverId: string, agentId: string) {
         return await this.db
-            .select({ id: mcpConnectionsTable.id, name: mcpConnectionsTable.name })
+            .select({
+                id: mcpConnectionsTable.id,
+                name: mcpConnectionsTable.name,
+                tools: mcpConnectionsTable.tools,
+            })
             .from(agentMcpConnectionGrantsTable)
             .innerJoin(
                 mcpConnectionsTable,
@@ -213,22 +247,42 @@ export class HostedMcpRuntime {
             )
             .limit(1);
         if (!grant) {
-            throw new Error('Access to this MCP server was revoked.');
+            throw new HostedMcpDeniedError('Access to this MCP connection was revoked.');
         }
     }
 
     private async resolveGrantedTool(serverId: string, agentId: string, visibleName: string) {
         const connections = await this.grantedConnections(serverId, agentId);
         for (const connection of connections) {
-            const tools = await listAllTools(await this.client(connection.id)).catch(() => []);
-            const tool = tools.find(
-                (item) => modelToolName(connection.id, item.name) === visibleName
+            const upstreamName = connection.tools.find(
+                (toolName) => modelToolName(connection.id, toolName) === visibleName
             );
-            if (tool) {
-                return { connectionId: connection.id, upstreamName: tool.name };
+            if (upstreamName) {
+                return { connectionId: connection.id, upstreamName };
             }
         }
-        throw new Error(`MCP tool ${visibleName} is not granted.`);
+        throw new HostedMcpDeniedError(`MCP tool ${visibleName} is not granted.`);
+    }
+
+    private async runUpstream<T>(
+        connectionId: string,
+        operation: 'discovery' | 'invocation',
+        run: () => Promise<T>
+    ): Promise<T> {
+        const timeoutMs =
+            operation === 'discovery' ? this.discoveryTimeoutMs : this.invocationTimeoutMs;
+        try {
+            return await withHostedMcpTimeout(run(), timeoutMs, operation);
+        } catch (cause) {
+            this.discardClient(connectionId);
+            throw classifyHostedMcpUpstreamError(cause, operation);
+        }
+    }
+
+    private discardClient(connectionId: string) {
+        const pending = this.clients.get(connectionId);
+        this.clients.delete(connectionId);
+        void pending?.then((client) => client.close()).catch(() => undefined);
     }
 }
 
@@ -236,34 +290,9 @@ export function emptySecret(): HostedMcpSecret {
     return { approvedAuthorizationServerOrigins: [], headers: {}, oauthScopes: [] };
 }
 
-function modelToolName(connectionId: string, toolName: string) {
-    const slug = (value: string) =>
-        value.replace(/[^a-zA-Z0-9_-]+/gu, '_').replace(/^_+|_+$/gu, '') || 'tool';
-    const hash = createHash('sha256')
-        .update(`${connectionId}\0${toolName}`)
-        .digest('hex')
-        .slice(0, 8);
-    return `mcp__${slug(connectionId).slice(0, 20)}__${slug(toolName).slice(0, 27)}_${hash}`;
-}
-
-async function listAllTools(client: MCPClient) {
-    const tools: Awaited<ReturnType<MCPClient['listTools']>>['tools'] = [];
-    const seenCursors = new Set<string>();
-    let cursor: string | undefined;
-    for (let page = 0; page < 100; page += 1) {
-        const result = await client.listTools({ params: { cursor } });
-        tools.push(...result.tools);
-        if (tools.length > 1000) {
-            throw new Error('MCP tool discovery exceeded 1,000 tools.');
-        }
-        if (!result.nextCursor) {
-            return tools;
-        }
-        if (seenCursors.has(result.nextCursor)) {
-            throw new Error('MCP tool discovery returned a repeated cursor.');
-        }
-        seenCursors.add(result.nextCursor);
-        cursor = result.nextCursor;
+function asMcpArguments(value: unknown): Record<string, unknown> {
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        return value as Record<string, unknown>;
     }
-    throw new Error('MCP tool discovery exceeded 100 pages.');
+    throw new HostedMcpDeniedError('MCP tool arguments must be an object.');
 }

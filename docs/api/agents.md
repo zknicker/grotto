@@ -67,6 +67,9 @@ policy.
   notes/), which it maintains itself. Clients save source files through the
   Runtime-hosted agent file API. The rendered system prompt is readable for
   preview through the instructions read surface.
+* Workspace list and read inputs accept `includeHidden` (default `false`).
+  This choice is carried through the Server↔Computer relay; it never weakens
+  the sensitive-file or skipped-directory boundary.
 * Agent settings use narrow domain mutations. Clients update agent
   name, bio, model, thinking default, and messaging bindings through agent and
   messaging APIs instead of editing or saving raw engine config JSON.

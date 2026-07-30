@@ -33,6 +33,12 @@ read_when:
   upstream sessions never enter Computer, Agent prompts, or tool arguments.
 - An unavailable MCP connection does not prevent an Agent from starting. Its tools are omitted
   until Server can rediscover the connection.
+- Server discovers granted connections concurrently with a five-second deadline per connection.
+  One slow or unavailable connection cannot hide healthy connections or hold Agent startup open.
+- Server resolves invocation authority from the current grant and cached inventory before making
+  one upstream call with a 30-second deadline.
+- Runner errors preserve whether access was denied or revoked, the upstream account needs
+  reauthorization, the upstream timed out, or the upstream is unavailable.
 
 ## OAuth and secrets
 
@@ -52,3 +58,5 @@ read_when:
 - Clients are pooled by connection and closed on identity, credential, disconnect, or Server
   lifecycle changes.
 - Invocation is authorized by the scoped runner identity plus the current Server grant.
+- `connected` means the Server retains an active connection identity; it is not transient upstream
+  health. Request failures do not disconnect an account or erase grants.

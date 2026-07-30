@@ -9,13 +9,12 @@ export const importAgentSkillProcedure = memberProcedure
     .output(hostedAgentImportSkillResultSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            const skill = await importHostedAgentSkill(
+            return await importHostedAgentSkill(
                 ctx.grottoDb,
                 ctx.computerConnections,
                 ctx.member,
                 input
             );
-            return { skill };
         } catch (cause) {
             if (cause instanceof AgentConfigDeniedError) {
                 throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });

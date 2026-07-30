@@ -26,6 +26,7 @@ let restore: () => void;
 let rejectResume: boolean;
 let sentUserMessages: string[];
 let streamedPrompts: string[];
+let streamToolNames: string[];
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'grotto-harness-'));
@@ -33,6 +34,7 @@ beforeEach(async () => {
     rejectResume = false;
     sentUserMessages = [];
     streamedPrompts = [];
+    streamToolNames = [];
     restore = setHarnessAgentFactoryForTesting((_input, _options) => fakeAgent());
 });
 
@@ -66,6 +68,9 @@ function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
             streamedPrompts.push(options.prompt);
             return {
                 fullStream: (async function* () {
+                    for (const toolName of streamToolNames) {
+                        yield { toolName, type: 'tool-call' };
+                    }
                     yield {
                         type: 'finish-step',
                         usage: { inputTokens: { total: 10 }, outputTokens: { total: 5 } },
@@ -115,6 +120,7 @@ async function readSession(): Promise<AgentSessionState> {
 test('cold-starts a fresh Agent then resumes its one global session', async () => {
     const first = await runHarnessTurn(turnInput());
     expect(first.contextTokens).toBe(15);
+    expect(first.toolNames).toEqual([]);
     // Cold start: no resume payload, generation 1, engine session + resume state
     // persisted for the next turn.
     expect(createSessionCalls[0]?.resumeFrom).toBeUndefined();
@@ -131,6 +137,30 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     // Second turn resumes: the stored resume state is handed back to the engine.
     expect(createSessionCalls[1]?.resumeFrom).toMatchObject({ type: 'resume-session' });
     expect((await readSession()).generation).toBe(1);
+});
+
+test('returns bounded unique tool names as safe turn evidence', async () => {
+    streamToolNames = [
+        'mcp__catalog__get_issue',
+        'mcp__catalog__get_issue',
+        'shell_command',
+        'read_file',
+        'write_file',
+        'search',
+        'edit_file',
+        'ignored_after_limit',
+    ];
+
+    const result = await runHarnessTurn(turnInput());
+
+    expect(result.toolNames).toEqual([
+        'mcp__catalog__get_issue',
+        'shell_command',
+        'read_file',
+        'write_file',
+        'search',
+        'edit_file',
+    ]);
 });
 
 test('a cold start removes only its stale unresumable harness run', async () => {

@@ -30,11 +30,16 @@ export async function handleWorkspaceRequest(request: Request): Promise<Response
 
     if (request.method === 'GET' && segments[3] === 'files' && !segments[4]) {
         const input = agentRuntimeWorkspaceFileListInputSchema.parse({
+            includeHidden: url.searchParams.get('includeHidden') === 'true',
             path: url.searchParams.get('path') ?? '',
         });
         return json(
             agentRuntimeWorkspaceFileListSchema.parse(
-                await listWorkspaceFiles(getDb(), { agentId, path: input.path })
+                await listWorkspaceFiles(getDb(), {
+                    agentId,
+                    includeHidden: input.includeHidden,
+                    path: input.path,
+                })
             )
         );
     }
@@ -42,7 +47,11 @@ export async function handleWorkspaceRequest(request: Request): Promise<Response
     if (request.method === 'GET' && segments[3] === 'files' && segments[4]) {
         return json(
             agentRuntimeWorkspaceFileContentSchema.parse(
-                await readWorkspaceFile(getDb(), { agentId, path: segments[4] })
+                await readWorkspaceFile(getDb(), {
+                    agentId,
+                    includeHidden: url.searchParams.get('includeHidden') === 'true',
+                    path: segments[4],
+                })
             )
         );
     }

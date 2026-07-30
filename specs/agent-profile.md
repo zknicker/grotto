@@ -38,7 +38,10 @@ There is no separate per-agent settings surface.
   conversational — the empty state says to tell the agent.
 - **Workspace.** Read-only file tree and viewer over the agent's real
   Computer workspace through an authorized live Server↔Computer relay. The
-  Server does not replicate workspace files.
+  Server does not replicate workspace files. Hidden files are excluded by
+  default and appear only while the user enables the hidden-files toggle.
+  Sensitive files and skipped heavy directories remain unavailable in both
+  modes.
 - **Apps.** Accounts the Agent uses through browser-based app access.
 - **MCP.** Server-managed MCP connections granted at connection level.
   Tavern does not expose per-tool grants or local/stdin MCP configuration.

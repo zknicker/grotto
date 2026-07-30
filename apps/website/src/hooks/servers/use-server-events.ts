@@ -19,23 +19,7 @@ export function useServerEvents(serverId: string | undefined) {
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,
-            onData: (event) => {
-                if (event.scope === 'computer') {
-                    void utils.computer.list.invalidate({ serverId });
-                    void utils.agent.list.invalidate({ serverId });
-                    void utils.stats.live.invalidate({ serverId });
-                    return;
-                }
-                if (event.scope === 'mcp') {
-                    void utils.mcp.list.invalidate({ serverId });
-                    return;
-                }
-
-                void utils.server.bySlug.invalidate();
-                void utils.server.list.invalidate();
-                void utils.member.list.invalidate({ serverId });
-                void utils.invitation.list.invalidate({ serverId });
-            },
+            onData: createServerUpdateHandler(utils, serverId),
             onError: (error) => {
                 if (!isMembershipLoss(error)) {
                     return;
@@ -54,4 +38,29 @@ export function useServerEvents(serverId: string | undefined) {
             },
         }
     );
+}
+
+type ServerEventUtils = ReturnType<typeof grottoTrpc.useUtils>;
+
+export function createServerUpdateHandler(utils: ServerEventUtils, serverId: string | undefined) {
+    return (event: { scope: string }) => {
+        if (event.scope === 'computer') {
+            void utils.computer.list.invalidate({ serverId });
+            void utils.agent.list.invalidate({ serverId });
+            void utils.agent.skillFile.invalidate();
+            void utils.agent.workspaceFile.invalidate();
+            void utils.agent.workspaceFiles.invalidate();
+            void utils.stats.live.invalidate({ serverId });
+            return;
+        }
+        if (event.scope === 'mcp') {
+            void utils.mcp.list.invalidate({ serverId });
+            return;
+        }
+
+        void utils.server.bySlug.invalidate();
+        void utils.server.list.invalidate();
+        void utils.member.list.invalidate({ serverId });
+        void utils.invitation.list.invalidate({ serverId });
+    };
 }

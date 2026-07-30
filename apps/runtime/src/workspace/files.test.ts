@@ -31,10 +31,13 @@ describe('workspace files', () => {
     test('lists visible workspace files with directories first', async () => {
         await mkdir(path.join(workspaceDir, 'docs'));
         await mkdir(path.join(workspaceDir, 'node_modules'));
+        await mkdir(path.join(workspaceDir, '.drafts'));
+        await mkdir(path.join(workspaceDir, '.git'));
         await mkdir(path.join(workspaceDir, 'codex-ags_cht_general_agt_primary_1'));
         await mkdir(path.join(workspaceDir, 'claude-code-ags_cht_general_agt_primary_2'));
         await writeFile(path.join(workspaceDir, 'README.md'), '# Hello');
         await writeFile(path.join(workspaceDir, '.env'), 'SECRET=1');
+        await writeFile(path.join(workspaceDir, '.drafts', 'plan.md'), '# Plan');
         await writeFile(path.join(workspaceDir, 'docs', 'plan.html'), '<h1>Plan</h1>');
 
         const root = await listWorkspaceFiles(getDb(), { agentId: 'planner', path: '' });
@@ -50,6 +53,27 @@ describe('workspace files', () => {
         expect(docs.entries).toMatchObject([
             { kind: 'file', mediaType: 'text/html', name: 'plan.html', path: 'docs/plan.html' },
         ]);
+
+        const hidden = await listWorkspaceFiles(getDb(), {
+            agentId: 'planner',
+            includeHidden: true,
+            path: '',
+        });
+        expect(hidden.entries.map((entry) => entry.path)).toEqual(['.drafts', 'docs', 'README.md']);
+        await expect(
+            listWorkspaceFiles(getDb(), {
+                agentId: 'planner',
+                includeHidden: true,
+                path: '.git',
+            })
+        ).rejects.toThrow(/not browseable/u);
+        await expect(
+            readWorkspaceFile(getDb(), {
+                agentId: 'planner',
+                includeHidden: true,
+                path: '.drafts/plan.md',
+            })
+        ).resolves.toMatchObject({ content: '# Plan' });
     });
 
     test('reads markdown, html, and image content from the registered workspace', async () => {
@@ -134,21 +158,19 @@ describe('workspace files', () => {
         ).rejects.toThrow(/not browseable/u);
         await expect(
             readWorkspaceFile(getDb(), { agentId: 'planner', path: '.home/.codex/auth.json' })
-        ).rejects.toThrow(/not browseable/u);
+        ).rejects.toThrow(/secrets|key material/u);
         await expect(
             listWorkspaceFiles(getDb(), {
                 agentId: 'planner',
                 path: 'codex-ags_cht_general_agt_primary_1',
             })
         ).rejects.toThrow(/not browseable/u);
-        // Legacy session directories stay out of listings, but direct links
-        // into them keep resolving so old chat references still open.
         await expect(
             readWorkspaceFile(getDb(), {
                 agentId: 'planner',
                 path: 'codex-ags_cht_general_agt_primary_1/harness-tool.mjs',
             })
-        ).resolves.toMatchObject({ content: 'token' });
+        ).rejects.toThrow(/not browseable/u);
         await expect(
             listWorkspaceFiles(getDb(), { agentId: 'planner', path: 'node_modules/package' })
         ).rejects.toThrow(/not browseable/u);

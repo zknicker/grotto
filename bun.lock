@@ -25,6 +25,7 @@
         "@tavern/agent-workspace": "workspace:*",
         "@tavern/api": "workspace:*",
         "@tavern/codex-usage": "workspace:*",
+        "yaml": "2.9.0",
         "zod": "4.1.11",
       },
       "devDependencies": {

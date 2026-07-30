@@ -10,12 +10,16 @@ export async function listHostedAgentWorkspace(
     db: GrottoDatabase,
     connections: ComputerConnections,
     member: GrottoUser | null,
-    input: { agentId: string; path: string; serverId: string }
+    input: { agentId: string; includeHidden: boolean; path: string; serverId: string }
 ): Promise<HostedWorkspaceFileList> {
     const computerId = await requireWorkspaceAccess(db, member, input);
     const result = await connections.requestWorkspace(computerId, {
         agentId: input.agentId,
-        operation: { kind: 'list', path: input.path },
+        operation: {
+            includeHidden: input.includeHidden,
+            kind: 'list',
+            path: input.path,
+        },
     });
     if (result.kind !== 'list') {
         throw new Error('The Computer returned the wrong workspace response.');
@@ -27,12 +31,16 @@ export async function readHostedAgentWorkspaceFile(
     db: GrottoDatabase,
     connections: ComputerConnections,
     member: GrottoUser | null,
-    input: { agentId: string; path: string; serverId: string }
+    input: { agentId: string; includeHidden: boolean; path: string; serverId: string }
 ): Promise<HostedWorkspaceFileContent> {
     const computerId = await requireWorkspaceAccess(db, member, input);
     const result = await connections.requestWorkspace(computerId, {
         agentId: input.agentId,
-        operation: { kind: 'read', path: input.path },
+        operation: {
+            includeHidden: input.includeHidden,
+            kind: 'read',
+            path: input.path,
+        },
     });
     if (result.kind !== 'read') {
         throw new Error('The Computer returned the wrong workspace response.');

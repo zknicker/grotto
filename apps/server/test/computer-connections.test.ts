@@ -64,7 +64,7 @@ test('waiting for Agents closes admission until reconnect completes', () => {
     expect(frames).toEqual([stop, start]);
 });
 
-test('skill imports resolve only from the requested Computer and Agent', async () => {
+test('skill imports resolve on durable acceptance from the requested Computer and Agent', async () => {
     const frames: Record<string, unknown>[] = [];
     const connections = new ComputerConnections();
     connections.register(computerId, {
@@ -89,29 +89,24 @@ test('skill imports resolve only from the requested Computer and Agent', async (
         connections.acceptSkillImport('cmp_0000000000000000', {
             agentId: start.agentId,
             requestId,
-            skill: {
-                description: 'Wrong Computer',
-                hash: '0'.repeat(64),
-                modifiedAt: '2026-07-27T00:00:00.000Z',
-                name: 'wrong',
-            },
+            sourceId: 'hsk_1234567890123456',
+            status: 'accepted',
+            type: 'agent-skill-import-result',
+            updatedAt: '2026-07-27T00:00:00.000Z',
         })
     ).toBe(false);
 
-    const skill = {
-        description: 'Release checks',
-        hash: 'a'.repeat(64),
-        modifiedAt: '2026-07-27T00:00:00.000Z',
-        name: 'release-checks',
-    };
     expect(
         connections.acceptSkillImport(computerId, {
             agentId: start.agentId,
             requestId,
-            skill,
+            sourceId: 'hsk_1234567890123456',
+            status: 'accepted',
+            type: 'agent-skill-import-result',
+            updatedAt: '2026-07-27T00:00:00.000Z',
         })
     ).toBe(true);
-    expect(await pending).toEqual(skill);
+    expect(await pending).toEqual({ requestId, status: 'accepted' });
 });
 
 test('workspace relay accepts a response only from the requested Computer and Agent', async () => {
@@ -126,12 +121,12 @@ test('workspace relay accepts a response only from the requested Computer and Ag
 
     const pending = connections.requestWorkspace(computerId, {
         agentId: start.agentId,
-        operation: { kind: 'list', path: '' },
+        operation: { includeHidden: true, kind: 'list', path: '' },
     });
     const requestId = String(frames[0]?.requestId);
     expect(frames[0]).toEqual({
         agentId: start.agentId,
-        operation: { kind: 'list', path: '' },
+        operation: { includeHidden: true, kind: 'list', path: '' },
         requestId,
         type: 'agent-workspace-request',
     });
@@ -157,6 +152,55 @@ test('workspace relay accepts a response only from the requested Computer and Ag
             requestId,
             result,
             type: 'agent-workspace-result',
+        })
+    ).toBe(true);
+    expect(await pending).toEqual(result);
+});
+
+test('Agent skill file bytes relay only from the requested Computer and Agent', async () => {
+    const frames: Record<string, unknown>[] = [];
+    const connections = new ComputerConnections();
+    connections.register(computerId, {
+        ordinary: true,
+        send: (frame) => frames.push(frame as Record<string, unknown>),
+        serverId: 'srv_1234567890123456',
+        updatePhase: 'idle',
+    });
+
+    const pending = connections.requestSkillFile(computerId, {
+        agentId: start.agentId,
+        operation: { kind: 'read', name: 'research' },
+    });
+    const requestId = String(frames[0]?.requestId);
+    expect(frames[0]).toEqual({
+        agentId: start.agentId,
+        operation: { kind: 'read', name: 'research' },
+        requestId,
+        type: 'agent-skill-file-request',
+    });
+    const result = {
+        kind: 'read' as const,
+        value: {
+            content: '# Research\n',
+            hash: 'a'.repeat(64),
+            name: 'research',
+            updatedAt: '2026-07-27T00:00:00.000Z',
+        },
+    };
+    expect(
+        connections.acceptSkillFileResult('cmp_0000000000000000', {
+            agentId: start.agentId,
+            requestId,
+            result,
+            type: 'agent-skill-file-result',
+        })
+    ).toBe(false);
+    expect(
+        connections.acceptSkillFileResult(computerId, {
+            agentId: start.agentId,
+            requestId,
+            result,
+            type: 'agent-skill-file-result',
         })
     ).toBe(true);
     expect(await pending).toEqual(result);

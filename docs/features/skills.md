@@ -17,20 +17,34 @@ global skills or another Agent's library by accident.
 An attached Computer reports compact metadata for skill bundles installed in
 the operator's standard skill directories. The Server stores the latest report
 so Settings -> Skills remains useful while the Computer is offline. Skill
-contents never pass through or persist on the Server.
+contents never persist on the Server.
 
 Settings -> Skills is the Server's browse-only view of these reported sources.
 An Owner or Admin adds one from the searchable Skills picker on an Agent's
-Profile while that Computer is online. The Computer copies the complete bundle
-into the Agent's library. The source is unchanged, the Agent copy is
+Profile while that Computer is online. The Computer durably records acceptance
+before the App stops showing the request as pending, then copies the complete
+bundle into the Agent's library. The source is unchanged, the Agent copy is
 independent, and no later sync occurs. A same-name copy must be removed or
 renamed explicitly before it can be imported again.
 
 Computer inventory changes arrive through the Server update subscription. The
-App does not poll for skill or import changes.
+App does not poll for skill or import changes. The Agent Profile shows accepted,
+applied, and failed outcomes reported by the Computer; elapsed time is never
+treated as success or failure.
 
 Imports wait for an active turn to finish. The next turn receives the updated
 library; a running turn is never mutated.
+
+## Operator editing
+
+Owners and Admins can open an installed skill from the Agent Profile, edit its
+`SKILL.md`, or explicitly confirm deletion of that Agent's whole independent
+copy. Content travels only through the authenticated live Computer connection.
+The Server authorizes the request but does not store the bytes.
+
+Save and delete use the hash from the opened copy. If the Agent or another
+operator changed the bundle, Grotto asks the operator to reload instead of
+overwriting it. Successful changes refresh from a Computer event, not a timer.
 
 ## Agent authoring
 
@@ -48,12 +62,12 @@ Agent's independent copy, never its host source.
 ## Tools are separate
 
 Skills teach; tools act. Executable capabilities come from the selected harness
-and exact MCP grants. MCP credentials stay on the Computer, and discovering a
-new MCP tool never grants it automatically.
+and Server-owned MCP connection grants. Discovering a new MCP tool never grants
+it automatically.
 
 ## Missing on purpose
 
 - Ambient execution of globally installed host skills.
 - Automatic skill sync or a compatibility layer between libraries.
-- A shared Server-side skill-content store.
+- A persistent Server-side skill-content store.
 - A generic toolset or skill marketplace.

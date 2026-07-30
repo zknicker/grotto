@@ -6,6 +6,7 @@ import {
     computerUpdateProgressFrameSchema,
     hostedAgentDeliveryAckSchema,
     hostedAgentEffectiveStateSchema,
+    hostedAgentSkillFileResultSchema,
     hostedAgentSkillImportResultSchema,
     hostedAgentTurnSummarySchema,
     hostedAgentWorkspaceResultSchema,
@@ -201,6 +202,12 @@ async function ingestReport(
     const skillImport = hostedAgentSkillImportResultSchema.safeParse(frame);
     if (skillImport.success) {
         connections.acceptSkillImport(computerId, skillImport.data);
+        return;
+    }
+
+    const skillFile = hostedAgentSkillFileResultSchema.safeParse(frame);
+    if (skillFile.success) {
+        connections.acceptSkillFileResult(computerId, skillFile.data);
         return;
     }
 

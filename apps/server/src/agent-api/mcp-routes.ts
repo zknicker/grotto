@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+import { HostedMcpDeniedError, HostedMcpUpstreamError } from '../hosted-mcp/errors.ts';
 import type { HostedMcpRuntime } from '../hosted-mcp/runtime.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
@@ -55,11 +56,22 @@ export function registerAgentMcpRoutes(
                 }),
             };
         } catch (cause) {
+            if (cause instanceof HostedMcpDeniedError) {
+                return sendAgentApiError(reply, 403, cause.code, cause.message);
+            }
+            if (cause instanceof HostedMcpUpstreamError) {
+                return sendAgentApiError(
+                    reply,
+                    cause.code === 'MCP_TIMEOUT' ? 504 : 502,
+                    cause.code,
+                    cause.message
+                );
+            }
             return sendAgentApiError(
                 reply,
-                403,
-                'MCP_DENIED',
-                cause instanceof Error ? cause.message : 'MCP invocation was denied.'
+                502,
+                'MCP_UNAVAILABLE',
+                cause instanceof Error ? cause.message : 'MCP invocation is unavailable.'
             );
         }
     });

@@ -9,15 +9,33 @@ import {
 } from '@tavern/api/pane-links';
 
 // Pane targets and the grotto:// link scheme are the Runtime contract's; the
-// app-local aliases keep chat feature imports stable.
-export type TavernResourceTarget = ChatPaneTarget;
+// app-local alias adds the authoring Agent for hosted workspace targets. The
+// link itself remains portable; hosted chat derives ownership from the
+// durable message author rather than encoding identity in user-authored text.
+type WorkspaceResourceTarget = Extract<ChatPaneTarget, { kind: `workspace${string}` }> & {
+    agentId?: string;
+};
+export type TavernResourceTarget =
+    | Exclude<ChatPaneTarget, { kind: `workspace${string}` }>
+    | WorkspaceResourceTarget;
 
 export const parseTavernResourceLink = parseChatPaneTargetLink;
 export const formatTavernResourceLink = formatChatPaneTargetLink;
 export { isWorkspaceChatPaneTarget };
 
 export function getArtifactPanelTargetKey(target: TavernResourceTarget) {
-    return `${target.kind}:${target.path}`;
+    const agentKey = 'agentId' in target && target.agentId ? `${target.agentId}:` : '';
+    return `${target.kind}:${agentKey}${target.path}`;
+}
+
+export function bindWorkspaceTargetToAgent(
+    target: TavernResourceTarget,
+    agentId: string | undefined
+): TavernResourceTarget {
+    if (!(agentId && isWorkspaceChatPaneTarget(target))) {
+        return target;
+    }
+    return { ...target, agentId };
 }
 
 export function getArtifactPanelTargetLabel(target: TavernResourceTarget) {

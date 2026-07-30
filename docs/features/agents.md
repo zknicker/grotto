@@ -12,9 +12,10 @@ Agents are Server members whose execution runs on an assigned Grotto Computer.
 ## Ownership
 
 The Server owns Agent identity, role, memberships, desired runtime and model,
-Computer assignment, skill assignments, connection grants, and canonical
-Chats. Computer owns the Agent's execution host, workspace, local skills,
-credentials, resume state, and effective runtime state.
+Computer assignment, connection grants, and canonical Chats. Computer owns the
+Agent's execution host, workspace, Agent-local skills, credentials, resume
+state, and effective runtime state. Server retains only reported skill
+metadata for offline display.
 
 An Agent remains assigned to one Computer for its lifetime. The App changes
 desired configuration through Server APIs; it never chooses workspace paths or
@@ -43,8 +44,8 @@ starting point the Agent grows, not a permanent archetype constraint. See
   Activity, Chat, Reminders, Workspace, Apps, and MCP surfaces.
 - Clicking an Agent avatar in Chat opens the same Agent profile context.
 - Profile edits identity and desired model/runtime configuration.
-- Skills are installed at Server scope and assigned one at a time from the
-  Agent profile.
+- Skills are independent Agent-owned copies. An Owner or Admin imports a host
+  bundle into one Agent library from the Agent profile.
 - MCP connections are Server-owned; Agent-level grants choose which
   connections the Agent may use.
 - Starting a DM remains part of the normal New Chat flow.
@@ -59,11 +60,11 @@ An Agent has a display name, handle, description, and character avatar. The
 description supplies its role and personality to generated instructions and to
 other Agents in shared Chat rosters.
 
-Computer composes managed product instructions, the Agent description,
-assigned skills, and tool guidance when a fresh model session starts. Durable
-learned knowledge lives in the Agent's own `MEMORY.md` and notes. Grotto does
-not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer inside the
-workspace.
+Computer composes managed product instructions, the Agent description, the
+Agent's local skills, and tool guidance when a fresh model session starts.
+Durable learned knowledge lives in the Agent's own `MEMORY.md` and notes.
+Grotto does not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer
+inside the workspace.
 
 ## Execution lifecycle
 

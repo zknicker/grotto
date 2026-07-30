@@ -1,24 +1,25 @@
 import { createHash, randomBytes } from 'node:crypto';
-import {
-    lstat,
-    mkdir,
-    readdir,
-    readFile,
-    realpath,
-    rename,
-    rm,
-    stat,
-    writeFile,
-} from 'node:fs/promises';
+import { lstat, mkdir, readdir, readFile, realpath, rename, rm, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join, relative } from 'node:path';
+import { basename, join } from 'node:path';
 import type {
     HostedAgentSkillImportCommand,
     HostedAgentSkillMetadata,
     HostedImportableSkill,
 } from '@tavern/api';
+import {
+    copySkillBundle,
+    readSkillBundle,
+    skillDescription,
+    skillNamePattern,
+} from './host-skill-bundle.ts';
 
-const skillNamePattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/u;
+export {
+    acceptHostSkillImport,
+    finishHostSkillImport,
+    listAcceptedHostSkillImports,
+    listAgentSkillImportReports,
+} from './host-skill-import-store.ts';
 
 interface HostSkillSource extends HostedImportableSkill {
     directory: string;
@@ -84,7 +85,7 @@ export async function importHostSkill(input: {
     const temporary = join(skillsDir, `.import-${randomBytes(8).toString('hex')}`);
     await mkdir(temporary, { mode: 0o700 });
     try {
-        await copyBundle(source.directory, temporary);
+        await copySkillBundle(await readSkillBundle(source.directory), temporary);
         await rename(temporary, destination);
     } catch (error) {
         await rm(temporary, { force: true, recursive: true });
@@ -98,30 +99,38 @@ export async function importHostSkill(input: {
 }
 
 async function scanHostSkills(roots: string[]): Promise<HostSkillSource[]> {
-    const seen = new Set<string>();
+    const seenDirectories = new Set<string>();
+    const seenNames = new Set<string>();
     const found: HostSkillSource[] = [];
     for (const root of roots) {
         const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
         for (const entry of entries) {
-            if (entry.name.length > 128 || !skillNamePattern.test(entry.name)) {
-                continue;
-            }
             const candidate = join(root, entry.name);
             const directory = await realpath(candidate).catch(() => null);
             const info = directory ? await stat(directory).catch(() => null) : null;
-            if (!(directory && info?.isDirectory()) || seen.has(directory)) {
+            if (!(directory && info?.isDirectory()) || seenDirectories.has(directory)) {
+                continue;
+            }
+            const name = basename(directory);
+            const normalizedName = name.toLowerCase();
+            if (
+                name.length > 128 ||
+                !skillNamePattern.test(name) ||
+                seenNames.has(normalizedName)
+            ) {
                 continue;
             }
             const content = await readFile(join(directory, 'SKILL.md'), 'utf8').catch(() => null);
             if (content === null) {
                 continue;
             }
-            seen.add(directory);
+            seenDirectories.add(directory);
+            seenNames.add(normalizedName);
             found.push({
-                description: descriptionOf(content),
+                description: skillDescription(content),
                 directory,
                 id: sourceId(directory),
-                name: entry.name,
+                name,
                 source: shortPath(candidate),
             });
         }
@@ -154,7 +163,10 @@ async function listSkillMetadata(
                 if (content === null) {
                     return null;
                 }
-                const files = await bundleFiles(directory);
+                const files = await readSkillBundle(directory).catch(() => null);
+                if (!files?.length) {
+                    return null;
+                }
                 const modifiedAt = new Date(
                     Math.max(...files.map((file) => file.modifiedAt))
                 ).toISOString();
@@ -164,7 +176,7 @@ async function listSkillMetadata(
                     hash.update(file.content);
                 }
                 return {
-                    description: descriptionOf(content),
+                    description: skillDescription(content),
                     hash: hash.digest('hex'),
                     modifiedAt,
                     name: entry.name,
@@ -176,51 +188,6 @@ async function listSkillMetadata(
         .sort((left, right) => left.name.localeCompare(right.name));
 }
 
-async function bundleFiles(root: string) {
-    const files: { content: Uint8Array; modifiedAt: number; path: string }[] = [];
-    const walk = async (directory: string) => {
-        for (const entry of await readdir(directory, { withFileTypes: true })) {
-            const path = join(directory, entry.name);
-            if (entry.isSymbolicLink()) {
-                continue;
-            }
-            if (entry.isDirectory()) {
-                await walk(path);
-                continue;
-            }
-            if (entry.isFile()) {
-                const info = await stat(path);
-                files.push({
-                    content: await readFile(path),
-                    modifiedAt: info.mtimeMs,
-                    path: relative(root, path),
-                });
-            }
-        }
-    };
-    await walk(root);
-    return files.sort((left, right) => left.path.localeCompare(right.path));
-}
-
-async function copyBundle(source: string, destination: string) {
-    for (const entry of await readdir(source, { withFileTypes: true })) {
-        const from = join(source, entry.name);
-        const to = join(destination, entry.name);
-        if (entry.isSymbolicLink()) {
-            continue;
-        }
-        if (entry.isDirectory()) {
-            await mkdir(to, { mode: 0o700 });
-            await copyBundle(from, to);
-        } else if (entry.isFile()) {
-            const info = await stat(from);
-            await writeFile(to, await readFile(from), {
-                mode: info.mode & 0o111 ? 0o700 : 0o600,
-            });
-        }
-    }
-}
-
 function defaultImportRoots() {
     const home = homedir();
     return [
@@ -228,19 +195,6 @@ function defaultImportRoots() {
         join(home, '.claude', 'skills'),
         join(home, '.codex', 'skills'),
     ];
-}
-
-function descriptionOf(content: string) {
-    const frontmatter = content.match(/^---\n[\s\S]*?\n---/u)?.[0];
-    const described = frontmatter?.match(/^(?:description|summary):\s*(.+)$/mu)?.[1]?.trim();
-    return (
-        described ??
-        content
-            .split('\n')
-            .map((line) => line.replace(/^#+\s*/u, '').trim())
-            .find((line) => Boolean(line) && line !== '---') ??
-        'Agent skill'
-    ).slice(0, 500);
 }
 
 function sourceId(path: string) {

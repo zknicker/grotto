@@ -17,16 +17,23 @@ import {
 export function ChatArtifactPanel({
     agentId,
     open = true,
+    serverId,
     state,
 }: {
     agentId: string;
     open?: boolean;
+    serverId?: string;
     state: ChatArtifactPanelState;
 }) {
     return (
         <ChatSidePaneShell label="Artifacts" open={open && state.visible}>
             {(width) => (
-                <ArtifactPanelBody agentId={agentId} state={state} width={width ?? undefined} />
+                <ArtifactPanelBody
+                    agentId={agentId}
+                    serverId={serverId}
+                    state={state}
+                    width={width ?? undefined}
+                />
             )}
         </ChatSidePaneShell>
     );
@@ -36,16 +43,20 @@ export function ChatArtifactPanel({
 // controlled state so the chrome and body stay in one Tabs root.
 function ArtifactPanelBody({
     agentId,
+    serverId,
     state,
     width,
 }: {
     agentId: string;
+    serverId?: string;
     state: ChatArtifactPanelState;
     width?: number;
 }) {
     const activeTarget = state.targets.find(
         (target) => getArtifactPanelTargetKey(target) === state.activeKey
     );
+    const activeAgentId =
+        activeTarget && 'agentId' in activeTarget ? (activeTarget.agentId ?? agentId) : agentId;
 
     return (
         <div className="flex h-full min-h-0 flex-col" style={width ? { width } : undefined}>
@@ -58,7 +69,7 @@ function ArtifactPanelBody({
                     <ArtifactPanelChrome
                         activeKey={state.activeKey}
                         activeTarget={activeTarget}
-                        agentId={agentId}
+                        agentId={activeAgentId}
                         onClose={state.toggleVisible}
                         onCloseTarget={state.closeTarget}
                         onOpenTarget={state.open}
@@ -69,14 +80,17 @@ function ArtifactPanelBody({
             <div className="min-h-0 flex-1">
                 {activeTarget ? (
                     <ArtifactPanelContent
-                        agentId={agentId}
+                        agentId={activeAgentId}
                         // Workspace targets share one tab whose file selection
                         // morphs the target; a stable key keeps the browser
                         // (tree state, loaded folders) mounted across morphs.
                         key={
-                            isWorkspaceChatPaneTarget(activeTarget) ? 'workspace' : state.activeKey
+                            isWorkspaceChatPaneTarget(activeTarget)
+                                ? `workspace:${activeAgentId}`
+                                : state.activeKey
                         }
                         onOpenTarget={state.open}
+                        serverId={serverId}
                         target={activeTarget}
                     />
                 ) : (
@@ -93,20 +107,26 @@ function ArtifactPanelBody({
 function ArtifactPanelContent({
     agentId,
     onOpenTarget,
+    serverId,
     target,
 }: {
     agentId: string;
     onOpenTarget: (target: TavernResourceTarget) => void;
+    serverId?: string;
     target: TavernResourceTarget;
 }) {
     // Stable identity: browser effects key on this callback.
     const openWorkspaceFile = React.useCallback(
         (path: null | string) => {
             if (path) {
-                onOpenTarget({ kind: 'workspaceFile', path });
+                onOpenTarget({
+                    agentId: 'agentId' in target ? (target.agentId ?? agentId) : agentId,
+                    kind: 'workspaceFile',
+                    path,
+                });
             }
         },
-        [onOpenTarget]
+        [agentId, onOpenTarget, target]
     );
 
     // The workspace is one unified tab: file content plus the workspace tree.
@@ -118,6 +138,7 @@ function ArtifactPanelContent({
             initialDirectoryPath={workspaceInitialDirectory(target)}
             onSelectPath={openWorkspaceFile}
             selectedPath={target.kind === 'workspaceFile' ? target.path : null}
+            serverId={serverId}
         />
     );
 }

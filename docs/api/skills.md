@@ -29,8 +29,10 @@ The Computer's ordinary attachment report includes:
   location for host-installed bundles.
 - `agentSkills`: Agent id plus compact name, description, content hash, and
   modification time for each Agent-local bundle.
+- `agentSkillImports`: the latest durable accepted, applied, or failed import
+  records, including request and source ids.
 
-Only metadata reaches the Server. The Server stores the latest complete
+Only metadata is persisted by the Server. The Server stores the latest complete
 inventory in `computers.reported_inventory` for offline display.
 
 ## Operator import
@@ -40,10 +42,34 @@ Only a Server Owner or Admin may call it. The Server verifies that the Agent is
 assigned to the reporting Computer, then sends a typed import request over that
 Computer's live attachment.
 
-The Computer resolves the opaque source id against a fresh local scan, waits
-for any active turn to settle, copies the bundle atomically into the Agent's
-library, and returns compact metadata. The Server never receives bundle bytes.
-The operation fails if the source disappeared, the Computer is offline, or the
-Agent already owns a same-name skill.
+The Computer resolves the opaque source id against a fresh local scan and
+durably records acceptance before `agent.importSkill` returns `{ requestId,
+status: "accepted" }`. It waits for any active turn to settle, copies the bundle
+atomically into the Agent's library, and reports either `applied` with compact
+metadata or `failed` with a bounded error. Accepted work resumes after a
+Computer reconnect. The Server never receives bundle bytes.
+
+The Computer parses YAML frontmatter, deduplicates overlapping host roots by
+canonical directory, and reports only the first bundle for each destination
+name using configured root precedence. It skips bundle symlinks and enforces
+bounded depth, file count, per-file bytes, and total bytes before copying. File
+contents remain binary-safe.
 
 The independent copy is visible to the next turn. There is no background sync.
+
+## Operator skill file relay
+
+The Owner/Admin tRPC surface exposes:
+
+- `agent.skillFile` to read one Agent copy's `SKILL.md`;
+- `agent.updateSkillFile` to replace it with an expected bundle hash; and
+- `agent.deleteSkillFile` to delete the bundle with the same hash guard.
+
+The Server rechecks current Owner/Admin membership and the Agent's assigned
+Computer for every call. Requests and results exist only in the live
+Server-to-Computer relay; the Server does not write content into PostgreSQL or
+logs. Updates use atomic file replacement. A stale expected hash returns a
+conflict instead of overwriting newer Computer-local content.
+
+Successful mutations emit the ordinary Computer inventory report. App caches
+refresh from that Server event; there is no polling.

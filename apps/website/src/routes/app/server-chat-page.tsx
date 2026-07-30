@@ -31,6 +31,7 @@ export function ServerChatPage() {
                       }
                     : undefined
             }
+            key={chat.id}
             onOpenChat={(nextChatId) => navigate(serverChatRoute(server.slug, nextChatId))}
             role={server.role}
             server={server}

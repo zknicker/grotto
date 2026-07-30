@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import {
     buildWorkspaceTreePaths,
     filterWorkspaceTreePaths,
-} from './chat-artifact-workspace-content.tsx';
+} from './chat-artifact-workspace-model.ts';
 
 test('buildWorkspaceTreePaths keeps root files when a child directory is loaded', () => {
     const paths = buildWorkspaceTreePaths({

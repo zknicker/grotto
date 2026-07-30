@@ -128,14 +128,18 @@ four semantic lifecycle phases from product boundaries:
 
 These events carry no reasoning or tool transcript and are neither stored nor
 replayed. The Agent profile's Activity tab remains the durable, turn-grained
-execution evidence surface. Chat receives only the short-lived `sending`
-composition bubble; every other lifecycle phase is presentation plumbing.
+execution evidence surface. Its compact turn summary may include a bounded set
+of tool names observed in the harness stream, but never arguments, command
+contents, model reasoning, or private file contents. Chat receives only the
+short-lived `sending` composition bubble; every other lifecycle phase is
+presentation plumbing.
 
 ## Invariant Tests
 
 | Principle | Smallest proving lane |
 | --- | --- |
 | One persistent session; cold `Start.` then resume | `apps/computer/src/harness/executor.test.ts` |
+| Tool names become bounded safe Activity evidence | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace; full reset restores only the starter kit | `apps/computer/src/launch.test.ts` |
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |

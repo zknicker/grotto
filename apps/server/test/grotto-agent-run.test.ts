@@ -3,14 +3,17 @@ import { advanceServedCursor } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
+import { readHostedAgentSkillFile } from '../src/hosted-agents/agent-skill-file.ts';
 import { importHostedAgentSkill } from '../src/hosted-agents/import-agent-skill.ts';
 import { recordAgentTurnSummary } from '../src/hosted-agents/record-agent-turn.ts';
+import { HostedMcpDeniedError, type HostedMcpUpstreamError } from '../src/hosted-mcp/errors.ts';
 import { HostedMcpRuntime } from '../src/hosted-mcp/runtime.ts';
 import {
     createHostedMcpConnection,
     disconnectHostedMcpConnection,
 } from '../src/hosted-mcp/service.ts';
 import { listHostedMcpConnections, setHostedMcpGrant } from '../src/hosted-mcp/state.ts';
+import { modelToolName } from '../src/hosted-mcp/tool-catalog.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
@@ -1345,14 +1348,34 @@ test('an Owner imports a Computer-reported host skill into exactly one assigned 
     computers.acceptSkillImport(computerId, {
         agentId,
         requestId,
-        skill: {
-            description: 'Release checks',
-            hash: 'a'.repeat(64),
-            modifiedAt: '2026-07-27T00:00:00.000Z',
-            name: 'release-checks',
-        },
+        sourceId,
+        status: 'accepted',
+        type: 'agent-skill-import-result',
+        updatedAt: '2026-07-27T00:00:00.000Z',
     });
-    expect(await imported).toMatchObject({ name: 'release-checks' });
+    expect(await imported).toEqual({ requestId, status: 'accepted' });
+});
+
+test('a Member cannot relay Agent skill file bytes through the Server', async () => {
+    const memberUserId = 'usr_skillmember0000';
+    await harness.sql`
+        insert into users (id, clerk_user_id)
+        values (${memberUserId}, 'user_skill_member')
+        on conflict do nothing
+    `;
+    await harness.sql`
+        insert into server_memberships (id, server_id, user_id, role)
+        values ('mem_skillmember0000', ${serverId}, ${memberUserId}, 'member')
+        on conflict do nothing
+    `;
+    await expect(
+        readHostedAgentSkillFile(
+            connection.db,
+            new ComputerConnections(),
+            { clerkUserId: 'user_skill_member', id: memberUserId },
+            { agentId, name: 'agent-browser', serverId }
+        )
+    ).rejects.toThrow(/Owner or Admin/u);
 });
 
 test('a human DM send enqueues durable pending work atomically with the message', async () => {
@@ -1556,6 +1579,163 @@ test('Server discovers and invokes a granted remote MCP without Computer custody
     }
 });
 
+test('a slow MCP discovery is bounded without hiding healthy granted tools', async () => {
+    const healthyId = 'mcp_healthyruntime00';
+    const slowId = 'mcp_slowruntime00000';
+    const healthy = createMcpFixture({
+        toolName: 'healthy_echo',
+    });
+    const slow = createMcpFixture({
+        delayMs: 200,
+        toolName: 'slow_echo',
+    });
+    const runtime = new HostedMcpRuntime(connection.db, { discoveryTimeoutMs: 25 });
+    try {
+        for (const fixture of [
+            { id: healthyId, server: healthy, tool: 'healthy_echo' },
+            { id: slowId, server: slow, tool: 'slow_echo' },
+        ]) {
+            await harness.sql`
+                insert into mcp_connections (
+                    id, account_label, server_id, name, auth, url, connected,
+                    header_names, preset, tools
+                ) values (
+                    ${fixture.id}, 'Fixture', ${serverId}, ${fixture.tool}, 'none',
+                    ${`http://127.0.0.1:${fixture.server.port}/mcp`}, true,
+                    ARRAY[]::text[], null, ARRAY[${fixture.tool}]
+                )
+            `;
+            await harness.sql`
+                insert into mcp_secrets (connection_id, secret)
+                values (
+                    ${fixture.id},
+                    ${{ approvedAuthorizationServerOrigins: [], headers: {}, oauthScopes: [] }}::jsonb
+                )
+            `;
+            await harness.sql`
+                insert into agent_mcp_connection_grants (server_id, agent_id, connection_id)
+                values (${serverId}, ${agentId}, ${fixture.id})
+            `;
+        }
+
+        const startedAt = performance.now();
+        const tools = await runtime.listAgentTools(serverId, agentId);
+        expect(performance.now() - startedAt).toBeLessThan(150);
+        expect(tools.map((tool) => tool.name)).toEqual([modelToolName(healthyId, 'healthy_echo')]);
+    } finally {
+        await runtime.close();
+        healthy.stop(true);
+        slow.stop(true);
+        await harness.sql`
+            delete from mcp_connections where id in (${healthyId}, ${slowId})
+        `;
+    }
+});
+
+test('MCP invocation distinguishes revoked access, timeout, and upstream auth', async () => {
+    const timeoutId = 'mcp_timeoutruntime00';
+    const authId = 'mcp_authruntime00000';
+    const timeout = createMcpFixture({ delayMs: 200, toolName: 'wait' });
+    const auth = Bun.serve({
+        fetch: () => new Response('reauthorize', { status: 401 }),
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    const runtime = new HostedMcpRuntime(connection.db, {
+        discoveryTimeoutMs: 25,
+        invocationTimeoutMs: 25,
+    });
+    try {
+        for (const fixture of [
+            { id: timeoutId, server: timeout, tool: 'wait' },
+            { id: authId, server: auth, tool: 'reauthorize' },
+        ]) {
+            await harness.sql`
+                insert into mcp_connections (
+                    id, account_label, server_id, name, auth, url, connected,
+                    header_names, preset, tools
+                ) values (
+                    ${fixture.id}, 'Fixture', ${serverId}, ${fixture.tool}, 'none',
+                    ${`http://127.0.0.1:${fixture.server.port}/mcp`}, true,
+                    ARRAY[]::text[], null, ARRAY[${fixture.tool}]
+                )
+            `;
+            await harness.sql`
+                insert into mcp_secrets (connection_id, secret)
+                values (
+                    ${fixture.id},
+                    ${{ approvedAuthorizationServerOrigins: [], headers: {}, oauthScopes: [] }}::jsonb
+                )
+            `;
+            await harness.sql`
+                insert into agent_mcp_connection_grants (server_id, agent_id, connection_id)
+                values (${serverId}, ${agentId}, ${fixture.id})
+            `;
+        }
+
+        await harness.sql`
+            delete from agent_mcp_connection_grants
+            where server_id = ${serverId} and agent_id = ${agentId} and connection_id = ${timeoutId}
+        `;
+        await expect(
+            runtime.invoke({
+                agentId,
+                args: {},
+                serverId,
+                toolName: modelToolName(timeoutId, 'wait'),
+            })
+        ).rejects.toBeInstanceOf(HostedMcpDeniedError);
+
+        await harness.sql`
+            insert into agent_mcp_connection_grants (server_id, agent_id, connection_id)
+            values (${serverId}, ${agentId}, ${timeoutId})
+        `;
+        await expect(
+            runtime.invoke({
+                agentId,
+                args: {},
+                serverId,
+                toolName: modelToolName(timeoutId, 'wait'),
+            })
+        ).rejects.toMatchObject<Partial<HostedMcpUpstreamError>>({ code: 'MCP_TIMEOUT' });
+        await expect(
+            runtime.invoke({
+                agentId,
+                args: {},
+                serverId,
+                toolName: modelToolName(authId, 'reauthorize'),
+            })
+        ).rejects.toMatchObject<Partial<HostedMcpUpstreamError>>({
+            code: 'MCP_AUTH_REQUIRED',
+        });
+
+        const runner = await mintRunner({ chatId: dmChatId, runId: 'run_mcp_errors' });
+        const deniedResponse = await invokeAgentMcp(runner.runnerToken, {
+            args: {},
+            toolName: modelToolName('mcp_notgranted0000', 'missing'),
+        });
+        expect(deniedResponse).toMatchObject({
+            body: { code: 'MCP_DENIED' },
+            status: 403,
+        });
+        const authResponse = await invokeAgentMcp(runner.runnerToken, {
+            args: {},
+            toolName: modelToolName(authId, 'reauthorize'),
+        });
+        expect(authResponse).toMatchObject({
+            body: { code: 'MCP_AUTH_REQUIRED' },
+            status: 502,
+        });
+    } finally {
+        await runtime.close();
+        timeout.stop(true);
+        auth.stop(true);
+        await harness.sql`
+            delete from mcp_connections where id in (${timeoutId}, ${authId})
+        `;
+    }
+});
+
 test('records a compact turn summary and fails closed on cross-Computer claims', async () => {
     const summary = {
         agentId,
@@ -1587,6 +1767,53 @@ test('records a compact turn summary and fails closed on cross-Computer claims',
     expect(foreign[0]?.n).toBe(0);
 });
 
+function createMcpFixture(input: { delayMs?: number; toolName: string }) {
+    return Bun.serve({
+        fetch: async (request) => {
+            if (input.delayMs) {
+                await Bun.sleep(input.delayMs);
+            }
+            if (request.method !== 'POST') {
+                return new Response(null, { status: 405 });
+            }
+            const message = (await request.json()) as {
+                id?: number;
+                method: string;
+                params?: Record<string, unknown>;
+            };
+            if (message.method === 'notifications/initialized') {
+                return new Response(null, { status: 202 });
+            }
+            const result =
+                message.method === 'initialize'
+                    ? {
+                          capabilities: { tools: {} },
+                          protocolVersion: String(message.params?.protocolVersion),
+                          serverInfo: { name: 'MCP fixture', version: '1.0.0' },
+                      }
+                    : message.method === 'tools/list'
+                      ? {
+                            tools: [
+                                {
+                                    inputSchema: {
+                                        additionalProperties: false,
+                                        properties: {},
+                                        type: 'object',
+                                    },
+                                    name: input.toolName,
+                                },
+                            ],
+                        }
+                      : message.method === 'tools/call'
+                        ? { content: [{ text: 'ok', type: 'text' }] }
+                        : null;
+            return Response.json({ id: message.id, jsonrpc: '2.0', result });
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+}
+
 async function mintRunner(input: { chatId: string; runId: string }) {
     const response = await fetch(new URL('/computer/runner/mint', harness.url), {
         body: JSON.stringify({ agentId, credentialHash, ...input }),
@@ -1597,6 +1824,21 @@ async function mintRunner(input: { chatId: string; runId: string }) {
         throw new Error(`mint failed: ${response.status}`);
     }
     return (await response.json()) as { runnerId: string; runnerToken: string };
+}
+
+async function invokeAgentMcp(
+    token: string,
+    body: { args: Record<string, unknown>; toolName: string }
+) {
+    const response = await fetch(new URL('/api/agent/mcp/invoke', harness.url), {
+        body: JSON.stringify(body),
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    return {
+        body: (await response.json()) as { code?: string; message?: string },
+        status: response.status,
+    };
 }
 
 async function agentSend(

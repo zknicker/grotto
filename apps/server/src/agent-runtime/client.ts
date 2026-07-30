@@ -339,7 +339,11 @@ export interface TavernAgentRuntimeClient {
     getTimezoneSettings(): Promise<AgentRuntimeTimezoneSettings>;
     getToolConfig(toolId: string): Promise<AgentRuntimeToolConfig>;
     getUpdateStatus(): Promise<AgentRuntimeUpdate>;
-    getWorkspaceFile(agentId: string, path: string): Promise<AgentRuntimeWorkspaceFileContent>;
+    getWorkspaceFile(
+        agentId: string,
+        path: string,
+        includeHidden?: boolean
+    ): Promise<AgentRuntimeWorkspaceFileContent>;
     getWorkspaceInstructions(agentId: string): Promise<AgentRuntimeRenderedWorkspaceInstructions>;
     installSkillHubSkill(
         input: AgentRuntimeSkillHubInstallInput
@@ -700,12 +704,15 @@ class HttpTavernAgentRuntimeClient implements TavernAgentRuntimeClient {
 
     async listWorkspaceFiles(
         agentId: string,
-        input: AgentRuntimeWorkspaceFileListInput = { path: '' }
+        input: AgentRuntimeWorkspaceFileListInput = { includeHidden: false, path: '' }
     ) {
         const payload = agentRuntimeWorkspaceFileListInputSchema.parse(input);
         const url = new URL(`${this.#baseUrl}${agentRuntimeRoutes.workspaceAgentFiles(agentId)}`);
         if (payload.path) {
             url.searchParams.set('path', payload.path);
+        }
+        if (payload.includeHidden) {
+            url.searchParams.set('includeHidden', 'true');
         }
 
         const response = await fetch(url, {
@@ -719,11 +726,14 @@ class HttpTavernAgentRuntimeClient implements TavernAgentRuntimeClient {
         return agentRuntimeWorkspaceFileListSchema.parse(await response.json());
     }
 
-    async getWorkspaceFile(agentId: string, path: string) {
-        const response = await fetch(
-            `${this.#baseUrl}${agentRuntimeRoutes.workspaceAgentFile(agentId, path)}`,
-            { headers: this.#authHeaders }
+    async getWorkspaceFile(agentId: string, path: string, includeHidden = false) {
+        const url = new URL(
+            `${this.#baseUrl}${agentRuntimeRoutes.workspaceAgentFile(agentId, path)}`
         );
+        if (includeHidden) {
+            url.searchParams.set('includeHidden', 'true');
+        }
+        const response = await fetch(url, { headers: this.#authHeaders });
 
         if (!response.ok) {
             await readErrorResponse(response);

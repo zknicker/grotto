@@ -1,7 +1,9 @@
 import type {
     ComputerUpdatePhase,
     HostedAgentCommand,
-    HostedAgentSkillMetadata,
+    HostedAgentSkillFileRequest,
+    HostedAgentSkillFileResult,
+    HostedAgentSkillImportResult,
     HostedAgentWorkspaceRequest,
     HostedAgentWorkspaceResult,
     HostedBrowserRequest,
@@ -10,6 +12,7 @@ import type {
 } from '@tavern/api';
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
+import { SkillFileRelay } from './skill-file-relay.ts';
 
 interface AttachedComputer {
     disconnect?(): void;
@@ -23,8 +26,8 @@ interface PendingSkillImport {
     agentId: string;
     computerId: string;
     reject(error: Error): void;
-    resolve(skill: HostedAgentSkillMetadata): void;
-    timeout: ReturnType<typeof setTimeout>;
+    resolve(result: { requestId: string; status: 'accepted' }): void;
+    sourceId: string;
 }
 
 interface PendingWorkspaceRequest {
@@ -52,6 +55,9 @@ interface PendingBrowserRequest {
 export class ComputerConnections implements DeliveryTransport {
     private readonly attached = new Map<string, AttachedComputer>();
     private readonly pendingSkillImports = new Map<string, PendingSkillImport>();
+    private readonly skillFileRelay = new SkillFileRelay((computerId, frame) =>
+        this.send(computerId, frame)
+    );
     private readonly pendingWorkspaceRequests = new Map<string, PendingWorkspaceRequest>();
     private readonly pendingBrowserRequests = new Map<string, PendingBrowserRequest>();
 
@@ -63,7 +69,6 @@ export class ComputerConnections implements DeliveryTransport {
         this.attached.delete(computerId);
         for (const [requestId, pending] of this.pendingSkillImports) {
             if (pending.computerId === computerId) {
-                clearTimeout(pending.timeout);
                 this.pendingSkillImports.delete(requestId);
                 pending.reject(new Error('The selected Computer went offline.'));
             }
@@ -75,6 +80,7 @@ export class ComputerConnections implements DeliveryTransport {
                 pending.reject(new Error('The selected Computer went offline.'));
             }
         }
+        this.skillFileRelay.disconnect(computerId);
         for (const [requestId, pending] of this.pendingBrowserRequests) {
             if (pending.computerId === computerId) {
                 clearTimeout(pending.timeout);
@@ -128,19 +134,15 @@ export class ComputerConnections implements DeliveryTransport {
     requestSkillImport(
         computerId: string,
         input: { agentId: string; sourceId: string }
-    ): Promise<HostedAgentSkillMetadata> {
+    ): Promise<{ requestId: string; status: 'accepted' }> {
         const requestId = createOpaqueId('req');
         return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                this.pendingSkillImports.delete(requestId);
-                reject(new Error('The Computer did not finish the skill import.'));
-            }, 30_000);
             this.pendingSkillImports.set(requestId, {
                 agentId: input.agentId,
                 computerId,
                 reject,
                 resolve,
-                timeout,
+                sourceId: input.sourceId,
             });
             if (
                 !this.send(computerId, {
@@ -149,34 +151,43 @@ export class ComputerConnections implements DeliveryTransport {
                     type: 'agent-skill-import',
                 })
             ) {
-                clearTimeout(timeout);
                 this.pendingSkillImports.delete(requestId);
                 reject(new Error('The selected Computer is offline.'));
             }
         });
     }
 
-    acceptSkillImport(
-        computerId: string,
-        result: {
-            agentId: string;
-            error?: string;
-            requestId: string;
-            skill?: HostedAgentSkillMetadata;
-        }
-    ): boolean {
+    acceptSkillImport(computerId: string, result: HostedAgentSkillImportResult): boolean {
         const pending = this.pendingSkillImports.get(result.requestId);
-        if (!pending || pending.computerId !== computerId || pending.agentId !== result.agentId) {
+        if (
+            !pending ||
+            pending.computerId !== computerId ||
+            pending.agentId !== result.agentId ||
+            pending.sourceId !== result.sourceId
+        ) {
             return false;
         }
-        clearTimeout(pending.timeout);
         this.pendingSkillImports.delete(result.requestId);
-        if (result.skill) {
-            pending.resolve(result.skill);
+        if (result.status === 'accepted' || result.status === 'applied') {
+            pending.resolve({ requestId: result.requestId, status: 'accepted' });
         } else {
-            pending.reject(new Error(result.error ?? 'The skill could not be imported.'));
+            pending.reject(new Error(result.error));
         }
         return true;
+    }
+
+    requestSkillFile(
+        computerId: string,
+        input: {
+            agentId: string;
+            operation: HostedAgentSkillFileRequest['operation'];
+        }
+    ): Promise<NonNullable<HostedAgentSkillFileResult['result']>> {
+        return this.skillFileRelay.request(computerId, input);
+    }
+
+    acceptSkillFileResult(computerId: string, result: HostedAgentSkillFileResult): boolean {
+        return this.skillFileRelay.accept(computerId, result);
     }
 
     requestWorkspace(

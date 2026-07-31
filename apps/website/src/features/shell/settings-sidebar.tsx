@@ -1,7 +1,6 @@
 import { Sidebar } from '@heroui-pro/react';
-import { ArrowLeft01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
-import { serverActivityRoute, serverSettingsSectionRoute } from '../servers/server-routes.ts';
+import { serverSettingsSectionRoute } from '../servers/server-routes.ts';
 import {
     type SettingsRouteTab,
     settingsNavItems,
@@ -25,20 +24,6 @@ export function SettingsSidebar({
                 <div className="px-2 py-1 font-semibold text-sm">Settings</div>
             </Sidebar.Header>
             <Sidebar.Content>
-                <Sidebar.Menu aria-label="Back">
-                    <Sidebar.MenuItem
-                        href={serverActivityRoute(slug)}
-                        id="back-to-app"
-                        textValue="Back to app"
-                    >
-                        <Sidebar.MenuIcon>
-                            <Icon aria-hidden="true" icon={ArrowLeft01Icon} />
-                        </Sidebar.MenuIcon>
-                        <Sidebar.MenuItemContent>
-                            <Sidebar.MenuLabel>Back to app</Sidebar.MenuLabel>
-                        </Sidebar.MenuItemContent>
-                    </Sidebar.MenuItem>
-                </Sidebar.Menu>
                 {settingsNavSections.map((section) => {
                     const items = section.itemIds
                         .filter((id) => !hostedHiddenSettings.has(id))

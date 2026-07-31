@@ -11,6 +11,8 @@ import {
     DialogTitle,
 } from '../../components/ui/dialog.tsx';
 import { type ChannelAgentOption, ChannelDialog } from '../../features/chats/channel-dialog.tsx';
+import { ComputersSidebar } from '../../features/computers/computers-sidebar.tsx';
+import { MembersSidebar } from '../../features/members/members-sidebar.tsx';
 import { rememberLastServerSlug } from '../../features/servers/server-choice.ts';
 import { ServerChoicePanel } from '../../features/servers/server-choice-panel.tsx';
 import {
@@ -88,7 +90,8 @@ export function ServerLayout() {
         id: agent.id,
         name: agent.displayName,
     }));
-    const showSidebar = active !== 'members' && active !== 'computers';
+    const canOperate = server.data.role === 'owner' || server.data.role === 'admin';
+    const showSidebar = active !== 'computers' || canOperate;
     const openChat = (chatId: string) => navigate(serverChatRoute(slug, chatId));
     const selectSection = (section: AppRailSection) => {
         const route = {
@@ -121,7 +124,7 @@ export function ServerLayout() {
             <div className="flex min-h-0 flex-1">
                 <AppRail
                     active={active}
-                    canOperate={server.data.role === 'owner' || server.data.role === 'admin'}
+                    canOperate={canOperate}
                     currentServer={server.data}
                     onManageServers={() => setManagingServers(true)}
                     onSelect={selectSection}
@@ -137,6 +140,14 @@ export function ServerLayout() {
                             <SettingsSidebar currentSection={settingsSection} slug={slug} />
                         ) : active === 'tasks' ? (
                             <ServerTasksSidebar serverId={server.data.id} slug={slug} />
+                        ) : active === 'members' ? (
+                            <MembersSidebar
+                                agentListStatus={agentListStatus}
+                                agents={agents.data ?? []}
+                                server={server.data}
+                            />
+                        ) : active === 'computers' && canOperate ? (
+                            <ComputersSidebar serverId={server.data.id} slug={slug} />
                         ) : (
                             <AppSidebar
                                 agents={agents.data ?? []}

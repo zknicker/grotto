@@ -33,6 +33,22 @@ test('filters hosted tasks by lifecycle and text without a second content store'
     expect(filterServerTasks([todo, done], { query: '#2', view: 'all' })).toEqual([done]);
 });
 
+test('filters hosted tasks by label id', () => {
+    const labeled = {
+        ...toServerTask(item()),
+        labels: [{ color: 'red' as const, id: 'lbl_one', name: 'Bug' }],
+    };
+    const bare = { ...toServerTask(item()), id: 'message_two', labels: [], number: 2 };
+
+    expect(
+        filterServerTasks([labeled, bare], { labelId: 'lbl_one', query: '', view: 'all' })
+    ).toEqual([labeled]);
+    expect(filterServerTasks([labeled, bare], { labelId: null, query: '', view: 'all' })).toEqual([
+        labeled,
+        bare,
+    ]);
+});
+
 test('groups every lifecycle column in stable order', () => {
     const groups = groupServerTasks([toServerTask(item())]);
 

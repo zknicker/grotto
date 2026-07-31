@@ -99,7 +99,7 @@ export function toServerTask(item: HostedTaskListItem): ServerTask {
 
 export function filterServerTasks(
     tasks: ServerTask[],
-    input: { query: string; view: ServerTaskView }
+    input: { labelId?: string | null; query: string; view: ServerTaskView }
 ) {
     const query = input.query.trim().toLowerCase();
 
@@ -111,6 +111,9 @@ export function filterServerTasks(
             input.view === 'unassigned' &&
             (task.assigneeAgentId !== null || task.assigneeUserId !== null)
         ) {
+            return false;
+        }
+        if (input.labelId && !task.labels.some((label) => label.id === input.labelId)) {
             return false;
         }
         if (!query) {

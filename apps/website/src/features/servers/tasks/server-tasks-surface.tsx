@@ -1,7 +1,8 @@
-import { Alert, Button, SearchField, Tabs, ToggleButton, ToggleButtonGroup } from '@heroui/react';
+import { Alert, Button, SearchField, ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
 import type { HostedChat } from '@tavern/api';
 import * as React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
 import { NewServerTaskDialog } from './new-server-task-dialog.tsx';
@@ -9,19 +10,13 @@ import { ServerTaskLabelsDialog } from './server-task-labels-dialog.tsx';
 import {
     filterServerTasks,
     type ServerTask,
-    type ServerTaskView,
     serverTaskChatOptions,
     toServerTask,
 } from './server-task-presentation.ts';
 import { ServerTasksBoard, ServerTasksList } from './server-task-views.tsx';
+import { resolveTaskView } from './server-tasks-sidebar.tsx';
 
 type ServerTaskMode = 'board' | 'list';
-
-const viewOptions: Array<{ label: string; value: ServerTaskView }> = [
-    { label: 'All', value: 'all' },
-    { label: 'Active', value: 'active' },
-    { label: 'Unassigned', value: 'unassigned' },
-];
 
 export function ServerTasksSurface({
     chats,
@@ -38,15 +33,18 @@ export function ServerTasksSurface({
 }) {
     const tasksQuery = useServerTasks(serverId);
     const labelsQuery = useServerTaskLabels(serverId);
+    const [searchParams] = useSearchParams();
     const [composeOpen, setComposeOpen] = React.useState(false);
     const [labelsOpen, setLabelsOpen] = React.useState(false);
     const [mode, setMode] = React.useState<ServerTaskMode>('board');
     const [query, setQuery] = React.useState('');
-    const [view, setView] = React.useState<ServerTaskView>('all');
+    // View and label filters live in the URL; the tasks sidebar owns them.
+    const view = resolveTaskView(searchParams.get('view'));
+    const labelId = searchParams.get('label');
     const tasks = React.useMemo(() => tasksQuery.data?.map(toServerTask) ?? [], [tasksQuery.data]);
     const filtered = React.useMemo(
-        () => filterServerTasks(tasks, { query, view }),
-        [query, tasks, view]
+        () => filterServerTasks(tasks, { labelId, query, view }),
+        [labelId, query, tasks, view]
     );
     const chatOptions = React.useMemo(() => serverTaskChatOptions(chats), [chats]);
     const canAssign = role === 'owner' || role === 'admin';
@@ -55,22 +53,6 @@ export function ServerTasksSurface({
     return (
         <section aria-label="Server tasks" className="flex min-h-0 flex-1 flex-col">
             <header className="flex min-h-10 shrink-0 flex-wrap items-center gap-2 border-separator border-b px-3 py-1.5">
-                <Tabs
-                    onSelectionChange={(value) => setView(String(value) as ServerTaskView)}
-                    selectedKey={view}
-                    variant="secondary"
-                >
-                    <Tabs.ListContainer>
-                        <Tabs.List aria-label="Task views">
-                            {viewOptions.map((option) => (
-                                <Tabs.Tab id={option.value} key={option.value}>
-                                    {option.label}
-                                    <Tabs.Indicator />
-                                </Tabs.Tab>
-                            ))}
-                        </Tabs.List>
-                    </Tabs.ListContainer>
-                </Tabs>
                 <SearchField
                     aria-label="Search tasks"
                     className="min-w-48 flex-1"

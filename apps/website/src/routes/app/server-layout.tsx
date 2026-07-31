@@ -24,6 +24,7 @@ import {
     serverSettingsRoute,
     serverTasksRoute,
 } from '../../features/servers/server-routes.ts';
+import { ServerTasksSidebar } from '../../features/servers/tasks/server-tasks-sidebar.tsx';
 import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
 import { AppRail, type AppRailSection } from '../../features/shell/app-rail.tsx';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
@@ -134,6 +135,8 @@ export function ServerLayout() {
                     sidebar={
                         active === 'settings' ? (
                             <SettingsSidebar currentSection={settingsSection} slug={slug} />
+                        ) : active === 'tasks' ? (
+                            <ServerTasksSidebar serverId={server.data.id} slug={slug} />
                         ) : (
                             <AppSidebar
                                 agents={agents.data ?? []}

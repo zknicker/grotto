@@ -125,7 +125,19 @@ sandboxed agent widgets render unthemed.
 
 ## Status
 
-- Branch: `claude/grotto-ui-herui-refactor-*` worktree. Migration in progress;
-  docs on this branch describe the target state.
-- `DESIGN.md` carries the visual contract (tokens, density, typography voice);
-  its HeroUI rewrite lands with the theme layer.
+- Branch: `claude/grotto-ui-herui-refactor-*` worktree. Docs on this branch
+  describe the target state.
+- Phases 1–3 are DONE (2026-07-31): foundation + defaults-first theme file,
+  the AppLayout/Sidebar/rail shell, and every tool page — settings (all
+  sections), members + agent profile, tasks (Pro Kanban board and a
+  Linear-style grouped list adapted from the operator's "Tracker Issue
+  Manager" HeroUI AI Chat generation), reminders, computers, skills,
+  overview chrome, and the no-server flow.
+- Remaining legacy kit surface is chat-owned (phase 4): dialogs/menus/
+  popovers/tooltips/scroll/message/prompt-input plus badge, badge-divider,
+  day-divider, tabs-subtle, progress, textarea, surface, pane, nav +
+  sidebar kit (artifact workspace), app-shell (Electron drag — sanctioned),
+  icon, status-dot, code-snippet, copy-button, spinner-adjacent leftovers.
+  Phase 5 deletes the rest and rewrites `DESIGN.md` around HeroUI.
+- e2e specs were only patched where copy changed; the full e2e repair pass
+  remains phase-5 work.

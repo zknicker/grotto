@@ -78,7 +78,7 @@ export function VisualCard({
                 <button
                     className={cn(
                         'block w-full border-border border-t px-3 py-1.5 text-center text-muted-foreground text-xs',
-                        'hover:bg-muted hover:text-foreground'
+                        'hover:bg-legacy-muted hover:text-foreground'
                     )}
                     onClick={() => setExpanded((value) => !value)}
                     type="button"

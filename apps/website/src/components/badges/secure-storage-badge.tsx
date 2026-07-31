@@ -10,7 +10,7 @@ export function SecureStorageBadge({ className, ...props }: SecureStorageBadgePr
     return (
         <Badge
             className={cn(
-                'gap-1 border-transparent bg-muted text-foreground/72 dark:bg-input/32 [&_svg]:opacity-100',
+                'gap-1 border-transparent bg-legacy-muted text-foreground/72 dark:bg-input/32 [&_svg]:opacity-100',
                 className
             )}
             data-slot="secure-storage-badge"

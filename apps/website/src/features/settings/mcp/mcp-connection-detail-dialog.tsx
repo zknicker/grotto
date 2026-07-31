@@ -66,7 +66,7 @@ export function McpConnectionDetailDialog({
                 <DialogContent size="lg">
                     <DialogHeader>
                         <div className="flex items-start gap-3 pe-16">
-                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted font-semibold text-foreground">
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-legacy-muted font-semibold text-foreground">
                                 {connection.name.slice(0, 1).toUpperCase()}
                             </span>
                             <div className="min-w-0">
@@ -93,7 +93,7 @@ export function McpConnectionDetailDialog({
                         </div>
                     </DialogHeader>
                     <DialogPanel className="grid gap-6">
-                        <div className="flex items-center justify-between gap-4 rounded-xl bg-muted p-3.5">
+                        <div className="flex items-center justify-between gap-4 rounded-xl bg-legacy-muted p-3.5">
                             <div className="min-w-0">
                                 <p className="truncate font-mono text-meta text-muted-foreground">
                                     {connectionSummary(connection)}

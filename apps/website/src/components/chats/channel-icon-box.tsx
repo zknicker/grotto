@@ -18,7 +18,7 @@ const channelIconBoxVariants = {
     },
     topbar: {
         boxClassName:
-            'size-6 rounded-lg bg-[var(--channel-color-bg-light,var(--muted))] text-[var(--channel-color-light,var(--muted-foreground))] dark:bg-[var(--channel-color-bg-dark,var(--muted))] dark:text-[var(--channel-color-dark,var(--muted-foreground))]',
+            'size-6 rounded-lg bg-[var(--channel-color-bg-light,var(--legacy-muted))] text-[var(--channel-color-light,var(--muted-foreground))] dark:bg-[var(--channel-color-bg-dark,var(--legacy-muted))] dark:text-[var(--channel-color-dark,var(--muted-foreground))]',
         iconSize: 16,
     },
 } as const;

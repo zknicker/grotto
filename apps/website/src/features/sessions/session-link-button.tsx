@@ -23,7 +23,7 @@ export function SessionLinkButton({
                     ? 'border-[color:var(--warning-border)] bg-[var(--warning-bg)]'
                     : tone === 'sky'
                       ? 'border-[color:var(--info-border)] bg-[var(--info-bg)]'
-                      : 'border-border-subtle bg-muted',
+                      : 'border-border-subtle bg-legacy-muted',
                 className
             )}
         >

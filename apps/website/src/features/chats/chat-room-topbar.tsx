@@ -112,7 +112,7 @@ function ChannelNameMenu({
 
     return (
         <Menu>
-            <MenuTrigger className="no-drag flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 hover:bg-accent">
+            <MenuTrigger className="no-drag flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 hover:bg-legacy-accent">
                 <h1 className="min-w-0 truncate font-semibold text-foreground text-sm">{title}</h1>
                 <Icon
                     className="size-3.5 shrink-0 text-muted-foreground"

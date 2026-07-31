@@ -135,7 +135,7 @@ function ProviderCatalogRow({
         <li>
             <button
                 aria-label={`Add ${item.displayName}`}
-                className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left outline-none hover:bg-accent focus-visible:bg-accent disabled:cursor-default disabled:opacity-64"
+                className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left outline-none hover:bg-legacy-accent focus-visible:bg-legacy-accent disabled:cursor-default disabled:opacity-64"
                 disabled={pending}
                 onClick={() =>
                     performProviderSetupAction(item, {

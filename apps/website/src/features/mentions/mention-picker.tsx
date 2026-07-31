@@ -94,8 +94,10 @@ export function MentionPicker({
                                     <button
                                         aria-selected={index === activeIndex}
                                         className={cn(
-                                            'h-8 w-full shrink-0 cursor-pointer overflow-hidden rounded-lg px-2.5 text-left text-foreground outline-hidden focus:bg-muted',
-                                            index === activeIndex ? 'bg-muted' : 'hover:bg-muted'
+                                            'h-8 w-full shrink-0 cursor-pointer overflow-hidden rounded-lg px-2.5 text-left text-foreground outline-hidden focus:bg-legacy-muted',
+                                            index === activeIndex
+                                                ? 'bg-legacy-muted'
+                                                : 'hover:bg-legacy-muted'
                                         )}
                                         key={`${option.kind}:${option.id}:${option.label}`}
                                         onMouseDown={(event) => {

@@ -105,7 +105,7 @@ function ChatComposerAttachmentPreview({
                     width={80}
                 />
             ) : (
-                <div className="grid size-full place-items-center bg-muted text-meta text-muted-foreground">
+                <div className="grid size-full place-items-center bg-legacy-muted text-meta text-muted-foreground">
                     {fileExtension(attachment.filename)}
                 </div>
             )}

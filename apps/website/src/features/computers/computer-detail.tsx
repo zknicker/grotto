@@ -204,7 +204,7 @@ function AgentRow({
 
     return (
         <Link
-            className="flex min-w-0 items-center gap-3 py-3 outline-none hover:bg-accent/20 focus-visible:bg-accent/20"
+            className="flex min-w-0 items-center gap-3 py-3 outline-none hover:bg-legacy-accent/20 focus-visible:bg-legacy-accent/20"
             to={`${serverMembersRoute(serverSlug)}/agents/${agent.id}`}
         >
             <span

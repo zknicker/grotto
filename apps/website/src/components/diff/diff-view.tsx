@@ -34,7 +34,7 @@ export function DiffView({
             {hunks.map((hunk, hunkIndex) => (
                 <div key={hunk.header}>
                     {hunkIndex > 0 ? (
-                        <div className="border-border-subtle border-t bg-muted px-3 py-0.5 text-caption text-muted-foreground">
+                        <div className="border-border-subtle border-t bg-legacy-muted px-3 py-0.5 text-caption text-muted-foreground">
                             {hunk.header}
                         </div>
                     ) : null}

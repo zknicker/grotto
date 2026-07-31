@@ -221,7 +221,7 @@ export const TabsList = React.forwardRef<HTMLDivElement, TabsListProps>(
                 <TabsPrimitive.List
                     activateOnFocus
                     className={cn(
-                        'relative inline-flex select-none items-center gap-0.5 rounded-lg bg-muted/50 p-1',
+                        'relative inline-flex select-none items-center gap-0.5 rounded-lg bg-legacy-muted/50 p-1',
                         className
                     )}
                     onBlur={(event) => {

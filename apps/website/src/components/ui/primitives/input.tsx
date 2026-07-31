@@ -44,7 +44,7 @@ export function Input({
                     !unstyled && 'relative inline-flex w-full cursor-text text-foreground',
                     !unstyled &&
                         variant === 'default' &&
-                        'rounded-lg border border-border/70 bg-muted/55 ring-ring/24 transition-[background-color,border-color,box-shadow] hover:border-border hover:bg-muted/80 has-focus-visible:has-aria-invalid:border-destructive/64 has-focus-visible:has-aria-invalid:ring-destructive/16 has-aria-invalid:border-destructive/36 has-focus-visible:border-ring has-autofill:bg-muted/80 has-disabled:opacity-64 has-focus-visible:ring-[3px] dark:border-border/55 dark:bg-input/45 dark:has-autofill:bg-foreground/8 dark:has-aria-invalid:ring-destructive/24 dark:hover:border-border/75 dark:hover:bg-input/60',
+                        'rounded-lg border border-border/70 bg-legacy-muted/55 ring-ring/24 transition-[background-color,border-color,box-shadow] hover:border-border hover:bg-legacy-muted/80 has-focus-visible:has-aria-invalid:border-destructive/64 has-focus-visible:has-aria-invalid:ring-destructive/16 has-aria-invalid:border-destructive/36 has-focus-visible:border-ring has-autofill:bg-legacy-muted/80 has-disabled:opacity-64 has-focus-visible:ring-[3px] dark:border-border/55 dark:bg-input/45 dark:has-autofill:bg-foreground/8 dark:has-aria-invalid:ring-destructive/24 dark:hover:border-border/75 dark:hover:bg-input/60',
                     !unstyled && variant === 'flush' && 'bg-transparent has-disabled:opacity-64',
                     !unstyled && size === 'default' && 'h-8',
                     !unstyled && size === 'sm' && 'h-7',

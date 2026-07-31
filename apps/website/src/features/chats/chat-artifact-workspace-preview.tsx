@@ -126,7 +126,7 @@ function WorkspaceFilePreview({
 }) {
     if (mediaType.startsWith('image/')) {
         return (
-            <div className="grid h-full min-h-0 place-items-center overflow-auto bg-muted p-6">
+            <div className="grid h-full min-h-0 place-items-center overflow-auto bg-legacy-muted p-6">
                 <img
                     alt={path}
                     className="h-auto max-h-full w-auto max-w-full rounded-md border border-border bg-background object-contain"
@@ -203,7 +203,7 @@ export function WorkspaceArtifactEmpty({ detail, title }: { detail: string; titl
     return (
         <div className="grid h-full min-h-0 place-items-center px-8 text-center">
             <div className="max-w-sm">
-                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-border bg-muted">
+                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-border bg-legacy-muted">
                     <Icon className="size-4 text-muted-foreground" icon={File01Icon} />
                 </div>
                 <div className="truncate font-medium text-sm">{title}</div>

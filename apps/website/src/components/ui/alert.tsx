@@ -12,7 +12,7 @@ export const alertVariants = cva(
         },
         variants: {
             variant: {
-                default: 'border-border-subtle bg-muted [&>svg]:text-muted-foreground',
+                default: 'border-border-subtle bg-legacy-muted [&>svg]:text-muted-foreground',
                 error: 'border-[color:var(--error-border)] bg-[var(--error-bg)] [&>[data-slot=alert-description]]:text-error-foreground [&>svg]:text-error',
                 info: 'border-[color:var(--info-border)] bg-[var(--info-bg)] [&>svg]:text-info',
                 success:

@@ -38,12 +38,12 @@ export function ConnectionRow({
 }) {
     return (
         <button
-            className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_7rem_8rem] items-center border-border-subtle border-b px-5 text-left outline-none last:border-b-0 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_7rem_8rem] items-center border-border-subtle border-b px-5 text-left outline-none last:border-b-0 hover:bg-legacy-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
             onClick={onSelect}
             type="button"
         >
             <span className="flex min-w-0 items-center gap-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted font-semibold text-foreground text-sm">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-legacy-muted font-semibold text-foreground text-sm">
                     {connection.name.slice(0, 1).toUpperCase()}
                 </span>
                 <span className="min-w-0">

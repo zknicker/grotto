@@ -38,7 +38,7 @@ export function ChatComposerContextFullness({ fullness }: { fullness: ChatContex
         >
             <svg aria-hidden="true" className="size-5 -rotate-90" viewBox="0 0 20 20">
                 <circle
-                    className="stroke-muted"
+                    className="stroke-legacy-muted"
                     cx="10"
                     cy="10"
                     fill="none"

@@ -71,7 +71,7 @@ export function ModelInventorySection() {
                     ))}
                 </ul>
             ) : (
-                <div className="rounded-xl border border-border-subtle border-dashed bg-muted px-4 py-6 text-center text-muted-foreground text-sm">
+                <div className="rounded-xl border border-border-subtle border-dashed bg-legacy-muted px-4 py-6 text-center text-muted-foreground text-sm">
                     No models match this search.
                 </div>
             )}

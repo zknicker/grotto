@@ -218,7 +218,7 @@ function AgentCheckboxList({
     const selectedAgentIdSet = React.useMemo(() => new Set(selectedAgentIds), [selectedAgentIds]);
 
     return (
-        <div className="grid max-h-64 gap-1.5 overflow-y-auto rounded-lg border border-border-subtle bg-muted p-1.5">
+        <div className="grid max-h-64 gap-1.5 overflow-y-auto rounded-lg border border-border-subtle bg-legacy-muted p-1.5">
             {agents.map((agent) => {
                 const checked = selectedAgentIdSet.has(agent.id);
 

@@ -77,7 +77,7 @@ export function ServerTasksSurface({
                     type="search"
                     value={query}
                 />
-                <div className="flex items-center gap-1 rounded-lg bg-muted p-0.5">
+                <div className="flex items-center gap-1 rounded-lg bg-legacy-muted p-0.5">
                     {(['board', 'list'] as const).map((option) => (
                         <Button
                             aria-pressed={mode === option}

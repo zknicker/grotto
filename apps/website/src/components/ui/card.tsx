@@ -277,11 +277,11 @@ export function CardFrameTab({
         <Tabs.Tab
             className={cn(
                 'relative flex cursor-pointer items-start gap-3 px-5 py-4 text-left outline-none transition-colors',
-                'bg-muted text-muted-foreground/80 hover:bg-muted/50 hover:text-foreground/80',
-                'dark:bg-transparent dark:hover:bg-muted/32',
+                'bg-legacy-muted text-muted-foreground/80 hover:bg-legacy-muted/50 hover:text-foreground/80',
+                'dark:bg-transparent dark:hover:bg-legacy-muted/32',
                 'not-first:border-border/50 not-first:border-l-2',
                 'data-active:bg-transparent data-active:text-foreground',
-                'dark:data-active:bg-muted/50 dark:data-active:text-foreground',
+                'dark:data-active:bg-legacy-muted/50 dark:data-active:text-foreground',
                 className
             )}
             data-slot="card-frame-tab"

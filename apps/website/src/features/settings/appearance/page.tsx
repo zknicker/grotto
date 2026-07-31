@@ -44,7 +44,9 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                                 className={cn(
                                     'no-drag group relative flex flex-col overflow-hidden rounded-xl border bg-surface-2 text-left outline-none',
                                     'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-                                    isActive ? 'border-brand' : 'border-input hover:bg-accent'
+                                    isActive
+                                        ? 'border-brand'
+                                        : 'border-input hover:bg-legacy-accent'
                                 )}
                                 key={option.id}
                                 onClick={() => setTheme(option.id)}

@@ -208,7 +208,7 @@ export function AllowedToolsInput({
                             {selected.map((item) => (
                                 <Combobox.Chip
                                     aria-label={item.label}
-                                    className="inline-flex h-7 items-center gap-1 rounded-md bg-muted px-2.5 text-foreground text-sm"
+                                    className="inline-flex h-7 items-center gap-1 rounded-md bg-legacy-muted px-2.5 text-foreground text-sm"
                                     key={item.value}
                                 >
                                     <span className="max-w-48 truncate">{item.label}</span>
@@ -281,7 +281,7 @@ export function AllowedToolsInput({
                             <Combobox.List className="max-h-64 overflow-y-auto p-1.5">
                                 {(item: ToolOption) => (
                                     <Combobox.Item
-                                        className="flex cursor-default items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground"
+                                        className="flex cursor-default items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm outline-none data-highlighted:bg-legacy-accent data-highlighted:text-legacy-accent-foreground"
                                         key={item.value}
                                         value={item}
                                     >

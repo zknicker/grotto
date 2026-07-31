@@ -143,10 +143,10 @@ function ArtifactPanelTab({
         >
             <TabsPrimitive.Tab
                 className={cn(
-                    'flex h-7 w-full min-w-0 items-center gap-1.5 rounded-lg py-0 pr-7 pl-2.5 outline-none transition-[background-color,box-shadow,color] focus-visible:bg-muted',
+                    'flex h-7 w-full min-w-0 items-center gap-1.5 rounded-lg py-0 pr-7 pl-2.5 outline-none transition-[background-color,box-shadow,color] focus-visible:bg-legacy-muted',
                     active
                         ? 'bg-active text-foreground'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        : 'text-muted-foreground hover:bg-legacy-muted hover:text-foreground'
                 )}
                 title={target.path}
                 value={value}

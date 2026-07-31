@@ -170,7 +170,7 @@ export function ServerConnectionsPage({ embedded = false }: { embedded?: boolean
                         <ConnectionFilters filter={filter} onChange={setFilter} />
                     </div>
                     <SettingsGroup>
-                        <div className="grid grid-cols-[minmax(0,1fr)_7rem_8rem] border-border-subtle border-b bg-muted px-5 py-2 text-meta text-muted-foreground">
+                        <div className="grid grid-cols-[minmax(0,1fr)_7rem_8rem] border-border-subtle border-b bg-legacy-muted px-5 py-2 text-meta text-muted-foreground">
                             <span>Connection</span>
                             <span>Type</span>
                             <span>Status</span>

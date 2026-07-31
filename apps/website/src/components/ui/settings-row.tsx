@@ -66,7 +66,7 @@ export function SettingsActionRow({ className, ...props }: SettingsActionRowProp
     return (
         <button
             className={cn(
-                'no-drag flex w-full cursor-pointer items-center justify-center gap-2 px-3.5 py-2.5 font-medium text-foreground text-sm outline-none transition-colors hover:bg-accent/30 focus-visible:bg-accent/30 disabled:pointer-events-none disabled:opacity-64',
+                'no-drag flex w-full cursor-pointer items-center justify-center gap-2 px-3.5 py-2.5 font-medium text-foreground text-sm outline-none transition-colors hover:bg-legacy-accent/30 focus-visible:bg-legacy-accent/30 disabled:pointer-events-none disabled:opacity-64',
                 className
             )}
             type="button"

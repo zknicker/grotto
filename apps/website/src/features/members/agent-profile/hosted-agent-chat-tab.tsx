@@ -43,7 +43,7 @@ export function HostedAgentChatTab({
                         {rows.map((chat) => (
                             <li key={chat.id}>
                                 <button
-                                    className="flex w-full items-center gap-3 py-3 text-left outline-none hover:bg-accent/20 focus-visible:bg-accent/20"
+                                    className="flex w-full items-center gap-3 py-3 text-left outline-none hover:bg-legacy-accent/20 focus-visible:bg-legacy-accent/20"
                                     onClick={() => navigate(serverChatRoute(server.slug, chat.id))}
                                     type="button"
                                 >

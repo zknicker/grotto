@@ -276,7 +276,7 @@ export function ThinkingStepDetails({
     return (
         <Collapsible className={cn('mt-1 -ml-3', className)} defaultOpen={defaultOpen}>
             <div className="w-fit">
-                <CollapsibleTrigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-meta text-muted-foreground leading-tight hover:bg-muted hover:text-foreground">
+                <CollapsibleTrigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-meta text-muted-foreground leading-tight hover:bg-legacy-muted hover:text-foreground">
                     <span>{summary}</span>
                     <Icon
                         className="size-3 -rotate-90 opacity-70 transition-transform group-data-[panel-open]:rotate-0"

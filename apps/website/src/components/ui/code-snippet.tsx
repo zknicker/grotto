@@ -32,7 +32,7 @@ export function CodeSnippet({ className, copyValue, lines, ...props }: CodeSnipp
     return (
         <div
             className={cn(
-                'flex min-w-0 gap-2 rounded-lg bg-muted ps-3 pe-1 font-mono text-foreground text-sm',
+                'flex min-w-0 gap-2 rounded-lg bg-legacy-muted ps-3 pe-1 font-mono text-foreground text-sm',
                 isMultiLine ? 'items-start py-1.5' : 'h-8 items-center',
                 className
             )}

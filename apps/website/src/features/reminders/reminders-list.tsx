@@ -64,7 +64,7 @@ function ReminderRow({
                         {reminder.name}
                     </span>
                     {reminder.isScript ? (
-                        <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 font-medium text-caption text-muted-foreground">
+                        <span className="shrink-0 rounded-sm bg-legacy-muted px-1.5 py-0.5 font-medium text-caption text-muted-foreground">
                             Script
                         </span>
                     ) : null}

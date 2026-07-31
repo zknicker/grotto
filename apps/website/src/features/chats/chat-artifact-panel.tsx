@@ -154,7 +154,7 @@ function ArtifactPanelEmpty({ detail, title }: { detail: string; title: string }
     return (
         <div className="grid h-full min-h-0 place-items-center px-8 text-center">
             <div className="max-w-sm">
-                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-border bg-muted">
+                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-border bg-legacy-muted">
                     <Icon className="size-4 text-muted-foreground" icon={File01Icon} />
                 </div>
                 <div className="truncate font-medium text-sm">{title}</div>

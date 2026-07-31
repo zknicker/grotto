@@ -136,7 +136,7 @@ export function ProviderInstructionsDialog({
                 </DialogHeader>
 
                 <DialogPanel>
-                    <div className="rounded-lg bg-muted px-3 py-2 font-mono text-sm">
+                    <div className="rounded-lg bg-legacy-muted px-3 py-2 font-mono text-sm">
                         {provider?.connectionDetail ?? provider?.stateMessage ?? 'No setup hint.'}
                     </div>
                 </DialogPanel>
@@ -263,7 +263,7 @@ export function ProviderOAuthDialog({
                                             {result.verificationUrl}
                                         </a>
                                     </div>
-                                    <div className="rounded-lg bg-muted px-3 py-2 font-mono text-base">
+                                    <div className="rounded-lg bg-legacy-muted px-3 py-2 font-mono text-base">
                                         {result.userCode}
                                     </div>
                                 </div>

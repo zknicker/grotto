@@ -199,7 +199,7 @@ function CommandMenuIcon({
     const className = cn(
         'size-5 shrink-0 text-muted-foreground transition-colors',
         disabled && 'opacity-60',
-        !disabled && 'group-data-highlighted:text-accent-foreground'
+        !disabled && 'group-data-highlighted:text-legacy-accent-foreground'
     );
 
     if (command.icon === 'tavern') {
@@ -244,7 +244,7 @@ function CommandMenuIcon({
             <span
                 aria-hidden="true"
                 className={cn(
-                    'flex size-5 shrink-0 items-center justify-center rounded-md bg-muted font-medium text-micro text-muted-foreground',
+                    'flex size-5 shrink-0 items-center justify-center rounded-md bg-legacy-muted font-medium text-micro text-muted-foreground',
                     disabled && 'opacity-60'
                 )}
             >

@@ -47,7 +47,7 @@ export function WorkspaceChangesDrawerBody({ call }: { call: ToolDrawerCall }) {
                 const evidence = evidenceByPath.get(change.path);
                 return (
                     <Collapsible
-                        className="rounded-lg border border-border-subtle bg-muted"
+                        className="rounded-lg border border-border-subtle bg-legacy-muted"
                         defaultOpen={change.omitted === null}
                         key={change.path}
                     >

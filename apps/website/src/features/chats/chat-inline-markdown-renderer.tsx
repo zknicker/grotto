@@ -77,7 +77,7 @@ export function renderInlineMarkdown(
                 flushBuffer();
                 nodes.push(
                     <code
-                        className="break-words rounded bg-muted px-1 py-0.5 font-mono text-[0.92em] [overflow-wrap:anywhere]"
+                        className="break-words rounded bg-legacy-muted px-1 py-0.5 font-mono text-[0.92em] [overflow-wrap:anywhere]"
                         key={`${keyPrefix}:code:${cursor}`}
                     >
                         {renderTextWithAnimatedRanges(

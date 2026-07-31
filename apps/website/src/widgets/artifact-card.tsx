@@ -27,7 +27,7 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
             onClick={() => openArtifactPanel?.({ kind: 'workspaceFile', path: props.path })}
             type="button"
         >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border/70 bg-muted/35">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border/70 bg-legacy-muted/35">
                 <Icon className="size-4 text-muted-foreground" icon={File01Icon} />
             </span>
             <span className="min-w-0 flex-1">

@@ -54,7 +54,7 @@ export function AddComputerDialog({
                         <p className="font-medium text-foreground text-sm">2. Set up</p>
                         <CodeSnippet lines={`grotto-computer setup /${serverSlug}`} />
                     </div>
-                    <div className="rounded-xl border border-border-subtle border-dashed bg-muted p-4">
+                    <div className="rounded-xl border border-border-subtle border-dashed bg-legacy-muted p-4">
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <h3 className="font-medium text-foreground text-sm">

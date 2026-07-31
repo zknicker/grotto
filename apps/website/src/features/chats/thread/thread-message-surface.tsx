@@ -34,7 +34,7 @@ import { ThreadReplyPill } from './thread-reply-pill.tsx';
 
 export const quickReactionEmoji = ['👍', '❤️', '🎉', '👀', '🔥', '😂', '✅'] as const;
 const actionButtonClassName =
-    'inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground';
+    'inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-legacy-accent hover:text-foreground';
 
 export function ThreadMessageSurface({
     children,
@@ -255,7 +255,7 @@ function QuickReactionStrip({ onReact }: { onReact: (emoji: string) => void }) {
             {quickReactionEmoji.map((emoji) => (
                 <button
                     aria-label={`React with ${emoji}`}
-                    className="grid size-7 place-items-center rounded-md hover:bg-accent"
+                    className="grid size-7 place-items-center rounded-md hover:bg-legacy-accent"
                     key={emoji}
                     onClick={() => onReact(emoji)}
                     type="button"
@@ -288,7 +288,7 @@ function ReactionPills({
                             'inline-flex h-6 items-center gap-1 rounded-full border px-2 text-meta',
                             own
                                 ? 'border-brand-ring bg-brand-muted text-brand-muted-foreground'
-                                : 'border-border-subtle bg-muted text-muted-foreground'
+                                : 'border-border-subtle bg-legacy-muted text-muted-foreground'
                         )}
                         key={reaction.emoji}
                         onClick={() => onToggle(reaction.emoji)}

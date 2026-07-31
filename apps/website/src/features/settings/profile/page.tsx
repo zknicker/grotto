@@ -110,7 +110,7 @@ function AvatarPreview({ avatarUrl, name }: { avatarUrl: string | null; name: st
     }
 
     return (
-        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold text-caption text-muted-foreground ring-1 ring-border-subtle">
+        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-legacy-muted font-semibold text-caption text-muted-foreground ring-1 ring-border-subtle">
             {getInitials(name)}
         </span>
     );

@@ -282,7 +282,7 @@ function RuntimeNoticeDrawer({
         <DrawerPopup className="max-w-xl" showCloseButton variant="inset">
             <DrawerHeader className="gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-muted">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-legacy-muted">
                         <Icon
                             className="size-[18px] text-muted-foreground"
                             icon={summary.icon}
@@ -298,7 +298,7 @@ function RuntimeNoticeDrawer({
                 </div>
             </DrawerHeader>
             <DrawerPanel className="space-y-5">
-                <div className="flex flex-col gap-1 rounded-md border border-border-subtle bg-muted px-3 py-2.5">
+                <div className="flex flex-col gap-1 rounded-md border border-border-subtle bg-legacy-muted px-3 py-2.5">
                     {details.map((detail) => (
                         <RuntimeNoticeMetaRow
                             key={detail.label}
@@ -318,7 +318,7 @@ function RuntimeNoticeDrawer({
                                 notice.
                             </p>
                         </div>
-                        <div className="rounded-md border border-border-subtle bg-muted px-3 py-2">
+                        <div className="rounded-md border border-border-subtle bg-legacy-muted px-3 py-2">
                             <code className="break-all font-mono text-code text-foreground leading-relaxed">
                                 {row.runtimeNotice.text}
                             </code>

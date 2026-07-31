@@ -70,15 +70,15 @@
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);
 
-    --color-muted: var(--muted);
+    --color-legacy-muted: var(--legacy-muted);
     --color-muted-foreground: var(--muted-foreground);
     --color-foreground-tertiary: var(--foreground-tertiary);
     --color-foreground-quaternary: var(--foreground-quaternary);
 
     --color-subtle: var(--subtle);
 
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
+    --color-legacy-accent: var(--legacy-accent);
+    --color-legacy-accent-foreground: var(--legacy-accent-foreground);
     --color-hover: var(--hover);
     --color-active: var(--active);
     --color-chat-log-row-hover: var(--chat-log-row-hover);
@@ -316,7 +316,7 @@
         --secondary-foreground: var(--color-stone-100);
 
         --subtle: var(--surface-3);
-        --muted: --alpha(var(--color-white) / 4%);
+        --legacy-muted: --alpha(var(--color-white) / 4%);
         --muted-foreground: color-mix(
             in srgb,
             var(--color-stone-500) 90%,
@@ -339,8 +339,8 @@
         --ease-in: cubic-bezier(0.55, 0.06, 0.68, 0.19);
         --ease-standard: cubic-bezier(0.45, 0.05, 0.55, 0.95);
 
-        --accent: --alpha(var(--color-white) / 4%);
-        --accent-foreground: var(--color-stone-100);
+        --legacy-accent: --alpha(var(--color-white) / 4%);
+        --legacy-accent-foreground: var(--color-stone-100);
         --hover: var(--nav-hover);
         /* Generic selection highlight (tabs, tables, select items): quiet
            neutral, not a brand moment. */
@@ -543,15 +543,15 @@
         --secondary-foreground: var(--color-stone-800);
 
         --subtle: var(--color-stone-100);
-        --muted: --alpha(var(--color-black) / 4%);
+        --legacy-muted: --alpha(var(--color-black) / 4%);
         --muted-foreground: color-mix(
             in srgb,
             var(--color-stone-500) 90%,
             var(--color-black)
         );
 
-        --accent: --alpha(var(--color-black) / 4%);
-        --accent-foreground: var(--color-stone-800);
+        --legacy-accent: --alpha(var(--color-black) / 4%);
+        --legacy-accent-foreground: var(--color-stone-800);
         --hover: var(--nav-hover);
         /* Generic selection highlight (tabs, tables, select items): quiet
            neutral, not a brand moment. */

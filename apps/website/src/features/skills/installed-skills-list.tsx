@@ -78,7 +78,7 @@ function SkillRow({ onSelect, skill }: { onSelect: () => void; skill: SkillSumma
         >
             <span
                 className={cn(
-                    'flex size-10 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-muted text-muted-foreground',
+                    'flex size-10 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-legacy-muted text-muted-foreground',
                     !skill.enabled && 'opacity-45'
                 )}
             >

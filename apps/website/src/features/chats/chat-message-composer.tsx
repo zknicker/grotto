@@ -271,7 +271,7 @@ export function ChatMessageComposer({
                 isCompact ? 'rounded-xl shadow-none' : undefined,
                 isCompact &&
                     attachmentDrop.isFileDropActive &&
-                    'border-ring bg-accent ring-2 ring-ring',
+                    'border-ring bg-legacy-accent ring-2 ring-ring',
                 isComposerBlocked && 'cursor-not-allowed opacity-60'
             )}
         >

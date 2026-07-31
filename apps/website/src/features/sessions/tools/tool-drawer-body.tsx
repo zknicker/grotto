@@ -26,7 +26,7 @@ export function ToolDrawerBody({ details, isPending, queryError }: ToolDrawerBod
                 />
             ))}
             {isPending ? (
-                <div className="flex items-center gap-2.5 rounded-lg border border-border-subtle bg-muted px-3.5 py-3">
+                <div className="flex items-center gap-2.5 rounded-lg border border-border-subtle bg-legacy-muted px-3.5 py-3">
                     <StatusDot className="animate-pulse" status="muted" />
                     <p className="text-muted-foreground text-sm">Loading tool details...</p>
                 </div>

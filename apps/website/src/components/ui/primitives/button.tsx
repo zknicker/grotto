@@ -41,7 +41,7 @@ export const buttonVariants = cva(
                 brand: `border-brand bg-brand text-brand-foreground hover:bg-brand/90 data-pressed:bg-brand/85 *:data-[slot=button-loading-indicator]:text-brand-foreground ${hardPress}`,
                 'brand-soft':
                     'border-transparent bg-brand/12 text-brand shadow-none hover:bg-brand/18 disabled:opacity-100 data-pressed:bg-brand/22 *:data-[slot=button-loading-indicator]:text-brand',
-                chrome: 'border-border/60 bg-muted/22 text-[var(--sidebar-icon-muted)] hover:border-border/85 hover:bg-muted/44 hover:text-[var(--sidebar-icon-muted)] disabled:border-border/30 disabled:bg-muted/10 disabled:text-[var(--sidebar-icon-muted)] disabled:opacity-100 [&_svg]:opacity-100',
+                chrome: 'border-border/60 bg-legacy-muted/22 text-[var(--sidebar-icon-muted)] hover:border-border/85 hover:bg-legacy-muted/44 hover:text-[var(--sidebar-icon-muted)] disabled:border-border/30 disabled:bg-legacy-muted/10 disabled:text-[var(--sidebar-icon-muted)] disabled:opacity-100 [&_svg]:opacity-100',
                 default: `border-primary bg-primary text-primary-foreground hover:bg-primary/90 data-pressed:bg-primary/85 *:data-[slot=button-loading-indicator]:text-primary-foreground ${hardPress}`,
                 destructive: `border-destructive bg-destructive text-white hover:bg-destructive/90 data-pressed:bg-destructive/85 *:data-[slot=button-loading-indicator]:text-white ${hardPress}`,
                 'destructive-outline': `border-input bg-popover text-destructive-foreground hover:border-destructive/40 hover:bg-destructive/4 data-pressed:border-destructive/40 data-pressed:bg-destructive/4 *:data-[slot=button-loading-indicator]:text-foreground ${hardPress}`,
@@ -49,9 +49,9 @@ export const buttonVariants = cva(
                     'border-transparent text-destructive-foreground hover:bg-destructive/4 data-pressed:bg-destructive/4 *:data-[slot=button-loading-indicator]:text-foreground',
                 'destructive-soft':
                     'border-transparent bg-[color-mix(in_srgb,var(--error-bg),transparent_45%)] text-error-foreground hover:bg-[color-mix(in_srgb,var(--error-bg),transparent_15%)] data-pressed:bg-error-bg *:data-[slot=button-loading-indicator]:text-error-foreground',
-                ghost: 'border-transparent text-foreground hover:bg-accent data-pressed:bg-accent *:data-[slot=button-loading-indicator]:text-foreground',
+                ghost: 'border-transparent text-foreground hover:bg-legacy-accent data-pressed:bg-legacy-accent *:data-[slot=button-loading-indicator]:text-foreground',
                 link: 'border-transparent text-foreground underline-offset-4 hover:underline data-pressed:underline *:data-[slot=button-loading-indicator]:text-foreground',
-                outline: `border-input bg-popover text-foreground hover:bg-accent/50 *:data-[slot=button-loading-indicator]:text-foreground ${hardPress}`,
+                outline: `border-input bg-popover text-foreground hover:bg-legacy-accent/50 *:data-[slot=button-loading-indicator]:text-foreground ${hardPress}`,
                 secondary: `border-input bg-secondary text-secondary-foreground hover:bg-(--secondary-hover) *:data-[slot=button-loading-indicator]:text-secondary-foreground [:active,[data-pressed]]:bg-(--secondary-hover) ${hardPress}`,
             },
         },

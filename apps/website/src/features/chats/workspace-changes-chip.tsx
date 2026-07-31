@@ -31,7 +31,7 @@ export function WorkspaceChangesChip({ chatId, row }: { chatId?: string; row: To
                         />
                     }
                 >
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-muted">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-legacy-muted">
                         <Icon
                             className="size-4 text-muted-foreground"
                             icon={FileEditIcon}

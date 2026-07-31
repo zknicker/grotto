@@ -8,7 +8,7 @@ import { MenuItem, MenuSeparator, MenuSub, MenuSubPopup, MenuSubTrigger } from '
 export const contextMenuPopupClassName =
     'relative flex w-[152px] rounded-[14px] border border-black/15 bg-[#f7f7f8]/95 shadow-[0_16px_40px_rgb(0_0_0_/_0.18),0_2px_10px_rgb(0_0_0_/_0.10)] outline-none backdrop-blur-xl dark:border-white/12 dark:bg-[#2b2b2d]/92';
 export const contextMenuItemClassName =
-    'min-h-[27px] gap-2.5 rounded-[10px] py-px ps-3 pe-3 font-normal text-sm data-highlighted:bg-accent data-highlighted:text-accent-foreground sm:min-h-[27px]';
+    'min-h-[27px] gap-2.5 rounded-[10px] py-px ps-3 pe-3 font-normal text-sm data-highlighted:bg-legacy-accent data-highlighted:text-legacy-accent-foreground sm:min-h-[27px]';
 export const contextMenuSeparatorClassName = 'mx-1 my-1 bg-black/12 dark:bg-white/14';
 
 interface ContextMenuPositionerProps {
@@ -132,7 +132,7 @@ export function ContextMenuSubTrigger({
     return (
         <MenuSubTrigger
             className={cn(
-                'min-h-[27px] gap-2.5 rounded-[10px] py-px ps-3 pe-2 font-normal text-sm data-highlighted:bg-accent data-popup-open:bg-accent data-highlighted:text-accent-foreground data-popup-open:text-accent-foreground sm:min-h-[27px]',
+                'min-h-[27px] gap-2.5 rounded-[10px] py-px ps-3 pe-2 font-normal text-sm data-highlighted:bg-legacy-accent data-popup-open:bg-legacy-accent data-highlighted:text-legacy-accent-foreground data-popup-open:text-legacy-accent-foreground sm:min-h-[27px]',
                 className
             )}
             closeDelay={160}

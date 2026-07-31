@@ -22,7 +22,7 @@ export function Progress({
     return (
         <ProgressPrimitive.Root aria-label={ariaLabel} max={100} value={value}>
             <ProgressPrimitive.Track
-                className={cn('h-3 w-full overflow-hidden rounded-full bg-muted', className)}
+                className={cn('h-3 w-full overflow-hidden rounded-full bg-legacy-muted', className)}
             >
                 <ProgressPrimitive.Indicator
                     className={cn(

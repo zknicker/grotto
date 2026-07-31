@@ -1,15 +1,8 @@
+import { Modal } from '@heroui/react';
 import { AppLayout } from '@heroui-pro/react';
 import * as React from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogPanel,
-    DialogTitle,
-} from '../../components/ui/dialog.tsx';
 import { type ChannelAgentOption, ChannelDialog } from '../../features/chats/channel-dialog.tsx';
 import { ComputersSidebar } from '../../features/computers/computers-sidebar.tsx';
 import { MembersSidebar } from '../../features/members/members-sidebar.tsx';
@@ -215,22 +208,26 @@ export function ServerLayout() {
                 submitLabel="Create"
                 title="New channel"
             />
-            <Dialog onOpenChange={setManagingServers} open={managingServers}>
-                <DialogContent size="lg">
-                    <DialogHeader>
-                        <DialogTitle>Servers</DialogTitle>
-                        <DialogDescription>
-                            Switch to a joined Server, create one, or accept an invitation.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogPanel className="overflow-y-auto">
-                        <ServerChoicePanel
-                            onServerSelect={() => setManagingServers(false)}
-                            servers={serverChoices}
-                        />
-                    </DialogPanel>
-                </DialogContent>
-            </Dialog>
+            <Modal isOpen={managingServers} onOpenChange={setManagingServers}>
+                <Modal.Backdrop>
+                    <Modal.Container scroll="outside" size="lg">
+                        <Modal.Dialog>
+                            <Modal.Header>
+                                <Modal.Heading>Servers</Modal.Heading>
+                                <p className="mt-1 text-muted text-sm">
+                                    Switch to a joined Server, create one, or accept an invitation.
+                                </p>
+                            </Modal.Header>
+                            <Modal.Body>
+                                <ServerChoicePanel
+                                    onServerSelect={() => setManagingServers(false)}
+                                    servers={serverChoices}
+                                />
+                            </Modal.Body>
+                        </Modal.Dialog>
+                    </Modal.Container>
+                </Modal.Backdrop>
+            </Modal>
         </AppShell>
     );
 }

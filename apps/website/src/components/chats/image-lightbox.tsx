@@ -1,4 +1,3 @@
-import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
 import {
     Cancel01Icon,
     Download01Icon,
@@ -6,10 +5,9 @@ import {
     PlusSignIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+import { Dialog, Modal, ModalOverlay } from 'react-aria-components';
 import { cn } from '../../lib/utils.ts';
-import { Dialog, DialogPortal, DialogTitle } from './dialog.tsx';
-import { Icon } from './icon.tsx';
-import { Button, buttonVariants } from './primitives/button.tsx';
+import { Icon } from '../ui/icon.tsx';
 
 interface ImageLightboxProps {
     dataUrl: string;
@@ -20,8 +18,12 @@ interface ImageLightboxProps {
     width?: number | null;
 }
 
-// Full-screen image viewer with zoom and download. Shared by chat message
-// images and task attachments so both reviews open the same lightbox.
+/**
+ * Full-screen image viewer with zoom and download. A bespoke overlay, not a
+ * Modal skin: it composes react-aria-components directly (the same
+ * foundation HeroUI uses) for the focus trap and dismissal, and owns all of
+ * its viewer chrome.
+ */
 export function ImageLightbox({
     dataUrl,
     filename,
@@ -43,36 +45,35 @@ export function ImageLightbox({
     }, [open]);
 
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogPortal>
-                <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/76 backdrop-blur-md transition-[opacity,backdrop-filter] duration-200 ease-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:backdrop-blur-none data-starting-style:backdrop-blur-none" />
-                <DialogPrimitive.Popup className="fixed inset-0 z-50 flex min-h-dvh flex-col text-white outline-none transition-[opacity,scale] duration-200 ease-out will-change-transform data-ending-style:scale-96 data-starting-style:scale-96 data-ending-style:opacity-0 data-starting-style:opacity-0">
-                    <DialogTitle className="sr-only">{filename}</DialogTitle>
+        <ModalOverlay
+            className="data-entering:fade-in data-exiting:fade-out fixed inset-0 z-50 bg-black/76 backdrop-blur-md data-entering:animate-in data-exiting:animate-out"
+            isDismissable
+            isOpen={open}
+            onOpenChange={onOpenChange}
+        >
+            <Modal className="data-entering:fade-in data-exiting:fade-out data-entering:zoom-in-95 data-exiting:zoom-out-95 fixed inset-0 z-50 data-entering:animate-in data-exiting:animate-out">
+                <Dialog
+                    aria-label={filename}
+                    className="flex min-h-dvh flex-col text-white outline-none"
+                >
                     <div className="pointer-events-none absolute top-4 right-4 z-20 flex items-center gap-3">
                         <a
                             aria-label={`Download ${filename}`}
-                            className={cn(
-                                buttonVariants({ size: 'icon-xl', variant: 'default' }),
-                                imageViewerActionButtonClassName
-                            )}
+                            className={imageViewerActionButtonClassName}
                             download={filename}
                             href={dataUrl}
                         >
                             <Icon icon={Download01Icon} size={24} strokeWidth={2} />
                             <span className="sr-only">Download {filename}</span>
                         </a>
-                        <DialogPrimitive.Close
+                        <button
                             aria-label="Close image viewer"
-                            render={
-                                <Button
-                                    className={imageViewerActionButtonClassName}
-                                    size="icon-xl"
-                                    variant="default"
-                                />
-                            }
+                            className={imageViewerActionButtonClassName}
+                            onClick={() => onOpenChange(false)}
+                            type="button"
                         >
                             <Icon icon={Cancel01Icon} size={24} strokeWidth={2} />
-                        </DialogPrimitive.Close>
+                        </button>
                     </div>
                     <div className="flex h-14 shrink-0 items-center gap-3 pr-32 pl-24">
                         <p className="min-w-0 flex-1 truncate text-sm text-white/75">{filename}</p>
@@ -104,14 +105,14 @@ export function ImageLightbox({
                         zoom={zoom}
                         zoomLabel={zoomPercent}
                     />
-                </DialogPrimitive.Popup>
-            </DialogPortal>
-        </Dialog>
+                </Dialog>
+            </Modal>
+        </ModalOverlay>
     );
 }
 
 const imageViewerActionButtonClassName =
-    'pointer-events-auto size-11 rounded-full border-white bg-white text-neutral-950 shadow-black/20 shadow-lg before:rounded-full hover:bg-white/90 focus-visible:ring-white/70 focus-visible:ring-offset-black/40 sm:size-11 dark:bg-white dark:text-neutral-950 dark:hover:bg-white/90 [&_svg]:opacity-100';
+    'pointer-events-auto inline-flex size-11 items-center justify-center rounded-full bg-white text-neutral-950 shadow-black/20 shadow-lg hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70';
 
 function ImageZoomControls({
     onZoomIn,

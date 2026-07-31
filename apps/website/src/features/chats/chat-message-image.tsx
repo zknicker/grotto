@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ImageLightbox } from '../../components/ui/image-lightbox.tsx';
+import { ImageLightbox } from '../../components/chats/image-lightbox.tsx';
 
 interface ChatMessageImageAttachment {
     dataBase64: string;

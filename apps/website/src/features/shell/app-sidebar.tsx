@@ -33,7 +33,7 @@ export function AppSidebar({
     return (
         <Sidebar aria-label="Server">
             <Sidebar.Header>
-                <div className="min-w-0 px-2 py-1">
+                <div className="flex h-12 min-w-0 shrink-0 flex-col justify-center px-2">
                     <span className="block truncate font-semibold text-sm">
                         {currentServer.displayName}
                     </span>

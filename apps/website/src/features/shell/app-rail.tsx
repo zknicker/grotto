@@ -1,4 +1,5 @@
-import { Button, Description, Dropdown, Label, Separator, Tooltip } from '@heroui/react';
+import { Button, Description, Dropdown, Label } from '@heroui/react';
+import { Sidebar } from '@heroui-pro/react';
 import { ComputerIcon, Setting07Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
@@ -15,8 +16,9 @@ export type AppRailSection =
     | 'tasks';
 
 /**
- * Far-left icon rail: server switcher on top (Raft pattern), section
- * navigation below, settings pinned to the bottom.
+ * Far-left icon rail: a permanently collapsed HeroUI Sidebar (icon mode),
+ * server switcher on top (Raft pattern), section navigation below,
+ * settings pinned to the bottom. Collapsed items get built-in tooltips.
  */
 export function AppRail({
     active,
@@ -47,72 +49,88 @@ export function AppRail({
     items.push({ id: 'members', label: 'Members' });
 
     return (
-        <nav
-            aria-label="App sections"
-            className="app-shell-sidebar-top-inset flex h-full w-12 shrink-0 flex-col items-center gap-1 py-2"
+        <Sidebar.Provider
+            className="app-shell-sidebar-top-inset h-full min-h-0 w-auto shrink-0"
+            collapsible="icon"
+            open={false}
+            toggleShortcut={false}
         >
-            <ServerSwitcher
-                currentServer={currentServer}
-                onManageServers={onManageServers}
-                onSwitchServer={onSwitchServer}
-                servers={servers}
-            />
-            <Separator className="my-1 w-6" />
-            {items.map((item) => (
-                <RailButton
-                    isActive={active === item.id}
-                    key={item.id}
-                    label={item.label}
-                    onPress={() => onSelect(item.id)}
-                >
-                    <RouteTabIcon className="size-4.5" tab={item.id} />
-                </RailButton>
-            ))}
-            {canOperate ? (
-                <RailButton
-                    isActive={active === 'computers'}
-                    label="Computers"
-                    onPress={() => onSelect('computers')}
-                >
-                    <Icon aria-hidden="true" className="size-4.5" icon={ComputerIcon} size={20} />
-                </RailButton>
-            ) : null}
-            <div className="flex-1" />
-            <RailButton
-                isActive={active === 'settings'}
-                label="Settings"
-                onPress={() => onSelect('settings')}
-            >
-                <Icon aria-hidden="true" className="size-4.5" icon={Setting07Icon} size={20} />
-            </RailButton>
-        </nav>
-    );
-}
-
-function RailButton({
-    children,
-    isActive,
-    label,
-    onPress,
-}: {
-    children: React.ReactNode;
-    isActive: boolean;
-    label: string;
-    onPress: () => void;
-}) {
-    return (
-        <Tooltip delay={0}>
-            <Button
-                aria-label={label}
-                isIconOnly
-                onPress={onPress}
-                size="sm"
-                variant={isActive ? 'secondary' : 'ghost'}
-            >
-                {children}
-            </Button>
-            <Tooltip.Content placement="right">{label}</Tooltip.Content>
-        </Tooltip>
+            <Sidebar aria-label="App sections">
+                <Sidebar.Header>
+                    <ServerSwitcher
+                        currentServer={currentServer}
+                        onManageServers={onManageServers}
+                        onSwitchServer={onSwitchServer}
+                        servers={servers}
+                    />
+                </Sidebar.Header>
+                <Sidebar.Content>
+                    <Sidebar.Menu
+                        aria-label="Sections"
+                        onAction={(key) => onSelect(key as AppRailSection)}
+                    >
+                        {items.map((item) => (
+                            <Sidebar.MenuItem
+                                id={item.id}
+                                isCurrent={active === item.id}
+                                key={item.id}
+                                textValue={item.label}
+                                tooltip={item.label}
+                            >
+                                <Sidebar.MenuIcon>
+                                    <RouteTabIcon className="size-4.5" tab={item.id} />
+                                </Sidebar.MenuIcon>
+                                <Sidebar.MenuItemContent>
+                                    <Sidebar.MenuLabel>{item.label}</Sidebar.MenuLabel>
+                                </Sidebar.MenuItemContent>
+                            </Sidebar.MenuItem>
+                        ))}
+                        {canOperate ? (
+                            <Sidebar.MenuItem
+                                id="computers"
+                                isCurrent={active === 'computers'}
+                                textValue="Computers"
+                                tooltip="Computers"
+                            >
+                                <Sidebar.MenuIcon>
+                                    <Icon
+                                        aria-hidden="true"
+                                        className="size-4.5"
+                                        icon={ComputerIcon}
+                                        size={20}
+                                    />
+                                </Sidebar.MenuIcon>
+                                <Sidebar.MenuItemContent>
+                                    <Sidebar.MenuLabel>Computers</Sidebar.MenuLabel>
+                                </Sidebar.MenuItemContent>
+                            </Sidebar.MenuItem>
+                        ) : null}
+                    </Sidebar.Menu>
+                </Sidebar.Content>
+                <Sidebar.Footer>
+                    <Sidebar.Menu aria-label="Settings" onAction={() => onSelect('settings')}>
+                        <Sidebar.MenuItem
+                            id="settings"
+                            isCurrent={active === 'settings'}
+                            textValue="Settings"
+                            tooltip="Settings"
+                        >
+                            <Sidebar.MenuIcon>
+                                <Icon
+                                    aria-hidden="true"
+                                    className="size-4.5"
+                                    icon={Setting07Icon}
+                                    size={20}
+                                />
+                            </Sidebar.MenuIcon>
+                            <Sidebar.MenuItemContent>
+                                <Sidebar.MenuLabel>Settings</Sidebar.MenuLabel>
+                            </Sidebar.MenuItemContent>
+                        </Sidebar.MenuItem>
+                    </Sidebar.Menu>
+                </Sidebar.Footer>
+            </Sidebar>
+        </Sidebar.Provider>
     );
 }
 

@@ -5,6 +5,7 @@ import type { ServerReminderConnectionState } from '../../../hooks/servers/use-s
 import { formatTimestamp } from '../../../lib/format.ts';
 import type { GrottoOutputs } from '../../../lib/grotto-server.tsx';
 import { AgentOptionLabel, type AgentSelectOption } from '../../agents/agent-option-label.tsx';
+import { SectionHeader } from '../../shell/section-header.tsx';
 import type { HostedReminderListItem } from './server-reminder-view-model.ts';
 
 type ReminderRun = GrottoOutputs['reminder']['runs'][number];
@@ -65,7 +66,7 @@ export function ServerRemindersView({
     return (
         <div className="flex min-h-0 flex-1">
             <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <header className="flex min-h-10 shrink-0 flex-wrap items-center gap-2 border-separator border-b px-3 py-1.5">
+                <SectionHeader title="Reminders">
                     <Select
                         aria-label="Filter by agent"
                         onChange={(value) => onAgentChange(value === 'all' ? null : String(value))}
@@ -145,7 +146,7 @@ export function ServerRemindersView({
                             Reconnecting · showing last hosted state
                         </span>
                     )}
-                </header>
+                </SectionHeader>
                 {actionErrorMessage ? (
                     <div className="px-6 pt-4">
                         <Alert role="alert" status="danger">

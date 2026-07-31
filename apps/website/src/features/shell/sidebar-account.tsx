@@ -1,7 +1,5 @@
 import { SignedIn, SignedOut, useClerk, useUser } from '@clerk/clerk-react';
-import { Button, Tooltip } from '@heroui/react';
-import { Logout01Icon, UserCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Icon } from '../../components/ui/icon.tsx';
+import { Avatar, Button, Dropdown, Label } from '@heroui/react';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { useDesktopOAuth } from '../auth/use-desktop-oauth.ts';
@@ -21,7 +19,7 @@ export function SidebarAccount() {
                 <SignInButton />
             </SignedOut>
             <SignedIn>
-                <SignedInRow />
+                <AccountMenu />
             </SignedIn>
         </>
     );
@@ -41,12 +39,12 @@ function SignInButton() {
     };
     return (
         <Button fullWidth onPress={onPress} size="sm" variant="secondary">
-            Sign in
+            Sign In
         </Button>
     );
 }
 
-function SignedInRow() {
+function AccountMenu() {
     const clerk = useClerk();
     const { user } = useUser();
     const displayName = user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? 'Account';
@@ -58,32 +56,27 @@ function SignedInRow() {
         void clerk.signOut();
     };
     return (
-        <div className="flex items-center gap-2 px-2 py-1">
-            {user?.imageUrl ? (
-                <img
-                    alt=""
-                    aria-hidden="true"
-                    className="size-5 shrink-0 rounded-full"
-                    height={20}
-                    src={user.imageUrl}
-                    width={20}
-                />
-            ) : (
-                <Icon aria-hidden="true" className="shrink-0" icon={UserCircleIcon} size={18} />
-            )}
-            <span className="min-w-0 flex-1 truncate text-foreground text-sm">{displayName}</span>
-            <Tooltip delay={0}>
-                <Button
-                    aria-label="Sign out"
-                    isIconOnly
-                    onPress={signOut}
-                    size="sm"
-                    variant="ghost"
+        <Dropdown>
+            <Button className="justify-start" fullWidth size="sm" variant="ghost">
+                <Avatar className="size-5 shrink-0">
+                    {user?.imageUrl ? <Avatar.Image alt="" src={user.imageUrl} /> : null}
+                    <Avatar.Fallback>{displayName.slice(0, 1).toUpperCase()}</Avatar.Fallback>
+                </Avatar>
+                <span className="min-w-0 truncate">{displayName}</span>
+            </Button>
+            <Dropdown.Popover placement="top start">
+                <Dropdown.Menu
+                    onAction={(key) => {
+                        if (key === 'sign-out') {
+                            signOut();
+                        }
+                    }}
                 >
-                    <Icon aria-hidden="true" icon={Logout01Icon} size={16} />
-                </Button>
-                <Tooltip.Content placement="top">Sign out</Tooltip.Content>
-            </Tooltip>
-        </div>
+                    <Dropdown.Item id="sign-out" textValue="Sign Out">
+                        <Label>Sign Out</Label>
+                    </Dropdown.Item>
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
     );
 }

@@ -9,6 +9,7 @@ import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { serverMembersRoute } from '../servers/server-routes.ts';
+import { SidebarTitle } from '../shell/section-header.tsx';
 import { CreateHostedAgentDialog } from './create-hosted-agent-dialog.tsx';
 import { HostedAgentFace } from './hosted-agent-face.tsx';
 
@@ -36,7 +37,7 @@ export function MembersSidebar({
     return (
         <Sidebar aria-label="Members">
             <Sidebar.Header>
-                <div className="px-2 py-1 font-semibold text-sm">Members</div>
+                <SidebarTitle>Members</SidebarTitle>
             </Sidebar.Header>
             <Sidebar.Content>
                 <Sidebar.Group>

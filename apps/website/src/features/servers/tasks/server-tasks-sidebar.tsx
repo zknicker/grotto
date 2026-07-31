@@ -1,10 +1,15 @@
+import { Button, Tooltip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
+import { Edit02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
+import { SidebarTitle } from '../../shell/section-header.tsx';
 import { LabelDot } from '../../tasks/label-chip.tsx';
 import { serverTasksRoute } from '../server-routes.ts';
+import { ServerTaskLabelsDialog } from './server-task-labels-dialog.tsx';
 import {
     filterServerTasks,
     type ServerTask,
@@ -24,8 +29,17 @@ const views: Array<{ label: string; value: ServerTaskView }> = [
  * filter selection. Shares the tasks/labels queries with the surface via
  * the query cache.
  */
-export function ServerTasksSidebar({ serverId, slug }: { serverId: string; slug: string }) {
+export function ServerTasksSidebar({
+    canManage,
+    serverId,
+    slug,
+}: {
+    canManage: boolean;
+    serverId: string;
+    slug: string;
+}) {
     const [searchParams] = useSearchParams();
+    const [labelsOpen, setLabelsOpen] = React.useState(false);
     const tasksQuery = useServerTasks(serverId);
     const labelsQuery = useServerTaskLabels(serverId);
     const tasks = React.useMemo(() => tasksQuery.data?.map(toServerTask) ?? [], [tasksQuery.data]);
@@ -40,7 +54,7 @@ export function ServerTasksSidebar({ serverId, slug }: { serverId: string; slug:
     return (
         <Sidebar aria-label="Tasks">
             <Sidebar.Header>
-                <div className="px-2 py-1 font-semibold text-sm">Tasks</div>
+                <SidebarTitle>Tasks</SidebarTitle>
             </Sidebar.Header>
             <Sidebar.Content>
                 <Sidebar.Group>
@@ -64,9 +78,25 @@ export function ServerTasksSidebar({ serverId, slug }: { serverId: string; slug:
                         ))}
                     </Sidebar.Menu>
                 </Sidebar.Group>
-                {labelsQuery.data && labelsQuery.data.length > 0 ? (
+                {(labelsQuery.data && labelsQuery.data.length > 0) || canManage ? (
                     <Sidebar.Group>
-                        <Sidebar.GroupLabel>Labels</Sidebar.GroupLabel>
+                        <div className="flex items-center justify-between pe-1">
+                            <Sidebar.GroupLabel>Labels</Sidebar.GroupLabel>
+                            {canManage ? (
+                                <Tooltip delay={0}>
+                                    <Button
+                                        aria-label="Manage Labels"
+                                        isIconOnly
+                                        onPress={() => setLabelsOpen(true)}
+                                        size="sm"
+                                        variant="ghost"
+                                    >
+                                        <Icon aria-hidden="true" icon={Edit02Icon} size={14} />
+                                    </Button>
+                                    <Tooltip.Content>Manage Labels</Tooltip.Content>
+                                </Tooltip>
+                            ) : null}
+                        </div>
                         <Sidebar.Menu aria-label="Label filters">
                             <Sidebar.MenuItem
                                 href={labelHref(undefined)}
@@ -78,7 +108,7 @@ export function ServerTasksSidebar({ serverId, slug }: { serverId: string; slug:
                                     <Sidebar.MenuLabel>All Labels</Sidebar.MenuLabel>
                                 </Sidebar.MenuItemContent>
                             </Sidebar.MenuItem>
-                            {labelsQuery.data.map((label) => (
+                            {(labelsQuery.data ?? []).map((label) => (
                                 <Sidebar.MenuItem
                                     href={labelHref(label.id)}
                                     id={label.id}
@@ -101,6 +131,13 @@ export function ServerTasksSidebar({ serverId, slug }: { serverId: string; slug:
                     </Sidebar.Group>
                 ) : null}
             </Sidebar.Content>
+            <ServerTaskLabelsDialog
+                canManage={canManage}
+                labels={labelsQuery.data ?? []}
+                onOpenChange={setLabelsOpen}
+                open={labelsOpen}
+                serverId={serverId}
+            />
         </Sidebar>
     );
 }

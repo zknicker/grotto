@@ -5,8 +5,8 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
+import { SectionHeader } from '../../shell/section-header.tsx';
 import { NewServerTaskDialog } from './new-server-task-dialog.tsx';
-import { ServerTaskLabelsDialog } from './server-task-labels-dialog.tsx';
 import {
     filterServerTasks,
     type ServerTask,
@@ -35,7 +35,6 @@ export function ServerTasksSurface({
     const labelsQuery = useServerTaskLabels(serverId);
     const [searchParams] = useSearchParams();
     const [composeOpen, setComposeOpen] = React.useState(false);
-    const [labelsOpen, setLabelsOpen] = React.useState(false);
     const [mode, setMode] = React.useState<ServerTaskMode>('board');
     const [query, setQuery] = React.useState('');
     // View and label filters live in the URL; the tasks sidebar owns them.
@@ -52,10 +51,10 @@ export function ServerTasksSurface({
 
     return (
         <section aria-label="Server tasks" className="flex min-h-0 flex-1 flex-col">
-            <header className="flex min-h-10 shrink-0 flex-wrap items-center gap-2 border-separator border-b px-3 py-1.5">
+            <SectionHeader title="Tasks">
                 <SearchField
                     aria-label="Search tasks"
-                    className="min-w-48 flex-1"
+                    className="w-56"
                     onChange={setQuery}
                     value={query}
                 >
@@ -81,9 +80,6 @@ export function ServerTasksSurface({
                     <ToggleButton id="board">Board</ToggleButton>
                     <ToggleButton id="list">List</ToggleButton>
                 </ToggleButtonGroup>
-                <Button onPress={() => setLabelsOpen(true)} size="sm" variant="secondary">
-                    Task Labels
-                </Button>
                 <Button
                     isDisabled={chatOptions.length === 0}
                     onPress={() => setComposeOpen(true)}
@@ -91,7 +87,7 @@ export function ServerTasksSurface({
                 >
                     New Task
                 </Button>
-            </header>
+            </SectionHeader>
 
             {tasksQuery.error ? (
                 <ServerTaskState
@@ -138,13 +134,6 @@ export function ServerTasksSurface({
                 chats={chatOptions}
                 onOpenChange={setComposeOpen}
                 open={composeOpen}
-                serverId={serverId}
-            />
-            <ServerTaskLabelsDialog
-                canManage={canAssign}
-                labels={labels}
-                onOpenChange={setLabelsOpen}
-                open={labelsOpen}
                 serverId={serverId}
             />
         </section>

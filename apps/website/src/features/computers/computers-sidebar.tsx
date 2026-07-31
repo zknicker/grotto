@@ -7,6 +7,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { serverComputersRoute } from '../servers/server-routes.ts';
+import { SidebarTitle } from '../shell/section-header.tsx';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
 import { computerHealthLabel, computerHealthStatus } from './computer-detail.tsx';
 import { computerLabel } from './presentation.ts';
@@ -23,7 +24,7 @@ export function ComputersSidebar({ serverId, slug }: { serverId: string; slug: s
     return (
         <Sidebar aria-label="Computers">
             <Sidebar.Header>
-                <div className="px-2 py-1 font-semibold text-sm">Computers</div>
+                <SidebarTitle>Computers</SidebarTitle>
             </Sidebar.Header>
             <Sidebar.Content>
                 <Sidebar.Group>

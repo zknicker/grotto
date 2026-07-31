@@ -139,7 +139,11 @@ export function ServerLayout() {
                         active === 'settings' ? (
                             <SettingsSidebar currentSection={settingsSection} slug={slug} />
                         ) : active === 'tasks' ? (
-                            <ServerTasksSidebar serverId={server.data.id} slug={slug} />
+                            <ServerTasksSidebar
+                                canManage={canOperate}
+                                serverId={server.data.id}
+                                slug={slug}
+                            />
                         ) : active === 'members' ? (
                             <MembersSidebar
                                 agentListStatus={agentListStatus}

@@ -34,6 +34,7 @@
     "test:e2e:screenshot-failures": "bun run --filter @tavern/website test:e2e:screenshot-failures",
     "test:e2e:ui": "bun run --filter @tavern/website test:e2e:ui",
     "eval:design": "bun scripts/design-eval.mjs",
+    "eval:agents": "cd apps/website && bun x playwright test --config agent-e2e/playwright.config.ts",
     "eval:prompt": "bun scripts/prompt-eval.mjs",
     "eval:sessions": "bun scripts/session-eval.mjs",
     "typecheck": "bun run --filter @tavern/api typecheck && bun run --filter @tavern/sdk typecheck && bun run --filter @tavern/claude-usage typecheck && bun run --filter @tavern/codex-usage typecheck && bun run --filter @tavern/server typecheck && bun run --filter @tavern/runtime typecheck && bun run --filter @tavern/website typecheck",
@@ -65,6 +66,7 @@
   },
   "patchedDependencies": {
     "@shadcn/react@0.1.0": "patches/@shadcn%2Freact@0.1.0.patch",
+    "@ai-sdk/harness-codex@1.0.8": "patches/@ai-sdk%2Fharness-codex@1.0.8.patch",
     "@ai-sdk/harness-pi@1.0.8": "patches/@ai-sdk%2Fharness-pi@1.0.8.patch",
     "@ai-sdk/harness-claude-code@1.0.8": "patches/@ai-sdk%2Fharness-claude-code@1.0.8.patch",
     "@ai-sdk/harness@1.0.8": "patches/@ai-sdk%2Fharness@1.0.8.patch"

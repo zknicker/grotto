@@ -255,6 +255,7 @@
     },
   },
   "patchedDependencies": {
+    "@ai-sdk/harness-codex@1.0.8": "patches/@ai-sdk%2Fharness-codex@1.0.8.patch",
     "@ai-sdk/harness-pi@1.0.8": "patches/@ai-sdk%2Fharness-pi@1.0.8.patch",
     "@shadcn/react@0.1.0": "patches/@shadcn%2Freact@0.1.0.patch",
     "@ai-sdk/harness-claude-code@1.0.8": "patches/@ai-sdk%2Fharness-claude-code@1.0.8.patch",

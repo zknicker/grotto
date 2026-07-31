@@ -8,8 +8,8 @@ import { getDevEnvironmentOverrides } from './run-dev-stack.mjs';
 
 export class InfraError extends Error {}
 
-export async function createEvalHarness({ evalName }) {
-    const serverUrl = resolveHostedServerUrl();
+export async function createEvalHarness({ evalName, repositoryRoot = process.cwd() }) {
+    const serverUrl = resolveHostedServerUrl(repositoryRoot);
     const onlyFilter = resolveFlag('--only');
     const stamp = new Date()
         .toISOString()
@@ -19,7 +19,7 @@ export async function createEvalHarness({ evalName }) {
     const trackedAgentIds = new Set();
     const profileRestores = new Map();
     const configRestores = new Map();
-    const auth = await createDevClerkAuth(serverUrl);
+    const auth = await createDevClerkAuth(serverUrl, repositoryRoot);
 
     async function trpc(path, input = {}) {
         const token = await auth.getToken();
@@ -39,7 +39,11 @@ export async function createEvalHarness({ evalName }) {
         return payload?.result?.data ?? null;
     }
 
-    const servers = await trpc('server.list');
+    let servers = await trpc('server.list');
+    if (servers.length === 0) {
+        await trpc('server.developmentBootstrap');
+        servers = await trpc('server.list');
+    }
     const server = selectHostedServer(servers, resolveFlag('--server-id'));
     const serverId = server.id;
 
@@ -87,13 +91,21 @@ export async function createEvalHarness({ evalName }) {
     }
 
     async function requireAgents(count) {
-        const agents = await trpc('agent.list', { serverId });
-        const available = agents.filter(
-            (agent) =>
-                agent.status === 'applied' &&
-                agent.availability !== 'offline' &&
-                agent.availability !== 'stopped'
-        );
+        const deadline = Date.now() + 60_000;
+        let available = [];
+        do {
+            const agents = await trpc('agent.list', { serverId });
+            available = agents.filter(
+                (agent) =>
+                    agent.status === 'applied' &&
+                    agent.availability !== 'offline' &&
+                    agent.availability !== 'stopped'
+            );
+            if (available.length >= count) {
+                break;
+            }
+            await sleep(1000);
+        } while (Date.now() < deadline);
         assert(
             available.length >= count,
             `${evalName} needs ${count} applied online Agents; found ${available.length}`
@@ -240,16 +252,27 @@ export async function createEvalHarness({ evalName }) {
 
     async function cleanup() {
         for (const [agentId, profile] of profileRestores) {
-            await trpc('agent.updateProfile', { agentId, serverId, ...profile }).catch((error) =>
-                process.stdout.write(`cleanup: profile restore failed for ${agentId}: ${error}\n`)
+            await boundedCleanup(
+                trpc('agent.updateProfile', { agentId, serverId, ...profile }),
+                `profile restore for ${agentId}`
             );
         }
         for (const [agentId, config] of configRestores) {
-            await trpc('agent.configure', { agentId, serverId, ...config }).catch((error) =>
-                process.stdout.write(`cleanup: model restore failed for ${agentId}: ${error}\n`)
+            await boundedCleanup(
+                trpc('agent.configure', { agentId, serverId, ...config }),
+                `model restore for ${agentId}`
             );
         }
         await auth.close();
+    }
+
+    async function boundedCleanup(operation, label) {
+        await Promise.race([
+            operation,
+            sleep(30_000).then(() => {
+                throw new Error(`${label} timed out after 30s`);
+            }),
+        ]).catch((error) => process.stdout.write(`cleanup: ${label} failed: ${error}\n`));
     }
 
     return {
@@ -274,8 +297,8 @@ export async function createEvalHarness({ evalName }) {
     };
 }
 
-async function createDevClerkAuth(serverUrl) {
-    const environment = getDevEnvironmentOverrides(process.cwd());
+async function createDevClerkAuth(serverUrl, repositoryRoot) {
+    const environment = getDevEnvironmentOverrides(repositoryRoot);
     const publishableKey =
         process.env.TAVERN_CLERK_PUBLISHABLE_KEY ?? environment.TAVERN_CLERK_PUBLISHABLE_KEY;
     assert(
@@ -283,11 +306,19 @@ async function createDevClerkAuth(serverUrl) {
         'Hosted eval auth needs the dev Clerk publishable key used by bun run dev'
     );
 
-    const ticketResponse = await fetch(`${serverUrl}/trpc/dev.createClerkSignInToken`, {
-        body: '{}',
-        headers: { ...protocolHeaders(), 'content-type': 'application/json' },
-        method: 'POST',
-    });
+    let ticketResponse;
+    try {
+        ticketResponse = await fetch(`${serverUrl}/trpc/dev.createClerkSignInToken`, {
+            body: '{}',
+            headers: { ...protocolHeaders(), 'content-type': 'application/json' },
+            method: 'POST',
+        });
+    } catch (error) {
+        throw new InfraError(
+            `Dev Clerk sign-in request to ${serverUrl} failed: ${formatError(error)}`,
+            { cause: error }
+        );
+    }
     const ticketPayload = await ticketResponse.json().catch(() => null);
     if (!ticketResponse.ok) {
         throw new Error(
@@ -311,14 +342,27 @@ async function createDevClerkAuth(serverUrl) {
         nativeAuthorization = response?.headers.get('authorization') ?? nativeAuthorization;
     });
 
-    await clerk.load({ standardBrowser: false });
-    const attempt = await clerk.client.signIn.create({ strategy: 'ticket', ticket });
+    try {
+        await clerk.load({ standardBrowser: false });
+    } catch (error) {
+        throw new InfraError(`Clerk client failed to load: ${formatError(error)}`, {
+            cause: error,
+        });
+    }
+    let attempt;
+    try {
+        attempt = await clerk.client.signIn.create({ strategy: 'ticket', ticket });
+    } catch (error) {
+        throw new InfraError(`Clerk ticket exchange failed: ${formatError(error)}`, {
+            cause: error,
+        });
+    }
     assert(attempt.status === 'complete', `Dev Clerk sign-in stopped at ${attempt.status}`);
     await clerk.setActive({ session: attempt.createdSessionId });
 
     return {
         close: async () => {
-            await clerk.session?.end();
+            await Promise.race([clerk.session?.end(), sleep(5000)]);
         },
         getToken: async () => {
             const token = await clerk.session?.getToken();
@@ -337,12 +381,12 @@ function protocolHeaders() {
     };
 }
 
-function resolveHostedServerUrl() {
+function resolveHostedServerUrl(repositoryRoot) {
     const explicit = resolveFlag('--server');
     if (explicit) {
         return explicit.replace(/\/$/u, '');
     }
-    return `http://localhost:${resolveDevPorts({ repositoryRoot: process.cwd() }).grottoPort}`;
+    return `http://localhost:${resolveDevPorts({ repositoryRoot }).grottoPort}`;
 }
 
 function resolveFlag(name) {
@@ -362,6 +406,17 @@ export function selectHostedServer(servers, requestedServerId) {
 
 function formatPayload(payload) {
     return JSON.stringify(payload)?.slice(0, 400) ?? 'no response body';
+}
+
+function formatError(error) {
+    if (!(error instanceof Error)) {
+        return String(error);
+    }
+    const causes =
+        error.cause instanceof AggregateError
+            ? error.cause.errors.map((cause) => String(cause)).join('; ')
+            : String(error.cause ?? '');
+    return [error.message, causes].filter(Boolean).join(' — ');
 }
 
 export function assert(condition, message) {

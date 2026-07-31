@@ -1,3 +1,4 @@
+import { Chip } from '@heroui/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import {
     BubbleChatIcon,
@@ -6,7 +7,7 @@ import {
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-import { Badge } from '../ui/badge.tsx';
+import { cn } from '../../lib/utils.ts';
 import { Icon } from '../ui/icon.tsx';
 
 export type ChatBadgeKind = 'channel' | 'direct' | 'group' | 'topic';
@@ -26,15 +27,14 @@ const KIND_ICON: Record<ChatBadgeKind, IconSvgElement> = {
 
 export function ChatBadge({ className, kind, title }: ChatBadgeProps): React.ReactElement {
     return (
-        <Badge
-            className={className}
+        <Chip
+            className={cn('min-w-0', className)}
             data-slot="chat-badge"
-            size="chip"
             title={title}
-            variant="chip"
+            variant="secondary"
         >
-            <Icon className="size-4 shrink-0 text-muted-foreground" icon={KIND_ICON[kind]} />
-            <span className="min-w-0 truncate">{title}</span>
-        </Badge>
+            <Icon className="shrink-0 text-muted" icon={KIND_ICON[kind]} size={14} />
+            <Chip.Label className="min-w-0 truncate">{title}</Chip.Label>
+        </Chip>
     );
 }

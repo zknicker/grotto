@@ -1,7 +1,7 @@
+import { Chip, type ChipProps } from '@heroui/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import type { ComponentPropsWithoutRef } from 'react';
 import { cn } from '../../lib/utils.ts';
-import { Badge, type BadgeProps } from '../ui/badge.tsx';
 import { ModelProviderLogo, type ModelProviderLogoSource } from './model-provider-logo.tsx';
 
 export interface ModelProviderBadgeProps extends ComponentPropsWithoutRef<'span'> {
@@ -9,7 +9,7 @@ export interface ModelProviderBadgeProps extends ComponentPropsWithoutRef<'span'
     icon: IconSvgElement;
     label: string;
     logo?: ModelProviderLogoSource | null;
-    size?: BadgeProps['size'];
+    size?: ChipProps['size'];
 }
 
 export function ModelProviderBadge({
@@ -18,20 +18,14 @@ export function ModelProviderBadge({
     icon,
     label,
     logo,
-    size = 'default',
-    style,
+    size = 'md',
     ...props
 }: ModelProviderBadgeProps) {
     return (
-        <Badge
-            className={cn('min-w-0 gap-1 border-transparent pr-1.5 pl-1', className)}
+        <Chip
+            className={cn('min-w-0', className)}
             data-slot="model-provider-badge"
             size={size}
-            style={{
-                backgroundColor: `color-mix(in srgb, ${color} 18%, var(--background))`,
-                color: `color-mix(in srgb, ${color} 78%, var(--foreground))`,
-                ...style,
-            }}
             variant="secondary"
             {...props}
         >
@@ -42,7 +36,7 @@ export function ModelProviderBadge({
                 iconClassName="size-3.5"
                 logo={logo}
             />
-            <span className="min-w-0 truncate">{label}</span>
-        </Badge>
+            <Chip.Label className="min-w-0 truncate">{label}</Chip.Label>
+        </Chip>
     );
 }

@@ -1,6 +1,7 @@
+import { Chip } from '@heroui/react';
 import { Layers02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-import { Badge } from '../ui/badge.tsx';
+import { cn } from '../../lib/utils.ts';
 import { Icon } from '../ui/icon.tsx';
 
 export interface SessionBadgeProps {
@@ -10,15 +11,14 @@ export interface SessionBadgeProps {
 
 export function SessionBadge({ className, sessionKey }: SessionBadgeProps): React.ReactElement {
     return (
-        <Badge
-            className={className}
+        <Chip
+            className={cn('min-w-0', className)}
             data-slot="session-badge"
-            size="chip"
             title={sessionKey}
-            variant="chip"
+            variant="secondary"
         >
-            <Icon className="size-4 shrink-0 text-muted-foreground" icon={Layers02Icon} />
-            <span className="min-w-0 truncate font-mono">{sessionKey}</span>
-        </Badge>
+            <Icon className="shrink-0 text-muted" icon={Layers02Icon} size={14} />
+            <Chip.Label className="min-w-0 truncate font-mono">{sessionKey}</Chip.Label>
+        </Chip>
     );
 }

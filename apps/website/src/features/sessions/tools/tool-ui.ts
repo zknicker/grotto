@@ -1,13 +1,3 @@
-import type { BadgeProps } from '../../../components/ui/badge.tsx';
-
-export function toolStatusBadgeVariant(status: string): BadgeProps['variant'] {
-    if (hasErrorStatus(status)) {
-        return 'destructive';
-    }
-
-    return isActiveToolStatus(status) ? 'secondary' : 'success';
-}
-
 export function formatToolStatusLabel(status: string) {
     const normalizedStatus = status.toLowerCase();
 

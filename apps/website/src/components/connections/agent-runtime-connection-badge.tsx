@@ -1,9 +1,9 @@
+import { Chip } from '@heroui/react';
 import {
     type RuntimeConnectionStatus,
     useRuntimeConnection,
 } from '../../hooks/connections/use-runtime-connection.ts';
 import type { AgentRuntimeConnectionOutput } from '../../lib/trpc.tsx';
-import { Badge } from '../ui/badge.tsx';
 import { StatusDot } from '../ui/status-dot.tsx';
 
 function getAgentRuntimeTitle(
@@ -31,10 +31,12 @@ export function AgentRuntimeConnectionBadge() {
     const isChecking = status === 'checking';
 
     return (
-        <Badge
-            className="pointer-events-auto text-caption"
+        <Chip
+            className="pointer-events-auto"
+            color={isLive ? 'success' : 'default'}
+            size="sm"
             title={getAgentRuntimeTitle(status, connection)}
-            variant={isLive ? 'success' : 'subtle'}
+            variant="soft"
         >
             <StatusDot
                 className={isChecking ? 'motion-safe:animate-pulse' : undefined}
@@ -42,7 +44,7 @@ export function AgentRuntimeConnectionBadge() {
                 size="md"
                 status={isLive ? 'success' : 'muted'}
             />
-            {isLive ? 'Live' : isChecking ? 'Checking' : 'Disconnected'}
-        </Badge>
+            <Chip.Label>{isLive ? 'Live' : isChecking ? 'Checking' : 'Disconnected'}</Chip.Label>
+        </Chip>
     );
 }

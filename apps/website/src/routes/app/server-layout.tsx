@@ -1,19 +1,18 @@
+import { AppLayout } from '@heroui-pro/react';
 import * as React from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
 import {
-    AppShell,
-    AppShellBody,
-    AppShellDragRegion,
-    AppShellMain,
-} from '../../components/ui/app-shell.tsx';
-import { SidebarProvider } from '../../components/ui/sidebar.tsx';
-import { Elevated } from '../../components/ui/surface.tsx';
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogPanel,
+    DialogTitle,
+} from '../../components/ui/dialog.tsx';
 import { type ChannelAgentOption, ChannelDialog } from '../../features/chats/channel-dialog.tsx';
-import type { HostedServerSection } from '../../features/servers/hosted-server-rail.tsx';
-import { HostedServerRail } from '../../features/servers/hosted-server-rail.tsx';
-import { HostedServerSettingsNav } from '../../features/servers/hosted-server-settings-nav.tsx';
-import { HostedServerSidebar } from '../../features/servers/hosted-server-sidebar.tsx';
 import { rememberLastServerSlug } from '../../features/servers/server-choice.ts';
+import { ServerChoicePanel } from '../../features/servers/server-choice-panel.tsx';
 import {
     serverActivityRoute,
     serverChatRoute,
@@ -25,7 +24,11 @@ import {
     serverSettingsRoute,
     serverTasksRoute,
 } from '../../features/servers/server-routes.ts';
+import { type AppRailSection, AppRail } from '../../features/shell/app-rail.tsx';
+import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx';
+import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
+import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerAgentLifecycle } from '../../hooks/servers/use-server-agent-lifecycle.ts';
@@ -49,6 +52,7 @@ export function ServerLayout() {
     const connectionState = useGrottoServerConnectionState();
     const currentServerSlug = server.data?.slug;
     const [creatingChannel, setCreatingChannel] = React.useState(false);
+    const [managingServers, setManagingServers] = React.useState(false);
     const agentLifecycles = useServerAgentLifecycle(server.data?.id);
 
     useServerChatEvents(server.data?.id);
@@ -62,7 +66,7 @@ export function ServerLayout() {
         return (
             <main className="flex h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
                 <h1 className="font-semibold text-foreground text-lg">Server unavailable</h1>
-                <p className="max-w-sm text-muted-foreground text-sm">{server.error.message}</p>
+                <p className="max-w-sm text-muted text-sm">{server.error.message}</p>
             </main>
         );
     }
@@ -73,6 +77,7 @@ export function ServerLayout() {
 
     const active = resolveActiveSection(location.pathname, slug);
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
+    const settingsSection = resolveSettingsSection(location.pathname, slug);
     const agentListStatus = agents.data ? 'ready' : agents.isPending ? 'loading' : 'error';
     const chatListStatus = chats.data ? 'ready' : chats.isPending ? 'loading' : 'error';
     const serverChoices = servers.data ?? [server.data];
@@ -82,8 +87,9 @@ export function ServerLayout() {
         id: agent.id,
         name: agent.displayName,
     }));
+    const showSidebar = active !== 'members' && active !== 'computers';
     const openChat = (chatId: string) => navigate(serverChatRoute(slug, chatId));
-    const selectSection = (section: HostedServerSection) => {
+    const selectSection = (section: AppRailSection) => {
         const route = {
             activity: serverActivityRoute(slug),
             chat: selectedChatId
@@ -103,57 +109,55 @@ export function ServerLayout() {
     };
 
     return (
-        <SidebarProvider className="app-reference-theme flex min-h-screen w-full md:h-dvh md:min-h-0">
-            <AppShell className="w-full" data-app-layout="sidebar">
-                <AppShellDragRegion />
-                <HostedCommandMenu
-                    agents={agents.data ?? []}
-                    chats={chats.data ?? []}
-                    role={server.data.role}
-                    serverSlug={slug}
+        <AppShell className="w-full">
+            <AppShellDragRegion />
+            <HostedCommandMenu
+                agents={agents.data ?? []}
+                chats={chats.data ?? []}
+                role={server.data.role}
+                serverSlug={slug}
+            />
+            <div className="flex min-h-0 flex-1">
+                <AppRail
+                    active={active}
+                    canOperate={server.data.role === 'owner' || server.data.role === 'admin'}
+                    currentServer={server.data}
+                    onManageServers={() => setManagingServers(true)}
+                    onSelect={selectSection}
+                    onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
+                    servers={serverChoices}
                 />
-                <AppShellBody className="pt-0 md:flex-row">
-                    <HostedServerRail
-                        active={active}
-                        canOperate={server.data.role === 'owner' || server.data.role === 'admin'}
-                        onSelect={selectSection}
-                    />
-                    {active === 'members' || active === 'computers' ? null : active ===
-                      'settings' ? (
-                        <HostedServerSettingsNav
-                            currentServer={server.data}
-                            servers={serverChoices}
-                        />
-                    ) : (
-                        <HostedServerSidebar
-                            agents={agents.data ?? []}
-                            chats={chats.data ?? []}
-                            currentServer={server.data}
-                            onCreateChannel={() => {
-                                createChannel.reset();
-                                setCreatingChannel(true);
-                            }}
-                            onOpenActivity={() => navigate(serverActivityRoute(slug))}
-                            onOpenChat={openChat}
-                            selectedChatId={selectedChatId}
-                            servers={serverChoices}
-                        />
-                    )}
-                    <AppShellMain
-                        data-edge-to-edge="true"
-                        data-rail-flush={
-                            active === 'members' || active === 'computers' ? 'true' : undefined
-                        }
-                    >
+                <AppLayout
+                    className="h-full min-h-0 min-w-0 flex-1"
+                    navigate={navigate}
+                    scrollMode="content"
+                    sidebar={
+                        active === 'settings' ? (
+                            <SettingsSidebar currentSection={settingsSection} slug={slug} />
+                        ) : (
+                            <AppSidebar
+                                agents={agents.data ?? []}
+                                chats={chats.data ?? []}
+                                currentServer={server.data}
+                                onCreateChannel={() => {
+                                    createChannel.reset();
+                                    setCreatingChannel(true);
+                                }}
+                                selectedChatId={selectedChatId}
+                            />
+                        )
+                    }
+                    sidebarCollapsible="offcanvas"
+                    sidebarOpen={showSidebar}
+                    toggleShortcut={false}
+                >
+                    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
                         {server.error || agents.error || connectionState !== 'connected' ? (
-                            <Elevated
-                                className="absolute top-2 right-3 z-20 rounded-lg px-2 py-1 text-meta text-muted-foreground"
-                                offset={2}
-                            >
+                            <div className="absolute top-2 right-3 z-20 rounded-lg bg-surface-secondary px-2 py-1 text-muted text-xs shadow-surface">
                                 {agents.error && !agents.data
                                     ? 'Agent directory unavailable'
                                     : 'Server reconnecting · showing the latest data'}
-                            </Elevated>
+                            </div>
                         ) : null}
                         <Outlet
                             context={{
@@ -166,38 +170,54 @@ export function ServerLayout() {
                                 servers: servers.data ?? [],
                             }}
                         />
-                    </AppShellMain>
-                    <ChannelDialog
-                        agents={channelAgents}
-                        agentsPending={agents.isPending}
-                        errorMessage={createChannel.error?.message ?? null}
-                        initialAgentIds={[]}
-                        initialDisplayName=""
-                        isPending={createChannel.isPending}
-                        onClose={() => {
-                            createChannel.reset();
-                            setCreatingChannel(false);
-                        }}
-                        onSubmit={async ({ agentIds, displayName }) => {
-                            const channel = await createChannel.mutateAsync({
-                                agentIds,
-                                name: displayName,
-                                serverId: server.data.id,
-                            });
-                            setCreatingChannel(false);
-                            openChat(channel.id);
-                        }}
-                        open={creatingChannel}
-                        submitLabel="Create"
-                        title="New channel"
-                    />
-                </AppShellBody>
-            </AppShell>
-        </SidebarProvider>
+                    </div>
+                </AppLayout>
+            </div>
+            <ChannelDialog
+                agents={channelAgents}
+                agentsPending={agents.isPending}
+                errorMessage={createChannel.error?.message ?? null}
+                initialAgentIds={[]}
+                initialDisplayName=""
+                isPending={createChannel.isPending}
+                onClose={() => {
+                    createChannel.reset();
+                    setCreatingChannel(false);
+                }}
+                onSubmit={async ({ agentIds, displayName }) => {
+                    const channel = await createChannel.mutateAsync({
+                        agentIds,
+                        name: displayName,
+                        serverId: server.data.id,
+                    });
+                    setCreatingChannel(false);
+                    openChat(channel.id);
+                }}
+                open={creatingChannel}
+                submitLabel="Create"
+                title="New channel"
+            />
+            <Dialog onOpenChange={setManagingServers} open={managingServers}>
+                <DialogContent size="lg">
+                    <DialogHeader>
+                        <DialogTitle>Servers</DialogTitle>
+                        <DialogDescription>
+                            Switch to a joined Server, create one, or accept an invitation.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogPanel className="overflow-y-auto">
+                        <ServerChoicePanel
+                            onServerSelect={() => setManagingServers(false)}
+                            servers={serverChoices}
+                        />
+                    </DialogPanel>
+                </DialogContent>
+            </Dialog>
+        </AppShell>
     );
 }
 
-function resolveActiveSection(pathname: string, slug: string): HostedServerSection {
+function resolveActiveSection(pathname: string, slug: string): AppRailSection {
     const suffix = pathname.slice(serverRoute(slug).length);
     if (suffix.startsWith('/design/brief')) {
         return 'settings';
@@ -231,4 +251,13 @@ function resolveSelectedChatId(pathname: string, slug: string) {
     return pathname.startsWith(prefix)
         ? decodeURIComponent(pathname.slice(prefix.length))
         : undefined;
+}
+
+function resolveSettingsSection(pathname: string, slug: string): SettingsRouteTab | undefined {
+    const prefix = `${serverSettingsRoute(slug)}/`;
+    if (!pathname.startsWith(prefix)) {
+        return undefined;
+    }
+    const section = decodeURIComponent(pathname.slice(prefix.length)).split('/')[0];
+    return section ? (section as SettingsRouteTab) : undefined;
 }

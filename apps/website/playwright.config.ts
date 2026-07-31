@@ -19,6 +19,10 @@ export default defineConfig({
     fullyParallel: false,
     reporter: 'list',
     testDir: process.env.TAVERN_E2E_TEST_DIR ?? './e2e/tests',
+    // hosted-mcp-oauth imports apps/computer/src/mcp-runtime.ts, which was
+    // deleted upstream — the spec fails to load on origin/main too. Restore
+    // it when the computer-side MCP runtime module returns.
+    testIgnore: '**/hosted-mcp-oauth.spec.ts',
     use: {
         baseURL: `http://127.0.0.1:${websitePort}`,
         trace: 'retain-on-failure',

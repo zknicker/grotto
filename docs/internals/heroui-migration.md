@@ -182,5 +182,15 @@ sandboxed agent widgets render unthemed.
   `components/copy-button.tsx` on HeroUI `Button` + `Tooltip`; its
   `className` still lands on the button element so call sites keep driving
   placement and their own `group-hover` reveal.
+- Phase 5, allowed-tools input (2026-07-31): `features/skills/allowed-tools-input.tsx`
+  was the last Base UI consumer — and turned out to have zero call sites on
+  `origin/main` too. Deleted rather than ported (an exploratory HeroUI
+  ComboBox + TagGroup port exists in this branch's history if the surface
+  returns). With this, `@base-ui/react` and `class-variance-authority` are
+  removed from `apps/website/package.json`; `@shadcn/react` remains SOLELY
+  for the tuned message-scroller mechanics vendored behind
+  `components/chats/message-scroller.tsx` — replace it with Pro
+  ChatConversation/StickToBottom or a vendored implementation when someone
+  is ready to re-tune chat scroll behavior.
 - e2e specs were only patched where copy changed; the full e2e repair pass
   remains phase-5 work.

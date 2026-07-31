@@ -8,6 +8,8 @@ import { getDevEnvironmentOverrides } from './run-dev-stack.mjs';
 
 export class InfraError extends Error {}
 
+const devClerkAuthByServer = new Map();
+
 export async function createEvalHarness({ evalName, repositoryRoot = process.cwd() }) {
     const serverUrl = resolveHostedServerUrl(repositoryRoot);
     const onlyFilter = resolveFlag('--only');
@@ -305,7 +307,47 @@ async function createDevClerkAuth(serverUrl, repositoryRoot) {
         publishableKey,
         'Hosted eval auth needs the dev Clerk publishable key used by bun run dev'
     );
+    const cacheKey = `${serverUrl}\0${publishableKey}`;
+    let entry = devClerkAuthByServer.get(cacheKey);
+    if (entry?.closeTimer) {
+        clearTimeout(entry.closeTimer);
+        entry.closeTimer = undefined;
+    }
 
+    if (!entry) {
+        entry = {
+            auth: createDevClerkAuthSession(serverUrl, publishableKey),
+            closeTimer: undefined,
+        };
+        devClerkAuthByServer.set(cacheKey, entry);
+    }
+
+    try {
+        const auth = await entry.auth;
+        return {
+            getToken: auth.getToken,
+            close: async () => {
+                if (entry.closeTimer) {
+                    clearTimeout(entry.closeTimer);
+                }
+                entry.closeTimer = setTimeout(async () => {
+                    if (devClerkAuthByServer.get(cacheKey) !== entry) {
+                        return;
+                    }
+                    devClerkAuthByServer.delete(cacheKey);
+                    await auth.close();
+                }, 5000);
+            },
+        };
+    } catch (error) {
+        if (devClerkAuthByServer.get(cacheKey) === entry) {
+            devClerkAuthByServer.delete(cacheKey);
+        }
+        throw error;
+    }
+}
+
+async function createDevClerkAuthSession(serverUrl, publishableKey) {
     let ticketResponse;
     try {
         ticketResponse = await fetch(`${serverUrl}/trpc/dev.createClerkSignInToken`, {
@@ -412,11 +454,17 @@ function formatError(error) {
     if (!(error instanceof Error)) {
         return String(error);
     }
+    const details = JSON.stringify({
+        code: error.code,
+        errors: error.errors,
+        retryAfter: error.retryAfter,
+        status: error.status,
+    });
     const causes =
         error.cause instanceof AggregateError
             ? error.cause.errors.map((cause) => String(cause)).join('; ')
             : String(error.cause ?? '');
-    return [error.message, causes].filter(Boolean).join(' — ');
+    return [error.message, causes, details === '{}' ? '' : details].filter(Boolean).join(' — ');
 }
 
 export function assert(condition, message) {

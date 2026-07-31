@@ -80,11 +80,13 @@ test('a new session recovers the exact Agent-owned workspace file', async ({ pag
     });
 
     const readPrompt = `Read ${suite.workspacePath} from your workspace. Reply only with the complete "Workspace token:" line from that file.`;
-    const { reply } = await runTask(page, suite, readPrompt, (content) => content.includes(token));
+    const { reply, threadChatId } = await runTask(page, suite, readPrompt, (content) =>
+        content.includes(token)
+    );
     expect(reply).toContain(token);
 
-    const thread = page.getByRole('complementary', { name: 'Thread' });
-    await expect(thread.getByText(token, { exact: false })).toBeVisible();
+    const replySurface = threadChatId ? page.getByRole('complementary', { name: 'Thread' }) : page;
+    await expect(replySurface.getByText(token, { exact: false })).toBeVisible();
 });
 
 test('an Agent-authored HTML artifact opens with the exact workspace bytes', async ({ page }) => {
@@ -210,19 +212,22 @@ async function runTask(
 ) {
     await openChat(page, current.server.slug, current.dm, current.agent.name);
     await sendFromComposer(page, prompt);
-    const task = await pollTask(current.harness, prompt);
-    const messages = await current.harness.pollMessages(
-        task.task.threadChatId,
-        (items) => current.harness.authoredBy(items, current.agent.id).some(complete),
-        300_000
+    const { messages, threadChatId } = await pollReplyLocation(
+        current.harness,
+        current.dm,
+        current.agent.id,
+        prompt,
+        complete
     );
     const reply =
         current.harness.authoredBy(messages, current.agent.id).find(complete) ??
         current.harness.authoredBy(messages, current.agent.id).at(-1) ??
         '';
 
-    await openThread(page, prompt);
-    return { reply, threadChatId: task.task.threadChatId };
+    if (threadChatId) {
+        await openThread(page, prompt);
+    }
+    return { reply, threadChatId };
 }
 
 async function pollAgent(harness: Awaited<ReturnType<typeof createEvalHarness>>, agentId: string) {
@@ -257,19 +262,34 @@ async function pollAgentAbsent(
     throw new Error(`Timed out waiting for temporary Agent ${agentId} to disappear.`);
 }
 
-async function pollTask(harness: Awaited<ReturnType<typeof createEvalHarness>>, content: string) {
-    const deadline = Date.now() + 60_000;
+async function pollReplyLocation(
+    harness: Awaited<ReturnType<typeof createEvalHarness>>,
+    dmChatId: string,
+    agentId: string,
+    content: string,
+    complete: (content: string) => boolean
+) {
+    const deadline = Date.now() + 300_000;
     while (Date.now() < deadline) {
-        const tasks = (await harness.trpc('task.list', {
-            serverId: harness.serverId,
-        })) as TaskItem[];
+        const [tasks, directMessages] = await Promise.all([
+            harness.trpc('task.list', { serverId: harness.serverId }) as Promise<TaskItem[]>,
+            harness.readMessages(dmChatId),
+        ]);
         const task = tasks.find((item) => item.message.content === content);
         if (task) {
-            return task;
+            const messages = await harness.pollMessages(
+                task.task.threadChatId,
+                (items) => harness.authoredBy(items, agentId).some(complete),
+                Math.max(1, deadline - Date.now())
+            );
+            return { messages, threadChatId: task.task.threadChatId };
+        }
+        if (harness.authoredBy(directMessages, agentId).some(complete)) {
+            return { messages: directMessages, threadChatId: undefined };
         }
         await new Promise((resolve) => setTimeout(resolve, 1000));
     }
-    throw new Error('Timed out waiting for the skill/workspace request task.');
+    throw new Error('Timed out waiting for the skill/workspace Agent reply.');
 }
 
 async function openThread(page: Page, content: string) {

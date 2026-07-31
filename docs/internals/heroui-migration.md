@@ -161,16 +161,30 @@ sandboxed agent widgets render unthemed.
   the artifact tab strip lost base-ui's arrow-key roving focus
   (click/Enter selection now), and legacy three-tier muted text collapsed
   to HeroUI's two tiers.
-- Legacy kit still standing after phase 4, with why: icon + status-dot +
-  app-shell (drag region) + resizable-pane-rail (sanctioned);
-  context-menu +
-  menu (desktop `edit-context-menu` provider in `main.tsx`); dialog +
-  alert-dialog + surface + scroll-area + autocomplete (manage-servers
-  dialog in `server-layout.tsx` and shared overlays); alert, spinner,
-  empty (one consumer each); textarea,
-  code-snippet, secret-input, image-lightbox, calendar and friends. Phase
-  5 ports/deletes the rest, drops the dead deps, rewrites `DESIGN.md`,
-  and repairs e2e.
+- Phase 5 kit retirement is DONE (2026-07-31). `components/ui/` holds
+  exactly four surviving components, each with a reason: `icon.tsx` (the
+  HugeIcons render adapter — decision 9), `app-shell.tsx` (Electron
+  native window-drag plumbing only; its Base UI utilities and dead
+  layout exports were removed), `status-dot.tsx` (no stock HeroUI
+  presence-dot exists; de-cva'd), and `resizable-pane-rail.tsx`
+  (drag-resize behavior for the artifact pane). Everything else was
+  ported to stock HeroUI or deleted: server dialogs → AlertDialog,
+  command menu → Pro Command (RAC's built-in filtering replaced the
+  homegrown group filter), toasts → stock `toast` (HeroUI 3.2.2 ships
+  one), manage-servers → Modal, search results → Pro ListView, gates and
+  member list → Button/Chip/TextField, code-snippet + copy-button →
+  `components/` on stock parts, image-lightbox → bespoke viewer on
+  react-aria-components primitives, desktop edit menu →
+  `features/shell/` with intentionally native-macOS chrome. Known
+  gotchas recorded on the way: Clerk `SignInButton` cannot drive a React
+  Aria Button (cloned `onClick` is dropped) — call `clerk.openSignIn()`
+  directly; Pro `CodeBlock`'s copy lacks the repo's clipboard
+  `execCommand` fallback.
+- Fast-follow candidates: evaluate Pro `Resizable`
+  (react-resizable-panels) as a replacement for `resizable-pane-rail` +
+  the side-pane width plumbing (implies rethinking the open/close width
+  animation and pixel-width persistence); `hosted-human-directory.tsx`
+  still carries legacy-styled section headers.
 - Phase 5, badge + copy-button (2026-07-31): `components/ui/badge.tsx` is
   deleted — every badge is a HeroUI `Chip`. Legacy `destructive` maps to
   `color="danger"`, `success`/`warning`/`info` to the matching Chip color,
@@ -192,5 +206,10 @@ sandboxed agent widgets render unthemed.
   `components/chats/message-scroller.tsx` — replace it with Pro
   ChatConversation/StickToBottom or a vendored implementation when someone
   is ready to re-tune chat scroll behavior.
-- e2e specs were only patched where copy changed; the full e2e repair pass
-  remains phase-5 work.
+- Still open, deliberately deferred to a final pass at the operator's
+  direction: the e2e repair (the suite is heavy — do not run it until the
+  UI refactor is settled; note that the e2e Postgres cluster needs a valid
+  `LC_ALL` in the environment, and `hosted-mcp-oauth.spec.ts` is
+  `testIgnore`d because its `apps/computer/src/mcp-runtime.ts` import was
+  deleted upstream — broken on `origin/main` too) and the `DESIGN.md`
+  rewrite around HeroUI.

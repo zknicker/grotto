@@ -52,33 +52,33 @@ export function ServerTasksSidebar({
 
     return (
         <Sidebar aria-label="Tasks">
+            <Sidebar.Header>
+                <SearchField
+                    aria-label="Search tasks"
+                    onChange={(value) => {
+                        setSearchParams(
+                            (params) => {
+                                const next = new URLSearchParams(params);
+                                if (value) {
+                                    next.set('q', value);
+                                } else {
+                                    next.delete('q');
+                                }
+                                return next;
+                            },
+                            { replace: true }
+                        );
+                    }}
+                    value={searchParams.get('q') ?? ''}
+                >
+                    <SearchField.Group>
+                        <SearchField.SearchIcon />
+                        <SearchField.Input placeholder="Search tasks..." />
+                        <SearchField.ClearButton />
+                    </SearchField.Group>
+                </SearchField>
+            </Sidebar.Header>
             <Sidebar.Content>
-                <Sidebar.Group>
-                    <SearchField
-                        aria-label="Search tasks"
-                        onChange={(value) => {
-                            setSearchParams(
-                                (params) => {
-                                    const next = new URLSearchParams(params);
-                                    if (value) {
-                                        next.set('q', value);
-                                    } else {
-                                        next.delete('q');
-                                    }
-                                    return next;
-                                },
-                                { replace: true }
-                            );
-                        }}
-                        value={searchParams.get('q') ?? ''}
-                    >
-                        <SearchField.Group>
-                            <SearchField.SearchIcon />
-                            <SearchField.Input placeholder="Search tasks..." />
-                            <SearchField.ClearButton />
-                        </SearchField.Group>
-                    </SearchField>
-                </Sidebar.Group>
                 <Sidebar.Group>
                     <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
                     <Sidebar.Menu aria-label="Task views">

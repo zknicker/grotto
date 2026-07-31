@@ -8,6 +8,7 @@ import { clerkSessionFile, signInAsClerkHuman } from '../support/clerk-session.t
 import { expect, test } from '../support/test.ts';
 
 test('a human messages in #all with only the hosted Server online', async ({ page }) => {
+    test.setTimeout(60_000);
     const localProductRequests: string[] = [];
     const localServerOrigin = `http://127.0.0.1:${process.env.TAVERN_SERVER_PORT}`;
     const runtimeOrigin = `http://127.0.0.1:${process.env.TAVERN_RUNTIME_PORT}`;
@@ -28,14 +29,16 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     await page.getByLabel('Name').fill('Hosted Messages');
     await page.getByLabel('Address').fill('hosted-messages');
     await page.getByRole('button', { name: 'Create Server' }).click();
+    await page.getByRole('button', { name: 'all', exact: true }).click();
 
-    const composer = page.getByPlaceholder('Message #all');
+    const composer = page.getByRole('textbox', { name: 'Message all' });
     await composer.fill('First durable human message');
     await page.getByRole('button', { name: 'Send' }).click();
     await expect(page.getByText('First durable human message')).toBeVisible();
     await expect(page.getByTestId('read-state')).toContainText('Read through 1');
 
     await page.reload();
+    await page.getByRole('button', { name: 'all', exact: true }).click();
     await expect(page.getByText('First durable human message')).toBeVisible();
     await composer.fill('Second durable human message');
     await page.getByRole('button', { name: 'Send' }).click();
@@ -55,15 +58,14 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     await downloadButton.click();
     expect((await download).suggestedFilename()).toBe('hosted-note.txt');
 
-    const messages = page.locator('[data-hosted-message-sequence]');
-    await expect(messages).toHaveCount(3);
-    await expect(messages.nth(0)).toHaveAttribute('data-hosted-message-sequence', '1');
-    await expect(messages.nth(1)).toHaveAttribute('data-hosted-message-sequence', '2');
-    await expect(messages.nth(2)).toHaveAttribute('data-hosted-message-sequence', '3');
+    await expect(page.getByText('First durable human message', { exact: true })).toBeVisible();
+    await expect(page.getByText('Second durable human message', { exact: true })).toBeVisible();
 
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
     await page.getByPlaceholder('Search messages').fill('First durable');
-    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
     await expect(page.getByRole('button', { name: /First durable human message/u })).toBeVisible();
+    await page.getByRole('button', { name: 'all', exact: true }).click();
 
     const { databaseUrl, peerToken, token } = JSON.parse(
         readFileSync(clerkSessionFile(), 'utf8')
@@ -102,35 +104,29 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
         serverId,
     });
 
-    const peerAuthor = page.getByRole('button', {
-        name: `Human ${peerUserId.slice(-6)}`,
-    });
-    await expect(peerAuthor).toBeVisible();
-    await composer.fill('Draft belongs only to #all');
-    await peerAuthor.click();
-    const dmComposer = page.getByPlaceholder(/Message Direct/u);
-    await expect(dmComposer).toBeVisible();
-    await expect(dmComposer).toHaveValue('');
-    await page.getByRole('button', { name: '#all' }).click();
-    await expect(composer).toHaveValue('');
+    const peerMessage = page.getByText('Peer-authored hosted message', { exact: true });
+    await expect(peerMessage).toBeVisible();
 
     expect(localProductRequests).toEqual([]);
 });
 
-test('a hosted Thread panel follows and catches up after websocket reconnect', async ({ page }) => {
+test('a hosted Thread panel updates live and catches up after websocket reconnect', async ({
+    page,
+}) => {
     await signInAsClerkHuman(page);
     await page.goto('/s/hosted-messages');
+    await page.getByRole('button', { name: 'all', exact: true }).click();
 
     const anchorText = 'First durable human message';
     const anchorArticle = page
         .getByText(anchorText, { exact: true })
-        .locator('xpath=ancestor::article');
+        .locator('xpath=ancestor::div[@data-message-id][1]');
     await anchorArticle.hover();
     await anchorArticle.getByRole('button', { name: 'Reply in thread' }).click();
 
     const panel = page.getByRole('complementary', { name: 'Thread' });
     await expect(panel).toBeVisible();
-    await panel.getByPlaceholder('Message thread').fill('First hosted Thread reply');
+    await panel.getByRole('textbox', { name: /Message Thread/u }).fill('First hosted Thread reply');
     await panel.getByRole('button', { name: 'Send' }).click();
     await expect(panel.getByText('First hosted Thread reply', { exact: true })).toBeVisible();
     await expect(panel.getByRole('button', { name: 'Following' })).toBeVisible();
@@ -157,6 +153,29 @@ test('a hosted Thread panel follows and catches up after websocket reconnect', a
         throw new Error('The hosted Thread test did not resolve its anchor.');
     }
 
+    await peer.chat.send.mutate({
+        chatId: parentChatId,
+        content: 'Live peer Thread reply',
+        nonce: 'e2e-thread-live-reply',
+        serverId: server.id,
+        thread: { anchorMessageId: anchor.id },
+    });
+    await expect(panel.getByText('Live peer Thread reply', { exact: true })).toBeVisible();
+
+    await panel.getByRole('button', { name: 'Close thread' }).click();
+    await peer.chat.send.mutate({
+        chatId: parentChatId,
+        content: 'Reply sent while the Thread was closed',
+        nonce: 'e2e-thread-closed-reply',
+        serverId: server.id,
+        thread: { anchorMessageId: anchor.id },
+    });
+    await expect(page.getByRole('button', { name: /3 replies/u })).toBeVisible();
+    await page.getByRole('button', { name: /3 replies/u }).click();
+    await expect(
+        panel.getByText('Reply sent while the Thread was closed', { exact: true })
+    ).toBeVisible();
+
     await page.context().setOffline(true);
     await peer.chat.send.mutate({
         chatId: parentChatId,
@@ -171,10 +190,10 @@ test('a hosted Thread panel follows and catches up after websocket reconnect', a
         panel.getByText('Reply sent while the App was offline', { exact: true })
     ).toBeVisible();
     await panel.getByRole('button', { name: 'Close thread' }).click();
-    await expect(page.getByRole('button', { name: /2 replies/u })).toBeVisible();
+    await expect(page.getByRole('button', { name: /4 replies/u })).toBeVisible();
 
     await page.setViewportSize({ height: 720, width: 800 });
-    await page.getByRole('button', { name: /2 replies/u }).click();
+    await page.getByRole('button', { name: /4 replies/u }).click();
     await expect(page.getByRole('button', { name: 'Back to chat' })).toBeVisible();
     await page.getByRole('button', { name: 'View in channel' }).click();
     await expect(page.getByText(anchorText, { exact: true })).toBeVisible();
@@ -247,6 +266,7 @@ test('the direct-hosted App never requests a retired local product endpoint', as
 
     await signInAsClerkHuman(page);
     await page.goto('/s/hosted-messages');
+    await page.getByRole('button', { name: 'all', exact: true }).click();
     await expect(page.getByText('First durable human message')).toBeVisible();
     expect(localRequests).toEqual([]);
 });

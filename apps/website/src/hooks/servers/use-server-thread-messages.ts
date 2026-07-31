@@ -33,6 +33,7 @@ export function useServerThreadMessages(
                 ...(pageParam === undefined ? {} : { beforeSequence: pageParam }),
             }),
         queryKey,
+        refetchOnMount: true,
     });
     const messages = React.useMemo(
         () => mergeHostedThreadMessagePages(query.data?.pages),

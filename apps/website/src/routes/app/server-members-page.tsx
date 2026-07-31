@@ -7,7 +7,7 @@ import { HostedAgentProfile } from '../../features/members/agent-profile/hosted-
 import { CreateHostedAgentDialog } from '../../features/members/create-hosted-agent-dialog.tsx';
 import { HostedAgentFace } from '../../features/members/hosted-agent-face.tsx';
 import { HumanMemberSection } from '../../features/members/human-member-list.tsx';
-import { MembersPageFrame } from '../../features/members/members-page.tsx';
+import { MembersPageFrame } from '../../features/members/members-page-frame.tsx';
 import { HostedHumanDirectory } from '../../features/servers/hosted-human-directory.tsx';
 import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
 import { serverMembersRoute } from '../../features/servers/server-routes.ts';

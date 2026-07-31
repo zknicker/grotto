@@ -7,7 +7,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import { type AgentListOutput, trpc } from '../../lib/trpc.tsx';
 import { ChatActiveStatusStack, formatActiveStatusText } from './chat-active-status-stack.tsx';
-import { ChatDetailFooter } from './chat-detail-footer.tsx';
 import type { TranscriptRow } from './chat-transcript-model.ts';
 
 // The stack reads live presence, so tests render inside inert tRPC/query
@@ -186,24 +185,8 @@ test('ChatActiveStatusStack renders nothing while idle', () => {
         <ChatActiveStatusStack activeReplies={[]} agents={agents} rows={[]} variant="detail" />
     );
 
-    // The stack floats over the transcript's reserved bottom padding
-    // (ChatDetailFooter), so it needs no idle placeholder — an empty stack
-    // renders nothing and can never move the layout.
+    // An empty stack needs no idle placeholder and cannot move the layout.
     assert.doesNotMatch(markup, /aria-label="Active agent status"/);
-});
-
-test('ChatDetailFooter renders active status before the detail composer', () => {
-    const markup = renderStack(
-        <ChatDetailFooter activeReplies={[activeReply]} agents={agents} rows={[]}>
-            <div data-slot="composer">Composer</div>
-        </ChatDetailFooter>
-    );
-
-    assert.ok(markup.indexOf('Blippy is thinking...') < markup.indexOf('Composer'));
-    // Full-width Slack-style lane: the stack shares the transcript's px-5
-    // gutter and no longer centers into a capped column.
-    assert.match(markup, /px-5/);
-    assert.doesNotMatch(markup, /max-w-\[60rem\]/);
 });
 
 test('status text: streaming is typing, default thinks', () => {

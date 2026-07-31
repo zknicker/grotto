@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MembersPageFrame } from './members-page.tsx';
+import { MembersPageFrame } from './members-page-frame.tsx';
 
 test('an unavailable Agent directory is not presented as an empty directory', () => {
     const markup = renderToStaticMarkup(

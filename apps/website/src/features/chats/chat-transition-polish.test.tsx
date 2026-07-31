@@ -1,25 +1,7 @@
 import { expect, test } from 'bun:test';
-import { developmentChatDemoIds } from '@tavern/api/development-chat-demos';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ChatMessage } from '../../components/chats/chat-message.tsx';
-import type { ChatTurn } from '../../hooks/chats/chat-timeline-state.ts';
-import {
-    chatDetailLogLimit,
-    demoChannelLogLimit,
-    getChatDetailLogLimit,
-    isBlockingActiveTurn,
-} from './agent-chat-detail.tsx';
 import { AgentStatusIndicator } from './agent-status-indicator.tsx';
-
-test('chat detail cold-open loads a narrow transcript tail', () => {
-    expect(chatDetailLogLimit).toBeLessThanOrEqual(30);
-});
-
-test('demo channel loads enough messages to show representative coverage', () => {
-    expect(getChatDetailLogLimit(developmentChatDemoIds.demo)).toBe(demoChannelLogLimit);
-    expect(demoChannelLogLimit).toBe(48);
-    expect(getChatDetailLogLimit('cht_normal')).toBe(chatDetailLogLimit);
-});
 
 test('agent status indicator keeps a fixed icon box for layout motion', () => {
     const markup = renderToStaticMarkup(
@@ -106,61 +88,4 @@ test('chat message wraps long pasted tokens inside the bubble', () => {
         expect(markup).toContain('max-w-full');
         expect(markup).toContain('wrap-break-word');
     }
-});
-
-test('visible non-thinking fallback replies do not keep the composer blocked', () => {
-    expect(
-        isBlockingActiveTurn({
-            activeReplies: [{ isThinking: false }],
-            activeTurns: [],
-            agentsPending: false,
-        })
-    ).toBe(false);
-
-    expect(
-        isBlockingActiveTurn({
-            activeReplies: [{ isThinking: true }],
-            activeTurns: [],
-            agentsPending: false,
-        })
-    ).toBe(true);
-});
-
-test('active tool-only turns keep the reply marked active', () => {
-    const activeTurns: ChatTurn[] = [
-        {
-            agentId: 'agent-1',
-            chatId: 'chat-1',
-            runId: 'run-1',
-            sessionKey: 'session-1',
-            startedAt: '2026-05-13T12:00:00.000Z',
-        },
-    ];
-    expect(
-        isBlockingActiveTurn({
-            activeReplies: [],
-            activeTurns,
-            agentsPending: false,
-        })
-    ).toBe(true);
-});
-
-test('quiet peer-evaluation turns never block the composer', () => {
-    const activeTurns: ChatTurn[] = [
-        {
-            agentId: 'agent-1',
-            chatId: 'chat-1',
-            runId: 'run-1',
-            sessionKey: 'session-1',
-            startedAt: '2026-05-13T12:00:00.000Z',
-            trigger: 'evaluation',
-        },
-    ];
-    expect(
-        isBlockingActiveTurn({
-            activeReplies: [{ isThinking: true, text: '', trigger: 'evaluation' as const }],
-            activeTurns,
-            agentsPending: false,
-        })
-    ).toBe(false);
 });

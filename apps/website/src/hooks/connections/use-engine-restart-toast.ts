@@ -1,5 +1,5 @@
+import { toast } from '@heroui/react';
 import { useEffect, useRef } from 'react';
-import { toastManager } from '../../components/ui/toast.tsx';
 import { trpc } from '../../lib/trpc.tsx';
 
 const restartTimeoutMs = 120_000;
@@ -7,13 +7,13 @@ const restartTimeoutMs = 120_000;
 export type EngineRestartToastAction = 'complete' | 'ignore' | 'start';
 
 /**
- * One promise toast per engine restart cycle: settings saves that need a
- * restart raise it ("Applying settings…"), and it resolves when the engine
+ * One loading toast per engine restart cycle: settings saves that need a
+ * restart raise it ("Applying settings"), and it is replaced when the engine
  * reports the restart completed. Bursts share a single toast, matching the
  * restart coordinator's coalescing.
  */
 export function useEngineRestartToast() {
-    const pending = useRef<{ fail: (error: Error) => void; finish: () => void } | null>(null);
+    const pending = useRef<{ finish: () => void } | null>(null);
 
     useEffect(
         () => () => {
@@ -37,46 +37,28 @@ export function useEngineRestartToast() {
                 return;
             }
 
-            let resolve!: () => void;
-            let reject!: (error: Error) => void;
-            const promise = new Promise<void>((res, rej) => {
-                resolve = res;
-                reject = rej;
+            const toastId = toast('Applying settings', {
+                description: 'restarting the agent engine…',
+                isLoading: true,
+                timeout: 0,
             });
             const timeout = setTimeout(() => {
                 if (pending.current) {
                     pending.current = null;
-                    reject(
-                        new Error('The agent engine is taking longer than expected to restart.')
-                    );
+                    toast.close(toastId);
+                    toast.danger('Still restarting', {
+                        description: 'settings apply when the engine returns',
+                    });
                 }
             }, restartTimeoutMs);
+
             pending.current = {
-                fail: (error) => {
-                    clearTimeout(timeout);
-                    reject(error);
-                },
                 finish: () => {
                     clearTimeout(timeout);
-                    resolve();
+                    toast.close(toastId);
+                    toast.success('Settings applied');
                 },
             };
-
-            void toastManager
-                .promise(promise, {
-                    error: {
-                        description: 'settings apply when the engine returns',
-                        title: 'Still restarting',
-                    },
-                    loading: {
-                        description: 'restarting the agent engine…',
-                        title: 'Applying settings',
-                    },
-                    // Empty description: promise() merges options per phase, so
-                    // omitting it would leak the loading description into success.
-                    success: { description: '', title: 'Settings applied' },
-                })
-                .catch(() => undefined);
         },
     });
 }

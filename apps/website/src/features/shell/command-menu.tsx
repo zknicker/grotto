@@ -1,3 +1,6 @@
+import { Kbd } from '@heroui/react';
+import { Command } from '@heroui-pro/react';
+import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useEffect, useMemo, useState } from 'react';
 import type { AppCommand, AppCommandGroup } from '../../commands/types.ts';
 import { getCommandSearchText } from '../../commands/types.ts';
@@ -5,26 +8,11 @@ import { useAppCommands } from '../../commands/use-app-commands.ts';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { TavernLogo } from '../../components/tavern-logo.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
-import {
-    Command,
-    CommandCollection,
-    CommandDialog,
-    CommandDialogPopup,
-    CommandEmpty,
-    CommandFooter,
-    CommandGroup,
-    CommandGroupLabel,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandShortcut,
-} from '../../components/ui/command.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import {
     type AgentFaceAppearance,
     useAgentAppearanceLookup,
 } from '../../hooks/agents/use-agent-appearance.ts';
-import { cn } from '../../lib/utils.ts';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
 import { AgentFace } from '../chats/agent-face.tsx';
 import { getChannelColorStyle } from './channel-color-options.ts';
@@ -51,26 +39,17 @@ export function CommandMenuShell({
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
     const dark = useResolvedThemeOptional() === 'dark';
-    const visibleCommandGroups = useMemo(() => {
-        const normalizedQuery = query.trim().toLowerCase();
+    const commandsById = useMemo(() => {
+        const lookup = new Map<string, AppCommand>();
 
-        if (!normalizedQuery) {
-            return commandGroups;
+        for (const group of commandGroups) {
+            for (const command of group.commands) {
+                lookup.set(command.id, command);
+            }
         }
 
-        return commandGroups
-            .map((group) => ({
-                ...group,
-                commands: group.commands.filter((command) =>
-                    getCommandSearchText(command).toLowerCase().includes(normalizedQuery)
-                ),
-            }))
-            .filter((group) => group.commands.length > 0);
-    }, [commandGroups, query]);
-    const commands = useMemo(
-        () => visibleCommandGroups.flatMap((group) => group.commands),
-        [visibleCommandGroups]
-    );
+        return lookup;
+    }, [commandGroups]);
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -83,98 +62,97 @@ export function CommandMenuShell({
         return () => window.removeEventListener('keydown', onKeyDown);
     }, []);
 
+    const runCommand = (key: string | number) => {
+        const command = commandsById.get(String(key));
+
+        if (!command || command.disabledReason) {
+            return;
+        }
+
+        void command.run();
+        setOpen(false);
+    };
+
     return (
-        <CommandDialog
-            onOpenChange={(nextOpen) => {
-                setOpen(nextOpen);
+        <Command>
+            <Command.Backdrop
+                isOpen={open}
+                onOpenChange={(nextOpen) => {
+                    setOpen(nextOpen);
 
-                if (!nextOpen) {
-                    setQuery('');
-                }
-            }}
-            open={open}
-        >
-            <CommandDialogPopup aria-label="Command menu" className="max-w-2xl">
-                <Command
-                    items={commands}
-                    itemToStringValue={(item) => getCommandSearchText(item as AppCommand)}
-                >
-                    <CommandInput
-                        onChange={(event) => setQuery(event.currentTarget.value)}
-                        placeholder="Search or run a command..."
-                    />
-                    <CommandList>
-                        <CommandEmpty>No matching commands.</CommandEmpty>
-                        {visibleCommandGroups.map((group) => (
-                            <CommandGroup key={group.id}>
-                                <CommandGroupLabel>{group.title}</CommandGroupLabel>
-                                <CommandCollection>
-                                    {(command: AppCommand) => {
-                                        if (
-                                            !group.commands.some((item) => item.id === command.id)
-                                        ) {
-                                            return null;
-                                        }
-
-                                        return (
-                                            <CommandItem
-                                                disabled={Boolean(command.disabledReason)}
-                                                key={command.id}
-                                                onClick={() => {
-                                                    if (command.disabledReason) {
-                                                        return;
-                                                    }
-
-                                                    void command.run();
-                                                    setOpen(false);
-                                                }}
-                                                value={command}
-                                            >
-                                                <CommandMenuIcon
-                                                    command={command}
-                                                    dark={dark}
-                                                    disabled={Boolean(command.disabledReason)}
-                                                    lookupAppearance={lookupAppearance}
-                                                />
-                                                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                                                    <span className="truncate font-medium">
-                                                        {command.title}
-                                                    </span>
-                                                    {command.disabledReason ? (
-                                                        <span className="truncate text-muted-foreground text-xs">
-                                                            {command.disabledReason}
-                                                        </span>
-                                                    ) : null}
+                    if (!nextOpen) {
+                        setQuery('');
+                    }
+                }}
+            >
+                <Command.Container size="lg">
+                    <Command.Dialog
+                        aria-label="Command menu"
+                        inputValue={query}
+                        onInputChange={setQuery}
+                    >
+                        <Command.InputGroup>
+                            <Command.InputGroup.Prefix>
+                                <Icon icon={Search01Icon} />
+                            </Command.InputGroup.Prefix>
+                            <Command.InputGroup.Input placeholder="Search or run a command..." />
+                            <Command.InputGroup.ClearButton />
+                        </Command.InputGroup>
+                        <Command.List
+                            aria-label="Commands"
+                            onAction={runCommand}
+                            renderEmptyState={() => 'No matching commands.'}
+                        >
+                            {commandGroups.map((group) => (
+                                <Command.Group heading={group.title} key={group.id}>
+                                    {group.commands.map((command) => (
+                                        <Command.Item
+                                            id={command.id}
+                                            isDisabled={Boolean(command.disabledReason)}
+                                            key={command.id}
+                                            textValue={getCommandSearchText(command)}
+                                        >
+                                            <CommandMenuIcon
+                                                command={command}
+                                                dark={dark}
+                                                lookupAppearance={lookupAppearance}
+                                            />
+                                            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                                <span className="truncate font-medium">
+                                                    {command.title}
                                                 </span>
-                                                {command.shortcut ? (
-                                                    <CommandShortcut>
-                                                        {command.shortcut}
-                                                    </CommandShortcut>
+                                                {command.disabledReason ? (
+                                                    <span className="truncate text-muted text-xs">
+                                                        {command.disabledReason}
+                                                    </span>
                                                 ) : null}
-                                            </CommandItem>
-                                        );
-                                    }}
-                                </CommandCollection>
-                            </CommandGroup>
-                        ))}
-                    </CommandList>
-                    <CommandFooter>
-                        <span className="flex items-center gap-2">
-                            <kbd className="rounded-md border bg-background px-1.5 py-0.5 font-medium">
-                                Return
-                            </kbd>
-                            Run
-                        </span>
-                        <span className="flex items-center gap-2">
-                            <kbd className="rounded-md border bg-background px-1.5 py-0.5 font-medium">
-                                Esc
-                            </kbd>
-                            Close
-                        </span>
-                    </CommandFooter>
-                </Command>
-            </CommandDialogPopup>
-        </CommandDialog>
+                                            </span>
+                                            {command.shortcut ? (
+                                                <kbd>{command.shortcut}</kbd>
+                                            ) : null}
+                                        </Command.Item>
+                                    ))}
+                                </Command.Group>
+                            ))}
+                        </Command.List>
+                        <Command.Footer>
+                            <span className="flex items-center gap-2">
+                                <Kbd>
+                                    <Kbd.Content>Return</Kbd.Content>
+                                </Kbd>
+                                Run
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <Kbd>
+                                    <Kbd.Content>Esc</Kbd.Content>
+                                </Kbd>
+                                Close
+                            </span>
+                        </Command.Footer>
+                    </Command.Dialog>
+                </Command.Container>
+            </Command.Backdrop>
+        </Command>
     );
 }
 
@@ -188,32 +166,20 @@ const commandAgentFaceStyle = {
 function CommandMenuIcon({
     command,
     dark,
-    disabled,
     lookupAppearance,
 }: {
     command: AppCommand;
     dark: boolean;
-    disabled: boolean;
     lookupAppearance: (agentId: string | null | undefined) => AgentFaceAppearance;
 }) {
-    const className = cn(
-        'size-5 shrink-0 text-muted-foreground transition-colors',
-        disabled && 'opacity-60',
-        !disabled && 'group-data-highlighted:text-legacy-accent-foreground'
-    );
-
     if (command.icon === 'tavern') {
-        return <TavernLogo aria-hidden="true" className={className} />;
+        return <TavernLogo aria-hidden="true" />;
     }
 
     if (typeof command.icon === 'object' && 'kind' in command.icon) {
         if (command.icon.kind === 'channel') {
             return (
-                <ChannelIconBox
-                    className={disabled ? 'opacity-60' : undefined}
-                    size="inline"
-                    style={getChannelColorStyle(command.icon.color)}
-                />
+                <ChannelIconBox size="inline" style={getChannelColorStyle(command.icon.color)} />
             );
         }
 
@@ -223,10 +189,7 @@ function CommandMenuIcon({
             return (
                 <span
                     aria-hidden="true"
-                    className={cn(
-                        'flex size-5 shrink-0 items-center justify-center',
-                        disabled && 'opacity-60'
-                    )}
+                    className="flex size-5 shrink-0 items-center justify-center"
                 >
                     <AgentFace
                         animate={false}
@@ -243,15 +206,12 @@ function CommandMenuIcon({
         return (
             <span
                 aria-hidden="true"
-                className={cn(
-                    'flex size-5 shrink-0 items-center justify-center rounded-md bg-legacy-muted font-medium text-micro text-muted-foreground',
-                    disabled && 'opacity-60'
-                )}
+                className="flex size-5 shrink-0 items-center justify-center rounded-md bg-surface-secondary font-medium text-muted text-xs"
             >
                 {(command.icon.fallbackLabel.trim()[0] ?? '?').toUpperCase()}
             </span>
         );
     }
 
-    return <Icon aria-hidden="true" className={className} icon={command.icon} size={20} />;
+    return <Icon aria-hidden="true" icon={command.icon} />;
 }

@@ -1,9 +1,9 @@
+import { Toast } from '@heroui/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app.tsx';
 import { DevModeProvider } from './components/dev-mode-provider.tsx';
 import { ThemeProvider } from './components/theme-provider.tsx';
-import { ToastProvider } from './components/ui/toast.tsx';
 import { DesktopEditContextMenuProvider } from './features/shell/desktop-edit-context-menu.tsx';
 import { TavernClerkProvider } from './lib/clerk.tsx';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
@@ -24,11 +24,10 @@ createRoot(rootElement).render(
         <TavernClerkProvider>
             <ThemeProvider>
                 <DevModeProvider>
-                    <ToastProvider>
-                        <DesktopEditContextMenuProvider>
-                            <App />
-                        </DesktopEditContextMenuProvider>
-                    </ToastProvider>
+                    <DesktopEditContextMenuProvider>
+                        <App />
+                    </DesktopEditContextMenuProvider>
+                    <Toast.Provider placement="bottom end" />
                 </DevModeProvider>
             </ThemeProvider>
         </TavernClerkProvider>

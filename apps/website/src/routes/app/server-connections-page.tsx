@@ -1,7 +1,6 @@
-import { Alert, Button } from '@heroui/react';
+import { Alert, Button, toast } from '@heroui/react';
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { toastManager } from '../../components/ui/toast.tsx';
 import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import {
@@ -110,7 +109,7 @@ export function ServerConnectionsPage({ embedded = false }: { embedded?: boolean
             popup?.close();
             const message = cause instanceof Error ? cause.message : 'Try again.';
             setRetryMessage(message);
-            toastManager.add({ description: message, title: 'Connection failed', type: 'error' });
+            toast.danger('Connection failed', { description: message });
         }
     };
     const saveCustom = async (input: McpConnectionSaveInput) => {
@@ -125,7 +124,7 @@ export function ServerConnectionsPage({ embedded = false }: { embedded?: boolean
         } catch (cause) {
             const message = cause instanceof Error ? cause.message : 'Try again.';
             setRetryMessage(message);
-            toastManager.add({ description: message, title: 'Connection failed', type: 'error' });
+            toast.danger('Connection failed', { description: message });
         }
     };
 

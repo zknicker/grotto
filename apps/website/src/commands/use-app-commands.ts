@@ -1,7 +1,7 @@
+import { toast } from '@heroui/react';
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDevMode } from '../components/dev-mode-provider.tsx';
-import { toastManager } from '../components/ui/toast.tsx';
 import { buildChatList } from '../features/chats/chat-list-data.ts';
 import { useChatList } from '../hooks/chats/use-chat-list.ts';
 import { useCapability } from '../hooks/connections/use-capability.ts';
@@ -22,17 +22,13 @@ export function useAppCommands() {
     const utils = trpc.useUtils();
     const healthMutation = trpc.agentRuntime.checkHealth.useMutation({
         onError: (error) => {
-            toastManager.add({
-                description: error.message,
-                title: 'Runtime check failed',
-                type: 'error',
-            });
+            toast.danger('Runtime check failed', { description: error.message });
         },
         onSettled: () => {
             void utils.agentRuntime.get.invalidate();
         },
         onSuccess: () => {
-            toastManager.add({ title: 'Runtime check requested', type: 'success' });
+            toast.success('Runtime check requested');
         },
     });
 

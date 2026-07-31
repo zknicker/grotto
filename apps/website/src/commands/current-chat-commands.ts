@@ -1,5 +1,5 @@
+import { toast } from '@heroui/react';
 import { CopyLinkIcon, CursorTextIcon, UserCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { toastManager } from '../components/ui/toast.tsx';
 import { getChatAgentId } from '../features/chats/chat-list-data.ts';
 import { appRoutes } from '../lib/app-routes.ts';
 import { writeClipboardText } from '../lib/clipboard.ts';
@@ -31,7 +31,7 @@ export function buildCurrentChatCommandGroup(
                 keywords: ['chat', 'copy', 'link', 'url'],
                 run: async () => {
                     await writeClipboardText(window.location.href);
-                    toastManager.add({ title: 'Chat link copied', type: 'success' });
+                    toast.success('Chat link copied');
                 },
                 title: 'Copy Chat Link',
             },

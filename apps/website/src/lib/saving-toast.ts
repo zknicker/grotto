@@ -1,4 +1,4 @@
-import { toastManager } from '../components/ui/toast.tsx';
+import { toast } from '@heroui/react';
 
 /** Success note for settings that agents pick up once per session. */
 export const nextSessionNote = "Takes effect on each agent's next session.";
@@ -7,31 +7,18 @@ export async function withSavingToast<T>(
     operation: () => Promise<T>,
     options: { successNote?: string } = {}
 ): Promise<T> {
-    const toastId = toastManager.add({
-        timeout: 0,
-        title: 'Saving…',
-        type: 'loading',
-    });
+    const toastId = toast('Saving…', { isLoading: true, timeout: 0 });
 
     try {
         const result = await operation();
-        toastManager.close(toastId);
+        toast.close(toastId);
         if (options.successNote) {
-            toastManager.add({
-                description: options.successNote,
-                title: 'Saved',
-                type: 'success',
-            });
+            toast.success('Saved', { description: options.successNote });
         }
         return result;
     } catch (error) {
-        toastManager.close(toastId);
-        toastManager.add({
-            description: getErrorMessage(error),
-            priority: 'high',
-            title: 'Save failed',
-            type: 'error',
-        });
+        toast.close(toastId);
+        toast.danger('Save failed', { description: getErrorMessage(error) });
         throw error;
     }
 }
@@ -44,12 +31,7 @@ export async function withSaveErrorToast<T>(operation: () => Promise<T>): Promis
     try {
         return await operation();
     } catch (error) {
-        toastManager.add({
-            description: getErrorMessage(error),
-            priority: 'high',
-            title: 'Save failed',
-            type: 'error',
-        });
+        toast.danger('Save failed', { description: getErrorMessage(error) });
         throw error;
     }
 }

@@ -1,18 +1,5 @@
+import { Button, FieldError, Form, Input, Label, Modal, TextField } from '@heroui/react';
 import * as React from 'react';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogPanel,
-    DialogTitle,
-} from '../../../components/ui/dialog.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Field, FieldError, FieldLabel } from '../../../components/ui/primitives/field.tsx';
-import { Form } from '../../../components/ui/primitives/form.tsx';
-import { Input } from '../../../components/ui/primitives/input.tsx';
 import type { useStartModelProviderOAuth } from '../../../hooks/connections/use-start-model-provider-oauth.ts';
 import type { ModelInventoryOutput } from '../../../lib/trpc.tsx';
 
@@ -47,61 +34,71 @@ export function ProviderApiKeyDialog({
     }, [open]);
 
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>API Key</DialogTitle>
-                    <DialogDescription>
-                        Enter your {label} API key to enable {label} models.
-                    </DialogDescription>
-                </DialogHeader>
-
-                <Form
-                    className="contents"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        if (apiKey.trim().length > 0) {
-                            onSave(apiKey);
-                        }
-                    }}
-                >
-                    <DialogPanel>
-                        <Field>
-                            <FieldLabel htmlFor={`provider-api-key-${keyEnv}`}>API Key</FieldLabel>
-                            <Input
-                                autoCapitalize="none"
-                                autoComplete="off"
-                                autoCorrect="off"
-                                id={`provider-api-key-${keyEnv}`}
-                                name="provider-api-key"
-                                onChange={(event) => setApiKey(event.target.value)}
-                                placeholder={placeholder}
-                                spellCheck={false}
-                                type="password"
-                                value={apiKey}
-                            />
-                            {saveError ? <FieldError>{saveError}</FieldError> : null}
-                        </Field>
-                    </DialogPanel>
-
-                    <DialogFooter variant="bare">
-                        <DialogClose
-                            disabled={savePending}
-                            render={<Button size="sm" type="button" variant="secondary" />}
+        <Modal isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Backdrop>
+                <Modal.Container size="md">
+                    <Modal.Dialog>
+                        <Form
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                if (apiKey.trim().length > 0) {
+                                    onSave(apiKey);
+                                }
+                            }}
                         >
-                            Cancel
-                        </DialogClose>
-                        <Button
-                            disabled={savePending || apiKey.trim().length === 0}
-                            size="sm"
-                            type="submit"
-                        >
-                            Save
-                        </Button>
-                    </DialogFooter>
-                </Form>
-            </DialogContent>
-        </Dialog>
+                            <Modal.Header>
+                                <div>
+                                    <Modal.Heading>API Key</Modal.Heading>
+                                    <p className="mt-1 text-muted text-sm">
+                                        Enter your {label} API key to enable {label} models.
+                                    </p>
+                                </div>
+                            </Modal.Header>
+                            <Modal.Body>
+                                <TextField
+                                    fullWidth
+                                    isInvalid={Boolean(saveError)}
+                                    onChange={setApiKey}
+                                    type="password"
+                                    value={apiKey}
+                                    variant="secondary"
+                                >
+                                    <Label htmlFor={`provider-api-key-${keyEnv}`}>API Key</Label>
+                                    <Input
+                                        autoCapitalize="none"
+                                        autoComplete="off"
+                                        autoCorrect="off"
+                                        id={`provider-api-key-${keyEnv}`}
+                                        name="provider-api-key"
+                                        placeholder={placeholder}
+                                        spellCheck={false}
+                                    />
+                                    {saveError ? <FieldError>{saveError}</FieldError> : null}
+                                </TextField>
+                            </Modal.Body>
+
+                            <Modal.Footer>
+                                <Button
+                                    isDisabled={savePending}
+                                    slot="close"
+                                    type="button"
+                                    variant="secondary"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    isDisabled={savePending || apiKey.trim().length === 0}
+                                    isPending={savePending}
+                                    type="submit"
+                                >
+                                    Save
+                                </Button>
+                            </Modal.Footer>
+                        </Form>
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
+        </Modal>
     );
 }
 
@@ -126,28 +123,39 @@ export function ProviderInstructionsDialog({
     provider: ModelInventoryProvider | null;
 }) {
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Set Up {provider?.displayName ?? 'Provider'}</DialogTitle>
-                    <DialogDescription>
-                        Configure this provider for your agent, then refresh Grotto models.
-                    </DialogDescription>
-                </DialogHeader>
+        <Modal isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Backdrop>
+                <Modal.Container size="md">
+                    <Modal.Dialog>
+                        <Modal.Header>
+                            <div>
+                                <Modal.Heading>
+                                    Set Up {provider?.displayName ?? 'Provider'}
+                                </Modal.Heading>
+                                <p className="mt-1 text-muted text-sm">
+                                    Configure this provider for your agent, then refresh Grotto
+                                    models.
+                                </p>
+                            </div>
+                        </Modal.Header>
 
-                <DialogPanel>
-                    <div className="rounded-lg bg-legacy-muted px-3 py-2 font-mono text-sm">
-                        {provider?.connectionDetail ?? provider?.stateMessage ?? 'No setup hint.'}
-                    </div>
-                </DialogPanel>
+                        <Modal.Body>
+                            <div className="rounded-xl bg-surface-secondary px-3 py-2 font-mono text-sm">
+                                {provider?.connectionDetail ??
+                                    provider?.stateMessage ??
+                                    'No setup hint.'}
+                            </div>
+                        </Modal.Body>
 
-                <DialogFooter>
-                    <DialogClose render={<Button size="sm" type="button" variant="secondary" />}>
-                        Done
-                    </DialogClose>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                        <Modal.Footer>
+                            <Button slot="close" type="button" variant="secondary">
+                                Done
+                            </Button>
+                        </Modal.Footer>
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
+        </Modal>
     );
 }
 
@@ -181,130 +189,142 @@ export function ProviderOAuthDialog({
     }, [open]);
 
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Sign In</DialogTitle>
-                    <DialogDescription>{label} sign-in started for your agent.</DialogDescription>
-                </DialogHeader>
-
-                {result?.flow === 'pkce' ? (
-                    <Form
-                        className="contents"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            if (code.trim()) {
-                                onSubmitCode(code);
-                            }
-                        }}
-                    >
-                        <DialogPanel>
-                            <div className="space-y-3 text-sm">
-                                {'authUrl' in result ? (
-                                    <div>
-                                        Open{' '}
-                                        <a
-                                            className="font-medium text-brand underline"
-                                            href={result.authUrl}
-                                            rel="noreferrer"
-                                            target="_blank"
-                                        >
-                                            {result.authUrl}
-                                        </a>
-                                    </div>
-                                ) : null}
-                                <div className="text-muted-foreground">
-                                    Paste the authorization code from the browser.
-                                </div>
-                                <Field>
-                                    <FieldLabel htmlFor="provider-oauth-code">
-                                        Authorization Code
-                                    </FieldLabel>
-                                    <Input
-                                        id="provider-oauth-code"
-                                        onChange={(event) => setCode(event.target.value)}
-                                        value={code}
-                                    />
-                                    {submitError ? <FieldError>{submitError}</FieldError> : null}
-                                </Field>
-                            </div>
-                        </DialogPanel>
-
-                        <DialogFooter>
-                            <DialogClose
-                                disabled={submitPending}
-                                render={<Button size="sm" type="button" variant="secondary" />}
-                            >
-                                Cancel
-                            </DialogClose>
-                            <Button
-                                disabled={!code.trim()}
-                                loading={submitPending}
-                                size="sm"
-                                type="submit"
-                            >
-                                Submit
-                            </Button>
-                        </DialogFooter>
-                    </Form>
-                ) : (
-                    <>
-                        <DialogPanel>
-                            {result?.flow === 'device_code' ? (
-                                <div className="space-y-3 text-sm">
-                                    <div>
-                                        Open{' '}
-                                        <a
-                                            className="font-medium text-brand underline"
-                                            href={result.verificationUrl}
-                                            rel="noreferrer"
-                                            target="_blank"
-                                        >
-                                            {result.verificationUrl}
-                                        </a>
-                                    </div>
-                                    <div className="rounded-lg bg-legacy-muted px-3 py-2 font-mono text-base">
-                                        {result.userCode}
-                                    </div>
-                                </div>
-                            ) : result && 'authUrl' in result ? (
-                                <div className="space-y-3 text-sm">
-                                    <div className="text-muted-foreground">
-                                        Continue in the browser window that just opened.
-                                    </div>
-                                    <div>
-                                        Open{' '}
-                                        <a
-                                            className="font-medium text-brand underline"
-                                            href={result.authUrl}
-                                            rel="noreferrer"
-                                            target="_blank"
-                                        >
-                                            {result.authUrl}
-                                        </a>
-                                    </div>
-                                </div>
-                            ) : null}
-                            {pollError ? (
-                                <p className="mt-3 text-danger text-sm">{pollError}</p>
-                            ) : null}
-                            {pollStatus && pollStatus !== 'pending' ? (
-                                <p className="mt-3 text-muted-foreground text-sm">
-                                    Sign-in status: {pollStatus}
+        <Modal isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Backdrop>
+                <Modal.Container size="md">
+                    <Modal.Dialog>
+                        <Modal.Header>
+                            <div>
+                                <Modal.Heading>Sign In</Modal.Heading>
+                                <p className="mt-1 text-muted text-sm">
+                                    {label} sign-in started for your agent.
                                 </p>
-                            ) : null}
-                        </DialogPanel>
+                            </div>
+                        </Modal.Header>
 
-                        <DialogFooter>
-                            <DialogClose
-                                render={<Button size="sm" type="button" variant="secondary" />}
-                            >
-                                Done
-                            </DialogClose>
-                        </DialogFooter>
-                    </>
-                )}
-            </DialogContent>
-        </Dialog>
+                        {result?.flow === 'pkce' ? (
+                            <>
+                                <Modal.Body>
+                                    <Form
+                                        id="provider-oauth-code-form"
+                                        onSubmit={(event) => {
+                                            event.preventDefault();
+                                            if (code.trim()) {
+                                                onSubmitCode(code);
+                                            }
+                                        }}
+                                    >
+                                        <div className="space-y-3 text-sm">
+                                            {'authUrl' in result ? (
+                                                <div>
+                                                    Open{' '}
+                                                    <a
+                                                        className="font-medium text-accent underline"
+                                                        href={result.authUrl}
+                                                        rel="noreferrer"
+                                                        target="_blank"
+                                                    >
+                                                        {result.authUrl}
+                                                    </a>
+                                                </div>
+                                            ) : null}
+                                            <div className="text-muted">
+                                                Paste the authorization code from the browser.
+                                            </div>
+                                            <TextField
+                                                fullWidth
+                                                isInvalid={Boolean(submitError)}
+                                                onChange={setCode}
+                                                value={code}
+                                                variant="secondary"
+                                            >
+                                                <Label htmlFor="provider-oauth-code">
+                                                    Authorization Code
+                                                </Label>
+                                                <Input id="provider-oauth-code" />
+                                                {submitError ? (
+                                                    <FieldError>{submitError}</FieldError>
+                                                ) : null}
+                                            </TextField>
+                                        </div>
+                                    </Form>
+                                </Modal.Body>
+                                <Modal.Footer>
+                                    <Button
+                                        isDisabled={submitPending}
+                                        slot="close"
+                                        variant="secondary"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        form="provider-oauth-code-form"
+                                        isDisabled={!code.trim()}
+                                        isPending={submitPending}
+                                        type="submit"
+                                    >
+                                        Submit
+                                    </Button>
+                                </Modal.Footer>
+                            </>
+                        ) : (
+                            <>
+                                <Modal.Body>
+                                    {result?.flow === 'device_code' ? (
+                                        <div className="space-y-3 text-sm">
+                                            <div>
+                                                Open{' '}
+                                                <a
+                                                    className="font-medium text-accent underline"
+                                                    href={result.verificationUrl}
+                                                    rel="noreferrer"
+                                                    target="_blank"
+                                                >
+                                                    {result.verificationUrl}
+                                                </a>
+                                            </div>
+                                            <div className="rounded-xl bg-surface-secondary px-3 py-2 font-mono text-base">
+                                                {result.userCode}
+                                            </div>
+                                        </div>
+                                    ) : result && 'authUrl' in result ? (
+                                        <div className="space-y-3 text-sm">
+                                            <div className="text-muted">
+                                                Continue in the browser window that just opened.
+                                            </div>
+                                            <div>
+                                                Open{' '}
+                                                <a
+                                                    className="font-medium text-accent underline"
+                                                    href={result.authUrl}
+                                                    rel="noreferrer"
+                                                    target="_blank"
+                                                >
+                                                    {result.authUrl}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                    {pollError ? (
+                                        <p className="mt-3 text-danger text-sm">{pollError}</p>
+                                    ) : null}
+                                    {pollStatus && pollStatus !== 'pending' ? (
+                                        <p className="mt-3 text-muted text-sm">
+                                            Sign-in status: {pollStatus}
+                                        </p>
+                                    ) : null}
+                                </Modal.Body>
+
+                                <Modal.Footer>
+                                    <Button slot="close" type="button" variant="secondary">
+                                        Done
+                                    </Button>
+                                </Modal.Footer>
+                            </>
+                        )}
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
+        </Modal>
     );
 }

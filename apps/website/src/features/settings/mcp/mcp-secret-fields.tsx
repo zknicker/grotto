@@ -1,7 +1,6 @@
+import { Button, Input, TextField, Tooltip } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Input } from '../../../components/ui/primitives/input.tsx';
 import { createSecretDraftEntry, type SecretDraftEntry } from './mcp-server-shared.ts';
 
 export function SecretFieldsEditor({
@@ -20,51 +19,57 @@ export function SecretFieldsEditor({
             <span className="font-medium text-foreground text-sm">{title}</span>
             {entries.map((entry, index) => (
                 <div className="flex items-center gap-2" key={entry.key}>
-                    <Input
+                    <TextField
                         aria-label={`${title} name`}
-                        className="max-w-44"
-                        onChange={(event) =>
+                        onChange={(value) =>
                             onChange(
                                 replaceEntryAt(entries, index, {
                                     ...entry,
-                                    name: event.target.value,
+                                    name: value,
                                 })
                             )
                         }
-                        placeholder="Name"
-                        type="text"
                         value={entry.name}
-                    />
-                    <Input
+                        variant="secondary"
+                    >
+                        <Input placeholder="Name" />
+                    </TextField>
+                    <TextField
                         aria-label={`${title} value`}
-                        onChange={(event) =>
+                        onChange={(value) =>
                             onChange(
                                 replaceEntryAt(entries, index, {
                                     ...entry,
-                                    value: event.target.value,
+                                    value,
                                 })
                             )
                         }
-                        placeholder="Value"
                         type="password"
                         value={entry.value}
-                    />
-                    <Button
-                        aria-label={`Remove ${title.toLowerCase()} entry`}
-                        onClick={() => onChange(entries.filter((_, at) => at !== index))}
-                        size="icon-sm"
-                        type="button"
-                        variant="ghost"
+                        variant="secondary"
                     >
-                        <Icon icon={Cancel01Icon} />
-                    </Button>
+                        <Input placeholder="Value" />
+                    </TextField>
+                    <Tooltip delay={0}>
+                        <Button
+                            aria-label={`Remove ${title.toLowerCase()} entry`}
+                            isIconOnly
+                            onPress={() => onChange(entries.filter((_, at) => at !== index))}
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                        >
+                            <Icon icon={Cancel01Icon} />
+                        </Button>
+                        <Tooltip.Content placement="top">Remove Entry</Tooltip.Content>
+                    </Tooltip>
                 </div>
             ))}
             <Button
-                className="justify-self-start"
-                onClick={() => onChange([...entries, createSecretDraftEntry()])}
+                onPress={() => onChange([...entries, createSecretDraftEntry()])}
+                size="sm"
                 type="button"
-                variant="outline"
+                variant="secondary"
             >
                 {addLabel}
             </Button>

@@ -1,4 +1,4 @@
-import { SecureStorageBadge } from '../../../components/badges/secure-storage-badge.tsx';
+import { Chip } from '@heroui/react';
 import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { cn } from '../../../lib/utils.ts';
 
@@ -17,7 +17,7 @@ export function ProviderConnectionDescription({
     target,
 }: ProviderConnectionDescriptionProps) {
     return (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-meta">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
             <ProviderConnectionStatus state={state} />
             <ProviderConnectionDetail description={description} state={state} target={target} />
         </div>
@@ -39,10 +39,14 @@ export function ProviderConnectionDetail({
     target,
 }: ProviderConnectionDescriptionProps) {
     if (state === 'live' && target) {
-        return <SecureStorageBadge />;
+        return (
+            <Chip size="sm" variant="soft">
+                Secure Storage
+            </Chip>
+        );
     }
 
-    return description ? <span className="text-muted-foreground">{description}</span> : null;
+    return description ? <span className="text-muted">{description}</span> : null;
 }
 
 function getStatusDotTone(state: ConnectionState) {
@@ -70,10 +74,10 @@ function getStatusLabel(state: ConnectionState) {
 function getStatusTextClass(state: ConnectionState) {
     switch (state) {
         case 'live':
-            return 'text-legacy-success-foreground';
+            return 'text-success';
         case 'error':
-            return 'text-destructive';
+            return 'text-danger';
         case 'needs-auth':
-            return 'text-muted-foreground';
+            return 'text-muted';
     }
 }

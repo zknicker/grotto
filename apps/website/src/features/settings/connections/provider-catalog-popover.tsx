@@ -1,10 +1,8 @@
+import { Button, Popover, SearchField } from '@heroui/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import * as React from 'react';
 import { ModelProviderLogo } from '../../../components/badges/model-provider-logo.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { Popover, PopoverPopup, PopoverTrigger } from '../../../components/ui/popover.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { SearchInput } from '../../../components/ui/primitives/search-input.tsx';
 import { getModelProviderConfig } from '../../../lib/model-provider-config.ts';
 import type { ModelInventoryOutput } from '../../../lib/trpc.tsx';
 
@@ -54,62 +52,65 @@ export function ProviderCatalogPopover({
     );
 
     return (
-        <Popover onOpenChange={setOpen} open={open}>
-            <PopoverTrigger
-                render={<Button disabled={disabled} type="button" variant="secondary" />}
-            >
+        <Popover isOpen={open} onOpenChange={setOpen}>
+            <Button isDisabled={disabled} type="button" variant="secondary">
                 {showIcon ? <Icon aria-hidden="true" icon={Plus} /> : null}
-                Add provider
-            </PopoverTrigger>
-            <PopoverPopup
-                align="end"
-                className="w-[min(31rem,calc(100vw-2rem))] overflow-hidden py-0 [--viewport-inline-padding:--spacing(0)] [&_[data-slot=popover-viewport]]:p-0"
-                sideOffset={8}
-            >
-                <div className="max-h-[min(26rem,calc(100dvh-8rem))] overflow-y-auto rounded-[inherit]">
-                    <div className="sticky top-0 z-10 border-b bg-popover">
-                        <SearchInput
-                            aria-label="Search providers"
-                            name="provider-search"
-                            onChange={(event) => setQuery(event.target.value)}
-                            placeholder="Search providers..."
-                            size="xl"
-                            value={query}
-                            variant="flush"
-                        />
+                Add Provider
+            </Button>
+            <Popover.Content offset={8} placement="bottom end">
+                <Popover.Dialog>
+                    <div className="w-[min(31rem,calc(100vw-4rem))] p-2">
+                        <div className="sticky top-0 z-10 bg-overlay pb-2">
+                            <SearchField
+                                aria-label="Search providers"
+                                fullWidth
+                                name="provider-search"
+                                onChange={setQuery}
+                                value={query}
+                                variant="secondary"
+                            >
+                                <SearchField.Group>
+                                    <SearchField.SearchIcon />
+                                    <SearchField.Input placeholder="Search Providers…" />
+                                    <SearchField.ClearButton />
+                                </SearchField.Group>
+                            </SearchField>
+                        </div>
+
+                        <div className="max-h-[min(22rem,calc(100dvh-10rem))] overflow-y-auto">
+                            {visibleItems.length > 0 ? (
+                                <ul className="divide-y divide-separator">
+                                    {visibleItems.map((item) => (
+                                        <ProviderCatalogRow
+                                            close={close}
+                                            item={item}
+                                            key={item.id}
+                                            onAddKey={onAddKey}
+                                            onShowInstructions={onShowInstructions}
+                                            onStartOAuth={onStartOAuth}
+                                            pending={
+                                                item.provider
+                                                    ? pendingProviderId === item.provider.provider
+                                                    : false
+                                            }
+                                        />
+                                    ))}
+                                </ul>
+                            ) : (
+                                <div className="py-8 text-center text-muted text-sm">
+                                    No providers match that search.
+                                </div>
+                            )}
+
+                            {error ? (
+                                <div className="border-separator border-t px-3 py-2 text-danger text-sm">
+                                    {error}
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
-
-                    {visibleItems.length > 0 ? (
-                        <ul className="divide-y">
-                            {visibleItems.map((item) => (
-                                <ProviderCatalogRow
-                                    close={close}
-                                    item={item}
-                                    key={item.id}
-                                    onAddKey={onAddKey}
-                                    onShowInstructions={onShowInstructions}
-                                    onStartOAuth={onStartOAuth}
-                                    pending={
-                                        item.provider
-                                            ? pendingProviderId === item.provider.provider
-                                            : false
-                                    }
-                                />
-                            ))}
-                        </ul>
-                    ) : (
-                        <div className="py-8 text-center text-muted-foreground text-sm">
-                            No providers match that search.
-                        </div>
-                    )}
-
-                    {error ? (
-                        <div className="border-t px-3 py-2 text-error-foreground text-sm">
-                            {error}
-                        </div>
-                    ) : null}
-                </div>
-            </PopoverPopup>
+                </Popover.Dialog>
+            </Popover.Content>
         </Popover>
     );
 }
@@ -135,7 +136,7 @@ function ProviderCatalogRow({
         <li>
             <button
                 aria-label={`Add ${item.displayName}`}
-                className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left outline-none hover:bg-legacy-accent focus-visible:bg-legacy-accent disabled:cursor-default disabled:opacity-64"
+                className="flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-default disabled:opacity-64"
                 disabled={pending}
                 onClick={() =>
                     performProviderSetupAction(item, {

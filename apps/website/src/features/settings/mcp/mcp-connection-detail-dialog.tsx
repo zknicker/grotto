@@ -1,14 +1,5 @@
+import { Button, Modal, Spinner } from '@heroui/react';
 import { useState } from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogPanel,
-    DialogTitle,
-} from '../../../components/ui/dialog.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Spinner } from '../../../components/ui/spinner.tsx';
 import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import {
     ConnectionDestructiveDialog,
@@ -62,117 +53,140 @@ export function McpConnectionDetailDialog({
 
     return (
         <>
-            <Dialog onOpenChange={onOpenChange} open={open}>
-                <DialogContent size="lg">
-                    <DialogHeader>
-                        <div className="flex items-start gap-3 pe-16">
-                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-legacy-muted font-semibold text-foreground">
-                                {connection.name.slice(0, 1).toUpperCase()}
-                            </span>
-                            <div className="min-w-0">
-                                <DialogTitle>{connection.name}</DialogTitle>
-                                <DialogDescription>
-                                    {connection.accountLabel ??
-                                        (connection.builtIn
-                                            ? 'Built-in MCP connection'
-                                            : 'Custom MCP connection')}
-                                </DialogDescription>
-                            </div>
-                        </div>
-                        <div className="absolute top-3 right-12">
-                            <ConnectionMenu
-                                connection={connection}
-                                disabled={saving}
-                                onAddAccount={() => onAddAccount(connection)}
-                                onDelete={() => setDestructiveAction('delete')}
-                                onDisconnect={() => setDestructiveAction('disconnect')}
-                                onRefresh={() => {
-                                    void onRefresh(connection).catch(() => undefined);
-                                }}
-                            />
-                        </div>
-                    </DialogHeader>
-                    <DialogPanel className="grid gap-6">
-                        <div className="flex items-center justify-between gap-4 rounded-xl bg-legacy-muted p-3.5">
-                            <div className="min-w-0">
-                                <p className="truncate font-mono text-meta text-muted-foreground">
-                                    {connectionSummary(connection)}
-                                </p>
-                                <p className="mt-1 flex items-center gap-2 text-sm">
-                                    <StatusDot
-                                        status={connection.connected ? 'success' : 'muted'}
+            <Modal isOpen={open} onOpenChange={onOpenChange}>
+                <Modal.Backdrop>
+                    <Modal.Container scroll="outside" size="lg">
+                        <Modal.Dialog>
+                            <Modal.CloseTrigger />
+                            <Modal.Header>
+                                <div className="flex min-w-0 flex-1 items-start gap-3">
+                                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-secondary font-semibold text-foreground">
+                                        {connection.name.slice(0, 1).toUpperCase()}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <Modal.Heading>{connection.name}</Modal.Heading>
+                                        <p className="mt-1 text-muted text-sm">
+                                            {connection.accountLabel ??
+                                                (connection.builtIn
+                                                    ? 'Built-in MCP connection'
+                                                    : 'Custom MCP connection')}
+                                        </p>
+                                    </div>
+                                    <ConnectionMenu
+                                        connection={connection}
+                                        disabled={saving}
+                                        onAddAccount={() => onAddAccount(connection)}
+                                        onDelete={() => setDestructiveAction('delete')}
+                                        onDisconnect={() => setDestructiveAction('disconnect')}
+                                        onRefresh={() => {
+                                            void onRefresh(connection).catch(() => undefined);
+                                        }}
                                     />
-                                    {connection.connected ? 'Connected' : 'Not connected'}
-                                </p>
-                            </div>
-                            {connection.auth === 'oauth' ? (
-                                <Button
-                                    disabled={saving}
-                                    loading={startingOAuthId === connection.id}
-                                    onClick={() => onStartOAuth(connection)}
-                                    variant={connection.connected ? 'secondary' : 'default'}
-                                >
-                                    {connection.connected ? 'Reconnect' : 'Connect'}
-                                </Button>
-                            ) : null}
-                            {connection.auth === 'headers' ? (
-                                <Button
-                                    disabled={saving}
-                                    onClick={() => setEditingHeaders(true)}
-                                    variant={connection.connected ? 'secondary' : 'default'}
-                                >
-                                    {connection.connected ? 'Replace credentials' : 'Connect'}
-                                </Button>
-                            ) : null}
-                        </div>
-
-                        <section className="grid gap-2">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="font-medium text-sm">Available tools</h3>
-                                    <p className="text-meta text-muted-foreground">
-                                        Enabled Agents receive every tool listed here.
-                                    </p>
                                 </div>
-                                {toolsPending ? <Spinner className="size-4" /> : null}
-                            </div>
-                            <div className="overflow-hidden rounded-xl border border-border-subtle">
-                                <ToolList
-                                    connection={connection}
-                                    error={toolsError}
-                                    pending={toolsPending}
-                                    tools={tools}
-                                />
-                            </div>
-                        </section>
-
-                        <section className="grid gap-2">
-                            <div>
-                                <h3 className="font-medium text-sm">Agent access</h3>
-                                <p className="text-meta text-muted-foreground">
-                                    Access is enabled per MCP server from each Agent profile.
-                                </p>
-                            </div>
-                            <div className="overflow-hidden rounded-xl border border-border-subtle">
-                                {connection.affectedAgents.length > 0 ? (
-                                    connection.affectedAgents.map((agent) => (
-                                        <div
-                                            className="border-border-subtle border-b px-3.5 py-3 text-sm last:border-b-0"
-                                            key={agent.id}
-                                        >
-                                            {agent.name}
+                            </Modal.Header>
+                            <Modal.Body>
+                                <div className="grid gap-6">
+                                    <div className="flex items-center justify-between gap-4 rounded-2xl bg-surface-secondary p-4">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-mono text-muted text-xs">
+                                                {connectionSummary(connection)}
+                                            </p>
+                                            <p className="mt-1 flex items-center gap-2 text-sm">
+                                                <StatusDot
+                                                    status={
+                                                        connection.connected ? 'success' : 'muted'
+                                                    }
+                                                />
+                                                {connection.connected
+                                                    ? 'Connected'
+                                                    : 'Not connected'}
+                                            </p>
                                         </div>
-                                    ))
-                                ) : (
-                                    <p className="px-3.5 py-4 text-muted-foreground text-sm">
-                                        No agents have access yet.
-                                    </p>
-                                )}
-                            </div>
-                        </section>
-                    </DialogPanel>
-                </DialogContent>
-            </Dialog>
+                                        {connection.auth === 'oauth' ? (
+                                            <Button
+                                                isDisabled={saving}
+                                                isPending={startingOAuthId === connection.id}
+                                                onPress={() => onStartOAuth(connection)}
+                                                variant={
+                                                    connection.connected ? 'secondary' : 'primary'
+                                                }
+                                            >
+                                                {connection.connected ? 'Reconnect' : 'Connect'}
+                                            </Button>
+                                        ) : null}
+                                        {connection.auth === 'headers' ? (
+                                            <Button
+                                                isDisabled={saving}
+                                                onPress={() => setEditingHeaders(true)}
+                                                variant={
+                                                    connection.connected ? 'secondary' : 'primary'
+                                                }
+                                            >
+                                                {connection.connected
+                                                    ? 'Replace Credentials'
+                                                    : 'Connect'}
+                                            </Button>
+                                        ) : null}
+                                    </div>
+
+                                    <section className="grid gap-2">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="font-medium text-sm">
+                                                    Available Tools
+                                                </h3>
+                                                <p className="text-muted text-xs">
+                                                    Enabled Agents receive every tool listed here.
+                                                </p>
+                                            </div>
+                                            {toolsPending ? <Spinner size="sm" /> : null}
+                                        </div>
+                                        <div className="overflow-hidden rounded-2xl bg-surface-secondary">
+                                            <ToolList
+                                                connection={connection}
+                                                error={toolsError}
+                                                pending={toolsPending}
+                                                tools={tools}
+                                            />
+                                        </div>
+                                    </section>
+
+                                    <section className="grid gap-2">
+                                        <div>
+                                            <h3 className="font-medium text-sm">Agent Access</h3>
+                                            <p className="text-muted text-xs">
+                                                Access is enabled per MCP server from each Agent
+                                                profile.
+                                            </p>
+                                        </div>
+                                        <div className="overflow-hidden rounded-2xl bg-surface-secondary">
+                                            {connection.affectedAgents.length > 0 ? (
+                                                connection.affectedAgents.map((agent) => (
+                                                    <div
+                                                        className="border-separator border-b px-4 py-3 text-sm last:border-b-0"
+                                                        key={agent.id}
+                                                    >
+                                                        {agent.name}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="px-4 py-4 text-muted text-sm">
+                                                    No agents have access yet.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </section>
+                                </div>
+                            </Modal.Body>
+                            <Modal.Footer>
+                                <Button slot="close" variant="secondary">
+                                    Done
+                                </Button>
+                            </Modal.Footer>
+                        </Modal.Dialog>
+                    </Modal.Container>
+                </Modal.Backdrop>
+            </Modal>
             <ConnectionDestructiveDialog
                 action={destructiveAction}
                 connection={connection}
@@ -226,24 +240,22 @@ function ToolList({
 }) {
     if (!connection.connected) {
         return (
-            <p className="px-3.5 py-4 text-muted-foreground text-sm">
-                Connect this server to load its tools.
-            </p>
+            <p className="px-4 py-4 text-muted text-sm">Connect this server to load its tools.</p>
         );
     }
     if (pending) {
-        return <p className="px-3.5 py-4 text-muted-foreground text-sm">Loading tools…</p>;
+        return <p className="px-4 py-4 text-muted text-sm">Loading tools…</p>;
     }
     if (error) {
-        return <p className="px-3.5 py-4 text-destructive-foreground text-sm">{error}</p>;
+        return <p className="px-4 py-4 text-danger text-sm">{error}</p>;
     }
     if (!tools || tools.length === 0) {
-        return <p className="px-3.5 py-4 text-muted-foreground text-sm">No tools reported.</p>;
+        return <p className="px-4 py-4 text-muted text-sm">No tools reported.</p>;
     }
     return tools.map((tool) => (
-        <div className="border-border-subtle border-b px-3.5 py-3 last:border-b-0" key={tool.name}>
+        <div className="border-separator border-b px-4 py-3 last:border-b-0" key={tool.name}>
             <p className="font-medium text-sm">{tool.title ?? tool.name}</p>
-            <p className="truncate text-meta text-muted-foreground">{tool.description}</p>
+            <p className="truncate text-muted text-xs">{tool.description}</p>
         </div>
     ));
 }

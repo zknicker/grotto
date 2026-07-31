@@ -1,14 +1,5 @@
+import { AlertDialog, Button } from '@heroui/react';
 import type { HostedAgent, HostedMcpConnection, HostedMcpPreset } from '@tavern/api';
-import {
-    AlertDialog,
-    AlertDialogClose,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogPopup,
-    AlertDialogTitle,
-} from '../../components/ui/alert-dialog.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
 import type { McpConnection } from '../../features/settings/mcp/mcp-server-shared.ts';
 
 export function HostedMcpPresetButtons({
@@ -19,18 +10,18 @@ export function HostedMcpPresetButtons({
     return (
         <div className="flex gap-2">
             <Button
-                onClick={() => onAdd('google-calendar', 'Google Calendar')}
+                onPress={() => onAdd('google-calendar', 'Google Calendar')}
                 type="button"
                 variant="secondary"
             >
-                Add Google Calendar
+                Google Calendar
             </Button>
             <Button
-                onClick={() => onAdd('merchbase', 'MerchBase')}
+                onPress={() => onAdd('merchbase', 'MerchBase')}
                 type="button"
                 variant="secondary"
             >
-                Add MerchBase
+                MerchBase
             </Button>
         </div>
     );
@@ -46,23 +37,30 @@ export function HostedMcpTrustDialog({
     request: { connection: McpConnection; origin: string } | null;
 }) {
     return (
-        <AlertDialog onOpenChange={(open) => !open && onClose()} open={request !== null}>
-            <AlertDialogPopup>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Trust this sign-in service?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {request?.connection.name} uses{' '}
-                        <span className="font-mono">{request?.origin}</span> for sign-in. Continue
-                        only if you recognize this service.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogClose render={<Button variant="ghost" />}>Cancel</AlertDialogClose>
-                    <AlertDialogClose onClick={onConfirm} render={<Button />}>
-                        Trust and continue
-                    </AlertDialogClose>
-                </AlertDialogFooter>
-            </AlertDialogPopup>
+        <AlertDialog isOpen={request !== null} onOpenChange={(open) => !open && onClose()}>
+            <AlertDialog.Backdrop>
+                <AlertDialog.Container size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="warning" />
+                            <AlertDialog.Heading>Trust This Sign-In Service?</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            {request?.connection.name} uses{' '}
+                            <span className="font-mono">{request?.origin}</span> for sign-in.
+                            Continue only if you recognize this service.
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="secondary">
+                                Cancel
+                            </Button>
+                            <Button onPress={onConfirm} slot="close">
+                                Trust and Continue
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
         </AlertDialog>
     );
 }

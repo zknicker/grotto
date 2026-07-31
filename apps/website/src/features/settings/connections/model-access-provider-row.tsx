@@ -1,12 +1,12 @@
+import { FieldError } from '@heroui/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import type { ReactNode } from 'react';
 import {
     ModelProviderLogo,
     type ModelProviderLogoSource,
 } from '../../../components/badges/model-provider-logo.tsx';
-import { FieldError } from '../../../components/ui/primitives/field.tsx';
-import { SettingsItem } from '../../../components/ui/settings-row.tsx';
 import type { ModelAccessOutput } from '../../../lib/trpc.tsx';
+import { SettingsItem } from '../layout/settings-page.tsx';
 import {
     ProviderConnectionDescription,
     ProviderConnectionDetail,

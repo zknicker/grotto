@@ -1,26 +1,10 @@
+import { AlertDialog, Button, Dropdown, Label, Separator } from '@heroui/react';
 import {
     ArrowReloadHorizontalIcon,
     Delete02Icon,
     MoreHorizontalIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
-import {
-    AlertDialog,
-    AlertDialogClose,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogPopup,
-    AlertDialogTitle,
-} from '../../../components/ui/alert-dialog.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import {
-    Menu,
-    MenuItem,
-    MenuPopup,
-    MenuSeparator,
-    MenuTrigger,
-} from '../../../components/ui/menu.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
 import type { McpConnection } from './mcp-server-shared.ts';
 
 export type McpDestructiveAction = 'delete' | 'disconnect' | 'replace-credentials';
@@ -41,44 +25,68 @@ export function ConnectionMenu({
     onRefresh: () => void;
 }) {
     return (
-        <Menu>
-            <MenuTrigger
-                render={
-                    <Button
-                        aria-label={`${connection.name} actions`}
-                        size="icon-sm"
-                        variant="ghost"
-                    />
-                }
-            >
+        <Dropdown>
+            <Button aria-label={`${connection.name} actions`} size="sm" variant="ghost">
                 <Icon className="size-4" icon={MoreHorizontalIcon} />
-            </MenuTrigger>
-            <MenuPopup align="end">
-                <MenuItem disabled={!connection.connected} onClick={onRefresh}>
-                    <Icon icon={ArrowReloadHorizontalIcon} />
-                    Refresh tools
-                </MenuItem>
-                {connection.preset ? (
-                    <MenuItem disabled={disabled} onClick={onAddAccount}>
-                        Add another account
-                    </MenuItem>
-                ) : null}
-                {connection.connected && connection.auth !== 'none' ? (
-                    <>
-                        <MenuSeparator />
-                        <MenuItem disabled={disabled} onClick={onDisconnect}>
-                            Disconnect
-                        </MenuItem>
-                    </>
-                ) : null}
-                {connection.builtIn ? null : (
-                    <MenuItem disabled={disabled} onClick={onDelete} variant="destructive">
-                        <Icon icon={Delete02Icon} />
-                        Delete connection
-                    </MenuItem>
-                )}
-            </MenuPopup>
-        </Menu>
+                Actions
+            </Button>
+            <Dropdown.Popover placement="bottom end">
+                <Dropdown.Menu
+                    onAction={(key) => {
+                        if (key === 'refresh') {
+                            onRefresh();
+                        } else if (key === 'add-account') {
+                            onAddAccount();
+                        } else if (key === 'disconnect') {
+                            onDisconnect();
+                        } else if (key === 'delete') {
+                            onDelete();
+                        }
+                    }}
+                >
+                    <Dropdown.Item
+                        id="refresh"
+                        isDisabled={!connection.connected}
+                        textValue="Refresh Tools"
+                    >
+                        <Icon icon={ArrowReloadHorizontalIcon} />
+                        <Label>Refresh Tools</Label>
+                    </Dropdown.Item>
+                    {connection.preset ? (
+                        <Dropdown.Item
+                            id="add-account"
+                            isDisabled={disabled}
+                            textValue="Add Another Account"
+                        >
+                            <Label>Add Another Account</Label>
+                        </Dropdown.Item>
+                    ) : null}
+                    {connection.connected && connection.auth !== 'none' ? (
+                        <>
+                            <Separator />
+                            <Dropdown.Item
+                                id="disconnect"
+                                isDisabled={disabled}
+                                textValue="Disconnect"
+                            >
+                                <Label>Disconnect</Label>
+                            </Dropdown.Item>
+                        </>
+                    ) : null}
+                    {connection.builtIn ? null : (
+                        <Dropdown.Item
+                            id="delete"
+                            isDisabled={disabled}
+                            textValue="Delete Connection"
+                            variant="danger"
+                        >
+                            <Icon icon={Delete02Icon} />
+                            <Label>Delete Connection</Label>
+                        </Dropdown.Item>
+                    )}
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
     );
 }
 
@@ -97,28 +105,35 @@ export function ConnectionDestructiveDialog({
         action === 'delete'
             ? 'Delete'
             : action === 'replace-credentials'
-              ? 'Replace credentials'
+              ? 'Replace Credentials'
               : 'Disconnect';
     return (
-        <AlertDialog onOpenChange={onOpenChange} open={action !== null}>
-            <AlertDialogPopup>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>
-                        {label} {connection.name}?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {connection.affectedAgents.length === 0
-                            ? 'No Agents currently use this connection.'
-                            : `${connection.affectedAgents.map((agent) => agent.name).join(', ')} will lose access to this MCP server.`}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogClose render={<Button variant="ghost" />}>Cancel</AlertDialogClose>
-                    <AlertDialogClose onClick={onConfirm} render={<Button variant="destructive" />}>
-                        {label}
-                    </AlertDialogClose>
-                </AlertDialogFooter>
-            </AlertDialogPopup>
+        <AlertDialog isOpen={action !== null} onOpenChange={onOpenChange}>
+            <AlertDialog.Backdrop>
+                <AlertDialog.Container size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="danger" />
+                            <AlertDialog.Heading>
+                                {label} {connection.name}?
+                            </AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            {connection.affectedAgents.length === 0
+                                ? 'No Agents currently use this connection.'
+                                : `${connection.affectedAgents.map((agent) => agent.name).join(', ')} will lose access to this MCP server.`}
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="secondary">
+                                Cancel
+                            </Button>
+                            <Button onPress={onConfirm} slot="close" variant="danger-soft">
+                                {label}
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
         </AlertDialog>
     );
 }

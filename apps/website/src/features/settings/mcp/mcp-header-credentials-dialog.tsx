@@ -1,15 +1,5 @@
+import { Button, Form, Modal } from '@heroui/react';
 import { useState } from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogPanel,
-    DialogTitle,
-} from '../../../components/ui/dialog.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Form } from '../../../components/ui/primitives/form.tsx';
 import { SecretFieldsEditor } from './mcp-secret-fields.tsx';
 import {
     createSecretDraftEntry,
@@ -32,18 +22,22 @@ export function McpHeaderCredentialsDialog({
     saving: boolean;
 }) {
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent showCloseButton={false}>
-                {open ? (
-                    <HeaderCredentialsForm
-                        connection={connection}
-                        onCancel={() => onOpenChange(false)}
-                        onSave={onSave}
-                        saving={saving}
-                    />
-                ) : null}
-            </DialogContent>
-        </Dialog>
+        <Modal isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Backdrop>
+                <Modal.Container size="md">
+                    <Modal.Dialog>
+                        {open ? (
+                            <HeaderCredentialsForm
+                                connection={connection}
+                                onCancel={() => onOpenChange(false)}
+                                onSave={onSave}
+                                saving={saving}
+                            />
+                        ) : null}
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
+        </Modal>
     );
 }
 
@@ -73,7 +67,6 @@ function HeaderCredentialsForm({
 
     return (
         <Form
-            className="contents"
             onSubmit={(event) => {
                 event.preventDefault();
                 if (canSave) {
@@ -81,29 +74,31 @@ function HeaderCredentialsForm({
                 }
             }}
         >
-            <DialogHeader>
-                <DialogTitle>Connect {connection.name}</DialogTitle>
-                <DialogDescription>
-                    Enter the request headers this server uses for authentication. Existing values
-                    are never shown.
-                </DialogDescription>
-            </DialogHeader>
-            <DialogPanel>
+            <Modal.Header>
+                <div>
+                    <Modal.Heading>Connect {connection.name}</Modal.Heading>
+                    <p className="mt-1 text-muted text-sm">
+                        Enter the request headers this server uses for authentication. Existing
+                        values are never shown.
+                    </p>
+                </div>
+            </Modal.Header>
+            <Modal.Body>
                 <SecretFieldsEditor
-                    addLabel="Add header"
+                    addLabel="Add Header"
                     entries={headers}
                     onChange={setHeaders}
                     title="Headers"
                 />
-            </DialogPanel>
-            <DialogFooter variant="bare">
-                <Button onClick={onCancel} type="button" variant="ghost">
+            </Modal.Body>
+            <Modal.Footer>
+                <Button onPress={onCancel} type="button" variant="secondary">
                     Cancel
                 </Button>
-                <Button disabled={!canSave} loading={saving} type="submit">
-                    Save credentials
+                <Button isDisabled={!canSave} isPending={saving} type="submit">
+                    Save Credentials
                 </Button>
-            </DialogFooter>
+            </Modal.Footer>
         </Form>
     );
 }

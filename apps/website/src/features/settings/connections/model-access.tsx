@@ -1,12 +1,5 @@
+import { Button, Separator, Skeleton } from '@heroui/react';
 import * as React from 'react';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Separator } from '../../../components/ui/separator.tsx';
-import {
-    SettingsGroup,
-    SettingsItem,
-    SettingsSection,
-} from '../../../components/ui/settings-row.tsx';
-import { Skeleton } from '../../../components/ui/skeleton.tsx';
 import { useCancelModelProviderOAuth } from '../../../hooks/connections/use-cancel-model-provider-oauth.ts';
 import { usePollModelProviderOAuth } from '../../../hooks/connections/use-poll-model-provider-oauth.ts';
 import { useSaveModelProviderApiKey } from '../../../hooks/connections/use-save-model-provider-api-key.ts';
@@ -17,6 +10,7 @@ import { useModelInventory } from '../../../hooks/models/use-model-inventory.ts'
 import { useSetModelProviderEnabled } from '../../../hooks/models/use-set-model-provider-enabled.ts';
 import { getModelProviderConfig } from '../../../lib/model-provider-config.ts';
 import { type ModelInventoryOutput, trpc } from '../../../lib/trpc.tsx';
+import { SettingsGroup, SettingsItem, SettingsSection } from '../layout/settings-page.tsx';
 import { ModelAccessProviderRow } from './model-access-provider-row.tsx';
 import { ProviderCatalogPopover } from './provider-catalog-popover.tsx';
 import {
@@ -375,8 +369,8 @@ function EnabledAgentProviderRow({
         >
             {onConnect ? (
                 <Button
-                    loading={connectPending}
-                    onClick={onConnect}
+                    isPending={connectPending}
+                    onPress={onConnect}
                     size="sm"
                     type="button"
                     variant="secondary"
@@ -385,11 +379,11 @@ function EnabledAgentProviderRow({
                 </Button>
             ) : null}
             {onConfigure ? (
-                <Button onClick={onConfigure} size="sm" type="button" variant="ghost">
-                    {provider.isConnected ? 'Edit key' : 'Add key'}
+                <Button onPress={onConfigure} size="sm" type="button" variant="ghost">
+                    {provider.isConnected ? 'Edit Key' : 'Add Key'}
                 </Button>
             ) : null}
-            <Button loading={pending} onClick={onRemove} size="sm" type="button" variant="ghost">
+            <Button isPending={pending} onPress={onRemove} size="sm" type="button" variant="ghost">
                 Remove
             </Button>
         </ModelAccessProviderRow>
@@ -400,10 +394,8 @@ function NoConnectedProviders() {
     return (
         <SettingsItem>
             <div className="min-w-0">
-                <h3 className="font-medium text-foreground text-sm">No connected providers</h3>
-                <div className="text-muted-foreground text-sm">
-                    Add a provider to surface models.
-                </div>
+                <h3 className="font-medium text-foreground text-sm">No Connected Providers</h3>
+                <div className="text-muted text-sm">Add a provider to surface models.</div>
             </div>
         </SettingsItem>
     );

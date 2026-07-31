@@ -1,16 +1,15 @@
+import { Alert, Button } from '@heroui/react';
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Alert, AlertDescription } from '../../components/ui/alert.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
+import { toastManager } from '../../components/ui/toast.tsx';
+import { RequireOperator } from '../../features/servers/require-operator.tsx';
+import { serverRoute } from '../../features/servers/server-routes.ts';
 import {
     SettingsGroup,
     SettingsPage,
     SettingsPageHeader,
     SettingsSection,
-} from '../../components/ui/settings-row.tsx';
-import { toastManager } from '../../components/ui/toast.tsx';
-import { RequireOperator } from '../../features/servers/require-operator.tsx';
-import { serverRoute } from '../../features/servers/server-routes.ts';
+} from '../../features/settings/layout/settings-page.tsx';
 import { McpConnectionDetailDialog } from '../../features/settings/mcp/mcp-connection-detail-dialog.tsx';
 import {
     ConnectionFilters,
@@ -138,16 +137,16 @@ export function ServerConnectionsPage({ embedded = false }: { embedded?: boolean
             <SettingsPage>
                 {embedded ? null : (
                     <Link
-                        className="text-muted-foreground text-sm hover:text-foreground"
+                        className="text-muted text-sm hover:text-foreground"
                         to={serverRoute(slug)}
                     >
                         Back to /{slug}
                     </Link>
                 )}
                 <SettingsPageHeader
-                    action={<Button onClick={() => setIsAddOpen(true)}>Add MCP server</Button>}
+                    action={<Button onPress={() => setIsAddOpen(true)}>Add MCP Server</Button>}
                     description="Connect remote tools to this Server, then enable each connection for the Agents that need it."
-                    title="MCP Servers"
+                    title="Connections"
                 />
                 <SettingsSection title="Recommended">
                     <HostedMcpPresetButtons
@@ -161,16 +160,19 @@ export function ServerConnectionsPage({ embedded = false }: { embedded?: boolean
                     />
                 </SettingsSection>
                 {retryMessage ? (
-                    <Alert className="mx-3 w-auto" variant="error">
-                        <AlertDescription>{retryMessage}</AlertDescription>
+                    <Alert status="danger">
+                        <Alert.Content>
+                            <Alert.Title>Connection Failed</Alert.Title>
+                            <Alert.Description>{retryMessage}</Alert.Description>
+                        </Alert.Content>
                     </Alert>
                 ) : null}
-                <SettingsSection title="MCP connections">
-                    <div className="px-3">
+                <SettingsSection title="MCP Connections">
+                    <div className="px-1">
                         <ConnectionFilters filter={filter} onChange={setFilter} />
                     </div>
                     <SettingsGroup>
-                        <div className="grid grid-cols-[minmax(0,1fr)_7rem_8rem] border-border-subtle border-b bg-legacy-muted px-5 py-2 text-meta text-muted-foreground">
+                        <div className="grid grid-cols-[minmax(0,1fr)_7rem_8rem] border-separator border-b bg-surface-secondary px-5 py-2 text-muted text-xs">
                             <span>Connection</span>
                             <span>Type</span>
                             <span>Status</span>
@@ -183,7 +185,7 @@ export function ServerConnectionsPage({ embedded = false }: { embedded?: boolean
                             />
                         ))}
                         {!connections.isPending && viewConnections.length === 0 ? (
-                            <p className="px-5 py-8 text-center text-muted-foreground text-sm">
+                            <p className="px-5 py-8 text-center text-muted text-sm">
                                 No connections.
                             </p>
                         ) : null}

@@ -1,18 +1,8 @@
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '../../../components/ui/select.tsx';
-import {
-    SettingsGroup,
-    SettingsRow,
-    SettingsSection,
-} from '../../../components/ui/settings-row.tsx';
+import { Description, Label, ListBox, Select } from '@heroui/react';
 import { useModelInventory } from '../../../hooks/models/use-model-inventory.ts';
 import { queryPolicy } from '../../../lib/query-policy.ts';
 import { trpc } from '../../../lib/trpc.tsx';
+import { SettingsGroup, SettingsRow, SettingsSection } from '../layout/settings-page.tsx';
 
 /**
  * Image generation runs as a direct capability call, so only models tagged with
@@ -50,9 +40,6 @@ export function ImageGenerationSection() {
 
     const selection = selectionsQuery.data?.selections.imageGeneration ?? null;
     const value = selection ? `${selection.provider}/${selection.model}` : offValue;
-    const selectedLabel = selection
-        ? (options.find((option) => option.value === value)?.label ?? value)
-        : 'Off';
     const hasImageModels = options.length > 0;
 
     return (
@@ -70,37 +57,57 @@ export function ImageGenerationSection() {
                         </>
                     }
                     error={saveSelections.error?.message ?? null}
-                    title="Image generation"
+                    title="Image Generation"
                     trailingWidth="control"
                 >
                     <Select
-                        disabled={selectionsQuery.isPending || saveSelections.isPending}
-                        onValueChange={(next) =>
+                        aria-label="Image generation model"
+                        fullWidth
+                        isDisabled={selectionsQuery.isPending || saveSelections.isPending}
+                        onChange={(next) =>
                             saveSelections.mutate({
                                 selections: {
                                     imageGeneration:
-                                        next && next !== offValue ? parseModelValue(next) : null,
+                                        next && next !== offValue
+                                            ? parseModelValue(String(next))
+                                            : null,
                                 },
                             })
                         }
+                        placeholder="Off"
                         value={value}
+                        variant="secondary"
                     >
-                        <SelectTrigger aria-label="Image generation model">
-                            <SelectValue placeholder="Off">{selectedLabel}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={offValue}>Off</SelectItem>
-                            {options.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    <span className="block min-w-0">
-                                        <span className="block truncate">{option.label}</span>
-                                        <span className="block truncate text-meta text-muted-foreground">
-                                            {option.provider}
-                                        </span>
-                                    </span>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
+                        <Select.Trigger>
+                            <Select.Value />
+                            <Select.Indicator />
+                        </Select.Trigger>
+                        <Select.Popover>
+                            <ListBox>
+                                <ListBox.Item id={offValue} textValue="Off">
+                                    <Label>Off</Label>
+                                    <ListBox.ItemIndicator />
+                                </ListBox.Item>
+                                {selection && !options.some((option) => option.value === value) ? (
+                                    <ListBox.Item id={value} textValue={value}>
+                                        <Label>{value}</Label>
+                                        <Description>{selection.provider}</Description>
+                                        <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                ) : null}
+                                {options.map((option) => (
+                                    <ListBox.Item
+                                        id={option.value}
+                                        key={option.value}
+                                        textValue={option.label}
+                                    >
+                                        <Label>{option.label}</Label>
+                                        <Description>{option.provider}</Description>
+                                        <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                ))}
+                            </ListBox>
+                        </Select.Popover>
                     </Select>
                 </SettingsRow>
             </SettingsGroup>

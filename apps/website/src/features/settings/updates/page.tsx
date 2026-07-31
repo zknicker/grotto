@@ -1,10 +1,11 @@
-import { SystemUpdate01Icon } from '@hugeicons/core-free-icons';
+import { Button, ProgressBar } from '@heroui/react';
 import * as React from 'react';
-import { Link } from 'react-router-dom';
-import { Icon } from '../../../components/ui/icon.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Progress } from '../../../components/ui/progress.tsx';
-import { Separator } from '../../../components/ui/separator.tsx';
+import { useNavigate } from 'react-router-dom';
+import {
+    type DesktopUpdateStatus,
+    useDesktopUpdate,
+} from '../../../hooks/desktop/use-desktop-update.ts';
+import { cn } from '../../../lib/utils.ts';
 import {
     SettingsGroup,
     SettingsPage,
@@ -12,14 +13,10 @@ import {
     SettingsRow,
     SettingsSection,
     SettingsValue,
-} from '../../../components/ui/settings-row.tsx';
-import {
-    type DesktopUpdateStatus,
-    useDesktopUpdate,
-} from '../../../hooks/desktop/use-desktop-update.ts';
-import { cn } from '../../../lib/utils.ts';
+} from '../layout/settings-page.tsx';
 
 export function UpdatesSettings({ computerSettingsHref }: { computerSettingsHref?: string }) {
+    const navigate = useNavigate();
     const { checkForUpdate, status, updateAndRestart } = useDesktopUpdate();
     const [hasCheckedForUpdate, setHasCheckedForUpdate] = React.useState(false);
     const canCheck = status.phase !== 'checking' && status.phase !== 'downloading';
@@ -45,35 +42,40 @@ export function UpdatesSettings({ computerSettingsHref }: { computerSettingsHref
                         <div className="flex min-w-0 flex-col gap-2">
                             <div className="flex shrink-0 items-center gap-2 md:justify-end">
                                 <Button
-                                    disabled={!canCheck}
-                                    loading={status.phase === 'checking'}
-                                    onClick={handleCheckForUpdate}
+                                    isDisabled={!canCheck}
+                                    isPending={status.phase === 'checking'}
+                                    onPress={handleCheckForUpdate}
                                     variant="secondary"
                                 >
                                     Check
                                 </Button>
                                 <Button
-                                    disabled={!canInstall}
-                                    loading={
+                                    isDisabled={!canInstall}
+                                    isPending={
                                         status.phase === 'downloading' ||
                                         status.phase === 'restarting'
                                     }
-                                    onClick={updateAndRestart}
+                                    onPress={updateAndRestart}
                                 >
-                                    <Icon icon={SystemUpdate01Icon} />
                                     {status.phase === 'ready' ? 'Restart' : 'Update'}
                                 </Button>
                             </div>
                             {status.phase === 'downloading' ? (
-                                <Progress value={status.progress * 100} />
+                                <ProgressBar
+                                    aria-label="Download progress"
+                                    value={status.progress * 100}
+                                >
+                                    <ProgressBar.Track>
+                                        <ProgressBar.Fill />
+                                    </ProgressBar.Track>
+                                </ProgressBar>
                             ) : null}
                             {updateStatusMessage ? (
                                 <UpdateStatusMessage {...updateStatusMessage} />
                             ) : null}
                         </div>
                     </SettingsRow>
-                    <Separator />
-                    <SettingsRow title="App version">
+                    <SettingsRow title="App Version">
                         <VersionValue>
                             {import.meta.env.VITE_GROTTO_PRODUCT_VERSION ?? 'Development'}
                         </VersionValue>
@@ -87,7 +89,10 @@ export function UpdatesSettings({ computerSettingsHref }: { computerSettingsHref
                             description="Each attached Computer reports its own version and update state."
                             title="Grotto Computers"
                         >
-                            <Button render={<Link to={computerSettingsHref} />} variant="secondary">
+                            <Button
+                                onPress={() => navigate(computerSettingsHref)}
+                                variant="secondary"
+                            >
                                 Manage Computers
                             </Button>
                         </SettingsRow>
@@ -109,9 +114,9 @@ function UpdateStatusMessage({
         <SettingsValue
             className={cn(
                 'min-h-0 justify-start text-left font-medium md:justify-start md:text-left',
-                tone === 'success' && 'text-legacy-success-foreground',
-                tone === 'error' && 'text-error-foreground',
-                tone === 'neutral' && 'text-muted-foreground'
+                tone === 'success' && 'text-success',
+                tone === 'error' && 'text-danger',
+                tone === 'neutral' && 'text-muted'
             )}
         >
             {detail}

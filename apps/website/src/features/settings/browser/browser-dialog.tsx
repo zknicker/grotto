@@ -1,23 +1,20 @@
-import type { HugeiconsIconProps } from '@hugeicons/react';
-import type { ComponentProps, ReactNode } from 'react';
-import { Alert, AlertDescription } from '../../../components/ui/alert.tsx';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogPanel,
-    DialogTitle,
-} from '../../../components/ui/dialog.tsx';
+    Alert,
+    Button,
+    Description,
+    FieldError,
+    Form,
+    Label,
+    Modal,
+    Switch,
+    TextField,
+    Tooltip,
+} from '@heroui/react';
+import type { HugeiconsIconProps } from '@hugeicons/react';
+import type { ReactNode } from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { Field, FieldDescription, FieldLabel } from '../../../components/ui/primitives/field.tsx';
-import { Form } from '../../../components/ui/primitives/form.tsx';
-import { Switch } from '../../../components/ui/switch.tsx';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui/tooltip.tsx';
 
-// Reusable shell + field kit for Browser config dialogs. Mirrors the skill
-// inspection dialog: circle icon, header-aligned toggle, compact fields, and a
-// borderless action row at the foot of the body.
+// Reusable shell + field composition for Browser config dialogs.
 
 export function BrowserDialog({
     children,
@@ -43,68 +40,68 @@ export function BrowserDialog({
     titleSuffix?: ReactNode;
 }) {
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent size="lg" surfaceOffset={2}>
-                <Form
-                    className="flex min-h-0 flex-1 flex-col gap-0"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        onSubmit();
-                    }}
-                >
-                    <DialogHeader className="gap-3 pe-0">
-                        <div className="flex size-12 items-center justify-center rounded-full border border-border-subtle bg-background text-muted-foreground">
-                            <Icon className="size-6" icon={icon} />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <DialogTitle className="flex items-baseline gap-2">
-                                {title}
-                                {titleSuffix ? (
-                                    <span className="font-normal text-muted-foreground">
-                                        {titleSuffix}
-                                    </span>
-                                ) : null}
-                            </DialogTitle>
-                            {headerAction ? (
-                                <span className="ml-auto flex items-center gap-2">
-                                    {headerAction}
-                                </span>
-                            ) : null}
-                        </div>
-                        {description ? (
-                            <DialogDescription className="text-sm leading-6">
-                                {description}
-                            </DialogDescription>
-                        ) : null}
-                    </DialogHeader>
-
-                    <DialogPanel className="grid gap-4">
-                        {children}
-                        {footer ? (
-                            <div className="flex items-center gap-2 pt-1">{footer}</div>
-                        ) : null}
-                    </DialogPanel>
-                </Form>
-            </DialogContent>
-        </Dialog>
+        <Modal isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Backdrop>
+                <Modal.Container scroll="outside" size="lg">
+                    <Modal.Dialog>
+                        <Form
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                onSubmit();
+                            }}
+                        >
+                            <Modal.Header>
+                                <Modal.Icon>
+                                    <Icon icon={icon} />
+                                </Modal.Icon>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-3">
+                                        <Modal.Heading>
+                                            {title}
+                                            {titleSuffix ? ` ${titleSuffix}` : null}
+                                        </Modal.Heading>
+                                        {headerAction ? (
+                                            <span className="ms-auto shrink-0">{headerAction}</span>
+                                        ) : null}
+                                    </div>
+                                    {description ? (
+                                        <p className="mt-1 text-muted text-sm">{description}</p>
+                                    ) : null}
+                                </div>
+                            </Modal.Header>
+                            <Modal.Body>{children}</Modal.Body>
+                            <Modal.Footer>
+                                <Button slot="close" type="button" variant="secondary">
+                                    Cancel
+                                </Button>
+                                {footer}
+                            </Modal.Footer>
+                        </Form>
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
+        </Modal>
     );
 }
 
 export function BrowserField({
     children,
     description,
+    error,
     label,
 }: {
     children: ReactNode;
     description?: ReactNode;
+    error?: ReactNode;
     label: ReactNode;
 }) {
     return (
-        <Field render={<label />}>
-            <FieldLabel render={<span />}>{label}</FieldLabel>
+        <TextField fullWidth isInvalid={Boolean(error)} variant="secondary">
+            <Label>{label}</Label>
             {children}
-            {description ? <FieldDescription>{description}</FieldDescription> : null}
-        </Field>
+            {description ? <Description>{description}</Description> : null}
+            {error ? <FieldError>{error}</FieldError> : null}
+        </TextField>
     );
 }
 
@@ -127,9 +124,7 @@ export function BrowserToggleField({
             <div className="min-w-0">
                 <div className="text-foreground text-sm">{label}</div>
                 {description ? (
-                    <div className="text-muted-foreground text-sm leading-relaxed">
-                        {description}
-                    </div>
+                    <div className="text-muted text-sm leading-relaxed">{description}</div>
                 ) : null}
             </div>
             {control}
@@ -147,38 +142,54 @@ export function BrowserNotice({
     variant?: 'warning' | 'error';
 }) {
     return (
-        <Alert variant={variant}>
-            <AlertDescription>
-                <span className="font-medium text-foreground">{title}. </span>
-                {children}
-            </AlertDescription>
+        <Alert status={variant === 'error' ? 'danger' : 'warning'}>
+            <Alert.Content>
+                <Alert.Title>{title}</Alert.Title>
+                <Alert.Description>{children}</Alert.Description>
+            </Alert.Content>
         </Alert>
     );
 }
 
 // A switch that wraps itself in an explanatory tooltip when locked by config.
 export function BrowserLockSwitch({
+    'aria-label': ariaLabel,
+    checked,
+    disabled,
     locked,
     lockTooltip,
-    ...props
-}: ComponentProps<typeof Switch> & {
+    onCheckedChange,
+}: {
+    'aria-label': string;
+    checked: boolean;
+    disabled: boolean;
     locked: boolean;
     lockTooltip?: ReactNode;
+    onCheckedChange: (checked: boolean) => void;
 }) {
-    const control = <Switch {...props} />;
+    const control = (
+        <Switch
+            aria-label={ariaLabel}
+            isDisabled={disabled || locked}
+            isSelected={checked}
+            onChange={onCheckedChange}
+        >
+            <Switch.Content>
+                <Switch.Control>
+                    <Switch.Thumb />
+                </Switch.Control>
+            </Switch.Content>
+        </Switch>
+    );
 
     if (!(locked && lockTooltip)) {
         return control;
     }
 
     return (
-        <Tooltip>
-            <TooltipTrigger render={<span className="inline-flex cursor-default" />}>
-                {control}
-            </TooltipTrigger>
-            <TooltipContent className="max-w-64" side="left">
-                {lockTooltip}
-            </TooltipContent>
+        <Tooltip delay={0}>
+            <Tooltip.Trigger>{control}</Tooltip.Trigger>
+            <Tooltip.Content placement="left">{lockTooltip}</Tooltip.Content>
         </Tooltip>
     );
 }

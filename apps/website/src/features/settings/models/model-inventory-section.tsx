@@ -1,9 +1,7 @@
+import { Alert, SearchField, Skeleton } from '@heroui/react';
 import { AlertCircleIcon } from '@hugeicons/core-free-icons';
 import * as React from 'react';
-import { Alert, AlertDescription } from '../../../components/ui/alert.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { SearchInput } from '../../../components/ui/primitives/search-input.tsx';
-import { Skeleton } from '../../../components/ui/skeleton.tsx';
 import { useModelInventory } from '../../../hooks/models/use-model-inventory.ts';
 import type { ModelInventoryOutput } from '../../../lib/trpc.tsx';
 import { InventoryModelCard } from './inventory-model-card.tsx';
@@ -29,9 +27,13 @@ export function ModelInventorySection() {
     if (inventoryQuery.error) {
         return (
             <div className="pb-4">
-                <Alert variant="error">
-                    <Icon icon={AlertCircleIcon} />
-                    <AlertDescription>{inventoryQuery.error.message}</AlertDescription>
+                <Alert status="danger">
+                    <Alert.Indicator>
+                        <Icon icon={AlertCircleIcon} />
+                    </Alert.Indicator>
+                    <Alert.Content>
+                        <Alert.Description>{inventoryQuery.error.message}</Alert.Description>
+                    </Alert.Content>
                 </Alert>
             </div>
         );
@@ -52,15 +54,19 @@ export function ModelInventorySection() {
 
     return (
         <div className="flex flex-col gap-4 pb-4">
-            <SearchInput
+            <SearchField
                 aria-label="Search models"
-                className="w-full"
+                fullWidth
                 name="model-search"
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Filter models..."
-                size="lg"
+                onChange={setSearch}
                 value={search}
-            />
+            >
+                <SearchField.Group>
+                    <SearchField.SearchIcon />
+                    <SearchField.Input placeholder="Filter models..." />
+                    <SearchField.ClearButton />
+                </SearchField.Group>
+            </SearchField>
 
             {flatModels.length > 0 ? (
                 <ul className="grid list-none gap-3 p-0 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -71,7 +77,7 @@ export function ModelInventorySection() {
                     ))}
                 </ul>
             ) : (
-                <div className="rounded-xl border border-border-subtle border-dashed bg-legacy-muted px-4 py-6 text-center text-muted-foreground text-sm">
+                <div className="rounded-xl border border-separator border-dashed bg-surface-secondary px-4 py-6 text-center text-muted text-sm">
                     No models match this search.
                 </div>
             )}

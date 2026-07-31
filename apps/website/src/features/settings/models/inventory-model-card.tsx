@@ -1,6 +1,5 @@
-import { ModelProviderBadge } from '../../../components/badges/model-provider-badge.tsx';
-import { Badge } from '../../../components/ui/badge.tsx';
-import { Card } from '../../../components/ui/card.tsx';
+import { Card, Chip } from '@heroui/react';
+import { ModelProviderLogo } from '../../../components/badges/model-provider-logo.tsx';
 import { getModelProviderConfig } from '../../../lib/model-provider-config.ts';
 import type { ModelInventoryOutput } from '../../../lib/trpc.tsx';
 
@@ -13,37 +12,36 @@ export function InventoryModelCard({ model, providerId }: InventoryModelCardProp
     const providerConfig = getModelProviderConfig(providerId);
 
     return (
-        <Card className="h-full justify-between p-4 transition-colors hover:border-border-strong">
-            <div>
-                <div className="min-w-0">
-                    <p className="font-medium text-base text-foreground leading-6">
-                        {model.displayName}
-                    </p>
-                    <p className="mt-1 truncate font-medium text-meta text-muted-foreground">
-                        {model.ref}
-                    </p>
+        <Card>
+            <Card.Header>
+                <Card.Title>{model.displayName}</Card.Title>
+                <Card.Description>
+                    <span className="font-mono text-xs">{model.ref}</span>
+                </Card.Description>
+            </Card.Header>
+            <Card.Content>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Chip size="sm" variant="secondary">
+                        <ModelProviderLogo
+                            color={providerConfig.color}
+                            fallbackIcon={providerConfig.icon}
+                            iconClassName="size-3.5"
+                            logo={providerConfig.logo}
+                        />
+                        {providerConfig.displayName}
+                    </Chip>
+                    {model.contextWindow ? (
+                        <Chip size="sm" variant="secondary">
+                            {formatContextWindow(model.contextWindow)}
+                        </Chip>
+                    ) : null}
+                    {model.capabilities.map((capability) => (
+                        <Chip key={capability} size="sm" variant="soft">
+                            {formatModelCapability(capability)}
+                        </Chip>
+                    ))}
                 </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-                <ModelProviderBadge
-                    color={providerConfig.color}
-                    icon={providerConfig.icon}
-                    label={providerConfig.displayName}
-                    logo={providerConfig.logo}
-                    size="sm"
-                />
-                {model.contextWindow ? (
-                    <Badge size="sm" variant="secondary">
-                        {formatContextWindow(model.contextWindow)}
-                    </Badge>
-                ) : null}
-                {model.capabilities.map((capability) => (
-                    <Badge key={capability} size="sm" variant="subtle">
-                        {formatModelCapability(capability)}
-                    </Badge>
-                ))}
-            </div>
+            </Card.Content>
         </Card>
     );
 }
@@ -60,5 +58,6 @@ function formatContextWindow(value: number) {
 }
 
 function formatModelCapability(value: string) {
-    return value.replaceAll('-', ' ');
+    const label = value.replaceAll('-', ' ');
+    return label.charAt(0).toUpperCase() + label.slice(1);
 }

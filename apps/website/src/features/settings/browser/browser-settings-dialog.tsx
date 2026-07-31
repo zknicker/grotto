@@ -1,8 +1,7 @@
+import { Alert, Button } from '@heroui/react';
 import { BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { AgentRuntimeBrowserState } from '@tavern/api';
 import type { Dispatch, SetStateAction } from 'react';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { FieldError } from '../../../components/ui/primitives/field.tsx';
 import type { BrowserSettingsOutput } from '../../../lib/trpc.tsx';
 import { type BrowserConfigField, BrowserConfigFields } from './browser-config-fields.tsx';
 import { BrowserDialog, BrowserLockSwitch, BrowserNotice } from './browser-dialog.tsx';
@@ -44,12 +43,7 @@ export function BrowserSettingsDialog({
         <BrowserDialog
             description="Let agents use a managed Chrome profile for browser automation."
             footer={
-                <Button
-                    className="ml-auto"
-                    disabled={!canSave || isSaving}
-                    loading={isSaving}
-                    type="submit"
-                >
+                <Button isDisabled={!canSave || isSaving} isPending={isSaving} type="submit">
                     Save
                 </Button>
             }
@@ -88,7 +82,7 @@ export function BrowserSettingsDialog({
                     />
 
                     {settings.skillConflict ? (
-                        <BrowserNotice title="Skill conflict">
+                        <BrowserNotice title="Skill Conflict">
                             Existing skill at{' '}
                             <span className="font-mono">{settings.skillConflict.skillPath}</span>.
                             Enabling Browser will replace it after confirmation.
@@ -108,7 +102,7 @@ export function BrowserSettingsDialog({
                                 : null}
                         </BrowserNotice>
                     ) : (
-                        <BrowserNotice title="Not installed" variant="error">
+                        <BrowserNotice title="Not Installed" variant="error">
                             Install Google Chrome to enable Browser.
                         </BrowserNotice>
                     )}
@@ -119,19 +113,19 @@ export function BrowserSettingsDialog({
                         settings.enabled ? (
                             <>
                                 <Button
-                                    disabled={isSaving}
-                                    onClick={() => {
+                                    isDisabled={isSaving}
+                                    onPress={() => {
                                         void onOpenBrowser()?.catch(() => undefined);
                                     }}
                                     size="sm"
                                     type="button"
-                                    variant="outline"
+                                    variant="secondary"
                                 >
                                     Open Browser
                                 </Button>
                                 <Button
-                                    disabled={isSaving}
-                                    onClick={() => {
+                                    isDisabled={isSaving}
+                                    onPress={() => {
                                         void onRestartBrowser()?.catch(() => undefined);
                                     }}
                                     size="sm"
@@ -150,20 +144,27 @@ export function BrowserSettingsDialog({
                 </BrowserSection>
             </BrowserSectionStack>
 
-            {error ? <FieldError>{error}</FieldError> : null}
+            {error ? (
+                <Alert status="danger">
+                    <Alert.Content>
+                        <Alert.Title>Browser Update Failed</Alert.Title>
+                        <Alert.Description>{error}</Alert.Description>
+                    </Alert.Content>
+                </Alert>
+            ) : null}
         </BrowserDialog>
     );
 }
 
 function BrowserStatusNotice({ settings }: { settings: BrowserSettings }) {
     if (!settings.status) {
-        return <p className="text-muted-foreground text-sm">Browser has not started yet.</p>;
+        return <p className="text-muted text-sm">Browser has not started yet.</p>;
     }
 
     const { reason, state } = settings.status;
 
     return (
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted text-sm">
             <span className="font-medium text-foreground">{formatBrowserState(state)}</span>
             {reason ? ` — ${reason}` : ''}
         </p>
@@ -200,7 +201,7 @@ function createBrowserFields({ setupError }: { setupError?: string | null }) {
             error: setupError,
             id: 'browser-profile-name',
             kind: 'text',
-            label: 'Profile name',
+            label: 'Profile Name',
             monospace: true,
             placeholder: 'default',
             read: (draft) => draft.profileName,

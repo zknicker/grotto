@@ -1,17 +1,15 @@
+import { Button, Input, TextField, Tooltip } from '@heroui/react';
 import { Camera01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Input } from '../../../components/ui/primitives/input.tsx';
-import { Separator } from '../../../components/ui/separator.tsx';
+import { useUserProfilePreference } from '../../../hooks/shell/use-user-profile-preference.ts';
 import {
     SettingsGroup,
     SettingsPage,
     SettingsPageHeader,
     SettingsRow,
     SettingsSection,
-} from '../../../components/ui/settings-row.tsx';
-import { useUserProfilePreference } from '../../../hooks/shell/use-user-profile-preference.ts';
+} from '../layout/settings-page.tsx';
 import { readAvatarImage } from './resize-image.ts';
 
 export function ProfileSettings() {
@@ -58,35 +56,50 @@ export function ProfileSettings() {
                                 ref={fileInputRef}
                                 type="file"
                             />
-                            <Button
-                                aria-label={
-                                    profile.avatarUrl
+                            <Tooltip delay={0}>
+                                <Button
+                                    aria-label={
+                                        profile.avatarUrl
+                                            ? 'Change profile photo'
+                                            : 'Upload profile photo'
+                                    }
+                                    isIconOnly
+                                    onPress={() => fileInputRef.current?.click()}
+                                    size="lg"
+                                    variant="ghost"
+                                >
+                                    <span className="relative">
+                                        <AvatarPreview
+                                            avatarUrl={profile.avatarUrl}
+                                            name={displayName}
+                                        />
+                                        <span className="absolute -right-2 -bottom-2 inline-flex size-5 items-center justify-center rounded-full bg-surface-secondary text-muted">
+                                            <Icon
+                                                className="size-3"
+                                                icon={Camera01Icon}
+                                                strokeWidth={2.25}
+                                            />
+                                        </span>
+                                    </span>
+                                </Button>
+                                <Tooltip.Content placement="top">
+                                    {profile.avatarUrl
                                         ? 'Change profile photo'
-                                        : 'Upload profile photo'
-                                }
-                                className="group/avatar overflow-visible rounded-full hover:bg-transparent"
-                                onClick={() => fileInputRef.current?.click()}
-                                size="icon-xl"
-                                variant="ghost"
-                            >
-                                <AvatarPreview avatarUrl={profile.avatarUrl} name={displayName} />
-                                <span className="absolute -right-1.5 -bottom-1.5 inline-flex size-6 items-center justify-center rounded-full border border-card bg-secondary text-muted-foreground transition-colors group-hover/avatar:bg-input group-hover/avatar:text-foreground">
-                                    <Icon
-                                        className="size-3.5"
-                                        icon={Camera01Icon}
-                                        strokeWidth={2.25}
-                                    />
-                                </span>
-                            </Button>
+                                        : 'Upload profile photo'}
+                                </Tooltip.Content>
+                            </Tooltip>
                         </div>
                     </SettingsRow>
-                    <Separator />
-                    <SettingsRow description="Leave blank to show “You”." title="Display name">
-                        <Input
-                            onChange={(event) => profile.setDisplayName(event.target.value)}
-                            placeholder="You"
+                    <SettingsRow description="Leave blank to show “You”." title="Display Name">
+                        <TextField
+                            aria-label="Display name"
+                            fullWidth
+                            onChange={profile.setDisplayName}
                             value={displayName}
-                        />
+                            variant="secondary"
+                        >
+                            <Input fullWidth placeholder="You" />
+                        </TextField>
                     </SettingsRow>
                 </SettingsGroup>
             </SettingsSection>
@@ -97,7 +110,7 @@ export function ProfileSettings() {
 function AvatarPreview({ avatarUrl, name }: { avatarUrl: string | null; name: string }) {
     if (avatarUrl) {
         return (
-            <span className="inline-flex size-10 shrink-0 overflow-hidden rounded-full ring-1 ring-border-subtle">
+            <span className="inline-flex size-10 shrink-0 overflow-hidden rounded-full ring-1 ring-border">
                 <img
                     alt="Your avatar"
                     className="size-full object-cover"
@@ -110,7 +123,7 @@ function AvatarPreview({ avatarUrl, name }: { avatarUrl: string | null; name: st
     }
 
     return (
-        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-legacy-muted font-semibold text-caption text-muted-foreground ring-1 ring-border-subtle">
+        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-secondary font-semibold text-muted text-xs ring-1 ring-border">
             {getInitials(name)}
         </span>
     );

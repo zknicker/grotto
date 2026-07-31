@@ -1,8 +1,8 @@
+import { Button, Input, Tooltip } from '@heroui/react';
+import { EyeIcon, EyeOff } from '@hugeicons-pro/core-stroke-rounded';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useState } from 'react';
-import { FieldError } from '../../../components/ui/primitives/field.tsx';
-import { Input } from '../../../components/ui/primitives/input.tsx';
-import { SecretInput } from '../../../components/ui/secret-input.tsx';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { BrowserField, BrowserFieldRow } from './browser-dialog.tsx';
 
 export interface BrowserConfigField<TDraft> {
@@ -35,41 +35,76 @@ export function BrowserConfigFields<TDraft>({
     return (
         <>
             {fields.map((field) => (
-                <BrowserField description={field.description} key={field.id} label={field.label}>
+                <BrowserField
+                    description={field.description}
+                    error={field.error}
+                    key={field.id}
+                    label={field.label}
+                >
                     {field.kind === 'secret' ? (
-                        <SecretInput
-                            ariaLabel={field.ariaLabel}
-                            disabled={disabled}
-                            name={field.name ?? field.id}
-                            onChange={(value) =>
-                                onDraftChange((current) => field.write(current, value))
-                            }
-                            onRevealToggle={() =>
-                                setRevealedSecrets((current) => ({
-                                    ...current,
-                                    [field.id]: !current[field.id],
-                                }))
-                            }
-                            placeholder={field.placeholder}
-                            revealed={Boolean(revealedSecrets[field.id])}
-                            value={field.read(draft)}
-                        />
+                        <div className="flex min-w-0 items-center gap-2 font-mono">
+                            <div className="min-w-0 flex-1">
+                                <Input
+                                    aria-label={field.ariaLabel}
+                                    autoComplete="off"
+                                    disabled={disabled}
+                                    fullWidth
+                                    name={field.name ?? field.id}
+                                    onChange={(event) =>
+                                        onDraftChange((current) =>
+                                            field.write(current, event.currentTarget.value)
+                                        )
+                                    }
+                                    placeholder={field.placeholder}
+                                    spellCheck={false}
+                                    type={revealedSecrets[field.id] ? 'text' : 'password'}
+                                    value={field.read(draft)}
+                                />
+                            </div>
+                            <Tooltip delay={0}>
+                                <Button
+                                    aria-label={
+                                        revealedSecrets[field.id]
+                                            ? `Hide ${field.ariaLabel}`
+                                            : `Reveal ${field.ariaLabel}`
+                                    }
+                                    isDisabled={disabled || field.read(draft).length === 0}
+                                    isIconOnly
+                                    onPress={() =>
+                                        setRevealedSecrets((current) => ({
+                                            ...current,
+                                            [field.id]: !current[field.id],
+                                        }))
+                                    }
+                                    size="sm"
+                                    variant="ghost"
+                                >
+                                    <Icon icon={revealedSecrets[field.id] ? EyeOff : EyeIcon} />
+                                </Button>
+                                <Tooltip.Content placement="top">
+                                    {revealedSecrets[field.id]
+                                        ? `Hide ${field.ariaLabel}`
+                                        : `Reveal ${field.ariaLabel}`}
+                                </Tooltip.Content>
+                            </Tooltip>
+                        </div>
                     ) : (
-                        <Input
-                            aria-label={field.ariaLabel}
-                            autoComplete="off"
-                            className={field.monospace ? 'font-mono' : undefined}
-                            disabled={disabled}
-                            onChange={(event) =>
-                                onDraftChange((current) =>
-                                    field.write(current, event.currentTarget.value)
-                                )
-                            }
-                            placeholder={field.placeholder}
-                            value={field.read(draft)}
-                        />
+                        <div className={field.monospace ? 'font-mono' : undefined}>
+                            <Input
+                                aria-label={field.ariaLabel}
+                                autoComplete="off"
+                                disabled={disabled}
+                                fullWidth
+                                onChange={(event) =>
+                                    onDraftChange((current) =>
+                                        field.write(current, event.currentTarget.value)
+                                    )
+                                }
+                                placeholder={field.placeholder}
+                                value={field.read(draft)}
+                            />
+                        </div>
                     )}
-                    {field.error ? <FieldError>{field.error}</FieldError> : null}
                 </BrowserField>
             ))}
         </>

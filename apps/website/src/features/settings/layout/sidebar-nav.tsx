@@ -1,5 +1,4 @@
 import { ArrowLeft02Icon } from '@hugeicons-pro/core-stroke-rounded';
-import * as React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import {
@@ -17,8 +16,6 @@ import {
     settingsCapabilityRequirements,
     useCapability,
 } from '../../../hooks/connections/use-capability.ts';
-import { queryPolicy } from '../../../lib/query-policy.ts';
-import { trpc } from '../../../lib/trpc.tsx';
 import { settingsNavSections, staticSettingsNavItems } from './navigation.ts';
 
 type ResolveCapability = (requirement: CapabilityRequirement) => CapabilityView;
@@ -34,31 +31,18 @@ const settingsNavSectionsById = new Map<SettingsNavSection['id'], SettingsNavSec
 
 export function SettingsSidebarNav({ onBackToApp }: { onBackToApp?: () => void }) {
     const capability = useCapability();
-    const utils = trpc.useUtils();
-    const prefetchModelsSettings = React.useCallback(() => {
-        void import('../../../routes/app/settings-models-page.tsx');
-        void utils.model.inventory.prefetch(undefined, queryPolicy.runtimeModelSnapshot);
-    }, [utils]);
-    return (
-        <SettingsSidebarNavView
-            capability={capability}
-            onBackToApp={onBackToApp}
-            prefetchModelsSettings={prefetchModelsSettings}
-        />
-    );
+    return <SettingsSidebarNavView capability={capability} onBackToApp={onBackToApp} />;
 }
 
 export function SettingsSidebarNavView({
     capability,
     hiddenItemIds,
     onBackToApp,
-    prefetchModelsSettings,
     resolveTo = (to) => to,
 }: {
     capability?: ResolveCapability;
     hiddenItemIds?: ReadonlySet<StaticSettingsNavItem['id']>;
     onBackToApp?: () => void;
-    prefetchModelsSettings?: () => void;
     resolveTo?: (to: string, item: StaticSettingsNavItem) => string;
 }) {
     const generalSection = settingsNavSectionsById.get('general');
@@ -71,7 +55,6 @@ export function SettingsSidebarNavView({
                 hiddenItemIds={hiddenItemIds}
                 itemIds={generalSection?.itemIds ?? []}
                 label={generalSection?.label ?? 'General'}
-                prefetchModelsSettings={prefetchModelsSettings}
                 resolveTo={resolveTo}
             />
             <StaticSettingsSection
@@ -79,7 +62,6 @@ export function SettingsSidebarNavView({
                 hiddenItemIds={hiddenItemIds}
                 itemIds={activitySection?.itemIds ?? []}
                 label={activitySection?.label ?? 'Activity'}
-                prefetchModelsSettings={prefetchModelsSettings}
                 resolveTo={resolveTo}
             />
         </>
@@ -113,14 +95,12 @@ function StaticSettingsSection({
     hiddenItemIds,
     itemIds,
     label,
-    prefetchModelsSettings,
     resolveTo,
 }: {
     capability?: ResolveCapability;
     hiddenItemIds?: ReadonlySet<StaticSettingsNavItem['id']>;
     itemIds: readonly StaticSettingsNavItem['id'][];
     label: string;
-    prefetchModelsSettings?: () => void;
     resolveTo: (to: string, item: StaticSettingsNavItem) => string;
 }) {
     return (
@@ -143,7 +123,6 @@ function StaticSettingsSection({
                                 capability={capability}
                                 item={item}
                                 key={item.id}
-                                prefetchModelsSettings={prefetchModelsSettings}
                                 resolveTo={resolveTo}
                             />
                         );
@@ -157,12 +136,10 @@ function StaticSettingsSection({
 function StaticSettingsNavRow({
     capability,
     item,
-    prefetchModelsSettings,
     resolveTo,
 }: {
     capability?: ResolveCapability;
     item: StaticSettingsNavItem;
-    prefetchModelsSettings?: () => void;
     resolveTo: (to: string, item: StaticSettingsNavItem) => string;
 }) {
     const gate = capability?.(settingsCapabilityRequirements[item.id]);
@@ -173,14 +150,7 @@ function StaticSettingsNavRow({
             {!gate || gate.healthy ? (
                 <NavLink className="contents" to={resolveTo(item.to, item)}>
                     {({ isActive }) => (
-                        <SidebarMenuButton
-                            isActive={isActive}
-                            onFocus={item.id === 'models' ? prefetchModelsSettings : undefined}
-                            onPointerEnter={
-                                item.id === 'models' ? prefetchModelsSettings : undefined
-                            }
-                            render={<div />}
-                        >
+                        <SidebarMenuButton isActive={isActive} render={<div />}>
                             <Icon
                                 aria-hidden="true"
                                 className="shrink-0"

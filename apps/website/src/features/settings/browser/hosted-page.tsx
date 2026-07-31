@@ -1,15 +1,15 @@
 import {
-    SettingsGroup,
-    SettingsPage,
-    SettingsPageHeader,
-    SettingsSection,
-} from '../../../components/ui/settings-row.tsx';
-import {
     hostedBrowserSaveInput,
     useHostedBrowserCommands,
     useHostedBrowserSettings,
 } from '../../../hooks/servers/use-hosted-browser-settings.ts';
 import { withSavingToast } from '../../../lib/saving-toast.ts';
+import {
+    SettingsGroup,
+    SettingsPage,
+    SettingsPageHeader,
+    SettingsSection,
+} from '../layout/settings-page.tsx';
 import { BrowserSettingsCard } from './browser-settings-card.tsx';
 
 export function HostedBrowserSettingsPage({
@@ -26,7 +26,7 @@ export function HostedBrowserSettingsPage({
     return (
         <SettingsPage>
             <SettingsPageHeader title="Browser" />
-            <SettingsSection title="Browser automation">
+            <SettingsSection title="Browser Automation">
                 <SettingsGroup>
                     <BrowserSettingsCard
                         error={

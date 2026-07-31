@@ -1,11 +1,6 @@
+import { Accordion } from '@heroui/react';
 import type { HugeiconsIconProps } from '@hugeicons/react';
-import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { ReactNode } from 'react';
-import {
-    Collapsible,
-    CollapsiblePanel,
-    CollapsibleTrigger,
-} from '../../../components/ui/collapsible.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { BrowserConfigField } from './browser-config-fields.tsx';
 
@@ -43,7 +38,7 @@ export function BrowserSection({
                 </div>
             ) : null}
             {description ? (
-                <p className="-mt-1 text-muted-foreground text-sm leading-relaxed">{description}</p>
+                <p className="-mt-1 text-muted text-sm leading-relaxed">{description}</p>
             ) : null}
             {children}
         </section>
@@ -51,11 +46,7 @@ export function BrowserSection({
 }
 
 export function BrowserServiceList({ children }: { children: ReactNode }) {
-    return (
-        <div className="divide-y divide-border-subtle rounded-lg border border-border-subtle">
-            {children}
-        </div>
-    );
+    return <div className="grid gap-3">{children}</div>;
 }
 
 export function BrowserSectionStack({ children }: { children: ReactNode }) {
@@ -79,23 +70,19 @@ export function BrowserServiceRow({
         <div className="grid gap-3 px-3 py-2.5">
             <div className="flex items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-2.5">
-                    {icon ? (
-                        <Icon className="size-4 shrink-0 text-muted-foreground" icon={icon} />
-                    ) : null}
+                    {icon ? <Icon className="size-4 shrink-0 text-muted" icon={icon} /> : null}
                     <div className="min-w-0">
                         <div className="flex items-center gap-2 text-foreground text-sm">
                             {label}
                         </div>
                         {description ? (
-                            <div className="text-muted-foreground text-sm leading-relaxed">
-                                {description}
-                            </div>
+                            <div className="text-muted text-sm leading-relaxed">{description}</div>
                         ) : null}
                     </div>
                 </div>
                 {control}
             </div>
-            {children ? <div className="border-border-subtle border-t pt-3">{children}</div> : null}
+            {children ? <div className="pt-1">{children}</div> : null}
         </div>
     );
 }
@@ -114,17 +101,25 @@ export function BrowserDisclosure({
     open?: boolean;
 }) {
     return (
-        <Collapsible defaultOpen={defaultOpen} onOpenChange={onOpenChange} open={open}>
-            <CollapsibleTrigger className="group flex w-full items-center gap-1.5 rounded-md py-1 text-muted-foreground text-sm hover:text-foreground">
-                <Icon
-                    className="size-3 transition-transform group-data-[panel-open]:rotate-90"
-                    icon={ArrowRight01Icon}
-                />
-                {label}
-            </CollapsibleTrigger>
-            <CollapsiblePanel>
-                <div className="grid gap-4 pt-2">{children}</div>
-            </CollapsiblePanel>
-        </Collapsible>
+        <Accordion
+            defaultExpandedKeys={defaultOpen ? ['browser-disclosure'] : []}
+            expandedKeys={open === undefined ? undefined : open ? ['browser-disclosure'] : []}
+            hideSeparator
+            onExpandedChange={(keys) => onOpenChange?.(keys.has('browser-disclosure'))}
+        >
+            <Accordion.Item id="browser-disclosure">
+                <Accordion.Heading>
+                    <Accordion.Trigger>
+                        {label}
+                        <Accordion.Indicator />
+                    </Accordion.Trigger>
+                </Accordion.Heading>
+                <Accordion.Panel>
+                    <Accordion.Body>
+                        <div className="grid gap-4">{children}</div>
+                    </Accordion.Body>
+                </Accordion.Panel>
+            </Accordion.Item>
+        </Accordion>
     );
 }

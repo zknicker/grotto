@@ -1,4 +1,7 @@
 import type { HostedComputerUsage } from '@tavern/api';
+import { useHostedUsage } from '../../hooks/servers/use-hosted-usage.ts';
+import { formatTimestamp } from '../../lib/format.ts';
+import { UsageModulesSkeleton, UsageModulesView } from '../overview/usage-modules.tsx';
 import {
     SettingsGroup,
     SettingsPage,
@@ -6,10 +9,7 @@ import {
     SettingsRow,
     SettingsSection,
     SettingsValue,
-} from '../../components/ui/settings-row.tsx';
-import { useHostedUsage } from '../../hooks/servers/use-hosted-usage.ts';
-import { formatTimestamp } from '../../lib/format.ts';
-import { UsageModulesSkeleton, UsageModulesView } from '../overview/usage-modules.tsx';
+} from '../settings/layout/settings-page.tsx';
 
 export function HostedStatsSettings({ serverId }: { serverId: string }) {
     const usage = useHostedUsage(serverId);
@@ -90,7 +90,7 @@ function ComputerUsage({ computer }: { computer: HostedComputerUsage }) {
                 <h2 className="font-semibold text-sm">
                     Computer · {computer.computerId.slice(-6)}
                 </h2>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted text-xs">
                     {[identity, health, freshness].filter(Boolean).join(' · ')}
                 </p>
             </div>

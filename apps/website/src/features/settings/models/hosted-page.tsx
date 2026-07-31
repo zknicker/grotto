@@ -1,14 +1,5 @@
+import { Card, Chip, SearchField } from '@heroui/react';
 import * as React from 'react';
-import { Badge } from '../../../components/ui/badge.tsx';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '../../../components/ui/card.tsx';
-import { SearchInput } from '../../../components/ui/primitives/search-input.tsx';
-import { Separator } from '../../../components/ui/separator.tsx';
 import {
     SettingsGroup,
     SettingsPage,
@@ -16,7 +7,7 @@ import {
     SettingsRow,
     SettingsSection,
     SettingsValue,
-} from '../../../components/ui/settings-row.tsx';
+} from '../layout/settings-page.tsx';
 import {
     buildHostedModelCatalog,
     buildRuntimeAccess,
@@ -42,26 +33,24 @@ export function HostedModelsSettings({ computers }: { computers: HostedModelsCom
                 title="Models"
             />
 
-            <SettingsSection title="Detected runtimes">
+            <SettingsSection title="Detected Runtimes">
                 <SettingsGroup>
                     {access.length > 0 ? (
-                        access.map(({ computer, computerId, runtime }, index) => (
-                            <React.Fragment key={`${computerId}:${runtime.id}`}>
-                                {index > 0 ? <Separator /> : null}
-                                <SettingsRow
-                                    description={`${computer} · ${
-                                        runtime.models.map((model) => model.label).join(', ') ||
-                                        'No models reported'
-                                    }`}
-                                    title={runtime.label}
-                                >
-                                    <SettingsValue>
-                                        <Badge size="sm" variant="success">
-                                            Detected
-                                        </Badge>
-                                    </SettingsValue>
-                                </SettingsRow>
-                            </React.Fragment>
+                        access.map(({ computer, computerId, runtime }) => (
+                            <SettingsRow
+                                description={`${computer} · ${
+                                    runtime.models.map((model) => model.label).join(', ') ||
+                                    'No models reported'
+                                }`}
+                                key={`${computerId}:${runtime.id}`}
+                                title={runtime.label}
+                            >
+                                <SettingsValue>
+                                    <Chip color="success" size="sm" variant="soft">
+                                        Detected
+                                    </Chip>
+                                </SettingsValue>
+                            </SettingsRow>
                         ))
                     ) : (
                         <SettingsRow
@@ -76,45 +65,47 @@ export function HostedModelsSettings({ computers }: { computers: HostedModelsCom
 
             <SettingsSection
                 action={
-                    <Badge size="sm" variant="subtle">
+                    <Chip size="sm" variant="soft">
                         {models.length}
-                    </Badge>
+                    </Chip>
                 }
-                title="Reported models"
+                title="Reported Models"
             >
-                <SearchInput
-                    aria-label="Search models"
-                    onChange={(event) => setQuery(event.currentTarget.value)}
-                    placeholder="Search models..."
-                    size="sm"
-                    value={query}
-                />
+                <SearchField aria-label="Search models" fullWidth onChange={setQuery} value={query}>
+                    <SearchField.Group>
+                        <SearchField.SearchIcon />
+                        <SearchField.Input placeholder="Search models..." />
+                        <SearchField.ClearButton />
+                    </SearchField.Group>
+                </SearchField>
                 {models.length > 0 ? (
                     <div className="grid gap-3 sm:grid-cols-2">
                         {models.map((model) => (
                             <Card key={model.id}>
-                                <CardHeader className="p-4 pb-3">
-                                    <CardTitle className="text-sm">{model.label}</CardTitle>
-                                    <CardDescription className="font-mono text-meta">
-                                        {model.id}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex flex-wrap gap-1.5 p-4 pt-0">
-                                    {model.runtimes.map((runtime) => (
-                                        <Badge key={runtime} size="sm" variant="secondary">
-                                            {runtime}
-                                        </Badge>
-                                    ))}
-                                    <Badge size="sm" variant="subtle">
-                                        {model.computerCount}{' '}
-                                        {model.computerCount === 1 ? 'Computer' : 'Computers'}
-                                    </Badge>
-                                </CardContent>
+                                <Card.Header>
+                                    <Card.Title>{model.label}</Card.Title>
+                                    <Card.Description>
+                                        <span className="font-mono text-xs">{model.id}</span>
+                                    </Card.Description>
+                                </Card.Header>
+                                <Card.Content>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {model.runtimes.map((runtime) => (
+                                            <Chip key={runtime} size="sm" variant="secondary">
+                                                {runtime}
+                                            </Chip>
+                                        ))}
+                                        <Chip size="sm" variant="soft">
+                                            {model.computerCount}{' '}
+                                            {model.computerCount === 1 ? 'Computer' : 'Computers'}
+                                        </Chip>
+                                    </div>
+                                </Card.Content>
                             </Card>
                         ))}
                     </div>
                 ) : (
-                    <p className="py-8 text-center text-muted-foreground text-sm">
+                    <p className="py-8 text-center text-muted text-sm">
                         {query ? 'No models match your search.' : 'No models reported yet.'}
                     </p>
                 )}

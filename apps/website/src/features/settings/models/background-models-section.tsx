@@ -1,21 +1,10 @@
+import { Description, Label, ListBox, Select } from '@heroui/react';
 import type { AgentRuntimeModelCategory, AgentRuntimeModelName } from '@tavern/api';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '../../../components/ui/select.tsx';
-import { Separator } from '../../../components/ui/separator.tsx';
-import {
-    SettingsGroup,
-    SettingsRow,
-    SettingsSection,
-} from '../../../components/ui/settings-row.tsx';
 import { useCapability } from '../../../hooks/connections/use-capability.ts';
 import { useModelInventory } from '../../../hooks/models/use-model-inventory.ts';
 import { queryPolicy } from '../../../lib/query-policy.ts';
 import { trpc } from '../../../lib/trpc.tsx';
+import { SettingsGroup, SettingsRow, SettingsSection } from '../layout/settings-page.tsx';
 
 /**
  * Background Memory work runs as direct model calls, so only providers with a
@@ -94,55 +83,67 @@ export function BackgroundModelsSection() {
                         : automaticValue;
                     const resolved = resolvedByCategory[row.category];
                     const automaticLabel = resolved ? `Automatic (${resolved})` : 'Automatic';
-                    const selectedLabel = selection
-                        ? (options.find((option) => option.value === value)?.label ?? value)
-                        : automaticLabel;
-
                     return (
-                        <div key={row.category}>
-                            {index > 0 ? <Separator /> : null}
-                            <SettingsRow
-                                description={row.description}
-                                error={index === 0 ? (saveSettings.error?.message ?? null) : null}
-                                title={row.title}
-                                trailingWidth="control"
+                        <SettingsRow
+                            description={row.description}
+                            error={index === 0 ? (saveSettings.error?.message ?? null) : null}
+                            key={row.category}
+                            title={row.title}
+                            trailingWidth="control"
+                        >
+                            <Select
+                                aria-label={`${row.title} model`}
+                                fullWidth
+                                isDisabled={settingsQuery.isPending || saveSettings.isPending}
+                                onChange={(next) =>
+                                    saveSettings.mutate({
+                                        categories: {
+                                            [row.category]: next
+                                                ? parseModelValue(String(next))
+                                                : null,
+                                        },
+                                    })
+                                }
+                                placeholder="Automatic"
+                                value={value}
+                                variant="secondary"
                             >
-                                <Select
-                                    disabled={settingsQuery.isPending || saveSettings.isPending}
-                                    onValueChange={(next) =>
-                                        saveSettings.mutate({
-                                            categories: {
-                                                [row.category]: next ? parseModelValue(next) : null,
-                                            },
-                                        })
-                                    }
-                                    value={value}
-                                >
-                                    <SelectTrigger aria-label={`${row.title} model`}>
-                                        <SelectValue placeholder="Automatic">
-                                            {selectedLabel}
-                                        </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={automaticValue}>
-                                            {automaticLabel}
-                                        </SelectItem>
+                                <Select.Trigger>
+                                    <Select.Value />
+                                    <Select.Indicator />
+                                </Select.Trigger>
+                                <Select.Popover>
+                                    <ListBox>
+                                        <ListBox.Item
+                                            id={automaticValue}
+                                            textValue={automaticLabel}
+                                        >
+                                            <Label>{automaticLabel}</Label>
+                                            <ListBox.ItemIndicator />
+                                        </ListBox.Item>
+                                        {selection &&
+                                        !options.some((option) => option.value === value) ? (
+                                            <ListBox.Item id={value} textValue={value}>
+                                                <Label>{value}</Label>
+                                                <Description>{selection.provider}</Description>
+                                                <ListBox.ItemIndicator />
+                                            </ListBox.Item>
+                                        ) : null}
                                         {options.map((option) => (
-                                            <SelectItem key={option.value} value={option.value}>
-                                                <span className="block min-w-0">
-                                                    <span className="block truncate">
-                                                        {option.label}
-                                                    </span>
-                                                    <span className="block truncate text-meta text-muted-foreground">
-                                                        {option.provider}
-                                                    </span>
-                                                </span>
-                                            </SelectItem>
+                                            <ListBox.Item
+                                                id={option.value}
+                                                key={option.value}
+                                                textValue={option.label}
+                                            >
+                                                <Label>{option.label}</Label>
+                                                <Description>{option.provider}</Description>
+                                                <ListBox.ItemIndicator />
+                                            </ListBox.Item>
                                         ))}
-                                    </SelectContent>
-                                </Select>
-                            </SettingsRow>
-                        </div>
+                                    </ListBox>
+                                </Select.Popover>
+                            </Select>
+                        </SettingsRow>
                     );
                 })}
             </SettingsGroup>

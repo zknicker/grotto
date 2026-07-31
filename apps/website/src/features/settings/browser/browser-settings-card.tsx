@@ -1,13 +1,11 @@
+import { Button, Chip, Skeleton } from '@heroui/react';
 import { BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { AgentRuntimeSaveBrowserSettings } from '@tavern/api';
 import * as React from 'react';
-import { Badge } from '../../../components/ui/badge.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { SettingsRow } from '../../../components/ui/settings-row.tsx';
-import { Skeleton } from '../../../components/ui/skeleton.tsx';
 import type { BrowserSettingsOutput } from '../../../lib/trpc.tsx';
 import { cn } from '../../../lib/utils.ts';
+import { SettingsRow } from '../layout/settings-page.tsx';
 import { BrowserEnablementSwitch } from './browser-enablement-switch.tsx';
 import {
     BrowserDisableConfirmationDialog,
@@ -56,7 +54,7 @@ export function BrowserSettingsCard({
                 title="Browser"
                 trailingWidth="intrinsic"
             >
-                <Button disabled variant="ghost">
+                <Button isDisabled variant="secondary">
                     Configure
                 </Button>
             </SettingsRow>
@@ -224,16 +222,16 @@ function BrowserRow({
                     <Icon className="size-5" icon={BrowserIcon} />
                     <span className="truncate">Browser</span>
                     {settings.skillConflict ? (
-                        <Badge size="sm" variant="warning">
-                            Skill conflict
-                        </Badge>
+                        <Chip color="warning" size="sm" variant="soft">
+                            Skill Conflict
+                        </Chip>
                     ) : null}
                 </span>
             }
             trailingWidth="intrinsic"
         >
             <div className="flex items-center gap-2">
-                <Button disabled={isSaving} onClick={() => onSelect()} variant="ghost">
+                <Button isDisabled={isSaving} onPress={onSelect} variant="secondary">
                     Configure
                 </Button>
                 <BrowserEnablementSwitch

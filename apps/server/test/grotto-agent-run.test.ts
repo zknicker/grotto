@@ -991,6 +991,185 @@ test('task ownership is one lock across human and Agent actors', async () => {
     ).rejects.toThrow(/already owned/i);
 });
 
+test('concurrent Agent claims choose one owner and the losing Agent cannot proceed', async () => {
+    const channelId = 'cht_concurrentclaim';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values (${channelId}, ${serverId}, 'channel', 'concurrent-claim')
+    `;
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channelId}, ${agentId})
+    `;
+    await harness.sql`
+        insert into channel_participants (server_id, chat_id, user_id)
+        values (${serverId}, ${channelId}, ${ownerUserId})
+    `;
+    const peer = await owner.trpc.agent.create.mutate({
+        computerId,
+        displayName: 'Rival',
+        handle: 'rival',
+        modelId: 'gpt-5.6-sol',
+        role: 'member',
+        runtimeId: 'codex',
+        serverId,
+    });
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channelId}, ${peer.agent.id})
+    `;
+    const created = await owner.trpc.task.create.mutate({
+        chatId: channelId,
+        content: 'Exactly one Agent may own this work.',
+        nonce: 'concurrent_agent_claim',
+        serverId,
+    });
+    const [coveRunner, rivalRunner] = await Promise.all([
+        mintRunner({ chatId: channelId, runId: 'run_concurrent_cove' }),
+        mintRunner({
+            agentId: peer.agent.id,
+            chatId: channelId,
+            runId: 'run_concurrent_rival',
+        }),
+    ]);
+    const claimBody = {
+        numbers: [created.task.number],
+        target: '#concurrent-claim',
+    };
+    const claims = await Promise.all([
+        agentPost(coveRunner.runnerToken, '/api/agent/tasks/claim', claimBody),
+        agentPost(rivalRunner.runnerToken, '/api/agent/tasks/claim', claimBody),
+    ]);
+
+    expect(claims.filter((claim) => claim.status === 200)).toHaveLength(1);
+    expect(claims.filter((claim) => claim.status === 409)).toHaveLength(1);
+    const loserIndex = claims.findIndex((claim) => claim.status === 409);
+    const loserToken = [coveRunner.runnerToken, rivalRunner.runnerToken][loserIndex];
+    expect(loserToken).toBeTruthy();
+
+    const update = await agentPost(loserToken ?? '', '/api/agent/tasks/update', {
+        number: created.task.number,
+        status: 'in_review',
+        target: '#concurrent-claim',
+    });
+    const unclaim = await agentPost(loserToken ?? '', '/api/agent/tasks/unclaim', {
+        number: created.task.number,
+        target: '#concurrent-claim',
+    });
+    expect(update).toMatchObject({
+        body: { code: 'TASK_CONFLICT' },
+        status: 409,
+    });
+    expect(unclaim).toMatchObject({
+        body: { code: 'TASK_CONFLICT' },
+        status: 409,
+    });
+
+    const [stored] = (await harness.sql`
+        select assignee_agent_id, status
+        from message_tasks
+        where server_id = ${serverId} and message_id = ${created.task.messageId}
+    `) as Array<{ assignee_agent_id: string | null; status: string }>;
+    const winnerAgentId = claims[0]?.status === 200 ? agentId : peer.agent.id;
+    expect(stored).toEqual({
+        assignee_agent_id: winnerAgentId,
+        status: 'in_progress',
+    });
+});
+
+test('runner task access fails closed after the Agent loses its parent Channel', async () => {
+    const channelId = 'cht_revokedtaskaccess';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values (${channelId}, ${serverId}, 'channel', 'revoked-task-access')
+    `;
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channelId}, ${agentId})
+    `;
+    await harness.sql`
+        insert into channel_participants (server_id, chat_id, user_id)
+        values (${serverId}, ${channelId}, ${ownerUserId})
+    `;
+    const runner = await mintRunner({ chatId: channelId, runId: 'run_revoked_task_access' });
+    const claimed = await agentPost(runner.runnerToken, '/api/agent/tasks/create', {
+        assignee: '@cove',
+        nonce: 'revoked_task_access_claimed',
+        target: '#revoked-task-access',
+        titles: ['Claimed work becomes inaccessible.'],
+    });
+    const unassigned = await agentPost(runner.runnerToken, '/api/agent/tasks/create', {
+        nonce: 'revoked_task_access_unassigned',
+        target: '#revoked-task-access',
+        titles: ['Unassigned work becomes inaccessible.'],
+    });
+    const claimedTask = claimed.body.tasks?.[0];
+    const unassignedTask = unassigned.body.tasks?.[0];
+    expect(claimedTask).toBeTruthy();
+    expect(unassignedTask).toBeTruthy();
+
+    await harness.sql`
+        delete from channel_agent_participants
+        where server_id = ${serverId} and chat_id = ${channelId} and agent_id = ${agentId}
+    `;
+
+    const targetedList = await agentGet(runner.runnerToken, '/api/agent/tasks', {
+        target: '#revoked-task-access',
+    });
+    expect(targetedList).toMatchObject({
+        body: { code: 'INVALID_TARGET' },
+        status: 404,
+    });
+    const readableList = await agentGet(runner.runnerToken, '/api/agent/tasks', {});
+    expect(readableList.status).toBe(200);
+    expect(readableList.body.tasks).not.toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({ message: { id: claimedTask?.message.id } }),
+            expect.objectContaining({ message: { id: unassignedTask?.message.id } }),
+        ])
+    );
+
+    for (const attempt of [
+        agentPost(runner.runnerToken, '/api/agent/tasks/claim', {
+            numbers: [unassignedTask?.number],
+            target: '#revoked-task-access',
+        }),
+        agentPost(runner.runnerToken, '/api/agent/tasks/update', {
+            number: claimedTask?.number,
+            status: 'in_review',
+            target: '#revoked-task-access',
+        }),
+        agentPost(runner.runnerToken, '/api/agent/tasks/unclaim', {
+            number: claimedTask?.number,
+            target: '#revoked-task-access',
+        }),
+    ]) {
+        await expect(attempt).resolves.toMatchObject({
+            body: { code: 'INVALID_TARGET' },
+            status: 404,
+        });
+    }
+
+    const rows = (await harness.sql`
+        select message_id, assignee_agent_id, status
+        from message_tasks
+        where server_id = ${serverId} and chat_id = ${channelId}
+        order by number
+    `) as Array<{ assignee_agent_id: string | null; message_id: string; status: string }>;
+    expect(rows).toEqual([
+        {
+            assignee_agent_id: agentId,
+            message_id: claimedTask?.message.id,
+            status: 'in_progress',
+        },
+        {
+            assignee_agent_id: null,
+            message_id: unassignedTask?.message.id,
+            status: 'todo',
+        },
+    ]);
+});
+
 test('task status updates wait for newer exact-thread context', async () => {
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_freshness' });
     const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
@@ -1264,7 +1443,13 @@ test('rejects a runner mint for an Agent on another Computer', async () => {
 });
 
 test('durable delivery sends one typed start, serializes per Agent, and needs an online Computer', async () => {
-    const frames: { modelId?: string; runId?: string; runtimeId?: string; type: string }[] = [];
+    const frames: {
+        agentId?: string;
+        modelId?: string;
+        runId?: string;
+        runtimeId?: string;
+        type: string;
+    }[] = [];
     const connections = new ComputerConnections();
     const delivery = new AgentDelivery(connection.db, connections);
 
@@ -1286,7 +1471,8 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
         updatePhase: 'idle',
     });
     await delivery.onComputerReconnect(computerId);
-    const starts = () => frames.filter((frame) => frame.type === 'start');
+    const starts = () =>
+        frames.filter((frame) => frame.agentId === agentId && frame.type === 'start');
     expect(starts()).toHaveLength(1);
     expect(starts()[0]).toMatchObject({
         modelId: 'gpt-5.6-sol',
@@ -1836,9 +2022,14 @@ function createMcpFixture(input: { delayMs?: number; toolName: string }) {
     });
 }
 
-async function mintRunner(input: { chatId: string; runId: string }) {
+async function mintRunner(input: { agentId?: string; chatId: string; runId: string }) {
     const response = await fetch(new URL('/computer/runner/mint', harness.url), {
-        body: JSON.stringify({ agentId, credentialHash, ...input }),
+        body: JSON.stringify({
+            agentId: input.agentId ?? agentId,
+            chatId: input.chatId,
+            credentialHash,
+            runId: input.runId,
+        }),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
     });
@@ -1909,6 +2100,7 @@ async function agentGet(token: string, path: string, query: Record<string, strin
     });
     return {
         body: (await response.json()) as {
+            code?: string;
             channels?: Record<string, unknown>[];
             attachment?: Record<string, unknown>;
             message?: Record<string, unknown>;
@@ -1916,6 +2108,7 @@ async function agentGet(token: string, path: string, query: Record<string, strin
             messages?: Array<Record<string, unknown> & { attachments?: unknown; id?: string }>;
             profile?: Record<string, unknown>;
             reminders?: Record<string, unknown>[];
+            tasks?: Record<string, unknown>[];
         },
         status: response.status,
     };
@@ -1929,6 +2122,8 @@ async function agentPost(token: string, path: string, body: Record<string, unkno
     });
     return {
         body: (await response.json()) as {
+            claimed?: Record<string, unknown>[];
+            code?: string;
             joined?: boolean;
             left?: boolean;
             attachment?: Record<string, unknown>;
@@ -1936,6 +2131,11 @@ async function agentPost(token: string, path: string, body: Record<string, unkno
             profile?: Record<string, unknown>;
             reminder?: Record<string, unknown>;
             target?: string;
+            task?: Record<string, unknown>;
+            tasks?: Array<{
+                message: { id: string };
+                number: number;
+            }>;
             unfollowed?: boolean;
         },
         status: response.status,

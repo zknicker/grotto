@@ -815,6 +815,91 @@ describe('hosted reminders', () => {
             `
         ).toEqual([]);
     });
+
+    test('keeps reminder state, mutations, and delivery isolated to its owning Agent', async () => {
+        const otherAgentId = 'agt_other_reminder';
+        await addAgent(otherAgentId);
+        const scheduled = await scheduleHostedReminder(
+            connection.db,
+            agentId,
+            {
+                anchorChatId: chatId,
+                anchorMessageId,
+                commandId: 'owner-isolation-schedule',
+                fireAt: new Date('2026-08-01T13:00:00.000Z'),
+                serverId,
+                title: 'Owner-only follow-up',
+            },
+            { now: () => new Date('2026-08-01T12:00:00.000Z') }
+        );
+
+        await expect(
+            listHostedReminders(connection.db, {
+                actor: { agentId: otherAgentId, kind: 'agent' },
+                serverId,
+            })
+        ).resolves.toEqual([]);
+        await expect(
+            listHostedReminderFires(connection.db, {
+                actor: { agentId: otherAgentId, kind: 'agent' },
+                reminderId: scheduled.reminder.id,
+                serverId,
+            })
+        ).rejects.toThrow(/not owned by this Agent/i);
+        await expect(
+            cancelHostedReminder(
+                connection.db,
+                otherAgentId,
+                {
+                    commandId: 'other-agent-cancel',
+                    expectedVersion: scheduled.reminder.version,
+                    reminderId: scheduled.reminder.id,
+                    serverId,
+                },
+                { now: () => new Date('2026-08-01T12:30:00.000Z') }
+            )
+        ).rejects.toThrow(/not owned by this Agent/i);
+        await expect(
+            updateHostedReminder(
+                connection.db,
+                otherAgentId,
+                {
+                    commandId: 'other-agent-update',
+                    expectedVersion: scheduled.reminder.version,
+                    reminderId: scheduled.reminder.id,
+                    serverId,
+                    title: 'Hijacked follow-up',
+                },
+                { now: () => new Date('2026-08-01T12:30:00.000Z') }
+            )
+        ).rejects.toThrow(/not owned by this Agent/i);
+        await expect(
+            snoozeHostedReminder(
+                connection.db,
+                otherAgentId,
+                {
+                    commandId: 'other-agent-snooze',
+                    duration: '1h',
+                    expectedVersion: scheduled.reminder.version,
+                    reminderId: scheduled.reminder.id,
+                    serverId,
+                },
+                { now: () => new Date('2026-08-01T12:30:00.000Z') }
+            )
+        ).rejects.toThrow(/not owned by this Agent/i);
+
+        await tickHostedReminders(connection.db, {
+            now: () => new Date('2026-08-01T13:00:00.000Z'),
+        });
+        await expect(
+            listReminderAgentAttention(connection.db, { agentId, serverId })
+        ).resolves.toContainEqual(
+            expect.objectContaining({ agentId, reminderId: scheduled.reminder.id })
+        );
+        await expect(
+            listReminderAgentAttention(connection.db, { agentId: otherAgentId, serverId })
+        ).resolves.toEqual([]);
+    });
 });
 
 async function addAgent(id: string) {

@@ -7,7 +7,7 @@ all views are projections, never another conversation or content store.
 ## Hosted model
 
 `message_tasks` keys metadata by `(server_id, message_id)` and also binds the canonical
-`chat_id`: monotonic per-Chat task number, status, optional human assignee and claim time,
+`chat_id`: monotonic per-Chat task number, status, optional human or Agent assignee and claim time,
 priority, origin, creator, and monotonic version. The work-surface Thread id is derived
 deterministically from the message id; it is not stored on the task row.
 
@@ -21,19 +21,20 @@ Thread, and durable events in one transaction.
 
 ## Authority and concurrency
 
-- Any authorized parent-Chat participant can create/promote a task and update status, priority,
-  or task labels using `expectedVersion`.
+- Authorized humans can create/promote a task and update status, priority, or task labels using
+  `expectedVersion`. An Agent can update lifecycle state only while it owns the task.
 - Claim is self-only. Task writes lock the Server before membership, Chat, and task rows. The
   first valid claimant wins; a second claimant cannot acquire ownership at the same version.
 - Only the current assignee can unclaim.
-- Server Owners and Admins can reserve or clear assignment. A human assignee must have active
-  Server membership and parent-Chat access.
+- Server Owners and Admins can reserve or clear human assignment. A human assignee must have
+  active Server membership and parent-Chat access. An Agent can create a new Channel task reserved
+  for another active Agent in that Channel; the recipient must claim it before working.
 - Members can create task-label catalog entries. Owners and Admins can rename, recolor, or delete
   catalog entries.
 - Revoked Server membership, lost parent-Chat access, cross-Server ids, and stale versions fail
   closed.
-- Removal releases that human's claims and assignments with versioned `task.updated` events.
-  Reinvitation starts a new membership stint and restores no private task or Thread authority.
+- Human removal or Agent retirement releases that actor's claims and assignments with versioned
+  `task.updated` events. Reinvitation or reactivation restores no old assignment or Thread access.
 
 Assignee and status are independent. Claiming an unassigned `todo` task moves it to
 `in_progress`; unclaiming preserves status. Done tasks cannot be claimed or unclaimed.
@@ -53,19 +54,16 @@ event targeting for live delivery and cursor catch-up after reconnect.
 
 - Hosted App: Server Board and List lenses with create, claim, unclaim, human assignment, status,
   priority, and task-label controls. Opening a task opens the canonical message's hosted Thread.
-- Managed CLI: `task list|create|claim|unclaim|update` parser/wire/client contract over an injected
-  peer. The production CLI does not activate this hosted peer yet. It adds no Agent
-  authentication, Server route, Runtime proxy, or execution activation.
+- Managed CLI: `grotto task list|create|claim|unclaim|update` uses the Computer's scoped runner
+  authority and hosted Server task API. Agent identity comes from that runner credential.
 
 The App has no calendar or scheduling fields. The word “calendar” in PRD-140's original acceptance
 text is stale relative to ADR 0015, D8, and the accepted WS6 plan; reminder/scheduling work belongs
 to PRD-141. Production activation of the managed CLI belongs to PRD-145.
 
-The pre-cutover local Runtime task model and its existing CLI/receipts remain separate until that
-activation. Hosted Server tasks add no receipt author and do not import local history.
-
 ## Non-goals
 
-No hosted system receipts, Agent assignees, due dates, reminders, attachments, task deletion,
-inbox/outbox, auto-dispatch, per-task conversation store, generic workflow engine, or generic
-label/taxonomy framework.
+No hosted system receipts, due dates, task-owned reminders, attachments, task deletion,
+task-specific queue, per-task conversation store, generic workflow engine, or generic
+label/taxonomy framework. Reminders may separately anchor to task messages. Task delivery and peer
+assignment use the ordinary Agent inbox path.

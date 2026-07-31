@@ -80,7 +80,7 @@ function WorkerStep({
             label={
                 <span className="inline-flex min-w-0 max-w-full items-baseline gap-1.5 text-left">
                     <span className="shrink-0">{config.label}</span>
-                    <span className="truncate text-muted-foreground">{row.worker.title}</span>
+                    <span className="truncate text-muted">{row.worker.title}</span>
                 </span>
             }
             status={status}

@@ -1,3 +1,4 @@
+import { Button } from '@heroui/react';
 import {
     MessageScroller as MessageScrollerPrimitive,
     useMessageScroller,
@@ -6,8 +7,7 @@ import {
 } from '@shadcn/react/message-scroller';
 import { ArrowDownIcon } from 'lucide-react';
 import type * as React from 'react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn } from '../../lib/utils.ts';
 
 function MessageScrollerProvider(
     props: React.ComponentProps<typeof MessageScrollerPrimitive.Provider>
@@ -78,39 +78,51 @@ function MessageScrollerItem({
     );
 }
 
+// Placement and the show/hide motion live on this wrapper so the HeroUI
+// Button inside stays stock. `data-active` reads the same scrollable state
+// the scroller primitives publish, so the control appears exactly when there
+// is somewhere to jump to.
+const scrollerButtonWrapperClassName =
+    'absolute inset-s-1/2 -translate-x-1/2 transition-[translate,scale,opacity] duration-200 data-[direction=start]:top-4 data-[direction=end]:bottom-4 data-[direction=end]:data-[active=false]:translate-y-full data-[direction=start]:data-[active=false]:-translate-y-full data-[active=false]:pointer-events-none data-[active=true]:translate-y-0 data-[active=false]:scale-95 data-[active=true]:scale-100 data-[active=false]:opacity-0 data-[active=true]:opacity-100 data-[active=false]:duration-400 data-[active=false]:ease-[cubic-bezier(0.7,0,0.84,0)] data-[active=true]:ease-[cubic-bezier(0.23,1,0.32,1)] rtl:translate-x-1/2 data-[direction=start]:[&_svg]:rotate-180';
+
 function MessageScrollerButton({
-    direction = 'end',
-    className,
+    behavior = 'smooth',
     children,
-    render,
-    variant = 'secondary',
-    size = 'icon-sm',
+    className,
+    direction = 'end',
     ...props
-}: React.ComponentProps<typeof MessageScrollerPrimitive.Button> &
-    Pick<React.ComponentProps<typeof Button>, 'variant' | 'size'>) {
+}: Omit<React.ComponentProps<typeof Button>, 'children'> & {
+    behavior?: ScrollBehavior;
+    children?: React.ReactNode;
+    direction?: 'start' | 'end';
+}) {
+    const scroller = useMessageScroller();
+    const scrollable = useMessageScrollerScrollable();
+    const isActive = direction === 'start' ? scrollable.start : scrollable.end;
+
     return (
-        <MessageScrollerPrimitive.Button
-            className={cn(
-                'absolute inset-s-1/2 -translate-x-1/2 border-border bg-background text-foreground transition-[translate,scale,opacity] duration-200 hover:bg-legacy-muted hover:text-foreground data-[direction=end]:data-[active=false]:translate-y-full data-[direction=start]:data-[active=false]:-translate-y-full data-[active=false]:pointer-events-none data-[direction=start]:top-4 data-[direction=end]:bottom-4 data-[active=true]:translate-y-0 data-[active=false]:scale-95 data-[active=true]:scale-100 data-[active=false]:opacity-0 data-[active=true]:opacity-100 data-[active=false]:duration-400 data-[active=false]:ease-[cubic-bezier(0.7,0,0.84,0)] data-[active=true]:ease-[cubic-bezier(0.23,1,0.32,1)] rtl:translate-x-1/2 data-[direction=start]:[&_svg]:rotate-180',
-                className
-            )}
+        <div
+            className={cn(scrollerButtonWrapperClassName, className)}
+            data-active={isActive ? 'true' : 'false'}
             data-direction={direction}
-            data-size={size}
             data-slot="message-scroller-button"
-            data-variant={variant}
-            direction={direction}
-            render={render ?? <Button size={size} variant={variant} />}
-            {...props}
+            inert={isActive ? undefined : true}
         >
-            {children ?? (
-                <>
-                    <ArrowDownIcon />
-                    <span className="sr-only">
-                        {direction === 'end' ? 'Scroll to end' : 'Scroll to start'}
-                    </span>
-                </>
-            )}
-        </MessageScrollerPrimitive.Button>
+            <Button
+                aria-label={direction === 'end' ? 'Scroll to end' : 'Scroll to start'}
+                isIconOnly
+                onPress={() =>
+                    direction === 'start'
+                        ? scroller.scrollToStart({ behavior })
+                        : scroller.scrollToEnd({ behavior })
+                }
+                size="sm"
+                variant="secondary"
+                {...props}
+            >
+                {children ?? <ArrowDownIcon />}
+            </Button>
+        </div>
     );
 }
 

@@ -6,7 +6,7 @@ import {
     MessageScrollerContent,
     MessageScrollerProvider,
     MessageScrollerViewport,
-} from '../../components/ui/message-scroller.tsx';
+} from '../../components/chats/message-scroller.tsx';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import type { ChatLogOutput } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
@@ -114,7 +114,7 @@ export function ChatDetailFrame({
                                 >
                                     {isInitialTranscriptPending ? null : error ? (
                                         <MessageScrollerContent className="w-full">
-                                            <div className="px-2 py-4 text-muted-foreground text-sm">
+                                            <div className="px-2 py-4 text-muted text-sm">
                                                 Unable to load this chat transcript right now.
                                             </div>
                                         </MessageScrollerContent>
@@ -135,7 +135,7 @@ export function ChatDetailFrame({
                                         )
                                     ) : (
                                         <MessageScrollerContent className="w-full">
-                                            <div className="px-2 py-4 text-muted-foreground text-sm">
+                                            <div className="px-2 py-4 text-muted text-sm">
                                                 {emptyLabel}
                                             </div>
                                         </MessageScrollerContent>
@@ -152,8 +152,6 @@ export function ChatDetailFrame({
                                         aria-label="Jump to latest message"
                                         className="z-10"
                                         direction="end"
-                                        size="icon-sm"
-                                        variant="secondary"
                                     />
                                 ) : null}
                             </MessageScroller>

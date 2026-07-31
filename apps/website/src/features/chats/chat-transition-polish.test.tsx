@@ -18,21 +18,23 @@ test('chat message entrance animation can be disabled for handoffs', () => {
     expect(still).not.toContain('opacity:0;transform');
 });
 
-test('chat message prose uses the shadcn bubble content styling', () => {
+test('chat message prose renders as plain roster text, not a balloon', () => {
     const assistant = renderToStaticMarkup(<ChatMessage from="assistant">Done</ChatMessage>);
     const user = renderToStaticMarkup(<ChatMessage from="user">Done</ChatMessage>);
 
     for (const markup of [assistant, user]) {
         expect(markup).toContain('data-slot="bubble-content"');
-        expect(markup).toContain('py-2');
+        expect(markup).toContain('text-sm');
         expect(markup).toContain('leading-relaxed');
     }
 
     // Every message — the owner's included — reads as left-aligned ghost text
-    // in one Slack-style roster; only data-from tells the senders apart.
+    // in one Slack-style roster; only data-from tells the senders apart. Ghost
+    // carries no balloon chrome: no rounding, no fill, no padding.
     for (const markup of [assistant, user]) {
-        expect(markup).toContain('rounded-xl');
         expect(markup).toContain('data-variant="ghost"');
+        expect(markup).not.toContain('rounded-xl');
+        expect(markup).not.toContain('px-3');
     }
     expect(assistant).toContain('data-from="assistant"');
     expect(user).toContain('data-from="user"');
@@ -45,7 +47,6 @@ test('chat message wraps long pasted tokens inside the bubble', () => {
         const markup = renderToStaticMarkup(<ChatMessage from={from}>{longToken}</ChatMessage>);
 
         expect(markup).toContain('data-slot="bubble"');
-        expect(markup).toContain('max-w-[80%]');
         expect(markup).toContain('min-w-0');
         expect(markup).toContain('max-w-full');
         expect(markup).toContain('wrap-break-word');

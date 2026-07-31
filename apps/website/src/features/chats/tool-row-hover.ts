@@ -27,11 +27,9 @@ export function ToolRowHoverRoot({
  */
 export function useToolRowHoverGroup({
     enabled,
-    headerRef,
     measureKey,
 }: {
     enabled: boolean;
-    headerRef: React.RefObject<HTMLButtonElement | null>;
     measureKey: string;
 }) {
     const contentRef = React.useRef<HTMLDivElement | null>(null);
@@ -77,13 +75,6 @@ export function useToolRowHoverGroup({
         setActiveIndex(null);
     }, [setActiveIndex]);
 
-    const registerHeader = React.useCallback(
-        (element: HTMLButtonElement | null) => {
-            headerRef.current = element;
-        },
-        [headerRef]
-    );
-
     const contextValue = React.useMemo(() => ({ registerItem }), [registerItem]);
     const activeRect = activeIndex === null ? null : (itemRects[activeIndex] ?? null);
 
@@ -97,7 +88,6 @@ export function useToolRowHoverGroup({
                   sessionKey: sessionRef.current,
               })
             : null,
-        registerHeader,
     };
 }
 

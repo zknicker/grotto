@@ -9,7 +9,7 @@ import {
     AttachmentGroup,
     AttachmentMedia,
     AttachmentTitle,
-} from '../../components/ui/attachment.tsx';
+} from '../../components/chats/attachment.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 
 export function HostedMessageAttachments({
@@ -37,8 +37,8 @@ export function HostedMessageAttachments({
                     <AttachmentActions>
                         <AttachmentAction
                             aria-label={`Download ${attachment.filename}`}
-                            disabled={disabled}
-                            onClick={() => onDownload(attachment)}
+                            isDisabled={disabled}
+                            onPress={() => onDownload(attachment)}
                         >
                             <Icon className="size-3.5" icon={Download04Icon} />
                         </AttachmentAction>

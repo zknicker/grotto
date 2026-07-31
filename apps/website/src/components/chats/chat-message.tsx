@@ -4,9 +4,9 @@ import { type HTMLMotionProps, motion } from 'framer-motion';
 import { forwardRef, type ReactNode } from 'react';
 import { springs } from '../../lib/springs.ts';
 import { cn } from '../../lib/utils.ts';
-import { AttachmentGroup } from '../ui/attachment.tsx';
-import { Bubble, BubbleContent } from '../ui/bubble.tsx';
-import { Message, MessageContent } from '../ui/message.tsx';
+import { AttachmentGroup } from './attachment.tsx';
+import { Bubble, BubbleContent } from './bubble.tsx';
+import { Message, MessageContent } from './message.tsx';
 
 export interface ChatMessageProps extends Omit<HTMLMotionProps<'div'>, 'children'> {
     animateEnter?: boolean;
@@ -53,7 +53,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
                     <MessageContent>
                         {hasAttachments ? <AttachmentGroup>{attachments}</AttachmentGroup> : null}
                         {hasBody ? (
-                            <Bubble align="start" variant="ghost">
+                            <Bubble align="start">
                                 <BubbleContent>{children}</BubbleContent>
                             </Bubble>
                         ) : null}

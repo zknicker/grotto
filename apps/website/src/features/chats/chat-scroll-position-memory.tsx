@@ -3,7 +3,7 @@ import {
     useMessageScroller,
     useMessageScrollerScrollable,
     useMessageScrollerVisibility,
-} from '../../components/ui/message-scroller.tsx';
+} from '../../components/chats/message-scroller.tsx';
 
 interface ChatScrollPosition {
     atEnd: boolean;

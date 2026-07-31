@@ -1,7 +1,8 @@
+import { Disclosure } from '@heroui/react';
 import type { HugeiconsIconProps } from '@hugeicons/react';
-import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
+    type ComponentProps,
     createContext,
     forwardRef,
     type HTMLAttributes,
@@ -10,12 +11,6 @@ import {
     useMemo,
     useState,
 } from 'react';
-import { Badge } from '../../components/ui/badge.tsx';
-import {
-    Collapsible,
-    CollapsiblePanel,
-    CollapsibleTrigger,
-} from '../../components/ui/collapsible.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { cn } from '../../lib/utils.ts';
@@ -53,7 +48,7 @@ export const ThinkingSteps = forwardRef<HTMLDivElement, ThinkingStepsProps>(
             defaultOpen = true,
             onOpenChange,
             open,
-            // Collapsible does not use defaultValue; keep this compatible with the registry shape.
+            // Collapsible did not use defaultValue; keep this compatible with the registry shape.
             defaultValue: _defaultValue,
             ...props
         },
@@ -71,15 +66,15 @@ export const ThinkingSteps = forwardRef<HTMLDivElement, ThinkingStepsProps>(
 
         return (
             <ThinkingStepsOpenContext.Provider value={currentOpen}>
-                <Collapsible
+                <Disclosure
                     className={cn('w-80 max-w-full', className)}
-                    onOpenChange={handleOpenChange}
-                    open={currentOpen}
+                    isExpanded={currentOpen}
+                    onExpandedChange={handleOpenChange}
                     ref={ref}
                     {...props}
                 >
                     {children}
-                </Collapsible>
+                </Disclosure>
             </ThinkingStepsOpenContext.Provider>
         );
     }
@@ -87,44 +82,48 @@ export const ThinkingSteps = forwardRef<HTMLDivElement, ThinkingStepsProps>(
 
 ThinkingSteps.displayName = 'ThinkingSteps';
 
-interface ThinkingStepsHeaderProps extends HTMLAttributes<HTMLButtonElement> {
+type ThinkingStepsHeaderProps = Omit<ComponentProps<typeof Disclosure.Trigger>, 'children'> & {
     children?: ReactNode;
     showIcon?: boolean;
     wrapperClassName?: string;
-}
+};
 
-export const ThinkingStepsHeader = forwardRef<HTMLButtonElement, ThinkingStepsHeaderProps>(
-    ({ children = 'Thinking', className, showIcon = true, wrapperClassName, ...props }, ref) => (
+export function ThinkingStepsHeader({
+    children = 'Thinking',
+    className,
+    showIcon = true,
+    wrapperClassName,
+    ...props
+}: ThinkingStepsHeaderProps) {
+    return (
         // text-meta rides the wrapper: merging a size token with the trigger's
         // color classes would collapse them into one utility.
         <div className={cn('w-fit text-meta', wrapperClassName)}>
-            <CollapsibleTrigger
-                className={cn(
-                    'group flex w-auto items-center gap-1.5 rounded-md py-1 font-medium text-foreground leading-tight transition-colors hover:text-foreground',
-                    className
-                )}
-                ref={ref}
-                {...props}
-            >
-                <span>{children}</span>
-                {showIcon ? (
-                    <Icon
-                        className="size-3.5 -rotate-90 text-muted-foreground transition-transform group-data-[panel-open]:rotate-0"
-                        icon={ArrowDown01Icon}
-                        strokeWidth={1.7}
-                    />
-                ) : null}
-            </CollapsibleTrigger>
+            <Disclosure.Heading>
+                <Disclosure.Trigger
+                    className={cn(
+                        'group flex w-auto items-center gap-1.5 rounded-md py-1 font-medium text-foreground leading-tight transition-colors hover:text-foreground',
+                        className
+                    )}
+                    {...props}
+                >
+                    <span>{children}</span>
+                    {showIcon ? <Disclosure.Indicator /> : null}
+                </Disclosure.Trigger>
+            </Disclosure.Heading>
         </div>
-    )
-);
-
-ThinkingStepsHeader.displayName = 'ThinkingStepsHeader';
+    );
+}
 
 interface ThinkingStepsContentProps extends HTMLAttributes<HTMLDivElement> {
     children: ReactNode;
 }
 
+/**
+ * The panel animates itself rather than using `Disclosure.Content`: the work
+ * group's hover rail measures this element while it is collapsed, so it has
+ * to stay in layout at height 0 instead of being unmounted or hidden.
+ */
 export const ThinkingStepsContent = forwardRef<HTMLDivElement, ThinkingStepsContentProps>(
     ({ children, className, ...props }, ref) => {
         const open = useContext(ThinkingStepsOpenContext);
@@ -146,7 +145,6 @@ export const ThinkingStepsContent = forwardRef<HTMLDivElement, ThinkingStepsCont
                 className="overflow-hidden"
                 inert={open ? undefined : true}
                 initial={false}
-                onAnimationComplete={dispatchDisclosureAnimationEnd}
                 transition={transition}
             >
                 <div className={cn('flex flex-col', className)} ref={ref} {...props}>
@@ -213,11 +211,7 @@ export function ThinkingStep({
                     <div className="flex w-4 shrink-0 flex-col items-center">
                         <div className="flex size-4 items-center justify-center">
                             {showIcon && icon ? (
-                                <Icon
-                                    className="size-4 text-muted-foreground"
-                                    icon={icon}
-                                    strokeWidth={1.5}
-                                />
+                                <Icon className="size-4 text-muted" icon={icon} strokeWidth={1.5} />
                             ) : (
                                 <div className="flex size-4 items-center justify-center">
                                     <StatusDot
@@ -233,7 +227,7 @@ export function ThinkingStep({
                                 </div>
                             )}
                         </div>
-                        {isLast ? null : <div className="mt-1 w-px flex-1 bg-border-subtle" />}
+                        {isLast ? null : <div className="mt-1 w-px flex-1 bg-separator" />}
                     </div>
 
                     <div className="flex min-w-0 flex-1 flex-col gap-1 text-meta">
@@ -246,7 +240,7 @@ export function ThinkingStep({
                             {label}
                         </span>
                         {description ? (
-                            <span className="min-w-0 text-meta text-muted-foreground leading-snug">
+                            <span className="min-w-0 text-meta text-muted leading-snug">
                                 {description}
                             </span>
                         ) : null}
@@ -274,67 +268,28 @@ export function ThinkingStepDetails({
     summary,
 }: ThinkingStepDetailsProps) {
     return (
-        <Collapsible className={cn('mt-1 -ml-3', className)} defaultOpen={defaultOpen}>
+        <Disclosure className={cn('mt-1 -ml-3', className)} defaultExpanded={defaultOpen}>
             <div className="w-fit">
-                <CollapsibleTrigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-meta text-muted-foreground leading-tight hover:bg-legacy-muted hover:text-foreground">
-                    <span>{summary}</span>
-                    <Icon
-                        className="size-3 -rotate-90 opacity-70 transition-transform group-data-[panel-open]:rotate-0"
-                        icon={ArrowDown01Icon}
-                        strokeWidth={1.7}
-                    />
-                </CollapsibleTrigger>
+                <Disclosure.Heading>
+                    <Disclosure.Trigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-meta text-muted leading-tight hover:bg-surface-secondary hover:text-foreground">
+                        <span>{summary}</span>
+                        <Disclosure.Indicator />
+                    </Disclosure.Trigger>
+                </Disclosure.Heading>
             </div>
-            <CollapsiblePanel>
-                <div className="flex flex-col gap-0.5 pt-0.5">
-                    {details?.map((item) => (
-                        <span className="text-meta text-muted-foreground leading-snug" key={item}>
-                            {item}
-                        </span>
-                    ))}
-                    {children}
-                </div>
-            </CollapsiblePanel>
-        </Collapsible>
-    );
-}
-
-interface ThinkingStepSourcesProps extends HTMLAttributes<HTMLDivElement> {
-    children: ReactNode;
-}
-
-export const ThinkingStepSources = forwardRef<HTMLDivElement, ThinkingStepSourcesProps>(
-    ({ children, className, ...props }, ref) => (
-        <div className={cn('mt-1 flex flex-wrap gap-1.5', className)} ref={ref} {...props}>
-            {children}
-        </div>
-    )
-);
-
-ThinkingStepSources.displayName = 'ThinkingStepSources';
-
-interface ThinkingStepSourceProps {
-    children: ReactNode;
-    className?: string;
-    delay?: number;
-    variant?: 'error' | 'info' | 'secondary' | 'subtle' | 'success';
-}
-
-export function ThinkingStepSource({
-    children,
-    className,
-    delay = 0,
-    variant = 'subtle',
-}: ThinkingStepSourceProps) {
-    return (
-        <span
-            className="motion-safe:animate-[chat-loading-indicator-in_220ms_cubic-bezier(0.23,1,0.32,1)_both]"
-            style={{ animationDelay: `${delay}s` }}
-        >
-            <Badge className={className} size="sm" variant={variant}>
-                {children}
-            </Badge>
-        </span>
+            <Disclosure.Content>
+                <Disclosure.Body>
+                    <div className="flex flex-col gap-0.5 pt-0.5">
+                        {details?.map((item) => (
+                            <span className="text-meta text-muted leading-snug" key={item}>
+                                {item}
+                            </span>
+                        ))}
+                        {children}
+                    </div>
+                </Disclosure.Body>
+            </Disclosure.Content>
+        </Disclosure>
     );
 }
 
@@ -345,13 +300,7 @@ export type {
     StepStatus,
     ThinkingStepDetailsProps,
     ThinkingStepProps,
-    ThinkingStepSourceProps,
-    ThinkingStepSourcesProps,
     ThinkingStepsContentProps,
     ThinkingStepsHeaderProps,
     ThinkingStepsProps,
 };
-
-function dispatchDisclosureAnimationEnd() {
-    document.dispatchEvent(new CustomEvent('chat-disclosure-animation-end', { bubbles: true }));
-}

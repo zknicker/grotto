@@ -1,4 +1,4 @@
-import { formatDayLabel } from '../../components/ui/day-divider.tsx';
+import { formatDayLabel } from '../../components/chats/day-divider.tsx';
 import type { TranscriptEntry, TranscriptItem, TranscriptRow } from './chat-transcript-model.ts';
 import { findTranscriptEntryActiveReply, getItemSessionKey } from './chat-transcript-model.ts';
 

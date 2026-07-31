@@ -4,7 +4,7 @@ import {
     MessageAvatar,
     MessageContent,
     MessageHeader,
-} from '../../components/ui/message.tsx';
+} from '../../components/chats/message.tsx';
 import { HostedAgentFace } from '../members/hosted-agent-face.tsx';
 
 type SendingLifecycle = Extract<HostedAgentLifecycleEvent, { phase: 'sending' }>;

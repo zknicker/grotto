@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
-import { Elevated } from '../../components/ui/surface.tsx';
 import { cn } from '../../lib/utils.ts';
 import { hasErrorStatus } from '../sessions/tools/tool-ui.ts';
 import { ActivityStep } from './chat-transcript-activity-step.tsx';
@@ -58,7 +57,6 @@ export function WorkingLog({
         : isActive || (!thinkingOnly && hasNarration(items));
     const defaultOpen = defaultOpenOverride ?? inferredDefaultOpen;
     const [open, setOpen] = React.useState(defaultOpen);
-    const disclosureAnchor = useDisclosureScrollAnchor();
     const panelId = React.useId();
 
     React.useEffect(() => {
@@ -88,7 +86,6 @@ export function WorkingLog({
     const groupIcon = groupMode ? getWorkGroupIcon(items) : null;
     const rowHover = useToolRowHoverGroup({
         enabled: groupMode,
-        headerRef: disclosureAnchor.triggerRef,
         measureKey: groupMode ? `${open}:${items.length}:${groupLabel ?? ''}` : '',
     });
 
@@ -113,21 +110,18 @@ export function WorkingLog({
                     className={
                         groupMode
                             ? cn(
-                                  'relative z-10 w-full py-1.5 pr-2 pl-3 font-normal text-muted-foreground text-sm outline-none transition-none hover:bg-chat-log-row-hover hover:text-muted-foreground focus-visible:bg-chat-log-row-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                                  'relative z-10 w-full py-1.5 pr-2 pl-3 font-normal text-muted text-sm outline-none transition-none hover:bg-chat-log-row-hover hover:text-muted focus-visible:bg-chat-log-row-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                                   // Card appearance: a true header above the
                                   // rows card, hugging its own label. Hover
                                   // lightens the text and icons instead of
                                   // painting a bg behind the tight label.
                                   appearance === 'card' &&
-                                      'h-7 w-auto items-center rounded-md py-0 pr-2 pl-1.5 font-medium text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:bg-transparent hover:[&_svg]:text-foreground'
+                                      'h-7 w-auto items-center rounded-md py-0 pr-2 pl-1.5 font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:bg-transparent hover:[&_svg]:text-foreground'
                               )
                             : undefined
                     }
                     onFocus={groupMode ? rowHover.clearActiveItem : undefined}
-                    onKeyDown={disclosureAnchor.captureFromKeyboard}
-                    onMouseEnter={groupMode ? rowHover.clearActiveItem : undefined}
-                    onPointerDown={disclosureAnchor.capture}
-                    ref={groupMode ? rowHover.registerHeader : disclosureAnchor.triggerRef}
+                    onHoverStart={groupMode ? rowHover.clearActiveItem : undefined}
                     wrapperClassName={
                         groupMode
                             ? cn('relative z-10 w-full', appearance === 'card' && 'w-fit')
@@ -139,7 +133,7 @@ export function WorkingLog({
                             {groupIcon ? (
                                 <span className="-ml-1 flex size-4 shrink-0 items-center justify-center">
                                     <Icon
-                                        className="size-4 text-muted-foreground"
+                                        className="size-4 text-muted"
                                         icon={groupIcon}
                                         strokeWidth={1.5}
                                     />
@@ -167,11 +161,9 @@ export function WorkingLog({
                         // The rows sit on their own card surface below the
                         // header; it owns the hover rail so the moving bg
                         // clips to the card's rounded corners.
-                        <Elevated
-                            className="relative overflow-hidden rounded-xl p-1 [--tool-row-min-h:2.25rem]"
-                            offset={1}
+                        <div
+                            className="relative overflow-hidden rounded-xl border border-separator bg-surface-secondary p-1 [--tool-row-min-h:2.25rem]"
                             ref={rowHover.contentRef}
-                            shadowLevel={1}
                         >
                             {rowHover.hoverLayer}
                             <WorkingLogSteps
@@ -180,7 +172,7 @@ export function WorkingLog({
                                 isActive={isActive}
                                 items={items}
                             />
-                        </Elevated>
+                        </div>
                     ) : (
                         <>
                             {rowHover.hoverLayer}
@@ -232,22 +224,6 @@ function findFirstPendingClarificationId(items: ActivityItem[]) {
     );
 
     return item?.row.id ?? null;
-}
-
-function useDisclosureScrollAnchor() {
-    const triggerRef = React.useRef<HTMLButtonElement | null>(null);
-    const capture = React.useCallback(() => {}, []);
-
-    const captureFromKeyboard = React.useCallback(
-        (event: React.KeyboardEvent<HTMLButtonElement>) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                capture();
-            }
-        },
-        [capture]
-    );
-
-    return { capture, captureFromKeyboard, triggerRef };
 }
 
 function hasNarration(items: ActivityItem[]) {

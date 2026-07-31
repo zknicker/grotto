@@ -1,16 +1,6 @@
 import type * as React from 'react';
 
-import { cn } from '@/lib/utils';
-
-function MessageGroup({ className, ...props }: React.ComponentProps<'div'>) {
-    return (
-        <div
-            className={cn('flex min-w-0 flex-col gap-2', className)}
-            data-slot="message-group"
-            {...props}
-        />
-    );
-}
+import { cn } from '../../lib/utils.ts';
 
 function Message({
     className,
@@ -34,7 +24,7 @@ function MessageAvatar({ className, ...props }: React.ComponentProps<'div'>) {
     return (
         <div
             className={cn(
-                'flex w-fit min-w-8 shrink-0 items-center justify-center self-end overflow-hidden rounded-full bg-legacy-muted group-has-data-[slot=message-footer]/message:-translate-y-8',
+                'flex w-fit min-w-8 shrink-0 items-center justify-center self-end overflow-hidden rounded-full bg-surface-secondary group-has-data-[slot=message-footer]/message:-translate-y-8',
                 className
             )}
             data-slot="message-avatar"
@@ -60,7 +50,7 @@ function MessageHeader({ className, ...props }: React.ComponentProps<'div'>) {
     return (
         <div
             className={cn(
-                'flex min-w-0 max-w-full items-center px-3 font-medium text-muted-foreground text-xs group-has-data-[variant=ghost]/message:px-0',
+                'flex min-w-0 max-w-full items-center px-3 font-medium text-muted text-xs group-has-data-[variant=ghost]/message:px-0',
                 className
             )}
             data-slot="message-header"
@@ -73,7 +63,7 @@ function MessageFooter({ className, ...props }: React.ComponentProps<'div'>) {
     return (
         <div
             className={cn(
-                'flex min-w-0 max-w-full items-center px-3 font-medium text-muted-foreground text-xs group-has-data-[variant=ghost]/message:px-0 group-data-[align=end]/message:justify-end',
+                'flex min-w-0 max-w-full items-center px-3 font-medium text-muted text-xs group-has-data-[variant=ghost]/message:px-0 group-data-[align=end]/message:justify-end',
                 className
             )}
             data-slot="message-footer"
@@ -82,4 +72,4 @@ function MessageFooter({ className, ...props }: React.ComponentProps<'div'>) {
     );
 }
 
-export { MessageGroup, Message, MessageAvatar, MessageContent, MessageFooter, MessageHeader };
+export { Message, MessageAvatar, MessageContent, MessageFooter, MessageHeader };

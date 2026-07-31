@@ -58,7 +58,7 @@ function ClarificationState({
                 ? `Answered: ${answer}`
                 : 'Answered.';
 
-    return <p className="pt-1 pb-1.5 text-meta text-muted-foreground">{label}</p>;
+    return <p className="pt-1 pb-1.5 text-meta text-muted">{label}</p>;
 }
 
 function getClarificationVerb({

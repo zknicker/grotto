@@ -5,16 +5,16 @@ import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { requestChatComposerMention } from '../../commands/chat-composer-mention.ts';
 import { ChatMessage } from '../../components/chats/chat-message.tsx';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
-import { RelativeTime } from '../../components/time/relative-time.tsx';
-import { CopyButton } from '../../components/ui/copy-button.tsx';
-import { Icon } from '../../components/ui/icon.tsx';
 import {
     Message,
     MessageAvatar,
     MessageContent,
     MessageHeader,
-} from '../../components/ui/message.tsx';
+} from '../../components/chats/message.tsx';
+import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import { RelativeTime } from '../../components/time/relative-time.tsx';
+import { CopyButton } from '../../components/ui/copy-button.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
 import { type ActorProfile, useActorProfile } from '../../hooks/actors/use-actor.ts';
 import { isLocalTimelineMessageMetadata } from '../../hooks/chats/chat-timeline-messages.ts';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
@@ -90,7 +90,7 @@ const newTurnGapClassName = '';
 // cap (the name's line box has ~3px of half-leading above the glyphs), so
 // the avatar reads inline with the sender line rather than floating high.
 const turnAvatarBaseClassName =
-    'mt-1.5 size-10 min-w-10 self-start ring-1 ring-border-subtle group-has-data-[slot=message-footer]/message:translate-y-0';
+    'mt-1.5 size-10 min-w-10 self-start ring-1 ring-separator group-has-data-[slot=message-footer]/message:translate-y-0';
 // The character head is the avatar: a square-ish little character at the
 // same footprint and roundedness as the people avatars beside it.
 const faceStyle = { flexShrink: 0, height: 40, overflow: 'visible', width: 40 } as const;
@@ -123,7 +123,7 @@ export function TranscriptEntryView({
         if (entry.item.kind === 'row' && entry.item.row.kind === 'message') {
             return (
                 <ThreadMessageSurface row={entry.item.row}>
-                    <p className="flex justify-center gap-2 px-5 py-2 text-center text-meta text-muted-foreground">
+                    <p className="flex justify-center gap-2 px-5 py-2 text-center text-meta text-muted">
                         <span>{entry.item.row.message.content}</span>
                         <span aria-hidden="true">·</span>
                         <RelativeTime value={entry.item.row.message.timestamp} />
@@ -390,17 +390,14 @@ function TurnHeader({
                 </span>
             )}
             {bio ? (
-                <span className="min-w-0 truncate text-foreground-tertiary text-meta leading-5">
+                <span className="min-w-0 truncate text-meta text-muted leading-5">
                     {bio.length > turnHeaderBioMaxChars
                         ? `${bio.slice(0, turnHeaderBioMaxChars).trimEnd()}…`
                         : bio}
                 </span>
             ) : null}
             {timestamp ? (
-                <time
-                    className="shrink-0 text-foreground-tertiary text-meta tabular-nums"
-                    dateTime={timestamp}
-                >
+                <time className="shrink-0 text-meta text-muted tabular-nums" dateTime={timestamp}>
                     {formatShortTime(timestamp)}
                 </time>
             ) : null}
@@ -613,9 +610,10 @@ function AgentTurnPresentation({
                             ? () => openAgentProfilePane(profilePaneChatId, actorId)
                             : undefined
                     }
-                    // self-start keeps the trigger button from stretching to
-                    // the row height and re-centering the avatar it wraps.
-                    triggerClassName="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    triggerButtonClassName="cursor-pointer rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    // self-start keeps the trigger from stretching to the row
+                    // height and re-centering the avatar it wraps.
+                    triggerClassName="shrink-0 self-start"
                 >
                     <TurnAvatar
                         actorKind="agent"
@@ -1063,7 +1061,7 @@ function AssistantReplyText({
                 animatedRanges={animatedRanges}
                 contentOverride={revealedText}
                 message={message}
-                textClassName={isCommentary ? 'text-muted-foreground' : undefined}
+                textClassName={isCommentary ? 'text-muted' : undefined}
             />
         )
     ) : (
@@ -1223,7 +1221,7 @@ function AgentTurnStatus({
     // the text's muted color so the row reads as a footnote under whatever
     // the turn already produced.
     return (
-        <p className="max-w-[34rem] pl-0.5 text-muted-foreground text-sm leading-5">
+        <p className="max-w-[34rem] pl-0.5 text-muted text-sm leading-5">
             <Icon
                 aria-hidden
                 className="mr-1.5 inline-block size-3.5 shrink-0 align-[-0.2em]"
@@ -1267,7 +1265,7 @@ function TranscriptMessageActions({
 // cursor-default overrides the button primitive's cursor-pointer: clickable
 // app chrome keeps the regular arrow cursor.
 const messageActionButtonClassName =
-    'inline-flex size-5 cursor-default items-center justify-center rounded-md border-0 bg-transparent p-0 text-foreground-tertiary shadow-none hover:bg-transparent hover:text-foreground';
+    'inline-flex size-5 cursor-default items-center justify-center rounded-md border-0 bg-transparent p-0 text-muted shadow-none hover:bg-transparent hover:text-foreground';
 
 function getLastMessage(items: TranscriptItem[]) {
     for (let index = items.length - 1; index >= 0; index -= 1) {

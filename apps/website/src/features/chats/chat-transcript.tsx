@@ -6,7 +6,7 @@ import {
     MessageScrollerItem,
     MessageScrollerProvider,
     MessageScrollerViewport,
-} from '../../components/ui/message-scroller.tsx';
+} from '../../components/chats/message-scroller.tsx';
 import { useChatSidePane } from '../../hooks/pane/use-chat-side-pane.ts';
 import { useMessageFlash } from '../../hooks/threads/use-message-flash.ts';
 import { openThreadPane, useThreadPane } from '../../hooks/threads/use-thread-pane.ts';

@@ -1,5 +1,5 @@
+import { Chip } from '@heroui/react';
 import { cn } from '../../lib/utils.ts';
-import { BadgeDivider } from './badge-divider.tsx';
 
 function sameDay(left: Date, right: Date) {
     return (
@@ -31,10 +31,22 @@ export function formatDayLabel(value: string | Date) {
     });
 }
 
+/**
+ * Day marker for the transcript: a hairline broken by a centered chip. The
+ * hairline is split into two flex rules rather than drawn behind the chip so
+ * the chip needs no opaque backplate of its own.
+ */
 export function DayDivider({ className, label }: { className?: string; label: string }) {
     return (
-        <BadgeDivider badgeLocation="center" className={cn('py-0.5', className)}>
-            {label}
-        </BadgeDivider>
+        <div
+            className={cn('relative flex min-w-0 items-center gap-3 py-0.5', className)}
+            data-slot="day-divider"
+        >
+            <span aria-hidden className="min-w-6 flex-1 border-separator border-t" />
+            <Chip color="accent" size="sm" variant="soft">
+                {label}
+            </Chip>
+            <span aria-hidden className="min-w-6 flex-1 border-separator border-t" />
+        </div>
     );
 }

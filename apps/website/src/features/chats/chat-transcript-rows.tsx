@@ -1,6 +1,6 @@
 import type { AgentCharacter } from '@tavern/api/agent-appearance';
 import * as React from 'react';
-import { DayDivider } from '../../components/ui/day-divider.tsx';
+import { DayDivider } from '../../components/chats/day-divider.tsx';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import { SessionLogHiddenCount } from '../sessions/session-log-hidden-count.tsx';
 import type { TranscriptActor, TranscriptEntry, TranscriptItem } from './chat-transcript-model.ts';

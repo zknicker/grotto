@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import {
     Message,
     MessageAvatar,
     MessageContent,
     MessageHeader,
-} from '../../components/ui/message.tsx';
+} from '../../components/chats/message.tsx';
+import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { useAgentList } from '../../hooks/agents/use-agent-list.ts';
 import type { ChatComposition } from '../../hooks/chats/use-chat-compositions.ts';
 import { useChatCompositions } from '../../hooks/chats/use-chat-compositions.ts';

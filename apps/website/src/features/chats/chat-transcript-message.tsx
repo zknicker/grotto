@@ -1,14 +1,14 @@
+import { Alert } from '@heroui/react';
 import { FileTextIcon } from 'lucide-react';
 import * as React from 'react';
-import { Alert, AlertTitle } from '../../components/ui/alert.tsx';
 import {
     Attachment,
     AttachmentContent,
     AttachmentDescription,
+    AttachmentDownloadLink,
     AttachmentMedia,
     AttachmentTitle,
-    AttachmentTrigger,
-} from '../../components/ui/attachment.tsx';
+} from '../../components/chats/attachment.tsx';
 import { useAgentAppearanceLookup } from '../../hooks/agents/use-agent-appearance.ts';
 import type { ChatLogOutput, SessionHistoryOutput } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
@@ -53,8 +53,10 @@ export function ChatTranscriptMessageContent({
 
     if (isErrorEvent) {
         return (
-            <Alert variant="error">
-                <AlertTitle>Error - session ended unexpectedly</AlertTitle>
+            <Alert status="danger">
+                <Alert.Content>
+                    <Alert.Title>Error - session ended unexpectedly</Alert.Title>
+                </Alert.Content>
             </Alert>
         );
     }
@@ -111,14 +113,9 @@ export function ChatTranscriptMessageAttachments({
                             <AttachmentTitle>{attachment.filename}</AttachmentTitle>
                             <AttachmentDescription>{attachment.mediaType}</AttachmentDescription>
                         </AttachmentContent>
-                        <AttachmentTrigger
-                            aria-label={`Download ${attachment.filename}`}
-                            render={
-                                <a download={attachment.filename} href={dataUrl}>
-                                    <span className="sr-only">Download {attachment.filename}</span>
-                                </a>
-                            }
-                        />
+                        <AttachmentDownloadLink download={attachment.filename} href={dataUrl}>
+                            <span className="sr-only">Download {attachment.filename}</span>
+                        </AttachmentDownloadLink>
                     </Attachment>
                 );
             })}

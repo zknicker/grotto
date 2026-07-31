@@ -57,7 +57,7 @@ export function useComposerFileDrop({
             return;
         }
 
-        const element = document.querySelector<HTMLElement>('[data-slot="app-shell-main"]');
+        const element = document.querySelector<HTMLElement>('[data-slot="chat-surface"]');
 
         if (!element) {
             return;

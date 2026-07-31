@@ -16,7 +16,7 @@ export function ChatComposerMainDropOverlay({
     const [container, setContainer] = React.useState<HTMLElement | null>(null);
 
     React.useEffect(() => {
-        setContainer(document.querySelector<HTMLElement>('[data-slot="app-shell-main"]'));
+        setContainer(document.querySelector<HTMLElement>('[data-slot="chat-surface"]'));
     }, []);
 
     if (!container) {
@@ -29,7 +29,7 @@ export function ChatComposerMainDropOverlay({
                 <motion.div
                     animate={{ opacity: 1, transform: 'scale(1)' }}
                     aria-hidden
-                    className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center border-2 border-accent border-dotted bg-accent-soft backdrop-blur-[1px] md:rounded-[calc(var(--main-radius)-1px)]"
+                    className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center border-2 border-accent border-dotted bg-accent-soft backdrop-blur-[1px]"
                     data-testid="chat-main-file-drop-overlay"
                     exit={
                         shouldReduceMotion

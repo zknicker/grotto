@@ -189,7 +189,11 @@ export function ServerChat({
     ) : null;
 
     return (
-        <section aria-label={chatName} className="flex min-h-0 flex-1">
+        <section
+            aria-label={chatName}
+            className="relative flex min-h-0 flex-1"
+            data-slot="chat-surface"
+        >
             <ChatDetailFrame
                 activeReplies={[]}
                 body={

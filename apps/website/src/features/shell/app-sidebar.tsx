@@ -1,7 +1,7 @@
-import { Plus } from '@hugeicons/core-free-icons';
-import { Activity03Icon, ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Button } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
+import { Plus } from '@hugeicons/core-free-icons';
+import { Activity03Icon, ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../components/ui/icon.tsx';

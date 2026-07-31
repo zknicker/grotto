@@ -1,12 +1,12 @@
-import { ArrowLeft01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Sidebar } from '@heroui-pro/react';
+import { ArrowLeft01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { serverActivityRoute, serverSettingsSectionRoute } from '../servers/server-routes.ts';
 import {
+    type SettingsRouteTab,
     settingsNavItems,
     settingsNavSections,
-    type SettingsRouteTab,
 } from '../settings/layout/navigation.ts';
-import { serverActivityRoute, serverSettingsSectionRoute } from '../servers/server-routes.ts';
 
 const hostedHiddenSettings: ReadonlySet<string> = new Set(['agent-runtime']);
 

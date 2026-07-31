@@ -24,11 +24,11 @@ import {
     serverSettingsRoute,
     serverTasksRoute,
 } from '../../features/servers/server-routes.ts';
-import { type AppRailSection, AppRail } from '../../features/shell/app-rail.tsx';
+import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
+import { AppRail, type AppRailSection } from '../../features/shell/app-rail.tsx';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
-import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerAgentLifecycle } from '../../hooks/servers/use-server-agent-lifecycle.ts';

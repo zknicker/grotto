@@ -1,6 +1,6 @@
 import { SignedIn, SignedOut, useClerk, useUser } from '@clerk/clerk-react';
-import { Logout01Icon, UserCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Button, Tooltip } from '@heroui/react';
+import { Logout01Icon, UserCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';

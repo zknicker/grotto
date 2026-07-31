@@ -32,6 +32,14 @@ not proposals.
    BEM class overrides, in one place, tweakable later. This migration exists to
    simplify — if a screen needs bespoke CSS scattered in components, the design
    is wrong.
+   The theme layer (`apps/website/src/styles/grotto-theme.css`) is a **minimal
+   override** of HeroUI's default theme, not a fork: it changes only what
+   carries Grotto identity (accent, warm-stone neutral hue, radius, fonts) and
+   inherits everything else. Every value must stay reproducible in the HeroUI
+   Pro Design Systems editor so the theme can be maintained there and
+   re-exported. Do not add derived/calculated token systems on top. Matching
+   the retired kit's exact look is explicitly a non-goal — greenfield HeroUI
+   wins over pixel continuity with the old UI.
 5. **HeroUI best practices.** Tailwind v4, `@import "tailwindcss"` →
    `@import "@heroui/styles"` → `@import "@heroui-pro/react/css"` → project theme
    layer. Compound component anatomy (`Card.Header`, `Sheet.Content`), `onPress`

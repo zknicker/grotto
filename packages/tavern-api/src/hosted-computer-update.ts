@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 export const computerBootstrapProtocolVersion = 1;
 export const computerProtocolVersion = 5;

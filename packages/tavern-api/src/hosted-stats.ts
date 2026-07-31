@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 const hostedTimestampSchema = z.iso.datetime({ offset: true });
 const usageErrorSchema = z

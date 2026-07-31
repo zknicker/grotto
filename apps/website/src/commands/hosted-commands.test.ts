@@ -78,4 +78,30 @@ describe('hosted command groups', () => {
         expect(titles).not.toContain('Computers');
         expect(titles).not.toContain('Reminders');
     });
+
+    test('keeps a retired Agent DM searchable by name without send commands', () => {
+        const retiredChats = chats.map((chat) =>
+            chat.id === 'cht_cove'
+                ? {
+                      ...chat,
+                      peerAgentDisplayName: 'Cove',
+                      peerAgentRetired: true,
+                  }
+                : chat
+        );
+        const groups = buildHostedCommandGroups({
+            agents: [],
+            chats: retiredChats,
+            devMode: false,
+            navigate: () => undefined,
+            pathname: '/s/dev/chats/cht_cove',
+            role: 'owner',
+            serverSlug: 'dev',
+            setDevMode: () => undefined,
+        });
+        const titles = groups.flatMap((group) => group.commands.map((command) => command.title));
+
+        expect(titles).toContain('Cove');
+        expect(titles).not.toContain('Focus Composer');
+    });
 });

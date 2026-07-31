@@ -4,6 +4,7 @@ import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { AgentDeleteDeniedError } from '../../hosted-agents/agent-config-errors.ts';
 import { deleteHostedAgent } from '../../hosted-agents/delete-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
+import { emitServerUpdated } from '../server-events.ts';
 
 export const deleteAgentProcedure = memberProcedure
     .input(hostedDeleteAgentInputSchema)
@@ -17,6 +18,7 @@ export const deleteAgentProcedure = memberProcedure
                 agentId: result.agentId,
                 computerId: result.computerId,
             });
+            emitServerUpdated({ scope: 'agent', serverId: input.serverId });
             return { agentId: result.agentId };
         } catch (cause) {
             if (cause instanceof AgentDeleteDeniedError) {

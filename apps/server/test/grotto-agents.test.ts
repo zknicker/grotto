@@ -348,6 +348,99 @@ test('retires an Agent immediately, preserves authored history, and then permits
     expect(detachedTombstone).toEqual([{ computer_id: null }]);
 });
 
+test('keeps a retired Agent DM readable and rejects new sends', async () => {
+    const created = await owner.trpc.agent.create.mutate({
+        computerId: computerB,
+        displayName: 'Fen',
+        handle: 'fen',
+        modelId: 'pi',
+        role: 'member',
+        runtimeId: 'pi',
+        serverId,
+    });
+    const dmChatId = created.chat.id;
+
+    // A normal DM send arms durable delivery for an active Agent.
+    await owner.trpc.chat.send.mutate({
+        chatId: dmChatId,
+        content: 'Hello Fen',
+        nonce: crypto.randomUUID(),
+        serverId,
+    });
+    const armed = (await harness.sql`
+        select agent_id from agent_delivery where agent_id = ${created.agent.id}
+    `) as { agent_id: string }[];
+    expect(armed).toEqual([{ agent_id: created.agent.id }]);
+
+    const update = Promise.withResolvers<void>();
+    const started = Promise.withResolvers<void>();
+    const subscription = member.trpc.server.onUpdate.subscribe(
+        { serverId },
+        {
+            onData: (event) => {
+                if (event.scope === 'agent') {
+                    update.resolve();
+                }
+            },
+            onError: (error) => update.reject(error),
+            onStarted: () => started.resolve(),
+        }
+    );
+    await started.promise;
+
+    await owner.trpc.agent.delete.mutate({
+        agentId: created.agent.id,
+        confirmation: 'Fen',
+        serverId,
+    });
+    await update.promise;
+    subscription.unsubscribe();
+
+    // The Owner DM stays listed, reachable, and clearly flagged retired even
+    // though the Agent has left every active member control.
+    expect(await owner.trpc.agent.list.query({ serverId })).toEqual([]);
+    const listed = (await owner.trpc.chat.list.query({ serverId })).find(
+        (chat) => chat.id === dmChatId
+    );
+    expect(listed).toMatchObject({
+        id: dmChatId,
+        peerAgentDisplayName: 'Fen',
+        peerAgentId: created.agent.id,
+        peerAgentRetired: true,
+    });
+
+    await expect(
+        owner.trpc.chat.send.mutate({
+            chatId: dmChatId,
+            content: 'Still there?',
+            nonce: crypto.randomUUID(),
+            serverId,
+        })
+    ).rejects.toThrow(/retired/u);
+    await expect(
+        owner.trpc.task.create.mutate({
+            chatId: dmChatId,
+            content: 'Task the retired Agent',
+            nonce: crypto.randomUUID(),
+            serverId,
+        })
+    ).rejects.toThrow(/retired/u);
+    const delivery = await harness.sql`
+        select agent_id from agent_delivery where agent_id = ${created.agent.id}
+    `;
+    const pending = await harness.sql`
+        select id from agent_pending_work where agent_id = ${created.agent.id}
+    `;
+    expect(delivery).toEqual([]);
+    expect(pending).toEqual([]);
+    const stored = (await harness.sql`
+        select content from chat_messages
+        where chat_id = ${dmChatId} and author_user_id = ${ownerUserId}
+          and content in ('Still there?', 'Task the retired Agent')
+    `) as { content: string }[];
+    expect(stored).toEqual([]);
+});
+
 async function insertComputer(
     computerServerId: string,
     computerId: string,

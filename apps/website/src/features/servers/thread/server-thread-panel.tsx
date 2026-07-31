@@ -27,6 +27,7 @@ export function ServerThreadPanel({
     initialThreadChatId,
     onClose,
     onViewInChannel,
+    readOnly,
     summary,
     takeover,
 }: {
@@ -37,6 +38,7 @@ export function ServerThreadPanel({
     initialThreadChatId?: string;
     onClose: () => void;
     onViewInChannel: () => void;
+    readOnly: boolean;
     summary: HostedThreadSummary | null;
     takeover: boolean;
 }) {
@@ -119,18 +121,24 @@ export function ServerThreadPanel({
                             />
                         </div>
                     </div>
-                    <div className="shrink-0 border-border-subtle border-t py-3">
-                        <ServerChatComposer
-                            agents={agents}
-                            chatId={chat.id}
-                            chatName={titles.header}
-                            compositionChatId={threadChatId}
-                            onThreadCreated={setCreatedThreadChatId}
-                            placeholder="Message thread"
-                            serverId={chat.serverId}
-                            thread={{ anchorMessageId: anchor.id }}
-                        />
-                    </div>
+                    {readOnly ? (
+                        <p className="shrink-0 border-border-subtle border-t px-4 py-3 text-muted-foreground text-xs">
+                            This conversation is read-only because the Agent has been retired.
+                        </p>
+                    ) : (
+                        <div className="shrink-0 border-border-subtle border-t py-3">
+                            <ServerChatComposer
+                                agents={agents}
+                                chatId={chat.id}
+                                chatName={titles.header}
+                                compositionChatId={threadChatId}
+                                onThreadCreated={setCreatedThreadChatId}
+                                placeholder="Message thread"
+                                serverId={chat.serverId}
+                                thread={{ anchorMessageId: anchor.id }}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
         </ChatSidePaneShell>

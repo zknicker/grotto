@@ -3,7 +3,11 @@ import { AttachmentAssociationError } from '../../attachments/message-attachment
 import { ChatAccessDeniedError, ChatNotFoundError } from '../../chats/chat-access.ts';
 import { ChannelAgentNotFoundError, ChannelNameTakenError } from '../../chats/create-channel.ts';
 import { DmPeerNotFoundError, InvalidDmPeerError } from '../../chats/ensure-dm.ts';
-import { ChatNonceConflictError, DirectThreadSendError } from '../../chats/send-message.ts';
+import {
+    ChatNonceConflictError,
+    DirectThreadSendError,
+    RetiredAgentDmSendError,
+} from '../../chats/send-message.ts';
 import { InvalidThreadAnchorError, NestedThreadError } from '../../threads/ensure-thread.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
@@ -25,6 +29,10 @@ export const chatProcedure = memberProcedure.use(async ({ next }) => {
     }
 
     if (cause instanceof ChatNonceConflictError) {
+        throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
+    }
+
+    if (cause instanceof RetiredAgentDmSendError) {
         throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 

@@ -37,7 +37,7 @@ export async function planAgentMessageRecipients(
     }
     if (chat.kind === 'dm') {
         return chat.dmAgentId && chat.dmAgentId !== input.authorAgentId
-            ? [{ agentId: chat.dmAgentId, pierced: false }]
+            ? await activeDmRecipient(db, input.serverId, chat.dmAgentId)
             : [];
     }
 
@@ -53,7 +53,7 @@ export async function planAgentMessageRecipients(
             .limit(1);
         if (parent?.kind === 'dm') {
             return parent.dmAgentId && parent.dmAgentId !== input.authorAgentId
-                ? [{ agentId: parent.dmAgentId, pierced: false }]
+                ? await activeDmRecipient(db, input.serverId, parent.dmAgentId)
                 : [];
         }
     }
@@ -142,6 +142,29 @@ export async function planAgentMessageRecipients(
         }
         return [{ agentId, pierced: isMentioned && (isMuted || !followed) }];
     });
+}
+
+/**
+ * A retired Agent keeps its durable DM history but can never receive new work,
+ * so a DM (or a DM Thread) resolves a recipient only while the Agent is active.
+ */
+async function activeDmRecipient(
+    db: GrottoDatabase,
+    serverId: string,
+    agentId: string
+): Promise<AgentMessageRecipientPlan[]> {
+    const [agent] = await db
+        .select({ id: agentsTable.id })
+        .from(agentsTable)
+        .where(
+            and(
+                eq(agentsTable.serverId, serverId),
+                eq(agentsTable.id, agentId),
+                isNull(agentsTable.retiredAt)
+            )
+        )
+        .limit(1);
+    return agent ? [{ agentId, pierced: false }] : [];
 }
 
 function mentionedAgentIds(

@@ -1,7 +1,7 @@
 import type { HostedChat } from '@tavern/api';
 import { and, eq, ne, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { chatsTable } from '../postgres/schema.ts';
+import { agentsTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { readHostedThreadAttentionCounts } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -43,12 +43,19 @@ export async function listHostedChats(
                     )
                 end
             `,
+            peerAgentDisplayName: sql<string | null>`
+                case
+                    when ${chatsTable.kind} = 'dm' then ${agentsTable.displayName}
+                    else null
+                end
+            `,
             peerAgentId: sql<string | null>`
                 case
                     when ${chatsTable.kind} = 'dm' then ${chatsTable.dmAgentId}
                     else null
                 end
             `,
+            peerAgentRetired: sql<boolean>`${agentsTable.retiredAt} is not null`,
             peerUserId: sql<string | null>`
                 case
                     when ${chatsTable.kind} = 'dm' and ${chatsTable.dmAgentId} is null
@@ -85,6 +92,13 @@ export async function listHostedChats(
             `,
         })
         .from(chatsTable)
+        .leftJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, chatsTable.serverId),
+                eq(agentsTable.id, chatsTable.dmAgentId)
+            )
+        )
         .where(
             and(
                 eq(chatsTable.serverId, serverId),

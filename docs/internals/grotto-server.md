@@ -423,6 +423,10 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   files to the hosted Server, renders only attachment metadata in messages,
   and performs authenticated downloads.
   An author already visible in the transcript is the entry point for their DM.
+  A retired Agent's Owner DM stays listed and reachable by direct URL, keeps the
+  Agent's name, and is labeled Retired with closed Chat and Thread composers;
+  the retired Agent is absent from every other member control and receives no
+  new sends or task messages.
   Message replies open hidden child Threads in the resizable side pane; Threads
   never enter the hosted sidebar Chat list.
   Task rows open the canonical message's existing child Thread. Task controls

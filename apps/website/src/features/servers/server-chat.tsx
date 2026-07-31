@@ -2,6 +2,7 @@ import { SidebarRightIcon, UserMultiple02Icon } from '@hugeicons-pro/core-stroke
 import type { HostedAgent, HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
 import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
+import { Badge } from '../../components/ui/badge.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
 import { useEnsureServerDm } from '../../hooks/servers/use-ensure-server-dm.ts';
@@ -83,10 +84,13 @@ export function ServerChat({
         serverId: messages.data ? chat.serverId : undefined,
     });
     const ensureDm = useEnsureServerDm(onOpenChat);
+    const peerRetired = chat.kind === 'dm' && chat.peerAgentRetired;
     const chatName =
         chat.kind === 'channel'
             ? (chat.name ?? 'channel')
-            : `Direct · ${shortUserId(chat.peerUserId)}`;
+            : chat.peerAgentId
+              ? (chat.peerAgentDisplayName ?? 'Agent')
+              : `Direct · ${shortUserId(chat.peerUserId)}`;
     const threadSummary =
         messages.data?.threads.find(
             (summary) => summary.anchorMessageId === threadSelection?.anchor.id
@@ -117,6 +121,7 @@ export function ServerChat({
             key={threadSelection.anchor.id}
             onClose={closeThread}
             onViewInChannel={viewThreadInChannel}
+            readOnly={peerRetired}
             summary={threadSummary}
             takeover={threadTakeover}
         />
@@ -146,7 +151,7 @@ export function ServerChat({
                 footer={
                     viewTab === 'chat' ? (
                         <>
-                            {ensureDm.error ? (
+                            {ensureDm.error && !peerRetired ? (
                                 <p className="px-9 text-destructive text-xs">
                                     {ensureDm.error.message}
                                 </p>
@@ -154,14 +159,21 @@ export function ServerChat({
                             <span className="sr-only" data-testid="read-state">
                                 {read.data ? `Read through ${read.data.sequence}` : ''}
                             </span>
-                            <ServerChatComposer
-                                agents={agents}
-                                chatId={chat.id}
-                                chatName={chatName}
-                                compositionChatId={chat.id}
-                                placeholder="Let's go on an adventure..."
-                                serverId={chat.serverId}
-                            />
+                            {peerRetired ? (
+                                <p className="mx-auto w-full max-w-none px-9 pb-4 text-muted-foreground text-xs">
+                                    {chatName} has been retired. You can read this conversation, but
+                                    you can’t send new messages.
+                                </p>
+                            ) : (
+                                <ServerChatComposer
+                                    agents={agents}
+                                    chatId={chat.id}
+                                    chatName={chatName}
+                                    compositionChatId={chat.id}
+                                    placeholder="Let's go on an adventure..."
+                                    serverId={chat.serverId}
+                                />
+                            )}
                         </>
                     ) : null
                 }
@@ -173,6 +185,7 @@ export function ServerChat({
                             chat={chat}
                             chatName={chatName}
                             onToggleArtifacts={artifactState.toggleVisible}
+                            retired={peerRetired}
                         />
                         <ChatViewTabs onValueChange={setViewTab} value={viewTab} />
                     </>
@@ -232,11 +245,13 @@ function HostedChatTopbar({
     chat,
     chatName,
     onToggleArtifacts,
+    retired,
 }: {
     artifactVisible: boolean;
     chat: HostedChat;
     chatName: string;
     onToggleArtifacts: () => void;
+    retired: boolean;
 }) {
     return (
         <ChatRoomTopbarPresentation
@@ -268,6 +283,7 @@ function HostedChatTopbar({
                     <h1 className="min-w-0 truncate font-semibold text-foreground text-sm">
                         {chatName}
                     </h1>
+                    {retired ? <Badge variant="secondary">Retired</Badge> : null}
                 </>
             }
         />

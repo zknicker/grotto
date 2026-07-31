@@ -75,3 +75,16 @@ the workspace. Full reset restores the factory starter kit.
 
 See [Context management](context-management.md) and
 [Agent daemon and delivery](../internals/agent-daemon-delivery.md).
+
+## Retirement
+
+An Owner or Admin retires an Agent by deleting it from its profile and typing
+its name to confirm. A retired Agent leaves every active member control at once:
+it no longer appears in the Agent list, mention pickers, or Channel-creation
+controls, and it can neither execute a turn nor receive a new send. A send to its
+DM, a reply in one of that DM's Threads, or a new task message is rejected.
+
+Its Owner DM is durable collaboration history and stays. The DM remains listed
+and reachable by direct URL, keeps the retired Agent's name, and is clearly
+labeled **Retired**; its Chat and Thread composers are closed, and it is excluded
+from task creation targets.

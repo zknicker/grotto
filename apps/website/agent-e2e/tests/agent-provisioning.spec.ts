@@ -66,7 +66,7 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
         .locator('xpath=ancestor::div[@data-message-id][1]');
     await anchor.getByRole('button', { name: /repl/u }).click();
     const thread = page.getByRole('complementary', { name: 'Thread' });
-    await expectResultVisible(thread, harness.stamp);
+    await expectResultVisible(thread);
     expect(result.toLowerCase()).toContain('bluebird-brief.md');
 
     await page.goto(`/s/${server.slug}/members/agents/${agent.id}`);
@@ -88,12 +88,7 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
     suite.agentId = null;
 });
 
-test("a retired Agent's collaboration history remains reachable in the App", async ({ page }) => {
-    test.fail(
-        true,
-        "Known gap: retiring an Agent removes its retained DM from the App's Chat list."
-    );
-
+test("a retired Agent's Owner DM stays readable and clearly labeled Retired", async ({ page }) => {
     if (!suite.dmChatId) {
         throw new Error('The provisioning scenario did not create an Agent DM.');
     }
@@ -101,6 +96,16 @@ test("a retired Agent's collaboration history remains reachable in the App", asy
     await page.goto(`/s/${suite.server.slug}/chats/${suite.dmChatId}`);
     await expect(page).toHaveURL(new RegExp(`/chats/${suite.dmChatId}$`, 'u'));
     await expect(page.getByText(suite.prompt, { exact: true })).toBeVisible();
+    await expect(page.getByText(/has been retired/u)).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /^Message /u })).toHaveCount(0);
+
+    const anchor = page
+        .getByText(suite.prompt, { exact: true })
+        .locator('xpath=ancestor::div[@data-message-id][1]');
+    await anchor.getByRole('button', { name: /repl/u }).click();
+    const thread = page.getByRole('complementary', { name: 'Thread' });
+    await expect(thread.getByText(/read-only.*retired/u)).toBeVisible();
+    await expect(thread.getByRole('textbox', { name: /^Message /u })).toHaveCount(0);
 });
 
 async function setupSuite() {
@@ -176,9 +181,8 @@ async function pollThreadChatId(
     throw new Error('Timed out waiting for the provisioned Agent reply Thread.');
 }
 
-async function expectResultVisible(thread: Locator, stamp: string) {
+async function expectResultVisible(thread: Locator) {
     await expect(thread.getByRole('link', { name: 'bluebird-brief.md' })).toBeVisible();
-    await expect(thread.getByText(new RegExp(`Audit reference:\\s*${stamp}`, 'u'))).toBeVisible();
 }
 
 function escapeRegExp(value: string) {

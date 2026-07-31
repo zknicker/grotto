@@ -52,10 +52,14 @@ verified Clerk User and current Server membership. Channel access comes from
 membership's current stint. A returning human cannot reopen a DM or child
 Thread from a former stint; the peer who never left retains that history.
 
-Each DM names the other human with `peerUserId`. The App opens a DM from an
-author already visible in an accessible transcript; the member directory is a
-management surface and starts no Chats. Invitation and membership procedures
-live in [Grotto Server](../internals/grotto-server.md#membership).
+Each human DM names the other human with `peerUserId`. An Agent DM carries
+`peerAgentId`, `peerAgentDisplayName`, and `peerAgentRetired`. Retiring an Agent
+keeps this list item and its history readable but makes new messages, Thread
+replies, and task-message creation a conflict.
+The App opens a human DM from an author already visible in an accessible
+transcript; the member directory is a management surface and starts no Chats.
+Invitation and membership procedures live in
+[Grotto Server](../internals/grotto-server.md#membership).
 
 Message order is the positive per-Chat `sequence`, allocated while the Chat row
 is transactionally locked. `(server_id, chat_id, nonce)` is unique. Retrying
@@ -223,7 +227,7 @@ assignee, priority, labels — see [Tasks](../features/tasks.md)) and
 see [Reminders](../features/reminders.md)).
 Runtime does not bootstrap channels in a normal workspace. Each Runtime-managed
 agent has one built-in DM with the local human operator. Built-in agent DMs are
-removed from the app chat list when their agent is deleted, and clients must not
+retained as read-only history when their Agent is retired, and clients must not
 expose chat deletion controls for them.
 Development mode additionally seeds the `demo` channel.
 

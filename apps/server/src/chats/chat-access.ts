@@ -22,6 +22,7 @@ export class ChatAccessDeniedError extends Error {
 }
 
 export interface AccessibleChat {
+    dmAgentId: string | null;
     dmMemberOneStint: number | null;
     dmMemberOneUserId: string | null;
     dmMemberTwoStint: number | null;
@@ -70,6 +71,7 @@ export async function findHostedChatAccess(
 ): Promise<AccessibleChat | null> {
     const [chat] = await db
         .select({
+            dmAgentId: chatsTable.dmAgentId,
             dmMemberOneStint: chatsTable.dmMemberOneStint,
             dmMemberOneUserId: chatsTable.dmMemberOneUserId,
             dmMemberTwoStint: chatsTable.dmMemberTwoStint,
@@ -92,6 +94,7 @@ export async function findHostedChatAccess(
 
     return chat
         ? {
+              dmAgentId: chat.dmAgentId,
               dmMemberOneStint: chat.dmMemberOneStint,
               dmMemberOneUserId: chat.dmMemberOneUserId,
               dmMemberTwoStint: chat.dmMemberTwoStint,

@@ -80,7 +80,7 @@ test('treats Agent-owned tasks as assigned in task filters', () => {
     expect(filterServerTasks([task], { query: '', view: 'unassigned' })).toEqual([]);
 });
 
-test('offers both Channels and DMs as task creation work surfaces', () => {
+test('offers writable Channels and DMs as task creation work surfaces', () => {
     expect(
         serverTaskChatOptions([
             {
@@ -92,7 +92,9 @@ test('offers both Channels and DMs as task creation work surfaces', () => {
                 lastMessageSequence: 0,
                 name: 'all',
                 participantUserIds: ['user_viewer'],
+                peerAgentDisplayName: null,
                 peerAgentId: null,
+                peerAgentRetired: false,
                 peerUserId: null,
                 serverId: 'server_one',
                 unreadCount: 0,
@@ -106,8 +108,42 @@ test('offers both Channels and DMs as task creation work surfaces', () => {
                 lastMessageSequence: 0,
                 name: null,
                 participantUserIds: ['user_viewer', 'user_peer'],
+                peerAgentDisplayName: null,
                 peerAgentId: null,
+                peerAgentRetired: false,
                 peerUserId: 'user_peer',
+                serverId: 'server_one',
+                unreadCount: 0,
+            },
+            {
+                createdAt: '2026-07-26T12:00:00.000Z',
+                id: 'chat_agent_dm',
+                isAll: false,
+                kind: 'dm',
+                lastActivityAt: '2026-07-26T12:00:00.000Z',
+                lastMessageSequence: 0,
+                name: null,
+                participantUserIds: ['user_viewer'],
+                peerAgentDisplayName: 'Cove',
+                peerAgentId: 'agent_cove',
+                peerAgentRetired: false,
+                peerUserId: null,
+                serverId: 'server_one',
+                unreadCount: 0,
+            },
+            {
+                createdAt: '2026-07-26T12:00:00.000Z',
+                id: 'chat_retired_agent_dm',
+                isAll: false,
+                kind: 'dm',
+                lastActivityAt: '2026-07-26T12:00:00.000Z',
+                lastMessageSequence: 0,
+                name: null,
+                participantUserIds: ['user_viewer'],
+                peerAgentDisplayName: 'Fen',
+                peerAgentId: 'agent_fen',
+                peerAgentRetired: true,
+                peerUserId: null,
                 serverId: 'server_one',
                 unreadCount: 0,
             },
@@ -115,6 +151,7 @@ test('offers both Channels and DMs as task creation work surfaces', () => {
     ).toEqual([
         { id: 'chat_channel', label: '#all' },
         { id: 'chat_dm', label: 'Direct · Human r_peer' },
+        { id: 'chat_agent_dm', label: 'Direct · Cove' },
     ]);
 });
 

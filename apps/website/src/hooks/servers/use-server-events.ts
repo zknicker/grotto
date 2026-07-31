@@ -44,6 +44,11 @@ type ServerEventUtils = ReturnType<typeof grottoTrpc.useUtils>;
 
 export function createServerUpdateHandler(utils: ServerEventUtils, serverId: string | undefined) {
     return (event: { scope: string }) => {
+        if (event.scope === 'agent') {
+            void utils.agent.list.invalidate({ serverId });
+            void utils.chat.list.invalidate({ serverId });
+            return;
+        }
         if (event.scope === 'computer') {
             void utils.computer.list.invalidate({ serverId });
             void utils.agent.list.invalidate({ serverId });

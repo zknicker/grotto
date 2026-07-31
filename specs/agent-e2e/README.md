@@ -92,7 +92,7 @@ Status values:
 | P2 | An Owner creates an Agent from reported Computer/runtime/model choices and can message it. | Agent E2E + Browser E2E | passing |
 | P3 | A new general-purpose Agent starts with its workspace, memory, managed skills, and onboarding guidance ready. | Agent E2E + deterministic starter-kit contract | passing |
 | P4 | Invalid or unavailable runtime/model choices fail closed while offline desired configuration remains visible. | Deterministic configuration | passing |
-| P5 | Deleting an Agent retires execution state and releases work while preserving collaboration history. | Agent E2E + deterministic cleanup | quarantined |
+| P5 | Deleting an Agent retires execution state and releases work while preserving collaboration history. | Agent E2E + deterministic cleanup | passing |
 
 ### Tranche 5 — MCP, skills, and workspace
 

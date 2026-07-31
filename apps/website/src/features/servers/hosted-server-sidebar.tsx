@@ -142,8 +142,15 @@ function ChatGroup({
                                     <span className="min-w-0 flex-1 truncate">
                                         {chat.kind === 'channel'
                                             ? chat.name
-                                            : (agent?.displayName ?? 'Direct message')}
+                                            : (agent?.displayName ??
+                                              chat.peerAgentDisplayName ??
+                                              'Direct message')}
                                     </span>
+                                    {chat.peerAgentRetired ? (
+                                        <span className="shrink-0 rounded-full bg-sidebar-accent px-1.5 py-0.5 font-medium text-[0.625rem] text-sidebar-muted uppercase tracking-wide">
+                                            Retired
+                                        </span>
+                                    ) : null}
                                     {chat.unreadCount > 0 ? (
                                         <span className="flex min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 py-0.5 text-background text-micro tabular-nums">
                                             {chat.unreadCount}

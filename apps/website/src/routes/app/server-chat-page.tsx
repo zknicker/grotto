@@ -8,11 +8,15 @@ export function ServerChatPage() {
     const { chatId = '' } = useParams();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { agents, chats, server } = useHostedServerContext();
+    const { agents, chatListStatus, chats, server } = useHostedServerContext();
     const chat = chats.find((candidate) => candidate.id === chatId);
     const tasks = useServerTasks(server.id, chatId);
     const taskMessageId = searchParams.get('task');
     const initialTask = tasks.data?.find((item) => item.task.messageId === taskMessageId);
+
+    if (!chat && chatListStatus === 'loading') {
+        return null;
+    }
 
     if (!chat) {
         return <Navigate replace to={serverActivityRoute(server.slug)} />;

@@ -181,13 +181,17 @@ function buildHostedCurrentChatGroup(
 
     return {
         commands: [
-            {
-                icon: CursorTextIcon,
-                id: 'current-chat.focus-composer',
-                keywords: ['chat', 'composer', 'prompt', 'input', 'message'],
-                run: requestChatComposerFocus,
-                title: 'Focus Composer',
-            },
+            ...(currentChat.peerAgentRetired
+                ? []
+                : [
+                      {
+                          icon: CursorTextIcon,
+                          id: 'current-chat.focus-composer',
+                          keywords: ['chat', 'composer', 'prompt', 'input', 'message'],
+                          run: requestChatComposerFocus,
+                          title: 'Focus Composer',
+                      } satisfies AppCommand,
+                  ]),
             {
                 icon: CopyLinkIcon,
                 id: 'current-chat.copy-link',
@@ -263,6 +267,6 @@ function buildHostedDeveloperGroup(context: HostedCommandContext): AppCommandGro
 }
 
 function shortPeerLabel(chat: HostedChat) {
-    const id = chat.peerUserId ?? 'Direct message';
+    const id = chat.peerAgentDisplayName ?? chat.peerUserId ?? 'Direct message';
     return id.length > 24 ? `${id.slice(0, 21)}…` : id;
 }

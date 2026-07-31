@@ -4,7 +4,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
 import { findHostedChatAccess, requireChatAccess } from '../chats/chat-access.ts';
-import { ChatNonceConflictError } from '../chats/send-message.ts';
+import { ChatNonceConflictError, requireActiveDmPeer } from '../chats/send-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -104,6 +104,7 @@ export async function createHostedTask(
             }
             return { events: [], idempotent: true, task, wakes: [] };
         }
+        await requireActiveDmPeer(tx, chat);
         if (input.assigneeUserId) {
             const [active] = await tx
                 .select({ userId: serverMembershipsTable.userId })

@@ -74,6 +74,7 @@ export function ServerLayout() {
     const active = resolveActiveSection(location.pathname, slug);
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
     const agentListStatus = agents.data ? 'ready' : agents.isPending ? 'loading' : 'error';
+    const chatListStatus = chats.data ? 'ready' : chats.isPending ? 'loading' : 'error';
     const serverChoices = servers.data ?? [server.data];
     const channelAgents: ChannelAgentOption[] = (agents.data ?? []).map((agent) => ({
         effectiveCharacter: agent.character,
@@ -159,6 +160,7 @@ export function ServerLayout() {
                                 agentListStatus,
                                 agentLifecycles,
                                 agents: agents.data ?? [],
+                                chatListStatus,
                                 chats: chats.data ?? [],
                                 server: server.data,
                                 servers: servers.data ?? [],

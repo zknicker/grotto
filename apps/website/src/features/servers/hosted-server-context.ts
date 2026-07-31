@@ -7,6 +7,7 @@ export interface HostedServerContextValue {
     agentLifecycles: HostedAgentLifecycles;
     agentListStatus: 'error' | 'loading' | 'ready';
     agents: HostedAgent[];
+    chatListStatus: 'error' | 'loading' | 'ready';
     chats: HostedChat[];
     server: ServerDetail;
     servers: ServerSummary[];

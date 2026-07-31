@@ -48,16 +48,17 @@ The first tightened run incorrectly waited for an Agent message in the parent
 DM. Grotto had completed the turn and created the file in 57 seconds, but both
 Agent messages correctly lived in the source message's child Thread. The test
 now resolves that Thread from the canonical message receipt, opens it through
-the visible reply affordance, and verifies the link and audit marker there.
+the visible reply affordance, and verifies the shared file link there.
 
-The App does not match the retention contract yet. After its Chat list
-invalidates, the retired Agent's DM disappears and its direct URL redirects to
-Activity. The executable scenario records that user-visible history-access gap
-as an expected failure.
+The App now matches the retention contract. After the Chat list invalidates,
+the retired Agent's Owner DM stays listed and reachable by direct URL, keeps the
+Agent's name, and is clearly labeled Retired with a closed composer. The
+executable scenario navigates to the DM by URL and asserts the preserved
+history, the Retired label, and the absent composer.
 
 Verification:
 `TAVERN_DEV_STACK_ID=agent-e2e bun run eval:agents -- agent-provisioning.spec.ts`
-(`1 passing flow`, `1 expected failure`).
+(`2 passing flows`).
 
 Matched screenshots:
 

@@ -56,13 +56,18 @@ export function serverTaskClaimAction(
 }
 
 export function serverTaskChatOptions(chats: HostedChat[]) {
-    return chats.map((chat) => ({
-        id: chat.id,
-        label:
-            chat.kind === 'channel'
-                ? `#${chat.name}`
-                : `Direct · ${chat.peerUserId ? `Human ${chat.peerUserId.slice(-6)}` : 'Human'}`,
-    }));
+    return chats
+        .filter((chat) => !chat.peerAgentRetired)
+        .map((chat) => ({
+            id: chat.id,
+            label:
+                chat.kind === 'channel'
+                    ? `#${chat.name}`
+                    : `Direct · ${
+                          chat.peerAgentDisplayName ??
+                          (chat.peerUserId ? `Human ${chat.peerUserId.slice(-6)}` : 'Human')
+                      }`,
+        }));
 }
 
 export function toServerTask(item: HostedTaskListItem): ServerTask {

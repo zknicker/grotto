@@ -13,6 +13,7 @@ test('computer events refresh hosted workspace reads without polling', () => {
             workspaceFile: { invalidate: invalidate('agent.workspaceFile') },
             workspaceFiles: { invalidate: invalidate('agent.workspaceFiles') },
         },
+        chat: { list: { invalidate: invalidate('chat.list') } },
         computer: { list: { invalidate: invalidate('computer.list') } },
         invitation: { list: { invalidate: invalidate('invitation.list') } },
         mcp: { list: { invalidate: invalidate('mcp.list') } },
@@ -37,4 +38,22 @@ test('computer events refresh hosted workspace reads without polling', () => {
         'agent.workspaceFiles',
         'stats.live',
     ]);
+});
+
+test('Agent events refresh the active directory and durable Chat list', () => {
+    const invalidated: string[] = [];
+    const invalidate = (name: string) => async () => {
+        invalidated.push(name);
+    };
+    const utils = {
+        agent: { list: { invalidate: invalidate('agent.list') } },
+        chat: { list: { invalidate: invalidate('chat.list') } },
+    };
+
+    createServerUpdateHandler(
+        utils as Parameters<typeof createServerUpdateHandler>[0],
+        'server-one'
+    )({ scope: 'agent' });
+
+    expect(invalidated).toEqual(['agent.list', 'chat.list']);
 });

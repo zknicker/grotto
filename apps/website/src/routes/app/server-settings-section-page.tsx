@@ -25,12 +25,14 @@ import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { ServerConnectionsPage } from './server-connections-page.tsx';
 
-type SectionComputer = HostedModelsComputer & { health: string };
+interface SectionComputer extends HostedModelsComputer {
+    health: string;
+}
 
-type SectionContext = {
+interface SectionContext {
     computers: SectionComputer[];
     server: ServerSummary;
-};
+}
 
 const computerBackedSections = new Set(['browser', 'models', 'skills']);
 

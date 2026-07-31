@@ -11,9 +11,9 @@ import {
     MessageContent,
     MessageHeader,
 } from '../../components/chats/message.tsx';
+import { CopyButton } from '../../components/copy-button.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { RelativeTime } from '../../components/time/relative-time.tsx';
-import { CopyButton } from '../../components/copy-button.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { type ActorProfile, useActorProfile } from '../../hooks/actors/use-actor.ts';
 import { isLocalTimelineMessageMetadata } from '../../hooks/chats/chat-timeline-messages.ts';

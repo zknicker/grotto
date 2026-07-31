@@ -104,17 +104,26 @@ export function ServerChat({
         null;
     const initialThreadChatId = initialTask?.threadChatId;
     const threadAnchorId = searchParams.get('thread');
+    const restoredThreadAnchorRef = React.useRef<string | null>(null);
     React.useEffect(() => {
         if (initialThreadChatId) {
             setChatSidePane(chat.id, 'thread');
         }
     }, [chat.id, initialThreadChatId]);
     React.useEffect(() => {
-        if (!(threadAnchorId && transcriptMessages)) {
+        if (!threadAnchorId) {
+            restoredThreadAnchorRef.current = null;
+            return;
+        }
+        if (!transcriptMessages || restoredThreadAnchorRef.current === threadAnchorId) {
             return;
         }
         const anchor = transcriptMessages.find((message) => message.id === threadAnchorId);
-        if (!anchor || threadSelection?.anchor.id === anchor.id) {
+        if (!anchor) {
+            return;
+        }
+        restoredThreadAnchorRef.current = threadAnchorId;
+        if (threadSelection?.anchor.id === anchor.id) {
             return;
         }
         setThreadSelection({ anchor, initialSummary: null });

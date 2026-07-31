@@ -47,7 +47,7 @@ export function SessionLinkButton({
                     className={cn(
                         'min-w-0 truncate text-caption',
                         tone === 'amber'
-                            ? 'text-warning-foreground'
+                            ? 'text-legacy-warning-foreground'
                             : tone === 'sky'
                               ? 'text-info-foreground'
                               : 'text-muted-foreground'

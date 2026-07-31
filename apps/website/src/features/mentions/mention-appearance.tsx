@@ -74,17 +74,17 @@ const capabilityAppearanceOverrides = {
         label: 'Computer Use',
     },
     'computer-use/google-chrome': {
-        brandColor: 'var(--success-foreground)',
+        brandColor: 'var(--legacy-success-foreground)',
         icon: 'chrome',
         label: 'Chrome',
     },
     'chrome@openai-bundled': {
-        brandColor: 'var(--success-foreground)',
+        brandColor: 'var(--legacy-success-foreground)',
         icon: 'chrome',
         label: 'Chrome',
     },
     chrome: {
-        brandColor: 'var(--success-foreground)',
+        brandColor: 'var(--legacy-success-foreground)',
         icon: 'chrome',
         label: 'Chrome',
     },

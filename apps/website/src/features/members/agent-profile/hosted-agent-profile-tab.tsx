@@ -139,7 +139,7 @@ export function HostedAgentProfileTab({
                         </DetailFact>
                     </dl>
                     {agent.status === 'degraded' ? (
-                        <p className="text-base text-warning-foreground sm:text-sm">
+                        <p className="text-base text-legacy-warning-foreground sm:text-sm">
                             Choose an installed runtime and model to restore this Agent.
                         </p>
                     ) : null}

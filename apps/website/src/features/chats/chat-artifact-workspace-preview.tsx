@@ -94,7 +94,7 @@ export function WorkspaceArtifactContent({
                 ) : null}
             </div>
             {file.truncated ? (
-                <div className="shrink-0 border-warning/30 border-b bg-warning/10 px-3 py-2 text-warning-foreground text-xs">
+                <div className="shrink-0 border-warning/30 border-b bg-warning/10 px-3 py-2 text-legacy-warning-foreground text-xs">
                     Preview truncated. This file is {formatWorkspaceFileBytes(file.sizeBytes)}.
                 </div>
             ) : null}

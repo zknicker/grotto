@@ -46,9 +46,6 @@
     --text-6xl--line-height: 1;
     --text-code: var(--app-code-font-size);
     --text-code--line-height: 1.65;
-
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
     --color-chrome: var(--chrome);
     --color-brand: var(--brand);
     --color-brand-foreground: var(--brand-foreground);
@@ -85,8 +82,6 @@
 
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
-
-    --color-border: var(--border);
     --color-border-subtle: var(--border-subtle);
     --color-border-strong: var(--border-strong);
     --color-input: var(--input);
@@ -101,12 +96,9 @@
     --color-sidebar-accent: var(--sidebar-accent);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-ring: var(--sidebar-ring);
-
-    --color-success: var(--success);
-    --color-success-foreground: var(--success-foreground);
+    --color-legacy-success-foreground: var(--legacy-success-foreground);
     --color-success-bg: var(--success-bg);
-    --color-warning: var(--warning);
-    --color-warning-foreground: var(--warning-foreground);
+    --color-legacy-warning-foreground: var(--legacy-warning-foreground);
     --color-warning-bg: var(--warning-bg);
     --color-error: var(--error);
     --color-error-foreground: var(--error-foreground);
@@ -254,10 +246,7 @@
             'Liberation Mono', monospace;
         --app-ui-font-size: 14px;
         --app-code-font-size: calc(var(--app-ui-font-size) - 1px);
-
-        --background: color-mix(in srgb, var(--color-stone-950) 95%, var(--color-white));
         --chrome: var(--sidebar);
-        --foreground: var(--color-stone-100);
         --brand: #7b51cc;
         --brand-foreground: #f7f4ff;
         --brand-muted: --alpha(var(--brand) / 17%);
@@ -351,7 +340,6 @@
 
         /* Solid inked hairlines — opaque lines like the avatar outlines, not
            translucent washes. */
-        --border: color-mix(in srgb, var(--background) 84%, var(--color-white));
         /* Lighter hairline for quiet seams inside content surfaces — the
            opaque stand-in for the `border-border/60` alpha washes. Derived
            from vars, so the light block inherits the correct value without
@@ -379,13 +367,10 @@
         --sidebar-accent: --alpha(var(--color-white) / 5%);
         --sidebar-accent-foreground: var(--color-stone-100);
         --sidebar-ring: var(--color-stone-400);
-
-        --success: var(--color-emerald-500);
-        --success-foreground: var(--color-emerald-400);
+        --legacy-success-foreground: var(--color-emerald-400);
         --success-bg: --alpha(var(--color-emerald-500) / 10%);
         --success-border: --alpha(var(--color-emerald-500) / 20%);
-        --warning: var(--color-amber-500);
-        --warning-foreground: var(--color-amber-400);
+        --legacy-warning-foreground: var(--color-amber-400);
         --warning-bg: --alpha(var(--color-amber-500) / 10%);
         --warning-border: --alpha(var(--color-amber-500) / 20%);
         --error: var(--color-red-500);
@@ -487,9 +472,7 @@
         /* One near-white neutral ground for the whole app; every light
            surface derives from it. Keep it neutral or faintly warm — never
            pink — so it agrees with the stone borders and text mixes below. */
-        --background: #f8f8f8;
         --chrome: var(--sidebar);
-        --foreground: var(--color-stone-800);
         --brand: #7b51cc;
         --brand-foreground: #f7f4ff;
         --brand-muted: --alpha(var(--brand) / 13%);
@@ -562,7 +545,6 @@
 
         /* Solid inked hairlines — opaque lines like the avatar outlines, not
            translucent washes. */
-        --border: color-mix(in srgb, var(--color-stone-300) 70%, var(--color-stone-400));
         --border-strong: var(--color-stone-500);
         --input: color-mix(in srgb, var(--color-stone-400) 55%, var(--color-stone-300));
         /* Hard press/slab shadow color for brutalist offsets. */
@@ -583,13 +565,10 @@
         --sidebar-accent: --alpha(var(--color-stone-900) / 5%);
         --sidebar-accent-foreground: var(--color-stone-800);
         --sidebar-ring: var(--color-stone-400);
-
-        --success: var(--color-emerald-500);
-        --success-foreground: var(--color-emerald-700);
+        --legacy-success-foreground: var(--color-emerald-700);
         --success-bg: --alpha(var(--color-emerald-500) / 12%);
         --success-border: --alpha(var(--color-emerald-500) / 24%);
-        --warning: var(--color-amber-500);
-        --warning-foreground: var(--color-amber-700);
+        --legacy-warning-foreground: var(--color-amber-700);
         --warning-bg: --alpha(var(--color-amber-500) / 12%);
         --warning-border: --alpha(var(--color-amber-500) / 24%);
         --error: var(--color-red-500);

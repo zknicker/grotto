@@ -70,7 +70,7 @@ function getStatusLabel(state: ConnectionState) {
 function getStatusTextClass(state: ConnectionState) {
     switch (state) {
         case 'live':
-            return 'text-success-foreground';
+            return 'text-legacy-success-foreground';
         case 'error':
             return 'text-destructive';
         case 'needs-auth':

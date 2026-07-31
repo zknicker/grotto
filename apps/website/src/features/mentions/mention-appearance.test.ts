@@ -62,7 +62,7 @@ describe('mention appearance', () => {
                 label: 'Chrome',
             })
         ).toEqual({
-            brandColor: 'var(--success-foreground)',
+            brandColor: 'var(--legacy-success-foreground)',
             icon: 'chrome',
             label: 'Chrome',
         });

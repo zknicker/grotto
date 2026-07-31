@@ -38,9 +38,9 @@ export const badgeVariants = cva(
                     'border-input bg-secondary text-secondary-foreground [button&,a&]:hover:bg-(--secondary-hover)',
                 subtle: 'border-border bg-subtle text-foreground/75',
                 success:
-                    'border-success/60 bg-success/16 text-success-foreground dark:border-success/55 dark:bg-success/30',
+                    'border-success/60 bg-success/16 text-legacy-success-foreground dark:border-success/55 dark:bg-success/30',
                 warning:
-                    'border-warning/65 bg-warning/18 text-warning-foreground dark:border-warning/55 dark:bg-warning/30',
+                    'border-warning/65 bg-warning/18 text-legacy-warning-foreground dark:border-warning/55 dark:bg-warning/30',
             },
         },
     }

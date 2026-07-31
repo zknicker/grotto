@@ -83,7 +83,7 @@ export function VariationSection({
 const chipTones = {
     amber: 'text-(--label-amber-fg)',
     blue: 'text-info-foreground',
-    green: 'text-success-foreground',
+    green: 'text-legacy-success-foreground',
     orange: 'text-(--label-orange-fg)',
     pink: 'text-(--label-pink-fg)',
     purple: 'text-brand-muted-foreground',

@@ -109,7 +109,7 @@ function UpdateStatusMessage({
         <SettingsValue
             className={cn(
                 'min-h-0 justify-start text-left font-medium md:justify-start md:text-left',
-                tone === 'success' && 'text-success-foreground',
+                tone === 'success' && 'text-legacy-success-foreground',
                 tone === 'error' && 'text-error-foreground',
                 tone === 'neutral' && 'text-muted-foreground'
             )}

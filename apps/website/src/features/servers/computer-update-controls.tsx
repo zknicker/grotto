@@ -95,7 +95,7 @@ export function ComputerUpdateControls({
                 </div>
             ) : null}
             {view.needsLocalRecovery ? (
-                <p className="text-warning-foreground text-xs">
+                <p className="text-legacy-warning-foreground text-xs">
                     {computer.health === 'update-required'
                         ? 'Ordinary controls are paused until this Computer updates. '
                         : 'If this Computer cannot reconnect, '}

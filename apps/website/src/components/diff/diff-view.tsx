@@ -66,7 +66,7 @@ function DiffViewLine({ line }: { line: DiffLine }) {
                 aria-hidden
                 className={cn(
                     'w-4 shrink-0 select-none text-center',
-                    line.kind === 'add' && 'text-success-foreground',
+                    line.kind === 'add' && 'text-legacy-success-foreground',
                     line.kind === 'del' && 'text-destructive'
                 )}
             >
@@ -83,7 +83,9 @@ export function DiffStatBadge({ additions, deletions }: { additions: number; del
     }
     return (
         <span className="shrink-0 font-mono text-caption tabular-nums">
-            {additions > 0 ? <span className="text-success-foreground">+{additions}</span> : null}
+            {additions > 0 ? (
+                <span className="text-legacy-success-foreground">+{additions}</span>
+            ) : null}
             {additions > 0 && deletions > 0 ? ' ' : null}
             {deletions > 0 ? <span className="text-destructive">−{deletions}</span> : null}
         </span>

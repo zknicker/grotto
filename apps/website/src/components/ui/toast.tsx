@@ -32,8 +32,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 const toastIcons: Partial<Record<ToastType, { className: string; icon: IconSvgElement }>> = {
     error: { className: 'text-error-foreground', icon: AlertCircleSolidRounded },
     info: { className: 'text-muted-foreground', icon: InformationCircleSolidRounded },
-    success: { className: 'text-success-foreground', icon: CheckmarkCircle02SolidRounded },
-    warning: { className: 'text-warning-foreground', icon: Alert02SolidRounded },
+    success: { className: 'text-legacy-success-foreground', icon: CheckmarkCircle02SolidRounded },
+    warning: { className: 'text-legacy-warning-foreground', icon: Alert02SolidRounded },
 };
 
 function ToastViewport() {

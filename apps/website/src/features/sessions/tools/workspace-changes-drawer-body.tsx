@@ -60,7 +60,7 @@ export function WorkspaceChangesDrawerBody({ call }: { call: ToolDrawerCall }) {
                             <span
                                 className={cn(
                                     'shrink-0 font-medium text-caption uppercase tracking-wide',
-                                    change.change === 'created' && 'text-success-foreground',
+                                    change.change === 'created' && 'text-legacy-success-foreground',
                                     change.change === 'deleted' && 'text-destructive',
                                     change.change === 'modified' && 'text-muted-foreground'
                                 )}

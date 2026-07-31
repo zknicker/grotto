@@ -7,7 +7,6 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { serverComputersRoute } from '../servers/server-routes.ts';
-import { SidebarTitle } from '../shell/section-header.tsx';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
 import { computerHealthLabel, computerHealthStatus } from './computer-detail.tsx';
 import { computerLabel } from './presentation.ts';
@@ -23,9 +22,6 @@ export function ComputersSidebar({ serverId, slug }: { serverId: string; slug: s
 
     return (
         <Sidebar aria-label="Computers">
-            <Sidebar.Header>
-                <SidebarTitle>Computers</SidebarTitle>
-            </Sidebar.Header>
             <Sidebar.Content>
                 <Sidebar.Group>
                     <div className="flex items-center justify-between pe-1">

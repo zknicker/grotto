@@ -1,4 +1,4 @@
-import { Alert, Button, SearchField, ToggleButton, ToggleButtonGroup } from '@heroui/react';
+import { Alert, Button, ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
 import type { HostedChat } from '@tavern/api';
 import * as React from 'react';
@@ -36,10 +36,10 @@ export function ServerTasksSurface({
     const [searchParams] = useSearchParams();
     const [composeOpen, setComposeOpen] = React.useState(false);
     const [mode, setMode] = React.useState<ServerTaskMode>('board');
-    const [query, setQuery] = React.useState('');
-    // View and label filters live in the URL; the tasks sidebar owns them.
+    // View, label, and search filters live in the URL; the tasks sidebar owns them.
     const view = resolveTaskView(searchParams.get('view'));
     const labelId = searchParams.get('label');
+    const query = searchParams.get('q') ?? '';
     const tasks = React.useMemo(() => tasksQuery.data?.map(toServerTask) ?? [], [tasksQuery.data]);
     const filtered = React.useMemo(
         () => filterServerTasks(tasks, { labelId, query, view }),
@@ -52,18 +52,6 @@ export function ServerTasksSurface({
     return (
         <section aria-label="Server tasks" className="flex min-h-0 flex-1 flex-col">
             <SectionHeader title="Tasks">
-                <SearchField
-                    aria-label="Search tasks"
-                    className="w-56"
-                    onChange={setQuery}
-                    value={query}
-                >
-                    <SearchField.Group>
-                        <SearchField.SearchIcon />
-                        <SearchField.Input placeholder="Search tasks..." />
-                        <SearchField.ClearButton />
-                    </SearchField.Group>
-                </SearchField>
                 <ToggleButtonGroup
                     aria-label="Task layout"
                     disallowEmptySelection

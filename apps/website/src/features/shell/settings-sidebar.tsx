@@ -6,7 +6,6 @@ import {
     settingsNavItems,
     settingsNavSections,
 } from '../settings/layout/navigation.ts';
-import { SidebarTitle } from './section-header.tsx';
 
 const hostedHiddenSettings: ReadonlySet<string> = new Set(['agent-runtime']);
 
@@ -21,9 +20,6 @@ export function SettingsSidebar({
     const itemById = new Map(settingsNavItems.map((item) => [item.id, item]));
     return (
         <Sidebar aria-label="Settings">
-            <Sidebar.Header>
-                <SidebarTitle>Settings</SidebarTitle>
-            </Sidebar.Header>
             <Sidebar.Content>
                 {settingsNavSections.map((section) => {
                     const items = section.itemIds

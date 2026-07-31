@@ -1,4 +1,4 @@
-import { Button, Tooltip } from '@heroui/react';
+import { Button, SearchField, Tooltip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { Edit02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -6,7 +6,6 @@ import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
-import { SidebarTitle } from '../../shell/section-header.tsx';
 import { LabelDot } from '../../tasks/label-chip.tsx';
 import { serverTasksRoute } from '../server-routes.ts';
 import { ServerTaskLabelsDialog } from './server-task-labels-dialog.tsx';
@@ -38,7 +37,7 @@ export function ServerTasksSidebar({
     serverId: string;
     slug: string;
 }) {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [labelsOpen, setLabelsOpen] = React.useState(false);
     const tasksQuery = useServerTasks(serverId);
     const labelsQuery = useServerTaskLabels(serverId);
@@ -53,10 +52,33 @@ export function ServerTasksSidebar({
 
     return (
         <Sidebar aria-label="Tasks">
-            <Sidebar.Header>
-                <SidebarTitle>Tasks</SidebarTitle>
-            </Sidebar.Header>
             <Sidebar.Content>
+                <Sidebar.Group>
+                    <SearchField
+                        aria-label="Search tasks"
+                        onChange={(value) => {
+                            setSearchParams(
+                                (params) => {
+                                    const next = new URLSearchParams(params);
+                                    if (value) {
+                                        next.set('q', value);
+                                    } else {
+                                        next.delete('q');
+                                    }
+                                    return next;
+                                },
+                                { replace: true }
+                            );
+                        }}
+                        value={searchParams.get('q') ?? ''}
+                    >
+                        <SearchField.Group>
+                            <SearchField.SearchIcon />
+                            <SearchField.Input placeholder="Search tasks..." />
+                            <SearchField.ClearButton />
+                        </SearchField.Group>
+                    </SearchField>
+                </Sidebar.Group>
                 <Sidebar.Group>
                     <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
                     <Sidebar.Menu aria-label="Task views">

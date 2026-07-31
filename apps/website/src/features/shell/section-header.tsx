@@ -24,10 +24,3 @@ export function SectionHeader({
         </header>
     );
 }
-
-/** Matching title band for section sidebars (inside Sidebar.Header). */
-export function SidebarTitle({ children }: { children: ReactNode }) {
-    return (
-        <div className="flex h-12 shrink-0 items-center px-2 font-semibold text-sm">{children}</div>
-    );
-}

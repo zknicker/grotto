@@ -1,8 +1,8 @@
+import { Separator, Spinner } from '@heroui/react';
+import { HoverCard } from '@heroui-pro/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
-import { Popover, PopoverPopup, PopoverTrigger } from '../../components/ui/popover.tsx';
-import { Spinner } from '../../components/ui/spinner.tsx';
 import { useAgentActivity } from '../../hooks/agents/use-agent-activity.ts';
 import { useAgentAppearanceLookup } from '../../hooks/agents/use-agent-appearance.ts';
 import { useAgentList } from '../../hooks/agents/use-agent-list.ts';
@@ -45,33 +45,39 @@ export function AgentHoverCard({
     const navigate = useNavigate();
 
     return (
-        <Popover onOpenChange={setOpen} open={open}>
-            <PopoverTrigger
-                aria-label={`Agent details: ${agentName}`}
-                className={triggerClassName}
-                delay={100}
-                onClick={() => {
-                    setOpen(false);
-                    if (onOpenProfile) {
-                        onOpenProfile();
-                        return;
-                    }
-                    navigate(appRoutes.memberAgent(agentId));
-                }}
-                openOnHover
-                render={<button title={agentName} type="button" />}
-            >
-                {children}
-            </PopoverTrigger>
-            <PopoverPopup align="start" className="w-76 p-0" side="bottom" sideOffset={6}>
+        <HoverCard closeDelay={150} onOpenChange={setOpen} open={open} openDelay={100}>
+            {/*
+             * triggerClassName carries both row layout (the wrapper is the flex
+             * child) and control styling (the button is what takes focus), so
+             * it lands on both elements.
+             */}
+            <HoverCard.Trigger className={triggerClassName}>
+                <button
+                    aria-label={`Agent details: ${agentName}`}
+                    className={triggerClassName}
+                    onClick={() => {
+                        setOpen(false);
+                        if (onOpenProfile) {
+                            onOpenProfile();
+                            return;
+                        }
+                        navigate(appRoutes.memberAgent(agentId));
+                    }}
+                    title={agentName}
+                    type="button"
+                >
+                    {children}
+                </button>
+            </HoverCard.Trigger>
+            <HoverCard.Content className="w-76" placement="bottom start">
                 <AgentHoverCardBody
                     agentId={agentId}
                     agentName={agentName}
                     chatId={chatId}
                     enabled={open}
                 />
-            </PopoverPopup>
-        </Popover>
+            </HoverCard.Content>
+        </HoverCard>
     );
 }
 
@@ -95,8 +101,8 @@ function AgentHoverCardBody({
     const entries = (activity.data?.entries ?? []).slice(0, hoverCardEntryLimit);
 
     return (
-        <div className="flex min-w-0 flex-col">
-            <div className="flex min-w-0 items-center gap-2.5 px-3 pt-2.5 pb-2">
+        <div className="flex min-w-0 flex-col gap-2.5">
+            <div className="flex min-w-0 items-center gap-2.5">
                 <span aria-hidden="true" className="flex size-11 shrink-0 items-center">
                     <AgentFace
                         animate={false}
@@ -118,41 +124,46 @@ function AgentHoverCardBody({
                             )}
                         />
                     </span>
-                    <span className="min-w-0 truncate text-meta text-muted-foreground">
+                    <span className="min-w-0 truncate text-muted text-xs">
                         {presence?.state === 'busy' ? 'Working…' : 'Idle'}
                     </span>
                 </div>
             </div>
             {bio ? (
-                <p className="line-clamp-2 border-border-subtle border-t px-3 py-2 text-muted-foreground text-sm">
-                    {bio}
-                </p>
+                <>
+                    <Separator />
+                    <p className="line-clamp-2 text-muted text-sm">{bio}</p>
+                </>
             ) : null}
             {session ? (
-                <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 border-border-subtle border-t px-3 py-2 text-meta">
-                    <dt className="text-muted-foreground">Model</dt>
-                    <dd className="min-w-0 truncate text-foreground">
-                        {session.effectiveModel.model} ·{' '}
-                        {getModelProviderConfig(session.effectiveModel.provider).displayName}
-                    </dd>
-                </dl>
+                <>
+                    <Separator />
+                    <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 text-xs">
+                        <dt className="text-muted">Model</dt>
+                        <dd className="min-w-0 truncate text-foreground">
+                            {session.effectiveModel.model} ·{' '}
+                            {getModelProviderConfig(session.effectiveModel.provider).displayName}
+                        </dd>
+                    </dl>
+                </>
             ) : null}
-            <div className="border-border-subtle border-t px-3 pt-2 pb-2.5">
-                <span className="font-medium text-caption text-muted-foreground uppercase tracking-wider">
+            <Separator />
+            <div className="flex min-w-0 flex-col gap-1.5">
+                <span className="font-medium text-muted text-xs uppercase tracking-wider">
                     Recent activity
                 </span>
                 {activity.isPending ? (
-                    <span className="flex items-center gap-2 pt-2 text-meta text-muted-foreground">
-                        <Spinner className="size-3" />
+                    <span className="flex items-center gap-2 text-muted text-xs">
+                        <Spinner color="current" size="sm" />
                         Loading...
                     </span>
                 ) : entries.length === 0 ? (
-                    <p className="pt-2 text-meta text-muted-foreground">No recent activity.</p>
+                    <p className="text-muted text-xs">No recent activity.</p>
                 ) : (
-                    <ul className="flex flex-col gap-1 pt-1.5">
+                    <ul className="flex flex-col gap-1">
                         {entries.map((entry) => (
                             <li
-                                className="flex min-w-0 items-center gap-2 text-meta"
+                                className="flex min-w-0 items-center gap-2 text-xs"
                                 key={`${entry.turnId ?? entry.at}-${entry.kind}`}
                             >
                                 <span
@@ -161,7 +172,7 @@ function AgentHoverCardBody({
                                         activityDotClassName(entry.kind)
                                     )}
                                 />
-                                <span className="w-16 shrink-0 whitespace-nowrap text-foreground-tertiary tabular-nums">
+                                <span className="w-16 shrink-0 whitespace-nowrap text-muted tabular-nums">
                                     {formatAgentActivityTime(entry.at)}
                                 </span>
                                 <span className="min-w-0 truncate text-foreground">
@@ -181,10 +192,10 @@ function activityDotClassName(kind: AgentActivityEntry['kind']) {
         case 'completed':
             return 'bg-success';
         case 'failed':
-            return 'bg-destructive';
+            return 'bg-danger';
         case 'stopped':
         case 'new_session':
-            return 'bg-foreground-quaternary';
+            return 'bg-muted';
         default:
             return 'bg-warning';
     }

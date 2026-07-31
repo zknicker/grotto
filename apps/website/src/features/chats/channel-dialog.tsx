@@ -1,22 +1,21 @@
+import {
+    Alert,
+    Button,
+    Checkbox,
+    CheckboxGroup,
+    Description,
+    FieldError,
+    Form,
+    Input,
+    Label,
+    Modal,
+    Spinner,
+    TextField,
+} from '@heroui/react';
+import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
-import { Alert, AlertDescription } from '../../components/ui/alert.tsx';
-import { Checkbox } from '../../components/ui/checkbox.tsx';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogPanel,
-    DialogTitle,
-} from '../../components/ui/dialog.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { Field, FieldDescription, FieldLabel } from '../../components/ui/primitives/field.tsx';
-import { Form } from '../../components/ui/primitives/form.tsx';
-import { Input } from '../../components/ui/primitives/input.tsx';
-import { Spinner } from '../../components/ui/spinner.tsx';
-import { cn } from '../../lib/utils.ts';
+import { Icon } from '../../components/ui/icon.tsx';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
 import { AgentFace } from './agent-face.tsx';
 
@@ -57,26 +56,30 @@ export function ChannelDialog({
     title,
 }: ChannelDialogProps) {
     return (
-        <Dialog onOpenChange={(nextOpen) => !nextOpen && onClose()} open={open}>
-            <DialogContent className="max-w-lg" showCloseButton={false}>
-                {open ? (
-                    <ChannelDialogForm
-                        agents={agents}
-                        agentsPending={agentsPending}
-                        errorMessage={errorMessage}
-                        initialAgentIds={initialAgentIds}
-                        initialDisplayName={initialDisplayName}
-                        isPending={isPending}
-                        key={`${title}:${initialDisplayName}:${initialAgentIds.join(',')}`}
-                        onClose={onClose}
-                        onSubmit={onSubmit}
-                        showDisplayName={showDisplayName}
-                        submitLabel={submitLabel}
-                        title={title}
-                    />
-                ) : null}
-            </DialogContent>
-        </Dialog>
+        <Modal isOpen={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+            <Modal.Backdrop>
+                <Modal.Container scroll="outside" size="lg">
+                    <Modal.Dialog>
+                        {open ? (
+                            <ChannelDialogForm
+                                agents={agents}
+                                agentsPending={agentsPending}
+                                errorMessage={errorMessage}
+                                initialAgentIds={initialAgentIds}
+                                initialDisplayName={initialDisplayName}
+                                isPending={isPending}
+                                key={`${title}:${initialDisplayName}:${initialAgentIds.join(',')}`}
+                                onClose={onClose}
+                                onSubmit={onSubmit}
+                                showDisplayName={showDisplayName}
+                                submitLabel={submitLabel}
+                                title={title}
+                            />
+                        ) : null}
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
+        </Modal>
     );
 }
 
@@ -97,7 +100,6 @@ function ChannelDialogForm({
     submitLabel,
     title,
 }: ChannelDialogFormProps) {
-    const displayNameInputId = React.useId();
     const [displayName, setDisplayName] = React.useState(initialDisplayName);
     const [selectedAgentIds, setSelectedAgentIds] = React.useState(() =>
         normalizeChannelAgentIds(initialAgentIds)
@@ -142,142 +144,113 @@ function ChannelDialogForm({
     });
 
     return (
-        <Form className="contents" onSubmit={handleSubmit}>
-            <DialogHeader className="pe-6">
-                <DialogTitle>{title}</DialogTitle>
-                <DialogDescription>
-                    {showDisplayName
-                        ? 'Name the channel and choose its agents.'
-                        : 'Choose the agents in this channel.'}
-                </DialogDescription>
-            </DialogHeader>
-            <DialogPanel className="grid gap-4">
-                {showDisplayName ? (
-                    <Field>
-                        <FieldLabel htmlFor={displayNameInputId}>Channel name</FieldLabel>
-                        <Input
-                            autoFocus
-                            id={displayNameInputId}
-                            onChange={(event) => setDisplayName(event.target.value)}
-                            placeholder="planning"
-                            type="text"
+        <Form onSubmit={handleSubmit}>
+            <Modal.Header>
+                <div className="min-w-0 flex-1">
+                    <Modal.Heading>{title}</Modal.Heading>
+                    <p className="mt-1 text-muted text-sm">
+                        {showDisplayName
+                            ? 'Name the channel and choose its agents.'
+                            : 'Choose the agents in this channel.'}
+                    </p>
+                </div>
+            </Modal.Header>
+            <Modal.Body>
+                <div className="grid gap-4">
+                    {showDisplayName ? (
+                        <TextField
+                            fullWidth
+                            isInvalid={Boolean(handleIssue)}
+                            onChange={setDisplayName}
                             value={displayName}
-                        />
-                        {handleIssue ? (
-                            <p className="text-meta text-muted-foreground">{handleIssue}</p>
-                        ) : null}
-                    </Field>
-                ) : null}
-                <Field>
-                    <FieldLabel>Agents</FieldLabel>
-                    <AgentCheckboxList
+                            variant="secondary"
+                        >
+                            <Label>Channel name</Label>
+                            <Input autoFocus placeholder="planning" type="text" />
+                            {handleIssue ? <FieldError>{handleIssue}</FieldError> : null}
+                        </TextField>
+                    ) : null}
+                    <AgentCheckboxGroup
                         agents={agents}
+                        agentsPending={agentsPending}
                         disabled={isPending}
                         onSelectedAgentIdsChange={setSelectedAgentIds}
                         selectedAgentIds={selectedAgentIds}
                     />
-                    {agentsPending ? (
-                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                            <Spinner className="size-3.5" />
-                            Loading agents
-                        </div>
+                    {errorMessage ? (
+                        <Alert status="danger">
+                            <Alert.Indicator>
+                                <Icon icon={AlertCircleIcon} />
+                            </Alert.Indicator>
+                            <Alert.Content>
+                                <Alert.Description>{errorMessage}</Alert.Description>
+                            </Alert.Content>
+                        </Alert>
                     ) : null}
-                    {!agentsPending && agents.length === 0 ? (
-                        <FieldDescription>No agents available.</FieldDescription>
-                    ) : null}
-                </Field>
-                {errorMessage ? (
-                    <Alert variant="error">
-                        <AlertDescription>{errorMessage}</AlertDescription>
-                    </Alert>
-                ) : null}
-            </DialogPanel>
-            <DialogFooter variant="bare">
-                <Button onClick={onClose} size="sm" type="button" variant="ghost">
+                </div>
+            </Modal.Body>
+            <Modal.Footer>
+                <Button onPress={onClose} type="button" variant="secondary">
                     Cancel
                 </Button>
-                <Button disabled={!canSubmit} loading={isPending} size="sm" type="submit">
+                <Button isDisabled={!canSubmit} isPending={isPending} type="submit">
                     {submitLabel}
                 </Button>
-            </DialogFooter>
+            </Modal.Footer>
         </Form>
     );
 }
 
-function AgentCheckboxList({
+function AgentCheckboxGroup({
     agents,
+    agentsPending,
     disabled,
     onSelectedAgentIdsChange,
     selectedAgentIds,
 }: {
     agents: ChannelAgentOption[];
+    agentsPending: boolean;
     disabled: boolean;
     onSelectedAgentIdsChange: (agentIds: string[]) => void;
     selectedAgentIds: string[];
 }) {
-    const selectedAgentIdSet = React.useMemo(() => new Set(selectedAgentIds), [selectedAgentIds]);
-
     return (
-        <div className="grid max-h-64 gap-1.5 overflow-y-auto rounded-lg border border-border-subtle bg-legacy-muted p-1.5">
-            {agents.map((agent) => {
-                const checked = selectedAgentIdSet.has(agent.id);
-
-                return (
-                    <AgentCheckboxRow
-                        agent={agent}
-                        checked={checked}
-                        disabled={disabled}
-                        key={agent.id}
-                        onCheckedChange={(nextChecked) => {
-                            if (!nextChecked && selectedAgentIds.length <= 1) {
-                                return;
-                            }
-
-                            onSelectedAgentIdsChange(
-                                nextChecked
-                                    ? normalizeChannelAgentIds([...selectedAgentIds, agent.id])
-                                    : selectedAgentIds.filter((agentId) => agentId !== agent.id)
-                            );
-                        }}
-                    />
-                );
-            })}
-        </div>
-    );
-}
-
-function AgentCheckboxRow({
-    agent,
-    checked,
-    disabled,
-    onCheckedChange,
-}: {
-    agent: ChannelAgentOption;
-    checked: boolean;
-    disabled: boolean;
-    onCheckedChange: (checked: boolean) => void;
-}) {
-    const checkboxId = React.useId();
-
-    return (
-        <label
-            className={cn(
-                'flex min-w-0 cursor-pointer items-center gap-3 rounded-md px-2.5 py-2 text-sm outline-none transition-[background-color,box-shadow] hover:bg-sidebar-accent has-focus-visible:ring-2 has-focus-visible:ring-ring',
-                checked && 'bg-sidebar-accent text-sidebar-accent-foreground',
-                disabled && 'cursor-default opacity-64'
-            )}
-            htmlFor={checkboxId}
+        <CheckboxGroup
+            isDisabled={disabled}
+            // A channel always keeps at least one agent, so an empty selection
+            // is dropped instead of applied.
+            onChange={(nextAgentIds) =>
+                nextAgentIds.length > 0 &&
+                onSelectedAgentIdsChange(normalizeChannelAgentIds(nextAgentIds))
+            }
+            value={selectedAgentIds}
         >
-            <Checkbox
-                checked={checked}
-                className="order-last ms-auto"
-                disabled={disabled}
-                id={checkboxId}
-                onCheckedChange={(nextChecked) => onCheckedChange(nextChecked === true)}
-            />
-            <AgentAvatar agent={agent} />
-            <span className="min-w-0 flex-1 truncate">{agent.name}</span>
-        </label>
+            <Label>Agents</Label>
+            {agents.length > 0 ? (
+                <div className="grid max-h-64 gap-1 overflow-y-auto rounded-lg border border-separator p-1.5">
+                    {agents.map((agent) => (
+                        <Checkbox key={agent.id} value={agent.id} variant="secondary">
+                            <Checkbox.Content>
+                                <Checkbox.Control>
+                                    <Checkbox.Indicator />
+                                </Checkbox.Control>
+                                <AgentAvatar agent={agent} />
+                                <span className="min-w-0 truncate">{agent.name}</span>
+                            </Checkbox.Content>
+                        </Checkbox>
+                    ))}
+                </div>
+            ) : null}
+            {agentsPending ? (
+                <div className="flex items-center gap-2 text-muted text-sm">
+                    <Spinner color="current" size="sm" />
+                    Loading agents
+                </div>
+            ) : null}
+            {!agentsPending && agents.length === 0 ? (
+                <Description>No agents available.</Description>
+            ) : null}
+        </CheckboxGroup>
     );
 }
 

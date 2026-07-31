@@ -1,3 +1,5 @@
+import { Button, Label, Popover } from '@heroui/react';
+import { ContextMenu } from '@heroui-pro/react';
 import {
     Bookmark01Icon,
     BubbleChatIcon,
@@ -6,15 +8,7 @@ import {
     Task01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-import {
-    ContextMenu,
-    ContextMenuItem,
-    ContextMenuPopup,
-    ContextMenuSeparator,
-    ContextMenuTrigger,
-} from '../../../components/ui/context-menu.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { Popover, PopoverPopup, PopoverTrigger } from '../../../components/ui/popover.tsx';
 import { isLocalTimelineMessageMetadata } from '../../../hooks/chats/chat-timeline-messages.ts';
 import { useChatReaction } from '../../../hooks/chats/use-chat-reaction.ts';
 import { useTaskConvert } from '../../../hooks/tasks/use-task-mutations.ts';
@@ -33,8 +27,6 @@ import {
 import { ThreadReplyPill } from './thread-reply-pill.tsx';
 
 export const quickReactionEmoji = ['👍', '❤️', '🎉', '👀', '🔥', '😂', '✅'] as const;
-const actionButtonClassName =
-    'inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-legacy-accent hover:text-foreground';
 
 export function ThreadMessageSurface({
     children,
@@ -74,10 +66,22 @@ function RuntimeThreadMessageSurface({
     const toggleReaction = (emoji: string) =>
         reaction.mutate({ emoji, messageId: row.message.id, remove: ownReaction(emoji) });
     const openThread = () => context?.onOpenThread(row);
+    const menuActions: Record<string, () => void> = {
+        'convert-task': () => convert.mutate({ messageId: row.message.id, origin: 'converted' }),
+        'copy-link': () =>
+            void writeClipboardText(
+                context?.chatId
+                    ? `${window.location.origin}${appRoutes.chat(context.chatId)}`
+                    : window.location.href
+            ),
+        'copy-markdown': () => void writeClipboardText(row.message.content),
+        'open-thread': openThread,
+        'unfollow-thread': () => thread && context?.onUnfollowThread(thread.threadChatId),
+    };
 
     return (
         <ContextMenu>
-            <ContextMenuTrigger
+            <ContextMenu.Trigger
                 className={cn(
                     'group/message-row relative block min-w-0 rounded-lg',
                     active && 'bg-active ring-1 ring-brand-ring',
@@ -108,51 +112,41 @@ function RuntimeThreadMessageSurface({
                         reactions={row.message.reactions ?? []}
                     />
                 </div>
-            </ContextMenuTrigger>
-            <ContextMenuPopup className="w-52">
+            </ContextMenu.Trigger>
+            <ContextMenu.Popover>
                 <QuickReactionStrip onReact={toggleReaction} />
-                <ContextMenuItem
-                    onClick={() =>
-                        void writeClipboardText(
-                            context?.chatId
-                                ? `${window.location.origin}${appRoutes.chat(context.chatId)}`
-                                : window.location.href
-                        )
-                    }
-                >
-                    <Icon className="size-4" icon={Copy01Icon} />
-                    Copy Link
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => void writeClipboardText(row.message.content)}>
-                    <Icon className="size-4" icon={Copy01Icon} />
-                    Copy Markdown
-                </ContextMenuItem>
-                {/* Select Message is deliberately omitted; Electron-native selection owns it. */}
-                <ContextMenuSeparator />
-                {canOpenThread ? (
-                    <ContextMenuItem onClick={openThread}>
-                        <Icon className="size-4" icon={BubbleChatIcon} />
-                        Open Thread
-                    </ContextMenuItem>
-                ) : null}
-                {thread?.followed && canOpenThread ? (
-                    <ContextMenuItem onClick={() => context?.onUnfollowThread(thread.threadChatId)}>
-                        <Icon className="size-4" icon={Bookmark01Icon} />
-                        Unfollow Thread
-                    </ContextMenuItem>
-                ) : null}
-                {/* Save Message ships with the later bookmarks workstream. */}
-                {canOpenThread && !row.message.task && row.message.senderType !== 'system' ? (
-                    <ContextMenuItem
-                        onClick={() =>
-                            convert.mutate({ messageId: row.message.id, origin: 'converted' })
-                        }
-                    >
-                        <Icon className="size-4" icon={Task01Icon} />
-                        Convert to Task
-                    </ContextMenuItem>
-                ) : null}
-            </ContextMenuPopup>
+                <ContextMenu.Menu onAction={(key) => menuActions[String(key)]?.()}>
+                    <ContextMenu.Item id="copy-link" textValue="Copy Link">
+                        <Icon icon={Copy01Icon} />
+                        <Label>Copy Link</Label>
+                    </ContextMenu.Item>
+                    <ContextMenu.Item id="copy-markdown" textValue="Copy Markdown">
+                        <Icon icon={Copy01Icon} />
+                        <Label>Copy Markdown</Label>
+                    </ContextMenu.Item>
+                    {/* Select Message is deliberately omitted; Electron-native selection owns it. */}
+                    <ContextMenu.Separator />
+                    {canOpenThread ? (
+                        <ContextMenu.Item id="open-thread" textValue="Open Thread">
+                            <Icon icon={BubbleChatIcon} />
+                            <Label>Open Thread</Label>
+                        </ContextMenu.Item>
+                    ) : null}
+                    {thread?.followed && canOpenThread ? (
+                        <ContextMenu.Item id="unfollow-thread" textValue="Unfollow Thread">
+                            <Icon icon={Bookmark01Icon} />
+                            <Label>Unfollow Thread</Label>
+                        </ContextMenu.Item>
+                    ) : null}
+                    {/* Save Message ships with the later bookmarks workstream. */}
+                    {canOpenThread && !row.message.task && row.message.senderType !== 'system' ? (
+                        <ContextMenu.Item id="convert-task" textValue="Convert to Task">
+                            <Icon icon={Task01Icon} />
+                            <Label>Convert to Task</Label>
+                        </ContextMenu.Item>
+                    ) : null}
+                </ContextMenu.Menu>
+            </ContextMenu.Popover>
         </ContextMenu>
     );
 }
@@ -224,25 +218,28 @@ function MessageHoverActions({
     reactionsEnabled?: boolean;
 }) {
     return (
-        <div className="absolute -top-3 right-1 z-10 flex items-center rounded-lg border border-border-subtle bg-popover p-0.5 opacity-0 focus-within:opacity-100 group-hover/message-row:opacity-100">
+        <div className="absolute -top-3 right-1 z-10 flex items-center gap-0.5 rounded-lg border border-separator bg-overlay p-0.5 opacity-0 focus-within:opacity-100 group-hover/message-row:opacity-100">
             {canOpenThread ? (
-                <button
+                <Button
                     aria-label="Reply in thread"
-                    className={actionButtonClassName}
-                    onClick={onOpenThread}
-                    type="button"
+                    isIconOnly
+                    onPress={onOpenThread}
+                    size="sm"
+                    variant="ghost"
                 >
-                    <Icon className="size-4" icon={BubbleChatIcon} />
-                </button>
+                    <Icon icon={BubbleChatIcon} />
+                </Button>
             ) : null}
             {reactionsEnabled ? (
                 <Popover>
-                    <PopoverTrigger aria-label="Add Reaction" className={actionButtonClassName}>
-                        <Icon className="size-4" icon={SmileIcon} />
-                    </PopoverTrigger>
-                    <PopoverPopup align="end" className="w-auto p-1">
-                        <QuickReactionStrip onReact={onReact} />
-                    </PopoverPopup>
+                    <Button aria-label="Add Reaction" isIconOnly size="sm" variant="ghost">
+                        <Icon icon={SmileIcon} />
+                    </Button>
+                    <Popover.Content placement="bottom end">
+                        <Popover.Dialog>
+                            <QuickReactionStrip onReact={onReact} />
+                        </Popover.Dialog>
+                    </Popover.Content>
                 </Popover>
             ) : null}
         </div>
@@ -251,17 +248,18 @@ function MessageHoverActions({
 
 function QuickReactionStrip({ onReact }: { onReact: (emoji: string) => void }) {
     return (
-        <div className="flex gap-0.5 p-1">
+        <div className="flex gap-0.5">
             {quickReactionEmoji.map((emoji) => (
-                <button
+                <Button
                     aria-label={`React with ${emoji}`}
-                    className="grid size-7 place-items-center rounded-md hover:bg-legacy-accent"
+                    isIconOnly
                     key={emoji}
-                    onClick={() => onReact(emoji)}
-                    type="button"
+                    onPress={() => onReact(emoji)}
+                    size="sm"
+                    variant="ghost"
                 >
                     {emoji}
-                </button>
+                </Button>
             ))}
         </div>
     );

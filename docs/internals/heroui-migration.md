@@ -113,6 +113,16 @@ Quarantined (not ported, only token-remapped): the visx chart library
 `src/widgets/visual-tokens.ts` and `features/chats/host-token-style.ts` or
 sandboxed agent widgets render unthemed.
 
+## Dependency notes
+
+- `@heroui-pro/react`'s barrel statically imports every component, so its full
+  peer set must be installed even for unused components (recharts, tiptap,
+  shiki, streamdown, maplibre-gl, …).
+- `maplibre-gl` is pinned to 5.x: Pro's map component default-imports it and
+  maplibre 6 removed the default export, which breaks Vite dep optimization
+  for the entire Pro barrel. Grotto renders no maps — the dep is build-time
+  only. Revisit the pin whenever `@heroui-pro/react` is upgraded.
+
 ## Status
 
 - Branch: `claude/grotto-ui-herui-refactor-*` worktree. Migration in progress;

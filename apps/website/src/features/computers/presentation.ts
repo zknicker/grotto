@@ -31,7 +31,7 @@ export function agentExecutionLabels(
     agent: Pick<HostedAgent, 'desiredModelId' | 'desiredRuntimeId'>,
     inventory: HostedComputerInventory | null
 ) {
-    const runtime = inventory?.runtimes.find(
+    const runtime = inventory?.runtimes?.find(
         (candidate) => candidate.id === agent.desiredRuntimeId
     );
     const model = runtime?.models.find((candidate) => candidate.id === agent.desiredModelId);
@@ -47,7 +47,7 @@ export function computerRuntimePresentations(
     inventory: HostedComputerInventory | null
 ): ComputerRuntimePresentation[] {
     const detectedRuntimes = new Map(
-        inventory?.runtimes.map((runtime) => [runtime.id, runtime] as const) ?? []
+        inventory?.runtimes?.map((runtime) => [runtime.id, runtime] as const) ?? []
     );
     const supportedRuntimes = hostedComputerRuntimeCatalog.map((runtime) => {
         const detectedRuntime = detectedRuntimes.get(runtime.id);

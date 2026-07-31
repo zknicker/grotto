@@ -64,6 +64,24 @@ test('does not silently substitute another runtime or model', () => {
     });
 });
 
+test('tolerates an inventory payload without runtimes', () => {
+    const malformed = {} as Parameters<typeof computerRuntimePresentations>[0];
+    const runtimes = computerRuntimePresentations(malformed);
+    expect(runtimes.length).toBeGreaterThan(0);
+    expect(runtimes.every((runtime) => runtime.detected === false)).toBe(true);
+    expect(
+        agentExecutionLabels(
+            { desiredModelId: 'model-x', desiredRuntimeId: 'runtime-y' },
+            malformed
+        )
+    ).toEqual({
+        model: 'model-x',
+        modelAvailable: false,
+        runtime: 'runtime-y',
+        runtimeAvailable: false,
+    });
+});
+
 test('presents every supported runtime and preserves newly reported runtimes', () => {
     expect(
         computerRuntimePresentations({

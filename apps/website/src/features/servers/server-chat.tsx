@@ -1,11 +1,10 @@
+import { Button, Chip, Tooltip } from '@heroui/react';
 import { SidebarRightIcon, UserMultiple02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
-import { Badge } from '../../components/ui/badge.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
 import { setChatSidePane, useChatSidePane } from '../../hooks/pane/use-chat-side-pane.ts';
 import { useEnsureServerDm } from '../../hooks/servers/use-ensure-server-dm.ts';
 import { useMarkServerChatReadOnView } from '../../hooks/servers/use-mark-server-chat-read.ts';
@@ -13,10 +12,9 @@ import { useServerChatMessages } from '../../hooks/servers/use-server-chat-messa
 import { useViewportBelow } from '../../hooks/use-viewport-below.ts';
 import { ChatArtifactPanel } from '../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../chats/chat-detail-frame.tsx';
-import { ChatRoomTopbarPresentation } from '../chats/chat-room-topbar.tsx';
 import { type ChatViewTab, ChatViewTabs } from '../chats/chat-view-tabs.tsx';
 import type { TavernResourceTarget } from '../chats/tavern-resource-link.ts';
-import { ToolbarDivider } from '../shell/toolbar-divider.tsx';
+import { SectionHeader } from '../shell/section-header.tsx';
 import {
     HostedAgentCompositionBubbles,
     hasHostedAgentComposition,
@@ -320,39 +318,30 @@ function HostedChatTopbar({
     retired: boolean;
 }) {
     return (
-        <ChatRoomTopbarPresentation
-            actions={
-                <>
-                    <span className="flex items-center gap-1 text-muted-foreground text-xs">
-                        <Icon className="size-4" icon={UserMultiple02Icon} />
-                        {chat.participantUserIds.length}
-                    </span>
-                    <ToolbarDivider />
-                    <Button
-                        aria-label={artifactVisible ? 'Hide artifacts' : 'Show artifacts'}
-                        className={
-                            artifactVisible
-                                ? 'text-foreground'
-                                : 'text-muted-foreground hover:text-foreground'
-                        }
-                        onClick={onToggleArtifacts}
-                        size="icon-sm"
-                        variant={artifactVisible ? 'secondary' : 'ghost'}
-                    >
-                        <Icon className="size-[18px]" icon={SidebarRightIcon} strokeWidth={1.8} />
-                    </Button>
-                </>
-            }
-            identity={
-                <>
-                    {chat.kind === 'channel' ? <ChannelIconBox size="topbar" /> : null}
-                    <h1 className="min-w-0 truncate font-semibold text-foreground text-sm">
-                        {chatName}
-                    </h1>
-                    {retired ? <Badge variant="secondary">Retired</Badge> : null}
-                </>
-            }
-        />
+        <SectionHeader
+            leading={chat.kind === 'channel' ? <ChannelIconBox size="topbar" /> : null}
+            meta={retired ? <Chip size="sm">Retired</Chip> : null}
+            title={chatName}
+        >
+            <span className="flex items-center gap-1 text-muted text-xs">
+                <Icon aria-hidden="true" className="size-4" icon={UserMultiple02Icon} />
+                {chat.participantUserIds.length}
+            </span>
+            <Tooltip>
+                <Button
+                    aria-label={artifactVisible ? 'Hide artifacts' : 'Show artifacts'}
+                    isIconOnly
+                    onPress={onToggleArtifacts}
+                    size="sm"
+                    variant={artifactVisible ? 'secondary' : 'ghost'}
+                >
+                    <Icon aria-hidden="true" icon={SidebarRightIcon} size={18} />
+                </Button>
+                <Tooltip.Content>
+                    {artifactVisible ? 'Hide artifacts' : 'Show artifacts'}
+                </Tooltip.Content>
+            </Tooltip>
+        </SectionHeader>
     );
 }
 

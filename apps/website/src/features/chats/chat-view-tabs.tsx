@@ -1,10 +1,10 @@
+import { Tabs } from '@heroui/react';
 import {
     Attachment01Icon,
     BubbleChatIcon,
     CheckListIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
-import { PaneTopbar } from '../../components/ui/pane.tsx';
-import { TabsSubtle, TabsSubtleItem, TabsSubtleList } from '../../components/ui/tabs-subtle.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
 
 const chatViewTabs = [
     { icon: BubbleChatIcon, label: 'Chat', value: 'chat' },
@@ -21,6 +21,7 @@ export function supportsChatViewTabs(chat: { conversationKind: string; type: str
     );
 }
 
+/** View switcher between the chat transcript, its tasks, and its files. */
 export function ChatViewTabs({
     onValueChange,
     value,
@@ -29,28 +30,24 @@ export function ChatViewTabs({
     value: ChatViewTab;
 }) {
     return (
-        <PaneTopbar className="gap-0 px-0">
-            <TabsSubtle
-                className="h-full min-w-0 flex-1"
-                onValueChange={(nextValue) => onValueChange(nextValue as ChatViewTab)}
-                value={value}
+        <div className="shrink-0 border-separator border-b px-2">
+            <Tabs
+                onSelectionChange={(key) => onValueChange(key as ChatViewTab)}
+                selectedKey={value}
+                variant="secondary"
             >
-                <TabsSubtleList
-                    aria-label="Chat views"
-                    className="h-full px-3 py-0"
-                    variant="underline"
-                >
-                    {chatViewTabs.map((tab) => (
-                        <TabsSubtleItem
-                            icon={tab.icon}
-                            key={tab.value}
-                            label={tab.label}
-                            size="sm"
-                            value={tab.value}
-                        />
-                    ))}
-                </TabsSubtleList>
-            </TabsSubtle>
-        </PaneTopbar>
+                <Tabs.ListContainer>
+                    <Tabs.List aria-label="Chat views">
+                        {chatViewTabs.map((tab) => (
+                            <Tabs.Tab id={tab.value} key={tab.value}>
+                                <Icon aria-hidden="true" icon={tab.icon} size={16} />
+                                {tab.label}
+                                <Tabs.Indicator />
+                            </Tabs.Tab>
+                        ))}
+                    </Tabs.List>
+                </Tabs.ListContainer>
+            </Tabs>
+        </div>
     );
 }

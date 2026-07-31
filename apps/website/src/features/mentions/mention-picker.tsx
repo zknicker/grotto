@@ -1,5 +1,5 @@
+import { Spinner } from '@heroui/react';
 import * as React from 'react';
-import { Spinner } from '../../components/ui/spinner.tsx';
 import { cn } from '../../lib/utils.ts';
 import {
     getMentionAppearance,
@@ -82,7 +82,7 @@ export function MentionPicker({
                             </div>
                             {group.status ? (
                                 <div className="flex h-8 items-center gap-2 px-2 text-muted-foreground">
-                                    <Spinner className="size-4" />
+                                    <Spinner color="current" size="sm" />
                                     <span>Searching files...</span>
                                 </div>
                             ) : null}

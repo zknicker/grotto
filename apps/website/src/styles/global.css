@@ -514,109 +514,16 @@
         background-position: -6px -6px;
     }
 
-    /*
-     * Glass chrome — the app shell paints one subtle tint behind the sidebar
-     * and behind rounded content corners. The outer window wrapper only clips
-     * the rounded native window so translucent layers do not stack.
-     * The topbar itself has no background so the sidebar and main column
-     * visually extend to the top of the window behind its controls.
-     */
     /* The shell paints no chrome fill of its own — the HeroUI --background
-       ground shows uniformly behind every surface, chat included. */
-    .app-window-shell,
-    .app-shell [data-slot='sidebar-container'].app-shell-sidebar,
-    .app-shell [data-slot='sidebar-inner'] {
+       ground shows uniformly behind every surface, chat included. The
+       Electron shell keeps the native vibrancy fill (desktop polish pass
+       owns revisiting it). */
+    .app-window-shell {
         background: transparent;
-    }
-
-    .app-shell-sidebar-top-inset {
-        padding-top: 12px;
-    }
-
-    .app-chrome-glass {
-        background: var(--app-chrome-fill);
-        backdrop-filter: var(--app-chrome-backdrop);
-        -webkit-backdrop-filter: var(--app-chrome-backdrop);
-    }
-
-    /* Flat seam: the sidebar/main division is a straight full-height
-       hairline, not a rounded content-card corner. */
-    .app-shell-main[data-edge-to-edge='true'] {
-        margin: 0 !important;
-        border: 0 solid var(--content-card-border) !important;
-        border-left-width: 1px !important;
-        border-radius: 0 !important;
-        /* The main column is its own ground: direct `bg-background` uses
-           inside it (topbars, wiki grid, participant pills) resolve to the
-           white content card, while tokens derived at :root (surfaces,
-           muted washes) stay anchored to the app ground. */
-        --background: var(--content-card);
-    }
-
-    /* Tool routes: the tool's own left panel opens the main column and sits
-       directly against the icon rail — the seam belongs on that panel's
-       right edge, so the rail and panel share one surface like the Home
-       sidebar. */
-    .app-shell-main[data-edge-to-edge='true'][data-rail-flush='true'] {
-        border-left-width: 0 !important;
-    }
-
-    .app-shell-main-top-drag-fade {
-        pointer-events: none;
-        position: absolute;
-        top: 0;
-        right: 0;
-        left: 0;
-        z-index: 35;
-        height: 48px;
-        background: linear-gradient(
-            to bottom,
-            color-mix(in srgb, var(--content-card) 76%, transparent) 0%,
-            color-mix(in srgb, var(--content-card) 38%, transparent) 48%,
-            color-mix(in srgb, var(--content-card) 10%, transparent) 78%,
-            transparent 100%
-        );
-        backdrop-filter: blur(0.6px);
-        -webkit-backdrop-filter: blur(0.6px);
-        -webkit-mask-image: linear-gradient(
-            to bottom,
-            black 0%,
-            rgb(0 0 0 / 0.88) 42%,
-            rgb(0 0 0 / 0.48) 72%,
-            transparent 100%
-        );
-        mask-image: linear-gradient(
-            to bottom,
-            black 0%,
-            rgb(0 0 0 / 0.88) 42%,
-            rgb(0 0 0 / 0.48) 72%,
-            transparent 100%
-        );
-    }
-
-    .app-shell-main:has([data-slot='chat-room-topbar']) .app-shell-main-top-drag-fade {
-        top: var(--content-topbar-height);
-    }
-
-    /* The sidebar panel now sits in normal flow beside the icon rail with
-       no collapse states; the seams are the panel's own borders and the
-       main column's border-left. */
-    html.macos-electron .app-chrome-glass {
-        background: transparent;
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
     }
 
     html.macos-electron .app-shell {
         background: var(--app-chrome-native-fill);
-    }
-
-    html.macos-electron .app-shell[data-app-layout='sidebar'] {
-        background: var(--app-chrome-native-fill);
-    }
-
-    html.macos-electron .app-shell-sidebar-top-inset {
-        padding-top: calc(var(--topbar-height) - 4px);
     }
 
     .scrollbar-hidden {

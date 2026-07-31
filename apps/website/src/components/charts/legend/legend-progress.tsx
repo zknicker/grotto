@@ -1,6 +1,5 @@
 "use client";
 
-import { Progress } from "@base-ui/react/progress";
 import { cn } from "../../../lib/utils.ts";
 import { useLegendItem } from "./legend-context";
 
@@ -25,24 +24,31 @@ export function LegendProgress({
   }
 
   // Note: item.color must remain inline style as it's dynamic data
+  const percent = Math.max(0, Math.min(100, (item.value / item.maxValue) * 100));
+
   return (
-    <Progress.Root max={item.maxValue} value={item.value}>
-      <Progress.Track
+    <div
+      aria-valuemax={item.maxValue}
+      aria-valuemin={0}
+      aria-valuenow={item.value}
+      role="progressbar"
+    >
+      <div
         className={cn(
           "w-full overflow-hidden rounded-full bg-legend-track",
           height,
           trackClassName
         )}
       >
-        <Progress.Indicator
+        <div
           className={cn(
             "h-full rounded-full transition-all duration-500",
             indicatorClassName
           )}
-          style={{ backgroundColor: item.color }}
+          style={{ backgroundColor: item.color, width: `${percent}%` }}
         />
-      </Progress.Track>
-    </Progress.Root>
+      </div>
+    </div>
   );
 }
 

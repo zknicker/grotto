@@ -1,12 +1,5 @@
+import type { ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import {
-    SettingsGroup,
-    SettingsPage,
-    SettingsPageHeader,
-    SettingsRow,
-    SettingsSection,
-    SettingsValue,
-} from '../../components/ui/settings-row.tsx';
 import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
 import {
     serverBriefVariationsRoute,
@@ -14,46 +7,40 @@ import {
 } from '../../features/servers/server-routes.ts';
 import { AppearanceSettings } from '../../features/settings/appearance/page.tsx';
 import { HostedBrowserSettingsPage } from '../../features/settings/browser/hosted-page.tsx';
+import {
+    SettingsGroup,
+    SettingsPage,
+    SettingsPageHeader,
+    SettingsRow,
+    SettingsSection,
+    SettingsValue,
+} from '../../features/settings/layout/settings-page.tsx';
+import type { HostedModelsComputer } from '../../features/settings/models/hosted-catalog.ts';
 import { HostedModelsSettings } from '../../features/settings/models/hosted-page.tsx';
 import { ProfileSettings } from '../../features/settings/profile/page.tsx';
 import { UpdatesSettings } from '../../features/settings/updates/page.tsx';
 import { HostedSkillsBrowser } from '../../features/skills/hosted-skills-browser.tsx';
 import { HostedStatsSettings } from '../../features/stats/hosted-stats.tsx';
+import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { ServerConnectionsPage } from './server-connections-page.tsx';
 
-export function ServerSettingsSectionPage() {
-    const { section = 'agent-runtime' } = useParams();
-    const { server } = useHostedServerContext();
-    const computers = grottoTrpc.computer.list.useQuery(
-        { serverId: server.id },
-        {
-            enabled: section === 'browser' || section === 'models' || section === 'skills',
-        }
-    );
+type SectionComputer = HostedModelsComputer & { health: string };
 
-    if (section === 'agent-runtime') {
-        return <Navigate replace to="../appearance" />;
-    }
+type SectionContext = {
+    computers: SectionComputer[];
+    server: ServerSummary;
+};
 
-    if (section === 'appearance') {
-        return <AppearanceSettings briefVariationsHref={serverBriefVariationsRoute(server.slug)} />;
-    }
+const computerBackedSections = new Set(['browser', 'models', 'skills']);
 
-    if (section === 'profile') {
-        return <ProfileSettings />;
-    }
-
-    if (section === 'connections') {
-        return <ServerConnectionsPage embedded />;
-    }
-
-    if (section === 'stats') {
-        return <HostedStatsSettings serverId={server.id} />;
-    }
-
-    if (section === 'browser') {
-        const computer = computers.data?.find((item) => item.health === 'healthy');
+/** Section registry: one renderer per settings section, no dispatch chain. */
+const sections: Record<string, (context: SectionContext) => ReactNode> = {
+    appearance: ({ server }) => (
+        <AppearanceSettings briefVariationsHref={serverBriefVariationsRoute(server.slug)} />
+    ),
+    browser: ({ computers, server }) => {
+        const computer = computers.find((item) => item.health === 'healthy');
         return computer ? (
             <HostedBrowserSettingsPage computerId={computer.id} serverId={server.id} />
         ) : (
@@ -62,27 +49,39 @@ export function ServerSettingsSectionPage() {
                 title="Browser"
             />
         );
-    }
+    },
+    connections: () => <ServerConnectionsPage embedded />,
+    models: ({ computers }) => <HostedModelsSettings computers={computers} />,
+    profile: () => <ProfileSettings />,
+    skills: ({ computers }) => (
+        <HostedSkillsBrowser
+            sources={computers.flatMap((computer) =>
+                (computer.reportedInventory?.importableSkills ?? []).map((skill) => ({
+                    computerId: computer.id,
+                    skill,
+                }))
+            )}
+        />
+    ),
+    stats: ({ server }) => <HostedStatsSettings serverId={server.id} />,
+    updates: ({ server }) => (
+        <UpdatesSettings computerSettingsHref={serverComputersRoute(server.slug)} />
+    ),
+};
 
-    if (section === 'models') {
-        return <HostedModelsSettings computers={computers.data ?? []} />;
-    }
+export function ServerSettingsSectionPage() {
+    const { section = 'appearance' } = useParams();
+    const { server } = useHostedServerContext();
+    const computers = grottoTrpc.computer.list.useQuery(
+        { serverId: server.id },
+        { enabled: computerBackedSections.has(section) }
+    );
 
-    if (section === 'skills') {
-        const sources = (computers.data ?? []).flatMap((computer) =>
-            (computer.reportedInventory?.importableSkills ?? []).map((skill) => ({
-                computerId: computer.id,
-                skill,
-            }))
-        );
-        return <HostedSkillsBrowser sources={sources} />;
+    const render = sections[section];
+    if (!render) {
+        return <Navigate replace to="../appearance" />;
     }
-
-    if (section === 'updates') {
-        return <UpdatesSettings computerSettingsHref={serverComputersRoute(server.slug)} />;
-    }
-
-    return <Navigate replace to="../appearance" />;
+    return render({ computers: computers.data ?? [], server });
 }
 
 function MissingComputerSettings({ description, title }: { description: string; title: string }) {

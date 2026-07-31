@@ -1,19 +1,19 @@
+import { Button } from '@heroui/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import { ComputerIcon, Moon02Icon, Sun01Icon } from '@hugeicons-pro/core-duotone-rounded';
 import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useNavigate } from 'react-router-dom';
 import { type ThemePreference, useTheme } from '../../../components/theme-provider.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
+import { appRoutes } from '../../../lib/app-routes.ts';
+import { cn } from '../../../lib/utils.ts';
 import {
     SettingsGroup,
     SettingsPage,
     SettingsPageHeader,
     SettingsRow,
     SettingsSection,
-} from '../../../components/ui/settings-row.tsx';
-import { appRoutes } from '../../../lib/app-routes.ts';
-import { cn } from '../../../lib/utils.ts';
+} from '../layout/settings-page.tsx';
 
 const themeOptions: Array<{
     description: string;
@@ -42,11 +42,11 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                             <button
                                 aria-pressed={isActive}
                                 className={cn(
-                                    'no-drag group relative flex flex-col overflow-hidden rounded-xl border bg-surface-2 text-left outline-none',
-                                    'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+                                    'no-drag group relative flex cursor-[var(--cursor-interactive)] flex-col overflow-hidden rounded-2xl border bg-surface text-left outline-none',
+                                    'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-background',
                                     isActive
-                                        ? 'border-brand'
-                                        : 'border-input hover:bg-legacy-accent'
+                                        ? 'border-accent'
+                                        : 'border-border hover:bg-surface-secondary'
                                 )}
                                 key={option.id}
                                 onClick={() => setTheme(option.id)}
@@ -59,8 +59,8 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                                             aria-hidden="true"
                                             className={cn(
                                                 isActive
-                                                    ? 'text-brand'
-                                                    : 'text-muted-foreground group-hover:text-foreground'
+                                                    ? 'text-accent'
+                                                    : 'text-muted group-hover:text-foreground'
                                             )}
                                             icon={option.icon}
                                             size={24}
@@ -69,7 +69,7 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                                             <div className="truncate font-semibold text-foreground text-sm leading-none">
                                                 {option.label}
                                             </div>
-                                            <div className="mt-1 truncate text-meta text-muted-foreground leading-none">
+                                            <div className="mt-1 truncate text-muted text-xs leading-none">
                                                 {option.description}
                                             </div>
                                         </div>
@@ -79,7 +79,7 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                                         className={cn(
                                             'inline-flex size-5 shrink-0 items-center justify-center rounded-full',
                                             isActive
-                                                ? 'bg-brand text-brand-foreground'
+                                                ? 'bg-accent text-accent-foreground'
                                                 : 'border border-border bg-transparent'
                                         )}
                                     >
@@ -107,9 +107,9 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                         >
                             <div className="flex justify-start md:justify-end">
                                 <Button
-                                    onClick={() => navigate(briefVariationsHref)}
+                                    onPress={() => navigate(briefVariationsHref)}
                                     size="sm"
-                                    variant="outline"
+                                    variant="secondary"
                                 >
                                     Open
                                 </Button>
@@ -122,9 +122,9 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                     >
                         <div className="flex justify-start md:justify-end">
                             <Button
-                                onClick={() => navigate(appRoutes.designFaces)}
+                                onPress={() => navigate(appRoutes.designFaces)}
                                 size="sm"
-                                variant="outline"
+                                variant="secondary"
                             >
                                 Open
                             </Button>
@@ -141,7 +141,7 @@ function ThemePreview({ isActive, variant }: { isActive: boolean; variant: Theme
         <div
             className={cn(
                 'relative aspect-[16/7] w-full overflow-hidden border-b',
-                isActive ? 'border-brand-ring' : 'border-border'
+                isActive ? 'border-accent' : 'border-border'
             )}
         >
             {variant === 'system' ? <SystemSurface /> : <ToneSurface tone={variant} />}

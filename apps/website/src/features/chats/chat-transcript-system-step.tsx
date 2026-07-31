@@ -1,3 +1,4 @@
+import { Drawer } from '@heroui/react';
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import {
     BrainIcon,
@@ -10,15 +11,6 @@ import {
     ToolsIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import {
-    Drawer,
-    DrawerDescription,
-    DrawerHeader,
-    DrawerPanel,
-    DrawerPopup,
-    DrawerTitle,
-    DrawerTrigger,
-} from '../../components/ui/drawer.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { formatTimestamp } from '../../lib/format.ts';
 import { AccessEventLogEntry } from '../sessions/log/event-entry/access-entry.tsx';
@@ -223,21 +215,23 @@ export function SessionNoticeAction({
     const summary = getRuntimeNoticeSummary(row);
 
     return (
-        <Drawer onOpenChange={setIsOpen} open={isOpen} position="right">
-            <DrawerTrigger
-                render={
-                    <button
-                        aria-label="Started a fresh session"
-                        className={className}
-                        title="Started a fresh session"
-                        type="button"
-                    />
-                }
+        <>
+            <button
+                aria-label="Started a fresh session"
+                className={className}
+                onClick={() => setIsOpen(true)}
+                title="Started a fresh session"
+                type="button"
             >
                 <Icon className="size-3.5" icon={summary.icon} strokeWidth={2} />
-            </DrawerTrigger>
-            {isOpen ? <RuntimeNoticeDrawer row={row} summary={summary} /> : null}
-        </Drawer>
+            </button>
+            <RuntimeNoticeDrawer
+                isOpen={isOpen}
+                onOpenChange={setIsOpen}
+                row={row}
+                summary={summary}
+            />
+        </>
     );
 }
 
@@ -253,87 +247,99 @@ function RuntimeNoticeLabel({
     summary: RuntimeNoticeSummary;
 }) {
     return (
-        <Drawer onOpenChange={onOpenChange} open={isOpen} position="right">
-            <DrawerTrigger
-                render={
-                    <button
-                        className="inline-flex min-w-0 max-w-full items-baseline gap-1.5 text-left hover:text-foreground"
-                        type="button"
-                    />
-                }
+        <>
+            <button
+                className="inline-flex min-w-0 max-w-full items-baseline gap-1.5 text-left hover:text-foreground"
+                data-testid="runtime-notice-trigger"
+                onClick={() => onOpenChange(true)}
+                type="button"
             >
-                <span className="truncate font-medium text-muted-foreground">{summary.label}</span>
-            </DrawerTrigger>
-            {isOpen ? <RuntimeNoticeDrawer row={row} summary={summary} /> : null}
-        </Drawer>
+                <span className="truncate font-medium text-muted">{summary.label}</span>
+            </button>
+            <RuntimeNoticeDrawer
+                isOpen={isOpen}
+                onOpenChange={onOpenChange}
+                row={row}
+                summary={summary}
+            />
+        </>
     );
 }
 
 function RuntimeNoticeDrawer({
+    isOpen,
+    onOpenChange,
     row,
     summary,
 }: {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
     row: RuntimeNoticeRow;
     summary: RuntimeNoticeSummary;
 }) {
     const details = runtimeNoticeDetails(row);
 
     return (
-        <DrawerPopup className="max-w-xl" showCloseButton variant="inset">
-            <DrawerHeader className="gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-legacy-muted">
-                        <Icon
-                            className="size-[18px] text-muted-foreground"
-                            icon={summary.icon}
-                            strokeWidth={1.6}
-                        />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <DrawerTitle className="truncate">{summary.label}</DrawerTitle>
-                        <DrawerDescription className="mt-1 truncate">
-                            Runtime notice
-                        </DrawerDescription>
-                    </div>
-                </div>
-            </DrawerHeader>
-            <DrawerPanel className="space-y-5">
-                <div className="flex flex-col gap-1 rounded-md border border-border-subtle bg-legacy-muted px-3 py-2.5">
-                    {details.map((detail) => (
-                        <RuntimeNoticeMetaRow
-                            key={detail.label}
-                            label={detail.label}
-                            value={detail.value}
-                        />
-                    ))}
-                </div>
-                {row.runtimeNotice.text ? (
-                    <div className="space-y-3">
-                        <div className="space-y-1">
-                            <h3 className="font-medium text-foreground text-sm">
-                                Raw engine notice
-                            </h3>
-                            <p className="max-w-[58ch] text-pretty text-muted-foreground text-sm">
-                                Original engine text captured before Grotto rendered it as a runtime
-                                notice.
-                            </p>
+        <Drawer.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+            <Drawer.Content placement="right">
+                <Drawer.Dialog>
+                    <Drawer.CloseTrigger />
+                    <Drawer.Header>
+                        <div className="flex items-center gap-3">
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-separator bg-surface-secondary">
+                                <Icon
+                                    className="size-[18px] text-muted"
+                                    icon={summary.icon}
+                                    strokeWidth={1.6}
+                                />
+                            </div>
+                            <div className="flex min-w-0 flex-1 flex-col gap-1">
+                                <Drawer.Heading>{summary.label}</Drawer.Heading>
+                                <p className="text-muted text-sm">Runtime notice</p>
+                            </div>
                         </div>
-                        <div className="rounded-md border border-border-subtle bg-legacy-muted px-3 py-2">
-                            <code className="break-all font-mono text-code text-foreground leading-relaxed">
-                                {row.runtimeNotice.text}
-                            </code>
+                    </Drawer.Header>
+                    <Drawer.Body>
+                        <div className="flex min-w-0 flex-col gap-5">
+                            <div className="flex flex-col gap-1 rounded-md border border-separator bg-surface-secondary px-3 py-2.5">
+                                {details.map((detail) => (
+                                    <RuntimeNoticeMetaRow
+                                        key={detail.label}
+                                        label={detail.label}
+                                        value={detail.value}
+                                    />
+                                ))}
+                            </div>
+                            {row.runtimeNotice.text ? (
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex flex-col gap-1">
+                                        <h3 className="font-medium text-foreground text-sm">
+                                            Raw engine notice
+                                        </h3>
+                                        <p className="max-w-[58ch] text-pretty text-muted text-sm">
+                                            Original engine text captured before Grotto rendered it
+                                            as a runtime notice.
+                                        </p>
+                                    </div>
+                                    <div className="rounded-md border border-separator bg-surface-secondary px-3 py-2">
+                                        <code className="break-all font-mono text-code text-foreground leading-relaxed">
+                                            {row.runtimeNotice.text}
+                                        </code>
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
-                    </div>
-                ) : null}
-            </DrawerPanel>
-        </DrawerPopup>
+                    </Drawer.Body>
+                </Drawer.Dialog>
+            </Drawer.Content>
+        </Drawer.Backdrop>
     );
 }
 
 function RuntimeNoticeMetaRow({ label, value }: { label: string; value: string }) {
     return (
         <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-3 text-sm">
-            <span className="text-muted-foreground">{label}</span>
+            <span className="text-muted">{label}</span>
             <span className="min-w-0 break-all text-foreground">{value}</span>
         </div>
     );

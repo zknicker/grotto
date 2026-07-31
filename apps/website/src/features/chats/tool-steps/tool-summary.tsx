@@ -1,7 +1,6 @@
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import type { ReactNode } from 'react';
 import * as React from 'react';
-import { Drawer, DrawerTrigger } from '../../../components/ui/drawer.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { ToolDrawer } from '../../sessions/tools/tool-drawer.tsx';
@@ -48,45 +47,39 @@ export function ToolTimelineStep({
             // button's offsetParent is the row itself).
             ref={hoverItem.ref}
         >
-            {isLast ? null : (
-                <div className="absolute top-7 bottom-0 left-4 w-px bg-border-subtle" />
-            )}
-            <Drawer onOpenChange={setIsOpen} open={isOpen} position="right">
-                <DrawerTrigger
-                    render={
-                        <button
-                            aria-label={inspectLabel}
-                            className={cn(
-                                'flex min-h-[var(--tool-row-min-h,1.75rem)] w-full min-w-0 cursor-default items-center gap-2 rounded-[var(--tool-row-hover-radius,var(--radius-md))] py-1.5 pr-2 pl-[var(--tool-row-inset,0.75rem)] text-left text-muted-foreground outline-none transition-none focus-visible:bg-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-                                !hoverItem.hasSharedHover && 'hover:bg-hover'
-                            )}
-                            title={inspectLabel}
-                            type="button"
-                        />
-                    }
-                >
-                    <span className="-ml-1 flex size-4 shrink-0 items-center justify-center">
-                        <Icon
-                            className="size-4 text-muted-foreground"
-                            icon={icon}
-                            strokeWidth={1.5}
-                        />
-                    </span>
-                    <span className="flex min-w-0 flex-1 items-center text-sm leading-5">
-                        {label}
-                    </span>
-                </DrawerTrigger>
-                {chatId ? (
-                    <ToolDrawer activityId={row.id} chatId={chatId} isOpen={isOpen} source="chat" />
-                ) : sessionKey && row.toolCall.callId ? (
-                    <ToolDrawer
-                        isOpen={isOpen}
-                        sessionKey={sessionKey}
-                        source="session"
-                        toolCallId={row.toolCall.callId}
-                    />
-                ) : null}
-            </Drawer>
+            {isLast ? null : <div className="absolute top-7 bottom-0 left-4 w-px bg-separator" />}
+            <button
+                aria-label={inspectLabel}
+                className={cn(
+                    'flex min-h-[var(--tool-row-min-h,1.75rem)] w-full min-w-0 cursor-default items-center gap-2 rounded-[var(--tool-row-hover-radius,var(--radius-md))] py-1.5 pr-2 pl-[var(--tool-row-inset,0.75rem)] text-left text-muted outline-none transition-none focus-visible:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset',
+                    !hoverItem.hasSharedHover && 'hover:bg-surface-hover'
+                )}
+                onClick={() => setIsOpen(true)}
+                title={inspectLabel}
+                type="button"
+            >
+                <span className="-ml-1 flex size-4 shrink-0 items-center justify-center">
+                    <Icon className="size-4 text-muted" icon={icon} strokeWidth={1.5} />
+                </span>
+                <span className="flex min-w-0 flex-1 items-center text-sm leading-5">{label}</span>
+            </button>
+            {chatId ? (
+                <ToolDrawer
+                    activityId={row.id}
+                    chatId={chatId}
+                    isOpen={isOpen}
+                    onOpenChange={setIsOpen}
+                    source="chat"
+                />
+            ) : sessionKey && row.toolCall.callId ? (
+                <ToolDrawer
+                    isOpen={isOpen}
+                    onOpenChange={setIsOpen}
+                    sessionKey={sessionKey}
+                    source="session"
+                    toolCallId={row.toolCall.callId}
+                />
+            ) : null}
             {children ? <div className="ml-7">{children}</div> : null}
         </div>
     );
@@ -120,11 +113,9 @@ export function InlineToolLabel({
             >
                 {verb}
             </span>
-            <span className={cn('truncate', isRunning ? null : 'text-muted-foreground')}>
-                {visibleTarget}
-            </span>
+            <span className={cn('truncate', isRunning ? null : 'text-muted')}>{visibleTarget}</span>
             {duration ? (
-                <span className="shrink-0 font-mono text-caption text-foreground-tertiary tabular-nums">
+                <span className="shrink-0 font-mono text-caption text-muted/70 tabular-nums">
                     {duration}
                 </span>
             ) : null}
@@ -134,14 +125,14 @@ export function InlineToolLabel({
 
 export function getInlineToolVerbClassName(row: ToolStepRow) {
     if (hasErrorStatus(row.toolCall.status)) {
-        return 'text-destructive';
+        return 'text-danger';
     }
 
     if (!row.completedAt) {
-        return 'text-foreground-tertiary';
+        return 'text-muted/70';
     }
 
-    return 'text-muted-foreground';
+    return 'text-muted';
 }
 
 export function getToolTarget(row: ToolStepRow) {

@@ -1,4 +1,4 @@
-import { DrawerPanel } from '../../../components/ui/drawer.tsx';
+import { Alert } from '@heroui/react';
 import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { SessionLinkButton } from '../session-link-button.tsx';
 import { buildToolDrawerCall, type ToolDrawerDetails } from './tool-drawer-call.ts';
@@ -10,11 +10,13 @@ interface ToolDrawerBodyProps {
     queryError: boolean;
 }
 
+// Body content only: the drawer shell owns Drawer.Body so this stays
+// renderable on its own in tests.
 export function ToolDrawerBody({ details, isPending, queryError }: ToolDrawerBodyProps) {
     const BodyRenderer = details ? resolveToolDrawerBody(details.toolCall.name) : null;
 
     return (
-        <DrawerPanel className="space-y-5">
+        <div className="flex min-w-0 flex-col gap-5">
             {(details?.actions ?? []).map((action) => (
                 <SessionLinkButton
                     key={`${action.kind}:${action.sessionKey}:${action.label}`}
@@ -26,17 +28,19 @@ export function ToolDrawerBody({ details, isPending, queryError }: ToolDrawerBod
                 />
             ))}
             {isPending ? (
-                <div className="flex items-center gap-2.5 rounded-lg border border-border-subtle bg-legacy-muted px-3.5 py-3">
+                <div className="flex items-center gap-2.5 rounded-lg border border-separator bg-surface-secondary px-3.5 py-3">
                     <StatusDot className="animate-pulse" status="muted" />
-                    <p className="text-muted-foreground text-sm">Loading tool details...</p>
+                    <p className="text-muted text-sm">Loading tool details...</p>
                 </div>
             ) : null}
             {!isPending && queryError ? (
-                <div className="rounded-lg border border-[color:var(--error-border)] bg-[var(--error-bg)] px-3.5 py-3">
-                    <p className="text-error-foreground text-sm">Tool details not available.</p>
-                </div>
+                <Alert status="danger">
+                    <Alert.Content>
+                        <Alert.Description>Tool details not available.</Alert.Description>
+                    </Alert.Content>
+                </Alert>
             ) : null}
             {details && BodyRenderer ? <BodyRenderer call={buildToolDrawerCall(details)} /> : null}
-        </DrawerPanel>
+        </div>
     );
 }

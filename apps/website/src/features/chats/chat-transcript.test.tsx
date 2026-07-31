@@ -278,7 +278,9 @@ test('ChatTranscript keeps tool calls out of the pane and in the turn body', () 
     assert.doesNotMatch(markup, /Worked/);
     assert.doesNotMatch(markup, /Agent idle/);
     // The pane is prose-only; tool work renders in the turn drawer instead.
-    assert.doesNotMatch(markup, /aria-expanded/);
+    // Message actions (reaction popover) legitimately ship a collapsed
+    // aria-expanded, so only an expanded work group is disqualifying.
+    assert.doesNotMatch(markup, /aria-expanded="true"/);
     assert.doesNotMatch(markup, /command -v gog/);
 
     const turnBody = renderTurnBody(rows);
@@ -741,8 +743,8 @@ test('ToolStep renders completed verbs in neutral text and the whole row as the 
     );
 
     assert.doesNotMatch(markup, /text-success/);
-    assert.match(markup, /text-muted-foreground">Used</);
-    assert.match(markup, /aria-label="Inspect bash · date"[^>]*data-slot="drawer-trigger"/);
+    assert.match(markup, /text-muted">Used</);
+    assert.match(markup, /<button aria-label="Inspect bash · date"/);
     assert.match(markup, /cursor-default/);
     assert.doesNotMatch(markup, /cursor-pointer/);
     assert.doesNotMatch(markup, /thinking-indicator-text/);
@@ -919,7 +921,7 @@ test('ToolStep keeps older tool rows inspectable when call id is missing', () =>
         />
     );
 
-    assert.match(markup, /data-slot="drawer-trigger"/);
+    assert.match(markup, /<button aria-label="Inspect /);
     assert.match(markup, /computer use\.list apps/);
 });
 
@@ -1124,7 +1126,7 @@ test('ChatTranscript renders runtime notices outside the work disclosure', () =>
     ]);
 
     assert.match(markup, /Context status/);
-    assert.match(markup, /data-slot="drawer-trigger"/);
+    assert.match(markup, /data-testid="runtime-notice-trigger"/);
     assert.doesNotMatch(markup, /Working/);
     assert.doesNotMatch(markup, /Worked/);
 });
@@ -1216,7 +1218,7 @@ test('ChatTranscript keeps the stopped note as a muted footnote under turn conte
     // A quiet lifecycle note: the icon inherits the muted text color instead
     // of reading as an error.
     assert.doesNotMatch(markup, /text-error-foreground/);
-    assert.doesNotMatch(markup, /data-slot="drawer-trigger"/);
+    assert.doesNotMatch(markup, /<button aria-label="Inspect /);
     assert.doesNotMatch(markup, /Working/);
     assert.doesNotMatch(markup, /Worked/);
 });
@@ -1484,7 +1486,7 @@ test('ChatTranscript renders active tool progress as one-line status rows', () =
     );
 
     assert.match(markup, /Using[\s\S]*bash/);
-    assert.match(markup, /data-slot="drawer-trigger"/);
+    assert.match(markup, /<button aria-label="Inspect /);
     assert.doesNotMatch(markup, /Agent is working/);
     assert.doesNotMatch(markup, />Running</);
     assert.doesNotMatch(markup, />start</);
@@ -1602,7 +1604,7 @@ test('ChatTranscript wires active progress tool ids to the tool drawer trigger',
     );
 
     assert.match(markup, /Using[\s\S]*computer use\.list apps/);
-    assert.match(markup, /data-slot="drawer-trigger"/);
+    assert.match(markup, /<button aria-label="Inspect /);
 });
 
 test('ChatTranscript keeps active work headers stable between fast completed tools', () => {

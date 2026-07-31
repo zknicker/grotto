@@ -21,9 +21,7 @@ export function TerminalToolDrawerBody({ call }: { call: ToolDrawerCall }) {
                     <ToolDrawerSectionLabel>Command</ToolDrawerSectionLabel>
                     <ToolDrawerMonoBlock copyLabel="Copy command" text={`$ ${command}`} />
                     {workdir ? (
-                        <p className="mt-1.5 truncate font-mono text-muted-foreground/70 text-xs">
-                            {workdir}
-                        </p>
+                        <p className="mt-1.5 truncate font-mono text-muted/70 text-xs">{workdir}</p>
                     ) : null}
                 </div>
             ) : null}
@@ -40,10 +38,10 @@ export function TerminalToolDrawerBody({ call }: { call: ToolDrawerCall }) {
             {(exitCode !== null && exitCode !== 0) || errorText ? (
                 <div className="space-y-1">
                     {exitCode !== null && exitCode !== 0 ? (
-                        <p className="font-mono text-destructive text-sm">exit {exitCode}</p>
+                        <p className="font-mono text-danger text-sm">exit {exitCode}</p>
                     ) : null}
                     {errorText ? (
-                        <p className="whitespace-pre-wrap break-words font-mono text-destructive/90 text-sm">
+                        <p className="whitespace-pre-wrap break-words font-mono text-danger/90 text-sm">
                             {errorText}
                         </p>
                     ) : null}

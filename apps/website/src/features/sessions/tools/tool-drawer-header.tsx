@@ -1,5 +1,4 @@
-import { Badge } from '../../../components/ui/badge.tsx';
-import { DrawerHeader, DrawerTitle } from '../../../components/ui/drawer.tsx';
+import { Chip, Drawer } from '@heroui/react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { formatShortTime, titleCase } from '../../../lib/format.ts';
 import type { ToolDrawerCall } from './tool-drawer-call.ts';
@@ -14,31 +13,33 @@ export function ToolDrawerHeader({ call }: { call: ToolDrawerCall }) {
     const metadata = [startedTime, duration].filter(Boolean).join(' · ');
 
     return (
-        <DrawerHeader>
+        <Drawer.Header>
             <div className="flex items-center gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-legacy-muted">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-separator bg-surface-secondary">
                     <Icon
-                        className="size-4.5 text-muted-foreground"
+                        className="size-4.5 text-muted"
                         icon={resolveToolDrawerIcon(call.name)}
                         strokeWidth={1.5}
                     />
                 </div>
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2.5">
-                        <DrawerTitle className="truncate">{titleCase(call.name)}</DrawerTitle>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                        <Drawer.Heading>{titleCase(call.name)}</Drawer.Heading>
                         {hasError ? (
-                            <Badge variant="destructive">Failed</Badge>
+                            <Chip color="danger" size="sm" variant="soft">
+                                Failed
+                            </Chip>
                         ) : isRunning ? (
-                            <Badge variant="secondary">Running</Badge>
+                            <Chip size="sm" variant="secondary">
+                                Running
+                            </Chip>
                         ) : null}
                     </div>
                     {metadata ? (
-                        <p className="mt-0.5 font-mono text-muted-foreground text-sm tabular-nums">
-                            {metadata}
-                        </p>
+                        <p className="font-mono text-muted text-sm tabular-nums">{metadata}</p>
                     ) : null}
                 </div>
             </div>
-        </DrawerHeader>
+        </Drawer.Header>
     );
 }

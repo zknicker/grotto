@@ -1,14 +1,7 @@
+import { Drawer } from '@heroui/react';
 import { useReducedMotion } from 'framer-motion';
 import { useDevMode } from '../../components/dev-mode-provider.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
-import {
-    Drawer,
-    DrawerDescription,
-    DrawerHeader,
-    DrawerPanel,
-    DrawerPopup,
-    DrawerTitle,
-} from '../../components/ui/drawer.tsx';
 import { useChatTurnPrompt } from '../../hooks/chats/use-chat-turn-prompt.ts';
 import { formatShortTime, formatTimestamp } from '../../lib/format.ts';
 import { trpc } from '../../lib/trpc.tsx';
@@ -52,34 +45,33 @@ export function ChatTurnDrawer({
     turnActive?: boolean;
 }) {
     return (
-        <Drawer onOpenChange={onOpenChange} open={open} position="right">
-            <DrawerPopup
-                className="w-[min(96vw,40rem)] max-w-[min(96vw,40rem)] overflow-hidden"
-                showCloseButton
-                variant="inset"
-            >
-                <ChatTurnDrawerHeader
-                    agentCharacter={agentCharacter}
-                    agentColor={agentColor}
-                    agentName={agentName}
-                    entry={entry}
-                    turnActive={turnActive}
-                />
-                <DrawerPanel>
-                    {embeddedEvidence ? (
-                        <ChatTurnItems
-                            chatId={chatId}
-                            items={entry?.items ?? []}
-                            showPromptEvidence={false}
-                            turnActive={turnActive}
-                            turnStartedAt={entry?.timestamp ?? null}
-                        />
-                    ) : (
-                        <ChatTurnBody chatId={chatId} entry={entry} turnActive={turnActive} />
-                    )}
-                </DrawerPanel>
-            </DrawerPopup>
-        </Drawer>
+        <Drawer.Backdrop isOpen={open} onOpenChange={onOpenChange}>
+            <Drawer.Content placement="right">
+                <Drawer.Dialog>
+                    <Drawer.CloseTrigger />
+                    <ChatTurnDrawerHeader
+                        agentCharacter={agentCharacter}
+                        agentColor={agentColor}
+                        agentName={agentName}
+                        entry={entry}
+                        turnActive={turnActive}
+                    />
+                    <Drawer.Body>
+                        {embeddedEvidence ? (
+                            <ChatTurnItems
+                                chatId={chatId}
+                                items={entry?.items ?? []}
+                                showPromptEvidence={false}
+                                turnActive={turnActive}
+                                turnStartedAt={entry?.timestamp ?? null}
+                            />
+                        ) : (
+                            <ChatTurnBody chatId={chatId} entry={entry} turnActive={turnActive} />
+                        )}
+                    </Drawer.Body>
+                </Drawer.Dialog>
+            </Drawer.Content>
+        </Drawer.Backdrop>
     );
 }
 
@@ -108,7 +100,7 @@ function ChatTurnDrawerHeader({
         : [formatTurnDayTime(startedAt), duration];
 
     return (
-        <DrawerHeader className="gap-3">
+        <Drawer.Header>
             <div className="flex items-center gap-2.5">
                 <div className="flex size-11 shrink-0 items-center justify-center">
                     <AgentFace
@@ -123,13 +115,13 @@ function ChatTurnDrawerHeader({
                     />
                 </div>
                 <div className="flex min-w-0 flex-col gap-0.5">
-                    <DrawerTitle className="truncate">{agentName}</DrawerTitle>
-                    <DrawerDescription className="flex min-w-0 items-center gap-1.5">
+                    <Drawer.Heading>{agentName}</Drawer.Heading>
+                    <p className="flex min-w-0 items-center gap-1.5 text-muted text-sm">
                         {turnActive ? (
                             <span className="flex shrink-0 items-center gap-1.5">
                                 <span aria-hidden className="relative flex size-2">
-                                    <span className="absolute inline-flex size-full rounded-full bg-info opacity-60 motion-safe:animate-ping" />
-                                    <span className="relative inline-flex size-2 rounded-full bg-info" />
+                                    <span className="absolute inline-flex size-full rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
+                                    <span className="relative inline-flex size-2 rounded-full bg-accent" />
                                 </span>
                                 Working now
                             </span>
@@ -138,10 +130,10 @@ function ChatTurnDrawerHeader({
                             {metaParts.filter(Boolean).join(' · ') ||
                                 (turnActive ? 'Getting started' : 'Turn detail')}
                         </span>
-                    </DrawerDescription>
+                    </p>
                 </div>
             </div>
-        </DrawerHeader>
+        </Drawer.Header>
     );
 }
 
@@ -193,7 +185,7 @@ export function ChatTurnItems({
     const segments = groupAgentItems([...items]);
 
     if (segments.length === 0) {
-        return <p className="text-muted-foreground text-sm">Nothing to show yet.</p>;
+        return <p className="text-muted text-sm">Nothing to show yet.</p>;
     }
 
     return (
@@ -272,8 +264,8 @@ function TurnPromptEvidence({ runId }: { runId: string | null }) {
     return (
         <div className="flex min-w-0 flex-col gap-3">
             <section className="grid gap-1.5">
-                <h4 className="font-medium text-muted-foreground text-sm">Prompt (dev mode)</h4>
-                <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-legacy-muted px-3 py-2 font-mono text-code text-muted-foreground">
+                <h4 className="font-medium text-muted text-sm">Prompt (dev mode)</h4>
+                <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-surface-secondary px-3 py-2 font-mono text-code text-muted">
                     {`${evidence.data.instructions}\n\n--- turn prompt ---\n\n${evidence.data.prompt}`}
                 </pre>
             </section>

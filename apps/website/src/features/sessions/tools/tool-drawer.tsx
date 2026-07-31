@@ -1,4 +1,4 @@
-import { DrawerPopup } from '../../../components/ui/drawer.tsx';
+import { Drawer } from '@heroui/react';
 import { useChatTool } from '../../../hooks/chats/use-chat-tool.ts';
 import { useSessionTool } from '../../../hooks/sessions/use-session-tool.ts';
 import type { ChatToolOutput, SessionToolOutput } from '../../../lib/trpc.tsx';
@@ -6,7 +6,10 @@ import { ToolDrawerBody } from './tool-drawer-body.tsx';
 import { buildToolDrawerCall } from './tool-drawer-call.ts';
 import { ToolDrawerHeader } from './tool-drawer-header.tsx';
 
-type ToolDrawerProps = { isOpen: boolean } & (
+type ToolDrawerProps = {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+} & (
     | { activityId: string; chatId: string; source: 'chat' }
     | { sessionKey: string; source: 'session'; toolCallId: string }
 );
@@ -23,6 +26,7 @@ function ChatToolDrawer({
     activityId,
     chatId,
     isOpen,
+    onOpenChange,
 }: Extract<ToolDrawerProps, { source: 'chat' }>) {
     const toolQuery = useChatTool(
         {
@@ -38,7 +42,9 @@ function ChatToolDrawer({
     return (
         <ToolDrawerShell
             details={details}
+            isOpen={isOpen}
             isPending={toolQuery.isPending}
+            onOpenChange={onOpenChange}
             queryError={!toolQuery.isPending && Boolean(toolQuery.error || !details)}
         />
     );
@@ -46,6 +52,7 @@ function ChatToolDrawer({
 
 function SessionToolDrawer({
     isOpen,
+    onOpenChange,
     sessionKey,
     toolCallId,
 }: Extract<ToolDrawerProps, { source: 'session' }>) {
@@ -63,7 +70,9 @@ function SessionToolDrawer({
     return (
         <ToolDrawerShell
             details={details}
+            isOpen={isOpen}
             isPending={toolQuery.isPending}
+            onOpenChange={onOpenChange}
             queryError={!toolQuery.isPending && Boolean(toolQuery.error || !details)}
         />
     );
@@ -71,17 +80,34 @@ function SessionToolDrawer({
 
 function ToolDrawerShell({
     details,
+    isOpen,
     isPending,
+    onOpenChange,
     queryError,
 }: {
     details: ChatToolOutput | SessionToolOutput | null;
+    isOpen: boolean;
     isPending: boolean;
+    onOpenChange: (isOpen: boolean) => void;
     queryError: boolean;
 }) {
     return (
-        <DrawerPopup className="max-w-xl" showCloseButton variant="inset">
-            {details ? <ToolDrawerHeader call={buildToolDrawerCall(details)} /> : null}
-            <ToolDrawerBody details={details} isPending={isPending} queryError={queryError} />
-        </DrawerPopup>
+        <Drawer.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+            <Drawer.Content placement="right">
+                {/* The header supplies the accessible name once details land; until
+                    then the dialog names itself. */}
+                <Drawer.Dialog aria-label={details ? undefined : 'Tool details'}>
+                    <Drawer.CloseTrigger />
+                    {details ? <ToolDrawerHeader call={buildToolDrawerCall(details)} /> : null}
+                    <Drawer.Body>
+                        <ToolDrawerBody
+                            details={details}
+                            isPending={isPending}
+                            queryError={queryError}
+                        />
+                    </Drawer.Body>
+                </Drawer.Dialog>
+            </Drawer.Content>
+        </Drawer.Backdrop>
     );
 }

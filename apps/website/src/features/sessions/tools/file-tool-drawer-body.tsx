@@ -26,7 +26,7 @@ export function FileToolDrawerBody({ call }: { call: ToolDrawerCall }) {
                         text={path ?? pattern ?? ''}
                     />
                     {path && pattern ? (
-                        <p className="mt-1.5 truncate font-mono text-muted-foreground/70 text-xs">
+                        <p className="mt-1.5 truncate font-mono text-muted/70 text-xs">
                             pattern: {pattern}
                         </p>
                     ) : null}

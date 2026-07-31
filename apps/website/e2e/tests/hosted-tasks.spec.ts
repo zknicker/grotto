@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Page } from '@playwright/test';
+import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
 import { createTRPCClient, httpLink } from '@trpc/client';
 import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
 import { clerkSessionFile, e2eClerkUserId, signInAsClerkHuman } from '../support/clerk-session.ts';
@@ -133,6 +134,63 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     await expect(page.getByText('Prove the hosted task flow', { exact: true })).toHaveCount(0);
 });
 
+test('a hosted task message projects its status in the Chat and opens its Thread', async ({
+    page,
+}) => {
+    await signInAsClerkHuman(page);
+    await page.goto('/s');
+    await page.getByLabel('Name').fill('Task Projection');
+    await page.getByLabel('Address').fill('task-projection');
+    await page.getByRole('button', { name: 'Create Server' }).click();
+    await page.getByRole('button', { name: 'all', exact: true }).click();
+
+    await page.getByRole('textbox', { name: 'Message all' }).fill('Projected task message');
+    await page.getByRole('button', { name: 'Send' }).click();
+    await expect(page.getByText('Projected task message', { exact: true })).toBeVisible();
+
+    const { token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as { token: string };
+    const client = createHostedClient(token);
+    const server = await client.server.bySlug.query({ slug: 'task-projection' });
+    const allChatId = server.channels.find((chat) => chat.name === 'all')?.id;
+    if (!allChatId) {
+        throw new Error('The task projection flow did not resolve #all.');
+    }
+    const snapshot = await client.chat.messages.query({ chatId: allChatId, serverId: server.id });
+    const anchor = snapshot.messages.find(
+        (message) => message.content === 'Projected task message'
+    );
+    if (!anchor) {
+        throw new Error('The task projection flow did not resolve its anchor message.');
+    }
+
+    const promotion = await client.task.promote.mutate({
+        messageId: anchor.id,
+        serverId: server.id,
+    });
+
+    const row = page
+        .getByText('Projected task message', { exact: true })
+        .locator('xpath=ancestor::div[@data-message-id][1]');
+    await expect(row.getByTestId('message-task-badge')).toBeVisible();
+    await expect(row.getByRole('button', { name: /Todo\. Open thread$/u })).toBeVisible();
+
+    // Claiming advances status through the same task realtime invalidation; no reload.
+    const claim = await client.task.claim.mutate({
+        expectedVersion: promotion.task.version,
+        messageId: anchor.id,
+        serverId: server.id,
+    });
+    const ownerSuffix = claim.task.assigneeUserId?.slice(-6);
+    if (!ownerSuffix) {
+        throw new Error('The task projection flow did not resolve the claiming human.');
+    }
+    await expect(row.getByRole('button', { name: /In progress.*Open thread$/u })).toBeVisible();
+    await expect(row.getByTestId('message-task-badge')).toContainText(`Human ${ownerSuffix}`);
+
+    await row.getByRole('button', { name: /Open thread$/u }).click();
+    await expect(page.getByRole('complementary', { name: 'Thread' })).toBeVisible();
+});
+
 function taskCard(page: Page) {
     return page
         .getByText('Prove the hosted task flow', { exact: true })
@@ -143,7 +201,11 @@ function createHostedClient(token: string) {
     return createTRPCClient<GrottoRouter>({
         links: [
             httpLink({
-                headers: { authorization: `Bearer ${token}` },
+                headers: {
+                    authorization: `Bearer ${token}`,
+                    [appProtocolHeaders.productVersion]: 'e2e',
+                    [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
+                },
                 url: `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/trpc`,
             }),
         ],

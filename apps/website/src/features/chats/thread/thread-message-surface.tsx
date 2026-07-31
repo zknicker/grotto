@@ -21,11 +21,8 @@ import { useTaskConvert } from '../../../hooks/tasks/use-task-mutations.ts';
 import { appRoutes } from '../../../lib/app-routes.ts';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { cn } from '../../../lib/utils.ts';
-import {
-    formatTaskNumber,
-    taskStatusClasses,
-    taskStatusIcons,
-} from '../../tasks/task-presentation.ts';
+import { MessageTaskChip, messageTaskAssigneeLabel } from '../../tasks/message-task-chip.tsx';
+import { formatTaskNumber, taskStatusLabels } from '../../tasks/task-presentation.ts';
 import { TaskStatusMenu } from '../../tasks/task-status-menu.tsx';
 import { isActivityBackedMessageRow, isStreamingPostMessageRow } from '../chat-transcript-model.ts';
 import {
@@ -100,21 +97,7 @@ function RuntimeThreadMessageSurface({
                             messageId={row.message.id}
                             status={row.message.task.status}
                         >
-                            <span
-                                className={cn(
-                                    'inline-flex h-6 items-center gap-1 rounded-sm px-2 font-mono text-meta',
-                                    taskStatusClasses[row.message.task.status]
-                                )}
-                            >
-                                <Icon
-                                    className="size-3.5"
-                                    icon={taskStatusIcons[row.message.task.status]}
-                                />
-                                {formatTaskNumber(row.message.task)}
-                                {row.message.task.assignee?.handle
-                                    ? ` @${row.message.task.assignee.handle}`
-                                    : ''}
-                            </span>
+                            <MessageTaskChip task={row.message.task} />
                         </TaskStatusMenu>
                     ) : null}
                     {thread && canOpenThread ? (
@@ -188,6 +171,7 @@ function EmbeddedThreadMessageSurface({
     const active = context?.activeThreadAnchorId === row.message.id;
     const flashing = context?.flashMessageId === row.message.id;
     const openThread = () => context?.onOpenThread(row);
+    const taskAssigneeLabel = row.message.task ? messageTaskAssigneeLabel(row.message.task) : null;
 
     return (
         <div
@@ -205,9 +189,23 @@ function EmbeddedThreadMessageSurface({
                 reactionsEnabled={false}
             />
             {children}
-            {thread && canOpenThread ? (
+            {row.message.task || (thread && canOpenThread) ? (
                 <div className="flex flex-wrap items-center gap-1.5">
-                    <ThreadReplyPill onClick={openThread} summary={thread} />
+                    {row.message.task && canOpenThread ? (
+                        <button
+                            aria-label={`Task ${formatTaskNumber(row.message.task)} — ${taskStatusLabels[row.message.task.status]}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}. Open thread`}
+                            className="inline-flex rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-brand-ring"
+                            onClick={openThread}
+                            type="button"
+                        >
+                            <MessageTaskChip task={row.message.task} />
+                        </button>
+                    ) : row.message.task ? (
+                        <MessageTaskChip task={row.message.task} />
+                    ) : null}
+                    {thread && canOpenThread ? (
+                        <ThreadReplyPill onClick={openThread} summary={thread} />
+                    ) : null}
                 </div>
             ) : null}
         </div>

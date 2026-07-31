@@ -85,10 +85,6 @@ test('a claimed task waits for Thread clarification, uses it, and moves to revie
 });
 
 test('a task message visibly projects its task state in the Chat', async ({ page }) => {
-    test.fail(
-        true,
-        'Known gap: the Chat row receives Thread counts but does not project task metadata.'
-    );
     const { channel, channelName, server, stamp } = suite;
     const prompt = `Bluebird task-state projection ${stamp}`;
 

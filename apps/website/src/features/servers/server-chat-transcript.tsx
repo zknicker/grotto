@@ -45,8 +45,8 @@ export function ServerChatTranscript({
 }) {
     const download = useDownloadServerAttachment();
     const rows = React.useMemo(
-        () => projectHostedChatMessages(messages ?? [], threads),
-        [messages, threads]
+        () => projectHostedChatMessages(messages ?? [], threads, agents),
+        [agents, messages, threads]
     );
     const messagesById = React.useMemo(
         () => new Map(messages?.map((message) => [message.id, message]) ?? []),
@@ -189,9 +189,11 @@ export function ServerChatTranscript({
 
 export function projectHostedChatMessages(
     messages: readonly HostedChatMessage[],
-    threads: readonly HostedThreadSummary[]
+    threads: readonly HostedThreadSummary[],
+    agents: readonly HostedAgent[] = []
 ): NonNullable<ChatLogOutput>['rows'] {
     const threadsByAnchor = new Map(threads.map((thread) => [thread.anchorMessageId, thread]));
+    const handleByAgentId = new Map(agents.map((agent) => [agent.id, agent.handle]));
 
     return messages.map((message): NonNullable<ChatLogOutput>['rows'][number] => {
         const actor = hostedMessageActor(message);
@@ -231,6 +233,7 @@ export function projectHostedChatMessages(
                 sourceSessionId: null,
                 sourceSessionKey: `hosted:${agentId ?? message.author.kind}`,
                 tavernAgentId: agentId,
+                task: hostedMessageTask(message.task, handleByAgentId),
                 timestamp: message.createdAt,
             },
             responseId: agentId ? message.id : undefined,
@@ -238,6 +241,43 @@ export function projectHostedChatMessages(
             thread: threadsByAnchor.get(message.id) ?? null,
         };
     });
+}
+
+function hostedMessageTask(
+    task: HostedChatMessage['task'],
+    handleByAgentId: ReadonlyMap<string, string>
+): TranscriptMessage['task'] {
+    if (!task) {
+        return null;
+    }
+    return {
+        assignee: hostedTaskAssignee(task, handleByAgentId),
+        claimed_at: task.claimedAt,
+        created_at: task.createdAt,
+        labels: task.labels,
+        number: task.number,
+        origin: task.origin,
+        priority: task.priority,
+        status: task.status,
+        updated_at: task.updatedAt,
+    };
+}
+
+function hostedTaskAssignee(
+    task: NonNullable<HostedChatMessage['task']>,
+    handleByAgentId: ReadonlyMap<string, string>
+): { handle: string | null; id: string; kind: 'agent' | 'human' } | null {
+    if (task.assigneeAgentId) {
+        return {
+            handle: handleByAgentId.get(task.assigneeAgentId) ?? null,
+            id: task.assigneeAgentId,
+            kind: 'agent',
+        };
+    }
+    if (task.assigneeUserId) {
+        return { handle: null, id: task.assigneeUserId, kind: 'human' };
+    }
+    return null;
 }
 
 function hostedMessageActor(message: HostedChatMessage): TranscriptActor {

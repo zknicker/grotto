@@ -67,8 +67,13 @@ export function ServerChat({
     const messages = useServerChatMessages(chat.serverId, chat.id);
     const transcriptMessages = mergeTaskAnchor(messages.data?.messages, initialTask?.message);
     const transcriptRows = React.useMemo(
-        () => projectHostedChatMessages(transcriptMessages ?? [], messages.data?.threads ?? []),
-        [messages.data?.threads, transcriptMessages]
+        () =>
+            projectHostedChatMessages(
+                transcriptMessages ?? [],
+                messages.data?.threads ?? [],
+                agents
+            ),
+        [agents, messages.data?.threads, transcriptMessages]
     );
     const lastSequence = messages.data?.messages.at(-1)?.sequence ?? 0;
     const read = useMarkServerChatReadOnView({
@@ -203,7 +208,11 @@ export function ServerChat({
                         messages={transcriptMessages}
                         onOpenArtifact={artifactState.open}
                         onOpenThread={(anchor, summary) =>
-                            setThreadSelection({ anchor, initialSummary: summary })
+                            setThreadSelection({
+                                anchor,
+                                initialSummary: summary,
+                                initialThreadChatId: anchor.task?.threadChatId,
+                            })
                         }
                         onStartDm={(peerUserId) =>
                             ensureDm.mutate({ peerUserId, serverId: chat.serverId })

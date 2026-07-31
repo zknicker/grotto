@@ -16,7 +16,7 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     await page.getByLabel('Name').fill('Hosted Tasks');
     await page.getByLabel('Address').fill('hosted-tasks');
     await page.getByRole('button', { name: 'Create Server' }).click();
-    await page.getByRole('button', { name: 'Tasks' }).click();
+    await page.getByRole('button', { name: 'Tasks', exact: true }).click();
 
     await page.getByRole('button', { name: 'New task' }).click();
     await page.getByPlaceholder('What needs to be done?').fill('Prove the hosted task flow');
@@ -90,7 +90,7 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
          values ('${server.id}', '${allChatId}', '${peerUserId}')`
     );
     await page.reload();
-    await page.getByRole('button', { name: 'Tasks' }).click();
+    await page.getByRole('button', { name: 'Tasks', exact: true }).click();
     card = taskCard(page);
     const assignee = card.getByRole('combobox', { name: 'Assignee for task #1' });
     await assignee.click();
@@ -129,7 +129,7 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
          where server_id = '${server.id}' and user_id = '${userId}'`
     );
     await page.reload();
-    await page.getByRole('button', { name: 'Tasks' }).click();
+    await page.getByRole('button', { name: 'Tasks', exact: true }).click();
     await expect(page.getByText('No tasks yet')).toBeVisible();
     await expect(page.getByText('Prove the hosted task flow', { exact: true })).toHaveCount(0);
 });
@@ -138,18 +138,19 @@ test('a hosted task message projects its status in the Chat and opens its Thread
     page,
 }) => {
     await signInAsClerkHuman(page);
-    await page.goto('/s');
-    await page.getByLabel('Name').fill('Task Projection');
-    await page.getByLabel('Address').fill('task-projection');
-    await page.getByRole('button', { name: 'Create Server' }).click();
+    const { token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as { token: string };
+    const client = createHostedClient(token);
+    await client.server.create.mutate({
+        displayName: 'Task Projection',
+        slug: 'task-projection',
+    });
+    await page.goto('/s/task-projection');
     await page.getByRole('button', { name: 'all', exact: true }).click();
 
     await page.getByRole('textbox', { name: 'Message all' }).fill('Projected task message');
     await page.getByRole('button', { name: 'Send' }).click();
     await expect(page.getByText('Projected task message', { exact: true })).toBeVisible();
 
-    const { token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as { token: string };
-    const client = createHostedClient(token);
     const server = await client.server.bySlug.query({ slug: 'task-projection' });
     const allChatId = server.channels.find((chat) => chat.name === 'all')?.id;
     if (!allChatId) {
@@ -193,8 +194,8 @@ test('a hosted task message projects its status in the Chat and opens its Thread
 
 function taskCard(page: Page) {
     return page
-        .getByText('Prove the hosted task flow', { exact: true })
-        .locator('xpath=ancestor::article');
+        .getByRole('button', { name: 'Open task #1 Prove the hosted task flow' })
+        .locator('..');
 }
 
 function createHostedClient(token: string) {

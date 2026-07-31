@@ -1,0 +1,142 @@
+/* Grotto design-system config for HeroUI.
+ *
+ * This file is the single home for Grotto's visual identity on top of
+ * HeroUI v3: theme-variable overrides (colors, radius, fonts) plus BEM
+ * component overrides. Feature components must not restyle HeroUI
+ * internals via className — if something needs a new look app-wide, it
+ * gets a token or a BEM override here (docs/internals/heroui-migration.md).
+ *
+ * Import order (global.css): tailwindcss → @heroui/styles →
+ * @heroui-pro/react/css → this file.
+ *
+ * Dark is Grotto's default theme; light is the override, matching the
+ * existing ThemeProvider contract (`data-theme` + `.dark` class on <html>).
+ */
+
+/* ---------------------------------------------------------------------------
+ * Fonts: Geist UI voice (loaded via @fontsource in global.css). Reel stays a
+ * display-only face applied by dedicated utilities, never a theme default.
+ * ------------------------------------------------------------------------- */
+@theme {
+    --font-sans:
+        'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+        'Helvetica Neue', Arial, sans-serif;
+    --font-mono:
+        'Geist Mono', 'SFMono-Regular', 'SF Mono', 'Consolas',
+        'Liberation Mono', monospace;
+}
+
+@layer base {
+    /* -----------------------------------------------------------------------
+     * Grotto dark — the default theme.
+     * Warm stone ground, purple accent, quiet flat surfaces.
+     * --------------------------------------------------------------------- */
+    :root,
+    .dark,
+    [data-theme='dark'] {
+        color-scheme: dark;
+
+        /* Shape: squarer-than-default corners (old kit's 0.75 corner scale). */
+        --radius: 0.4375rem;
+
+        /* Base */
+        --background: color-mix(in srgb, var(--color-stone-950) 95%, var(--color-white));
+        --foreground: var(--color-stone-100);
+
+        /* Surfaces step gently toward white from the ground. */
+        --surface: color-mix(in srgb, var(--background) 97%, var(--color-white));
+        --surface-foreground: var(--foreground);
+        --surface-secondary: color-mix(in srgb, var(--background) 94%, var(--color-white));
+        --surface-secondary-foreground: var(--foreground);
+        --surface-tertiary: color-mix(in srgb, var(--background) 91%, var(--color-white));
+        --surface-tertiary-foreground: var(--foreground);
+        --overlay: color-mix(in srgb, var(--background) 93%, var(--color-white));
+        --overlay-foreground: var(--foreground);
+
+        /* Text */
+        --muted: color-mix(in srgb, var(--color-stone-500) 90%, var(--color-white));
+
+        /* Controls */
+        --default: color-mix(in srgb, var(--background) 92%, var(--color-white));
+        --default-foreground: var(--foreground);
+        --field-background: color-mix(in srgb, var(--background) 94%, var(--color-white));
+        --field-foreground: var(--foreground);
+
+        /* Brand */
+        --accent: #7b51cc;
+        --accent-foreground: #f7f4ff;
+
+        /* Status */
+        --success: var(--color-emerald-500);
+        --success-foreground: var(--color-stone-950);
+        --warning: var(--color-amber-500);
+        --warning-foreground: var(--color-stone-950);
+        --danger: var(--color-red-500);
+        --danger-foreground: var(--color-stone-100);
+
+        /* Lines: drawn hairlines, not alpha washes. */
+        --border: color-mix(in srgb, var(--background) 88%, var(--color-white));
+        --separator: color-mix(in srgb, var(--background) 91%, var(--color-white));
+        --focus: var(--accent);
+        --link: var(--foreground);
+
+        /* Flat dark: definition from hairlines, not drop shadows. */
+        --surface-shadow: 0 0 0 0 transparent inset;
+        --field-shadow: 0 0 0 0 transparent inset;
+    }
+
+    /* -----------------------------------------------------------------------
+     * Grotto light — near-white warm neutral ground, same accent.
+     * --------------------------------------------------------------------- */
+    [data-theme='light'] {
+        color-scheme: light;
+
+        --radius: 0.4375rem;
+
+        --background: #f8f8f8;
+        --foreground: var(--color-stone-800);
+
+        --surface: var(--color-white);
+        --surface-foreground: var(--foreground);
+        --surface-secondary: #f0efec;
+        --surface-secondary-foreground: var(--foreground);
+        --surface-tertiary: #eae8e4;
+        --surface-tertiary-foreground: var(--foreground);
+        --overlay: var(--color-white);
+        --overlay-foreground: var(--foreground);
+
+        --muted: #6b6660;
+
+        --default: #f0efec;
+        --default-foreground: var(--foreground);
+        --field-background: var(--color-white);
+        --field-foreground: var(--foreground);
+
+        --accent: #7b51cc;
+        --accent-foreground: #f7f4ff;
+
+        --success: var(--color-emerald-600);
+        --success-foreground: var(--color-white);
+        --warning: var(--color-amber-600);
+        --warning-foreground: var(--color-white);
+        --danger: var(--color-red-600);
+        --danger-foreground: var(--color-white);
+
+        --border: #dcdad7;
+        --separator: #e5e3e0;
+        --focus: var(--accent);
+        --link: var(--foreground);
+    }
+}
+
+/* ---------------------------------------------------------------------------
+ * Component overrides (HeroUI BEM classes).
+ *
+ * The only place app-wide component restyles live. Keep each override
+ * commented with why it exists. Start empty on purpose: reach for a
+ * variant/prop first, a token second, and a BEM override only when the
+ * look must change for every instance of the component.
+ * ------------------------------------------------------------------------- */
+@layer components {
+    /* (intentionally empty) */
+}

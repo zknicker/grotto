@@ -9,7 +9,14 @@
 @import 'slot-text/style.css';
 @import "tailwindcss";
 @import "tw-animate-css";
+/* HeroUI design system: OSS base, then Pro, then Grotto's theme layer.
+   tokens.css is the legacy kit's token set — transitional while the old
+   components/ui kit is retired (docs/internals/heroui-migration.md).
+   grotto-theme.css imports last so HeroUI semantics win at :root. */
+@import "@heroui/styles";
+@import "@heroui-pro/react/css";
 @import "./tokens.css";
+@import "./grotto-theme.css";
 
 /* Reel (Jamie Clarke Type) — display face for the logo, greetings, and
    page-level headings. Currently the trial cut (limited charset: no V/v,

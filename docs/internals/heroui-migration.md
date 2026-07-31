@@ -163,13 +163,24 @@ sandboxed agent widgets render unthemed.
   to HeroUI's two tiers.
 - Legacy kit still standing after phase 4, with why: icon + status-dot +
   app-shell (drag region) + resizable-pane-rail (sanctioned);
-  copy-button (hover-reveal behavior, port in phase 5); context-menu +
+  context-menu +
   menu (desktop `edit-context-menu` provider in `main.tsx`); dialog +
   alert-dialog + surface + scroll-area + autocomplete (manage-servers
   dialog in `server-layout.tsx` and shared overlays); alert, spinner,
-  empty (one consumer each); badge (~9 non-chat consumers); textarea,
+  empty (one consumer each); textarea,
   code-snippet, secret-input, image-lightbox, calendar and friends. Phase
   5 ports/deletes the rest, drops the dead deps, rewrites `DESIGN.md`,
   and repairs e2e.
+- Phase 5, badge + copy-button (2026-07-31): `components/ui/badge.tsx` is
+  deleted — every badge is a HeroUI `Chip`. Legacy `destructive` maps to
+  `color="danger"`, `success`/`warning`/`info` to the matching Chip color,
+  and the quiet plates (`secondary`, `subtle`, `chip`) to `variant="soft"`
+  or `variant="secondary"`. The per-provider `color-mix` tint on
+  `ModelProviderBadge` is gone: the chip is a stock neutral plate and
+  `ModelProviderLogo` alone carries the brand color, so no call site
+  hand-rolls color. `copy-button` moved out of the retiring kit to
+  `components/copy-button.tsx` on HeroUI `Button` + `Tooltip`; its
+  `className` still lands on the button element so call sites keep driving
+  placement and their own `group-hover` reveal.
 - e2e specs were only patched where copy changed; the full e2e repair pass
   remains phase-5 work.

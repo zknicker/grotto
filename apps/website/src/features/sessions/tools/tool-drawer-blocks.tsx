@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { CopyButton } from '../../../components/ui/copy-button.tsx';
+import { CopyButton } from '../../../components/copy-button.tsx';
 import { cn } from '../../../lib/utils.ts';
 
 export function ToolDrawerSectionLabel({ children }: { children: ReactNode }) {

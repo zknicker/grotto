@@ -1,7 +1,7 @@
 import { Button, Chip, Input, Label, TextField } from '@heroui/react';
 import type { ServerInvitation } from '@tavern/api/hosted-membership';
 import * as React from 'react';
-import { CopyButton } from '../../components/ui/copy-button.tsx';
+import { CopyButton } from '../../components/copy-button.tsx';
 import { useServerInvitationCommands } from '../../hooks/servers/use-server-invitations.ts';
 import { invitationLink } from './server-routes.ts';
 

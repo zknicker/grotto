@@ -3,7 +3,7 @@ import { EmptyState } from '@heroui-pro/react';
 import { Folder01Icon, Link04Icon, Notification03Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
-import { CopyButton } from '../../../components/ui/copy-button.tsx';
+import { CopyButton } from '../../../components/copy-button.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';

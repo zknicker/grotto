@@ -2,7 +2,7 @@ import { Button, Disclosure } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Link } from 'react-router-dom';
 import { ModelProviderBadge } from '../../components/badges/model-provider-badge.tsx';
-import { CodeSnippet } from '../../components/ui/code-snippet.tsx';
+import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';

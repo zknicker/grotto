@@ -1,6 +1,6 @@
 import { Button, Card, Chip, Modal } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { CodeSnippet } from '../../components/ui/code-snippet.tsx';
+import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 
 export function AddComputerDialog({

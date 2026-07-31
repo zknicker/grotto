@@ -24,6 +24,11 @@ capability lives; keep route and feature folders for page assembly.
 
 ## Rules
 
+* App sections may supply their own shell sidebar: the server layout picks the
+  sidebar component per active section (chat sections get the channel sidebar;
+  settings and tasks provide their own). A section sidebar is owned by its
+  feature folder, renders HeroUI `Sidebar` parts, and drives selection through
+  routes or URL search params — never through state shared with the page.
 * Promote shared chat, agent, automation, or stats UI to the matching
   `components/<capability>` or `hooks/<capability>` folder.
 * Keep global command menu actions under `src/commands`. Command modules own

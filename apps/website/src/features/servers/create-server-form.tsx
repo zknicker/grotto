@@ -1,9 +1,6 @@
+import { Button, FieldError, Form, Input, Label, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { Field, FieldError, FieldLabel } from '../../components/ui/primitives/field.tsx';
-import { Form } from '../../components/ui/primitives/form.tsx';
-import { Input } from '../../components/ui/primitives/input.tsx';
 import { useCreateServer } from '../../hooks/servers/use-create-server.ts';
 import { serverRoute } from './server-routes.ts';
 
@@ -24,33 +21,24 @@ export function CreateServerForm() {
                 );
             }}
         >
-            <Field>
-                <FieldLabel htmlFor="server-display-name">Name</FieldLabel>
-                <Input
-                    autoComplete="off"
-                    id="server-display-name"
-                    onChange={(event) => setDisplayName(event.currentTarget.value)}
-                    placeholder="Grotto HQ"
-                    value={displayName}
-                />
-            </Field>
-            <Field>
-                <FieldLabel htmlFor="server-slug">Address</FieldLabel>
-                <Input
-                    autoComplete="off"
-                    id="server-slug"
-                    onChange={(event) => setSlug(event.currentTarget.value)}
-                    placeholder="grotto-hq"
-                    value={slug}
-                />
-                {createServer.error ? (
-                    <FieldError role="alert">{createServer.error.message}</FieldError>
-                ) : null}
-            </Field>
+            <TextField fullWidth onChange={setDisplayName} value={displayName}>
+                <Label htmlFor="server-display-name">Name</Label>
+                <Input autoComplete="off" id="server-display-name" placeholder="Grotto HQ" />
+            </TextField>
+            <TextField
+                fullWidth
+                isInvalid={Boolean(createServer.error)}
+                onChange={setSlug}
+                value={slug}
+            >
+                <Label htmlFor="server-slug">Address</Label>
+                <Input autoComplete="off" id="server-slug" placeholder="grotto-hq" />
+                {createServer.error ? <FieldError>{createServer.error.message}</FieldError> : null}
+            </TextField>
             <Button
                 className="self-start"
-                disabled={displayName.trim().length === 0 || slug.trim().length === 0}
-                loading={createServer.isPending}
+                isDisabled={displayName.trim().length === 0 || slug.trim().length === 0}
+                isPending={createServer.isPending}
                 type="submit"
             >
                 Create Server

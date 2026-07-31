@@ -1,12 +1,11 @@
+import { Card, Chip } from '@heroui/react';
 import { AlertCircleIcon, BubbleChatIcon, Cancel01Icon } from '@hugeicons/core-free-icons';
 import type { IconSvgElement } from '@hugeicons/react';
 import { RefreshIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Link, useNavigate } from 'react-router-dom';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
-import { Card } from '../../components/ui/card.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
-import { Table, TableBody, TableCell, TableRow } from '../../components/ui/table.tsx';
 import { appRoutes } from '../../lib/app-routes.ts';
 import { formatRelativeTime } from '../../lib/format.ts';
 import { resolveAgentInk } from '../agents/agent-color-presets.ts';
@@ -50,7 +49,7 @@ export function OverviewAgentCards({
                         key={agent.id}
                         to={resolveAgentHref(agent.id)}
                     >
-                        <Card className="flex h-full flex-col gap-2.5 px-3.5 py-3 transition-colors group-hover:bg-hover">
+                        <Card className="h-full gap-2.5 transition-colors group-hover:bg-surface-secondary">
                             <div className="flex items-center gap-2.5">
                                 <span aria-hidden="true" className="flex shrink-0 items-center">
                                     <AgentFace
@@ -65,7 +64,7 @@ export function OverviewAgentCards({
                                 <span className="min-w-0 flex-1 truncate font-semibold text-foreground text-sm">
                                     {agent.name}
                                 </span>
-                                <span className="flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
+                                <span className="flex shrink-0 items-center gap-1.5 text-muted text-xs">
                                     <StatusDot
                                         status={statusTone === 'warning' ? 'warning' : 'success'}
                                     />
@@ -74,17 +73,17 @@ export function OverviewAgentCards({
                             </div>
                             <div className="flex items-center justify-between gap-3">
                                 {modelName ? (
-                                    <span className="truncate rounded-sm border border-border bg-subtle px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
-                                        {modelName}
-                                    </span>
+                                    <Chip className="min-w-0" size="sm" variant="soft">
+                                        <Chip.Label className="truncate font-mono">
+                                            {modelName}
+                                        </Chip.Label>
+                                    </Chip>
                                 ) : (
-                                    <span className="text-meta text-muted-foreground">
-                                        No model set
-                                    </span>
+                                    <span className="text-muted text-xs">No model set</span>
                                 )}
                                 <span className="flex shrink-0 items-center gap-2">
                                     <ActivitySparkline series={series} />
-                                    <span className="whitespace-nowrap text-caption text-muted-foreground tabular-nums">
+                                    <span className="whitespace-nowrap text-muted text-xs tabular-nums">
                                         {weekTotal} · 7d
                                     </span>
                                 </span>
@@ -114,73 +113,50 @@ export function OverviewActivity({
     const navigate = useNavigate();
 
     return (
-        <Card className="overflow-hidden">
-            <header className="flex items-center justify-between border-border-subtle border-b px-4 py-2.5">
+        <Card className="gap-0 overflow-hidden p-0">
+            <header className="flex items-center justify-between border-separator border-b px-4 py-2.5">
                 <h2 className="font-medium text-base text-foreground">Activity</h2>
-                <span className="text-meta text-muted-foreground tabular-nums">
-                    {activity.length}
-                </span>
+                <span className="text-muted text-xs tabular-nums">{activity.length}</span>
             </header>
             {activity.length === 0 ? (
-                <p className="px-4 py-3 text-muted-foreground text-sm">
-                    Quiet so far — agent replies, automations, and task pickups land here.
+                <p className="px-4 py-3 text-muted text-sm">
+                    Quiet so far — Agent replies, automations, and task pickups land here.
                 </p>
             ) : (
-                <Table className="table-fixed">
-                    <colgroup>
-                        <col className="w-9" />
-                        <col />
-                        <col className="w-20" />
-                    </colgroup>
-                    <TableBody>
-                        {activity.map((item, index) => {
-                            const agent = agents.find((entry) => entry.id === item.agentId);
-                            const target =
-                                item.href ?? (agent ? resolveAgentHref(agent.id) : activityHref);
+                <div>
+                    {activity.map((item) => {
+                        const agent = agents.find((entry) => entry.id === item.agentId);
+                        const target =
+                            item.href ?? (agent ? resolveAgentHref(agent.id) : activityHref);
 
-                            return (
-                                <TableRow
-                                    className="cursor-pointer border-border-subtle outline-hidden focus-visible:bg-hover"
-                                    index={index}
-                                    key={item.key}
-                                    onClick={() => navigate(target)}
-                                    onKeyDown={(event) => {
-                                        if (event.key !== 'Enter' && event.key !== ' ') {
-                                            return;
-                                        }
-
-                                        event.preventDefault();
-                                        navigate(target);
-                                    }}
-                                    role="button"
-                                    tabIndex={0}
-                                >
-                                    <TableCell className="h-9 px-0 py-1 text-center">
-                                        <Icon
-                                            aria-hidden="true"
-                                            className="relative z-20 inline-block size-4 text-muted-foreground/75"
-                                            icon={activityKindIcons[item.kind]}
-                                            strokeWidth={1.8}
-                                        />
-                                    </TableCell>
-                                    <TableCell className="h-9 min-w-0 px-2 py-1">
-                                        <span className="relative z-20 flex min-w-0 items-center gap-1.5">
-                                            {agent ? <AgentChip agent={agent} dark={dark} /> : null}
-                                            <span className="shrink-0 text-foreground/80 text-sm">
-                                                {item.description}
-                                            </span>
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="h-9 px-3 py-1 text-right text-meta text-muted-foreground tabular-nums">
-                                        <span className="relative z-20">
-                                            {formatRelativeTime(item.at, now)}
-                                        </span>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
+                        return (
+                            <button
+                                className="grid h-9 w-full grid-cols-[2.25rem_minmax(0,1fr)_5rem] items-center border-separator border-b text-left outline-none last:border-b-0 hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+                                key={item.key}
+                                onClick={() => navigate(target)}
+                                type="button"
+                            >
+                                <span className="flex justify-center">
+                                    <Icon
+                                        aria-hidden="true"
+                                        className="size-4 text-muted"
+                                        icon={activityKindIcons[item.kind]}
+                                        strokeWidth={1.8}
+                                    />
+                                </span>
+                                <span className="flex min-w-0 items-center gap-1.5 px-2">
+                                    {agent ? <AgentChip agent={agent} dark={dark} /> : null}
+                                    <span className="truncate text-foreground text-sm">
+                                        {item.description}
+                                    </span>
+                                </span>
+                                <span className="px-3 text-right text-muted text-xs tabular-nums">
+                                    {formatRelativeTime(item.at, now)}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
             )}
         </Card>
     );
@@ -230,7 +206,7 @@ function ActivitySparkline({ series }: { series: number[] }) {
     return (
         <svg
             aria-hidden="true"
-            className="shrink-0 text-brand"
+            className="shrink-0 text-accent"
             height={height}
             role="img"
             width={width}

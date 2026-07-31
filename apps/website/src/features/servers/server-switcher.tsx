@@ -1,5 +1,4 @@
 import { NavLink } from 'react-router-dom';
-import { navSelectedClass } from '../../components/ui/nav.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { cn } from '../../lib/utils.ts';
 import { serverRoute } from './server-routes.ts';
@@ -18,8 +17,8 @@ export function ServerSwitcher({
                 <NavLink
                     className={({ isActive }) =>
                         cn(
-                            'rounded-lg px-3 py-2 text-left text-foreground text-sm',
-                            isActive ? navSelectedClass : 'hover:bg-active'
+                            'rounded-lg px-3 py-2 text-left text-foreground text-sm outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                            isActive ? 'bg-surface-secondary' : 'hover:bg-surface-secondary'
                         )
                     }
                     key={server.id}
@@ -27,7 +26,7 @@ export function ServerSwitcher({
                     to={serverRoute(server.slug)}
                 >
                     <span className="block">{server.displayName}</span>
-                    <span className="block text-meta text-muted-foreground">/{server.slug}</span>
+                    <span className="block text-muted text-xs">/{server.slug}</span>
                 </NavLink>
             ))}
         </nav>

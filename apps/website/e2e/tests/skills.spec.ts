@@ -4,7 +4,7 @@ test('lists installed skills with available and sources management', async ({ pa
     await page.goto('/settings/skills');
 
     await expect(page.getByRole('heading', { name: 'Skills' })).toBeVisible();
-    await expect(page.getByText('Browse skills')).toBeVisible();
+    await expect(page.getByText('Browse Skills')).toBeVisible();
     // Installed skills render as per-skill folders in the browse tree.
     await expect(page.getByRole('treeitem', { name: 'tavern-agent' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Tools' })).toHaveCount(0);

@@ -1,9 +1,6 @@
+import { Button, Form, Input, Label, Separator, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { Field, FieldLabel } from '../../components/ui/primitives/field.tsx';
-import { Form } from '../../components/ui/primitives/form.tsx';
-import { Input } from '../../components/ui/primitives/input.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { CreateServerForm } from './create-server-form.tsx';
 import { parseInvitationToken } from './server-choice.ts';
@@ -21,27 +18,24 @@ export function ServerChoicePanel({
         <div className="flex flex-col gap-8">
             {servers.length > 0 ? (
                 <section className="flex flex-col gap-3">
-                    <h2 className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
-                        Joined Servers
-                    </h2>
+                    <h2 className="font-medium text-muted text-sm">Joined Servers</h2>
                     <ServerSwitcher onSelect={onServerSelect} servers={servers} />
                 </section>
             ) : null}
             <section className="flex flex-col gap-3">
                 <div>
-                    <h2 className="font-semibold text-foreground text-sm">Create a Server</h2>
-                    <p className="mt-0.5 text-muted-foreground text-xs">
+                    <h2 className="font-medium text-foreground text-sm">Create a Server</h2>
+                    <p className="mt-0.5 text-muted text-xs">
                         Start a new place for your people and Agents.
                     </p>
                 </div>
                 <CreateServerForm />
             </section>
-            <section className="flex flex-col gap-3 border-border border-t pt-6">
+            <Separator />
+            <section className="flex flex-col gap-3">
                 <div>
-                    <h2 className="font-semibold text-foreground text-sm">Join a Server</h2>
-                    <p className="mt-0.5 text-muted-foreground text-xs">
-                        Paste an invitation link or token.
-                    </p>
+                    <h2 className="font-medium text-foreground text-sm">Join a Server</h2>
+                    <p className="mt-0.5 text-muted text-xs">Paste an invitation link or token.</p>
                 </div>
                 <JoinServerForm />
             </section>
@@ -63,17 +57,15 @@ function JoinServerForm() {
                 }
             }}
         >
-            <Field>
-                <FieldLabel htmlFor="server-invitation">Invitation</FieldLabel>
+            <TextField fullWidth onChange={setInvitation} value={invitation}>
+                <Label htmlFor="server-invitation">Invitation</Label>
                 <Input
                     autoComplete="off"
                     id="server-invitation"
-                    onChange={(event) => setInvitation(event.currentTarget.value)}
                     placeholder="https://app.grotto.com/invite/…"
-                    value={invitation}
                 />
-            </Field>
-            <Button className="self-start" disabled={!token} type="submit">
+            </TextField>
+            <Button className="self-start" isDisabled={!token} type="submit" variant="secondary">
                 Continue
             </Button>
         </Form>

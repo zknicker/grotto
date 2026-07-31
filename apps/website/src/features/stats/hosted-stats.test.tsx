@@ -80,7 +80,7 @@ test('hosted Stats renders every Computer and keeps offline snapshots visible', 
     expect(markup).toContain('Computer · 123456');
     expect(markup).toContain('Computer · 654321');
     expect(markup).toContain('Codex');
-    expect(markup).toContain('5h limit');
+    expect(markup).toContain('5h Limit');
     expect(markup).toContain('25%');
     expect(markup).toContain('Usage not reported');
     expect(markup).toContain('Collecting');

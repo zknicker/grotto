@@ -1,4 +1,4 @@
-import { TabsSubtle, TabsSubtleItem, TabsSubtleList } from '../../components/ui/tabs-subtle.tsx';
+import { Tabs } from '@heroui/react';
 
 export type SkillsTab = 'available' | 'installed' | 'plugins';
 
@@ -18,24 +18,29 @@ export function SkillsTabBar({
     value: SkillsTab;
 }) {
     return (
-        <TabsSubtle
-            aria-label="Filter skills"
+        <Tabs
             className="self-start"
-            onValueChange={(nextValue) => onChange(nextValue as SkillsTab)}
-            value={value}
+            onSelectionChange={(key) => onChange(key as SkillsTab)}
+            selectedKey={value}
+            variant="secondary"
         >
-            <TabsSubtleList>
-                {tabs.map((tab) => (
-                    <TabsSubtleItem key={tab.id} size="sm" value={tab.id}>
-                        <span>{tab.label}</span>
-                        {counts[tab.id] === undefined ? null : (
-                            <span className="font-mono text-meta text-muted-foreground tabular-nums">
-                                {counts[tab.id]}
+            <Tabs.ListContainer>
+                <Tabs.List aria-label="Filter Skills">
+                    {tabs.map((tab) => (
+                        <Tabs.Tab id={tab.id} key={tab.id}>
+                            <span className="flex items-center gap-2">
+                                {tab.label}
+                                {counts[tab.id] === undefined ? null : (
+                                    <span className="text-muted text-xs tabular-nums">
+                                        {counts[tab.id]}
+                                    </span>
+                                )}
                             </span>
-                        )}
-                    </TabsSubtleItem>
-                ))}
-            </TabsSubtleList>
-        </TabsSubtle>
+                            <Tabs.Indicator />
+                        </Tabs.Tab>
+                    ))}
+                </Tabs.List>
+            </Tabs.ListContainer>
+        </Tabs>
     );
 }

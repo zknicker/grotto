@@ -1,12 +1,10 @@
+import { Chip, SearchField } from '@heroui/react';
+import { EmptyState } from '@heroui-pro/react';
 import { CubeIcon, Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { Badge } from '../../components/ui/badge.tsx';
-import { FluidList, FluidListItem } from '../../components/ui/fluid-list.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { SearchInput } from '../../components/ui/primitives/search-input.tsx';
 import type { SkillListOutput } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
-import { EmptyState } from '../shell/empty-state.tsx';
 import { formatSkillName } from './skill-name-format.ts';
 
 type SkillSummary = SkillListOutput['skills'][number];
@@ -27,41 +25,43 @@ export function InstalledSkillsList({
     const [search, setSearch] = React.useState('');
     const deferredSearch = React.useDeferredValue(search);
     const visibleSkills = filterSkills(skills, deferredSearch);
+    const searching = search.trim().length > 0;
 
     return (
         <div className="grid gap-2">
-            <SearchInput
-                aria-label="Search installed skills"
-                className="w-full"
+            <SearchField
+                aria-label="Search installed Skills"
+                fullWidth
                 name="skill-search"
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder={searchPlaceholder}
-                size="xl"
+                onChange={setSearch}
                 value={search}
-            />
+            >
+                <SearchField.Group>
+                    <SearchField.SearchIcon />
+                    <SearchField.Input placeholder={searchPlaceholder} />
+                    <SearchField.ClearButton />
+                </SearchField.Group>
+            </SearchField>
 
             {visibleSkills.length > 0 ? (
-                <FluidList className="mt-2 grid">
-                    {visibleSkills.map((skill, index) => (
-                        <FluidListItem className="-mx-3" index={index} key={skill.id}>
-                            <SkillRow onSelect={() => onSelect(skill)} skill={skill} />
-                        </FluidListItem>
+                <div className="mt-2 grid">
+                    {visibleSkills.map((skill) => (
+                        <SkillRow key={skill.id} onSelect={() => onSelect(skill)} skill={skill} />
                     ))}
-                </FluidList>
+                </div>
             ) : (
-                <EmptyState
-                    className="py-16"
-                    description={
-                        search.trim().length > 0
-                            ? 'Try a different name or description.'
-                            : (emptyDescription ?? 'Install skills from the Available tab.')
-                    }
-                    title={
-                        search.trim().length > 0
-                            ? 'No matches'
-                            : (emptyTitle ?? 'No skills installed')
-                    }
-                />
+                <EmptyState>
+                    <EmptyState.Header>
+                        <EmptyState.Title>
+                            {searching ? 'No Matches' : (emptyTitle ?? 'No Skills Installed')}
+                        </EmptyState.Title>
+                        <EmptyState.Description>
+                            {searching
+                                ? 'Try a different name or description.'
+                                : (emptyDescription ?? 'Install Skills from the Available tab.')}
+                        </EmptyState.Description>
+                    </EmptyState.Header>
+                </EmptyState>
             )}
         </div>
     );
@@ -72,13 +72,13 @@ function SkillRow({ onSelect, skill }: { onSelect: () => void; skill: SkillSumma
 
     return (
         <button
-            className="flex w-full select-none items-center gap-4 rounded-xl px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex w-full select-none items-center gap-4 rounded-xl px-3 py-2.5 text-left hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             onClick={onSelect}
             type="button"
         >
             <span
                 className={cn(
-                    'flex size-10 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-legacy-muted text-muted-foreground',
+                    'flex size-10 shrink-0 items-center justify-center rounded-lg border border-separator bg-surface-secondary text-muted',
                     !skill.enabled && 'opacity-45'
                 )}
             >
@@ -90,17 +90,17 @@ function SkillRow({ onSelect, skill }: { onSelect: () => void; skill: SkillSumma
                         {formatSkillName(skill.name)}
                     </span>
                     {needsSetup ? (
-                        <Badge size="sm" variant="error">
+                        <Chip color="danger" size="sm" variant="soft">
                             {skill.diagnostic ?? 'Needs setup'}
-                        </Badge>
+                        </Chip>
                     ) : null}
                 </span>
-                <span className="mt-0.5 line-clamp-1 text-muted-foreground text-sm">
+                <span className="mt-0.5 line-clamp-1 text-muted text-sm">
                     {skill.description ?? skill.id}
                 </span>
             </span>
             {skill.enabled ? (
-                <Icon className="size-4 shrink-0 text-muted-foreground" icon={Tick02Icon} />
+                <Icon className="size-4 shrink-0 text-muted" icon={Tick02Icon} />
             ) : null}
         </button>
     );

@@ -1,17 +1,14 @@
+import { Card, Label, ProgressBar, Skeleton } from '@heroui/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import { ChatGptIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedUsageOverview } from '@tavern/api';
-import { Card, CardContent } from '../../components/ui/card.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { Progress } from '../../components/ui/progress.tsx';
-import { Skeleton } from '../../components/ui/skeleton.tsx';
 import { useLiveUsageSuspense } from '../../hooks/models/use-live-usage.ts';
 import { useModelInventorySuspense } from '../../hooks/models/use-model-inventory.ts';
 import { formatTimestamp } from '../../lib/format.ts';
 import type { LiveUsageOutput } from '../../lib/trpc.tsx';
 import { UsageSpendModule } from './usage-spend-module.tsx';
 
-const usageAccent = 'var(--color-brand)';
 export type UsageOverview = HostedUsageOverview | LiveUsageOutput;
 
 export function UsageModules() {
@@ -46,12 +43,11 @@ export function UsageModulesView({
         <div className="grid gap-3">
             {showCodex ? (
                 <UsageCard
-                    accent={usageAccent}
                     icon={ChatGptIcon}
                     state={liveUsage?.codex}
                     title="Codex"
                     windowIds={['current-session', 'current-week']}
-                    windowLabels={['5h limit', 'Weekly limit']}
+                    windowLabels={['5h Limit', 'Weekly Limit']}
                 />
             ) : null}
 
@@ -79,24 +75,22 @@ export function UsageModulesSkeleton() {
 function NoSupportedUsageSources() {
     return (
         <Card>
-            <CardContent className="p-4">
-                <div className="text-muted-foreground text-sm">
+            <Card.Content>
+                <p className="text-muted text-sm">
                     Connect a supported model provider to show usage stats.
-                </div>
-            </CardContent>
+                </p>
+            </Card.Content>
         </Card>
     );
 }
 
 function UsageCard({
-    accent,
     icon,
     state,
     title,
     windowIds,
     windowLabels,
 }: {
-    accent: string;
     icon: IconSvgElement;
     state: UsageOverview['codex'] | undefined;
     title: string;
@@ -116,44 +110,42 @@ function UsageCard({
 
     return (
         <Card>
-            <CardContent className="p-4">
-                <div className="mb-3 flex items-center gap-2 font-bold text-sm tracking-tight">
-                    <Icon icon={icon} size={20} />
-                    {title}
-                </div>
+            <Card.Header>
+                <Card.Title>
+                    <span className="flex items-center gap-2">
+                        <Icon aria-hidden="true" icon={icon} size={20} />
+                        {title}
+                    </span>
+                </Card.Title>
+            </Card.Header>
+            <Card.Content>
                 {state?.status === 'error' ? (
-                    <div className="text-muted-foreground text-sm">Usage unavailable</div>
+                    <p className="text-muted text-sm">Usage unavailable</p>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
-                        {windows.map((w) => {
-                            const barColor = w.usedPercent >= 90 ? '#ef4444' : accent;
-                            return (
-                                <div key={w.label}>
-                                    <div className="mb-1 flex items-center justify-between gap-3">
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="font-medium text-foreground text-sm">
-                                                {w.label}
-                                            </span>
-                                            {w.resetsAt ? (
-                                                <span className="text-muted-foreground text-xs">
-                                                    Resets {formatTimestamp(w.resetsAt)}
-                                                </span>
-                                            ) : null}
-                                        </div>
-                                        <span
-                                            className="shrink-0 font-semibold text-sm tabular-nums"
-                                            style={{ color: barColor }}
-                                        >
-                                            {w.usedPercent}%
-                                        </span>
-                                    </div>
-                                    <Progress color={barColor} value={w.usedPercent} />
-                                </div>
-                            );
-                        })}
+                        {windows.map((w) => (
+                            <div key={w.label}>
+                                <ProgressBar
+                                    aria-label={w.label}
+                                    color={w.usedPercent >= 90 ? 'danger' : 'accent'}
+                                    value={w.usedPercent}
+                                >
+                                    <Label>{w.label}</Label>
+                                    <ProgressBar.Output />
+                                    <ProgressBar.Track>
+                                        <ProgressBar.Fill />
+                                    </ProgressBar.Track>
+                                </ProgressBar>
+                                {w.resetsAt ? (
+                                    <p className="mt-1 text-muted text-xs">
+                                        Resets {formatTimestamp(w.resetsAt)}
+                                    </p>
+                                ) : null}
+                            </div>
+                        ))}
                     </div>
                 )}
-            </CardContent>
+            </Card.Content>
         </Card>
     );
 }

@@ -11,10 +11,10 @@ export function UsageSpendSummary({ grandTotal, stats }: UsageSpendSummaryProps)
     }
 
     return (
-        <div className="overflow-hidden rounded-lg border border-border">
+        <div className="mt-2">
             {stats.map((stat) => (
                 <div
-                    className="flex items-center justify-between border-border-subtle border-b px-5 py-2.5 last:border-b-0"
+                    className="flex items-center justify-between border-separator border-b py-2.5"
                     key={stat.id}
                 >
                     <div className="flex min-w-0 items-center gap-2">
@@ -28,21 +28,19 @@ export function UsageSpendSummary({ grandTotal, stats }: UsageSpendSummaryProps)
                         <span className="min-w-[4.5rem] text-right text-foreground tabular-nums">
                             ${stat.total.toFixed(2)}
                         </span>
-                        <span className="min-w-[2.5rem] text-right text-muted-foreground tabular-nums">
+                        <span className="min-w-[2.5rem] text-right text-muted tabular-nums">
                             {stat.percent.toFixed(0)}%
                         </span>
                     </div>
                 </div>
             ))}
-            <div className="flex items-center justify-between border-border border-t px-5 py-2.5">
+            <div className="flex items-center justify-between py-2.5">
                 <span className="font-medium text-foreground text-sm">Total</span>
                 <div className="flex items-center gap-4 text-sm">
                     <span className="min-w-[4.5rem] text-right font-medium text-foreground tabular-nums">
                         ${grandTotal.toFixed(2)}
                     </span>
-                    <span className="min-w-[2.5rem] text-right text-muted-foreground tabular-nums">
-                        100%
-                    </span>
+                    <span className="min-w-[2.5rem] text-right text-muted tabular-nums">100%</span>
                 </div>
             </div>
         </div>

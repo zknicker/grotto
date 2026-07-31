@@ -1,10 +1,7 @@
+import { Button, Chip, Input, Label, TextField } from '@heroui/react';
 import type { ServerInvitation } from '@tavern/api/hosted-membership';
 import * as React from 'react';
-import { Badge } from '../../components/ui/badge.tsx';
 import { CopyButton } from '../../components/ui/copy-button.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { Input } from '../../components/ui/primitives/input.tsx';
-import { Label } from '../../components/ui/primitives/label.tsx';
 import { useServerInvitationCommands } from '../../hooks/servers/use-server-invitations.ts';
 import { invitationLink } from './server-routes.ts';
 
@@ -27,34 +24,40 @@ export function InviteMemberForm({ serverId }: { serverId: string }) {
             }}
         >
             <div className="flex flex-col gap-2">
-                <Label htmlFor="invite-email">Invite by email</Label>
-                <div className="flex items-center gap-2">
-                    <Input
-                        autoComplete="off"
-                        id="invite-email"
-                        onChange={(event) => setEmail(event.target.value)}
-                        placeholder="human@example.com"
+                <div className="flex items-end gap-2">
+                    <TextField
+                        fullWidth
+                        isInvalid={Boolean(create.error)}
+                        onChange={setEmail}
                         type="email"
                         value={email}
-                    />
-                    <Button disabled={create.isPending || email.trim().length === 0} type="submit">
+                    >
+                        <Label htmlFor="invite-email">Invite by Email</Label>
+                        <Input
+                            autoComplete="off"
+                            id="invite-email"
+                            placeholder="human@example.com"
+                        />
+                    </TextField>
+                    <Button
+                        isDisabled={create.isPending || email.trim().length === 0}
+                        type="submit"
+                    >
                         Invite
                     </Button>
                 </div>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted text-xs">
                     They must accept while signed in to Clerk with this exact verified address.
                 </p>
             </div>
-            {create.error ? (
-                <p className="text-destructive text-xs">{create.error.message}</p>
-            ) : null}
+            {create.error ? <p className="text-danger text-xs">{create.error.message}</p> : null}
             {issued ? (
                 <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
                     <p className="text-foreground text-sm">
                         Send this link to {issued.invitation.email}. It is shown once.
                     </p>
                     <div className="flex items-center gap-2">
-                        <code className="min-w-0 flex-1 truncate text-muted-foreground text-xs">
+                        <code className="min-w-0 flex-1 truncate text-muted text-xs">
                             {invitationLink(issued.token)}
                         </code>
                         <CopyButton value={invitationLink(issued.token)} />
@@ -76,7 +79,7 @@ export function ServerInvitationList({
     const { revoke } = useServerInvitationCommands();
 
     if (invitations.length === 0) {
-        return <p className="text-muted-foreground text-sm">No invitations yet.</p>;
+        return <p className="text-muted text-sm">No invitations yet.</p>;
     }
 
     return (
@@ -89,16 +92,19 @@ export function ServerInvitationList({
                 >
                     <div className="flex min-w-0 items-baseline gap-2">
                         <span className="truncate text-foreground text-sm">{invitation.email}</span>
-                        <Badge variant={invitation.status === 'pending' ? 'secondary' : 'subtle'}>
+                        <Chip
+                            size="sm"
+                            variant={invitation.status === 'pending' ? 'secondary' : 'soft'}
+                        >
                             {invitation.status}
-                        </Badge>
+                        </Chip>
                     </div>
                     {invitation.status === 'pending' ? (
                         <Button
-                            disabled={revoke.isPending}
-                            onClick={() => revoke.mutate({ invitationId: invitation.id, serverId })}
-                            size="xs"
-                            variant="ghost"
+                            isDisabled={revoke.isPending}
+                            onPress={() => revoke.mutate({ invitationId: invitation.id, serverId })}
+                            size="sm"
+                            variant="danger-soft"
                         >
                             Revoke
                         </Button>

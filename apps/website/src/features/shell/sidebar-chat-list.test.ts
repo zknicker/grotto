@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatListItem } from '../chats/chat-list-data.ts';
-import { canArchiveSidebarChat, canRenameSidebarChat } from './sidebar-chat-actions.tsx';
 import {
     buildSidebarChatGroups,
     buildSidebarChatList,
@@ -173,19 +172,5 @@ describe('sidebar chat list', () => {
                 ],
             })
         ).toBeTrue();
-    });
-
-    test('renames chats with one or more bound agents', () => {
-        expect(canRenameSidebarChat(createChat({ boundAgentIds: ['agent-1'] }))).toBeTrue();
-        expect(canRenameSidebarChat(createChat({ boundAgentIds: [] }))).toBeFalse();
-        expect(
-            canRenameSidebarChat(createChat({ boundAgentIds: ['agent-1', 'agent-2'] }))
-        ).toBeTrue();
-    });
-
-    test('does not allow archiving direct messages from the sidebar', () => {
-        expect(canArchiveSidebarChat(createChat({ conversationKind: 'channel' }))).toBeTrue();
-        expect(canArchiveSidebarChat(createChat({ conversationKind: 'group' }))).toBeTrue();
-        expect(canArchiveSidebarChat(createChat({ conversationKind: 'direct' }))).toBeFalse();
     });
 });

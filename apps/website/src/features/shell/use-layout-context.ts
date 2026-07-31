@@ -1,5 +1,8 @@
 import { useOutletContext } from 'react-router-dom';
-import type { AppLayoutContextValue } from '../../layout.tsx';
+
+interface AppLayoutContextValue {
+    navigateToSettings: () => void;
+}
 
 export function useLayoutContext() {
     return useOutletContext<AppLayoutContextValue>();

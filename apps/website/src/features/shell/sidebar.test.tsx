@@ -1,50 +1,17 @@
-import { describe, expect, mock, test } from 'bun:test';
-import React from 'react';
+import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SidebarProvider } from '../../components/ui/sidebar.tsx';
+import { AppSidebarFrame } from './sidebar.tsx';
 
-mock.module('./sidebar-chat-list.tsx', () => ({
-    AppSidebarChatList: () => React.createElement('div', { 'data-testid': 'sidebar-chat-list' }),
-    buildSidebarChatGroups: () => ({
-        allChats: [],
-        channels: [],
-        directMessages: [],
-        recentChats: [],
-    }),
-    buildSidebarDraftChatList: () => [],
-    formatSidebarActivityLabel: (label: string) => label,
-    getSidebarDraftActivityLabel: () => 'Draft',
-}));
-
-mock.module('./sidebar-home-nav.tsx', () => ({
-    SidebarHomeNav: () => React.createElement('div', { 'data-testid': 'sidebar-home-nav' }),
-}));
-
-mock.module('./sidebar-update-menu-item.tsx', () => ({
-    SidebarUpdateMenuItem: () =>
-        React.createElement(
-            'li',
-            { 'data-testid': 'sidebar-update-menu-item' },
-            'Update Available'
-        ),
-}));
-
-mock.module('../settings/layout/sidebar-nav.tsx', () => ({
-    SettingsSidebarNav: () => React.createElement('div', { 'data-testid': 'settings-sidebar-nav' }),
-}));
-
-const { AppSidebar } = await import('./sidebar.tsx');
-mock.restore();
-
-describe('AppSidebar', () => {
-    test('renders the home nav and the update affordance in the footer', () => {
+describe('AppSidebarFrame', () => {
+    test('renders supplied content and footer', () => {
         const markup = renderToStaticMarkup(
             <SidebarProvider>
-                <AppSidebar isSettingsRoute={false} onBackToApp={() => undefined} />
+                <AppSidebarFrame content={<div>Server navigation</div>} footer={<li>Account</li>} />
             </SidebarProvider>
         );
 
-        expect(markup).toContain('sidebar-home-nav');
-        expect(markup).toContain('Update Available');
+        expect(markup).toContain('Server navigation');
+        expect(markup).toContain('Account');
     });
 });

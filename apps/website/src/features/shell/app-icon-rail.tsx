@@ -1,65 +1,6 @@
-import { Setting07Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Icon } from '../../components/ui/icon.tsx';
 import { navSelectedClass } from '../../components/ui/nav.tsx';
-import {
-    formatCapabilityDisabledReason,
-    routeTabCapabilityRequirements,
-    useCapability,
-} from '../../hooks/connections/use-capability.ts';
-import { useActivityUnseen } from '../../hooks/shell/use-rail-unseen.ts';
-import { routeTabs, useRouteTab } from '../../hooks/shell/use-route-tab.ts';
-import { appRoutes } from '../../lib/app-routes.ts';
 import { cn } from '../../lib/utils.ts';
-import { RouteTabIcon } from './route-tab-presentation.tsx';
-import { SidebarAgentActivityStrip } from './sidebar-agent-activity-strip.tsx';
-
-/**
- * The always-present section rail. Full-width tools collapse the chat
- * sidebar; chat and activity keep it visible; settings swaps in its nav.
- */
-export function AppIconRail() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { activeTab, setActiveTab } = useRouteTab();
-    const capability = useCapability();
-    const activityUnseen = useActivityUnseen();
-    const isSettingsActive = location.pathname.startsWith(appRoutes.settings);
-
-    return (
-        <AppIconRailView
-            activityStrip={<SidebarAgentActivityStrip />}
-            items={routeTabs.map((tab) => {
-                const gate = capability(routeTabCapabilityRequirements[tab.id]);
-                const disabledReason = gate.healthy ? null : formatCapabilityDisabledReason(gate);
-
-                return {
-                    content: <RouteTabIcon className="size-4.5" tab={tab.id} />,
-                    disabled: !gate.healthy,
-                    id: tab.id,
-                    isActive: activeTab === tab.id,
-                    label: disabledReason ?? tab.label,
-                    onClick: () => {
-                        if (gate.healthy) {
-                            setActiveTab(tab.id);
-                        }
-                    },
-                    unseen: tab.id === 'activity' && activityUnseen,
-                };
-            })}
-            settings={{
-                content: (
-                    <Icon aria-hidden="true" className="size-4.5" icon={Setting07Icon} size={20} />
-                ),
-                id: 'settings',
-                isActive: isSettingsActive,
-                label: 'Settings',
-                onClick: () => navigate(appRoutes.settings),
-            }}
-        />
-    );
-}
 
 export interface AppIconRailItem {
     content: React.ReactNode;

@@ -101,6 +101,14 @@ The current visual north star is [`docs/assets/tavern-north-star-home.png`](docs
 Use it as directional reference for the product feel: warm Tavern identity, agent activity as a
 living operational scene, and dashboard information kept readable and actionable.
 
+> **UI system migration in progress.** The app is being ported wholesale to HeroUI v3
+> (`@heroui/react` + `@heroui-pro/react`); the legacy COSS/Base UI kit described below is being
+> retired. Decisions and scope live in `docs/internals/heroui-migration.md`. The rules that
+> survive the port: components are used stock and customized via props/variants; all custom
+> visual identity lives in the design-system CSS layer (theme variables + HeroUI BEM class
+> overrides) — never in `className` styling at call sites. The product taste in this file
+> (density, typography voice, quiet tables, loading rules) carries forward.
+
 The design system source of truth is code, not this prose:
 
 - Theme tokens live in `apps/website/src/styles/global.css`.

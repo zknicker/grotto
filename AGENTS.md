@@ -100,13 +100,19 @@ so `docs:list` routes future agents correctly.
   timestamps, process guesses, or cached engine state. Add a Runtime capability when the
   requirement is not represented. Prefer primitive capability gates such as `gateway` over
   umbrella feature names.
-- Prefer COSS UI components backed by Base UI for shared app primitives. Do not add new shadcn or
-  Radix UI usage.
-- Use existing color tokens from `apps/website/src/styles/global.css` and Tailwind token classes for
-  UI colors. Do not hand-roll component-local color mixes or arbitrary color values unless a new
-  reusable token is first added to the theme.
+- The UI system is HeroUI v3 (`@heroui/react` + `@heroui-pro/react`). Do not add new Base UI,
+  COSS, shadcn, or Radix usage; the legacy `components/ui` kit is being retired and must not gain
+  new call sites. See `docs/internals/heroui-migration.md` for scope and status.
+- Use HeroUI components stock. Customize through component props (`variant`, `size`, semantic
+  states) — never by styling their `className` at call sites. App-wide visual changes belong in
+  the design-system CSS layer (theme variables and BEM class overrides), so styling lives in one
+  place instead of littered across React components.
+- Use the HeroUI design tokens (`bg-surface`, `text-muted`, `text-accent`, etc.) for UI colors. Do
+  not hand-roll component-local color mixes or arbitrary color values unless a new reusable token
+  is first added to the theme layer.
 - Follow `DESIGN.md` for visual design decisions, especially token usage, settings layout, and
-  shared component behavior.
+  shared component behavior. Consult the `heroui-react-pro` and `heroui-pro-design-taste` skills
+  plus the HeroUI Pro MCP (`list_components` → `get_component_docs`) before building UI.
 - For motion polish, use Fluid Functionalism's motion guidance and ThinkingIndicator reference:
   https://www.fluidfunctionalism.com/docs/motion and
   https://www.fluidfunctionalism.com/docs/thinking-indicator.

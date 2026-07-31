@@ -1,13 +1,7 @@
+import { EmptyState } from '@heroui-pro/react';
 import type { IconSvgElement } from '@hugeicons/react';
-import {
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-} from '../../components/ui/empty.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { PaneTopbar } from '../../components/ui/pane.tsx';
+import { SectionHeader } from './section-header.tsx';
 
 /**
  * Honest empty state for a rail tab whose workstream has not landed yet
@@ -25,24 +19,21 @@ export function WorkstreamEmptyPage({
 }) {
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <PaneTopbar>
-                <Icon
-                    aria-hidden="true"
-                    className="size-4.5 text-muted-foreground"
-                    icon={icon}
-                    size={20}
-                />
-                <h1 className="font-semibold text-foreground text-sm">{title}</h1>
-            </PaneTopbar>
-            <Empty>
-                <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                        <Icon icon={icon} />
-                    </EmptyMedia>
-                    <EmptyTitle size="sm">{title}</EmptyTitle>
-                    <EmptyDescription size="sm">{description}</EmptyDescription>
-                </EmptyHeader>
-            </Empty>
+            <SectionHeader
+                leading={<Icon aria-hidden="true" className="text-muted" icon={icon} size={18} />}
+                title={title}
+            />
+            <div className="flex min-h-0 flex-1 items-center justify-center">
+                <EmptyState>
+                    <EmptyState.Header>
+                        <EmptyState.Media variant="icon">
+                            <Icon aria-hidden="true" icon={icon} />
+                        </EmptyState.Media>
+                        <EmptyState.Title>{title}</EmptyState.Title>
+                        <EmptyState.Description>{description}</EmptyState.Description>
+                    </EmptyState.Header>
+                </EmptyState>
+            </div>
         </div>
     );
 }

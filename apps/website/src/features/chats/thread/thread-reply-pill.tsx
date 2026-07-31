@@ -33,14 +33,14 @@ export function ThreadReplyPill({
 
     return (
         <button
-            className="mt-1.5 inline-flex h-7 w-fit items-center gap-1.5 rounded-lg border border-border bg-legacy-muted px-2.5 font-medium text-muted-foreground text-sm hover:bg-legacy-accent hover:text-foreground"
+            className="mt-1.5 inline-flex h-7 w-fit items-center gap-1.5 rounded-lg border border-separator bg-surface-secondary px-2.5 font-medium text-muted text-sm hover:bg-surface-tertiary hover:text-foreground"
             onClick={onClick}
             type="button"
         >
             <Icon className="size-3.5" icon={BubbleChatIcon} />
             <span>{text.replyLabel}</span>
             <span aria-hidden>·</span>
-            <span className={cn(text.unread ? 'text-primary' : 'font-normal')}>
+            <span className={cn(text.unread ? 'text-danger' : 'font-normal')}>
                 {text.qualifier}
             </span>
         </button>

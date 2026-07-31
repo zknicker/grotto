@@ -1,3 +1,4 @@
+import { Button } from '@heroui/react';
 import type {
     HostedAgent,
     HostedAgentLifecycleEvent,
@@ -6,7 +7,6 @@ import type {
     HostedThreadSummary,
 } from '@tavern/api';
 import * as React from 'react';
-import { Button } from '../../../components/ui/primitives/button.tsx';
 import { useMarkServerChatReadOnView } from '../../../hooks/servers/use-mark-server-chat-read.ts';
 import { useServerThreadMessages } from '../../../hooks/servers/use-server-thread-messages.ts';
 import { useSetServerThreadFollow } from '../../../hooks/servers/use-set-server-thread-follow.ts';
@@ -106,8 +106,8 @@ export function ServerThreadPanel({
                         {messages.hasOlderHistory ? (
                             <div className="mb-5 flex justify-center">
                                 <Button
-                                    disabled={messages.isFetchingOlderHistory}
-                                    onClick={() => void messages.fetchOlderHistory()}
+                                    isDisabled={messages.isFetchingOlderHistory}
+                                    onPress={() => void messages.fetchOlderHistory()}
                                     size="sm"
                                     variant="ghost"
                                 >
@@ -134,11 +134,11 @@ export function ServerThreadPanel({
                         </div>
                     </div>
                     {readOnly ? (
-                        <p className="shrink-0 border-border-subtle border-t px-4 py-3 text-muted-foreground text-xs">
+                        <p className="shrink-0 border-separator border-t px-4 py-3 text-muted text-xs">
                             This conversation is read-only because the Agent has been retired.
                         </p>
                     ) : (
-                        <div className="shrink-0 border-border-subtle border-t py-3">
+                        <div className="shrink-0 border-separator border-t py-3">
                             <ServerChatComposer
                                 agents={agents}
                                 chatId={chat.id}
@@ -176,7 +176,7 @@ function ThreadMessage({
                 <span className="font-medium text-sm">
                     {author.kind === 'agent' ? author.agent.displayName : author.label}
                 </span>
-                <time className="text-muted-foreground text-xs" dateTime={message.createdAt}>
+                <time className="text-muted text-xs" dateTime={message.createdAt}>
                     {new Date(message.createdAt).toLocaleTimeString([], {
                         hour: 'numeric',
                         minute: '2-digit',
@@ -200,17 +200,17 @@ function ThreadMessage({
 
 function ReplyDivider({ replyCount }: { replyCount: number }) {
     if (replyCount === 0) {
-        return <div className="py-8 text-center text-muted-foreground text-sm">No replies yet</div>;
+        return <div className="py-8 text-center text-muted text-sm">No replies yet</div>;
     }
 
     return (
-        <div className="my-5 flex items-center gap-3 text-center text-meta text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
+        <div className="my-5 flex items-center gap-3 text-center text-muted text-xs">
+            <div className="h-px flex-1 bg-separator" />
             <div>
                 <div>Beginning of replies</div>
                 <div>{`${String(replyCount)} ${replyCount === 1 ? 'reply' : 'replies'}`}</div>
             </div>
-            <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-separator" />
         </div>
     );
 }

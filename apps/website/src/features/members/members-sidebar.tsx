@@ -5,12 +5,12 @@ import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
-import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { serverMembersRoute } from '../servers/server-routes.ts';
 import { CreateHostedAgentDialog } from './create-hosted-agent-dialog.tsx';
-import { HostedAgentFace } from './hosted-agent-face.tsx';
+import { HostedAgentStatusFace } from './hosted-agent-face.tsx';
+import { MemberInitialsAvatar } from './member-initials-avatar.tsx';
 
 /** Members section sidebar: the Agent and Human rosters as navigation. */
 export function MembersSidebar({
@@ -73,7 +73,7 @@ export function MembersSidebar({
                                     textValue={agent.displayName}
                                 >
                                     <Sidebar.MenuIcon>
-                                        <AgentFaceIcon agent={agent} />
+                                        <HostedAgentStatusFace agent={agent} />
                                     </Sidebar.MenuIcon>
                                     <Sidebar.MenuItemContent>
                                         <Sidebar.MenuLabel>{agent.displayName}</Sidebar.MenuLabel>
@@ -97,9 +97,9 @@ export function MembersSidebar({
                                 textValue={member.userId}
                             >
                                 <Sidebar.MenuIcon>
-                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-[9px]">
-                                        {member.userId.slice(0, 2).toUpperCase()}
-                                    </span>
+                                    <MemberInitialsAvatar
+                                        label={member.userId.slice(0, 2).toUpperCase()}
+                                    />
                                 </Sidebar.MenuIcon>
                                 <Sidebar.MenuItemContent>
                                     <Sidebar.MenuLabel>{member.userId}</Sidebar.MenuLabel>
@@ -139,36 +139,4 @@ function resolveSelectedAgentId(pathname: string, membersRoute: string) {
     return pathname.startsWith(prefix)
         ? decodeURIComponent(pathname.slice(prefix.length)).split('/')[0]
         : undefined;
-}
-
-function AgentFaceIcon({ agent }: { agent: HostedAgent }) {
-    return (
-        <span className="relative flex size-5 shrink-0 items-center justify-center overflow-visible">
-            <HostedAgentFace
-                agent={agent}
-                animate={false}
-                size={20}
-                style={{ flexShrink: 0, height: 20, overflow: 'visible', width: 20 }}
-            />
-            <StatusDot
-                className="absolute right-0 bottom-0"
-                size="md"
-                status={agentStatus(agent.availability)}
-                title={agent.availability}
-            />
-        </span>
-    );
-}
-
-function agentStatus(availability: HostedAgent['availability']) {
-    switch (availability) {
-        case 'idle':
-            return 'success' as const;
-        case 'working':
-            return 'warning' as const;
-        case 'error':
-            return 'error' as const;
-        default:
-            return 'muted' as const;
-    }
 }

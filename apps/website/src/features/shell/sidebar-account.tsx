@@ -1,11 +1,12 @@
 import { SignedIn, SignedOut, useClerk, useUser } from '@clerk/clerk-react';
-import { Avatar, Button } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { Logout01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { useDesktopOAuth } from '../auth/use-desktop-oauth.ts';
+import { MemberInitialsAvatar } from '../members/member-initials-avatar.tsx';
 
 /**
  * Account row for the sidebar footer, shaped as a stock sidebar menu row so
@@ -63,10 +64,10 @@ function AccountRow() {
         <Sidebar.Menu aria-label="Account">
             <Sidebar.MenuItem id="account" textValue={displayName}>
                 <Sidebar.MenuIcon>
-                    <Avatar className="size-5">
-                        {user?.imageUrl ? <Avatar.Image alt="" src={user.imageUrl} /> : null}
-                        <Avatar.Fallback>{displayName.slice(0, 1).toUpperCase()}</Avatar.Fallback>
-                    </Avatar>
+                    <MemberInitialsAvatar
+                        imageUrl={user?.imageUrl}
+                        label={displayName.slice(0, 1).toUpperCase()}
+                    />
                 </Sidebar.MenuIcon>
                 <Sidebar.MenuItemContent>
                     <Sidebar.MenuLabel>{displayName}</Sidebar.MenuLabel>

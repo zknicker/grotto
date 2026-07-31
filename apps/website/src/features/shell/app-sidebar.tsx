@@ -5,9 +5,8 @@ import { ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { StatusDot, type StatusDotProps } from '../../components/ui/status-dot.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
-import { HostedAgentFace } from '../members/hosted-agent-face.tsx';
+import { HostedAgentStatusFace } from '../members/hosted-agent-face.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
 import { SidebarAccount } from './sidebar-account.tsx';
 
@@ -132,41 +131,10 @@ function ChatGroup({
     );
 }
 
-/** Hosted availability mapped onto the shared status-dot vocabulary. */
-function hostedAvailabilityStatus(
-    availability: HostedAgent['availability']
-): StatusDotProps['status'] {
-    switch (availability) {
-        case 'idle':
-            return 'success';
-        case 'working':
-            return 'warning';
-        case 'error':
-            return 'error';
-        default:
-            return 'muted';
-    }
-}
-
 function ChatIcon({ agent }: { agent: HostedAgent | null }) {
     if (!agent) {
         return <ChannelIconBox size="sidebar" />;
     }
 
-    return (
-        <span className="relative flex size-5 shrink-0 items-center justify-center overflow-visible">
-            <HostedAgentFace
-                agent={agent}
-                animate={false}
-                size={20}
-                style={{ flexShrink: 0, height: 20, overflow: 'visible', width: 20 }}
-            />
-            <StatusDot
-                className="absolute right-0 bottom-0"
-                size="md"
-                status={hostedAvailabilityStatus(agent.availability)}
-                title={agent.availability}
-            />
-        </span>
-    );
+    return <HostedAgentStatusFace agent={agent} />;
 }

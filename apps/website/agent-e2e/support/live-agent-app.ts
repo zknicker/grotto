@@ -22,7 +22,7 @@ export async function sendFromComposer(page: Page, content: string) {
     await composer.fill(content);
 
     await send(page);
-    await expect(page.getByText(content, { exact: true })).toBeVisible();
+    await expect(messageTimeline(page).getByText(content, { exact: true }).last()).toBeVisible();
 }
 
 export async function sendTaskFromComposer(page: Page, content: string) {
@@ -30,17 +30,21 @@ export async function sendTaskFromComposer(page: Page, content: string) {
     await composer.fill(content);
     await page.getByRole('checkbox', { name: 'As Task' }).check();
     await send(page);
-    await expect(page.getByText(content, { exact: true })).toBeVisible();
+    await expect(messageTimeline(page).getByText(content, { exact: true }).last()).toBeVisible();
 }
 
 export async function expectVisibleReply(page: Page, content: string) {
-    await expect(page.getByText(content, { exact: true })).toBeVisible({
+    await expect(messageTimeline(page).getByText(content, { exact: true }).last()).toBeVisible({
         timeout: 240_000,
     });
 }
 
 function singleComposer(page: Page) {
     return page.getByRole('textbox', { name: /^Message /u });
+}
+
+function messageTimeline(page: Page) {
+    return page.getByLabel('Messages');
 }
 
 async function send(page: Page) {

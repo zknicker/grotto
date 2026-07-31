@@ -1,11 +1,15 @@
 import * as React from 'react';
 import { type DesktopEditCommand, getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { cn } from '../../lib/utils.ts';
-import {
-    contextMenuItemClassName,
-    contextMenuPopupClassName,
-    contextMenuSeparatorClassName,
-} from './context-menu.tsx';
+
+// Frosted-glass chrome that imitates the native macOS context menu — this
+// menu stands in for the OS one on the Electron surface, so it follows
+// platform metrics rather than app design tokens.
+const contextMenuPopupClassName =
+    'relative flex w-[152px] rounded-[14px] border border-black/15 bg-[#f7f7f8]/95 shadow-[0_16px_40px_rgb(0_0_0_/_0.18),0_2px_10px_rgb(0_0_0_/_0.10)] outline-none backdrop-blur-xl dark:border-white/12 dark:bg-[#2b2b2d]/92';
+const contextMenuItemClassName =
+    'min-h-[27px] gap-2.5 rounded-[10px] py-px ps-3 pe-3 font-normal text-sm data-highlighted:bg-accent data-highlighted:text-accent-foreground sm:min-h-[27px]';
+const contextMenuSeparatorClassName = 'mx-1 my-1 bg-black/12 dark:bg-white/14';
 
 const editableSelector =
     'input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"]';

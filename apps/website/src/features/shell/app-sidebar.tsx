@@ -103,7 +103,7 @@ function ChatGroup({
                     const name =
                         chat.kind === 'channel'
                             ? (chat.name ?? 'channel')
-                            : (agent?.displayName ?? 'Direct message');
+                            : (agent?.displayName ?? chat.peerAgentDisplayName ?? 'Direct message');
                     return (
                         <Sidebar.MenuItem
                             href={serverChatRoute(slug, chat.id)}
@@ -117,6 +117,9 @@ function ChatGroup({
                             </Sidebar.MenuIcon>
                             <Sidebar.MenuItemContent>
                                 <Sidebar.MenuLabel>{name}</Sidebar.MenuLabel>
+                                {chat.peerAgentRetired ? (
+                                    <Sidebar.MenuChip>Retired</Sidebar.MenuChip>
+                                ) : null}
                                 {chat.unreadCount > 0 ? (
                                     <Sidebar.MenuChip>{chat.unreadCount}</Sidebar.MenuChip>
                                 ) : null}

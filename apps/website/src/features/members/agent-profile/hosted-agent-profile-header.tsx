@@ -125,18 +125,16 @@ function ActionButton({
 }) {
     return (
         <Tooltip delay={0}>
-            <Tooltip.Trigger>
-                <Button
-                    aria-label={label}
-                    isDisabled={isDisabled}
-                    isIconOnly
-                    onPress={onPress}
-                    size="sm"
-                    variant="ghost"
-                >
-                    <Icon icon={icon} />
-                </Button>
-            </Tooltip.Trigger>
+            <Button
+                aria-label={label}
+                isDisabled={isDisabled}
+                isIconOnly
+                onPress={onPress}
+                size="sm"
+                variant="ghost"
+            >
+                <Icon icon={icon} />
+            </Button>
             <Tooltip.Content>{label}</Tooltip.Content>
         </Tooltip>
     );

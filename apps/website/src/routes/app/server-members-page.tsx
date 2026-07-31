@@ -41,18 +41,16 @@ export function ServerMembersPage() {
                 server.role === 'owner' || server.role === 'admin' ? (
                     <>
                         <Tooltip delay={0}>
-                            <Tooltip.Trigger>
-                                <Button
-                                    aria-label="Create Agent"
-                                    className="no-drag"
-                                    isIconOnly
-                                    onPress={() => setCreatingAgent(true)}
-                                    size="sm"
-                                    variant="ghost"
-                                >
-                                    <Icon aria-hidden="true" icon={Plus} size={16} />
-                                </Button>
-                            </Tooltip.Trigger>
+                            <Button
+                                aria-label="Create Agent"
+                                className="no-drag"
+                                isIconOnly
+                                onPress={() => setCreatingAgent(true)}
+                                size="sm"
+                                variant="ghost"
+                            >
+                                <Icon aria-hidden="true" icon={Plus} size={16} />
+                            </Button>
                             <Tooltip.Content>Create Agent</Tooltip.Content>
                         </Tooltip>
                         <CreateHostedAgentDialog

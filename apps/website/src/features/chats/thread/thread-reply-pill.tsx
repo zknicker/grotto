@@ -40,7 +40,7 @@ export function ThreadReplyPill({
             <Icon className="size-3.5" icon={BubbleChatIcon} />
             <span>{text.replyLabel}</span>
             <span aria-hidden>·</span>
-            <span className={cn(text.unread ? 'text-danger' : 'font-normal')}>
+            <span className={cn(text.unread ? 'text-accent' : 'font-normal')}>
                 {text.qualifier}
             </span>
         </button>

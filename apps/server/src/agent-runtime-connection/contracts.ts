@@ -17,7 +17,6 @@ export const agentRuntimeCapabilities = [
     'autoDispatch',
     'webAccess',
     'browser',
-    'devToolkit',
     'identity',
 ] as const;
 

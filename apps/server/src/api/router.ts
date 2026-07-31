@@ -2,7 +2,6 @@ import { agentRouter } from './agent/router.ts';
 import { agentRuntimeRouter } from './agent-runtime/router.ts';
 import { browserRouter } from './browser/router.ts';
 import { chatRouter } from './chat/router.ts';
-import { devRouter } from './dev/router.ts';
 import { identityRouter } from './identity/router.ts';
 import { jobsRouter } from './jobs/router.ts';
 import { labelRouter } from './label/router.ts';
@@ -32,7 +31,6 @@ export const appRouter = createRouter({
     browser: browserRouter,
     identity: identityRouter,
     chat: chatRouter,
-    dev: devRouter,
     mcp: mcpRouter,
     jobs: jobsRouter,
     label: labelRouter,

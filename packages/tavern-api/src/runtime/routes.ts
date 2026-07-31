@@ -26,7 +26,6 @@ export const agentRuntimeRoutes = {
     capability: (id: string) => `/capabilities/${encodeURIComponent(id)}`,
     capabilityRefresh: (id: string) => `/capabilities/${encodeURIComponent(id)}/refresh`,
     capabilitiesRefresh: '/capabilities/refresh',
-    devSimulateTurn: '/dev/simulate-turn',
     update: '/update',
     updateRestart: '/update/restart',
     updateStatus: '/update/status',

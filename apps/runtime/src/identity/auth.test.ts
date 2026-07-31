@@ -56,7 +56,6 @@ describe('runtime route auth policy', () => {
         ['/mcp/connections', 'GET'],
         ['/mcp/connections/example', 'POST'],
         ['/update/status', 'GET'],
-        ['/dev/simulate-turn', 'POST'],
         ['/memory/settings', 'GET'],
         ['/timezone/settings', 'GET'],
     ])('denies member access to %s regardless of method', (pathname, method) => {

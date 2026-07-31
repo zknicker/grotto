@@ -28,7 +28,6 @@ const capabilityLabels = {
     codexOAuth: 'Codex OAuth',
     cron: 'Reminders',
     dashboardServer: 'Agent engine',
-    devToolkit: 'Dev toolkit',
     gateway: 'Agent connection',
     identity: 'Identity',
     imageGeneration: 'Image generation',

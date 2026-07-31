@@ -20,7 +20,6 @@ const agentRuntimeCoreCapabilityIds = [
     'autoDispatch',
     'webAccess',
     'browser',
-    'devToolkit',
     'identity',
 ] as const;
 

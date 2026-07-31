@@ -21,8 +21,6 @@ import type {
     TavernResponseActivity,
     TavernResponseEvidence,
     TavernSetThreadFollowRequest,
-    TavernSimulateTurnReceipt,
-    TavernSimulateTurnRequest,
     TavernTurnFileChangeEvidence,
     TavernTurnPromptEvidence,
     TavernUpsertArtifactRequest,
@@ -69,7 +67,6 @@ export class TavernApiError extends Error {
 
 export class TavernClient {
     readonly chat: TavernChatClient;
-    readonly dev: TavernDevClient;
     readonly message: TavernMessageClient;
     readonly realtime: TavernRealtimeClient;
 
@@ -86,7 +83,6 @@ export class TavernClient {
         this.#token = options.token;
         this.#WebSocket = options.WebSocket ?? globalThis.WebSocket;
         this.chat = new TavernChatClient(this);
-        this.dev = new TavernDevClient(this);
         this.message = new TavernMessageClient(this);
         this.realtime = new TavernRealtimeClient(this);
     }
@@ -383,22 +379,6 @@ class TavernRealtimeClient {
         }
 
         return socket;
-    }
-}
-
-// Development-stack helpers; the runtime rejects these outside dev mode.
-class TavernDevClient {
-    readonly #client: TavernClient;
-
-    constructor(client: TavernClient) {
-        this.#client = client;
-    }
-
-    simulateTurn(input: TavernSimulateTurnRequest) {
-        return this.#client.request<TavernSimulateTurnReceipt>('/dev/simulate-turn', {
-            body: input,
-            method: 'POST',
-        });
     }
 }
 

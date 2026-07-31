@@ -13,7 +13,6 @@ import { loadVaultBackedCodexCredentials } from '../model-access/codex-settings.
 import { hasHostClaudeLogin } from '../model-access/host-claude-login.ts';
 import { listAgentModels } from '../models/catalog-service.ts';
 import { resolveAgentModelSummary } from '../models/model-access.ts';
-import { isDevToolkitEnabled } from '../tavern/development-turn-simulator.ts';
 
 export interface RuntimeCapabilityCheckResult {
     metadata?: Record<string, unknown>;
@@ -135,17 +134,6 @@ export const runtimeCapabilityDefinitions: RuntimeCapabilityDefinition[] = [
         },
     },
     {
-        check() {
-            return checkDevToolkitCapability();
-        },
-        displayName: 'Dev toolkit',
-        id: 'devToolkit',
-        refresh: {
-            intervalMs: 60 * minuteMs,
-            runOnStart: true,
-        },
-    },
-    {
         async check() {
             return await checkBrowserCapability();
         },
@@ -185,19 +173,6 @@ function checkWebAccessCapability(): RuntimeCapabilityCheckResult {
     // This makes older Runtimes read as unavailable to the app. Web fetch has no external
     // dependency; provider-native search readiness is a per-model fact.
     return { state: 'healthy' };
-}
-
-// Dev-stack-only helpers (simulated turns). Healthy only when the runtime
-// was started by the development stack.
-function checkDevToolkitCapability(): RuntimeCapabilityCheckResult {
-    if (isDevToolkitEnabled()) {
-        return { state: 'healthy' };
-    }
-
-    return {
-        reason: 'The dev toolkit is only available on the development stack.',
-        state: 'unavailable',
-    };
 }
 
 function checkAgentEngineCapability(input: {

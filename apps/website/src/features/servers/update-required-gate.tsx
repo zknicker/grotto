@@ -1,6 +1,6 @@
+import { Button } from '@heroui/react';
 import type { QueryClient } from '@tanstack/react-query';
 import * as React from 'react';
-import { Button } from '../../components/ui/button.tsx';
 import {
     isUpdateRequiredError,
     type UpdateRequiredMode,
@@ -85,10 +85,10 @@ function UpdateRequiredScreen({ mode }: { mode: UpdateRequiredMode }) {
 function ReloadBody() {
     return (
         <>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted text-sm">
                 Grotto was updated. Reload this tab to continue with the current version.
             </p>
-            <Button onClick={() => window.location.reload()}>Reload</Button>
+            <Button onPress={() => window.location.reload()}>Reload</Button>
         </>
     );
 }
@@ -103,11 +103,16 @@ function DesktopUpdateBody() {
 
     return (
         <>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted text-sm">
                 This version of the Grotto desktop app no longer matches the Server. Install the
                 latest desktop update to continue.
             </p>
-            <Button disabled={checking} onClick={checkForUpdate}>
+            <Button
+                isPending={checking}
+                onPress={() => {
+                    void checkForUpdate();
+                }}
+            >
                 {checking ? 'Checking…' : 'Check for updates'}
             </Button>
         </>

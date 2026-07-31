@@ -1,6 +1,5 @@
+import { Button, Chip } from '@heroui/react';
 import type { ServerMember, ServerMemberDirectory } from '@tavern/api/hosted-membership';
-import { Badge } from '../../components/ui/badge.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
 import {
     humanLabel,
     type ServerMemberRowAction,
@@ -23,29 +22,34 @@ export function ServerMemberList({
         <ul className="flex flex-col gap-1">
             {directory.members.map((member) => (
                 <li
-                    className="flex items-center justify-between gap-4 rounded-lg px-3 py-2 hover:bg-hover"
+                    className="flex items-center justify-between gap-4 rounded-lg px-3 py-2 hover:bg-surface-secondary"
                     data-member-id={member.userId}
                     key={member.userId}
                 >
                     <div className="flex min-w-0 items-baseline gap-2">
                         <span className="text-foreground text-sm">{humanLabel(member.userId)}</span>
-                        <Badge variant="secondary">{member.role}</Badge>
+                        <Chip size="sm" variant="secondary">
+                            {member.role}
+                        </Chip>
                         {member.userId === directory.viewerUserId ? (
-                            <span className="text-muted-foreground text-xs">you</span>
+                            <span className="text-muted text-xs">you</span>
                         ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                         {serverMemberRowActions(directory, member).map((action) => (
-                            <Button
-                                disabled={action.disabledReason !== null}
-                                key={action.kind}
-                                onClick={() => onChoose(member, action)}
-                                size="xs"
-                                title={action.disabledReason ?? undefined}
-                                variant={actionVariant(action)}
-                            >
-                                {action.label}
-                            </Button>
+                            // A disabled button receives no pointer events, so a
+                            // Tooltip on it would never open. The reason the
+                            // Server refuses the action hangs off the wrapper.
+                            <span key={action.kind} title={action.disabledReason ?? undefined}>
+                                <Button
+                                    isDisabled={action.disabledReason !== null}
+                                    onPress={() => onChoose(member, action)}
+                                    size="sm"
+                                    variant={actionVariant(action)}
+                                >
+                                    {action.label}
+                                </Button>
+                            </span>
                         ))}
                     </div>
                 </li>
@@ -57,7 +61,7 @@ export function ServerMemberList({
 /** Departures read as destructive; Owner-level changes read as deliberate. */
 function actionVariant(action: ServerMemberRowAction) {
     if (action.kind === 'leave' || action.kind === 'remove') {
-        return 'destructive-ghost' as const;
+        return 'danger-soft' as const;
     }
 
     return action.requiresSlug ? ('outline' as const) : ('ghost' as const);

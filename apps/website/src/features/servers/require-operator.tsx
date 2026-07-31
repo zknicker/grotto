@@ -1,6 +1,6 @@
+import { EmptyState } from '@heroui-pro/react';
 import type { ServerRole } from '@tavern/api/hosted-membership';
 import type React from 'react';
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '../../components/ui/empty.tsx';
 
 /**
  * Operator-only gate for Server admin surfaces. Members see one shared empty
@@ -20,11 +20,15 @@ export function RequireOperator({
     }
 
     return (
-        <Empty className="h-full">
-            <EmptyHeader>
-                <EmptyTitle>Owner or Admin required</EmptyTitle>
-                {description ? <EmptyDescription>{description}</EmptyDescription> : null}
-            </EmptyHeader>
-        </Empty>
+        <div className="flex h-full items-center justify-center">
+            <EmptyState>
+                <EmptyState.Header>
+                    <EmptyState.Title>Owner or Admin required</EmptyState.Title>
+                    {description ? (
+                        <EmptyState.Description>{description}</EmptyState.Description>
+                    ) : null}
+                </EmptyState.Header>
+            </EmptyState>
+        </div>
     );
 }

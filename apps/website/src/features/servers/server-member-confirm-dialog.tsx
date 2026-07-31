@@ -1,16 +1,5 @@
+import { AlertDialog, Button, InputGroup, Label, TextField } from '@heroui/react';
 import * as React from 'react';
-import {
-    AlertDialog,
-    AlertDialogClose,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogPopup,
-    AlertDialogTitle,
-} from '../../components/ui/alert-dialog.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { Input } from '../../components/ui/primitives/input.tsx';
-import { Label } from '../../components/ui/primitives/label.tsx';
 
 export interface PendingMemberChange {
     /** Prose naming the human and exactly what will happen to them. */
@@ -54,40 +43,49 @@ export function ServerMemberConfirmDialog({
     const canConfirm = !pending.requiresSlug || typed === slug;
 
     return (
-        <AlertDialog onOpenChange={onOpenChange} open>
-            <AlertDialogPopup>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{pending.label}</AlertDialogTitle>
-                    <AlertDialogDescription>{pending.description}</AlertDialogDescription>
-                </AlertDialogHeader>
-                {pending.requiresSlug ? (
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="server-member-confirmation">
-                            Type the Server address to confirm
-                        </Label>
-                        <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground text-sm">/</span>
-                            <Input
-                                autoComplete="off"
-                                id="server-member-confirmation"
-                                onChange={(event) => setTyped(event.target.value)}
-                                placeholder={slug}
-                                value={typed}
-                            />
-                        </div>
-                    </div>
-                ) : null}
-                <AlertDialogFooter>
-                    <AlertDialogClose render={<Button variant="ghost" />}>Cancel</AlertDialogClose>
-                    <Button
-                        disabled={!canConfirm}
-                        onClick={() => pending.run(typed)}
-                        variant="destructive"
-                    >
-                        {pending.label}
-                    </Button>
-                </AlertDialogFooter>
-            </AlertDialogPopup>
+        <AlertDialog isOpen onOpenChange={onOpenChange}>
+            <AlertDialog.Backdrop>
+                <AlertDialog.Container size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="danger" />
+                            <AlertDialog.Heading>{pending.label}</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <div className="grid gap-4">
+                                <p>{pending.description}</p>
+                                {pending.requiresSlug ? (
+                                    <TextField fullWidth onChange={setTyped} value={typed}>
+                                        <Label htmlFor="server-member-confirmation">
+                                            Type the Server address to confirm
+                                        </Label>
+                                        <InputGroup fullWidth>
+                                            <InputGroup.Prefix>/</InputGroup.Prefix>
+                                            <InputGroup.Input
+                                                autoComplete="off"
+                                                id="server-member-confirmation"
+                                                placeholder={slug}
+                                            />
+                                        </InputGroup>
+                                    </TextField>
+                                ) : null}
+                            </div>
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="secondary">
+                                Cancel
+                            </Button>
+                            <Button
+                                isDisabled={!canConfirm}
+                                onPress={() => pending.run(typed)}
+                                variant="danger"
+                            >
+                                {pending.label}
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
         </AlertDialog>
     );
 }

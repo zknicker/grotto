@@ -1,16 +1,5 @@
+import { AlertDialog, Button, InputGroup, Label, TextField } from '@heroui/react';
 import * as React from 'react';
-import {
-    AlertDialog,
-    AlertDialogClose,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogPopup,
-    AlertDialogTitle,
-} from '../../components/ui/alert-dialog.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { Input } from '../../components/ui/primitives/input.tsx';
-import { Label } from '../../components/ui/primitives/label.tsx';
 
 export function DeleteServerDialog({
     displayName,
@@ -35,43 +24,53 @@ export function DeleteServerDialog({
     };
 
     return (
-        <AlertDialog onOpenChange={handleOpenChange} open={open}>
-            <AlertDialogPopup>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Delete {displayName}?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This permanently destroys collaboration history, members, invites, agents,
-                        Computers, credentials, pending work, reminders, and attachments. It cannot
-                        be undone. Access ends immediately; attached Computers lose their
-                        credentials and the cleanup never waits for an offline machine.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="server-delete-confirmation">
-                        Type the Server address to confirm
-                    </Label>
-                    <div className="flex items-center gap-1">
-                        <span className="text-muted-foreground text-sm">/</span>
-                        <Input
-                            autoComplete="off"
-                            id="server-delete-confirmation"
-                            onChange={(event) => setTyped(event.target.value)}
-                            placeholder={slug}
-                            value={typed}
-                        />
-                    </div>
-                </div>
-                <AlertDialogFooter>
-                    <AlertDialogClose render={<Button variant="ghost" />}>Cancel</AlertDialogClose>
-                    <Button
-                        disabled={!canConfirm}
-                        onClick={() => onConfirm(typed)}
-                        variant="destructive"
-                    >
-                        Delete Server
-                    </Button>
-                </AlertDialogFooter>
-            </AlertDialogPopup>
+        <AlertDialog isOpen={open} onOpenChange={handleOpenChange}>
+            <AlertDialog.Backdrop>
+                <AlertDialog.Container size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="danger" />
+                            <AlertDialog.Heading>Delete {displayName}?</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <div className="grid gap-4">
+                                <p>
+                                    This permanently destroys collaboration history, members,
+                                    invites, agents, Computers, credentials, pending work,
+                                    reminders, and attachments. It cannot be undone. Access ends
+                                    immediately; attached Computers lose their credentials and the
+                                    cleanup never waits for an offline machine.
+                                </p>
+                                <TextField fullWidth onChange={setTyped} value={typed}>
+                                    <Label htmlFor="server-delete-confirmation">
+                                        Type the Server address to confirm
+                                    </Label>
+                                    <InputGroup fullWidth>
+                                        <InputGroup.Prefix>/</InputGroup.Prefix>
+                                        <InputGroup.Input
+                                            autoComplete="off"
+                                            id="server-delete-confirmation"
+                                            placeholder={slug}
+                                        />
+                                    </InputGroup>
+                                </TextField>
+                            </div>
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" variant="secondary">
+                                Cancel
+                            </Button>
+                            <Button
+                                isDisabled={!canConfirm}
+                                onPress={() => onConfirm(typed)}
+                                variant="danger"
+                            >
+                                Delete Server
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
         </AlertDialog>
     );
 }

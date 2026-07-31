@@ -1,5 +1,4 @@
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { Progress } from '../../components/ui/progress.tsx';
+import { Button, ProgressBar } from '@heroui/react';
 import { useComputerUpdate } from '../../hooks/servers/use-computer-update.ts';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
 import { computerUpdateView } from './computer-update-model.ts';
@@ -45,7 +44,7 @@ export function ComputerUpdateControls({
                             ? `${view.label}${versionSuffix}`
                             : view.label}
                     </p>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-muted text-sm">
                         {computer.updateDetail ??
                             (computer.updateTargetVersion
                                 ? `Production v${computer.updateTargetVersion}`
@@ -54,18 +53,18 @@ export function ComputerUpdateControls({
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
-                        disabled={!view.canCheck}
-                        loading={update.isChecking}
-                        onClick={update.check}
+                        isDisabled={!view.canCheck}
+                        isPending={update.isChecking}
+                        onPress={update.check}
                         size="sm"
                         variant="secondary"
                     >
                         Check
                     </Button>
                     <Button
-                        disabled={!view.canUpdate}
-                        loading={update.isStarting}
-                        onClick={update.update}
+                        isDisabled={!view.canUpdate}
+                        isPending={update.isStarting}
+                        onPress={update.update}
                         size="sm"
                     >
                         Update
@@ -74,10 +73,18 @@ export function ComputerUpdateControls({
             </div>
             {isUpdateActive ? (
                 <div className="space-y-2 py-1">
-                    <Progress aria-label={view.label} className="h-4" value={determinateValue} />
+                    <ProgressBar
+                        aria-label={view.label}
+                        isIndeterminate={determinateValue === null}
+                        value={determinateValue ?? 0}
+                    >
+                        <ProgressBar.Track>
+                            <ProgressBar.Fill />
+                        </ProgressBar.Track>
+                    </ProgressBar>
                     {computer.updatePhase === 'downloading' &&
                     computer.updateDownloadedBytes !== null ? (
-                        <p className="font-mono text-meta text-muted-foreground tabular-nums">
+                        <p className="font-mono text-muted text-xs tabular-nums">
                             {formatBytes(computer.updateDownloadedBytes)}
                             {computer.updateTotalBytes !== null
                                 ? ` of ${formatBytes(computer.updateTotalBytes)}`
@@ -86,7 +93,7 @@ export function ComputerUpdateControls({
                     ) : null}
                     {computer.updatePhase === 'waiting-for-agents' &&
                     computer.updateActiveAgentCount !== null ? (
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-muted text-sm">
                             {computer.updateActiveAgentCount === 1
                                 ? '1 active Agent is finishing.'
                                 : `${computer.updateActiveAgentCount} active Agents are finishing.`}
@@ -95,7 +102,7 @@ export function ComputerUpdateControls({
                 </div>
             ) : null}
             {view.needsLocalRecovery ? (
-                <p className="text-legacy-warning-foreground text-xs">
+                <p className="text-warning text-xs">
                     {computer.health === 'update-required'
                         ? 'Ordinary controls are paused until this Computer updates. '
                         : 'If this Computer cannot reconnect, '}
@@ -103,16 +110,14 @@ export function ComputerUpdateControls({
                 </p>
             ) : null}
             {computer.updatePhase === 'failed' ? (
-                <p className="text-error-foreground text-sm">
+                <p className="text-danger text-sm">
                     {computer.updateFailedPhase
                         ? `Failed while ${failedPhaseLabel(computer.updateFailedPhase)}. `
                         : ''}
                     Recover with <code>grotto-computer upgrade</code>.
                 </p>
             ) : null}
-            {update.error ? (
-                <p className="text-error-foreground text-xs">{update.error.message}</p>
-            ) : null}
+            {update.error ? <p className="text-danger text-xs">{update.error.message}</p> : null}
         </div>
     );
 }

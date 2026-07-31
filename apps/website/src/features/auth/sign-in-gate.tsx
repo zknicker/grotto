@@ -1,13 +1,6 @@
-import {
-    ClerkFailed,
-    ClerkLoaded,
-    ClerkLoading,
-    SignInButton,
-    useAuth,
-    useClerk,
-} from '@clerk/clerk-react';
+import { ClerkFailed, ClerkLoaded, ClerkLoading, useAuth, useClerk } from '@clerk/clerk-react';
+import { Button } from '@heroui/react';
 import { type ReactNode, useEffect, useState } from 'react';
-import { Button } from '../../components/ui/button.tsx';
 import {
     getClerkSessionToken,
     isClerkEnabled,
@@ -101,8 +94,8 @@ function ClerkSessionGate({ children }: { children: ReactNode }) {
                 message="We couldn’t open your signed-in session."
                 recovery={
                     <>
-                        <Button onClick={() => setRetryKey((key) => key + 1)}>Try again</Button>
-                        <Button onClick={signInAgain} variant="outline">
+                        <Button onPress={() => setRetryKey((key) => key + 1)}>Try again</Button>
+                        <Button onPress={signInAgain} variant="outline">
                             Sign in again
                         </Button>
                     </>
@@ -139,7 +132,7 @@ function GateFrame({
         <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-background">
             <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="font-semibold text-2xl text-foreground">Welcome to Grotto</h1>
-                <p className="max-w-sm text-muted-foreground text-sm">{message}</p>
+                <p className="max-w-sm text-muted text-sm">{message}</p>
             </div>
             {recovery ? <div className="flex items-center gap-2">{recovery}</div> : null}
             {signIn ? <SignInAction /> : null}
@@ -147,16 +140,20 @@ function GateFrame({
     );
 }
 
+/**
+ * Clerk's `SignInButton` drives its child through a cloned `onClick`, which
+ * HeroUI's Button (React Aria) deliberately drops in favour of `onPress`. The
+ * modal is opened directly instead — the same call `SignInButton mode="modal"`
+ * makes.
+ */
 function SignInAction() {
+    const clerk = useClerk();
+
     if (isElectronDesktopApp()) {
         return <DesktopGoogleSignIn />;
     }
 
-    return (
-        <SignInButton mode="modal">
-            <Button>Sign in</Button>
-        </SignInButton>
-    );
+    return <Button onPress={() => clerk.openSignIn()}>Sign in</Button>;
 }
 
 function DesktopGoogleSignIn() {
@@ -179,12 +176,15 @@ function DesktopGoogleSignIn() {
 
     return (
         <div className="flex flex-col items-center gap-2">
-            <Button disabled={isStarting} onClick={handleSignIn}>
+            <Button
+                isPending={isStarting}
+                onPress={() => {
+                    void handleSignIn();
+                }}
+            >
                 {isStarting ? 'Opening Google…' : 'Continue with Google'}
             </Button>
-            {error ? (
-                <p className="max-w-sm text-center text-destructive text-sm">{error}</p>
-            ) : null}
+            {error ? <p className="max-w-sm text-center text-danger text-sm">{error}</p> : null}
         </div>
     );
 }

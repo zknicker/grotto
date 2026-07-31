@@ -1,7 +1,6 @@
+import { Button, Input, TextField } from '@heroui/react';
 import * as React from 'react';
 import { Outlet } from 'react-router-dom';
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { Input } from '../../components/ui/primitives/input.tsx';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { trpc } from '../../lib/trpc.tsx';
 
@@ -35,7 +34,7 @@ function InviteRequired({ onJoined }: { onJoined: () => void }) {
         <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-background px-6">
             <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="font-semibold text-2xl text-foreground">Invite required</h1>
-                <p className="max-w-sm text-muted-foreground text-sm">
+                <p className="max-w-sm text-muted text-sm">
                     This Grotto belongs to someone else. Ask the owner for an invite code to join
                     the conversation.
                 </p>
@@ -49,18 +48,15 @@ function InviteRequired({ onJoined }: { onJoined: () => void }) {
                     }
                 }}
             >
-                <Input
-                    aria-label="Invite code"
-                    onChange={(event) => setCode(event.currentTarget.value)}
-                    placeholder="Invite code"
-                    value={code}
-                />
-                <Button disabled={!code.trim()} loading={redeem.isPending} type="submit">
+                <TextField aria-label="Invite code" fullWidth onChange={setCode} value={code}>
+                    <Input placeholder="Invite code" />
+                </TextField>
+                <Button isDisabled={!code.trim()} isPending={redeem.isPending} type="submit">
                     Join
                 </Button>
             </form>
             {redeem.error ? (
-                <p className="max-w-sm text-center text-error text-sm">{redeem.error.message}</p>
+                <p className="max-w-sm text-center text-danger text-sm">{redeem.error.message}</p>
             ) : null}
         </div>
     );

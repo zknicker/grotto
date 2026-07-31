@@ -1,12 +1,16 @@
 import { SignedIn, SignedOut, useClerk, useUser } from '@clerk/clerk-react';
-import { Avatar, Button, Dropdown, Label } from '@heroui/react';
+import { Avatar, Button } from '@heroui/react';
+import { Sidebar } from '@heroui-pro/react';
+import { Logout01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Icon } from '../../components/ui/icon.tsx';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { useDesktopOAuth } from '../auth/use-desktop-oauth.ts';
 
 /**
- * Account row for the sidebar footer — no prebuilt Clerk UI components here:
- * the Electron surface runs headless native clerk-js, which has none, and the
+ * Account row for the sidebar footer, shaped as a stock sidebar menu row so
+ * it aligns with every other row. No prebuilt Clerk UI components here: the
+ * Electron surface runs headless native clerk-js, which has none, and the
  * web surface stays consistent with it.
  */
 export function SidebarAccount() {
@@ -19,7 +23,7 @@ export function SidebarAccount() {
                 <SignInButton />
             </SignedOut>
             <SignedIn>
-                <AccountMenu />
+                <AccountRow />
             </SignedIn>
         </>
     );
@@ -44,7 +48,7 @@ function SignInButton() {
     );
 }
 
-function AccountMenu() {
+function AccountRow() {
     const clerk = useClerk();
     const { user } = useUser();
     const displayName = user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? 'Account';
@@ -56,27 +60,23 @@ function AccountMenu() {
         void clerk.signOut();
     };
     return (
-        <Dropdown>
-            <Button className="justify-start" fullWidth size="sm" variant="ghost">
-                <Avatar className="size-5 shrink-0">
-                    {user?.imageUrl ? <Avatar.Image alt="" src={user.imageUrl} /> : null}
-                    <Avatar.Fallback>{displayName.slice(0, 1).toUpperCase()}</Avatar.Fallback>
-                </Avatar>
-                <span className="min-w-0 truncate">{displayName}</span>
-            </Button>
-            <Dropdown.Popover placement="top start">
-                <Dropdown.Menu
-                    onAction={(key) => {
-                        if (key === 'sign-out') {
-                            signOut();
-                        }
-                    }}
-                >
-                    <Dropdown.Item id="sign-out" textValue="Sign Out">
-                        <Label>Sign Out</Label>
-                    </Dropdown.Item>
-                </Dropdown.Menu>
-            </Dropdown.Popover>
-        </Dropdown>
+        <Sidebar.Menu aria-label="Account">
+            <Sidebar.MenuItem id="account" textValue={displayName}>
+                <Sidebar.MenuIcon>
+                    <Avatar className="size-5">
+                        {user?.imageUrl ? <Avatar.Image alt="" src={user.imageUrl} /> : null}
+                        <Avatar.Fallback>{displayName.slice(0, 1).toUpperCase()}</Avatar.Fallback>
+                    </Avatar>
+                </Sidebar.MenuIcon>
+                <Sidebar.MenuItemContent>
+                    <Sidebar.MenuLabel>{displayName}</Sidebar.MenuLabel>
+                    <Sidebar.MenuActions>
+                        <Sidebar.MenuAction aria-label="Sign Out" onPress={signOut}>
+                            <Icon aria-hidden="true" icon={Logout01Icon} size={16} />
+                        </Sidebar.MenuAction>
+                    </Sidebar.MenuActions>
+                </Sidebar.MenuItemContent>
+            </Sidebar.MenuItem>
+        </Sidebar.Menu>
     );
 }

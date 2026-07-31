@@ -88,11 +88,6 @@ test('a new session recovers the exact Agent-owned workspace file', async ({ pag
 });
 
 test('an Agent-authored HTML artifact opens with the exact workspace bytes', async ({ page }) => {
-    test.fail(
-        true,
-        'Known gap: Agent artifact fences in task Threads render as code instead of clickable cards.'
-    );
-
     const { agent, harness } = suite;
     const prompt = `Create a self-contained HTML status page at ${suite.artifactPath}. Its visible heading must be exactly "${suite.artifactMarker}". Share it here as a clickable artifact titled "${suite.artifactTitle}", not only as a text link.`;
     const { reply } = await runTask(

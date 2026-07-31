@@ -43,12 +43,13 @@ export function useHostedChatArtifactPanel(chatId: string): ChatArtifactPanelSta
     }, []);
     const toggleVisible = React.useCallback(() => {
         setVisible((current) => {
-            if (!current) {
+            if (!current || activeSidePane !== 'artifact') {
                 setChatSidePane(chatId, 'artifact');
+                return true;
             }
-            return !current;
+            return false;
         });
-    }, [chatId]);
+    }, [activeSidePane, chatId]);
 
     return {
         ...pane,

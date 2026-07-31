@@ -104,7 +104,41 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     const peerMessage = page.getByText('Peer-authored hosted message', { exact: true });
     await expect(peerMessage).toBeVisible();
 
+    seedHostedArtifactThread({ chatId: allChatId, databaseUrl, serverId });
     expect(localProductRequests).toEqual([]);
+});
+
+test('an Agent-authored artifact fence in a Thread opens the chat Artifact Pane', async ({
+    page,
+}) => {
+    await signInAsClerkHuman(page);
+    await page.goto('/s/hosted-messages');
+    await page.getByRole('button', { name: 'all', exact: true }).click();
+    await page.setViewportSize({ height: 720, width: 800 });
+
+    const anchor = page
+        .getByText('Agent artifact fixture', { exact: true })
+        .locator('xpath=ancestor::div[@data-message-id][1]');
+    await anchor.hover();
+    await anchor.getByRole('button', { name: 'Reply in thread' }).click();
+
+    const thread = page.getByRole('complementary', { name: 'Thread' });
+    await expect(thread).toBeVisible();
+    await expect(thread.getByText('```artifact', { exact: false })).toHaveCount(0);
+    await thread.getByRole('textbox', { name: /Message Thread/u }).fill('Preserved draft');
+    await thread.getByRole('button', { name: /Deterministic workspace audit/u }).click();
+
+    const artifacts = page.getByRole('complementary', { name: 'Artifacts' });
+    await expect(thread).toHaveCount(0);
+    await expect(artifacts).toBeVisible();
+    await expect(artifacts.getByRole('tab', { name: 'deterministic.html' })).toBeVisible();
+    await expect(artifacts.getByText('Unable to browse this workspace.')).toBeVisible();
+
+    await artifacts.getByRole('button', { name: 'Hide artifacts' }).click();
+    await page.getByRole('button', { name: '1 reply' }).click();
+    await expect(thread.getByRole('textbox', { name: /Message Thread/u })).toHaveText(
+        'Preserved draft'
+    );
 });
 
 test('a hosted Thread panel updates live and catches up after websocket reconnect', async ({
@@ -247,6 +281,56 @@ test('an Agent reply reaches an already-open Thread live and after reconnect', a
         panel.getByText('Agent reply sent while the App was offline', { exact: true })
     ).toBeVisible();
 });
+
+function seedHostedArtifactThread(input: {
+    chatId: string;
+    databaseUrl: string;
+    serverId: string;
+}) {
+    runHostedPsql(
+        input.databaseUrl,
+        `begin;
+         insert into agents (
+           id, server_id, handle, display_name, character, home_timezone, role
+         ) values (
+           'agt_e2e_artifact', '${input.serverId}', 'artifact-auditor',
+           'Artifact Auditor', 'owl', 'America/New_York', 'member'
+         );
+         insert into channel_agent_participants (server_id, chat_id, agent_id)
+         values ('${input.serverId}', '${input.chatId}', 'agt_e2e_artifact');
+         insert into chat_messages (
+           id, server_id, chat_id, sequence, author_user_id, content, nonce
+         )
+         select
+           'msg_e2e_artifact_anchor', '${input.serverId}', '${input.chatId}',
+           last_message_sequence + 1,
+           (
+             select user_id from server_memberships
+             where server_id = '${input.serverId}' and role = 'owner'
+           ),
+           'Agent artifact fixture', 'e2e-artifact-anchor'
+         from chats
+         where server_id = '${input.serverId}' and id = '${input.chatId}';
+         update chats set last_message_sequence = last_message_sequence + 1
+         where server_id = '${input.serverId}' and id = '${input.chatId}';
+         insert into chats (
+           id, server_id, kind, parent_chat_id, parent_chat_kind,
+           anchor_message_id, last_message_sequence
+         ) values (
+           'cht_e2e_artifact_thread', '${input.serverId}', 'thread', '${input.chatId}',
+           'channel', 'msg_e2e_artifact_anchor', 1
+         );
+         insert into chat_messages (
+           id, server_id, chat_id, sequence, author_agent_id, content, nonce
+         ) values (
+           'msg_e2e_artifact_reply', '${input.serverId}', 'cht_e2e_artifact_thread', 1,
+           'agt_e2e_artifact',
+           E'Here is the audit.\\n\\u0060\\u0060\\u0060artifact\\n{"path":"audits/deterministic.html","title":"Deterministic workspace audit"}\\n\\u0060\\u0060\\u0060',
+           'e2e-artifact-reply'
+         );
+         commit;`
+    );
+}
 
 test('a signed-out human cannot read hosted messages', async ({ page }) => {
     await page.goto('/s/hosted-messages');

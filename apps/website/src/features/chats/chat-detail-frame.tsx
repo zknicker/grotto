@@ -9,6 +9,7 @@ import {
 } from '../../components/ui/message-scroller.tsx';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import type { ChatLogOutput } from '../../lib/trpc.tsx';
+import { cn } from '../../lib/utils.ts';
 import { ChatScrollPositionMemory } from './chat-scroll-position-memory.tsx';
 import { ChatTimeline } from './chat-timeline.tsx';
 import { ChatTranscriptLoadingIndicator } from './chat-transcript-loading-indicator.tsx';
@@ -26,6 +27,7 @@ export function ChatDetailFrame({
     body,
     sidePanel,
     takeoverPanel,
+    takeoverPanelActive = Boolean(takeoverPanel),
     fetchOlderHistory,
     footer,
     hasOlderHistory = false,
@@ -49,6 +51,7 @@ export function ChatDetailFrame({
     body?: React.ReactNode;
     sidePanel?: React.ReactNode;
     takeoverPanel?: React.ReactNode;
+    takeoverPanelActive?: boolean;
     fetchOlderHistory?: () => void;
     footer: React.ReactNode;
     hasOlderHistory?: boolean;
@@ -83,84 +86,90 @@ export function ChatDetailFrame({
     return (
         <MessageScrollerProvider autoScroll={hasTimelineContent} defaultScrollPosition="end">
             <div className="flex min-h-0 flex-1 overflow-hidden">
-                {takeoverPanel ?? (
-                    <div className="relative flex min-w-0 flex-1 flex-col">
-                        {header}
-                        {body === undefined ? (
-                            <div className="relative min-h-0 flex-1">
-                                <div className="absolute top-3 left-1/2 z-10 -translate-x-1/2">
-                                    <ChatTranscriptLoadingIndicator
-                                        className="shrink-0"
-                                        visible={isInitialTranscriptPending}
-                                    />
-                                </div>
-                                <MessageScroller>
-                                    <MessageScrollerViewport
-                                        // The conversation hugs the composer — the
-                                        // bottom padding (96px) is static clearance
-                                        // for a two-row floating status stack. New
-                                        // sends append here without re-anchoring the
-                                        // viewport, so the history above stays put.
-                                        className="px-5 pt-4 pb-24"
-                                        onScroll={handleScroll}
-                                        ref={viewportRef}
-                                    >
-                                        {isInitialTranscriptPending ? null : error ? (
-                                            <MessageScrollerContent className="w-full">
-                                                <div className="px-2 py-4 text-muted-foreground text-sm">
-                                                    Unable to load this chat transcript right now.
-                                                </div>
-                                            </MessageScrollerContent>
-                                        ) : hasTimelineContent ? (
-                                            timelineContent ? (
-                                                timelineContent(contentRef)
-                                            ) : (
-                                                <ChatTimeline
-                                                    agentStatusCharacter={agentStatusCharacter}
-                                                    canRequestMention={canRequestMention}
-                                                    chatId={chatId}
-                                                    conversationLayout={conversationLayout}
-                                                    defaultOpenWorkGroups={defaultOpenWorkGroups}
-                                                    rows={rows}
-                                                    scrollContentRef={contentRef}
-                                                    totalMessages={totalMessages}
-                                                />
-                                            )
+                <div
+                    className={cn(
+                        'relative min-w-0 flex-1 flex-col',
+                        takeoverPanelActive ? 'hidden' : 'flex'
+                    )}
+                >
+                    {header}
+                    {body === undefined ? (
+                        <div className="relative min-h-0 flex-1">
+                            <div className="absolute top-3 left-1/2 z-10 -translate-x-1/2">
+                                <ChatTranscriptLoadingIndicator
+                                    className="shrink-0"
+                                    visible={isInitialTranscriptPending}
+                                />
+                            </div>
+                            <MessageScroller>
+                                <MessageScrollerViewport
+                                    // The conversation hugs the composer — the
+                                    // bottom padding (96px) is static clearance
+                                    // for a two-row floating status stack. New
+                                    // sends append here without re-anchoring the
+                                    // viewport, so the history above stays put.
+                                    className="px-5 pt-4 pb-24"
+                                    onScroll={handleScroll}
+                                    ref={viewportRef}
+                                >
+                                    {isInitialTranscriptPending ? null : error ? (
+                                        <MessageScrollerContent className="w-full">
+                                            <div className="px-2 py-4 text-muted-foreground text-sm">
+                                                Unable to load this chat transcript right now.
+                                            </div>
+                                        </MessageScrollerContent>
+                                    ) : hasTimelineContent ? (
+                                        timelineContent ? (
+                                            timelineContent(contentRef)
                                         ) : (
-                                            <MessageScrollerContent className="w-full">
-                                                <div className="px-2 py-4 text-muted-foreground text-sm">
-                                                    {emptyLabel}
-                                                </div>
-                                            </MessageScrollerContent>
-                                        )}
-                                    </MessageScrollerViewport>
-                                    <ChatScrollPositionMemory
-                                        chatId={chatId}
-                                        enabled={hasTimelineContent && !isInitialTranscriptPending}
-                                        key={chatId}
-                                        viewportRef={viewportRef}
+                                            <ChatTimeline
+                                                agentStatusCharacter={agentStatusCharacter}
+                                                canRequestMention={canRequestMention}
+                                                chatId={chatId}
+                                                conversationLayout={conversationLayout}
+                                                defaultOpenWorkGroups={defaultOpenWorkGroups}
+                                                rows={rows}
+                                                scrollContentRef={contentRef}
+                                                totalMessages={totalMessages}
+                                            />
+                                        )
+                                    ) : (
+                                        <MessageScrollerContent className="w-full">
+                                            <div className="px-2 py-4 text-muted-foreground text-sm">
+                                                {emptyLabel}
+                                            </div>
+                                        </MessageScrollerContent>
+                                    )}
+                                </MessageScrollerViewport>
+                                <ChatScrollPositionMemory
+                                    chatId={chatId}
+                                    enabled={hasTimelineContent && !isInitialTranscriptPending}
+                                    key={chatId}
+                                    viewportRef={viewportRef}
+                                />
+                                {hasTimelineContent ? (
+                                    <MessageScrollerButton
+                                        aria-label="Jump to latest message"
+                                        className="z-10"
+                                        direction="end"
+                                        size="icon-sm"
+                                        variant="secondary"
                                     />
-                                    {hasTimelineContent ? (
-                                        <MessageScrollerButton
-                                            aria-label="Jump to latest message"
-                                            className="z-10"
-                                            direction="end"
-                                            size="icon-sm"
-                                            variant="secondary"
-                                        />
-                                    ) : null}
-                                </MessageScroller>
-                            </div>
-                        ) : (
-                            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                                {body}
-                            </div>
-                        )}
+                                ) : null}
+                            </MessageScroller>
+                        </div>
+                    ) : (
+                        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</div>
+                    )}
 
-                        {footer}
+                    {footer}
+                </div>
+                {takeoverPanel ? (
+                    <div className={takeoverPanelActive ? 'contents' : 'hidden'}>
+                        {takeoverPanel}
                     </div>
-                )}
-                {takeoverPanel ? null : sidePanel}
+                ) : null}
+                {takeoverPanelActive ? null : sidePanel}
             </div>
         </MessageScrollerProvider>
     );

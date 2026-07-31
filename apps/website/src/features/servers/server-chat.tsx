@@ -5,6 +5,7 @@ import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Badge } from '../../components/ui/badge.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { Button } from '../../components/ui/primitives/button.tsx';
+import { setChatSidePane, useChatSidePane } from '../../hooks/pane/use-chat-side-pane.ts';
 import { useEnsureServerDm } from '../../hooks/servers/use-ensure-server-dm.ts';
 import { useMarkServerChatReadOnView } from '../../hooks/servers/use-mark-server-chat-read.ts';
 import { useServerChatMessages } from '../../hooks/servers/use-server-chat-messages.ts';
@@ -13,6 +14,7 @@ import { ChatArtifactPanel } from '../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../chats/chat-detail-frame.tsx';
 import { ChatRoomTopbarPresentation } from '../chats/chat-room-topbar.tsx';
 import { type ChatViewTab, ChatViewTabs } from '../chats/chat-view-tabs.tsx';
+import type { TavernResourceTarget } from '../chats/tavern-resource-link.ts';
 import { ToolbarDivider } from '../shell/toolbar-divider.tsx';
 import {
     HostedAgentCompositionBubbles,
@@ -51,6 +53,7 @@ export function ServerChat({
     const [viewTab, setViewTab] = React.useState<ChatViewTab>('chat');
     const { agentLifecycles } = useHostedServerContext();
     const artifactState = useHostedChatArtifactPanel(chat.id);
+    const activeSidePane = useChatSidePane(chat.id);
     const [threadSelection, setThreadSelection] = React.useState<{
         anchor: HostedChatMessage;
         initialSummary: HostedThreadSummary | null;
@@ -79,7 +82,7 @@ export function ServerChat({
     const lastSequence = messages.data?.messages.at(-1)?.sequence ?? 0;
     const read = useMarkServerChatReadOnView({
         chatId: messages.data ? chat.id : undefined,
-        enabled: !(threadSelection && threadTakeover),
+        enabled: !(threadSelection && threadTakeover && activeSidePane === 'thread'),
         sequence: messages.data ? lastSequence : undefined,
         serverId: messages.data ? chat.serverId : undefined,
     });
@@ -97,7 +100,21 @@ export function ServerChat({
         ) ??
         threadSelection?.initialSummary ??
         null;
-    const closeThread = () => setThreadSelection(null);
+    const initialThreadChatId = initialTask?.threadChatId;
+    React.useEffect(() => {
+        if (initialThreadChatId) {
+            setChatSidePane(chat.id, 'thread');
+        }
+    }, [chat.id, initialThreadChatId]);
+
+    const closeThread = () => {
+        setThreadSelection(null);
+        setChatSidePane(chat.id, 'artifact');
+    };
+    const openThread = (anchor: HostedChatMessage, initialSummary: HostedThreadSummary | null) => {
+        setThreadSelection({ anchor, initialSummary });
+        setChatSidePane(chat.id, 'thread');
+    };
     const viewThreadInChannel = () => {
         const anchorId = threadSelection?.anchor.id;
         closeThread();
@@ -111,8 +128,14 @@ export function ServerChat({
             window.setTimeout(() => element?.classList.remove('chat-thread-flash'), 1500);
         });
     };
+    const openArtifact = (target: TavernResourceTarget) => {
+        // The chat-scoped pane and Thread share the side panel. The latest
+        // artifact opener wins and reveals the pane.
+        artifactState.open(target);
+    };
     const threadPanel = threadSelection ? (
         <ServerThreadPanel
+            active={activeSidePane === 'thread'}
             agentLifecycles={agentLifecycles}
             agents={agents}
             anchor={threadSelection.anchor}
@@ -120,6 +143,7 @@ export function ServerChat({
             initialThreadChatId={threadSelection.initialThreadChatId}
             key={threadSelection.anchor.id}
             onClose={closeThread}
+            onOpenArtifact={openArtifact}
             onViewInChannel={viewThreadInChannel}
             readOnly={peerRetired}
             summary={threadSummary}
@@ -181,7 +205,7 @@ export function ServerChat({
                 header={
                     <>
                         <HostedChatTopbar
-                            artifactVisible={artifactState.visible && !threadSelection}
+                            artifactVisible={artifactState.visible}
                             chat={chat}
                             chatName={chatName}
                             onToggleArtifacts={artifactState.toggleVisible}
@@ -197,18 +221,27 @@ export function ServerChat({
                     <>
                         <ChatArtifactPanel
                             agentId={chat.peerAgentId ?? ''}
-                            open={artifactState.visible && !threadSelection}
+                            open={artifactState.visible}
                             serverId={chat.serverId}
                             state={artifactState}
                         />
                         <HostedAgentProfilePanel agents={agents} chatId={chat.id} server={server} />
-                        {threadTakeover ? null : threadPanel}
+                        {threadTakeover ? null : (
+                            <div className={activeSidePane === 'thread' ? 'contents' : 'hidden'}>
+                                {threadPanel}
+                            </div>
+                        )}
                     </>
                 }
-                takeoverPanel={threadPanel && threadTakeover ? threadPanel : undefined}
+                takeoverPanel={threadTakeover ? threadPanel : undefined}
+                takeoverPanelActive={Boolean(
+                    threadTakeover && threadPanel && activeSidePane === 'thread'
+                )}
                 timelineContent={(scrollContentRef) => (
                     <ServerChatTranscript
-                        activeThreadAnchorId={threadSelection?.anchor.id}
+                        activeThreadAnchorId={
+                            activeSidePane === 'thread' ? threadSelection?.anchor.id : undefined
+                        }
                         agents={agents}
                         chatId={chat.id}
                         composition={
@@ -219,14 +252,8 @@ export function ServerChat({
                             />
                         }
                         messages={transcriptMessages}
-                        onOpenArtifact={artifactState.open}
-                        onOpenThread={(anchor, summary) =>
-                            setThreadSelection({
-                                anchor,
-                                initialSummary: summary,
-                                initialThreadChatId: anchor.task?.threadChatId,
-                            })
-                        }
+                        onOpenArtifact={openArtifact}
+                        onOpenThread={openThread}
                         onStartDm={(peerUserId) =>
                             ensureDm.mutate({ peerUserId, serverId: chat.serverId })
                         }

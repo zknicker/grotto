@@ -102,7 +102,7 @@ Status values:
 | M2 | Revoking an MCP grant prevents later use and produces an honest access diagnosis. | Agent E2E + deterministic authorization | passing |
 | M3 | Importing a skill makes it available to that Agent on its next turn. | Agent E2E + deterministic settlement | passing |
 | M4 | An Agent creates a workspace file and can read it from a fresh model session. | Agent E2E | passing |
-| M5 | A workspace artifact shared in Chat opens the correct Agent-owned file in the App. | Agent E2E + Browser E2E | quarantined |
+| M5 | A workspace artifact shared in Chat opens the correct Agent-owned file in the App. | Agent E2E + Browser E2E | passing |
 | M6 | Unavailable MCP connections, bounded skill traversal, and stale edits fail independently and safely. | Deterministic | mapped |
 
 ### Tranche 6 — Reminders and autonomous follow-up
@@ -139,4 +139,5 @@ failure-mode coverage or browser-only UI regressions.
 - [2026-07-30 task lifecycle](./observations/2026-07-30-task-lifecycle.md)
 - [2026-07-30 Agent provisioning](./observations/2026-07-30-agent-provisioning.md)
 - [2026-07-30 MCP, skills, and workspace](./observations/2026-07-30-mcp-skills-workspace.md)
+- [2026-07-31 Agent artifact pane](./observations/2026-07-31-agent-artifact-pane.md)
 - [2026-07-30 reminders and follow-up](./observations/2026-07-30-reminders-and-follow-up.md)

@@ -9,7 +9,7 @@ test('detects file drag transfers', () => {
 });
 
 describe('ChatComposerAttachmentList', () => {
-    test('renders image attachments as compact tray tiles', () => {
+    test('renders image attachments as preview tiles with remove controls', () => {
         const markup = renderToStaticMarkup(
             <ChatComposerAttachmentList
                 attachments={[
@@ -32,15 +32,15 @@ describe('ChatComposerAttachmentList', () => {
             />
         );
 
-        expect(markup).toContain('flex-wrap');
-        expect(markup.match(/size-20/g)).toHaveLength(2);
+        expect(markup).toContain('chat-attachment-group');
+        expect(markup.match(/data-slot="chat-attachment"/g)).toHaveLength(2);
+        expect(markup).toContain('src="data:image/png;base64,AA=="');
         expect(markup).toContain('Remove first.png');
-        expect(markup).toContain('bg-primary');
-        expect(markup).toContain('text-primary-foreground');
-        expect(markup).not.toContain('flex-col');
+        expect(markup).toContain('Remove second.png');
+        expect(markup).toContain('first.png - 128 B');
     });
 
-    test('renders non-image attachments as square preview tiles', () => {
+    test('renders non-image attachments with the document fallback preview', () => {
         const markup = renderToStaticMarkup(
             <ChatComposerAttachmentList
                 attachments={[
@@ -56,10 +56,17 @@ describe('ChatComposerAttachmentList', () => {
             />
         );
 
-        expect(markup).toContain('size-20');
-        expect(markup).toContain('Remove notes.md');
+        expect(markup).toContain('chat-attachment__preview-fallback');
+        expect(markup).not.toContain('<img');
         expect(markup).toContain('notes.md');
-        expect(markup).not.toContain('w-full');
-        expect(markup).not.toContain('w-44');
+        expect(markup).toContain('Remove notes.md');
+    });
+
+    test('renders nothing without attachments', () => {
+        const markup = renderToStaticMarkup(
+            <ChatComposerAttachmentList attachments={[]} onRemove={() => {}} />
+        );
+
+        expect(markup).toBe('');
     });
 });

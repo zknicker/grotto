@@ -1,27 +1,24 @@
-import { Plus } from '@hugeicons/core-free-icons';
+import { PromptInput } from '@heroui-pro/react';
+import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
-import { PromptInputButton } from '../../components/ui/prompt-input.tsx';
 import type { ChatContextFullness } from './chat-context-fullness.ts';
 
 export function ChatComposerAttachmentButton({
-    disabled,
-    onClick,
+    isDisabled,
+    onPress,
 }: {
-    disabled?: boolean;
-    onClick: () => void;
+    isDisabled?: boolean;
+    onPress: () => void;
 }) {
     return (
-        <PromptInputButton
+        <PromptInput.Action
             aria-label="Attach file"
-            disabled={disabled}
-            onClick={onClick}
-            size="icon-sm"
-            tooltip={disabled ? 'Attachments are not available right now.' : 'Attach file'}
-            type="button"
-            variant="ghost"
+            isDisabled={isDisabled}
+            onPress={onPress}
+            tooltip={isDisabled ? 'Attachments are not available right now.' : 'Attach file'}
         >
-            <Icon icon={Plus} />
-        </PromptInputButton>
+            <Icon className="size-4" icon={Attachment01Icon} />
+        </PromptInput.Action>
     );
 }
 
@@ -33,12 +30,12 @@ export function ChatComposerContextFullness({ fullness }: { fullness: ChatContex
 
     return (
         <div
-            className="flex items-center gap-2 text-muted-foreground text-sm"
+            className="flex items-center gap-1.5 text-muted text-xs"
             title={`${percentLabel} context used`}
         >
-            <svg aria-hidden="true" className="size-5 -rotate-90" viewBox="0 0 20 20">
+            <svg aria-hidden="true" className="size-4 -rotate-90" viewBox="0 0 20 20">
                 <circle
-                    className="stroke-legacy-muted"
+                    className="stroke-current opacity-30"
                     cx="10"
                     cy="10"
                     fill="none"
@@ -46,7 +43,7 @@ export function ChatComposerContextFullness({ fullness }: { fullness: ChatContex
                     strokeWidth="3"
                 />
                 <circle
-                    className="stroke-muted-foreground"
+                    className="stroke-current"
                     cx="10"
                     cy="10"
                     fill="none"
@@ -57,7 +54,7 @@ export function ChatComposerContextFullness({ fullness }: { fullness: ChatContex
                     strokeWidth="3"
                 />
             </svg>
-            <span className="font-medium text-foreground text-sm tabular-nums">{percentLabel}</span>
+            <span className="tabular-nums">{percentLabel}</span>
         </div>
     );
 }

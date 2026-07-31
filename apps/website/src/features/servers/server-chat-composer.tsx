@@ -1,4 +1,6 @@
-import { Attachment01Icon, Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Switch } from '@heroui/react';
+import { ChatAttachment, ChatAttachmentGroup, PromptInput } from '@heroui-pro/react';
+import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import { useChatComposerFocusRequest } from '../../commands/chat-composer-focus.ts';
@@ -7,27 +9,7 @@ import {
     useChatComposerInsertRequest,
 } from '../../commands/chat-composer-insert.ts';
 import { useChatComposerMentionRequest } from '../../commands/chat-composer-mention.ts';
-import {
-    Attachment,
-    AttachmentAction,
-    AttachmentActions,
-    AttachmentContent,
-    AttachmentDescription,
-    AttachmentGroup,
-    AttachmentTitle,
-} from '../../components/ui/attachment.tsx';
-import { Checkbox } from '../../components/ui/checkbox.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import {
-    PromptInput,
-    PromptInputActions,
-    PromptInputBody,
-    PromptInputButton,
-    PromptInputFooter,
-    PromptInputHeader,
-    PromptInputSubmit,
-    PromptInputTools,
-} from '../../components/ui/prompt-input.tsx';
 import { useCreateServerTask } from '../../hooks/servers/use-create-server-task.ts';
 import { useSendServerChatMessage } from '../../hooks/servers/use-send-server-chat-message.ts';
 import { useServerChatComposition } from '../../hooks/servers/use-server-chat-composition.ts';
@@ -47,6 +29,8 @@ import { buildAgentMentionOption } from '../mentions/use-mention-options.ts';
 interface SelectedAttachment {
     file: File;
     nonce: string;
+    // Object URL for image tiles; revoked when the attachment leaves state.
+    previewUrl?: string;
 }
 
 export function ServerChatComposer({
@@ -148,6 +132,18 @@ export function ServerChatComposer({
         [compositionChatId, compositionId, publishComposition, serverId]
     );
 
+    const attachmentsRef = React.useRef(attachments);
+    attachmentsRef.current = attachments;
+
+    React.useEffect(
+        () => () => {
+            for (const attachment of attachmentsRef.current) {
+                revokeAttachmentPreview(attachment);
+            }
+        },
+        []
+    );
+
     async function handleSubmit(event?: React.FormEvent, forceAsTask = false) {
         event?.preventDefault();
         const { content } = buildChatComposerSubmission({ content: draft, mentions });
@@ -194,6 +190,9 @@ export function ServerChatComposer({
         }
         setDraft('');
         setMentions([]);
+        for (const attachment of attachments) {
+            revokeAttachmentPreview(attachment);
+        }
         setAttachments([]);
         setAttachmentError(null);
         if (fileInput.current) {
@@ -211,133 +210,180 @@ export function ServerChatComposer({
 
     const isPending = send.isPending || createTask.isPending || upload.isPending;
 
+    const errorMessage =
+        attachmentError ??
+        upload.error?.message ??
+        createTask.error?.message ??
+        send.error?.message;
+    const canSubmit = draft.trim().length > 0 || (!asTask && attachments.length > 0);
+
     return (
         <div className="shrink-0 px-5 pb-4">
             {composition.compositions.length > 0 ? (
-                <p className="mx-auto mb-1 w-full max-w-[60rem] px-9 text-muted-foreground text-xs">
-                    Someone is typing…
-                </p>
+                <p className="mb-1 px-3 text-muted text-xs">Someone is typing…</p>
             ) : null}
             <PromptInput
-                className="mx-auto w-full max-w-none"
-                error={
-                    attachmentError ??
-                    upload.error?.message ??
-                    createTask.error?.message ??
-                    send.error?.message
-                }
-                onSubmit={handleSubmit}
-                onTextEditorFocus={mentionComposer.focusTextEditor}
+                onSubmit={() => {
+                    void handleSubmit();
+                }}
+                value={draft}
             >
-                {attachments.length > 0 ? (
-                    <PromptInputHeader>
-                        <AttachmentGroup>
-                            {attachments.map((attachment) => (
-                                <Attachment key={attachment.nonce} size="sm">
-                                    <AttachmentContent>
-                                        <AttachmentTitle>{attachment.file.name}</AttachmentTitle>
-                                        <AttachmentDescription>
-                                            {formatBytes(attachment.file.size)}
-                                        </AttachmentDescription>
-                                    </AttachmentContent>
-                                    <AttachmentActions>
-                                        <AttachmentAction
-                                            aria-label={`Remove ${attachment.file.name}`}
-                                            disabled={isPending}
-                                            onClick={() =>
-                                                setAttachments((current) =>
-                                                    current.filter(
-                                                        (item) => item.nonce !== attachment.nonce
-                                                    )
-                                                )
-                                            }
+                <PromptInput.Shell onMouseDown={handleShellMouseDown}>
+                    <PromptInput.Content>
+                        {attachments.length > 0 ? (
+                            <PromptInput.Attachments>
+                                <ChatAttachmentGroup>
+                                    {attachments.map((attachment) => (
+                                        <ChatAttachment
+                                            key={attachment.nonce}
+                                            mimeType={attachment.file.type}
+                                            name={attachment.file.name}
+                                            src={attachment.previewUrl}
+                                            title={`${attachment.file.name} - ${formatBytes(attachment.file.size)}`}
                                         >
-                                            <Icon className="size-3" icon={Cancel01Icon} />
-                                        </AttachmentAction>
-                                    </AttachmentActions>
-                                </Attachment>
-                            ))}
-                        </AttachmentGroup>
-                    </PromptInputHeader>
-                ) : null}
-                <PromptInputBody>
-                    <MentionComposerEditor
-                        ariaLabel={`Message ${chatName}`}
-                        autoFocus={!thread}
-                        composer={mentionComposer}
-                        disabled={isPending}
-                        name="chat-message"
-                        placeholder={placeholder ?? `Message ${chatName}`}
-                    />
-                </PromptInputBody>
-                <MentionComposerPicker composer={mentionComposer} />
-                <PromptInputFooter>
-                    <PromptInputTools>
-                        {thread ? null : (
-                            <>
-                                <input
-                                    className="sr-only"
-                                    multiple
-                                    onChange={(event) => {
-                                        const files = Array.from(event.target.files ?? []);
-                                        const oversized = files.find(
-                                            (file) => file.size > hostedAttachmentMaxSizeBytes
-                                        );
-                                        if (oversized) {
-                                            setAttachmentError(
-                                                `${oversized.name} exceeds the 50 MiB attachment limit.`
+                                            <ChatAttachment.Preview />
+                                            <ChatAttachment.Name />
+                                            <ChatAttachment.Remove
+                                                aria-label={`Remove ${attachment.file.name}`}
+                                                isDisabled={isPending}
+                                                onPress={() => removeAttachment(attachment.nonce)}
+                                            />
+                                        </ChatAttachment>
+                                    ))}
+                                </ChatAttachmentGroup>
+                            </PromptInput.Attachments>
+                        ) : null}
+                        {/* Stands in for PromptInput.TextArea: the mention
+                            editor keeps its own text styling, and the reserved
+                            block below it clears the absolutely placed toolbar. */}
+                        <div className="mb-14 min-h-14">
+                            <MentionComposerEditor
+                                ariaLabel={`Message ${chatName}`}
+                                autoFocus={!thread}
+                                composer={mentionComposer}
+                                disabled={isPending}
+                                name="chat-message"
+                                placeholder={placeholder ?? `Message ${chatName}`}
+                            />
+                        </div>
+                    </PromptInput.Content>
+                    <PromptInput.Toolbar>
+                        <PromptInput.ToolbarStart>
+                            {thread ? null : (
+                                <>
+                                    <input
+                                        className="sr-only"
+                                        multiple
+                                        onChange={(event) => {
+                                            const files = Array.from(event.target.files ?? []);
+                                            const oversized = files.find(
+                                                (file) => file.size > hostedAttachmentMaxSizeBytes
                                             );
-                                            event.target.value = '';
-                                            return;
-                                        }
-                                        setAttachmentError(null);
-                                        setAttachments((current) => [
-                                            ...current,
-                                            ...files.map((file) => ({
-                                                file,
-                                                nonce: crypto.randomUUID(),
-                                            })),
-                                        ]);
-                                    }}
-                                    ref={fileInput}
-                                    type="file"
-                                />
-                                <PromptInputButton
-                                    aria-label="Add attachments"
-                                    disabled={isPending}
-                                    onClick={() => fileInput.current?.click()}
-                                    size="icon-xs"
-                                    tooltip="Add attachments"
-                                    type="button"
-                                    variant="ghost"
-                                >
-                                    <Icon className="size-4" icon={Attachment01Icon} />
-                                </PromptInputButton>
-                            </>
-                        )}
-                    </PromptInputTools>
-                    <PromptInputActions>
-                        {thread ? null : (
-                            <label className="mr-1 inline-flex items-center gap-1.5 text-meta text-muted-foreground">
-                                <Checkbox
+                                            if (oversized) {
+                                                setAttachmentError(
+                                                    `${oversized.name} exceeds the 50 MiB attachment limit.`
+                                                );
+                                                event.target.value = '';
+                                                return;
+                                            }
+                                            setAttachmentError(null);
+                                            setAttachments((current) => [
+                                                ...current,
+                                                ...files.map(createSelectedAttachment),
+                                            ]);
+                                        }}
+                                        ref={fileInput}
+                                        type="file"
+                                    />
+                                    <PromptInput.Action
+                                        aria-label="Add attachments"
+                                        isDisabled={isPending}
+                                        onPress={() => fileInput.current?.click()}
+                                        tooltip="Add attachments"
+                                    >
+                                        <Icon className="size-4" icon={Attachment01Icon} />
+                                    </PromptInput.Action>
+                                </>
+                            )}
+                        </PromptInput.ToolbarStart>
+                        <PromptInput.ToolbarEnd>
+                            {thread ? null : (
+                                <Switch
                                     aria-label="Send as task"
-                                    checked={asTask}
-                                    onCheckedChange={(checked) => setAsTask(checked === true)}
-                                />
-                                As Task
-                            </label>
-                        )}
-                        <PromptInputSubmit
-                            canSubmit={
-                                draft.trim().length > 0 || (!asTask && attachments.length > 0)
-                            }
-                            disabled={isPending}
-                        />
-                    </PromptInputActions>
-                </PromptInputFooter>
+                                    isSelected={asTask}
+                                    onChange={setAsTask}
+                                    size="sm"
+                                >
+                                    <Switch.Content>
+                                        <Switch.Control>
+                                            <Switch.Thumb />
+                                        </Switch.Control>
+                                        As Task
+                                    </Switch.Content>
+                                </Switch>
+                            )}
+                            <PromptInput.Send
+                                aria-label="Send"
+                                isDisabled={isPending || !canSubmit}
+                            />
+                        </PromptInput.ToolbarEnd>
+                    </PromptInput.Toolbar>
+                </PromptInput.Shell>
+                {/* The picker opens above the composer, so it sits outside the
+                    shell, which clips its overflow. */}
+                <MentionComposerPicker composer={mentionComposer} />
             </PromptInput>
+            {errorMessage ? <p className="mt-2 text-danger text-xs">{errorMessage}</p> : null}
         </div>
     );
+
+    function removeAttachment(nonce: string) {
+        setAttachments((current) => {
+            const removed = current.find((item) => item.nonce === nonce);
+
+            if (removed) {
+                revokeAttachmentPreview(removed);
+            }
+
+            return current.filter((item) => item.nonce !== nonce);
+        });
+        mentionComposer.focusTextEditor();
+    }
+
+    // Clicking inert composer space focuses the editor, which the shell cannot
+    // do itself because the mention editor replaces its textarea.
+    function handleShellMouseDown(event: React.MouseEvent<HTMLDivElement>) {
+        if (isPending) {
+            return;
+        }
+
+        const target = event.target as HTMLElement;
+
+        if (
+            target.closest(
+                'button, a, input, select, textarea, [contenteditable], [role="button"], [role="switch"]'
+            )
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        mentionComposer.focusTextEditor();
+    }
+}
+
+function createSelectedAttachment(file: File): SelectedAttachment {
+    return {
+        file,
+        nonce: crypto.randomUUID(),
+        ...(file.type.startsWith('image/') ? { previewUrl: URL.createObjectURL(file) } : {}),
+    };
+}
+
+function revokeAttachmentPreview(attachment: SelectedAttachment) {
+    if (attachment.previewUrl) {
+        URL.revokeObjectURL(attachment.previewUrl);
+    }
 }
 
 function formatBytes(sizeBytes: number) {

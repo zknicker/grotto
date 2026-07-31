@@ -1,4 +1,5 @@
-import { StopIcon } from '@hugeicons-pro/core-solid-rounded';
+import { Switch, Tooltip } from '@heroui/react';
+import { PromptInput } from '@heroui-pro/react';
 import * as React from 'react';
 import {
     requestChatComposerFocus,
@@ -9,24 +10,11 @@ import {
     useChatComposerInsertRequest,
 } from '../../commands/chat-composer-insert.ts';
 import { useChatComposerMentionRequest } from '../../commands/chat-composer-mention.ts';
-import { Checkbox } from '../../components/ui/checkbox.tsx';
-import { Icon } from '../../components/ui/icon.tsx';
-import {
-    PromptInput,
-    PromptInputActions,
-    PromptInputBody,
-    PromptInputButton,
-    PromptInputFooter,
-    PromptInputSubmit,
-    PromptInputTools,
-} from '../../components/ui/prompt-input.tsx';
-import { Spinner } from '../../components/ui/spinner.tsx';
 import { useChatSend } from '../../hooks/chats/use-chat-send.ts';
 import { useChatStop } from '../../hooks/chats/use-chat-stop.ts';
 import { runtimeUnhealthyTooltip, useCapability } from '../../hooks/connections/use-capability.ts';
 import { setThreadPaneChatId } from '../../hooks/threads/use-thread-pane.ts';
 import type { AgentListOutput } from '../../lib/trpc.tsx';
-import { cn } from '../../lib/utils.ts';
 import { compileMentionSubmission, normalizeMentions } from '../mentions/mention-text.ts';
 import type { Mention } from '../mentions/mention-types.ts';
 import {
@@ -250,118 +238,192 @@ export function ChatMessageComposer({
         }
     }
 
+    const isEditorDisabled = isComposerBlocked || !canSendToRuntime;
+    const isStopAction = primaryAction === 'stop' && activeRunIds.length > 0;
+    const sendDisabledTooltip = getSendDisabledTooltip({
+        agentRuntimeSyncLabel,
+        boundAgentCount: boundAgentIds.length,
+        blockReason,
+        canSend: chatCanSend,
+        isDisabled,
+        isPending: sendMessage.isPending,
+        runtimeReady: canSendToRuntime,
+        runtimeReason: runtimeDisabledReason,
+    });
+    const errorMessage = attachmentError ?? sendMessage.error?.message;
+
     return (
-        <PromptInput
-            className={cn(
-                isCompact
-                    ? 'border-t border-r-[3px] border-r-border-subtle bg-chrome px-3 py-3'
-                    : // Match the transcript's gutter so the composer stays
-                      // aligned with the messages.
-                      'px-5'
-            )}
-            contentClassName="max-w-none"
-            error={attachmentError ?? sendMessage.error?.message}
-            onDragEnter={useMainDropTarget ? undefined : attachmentDrop.onDragEnter}
-            onDragLeave={useMainDropTarget ? undefined : attachmentDrop.onDragLeave}
-            onDragOver={useMainDropTarget ? undefined : attachmentDrop.onDragOver}
-            onDrop={useMainDropTarget ? undefined : attachmentDrop.onDrop}
-            onSubmit={handleSubmit}
-            onTextEditorFocus={isComposerBlocked ? undefined : mentionComposer.focusTextEditor}
-            surfaceClassName={cn(
-                isCompact ? 'rounded-xl shadow-none' : undefined,
-                isCompact &&
-                    attachmentDrop.isFileDropActive &&
-                    'border-ring bg-legacy-accent ring-2 ring-ring',
-                isComposerBlocked && 'cursor-not-allowed opacity-60'
-            )}
-        >
+        // Match the transcript gutter so the composer stays aligned with the
+        // messages; the compact variant hugs its narrower pane.
+        <div className={isCompact ? 'px-3 pb-3' : 'px-5 pb-4'}>
             <ChatComposerMainDropOverlay
                 active={useMainDropTarget && attachmentDrop.isFileDropActive}
             />
-            <ChatComposerAttachmentList
-                attachments={attachments}
-                onRemove={(index) => {
-                    setAttachments((current) =>
-                        current.filter((_, entryIndex) => entryIndex !== index)
-                    );
-                    setAttachmentError(null);
+            <PromptInput
+                isDisabled={isComposerBlocked}
+                // Sending mid-turn is normal here, so the run state must not
+                // lock the editor or the toolbar actions.
+                lockInputOnRun={false}
+                // The stop control is the same send button in its run state.
+                onStop={stopActiveRuns}
+                onSubmit={() => {
+                    void handleSubmit();
                 }}
-            />
-            <PromptInputBody>
-                <MentionComposerEditor
-                    ariaLabel="Chat message"
-                    autoFocus={variant === 'detail'}
-                    composer={mentionComposer}
-                    disabled={isComposerBlocked || !canSendToRuntime}
-                    name="chat-message"
-                    placeholder={placeholder}
-                />
-            </PromptInputBody>
-            <MentionComposerPicker composer={mentionComposer} />
-            <PromptInputFooter>
-                <PromptInputTools>
-                    <input
-                        className="sr-only"
-                        multiple
-                        onChange={(event) => {
-                            void handleAttachmentInputChange(event);
-                        }}
-                        ref={fileInputRef}
-                        type="file"
-                    />
-                    <ChatComposerAttachmentButton
-                        disabled={isComposerBlocked || !canSendToRuntime}
-                        onClick={() => fileInputRef.current?.click()}
-                    />
-                </PromptInputTools>
-                <PromptInputActions>
-                    {threadTarget ? null : (
-                        <label className="mr-1 inline-flex items-center gap-1.5 text-meta text-muted-foreground">
-                            <Checkbox
-                                aria-label="Send as task (⌘/Ctrl-Shift-Enter)"
-                                checked={asTask}
-                                onCheckedChange={(checked) => setAsTask(checked === true)}
+                size={isCompact ? 'sm' : 'md'}
+                status={isStopAction ? 'streaming' : 'ready'}
+                value={content}
+            >
+                <PromptInput.Shell
+                    data-dragging={
+                        !useMainDropTarget && attachmentDrop.isFileDropActive ? 'true' : undefined
+                    }
+                    onDragEnter={useMainDropTarget ? undefined : attachmentDrop.onDragEnter}
+                    onDragLeave={useMainDropTarget ? undefined : attachmentDrop.onDragLeave}
+                    onDragOver={useMainDropTarget ? undefined : attachmentDrop.onDragOver}
+                    onDrop={useMainDropTarget ? undefined : attachmentDrop.onDrop}
+                    onMouseDown={handleShellMouseDown}
+                >
+                    <PromptInput.Content>
+                        {attachments.length > 0 ? (
+                            <PromptInput.Attachments>
+                                <ChatComposerAttachmentList
+                                    attachments={attachments}
+                                    onRemove={removeAttachment}
+                                />
+                            </PromptInput.Attachments>
+                        ) : null}
+                        {/* Stands in for PromptInput.TextArea: the mention
+                            editor keeps its own text styling, and the reserved
+                            block below it clears the absolutely placed toolbar. */}
+                        <div className={isCompact ? 'mb-10 min-h-12' : 'mb-14 min-h-14'}>
+                            <MentionComposerEditor
+                                ariaLabel="Chat message"
+                                autoFocus={variant === 'detail'}
+                                composer={mentionComposer}
+                                disabled={isEditorDisabled}
+                                name="chat-message"
+                                placeholder={placeholder}
                             />
-                            As Task
-                        </label>
-                    )}
-                    {contextFullness ? (
-                        <ChatComposerContextFullness fullness={contextFullness} />
-                    ) : null}
-                    {primaryAction === 'stop' && activeRunIds.length > 0 ? (
-                        <PromptInputButton
-                            aria-label={stopTurn.isPending ? 'Stopping response' : 'Stop response'}
-                            disabled={stopTurn.isPending}
-                            onClick={stopActiveRuns}
-                            size="icon-tight"
-                            tooltip={stopTurn.isPending ? 'Stopping response' : 'Stop response'}
-                            type="button"
-                        >
-                            {stopTurn.isPending ? (
-                                <Spinner className="size-4 text-muted-foreground" />
-                            ) : (
-                                <Icon className="size-5" icon={StopIcon} />
+                        </div>
+                    </PromptInput.Content>
+                    <PromptInput.Toolbar>
+                        <PromptInput.ToolbarStart>
+                            <input
+                                className="sr-only"
+                                multiple
+                                onChange={(event) => {
+                                    void handleAttachmentInputChange(event);
+                                }}
+                                ref={fileInputRef}
+                                type="file"
+                            />
+                            <ChatComposerAttachmentButton
+                                isDisabled={isEditorDisabled}
+                                onPress={() => fileInputRef.current?.click()}
+                            />
+                        </PromptInput.ToolbarStart>
+                        <PromptInput.ToolbarEnd>
+                            {threadTarget ? null : (
+                                <Switch
+                                    aria-label="Send as task (⌘/Ctrl-Shift-Enter)"
+                                    isSelected={asTask}
+                                    onChange={setAsTask}
+                                    size="sm"
+                                >
+                                    <Switch.Content>
+                                        <Switch.Control>
+                                            <Switch.Thumb />
+                                        </Switch.Control>
+                                        As Task
+                                    </Switch.Content>
+                                </Switch>
                             )}
-                        </PromptInputButton>
-                    ) : (
-                        <PromptInputSubmit
-                            canSubmit={canSubmit}
-                            label="Send message"
-                            tooltip={getSendDisabledTooltip({
-                                agentRuntimeSyncLabel,
-                                boundAgentCount: boundAgentIds.length,
-                                blockReason,
-                                canSend: chatCanSend,
-                                isDisabled,
-                                isPending: sendMessage.isPending,
-                                runtimeReady: canSendToRuntime,
-                                runtimeReason: runtimeDisabledReason,
-                            })}
-                        />
-                    )}
-                </PromptInputActions>
-            </PromptInputFooter>
-        </PromptInput>
+                            {contextFullness ? (
+                                <ChatComposerContextFullness fullness={contextFullness} />
+                            ) : null}
+                            {isStopAction ? (
+                                <Tooltip delay={0}>
+                                    <Tooltip.Trigger>
+                                        <PromptInput.Send
+                                            aria-label={
+                                                stopTurn.isPending
+                                                    ? 'Stopping response'
+                                                    : 'Stop response'
+                                            }
+                                            isDisabled={stopTurn.isPending}
+                                            // 'submitted' renders the spinner
+                                            // while the stop request is in
+                                            // flight.
+                                            status={stopTurn.isPending ? 'submitted' : 'streaming'}
+                                        />
+                                    </Tooltip.Trigger>
+                                    <Tooltip.Content>
+                                        {stopTurn.isPending ? 'Stopping response' : 'Stop response'}
+                                    </Tooltip.Content>
+                                </Tooltip>
+                            ) : (
+                                <SendAction
+                                    canSubmit={canSubmit}
+                                    disabledTooltip={sendDisabledTooltip}
+                                />
+                            )}
+                        </PromptInput.ToolbarEnd>
+                    </PromptInput.Toolbar>
+                </PromptInput.Shell>
+                {/* The picker opens above the composer, so it sits outside the
+                    shell, which clips its overflow. */}
+                <MentionComposerPicker composer={mentionComposer} />
+            </PromptInput>
+            {errorMessage ? <p className="mt-2 text-danger text-xs">{errorMessage}</p> : null}
+        </div>
+    );
+
+    function removeAttachment(index: number) {
+        setAttachments((current) => current.filter((_, entryIndex) => entryIndex !== index));
+        setAttachmentError(null);
+        mentionComposer.focusTextEditor();
+    }
+
+    // Clicking inert composer space focuses the editor, which the shell cannot
+    // do itself because the mention editor replaces its textarea.
+    function handleShellMouseDown(event: React.MouseEvent<HTMLDivElement>) {
+        if (isEditorDisabled) {
+            return;
+        }
+
+        const target = event.target as HTMLElement;
+
+        if (
+            target.closest(
+                'button, a, input, select, textarea, [contenteditable], [role="button"], [role="switch"]'
+            )
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        mentionComposer.focusTextEditor();
+    }
+}
+
+function SendAction({
+    canSubmit,
+    disabledTooltip,
+}: {
+    canSubmit: boolean;
+    disabledTooltip?: string;
+}) {
+    const send = <PromptInput.Send aria-label="Send message" isDisabled={!canSubmit} />;
+
+    if (canSubmit || !disabledTooltip) {
+        return send;
+    }
+
+    return (
+        <Tooltip delay={0}>
+            <Tooltip.Trigger>{send}</Tooltip.Trigger>
+            <Tooltip.Content>{disabledTooltip}</Tooltip.Content>
+        </Tooltip>
     );
 }
 

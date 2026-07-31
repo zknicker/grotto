@@ -1,7 +1,5 @@
-import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { ChatAttachment, ChatAttachmentGroup } from '@heroui-pro/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Icon } from '../../components/ui/icon.tsx';
-import { usePromptInputTextEditorFocus } from '../../components/ui/prompt-input.tsx';
 import { springs } from '../../lib/springs.ts';
 import type { ChatMessageAttachmentInput } from '../../lib/trpc.tsx';
 
@@ -40,7 +38,7 @@ export function ChatComposerAttachmentList({
     }
 
     return (
-        <div className="mx-1 mb-2 flex flex-wrap items-start gap-2">
+        <ChatAttachmentGroup>
             <AnimatePresence initial={false}>
                 {attachments.map((attachment, index) => (
                     <motion.div
@@ -70,60 +68,32 @@ export function ChatComposerAttachmentList({
                         style={{ transformOrigin: 'top left' }}
                         transition={springs.moderate}
                     >
-                        <ChatComposerAttachmentPreview
-                            attachment={attachment}
-                            onRemove={() => onRemove(index)}
-                        />
+                        <ChatAttachment
+                            mimeType={attachment.mediaType ?? undefined}
+                            name={attachment.filename}
+                            src={attachmentPreviewSrc(attachment)}
+                            title={`${attachment.filename} - ${attachmentDetail(attachment)}`}
+                        >
+                            <ChatAttachment.Preview />
+                            <ChatAttachment.Name />
+                            <ChatAttachment.Remove
+                                aria-label={`Remove ${attachment.filename}`}
+                                onPress={() => onRemove(index)}
+                            />
+                        </ChatAttachment>
                     </motion.div>
                 ))}
             </AnimatePresence>
-        </div>
+        </ChatAttachmentGroup>
     );
 }
 
-function ChatComposerAttachmentPreview({
-    attachment,
-    onRemove,
-}: {
-    attachment: ChatComposerAttachment;
-    onRemove: () => void;
-}) {
-    const isImage = attachment.type === 'inline' && attachment.mediaType.startsWith('image/');
-    const focusTextEditor = usePromptInputTextEditorFocus();
+function attachmentPreviewSrc(attachment: ChatComposerAttachment) {
+    if (attachment.type !== 'inline' || !attachment.mediaType.startsWith('image/')) {
+        return undefined;
+    }
 
-    return (
-        <div
-            className="group/tile relative size-20 shrink-0 cursor-default overflow-hidden rounded-xl border border-input bg-background"
-            title={`${attachment.filename} - ${attachmentDetail(attachment)}`}
-        >
-            {isImage ? (
-                <img
-                    alt=""
-                    className="size-full object-cover"
-                    height={80}
-                    src={`data:${attachment.mediaType};base64,${attachment.dataBase64}`}
-                    width={80}
-                />
-            ) : (
-                <div className="grid size-full place-items-center bg-legacy-muted text-meta text-muted-foreground">
-                    {fileExtension(attachment.filename)}
-                </div>
-            )}
-            <button
-                aria-label={`Remove ${attachment.filename}`}
-                className="absolute top-1 right-1 flex size-5 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 outline-none transition-opacity duration-80 hover:bg-primary-deep focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring group-hover/tile:opacity-100"
-                onClick={(event) => {
-                    event.stopPropagation();
-                    onRemove();
-                    focusTextEditor();
-                }}
-                onMouseDown={(event) => event.preventDefault()}
-                type="button"
-            >
-                <Icon className="size-3" icon={Cancel01Icon} />
-            </button>
-        </div>
-    );
+    return `data:${attachment.mediaType};base64,${attachment.dataBase64}`;
 }
 
 function attachmentKey(attachment: ChatComposerAttachment, index: number) {
@@ -158,11 +128,6 @@ function readFileAsDataUrl(file: File) {
         };
         reader.readAsDataURL(file);
     });
-}
-
-function fileExtension(filename: string) {
-    const extension = filename.split('.').pop()?.trim().slice(0, 4).toUpperCase();
-    return extension || 'FILE';
 }
 
 function formatBytes(value: number) {

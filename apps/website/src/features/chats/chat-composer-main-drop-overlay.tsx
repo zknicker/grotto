@@ -29,7 +29,7 @@ export function ChatComposerMainDropOverlay({
                 <motion.div
                     animate={{ opacity: 1, transform: 'scale(1)' }}
                     aria-hidden
-                    className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center border-2 border-info bg-info-bg backdrop-blur-[1px] md:rounded-[calc(var(--main-radius)-1px)]"
+                    className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center border-2 border-accent border-dotted bg-accent-soft backdrop-blur-[1px] md:rounded-[calc(var(--main-radius)-1px)]"
                     data-testid="chat-main-file-drop-overlay"
                     exit={
                         shouldReduceMotion
@@ -47,7 +47,7 @@ export function ChatComposerMainDropOverlay({
                     }
                     transition={springs.moderate}
                 >
-                    <div className="rounded-lg bg-popover px-5 py-2.5 font-medium text-popover-foreground text-sm">
+                    <div className="rounded-lg bg-overlay px-5 py-2.5 font-medium text-overlay-foreground text-sm shadow-overlay">
                         {label}
                     </div>
                 </motion.div>

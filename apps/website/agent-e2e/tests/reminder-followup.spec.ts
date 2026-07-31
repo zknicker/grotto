@@ -30,10 +30,6 @@ test.afterAll(async () => {
 test('an Agent schedules and performs a one-shot business follow-up in its source Thread', async ({
     page,
 }) => {
-    test.fail(
-        true,
-        'Known gap: reminder receipts and Agent follow-ups do not invalidate an already-open Thread.'
-    );
     const { agent, channel, channelName, harness, server } = suite;
     const anchor = `Bluebird deployment board ${harness.stamp}. Current status: PENDING.`;
     const freshStatus = `Bluebird deployment status: READY-${harness.stamp}`;

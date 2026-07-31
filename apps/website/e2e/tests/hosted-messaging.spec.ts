@@ -1,10 +1,7 @@
-import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
-import { createTRPCClient, httpLink } from '@trpc/client';
-import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
+import { readFileSync } from 'node:fs';
 import { clerkSessionFile, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { createHostedAgentThreadSender } from '../support/hosted-agent-thread.ts';
+import { assertOpaqueId, createHostedClient, runHostedPsql } from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('a human messages in #all with only the hosted Server online', async ({ page }) => {
@@ -83,14 +80,14 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     const openedServer = await owner.server.bySlug.query({ slug: 'hosted-messages' });
     const serverId = openedServer.id;
     const allChatId = openedServer.channels.find((channel) => channel.name === 'all')?.id;
-    const peerUserId = runPsql(
+    const peerUserId = runHostedPsql(
         databaseUrl,
         "select id from users where clerk_user_id = 'user_e2e_peer'"
     );
     assertOpaqueId(serverId);
     assertOpaqueId(allChatId);
     assertOpaqueId(peerUserId);
-    runPsql(
+    runHostedPsql(
         databaseUrl,
         `insert into server_memberships (id, server_id, user_id, role)
          values ('mem_e2e_peer', '${serverId}', '${peerUserId}', 'member');
@@ -200,52 +197,56 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     await expect(panel).toHaveCount(0);
 });
 
-function createHostedClient(token: string) {
-    return createTRPCClient<GrottoRouter>({
-        links: [
-            httpLink({
-                headers: {
-                    authorization: `Bearer ${token}`,
-                    [appProtocolHeaders.productVersion]: 'e2e',
-                    [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
-                },
-                url: `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/trpc`,
-            }),
-        ],
-    });
-}
+test('an Agent reply reaches an already-open Thread live and after reconnect', async ({ page }) => {
+    test.setTimeout(60_000);
+    await signInAsClerkHuman(page);
+    await page.goto('/s/hosted-messages');
+    await page.getByRole('button', { name: 'all', exact: true }).click();
 
-function runPsql(databaseUrl: string, statement: string) {
-    return execFileSync(resolvePsql(), [
-        databaseUrl,
-        '--no-psqlrc',
-        '--tuples-only',
-        '--no-align',
-        '--field-separator=|',
-        '--command',
-        statement,
-    ])
-        .toString()
-        .trim();
-}
+    const anchorText = 'Agent delivery anchor';
+    const composer = page.getByRole('textbox', { name: 'Message all' });
+    await composer.fill(anchorText);
+    await page.getByRole('button', { name: 'Send' }).click();
+    await expect(page.getByText(anchorText, { exact: true })).toBeVisible();
 
-function resolvePsql() {
-    const roots = [
-        process.env.GROTTO_POSTGRES_BIN,
-        '/opt/homebrew/opt/postgresql@16/bin',
-        '/opt/homebrew/opt/libpq/bin',
-        '/usr/local/opt/postgresql@16/bin',
-        '',
-    ].filter((root): root is string => root !== undefined);
+    // The human only OPENS the Thread; the Agent authors every reply through the
+    // Server -> Computer path exactly as task clarifications and reminder
+    // follow-ups arrive.
+    const anchorArticle = page
+        .getByText(anchorText, { exact: true })
+        .locator('xpath=ancestor::div[@data-message-id][1]');
+    await anchorArticle.hover();
+    await anchorArticle.getByRole('button', { name: 'Reply in thread' }).click();
+    const panel = page.getByRole('complementary', { name: 'Thread' });
+    await expect(panel).toBeVisible();
 
-    return roots.map((root) => join(root, 'psql')).find(existsSync) ?? 'psql';
-}
+    const { databaseUrl, token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as {
+        databaseUrl: string;
+        token: string;
+    };
+    const agent = await createHostedAgentThreadSender({ anchorText, databaseUrl, token });
 
-function assertOpaqueId(value: string | undefined): asserts value is string {
-    if (!(value && /^[a-z0-9_-]+$/iu.test(value))) {
-        throw new Error('The hosted messaging fixture did not resolve an opaque id.');
-    }
-}
+    // A live Agent reply renders in the already-open Thread with no refresh.
+    await agent.send('Agent thread clarification', 'e2e-agent-thread-live');
+    await expect(panel.getByText('Agent thread clarification', { exact: true })).toBeVisible();
+
+    // A reply that lands while the Thread is closed must appear on reopen.
+    await panel.getByRole('button', { name: 'Close thread' }).click();
+    await agent.send('Agent reply while the thread was closed', 'e2e-agent-thread-closed');
+    await expect(page.getByRole('button', { name: /2 replies/u })).toBeVisible();
+    await page.getByRole('button', { name: /2 replies/u }).click();
+    await expect(
+        panel.getByText('Agent reply while the thread was closed', { exact: true })
+    ).toBeVisible();
+
+    // A reply authored while the App is offline is recovered on reconnect.
+    await page.context().setOffline(true);
+    await agent.send('Agent reply sent while the App was offline', 'e2e-agent-thread-offline');
+    await page.context().setOffline(false);
+    await expect(
+        panel.getByText('Agent reply sent while the App was offline', { exact: true })
+    ).toBeVisible();
+});
 
 test('a signed-out human cannot read hosted messages', async ({ page }) => {
     await page.goto('/s/hosted-messages');

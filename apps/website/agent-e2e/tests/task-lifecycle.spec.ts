@@ -20,7 +20,6 @@ test.afterAll(async () => {
 test('a claimed task waits for Thread clarification, uses it, and moves to review', async ({
     page,
 }) => {
-    test.fail(true, 'Known gap: later Agent replies do not invalidate an already-open Thread.');
     const { agent, channel, channelName, harness, server } = suite;
     const prompt = `@${agent.handle} Draft a two-sentence Bluebird launch blurb. Before drafting, ask me in this task Thread which audience to target; wait for my answer, then draft for that audience and move the task to review.`;
 

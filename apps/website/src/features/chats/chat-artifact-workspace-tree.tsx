@@ -79,7 +79,7 @@ export function WorkspaceFileTree({
 
     if (treePaths.length === 0) {
         return (
-            <div className="px-3 py-8 text-center text-muted-foreground text-sm">
+            <div className="px-3 py-8 text-center text-muted text-sm">
                 {hasQuery ? 'No matching files' : 'No files'}
             </div>
         );
@@ -163,7 +163,8 @@ button[data-type='item']:hover {
 
 button[data-type='item'][aria-selected='true'] {
   --tavern-tree-row-bg: var(--trees-selected-bg);
-  box-shadow: inset 0 0 0 1px var(--input), 0 2px 0 0 var(--hard-shadow);
+  /* Hairline outline, matching the nav rows' selected treatment. */
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
 button[data-type='item'][aria-selected='true'] [data-item-section='spacing-item'] {
@@ -180,15 +181,15 @@ button[data-type='item'][data-item-focused='true']:not(:focus-visible)::before {
 `;
 
 const treeHostStyle: TreeHostStyle = {
-    '--trees-bg-override': 'var(--sidebar)',
-    '--trees-bg-muted-override': 'var(--sidebar-accent)',
-    '--trees-border-color-override': 'var(--sidebar-border)',
+    '--trees-bg-override': 'var(--surface)',
+    '--trees-bg-muted-override': 'var(--surface-secondary)',
+    '--trees-border-color-override': 'var(--separator)',
     '--trees-border-radius-override': '8px',
-    '--trees-fg-muted-override': 'var(--muted-foreground)',
-    '--trees-fg-override': 'var(--sidebar-foreground)',
-    '--trees-file-icon-color': 'var(--sidebar-foreground)',
-    '--trees-focus-ring-color-override': 'var(--sidebar-ring)',
-    '--trees-selected-focused-border-color-override': 'var(--sidebar-ring)',
+    '--trees-fg-muted-override': 'var(--muted)',
+    '--trees-fg-override': 'var(--foreground)',
+    '--trees-file-icon-color': 'var(--muted)',
+    '--trees-focus-ring-color-override': 'var(--focus)',
+    '--trees-selected-focused-border-color-override': 'var(--focus)',
     '--trees-font-family-override': 'inherit',
     '--trees-font-size-override': 'var(--text-sm)',
     '--trees-item-margin-x-override': '0px',
@@ -196,6 +197,6 @@ const treeHostStyle: TreeHostStyle = {
     '--trees-level-gap-override': '8px',
     '--trees-padding-inline-override': '4px',
     '--trees-scrollbar-gutter-override': '6px',
-    '--trees-selected-bg-override': 'var(--secondary)',
+    '--trees-selected-bg-override': 'var(--surface-secondary)',
     '--trees-selected-fg-override': 'var(--foreground)',
 };

@@ -1,10 +1,7 @@
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
-import { PaneTopbar } from '../../components/ui/pane.tsx';
-import { Tabs } from '../../components/ui/tabs.tsx';
 import type { ChatArtifactPanelState } from '../../hooks/pane/use-chat-pane-state.ts';
-import { cn } from '../../lib/utils.ts';
 import { ArtifactPanelChrome } from './chat-artifact-panel-chrome.tsx';
 import { WorkspaceBrowserContent } from './chat-artifact-workspace-content.tsx';
 import { ChatSidePaneShell } from './chat-side-pane-shell.tsx';
@@ -60,23 +57,21 @@ function ArtifactPanelBody({
 
     return (
         <div className="flex h-full min-h-0 flex-col" style={width ? { width } : undefined}>
-            <PaneTopbar className="gap-0 px-0">
-                <Tabs
-                    className="flex h-full min-w-0 flex-1 items-center"
-                    onValueChange={state.setActiveKey}
-                    value={state.activeKey ?? undefined}
-                >
-                    <ArtifactPanelChrome
-                        activeKey={state.activeKey}
-                        activeTarget={activeTarget}
-                        agentId={activeAgentId}
-                        onClose={state.toggleVisible}
-                        onCloseTarget={state.closeTarget}
-                        onOpenTarget={state.open}
-                        targets={state.targets}
-                    />
-                </Tabs>
-            </PaneTopbar>
+            <header
+                className="relative z-40 flex h-10 shrink-0 items-center border-separator border-b bg-background"
+                data-window-drag-region=""
+            >
+                <ArtifactPanelChrome
+                    activeKey={state.activeKey}
+                    activeTarget={activeTarget}
+                    agentId={activeAgentId}
+                    onClose={state.toggleVisible}
+                    onCloseTarget={state.closeTarget}
+                    onOpenTarget={state.open}
+                    onSelectTarget={state.setActiveKey}
+                    targets={state.targets}
+                />
+            </header>
             <div className="min-h-0 flex-1">
                 {activeTarget ? (
                     <ArtifactPanelContent
@@ -154,11 +149,11 @@ function ArtifactPanelEmpty({ detail, title }: { detail: string; title: string }
     return (
         <div className="grid h-full min-h-0 place-items-center px-8 text-center">
             <div className="max-w-sm">
-                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-border bg-legacy-muted">
-                    <Icon className="size-4 text-muted-foreground" icon={File01Icon} />
+                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-separator bg-surface-secondary">
+                    <Icon className="size-4 text-muted" icon={File01Icon} />
                 </div>
                 <div className="truncate font-medium text-sm">{title}</div>
-                <div className={cn('mt-1 text-muted-foreground text-sm leading-6')}>{detail}</div>
+                <div className="mt-1 text-muted text-sm leading-6">{detail}</div>
             </div>
         </div>
     );

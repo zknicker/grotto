@@ -32,6 +32,7 @@ export function AgentHoverCard({
     chatId,
     children,
     onOpenProfile,
+    triggerButtonClassName,
     triggerClassName,
 }: {
     agentId: string;
@@ -39,6 +40,9 @@ export function AgentHoverCard({
     chatId: string;
     children: React.ReactNode;
     onOpenProfile?: () => void;
+    /** Styling for the focusable control itself. */
+    triggerButtonClassName?: string;
+    /** Layout for the trigger wrapper, which is the row's flex child. */
     triggerClassName?: string;
 }) {
     const [open, setOpen] = React.useState(false);
@@ -47,14 +51,14 @@ export function AgentHoverCard({
     return (
         <HoverCard closeDelay={150} onOpenChange={setOpen} open={open} openDelay={100}>
             {/*
-             * triggerClassName carries both row layout (the wrapper is the flex
-             * child) and control styling (the button is what takes focus), so
-             * it lands on both elements.
+             * Row layout and control styling are separate concerns on separate
+             * elements: the wrapper is the flex child, the button is what takes
+             * focus.
              */}
             <HoverCard.Trigger className={triggerClassName}>
                 <button
                     aria-label={`Agent details: ${agentName}`}
-                    className={triggerClassName}
+                    className={triggerButtonClassName}
                     onClick={() => {
                         setOpen(false);
                         if (onOpenProfile) {

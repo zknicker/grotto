@@ -3,7 +3,6 @@ import {
     ResizablePaneRail,
     useResizablePaneWidth,
 } from '../../components/ui/resizable-pane-rail.tsx';
-import { SidebarContent, SidebarGroup, SidebarGroupContent } from '../../components/ui/sidebar.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { trpc } from '../../lib/trpc.tsx';
 import {
@@ -247,7 +246,7 @@ export function WorkspaceBrowserContent({
                     )}
                 </div>
             </section>
-            <aside className="relative flex min-h-0 flex-col overflow-x-hidden border-[var(--content-card-border)] border-l bg-sidebar text-sidebar-foreground">
+            <aside className="relative flex min-h-0 flex-col overflow-x-hidden border-separator border-l bg-surface text-foreground">
                 <ResizablePaneRail
                     maxWidth={440}
                     minWidth={220}
@@ -268,23 +267,19 @@ export function WorkspaceBrowserContent({
                     query={query}
                     refreshing={filesQuery.isFetching}
                 />
-                <SidebarContent className="min-h-0 flex-1 overflow-x-hidden">
-                    <SidebarGroup className="flex min-h-0 flex-1 flex-col overflow-x-hidden px-1 py-2">
-                        <SidebarGroupContent className="flex min-h-0 flex-1 overflow-x-hidden">
-                            <WorkspaceFileTree
-                                entriesByTreePath={entriesByTreePath}
-                                hasQuery={query.trim().length > 0}
-                                onSelectDirectory={(nextPath) => {
-                                    setSelectedPath(null);
-                                    void loadDirectory(nextPath);
-                                }}
-                                onSelectFile={setSelectedPath}
-                                selectedPath={selectedPath}
-                                treePaths={visibleTreePaths}
-                            />
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                </SidebarContent>
+                <div className="flex min-h-0 flex-1 overflow-x-hidden px-1 py-2">
+                    <WorkspaceFileTree
+                        entriesByTreePath={entriesByTreePath}
+                        hasQuery={query.trim().length > 0}
+                        onSelectDirectory={(nextPath) => {
+                            setSelectedPath(null);
+                            void loadDirectory(nextPath);
+                        }}
+                        onSelectFile={setSelectedPath}
+                        selectedPath={selectedPath}
+                        treePaths={visibleTreePaths}
+                    />
+                </div>
             </aside>
         </div>
     );

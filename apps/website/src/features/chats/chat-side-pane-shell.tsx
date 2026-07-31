@@ -1,6 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-import { SidePane } from '../../components/ui/pane.tsx';
 import { ResizablePaneRail } from '../../components/ui/resizable-pane-rail.tsx';
 import {
     artifactPaneWidthLimits,
@@ -26,39 +25,36 @@ export function ChatSidePaneShell({
     return (
         <AnimatePresence initial={false}>
             {open ? (
-                <SidePane
-                    className={cn(takeover ? 'min-w-0 flex-1 shrink border-l-0' : 'z-[36]')}
-                    render={
-                        <motion.aside
-                            animate={
-                                takeover
-                                    ? { opacity: 1, x: 0 }
-                                    : { opacity: 1, width: paneWidth.width, x: 0 }
-                            }
-                            aria-label={label}
-                            exit={
-                                takeover ? { opacity: 0, x: 18 } : { opacity: 0, width: 0, x: 36 }
-                            }
-                            initial={
-                                shouldReduceMotion
-                                    ? false
-                                    : takeover
-                                      ? { opacity: 0, x: 18 }
-                                      : { opacity: 0, width: 0, x: 36 }
-                            }
-                            transition={
-                                shouldReduceMotion
-                                    ? { duration: 0.12 }
-                                    : {
-                                          opacity: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
-                                          width: {
-                                              duration: resizing ? 0 : 0.28,
-                                              ease: [0.16, 1, 0.3, 1],
-                                          },
-                                          x: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
-                                      }
-                            }
-                        />
+                <motion.aside
+                    animate={
+                        takeover
+                            ? { opacity: 1, x: 0 }
+                            : { opacity: 1, width: paneWidth.width, x: 0 }
+                    }
+                    aria-label={label}
+                    className={cn(
+                        'relative flex h-full min-h-0 shrink-0 overflow-hidden border-separator border-l bg-background',
+                        takeover ? 'min-w-0 flex-1 shrink border-l-0' : 'z-[36]'
+                    )}
+                    exit={takeover ? { opacity: 0, x: 18 } : { opacity: 0, width: 0, x: 36 }}
+                    initial={
+                        shouldReduceMotion
+                            ? false
+                            : takeover
+                              ? { opacity: 0, x: 18 }
+                              : { opacity: 0, width: 0, x: 36 }
+                    }
+                    transition={
+                        shouldReduceMotion
+                            ? { duration: 0.12 }
+                            : {
+                                  opacity: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+                                  width: {
+                                      duration: resizing ? 0 : 0.28,
+                                      ease: [0.16, 1, 0.3, 1],
+                                  },
+                                  x: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+                              }
                     }
                 >
                     {takeover ? null : (
@@ -74,7 +70,7 @@ export function ChatSidePaneShell({
                         />
                     )}
                     {children(takeover ? null : paneWidth.width)}
-                </SidePane>
+                </motion.aside>
             ) : null}
         </AnimatePresence>
     );

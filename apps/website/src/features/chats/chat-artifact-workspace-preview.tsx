@@ -1,10 +1,10 @@
+import { Button } from '@heroui/react';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useMemo, useState } from 'react';
 import { SimpleCodeEditor } from '../../components/code-editor/simple-code-editor.tsx';
 import { SelectionQuoteContainer } from '../../components/quote/selection-quote.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { trpc } from '../../lib/trpc.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
@@ -70,22 +70,22 @@ export function WorkspaceArtifactContent({
 
     return (
         <div className="flex h-full min-h-0 flex-col">
-            <div className="flex h-10 shrink-0 items-center justify-between gap-3 border-border-subtle border-b px-3">
-                <span className="min-w-0 truncate text-meta text-muted-foreground">
+            <div className="flex h-10 shrink-0 items-center justify-between gap-3 border-separator border-b px-3">
+                <span className="min-w-0 truncate text-muted text-xs">
                     {formatWorkspaceFileMetadata(file.sizeBytes, file.updatedAt)}
                 </span>
                 {markdown ? (
                     <div className="flex shrink-0 items-center gap-1">
                         <Button
-                            onClick={() => setRawPath(null)}
-                            size="xs"
+                            onPress={() => setRawPath(null)}
+                            size="sm"
                             variant={raw ? 'ghost' : 'secondary'}
                         >
                             Preview
                         </Button>
                         <Button
-                            onClick={() => setRawPath(target.path)}
-                            size="xs"
+                            onPress={() => setRawPath(target.path)}
+                            size="sm"
                             variant={raw ? 'secondary' : 'ghost'}
                         >
                             Raw
@@ -94,7 +94,7 @@ export function WorkspaceArtifactContent({
                 ) : null}
             </div>
             {file.truncated ? (
-                <div className="shrink-0 border-warning/30 border-b bg-warning/10 px-3 py-2 text-legacy-warning-foreground text-xs">
+                <div className="shrink-0 border-separator border-b bg-warning-soft px-3 py-2 text-warning-soft-foreground text-xs">
                     Preview truncated. This file is {formatWorkspaceFileBytes(file.sizeBytes)}.
                 </div>
             ) : null}
@@ -126,10 +126,10 @@ function WorkspaceFilePreview({
 }) {
     if (mediaType.startsWith('image/')) {
         return (
-            <div className="grid h-full min-h-0 place-items-center overflow-auto bg-legacy-muted p-6">
+            <div className="grid h-full min-h-0 place-items-center overflow-auto bg-surface-secondary p-6">
                 <img
                     alt={path}
-                    className="h-auto max-h-full w-auto max-w-full rounded-md border border-border bg-background object-contain"
+                    className="h-auto max-h-full w-auto max-w-full rounded-md border border-separator bg-background object-contain"
                     height={768}
                     src={`data:${mediaType};base64,${content}`}
                     width={1024}
@@ -203,11 +203,11 @@ export function WorkspaceArtifactEmpty({ detail, title }: { detail: string; titl
     return (
         <div className="grid h-full min-h-0 place-items-center px-8 text-center">
             <div className="max-w-sm">
-                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-border bg-legacy-muted">
-                    <Icon className="size-4 text-muted-foreground" icon={File01Icon} />
+                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-separator bg-surface-secondary">
+                    <Icon className="size-4 text-muted" icon={File01Icon} />
                 </div>
                 <div className="truncate font-medium text-sm">{title}</div>
-                <div className="mt-1 text-muted-foreground text-sm leading-6">{detail}</div>
+                <div className="mt-1 text-muted text-sm leading-6">{detail}</div>
             </div>
         </div>
     );

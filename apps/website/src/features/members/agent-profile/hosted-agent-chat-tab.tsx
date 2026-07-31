@@ -1,12 +1,18 @@
+import { Chip, Separator } from '@heroui/react';
 import { HashtagIcon } from '@hugeicons-pro/core-solid-rounded';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent } from '@tavern/api';
+import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BadgeDivider } from '../../../components/ui/badge-divider.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import { serverChatRoute } from '../../servers/server-routes.ts';
+import {
+    SettingsGroup,
+    SettingsPage,
+    SettingsSection,
+} from '../../settings/layout/settings-page.tsx';
 import { HostedAgentTabLoading } from './hosted-agent-tab-loading.tsx';
 
 export function HostedAgentChatTab({
@@ -31,38 +37,49 @@ export function HostedAgentChatTab({
     const rows = chats.data ?? [];
 
     return (
-        <div className="w-full px-5 pb-8 sm:px-7">
-            <section className="grid gap-4 py-5">
-                <BadgeDivider subtext={rows.length.toString()} variant="subtle">
-                    Chats
-                </BadgeDivider>
-                {rows.length === 0 ? (
-                    <p className="text-base text-muted-foreground sm:text-sm">No chats yet.</p>
-                ) : (
-                    <ul className="divide-y divide-border/50 border-border/60 border-y">
-                        {rows.map((chat) => (
-                            <li key={chat.id}>
-                                <button
-                                    className="flex w-full items-center gap-3 py-3 text-left outline-none hover:bg-legacy-accent/20 focus-visible:bg-legacy-accent/20"
-                                    onClick={() => navigate(serverChatRoute(server.slug, chat.id))}
-                                    type="button"
-                                >
-                                    <Icon
-                                        aria-hidden="true"
-                                        className="size-4 shrink-0 text-muted-foreground"
-                                        icon={
-                                            chat.kind === 'channel' ? HashtagIcon : BubbleChatIcon
+        <div className="px-5 py-6 sm:px-7">
+            <SettingsPage>
+                <SettingsSection
+                    action={
+                        <Chip size="sm" variant="soft">
+                            {rows.length}
+                        </Chip>
+                    }
+                    title="Chats"
+                >
+                    {rows.length === 0 ? (
+                        <p className="text-muted text-sm">No chats yet.</p>
+                    ) : (
+                        <SettingsGroup>
+                            {rows.map((chat, index) => (
+                                <React.Fragment key={chat.id}>
+                                    {index > 0 ? <Separator /> : null}
+                                    <button
+                                        className="flex w-full cursor-[var(--cursor-interactive)] items-center gap-3 px-4 py-3.5 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus"
+                                        onClick={() =>
+                                            navigate(serverChatRoute(server.slug, chat.id))
                                         }
-                                    />
-                                    <span className="truncate font-medium text-base text-foreground sm:text-sm">
-                                        {chat.name ?? `Direct · @${agent.handle}`}
-                                    </span>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </section>
+                                        type="button"
+                                    >
+                                        <Icon
+                                            aria-hidden="true"
+                                            className="size-4 shrink-0 text-muted"
+                                            icon={
+                                                chat.kind === 'channel'
+                                                    ? HashtagIcon
+                                                    : BubbleChatIcon
+                                            }
+                                        />
+                                        <span className="truncate font-medium text-foreground text-sm">
+                                            {chat.name ?? `Direct · @${agent.handle}`}
+                                        </span>
+                                    </button>
+                                </React.Fragment>
+                            ))}
+                        </SettingsGroup>
+                    )}
+                </SettingsSection>
+            </SettingsPage>
         </div>
     );
 }

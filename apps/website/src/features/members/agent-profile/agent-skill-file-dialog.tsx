@@ -1,24 +1,6 @@
+import { AlertDialog, Button, Modal, TextArea } from '@heroui/react';
 import type { HostedAgent, HostedAgentSkillMetadata } from '@tavern/api';
 import * as React from 'react';
-import {
-    AlertDialog,
-    AlertDialogClose,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogPopup,
-    AlertDialogTitle,
-} from '../../../components/ui/alert-dialog.tsx';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '../../../components/ui/dialog.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Textarea } from '../../../components/ui/textarea.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 
@@ -52,118 +34,133 @@ export function AgentSkillFileDialog({
 
     return (
         <>
-            <Dialog
+            <Modal
+                isOpen={Boolean(skill)}
                 onOpenChange={(open) => {
                     if (!(open || update.isPending || remove.isPending)) {
                         onOpenChange(false);
                     }
                 }}
-                open={Boolean(skill)}
             >
-                <DialogContent size="lg">
-                    <DialogHeader>
-                        <DialogTitle>{skill?.name ?? 'Agent skill'}</DialogTitle>
-                        <DialogDescription>
-                            Edit this Agent’s independent SKILL.md copy. Other support files stay
-                            unchanged.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-3 px-6">
-                        {file.isPending ? (
-                            <p className="text-muted-foreground text-sm">Loading skill…</p>
-                        ) : (
-                            <Textarea
-                                aria-label="SKILL.md content"
-                                onChange={(event) => setContent(event.target.value)}
-                                spellCheck={false}
-                                textareaClassName="h-80 min-h-80 max-h-[50vh] resize-y overflow-auto font-mono text-sm [field-sizing:fixed]"
-                                value={content}
-                            />
-                        )}
-                        {error ? <p className="text-error text-sm">{error}</p> : null}
-                    </div>
-                    <DialogFooter variant="bare">
-                        <Button
-                            disabled={file.isPending || update.isPending || remove.isPending}
-                            onClick={() => setConfirmDelete(true)}
-                            type="button"
-                            variant="destructive"
-                        >
-                            Delete
-                        </Button>
-                        <Button
-                            disabled={update.isPending || remove.isPending}
-                            onClick={() => onOpenChange(false)}
-                            type="button"
-                            variant="ghost"
-                        >
-                            Close
-                        </Button>
-                        <Button
-                            disabled={
-                                file.isPending ||
-                                !file.data ||
-                                !isAgentSkillFileDirty(content, file.data.content)
-                            }
-                            loading={update.isPending}
-                            onClick={() => {
-                                if (!skill) {
-                                    return;
-                                }
-                                void update
-                                    .mutateAsync({
-                                        ...input,
-                                        content,
-                                        expectedHash: hash,
-                                    })
-                                    .then(async (updated) => {
-                                        setContent(updated.content);
-                                        setHash(updated.hash);
-                                        utils.agent.skillFile.setData(input, updated);
-                                        await refreshInventory();
-                                    });
-                            }}
-                            type="button"
-                        >
-                            Save
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-            <AlertDialog onOpenChange={setConfirmDelete} open={confirmDelete}>
-                <AlertDialogPopup>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Delete {skill?.name ?? 'this skill'}?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This permanently removes this Agent’s independent skill bundle. The
-                            original host skill is not changed.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogClose render={<Button variant="ghost" />}>
-                            Keep skill
-                        </AlertDialogClose>
-                        <Button
-                            loading={remove.isPending}
-                            onClick={() => {
-                                if (!skill) {
-                                    return;
-                                }
-                                void remove
-                                    .mutateAsync({ ...input, expectedHash: hash })
-                                    .then(async () => {
-                                        setConfirmDelete(false);
-                                        onOpenChange(false);
-                                        await refreshInventory();
-                                    });
-                            }}
-                            type="button"
-                            variant="destructive"
-                        >
-                            Delete skill
-                        </Button>
-                    </AlertDialogFooter>
-                </AlertDialogPopup>
+                <Modal.Backdrop>
+                    <Modal.Container scroll="outside" size="lg">
+                        <Modal.Dialog>
+                            <Modal.Header>
+                                <div className="min-w-0 flex-1">
+                                    <Modal.Heading>{skill?.name ?? 'Agent Skill'}</Modal.Heading>
+                                    <p className="mt-1 text-muted text-sm">
+                                        Edit this Agent’s independent SKILL.md copy. Other support
+                                        files stay unchanged.
+                                    </p>
+                                </div>
+                            </Modal.Header>
+                            <Modal.Body>
+                                <div className="grid gap-3">
+                                    {file.isPending ? (
+                                        <p className="text-muted text-sm">Loading skill…</p>
+                                    ) : (
+                                        <TextArea
+                                            aria-label="SKILL.md content"
+                                            className="h-80 resize-y font-mono"
+                                            fullWidth
+                                            onChange={(event) => setContent(event.target.value)}
+                                            spellCheck={false}
+                                            value={content}
+                                            variant="secondary"
+                                        />
+                                    )}
+                                    {error ? <p className="text-danger text-sm">{error}</p> : null}
+                                </div>
+                            </Modal.Body>
+                            <Modal.Footer>
+                                <Button
+                                    isDisabled={
+                                        file.isPending || update.isPending || remove.isPending
+                                    }
+                                    onPress={() => setConfirmDelete(true)}
+                                    type="button"
+                                    variant="danger-soft"
+                                >
+                                    Delete
+                                </Button>
+                                <Button
+                                    isDisabled={update.isPending || remove.isPending}
+                                    onPress={() => onOpenChange(false)}
+                                    type="button"
+                                    variant="secondary"
+                                >
+                                    Close
+                                </Button>
+                                <Button
+                                    isDisabled={
+                                        file.isPending ||
+                                        !file.data ||
+                                        !isAgentSkillFileDirty(content, file.data.content)
+                                    }
+                                    isPending={update.isPending}
+                                    onPress={() => {
+                                        if (!skill) {
+                                            return;
+                                        }
+                                        void update
+                                            .mutateAsync({ ...input, content, expectedHash: hash })
+                                            .then(async (updated) => {
+                                                setContent(updated.content);
+                                                setHash(updated.hash);
+                                                utils.agent.skillFile.setData(input, updated);
+                                                await refreshInventory();
+                                            });
+                                    }}
+                                    type="button"
+                                >
+                                    Save
+                                </Button>
+                            </Modal.Footer>
+                        </Modal.Dialog>
+                    </Modal.Container>
+                </Modal.Backdrop>
+            </Modal>
+            <AlertDialog isOpen={confirmDelete} onOpenChange={setConfirmDelete}>
+                <AlertDialog.Backdrop>
+                    <AlertDialog.Container size="sm">
+                        <AlertDialog.Dialog>
+                            <AlertDialog.Header>
+                                <AlertDialog.Icon status="danger" />
+                                <AlertDialog.Heading>
+                                    Delete {skill?.name ?? 'this skill'}?
+                                </AlertDialog.Heading>
+                            </AlertDialog.Header>
+                            <AlertDialog.Body>
+                                This permanently removes this Agent’s independent skill bundle. The
+                                original host skill is not changed.
+                            </AlertDialog.Body>
+                            <AlertDialog.Footer>
+                                <Button slot="close" variant="secondary">
+                                    Keep Skill
+                                </Button>
+                                <Button
+                                    isPending={remove.isPending}
+                                    onPress={() => {
+                                        if (!skill) {
+                                            return;
+                                        }
+                                        void remove
+                                            .mutateAsync({ ...input, expectedHash: hash })
+                                            .then(async () => {
+                                                setConfirmDelete(false);
+                                                onOpenChange(false);
+                                                await refreshInventory();
+                                            });
+                                    }}
+                                    type="button"
+                                    variant="danger"
+                                >
+                                    Delete Skill
+                                </Button>
+                            </AlertDialog.Footer>
+                        </AlertDialog.Dialog>
+                    </AlertDialog.Container>
+                </AlertDialog.Backdrop>
             </AlertDialog>
         </>
     );

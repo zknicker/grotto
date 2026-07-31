@@ -1,14 +1,14 @@
+import { Button } from '@heroui/react';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
-import { Button } from '../../../components/ui/primitives/button.tsx';
+import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import { HostedDeleteDialog } from '../../../routes/app/hosted-delete-dialog.tsx';
 import {
     SettingsGroup,
     SettingsRow,
     SettingsSection,
-} from '../../../components/ui/settings-row.tsx';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import { grottoTrpc } from '../../../lib/grotto-server.tsx';
-import { HostedDeleteDialog } from '../../../routes/app/hosted-delete-dialog.tsx';
+} from '../../settings/layout/settings-page.tsx';
 
 export function HostedAgentDangerSection({
     agent,
@@ -46,10 +46,10 @@ export function HostedAgentDangerSection({
                     trailingWidth="intrinsic"
                 >
                     <Button
-                        onClick={() => setDeleting(true)}
+                        onPress={() => setDeleting(true)}
                         size="sm"
                         type="button"
-                        variant="destructive-outline"
+                        variant="danger-soft"
                     >
                         Delete Agent
                     </Button>

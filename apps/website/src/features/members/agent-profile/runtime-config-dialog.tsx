@@ -1,25 +1,6 @@
+import { Alert, Button, Form, Label, ListBox, Modal, Select } from '@heroui/react';
 import type { HostedAgent, HostedComputerInventory } from '@tavern/api';
 import * as React from 'react';
-import { Alert, AlertDescription } from '../../../components/ui/alert.tsx';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogPanel,
-    DialogTitle,
-} from '../../../components/ui/dialog.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Field, FieldLabel } from '../../../components/ui/primitives/field.tsx';
-import { Form } from '../../../components/ui/primitives/form.tsx';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '../../../components/ui/select.tsx';
 import { isRuntimeConfigDraftAvailable, type RuntimeConfigDraft } from './runtime-config-model.ts';
 
 type Runtime = HostedComputerInventory['runtimes'][number];
@@ -42,34 +23,33 @@ export function RuntimeConfigDialog({
     runtimes: Runtime[];
 }) {
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent showCloseButton={false}>
-                {open ? (
-                    <RuntimeConfigForm
-                        agent={agent}
-                        error={error}
-                        onCancel={() => onOpenChange(false)}
-                        onSave={onSave}
-                        pending={pending}
-                        runtimes={runtimes}
-                    />
-                ) : null}
-            </DialogContent>
-        </Dialog>
+        <Modal isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Backdrop>
+                <Modal.Container size="md">
+                    <Modal.Dialog>
+                        <RuntimeConfigForm
+                            agent={agent}
+                            error={error}
+                            onSave={onSave}
+                            pending={pending}
+                            runtimes={runtimes}
+                        />
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
+        </Modal>
     );
 }
 
 function RuntimeConfigForm({
     agent,
     error,
-    onCancel,
     onSave,
     pending,
     runtimes,
 }: {
     agent: HostedAgent;
     error: string | null;
-    onCancel: () => void;
     onSave: (draft: RuntimeConfigDraft) => Promise<void>;
     pending: boolean;
     runtimes: Runtime[];
@@ -81,10 +61,17 @@ function RuntimeConfigForm({
     const selectedRuntime = runtimes.find((runtime) => runtime.id === runtimeId) ?? null;
     const draft = { modelId, runtimeId };
     const canSave = isRuntimeConfigDraftAvailable(draft, runtimes) && !pending;
+    const models = selectedRuntime?.models ?? [];
+    const modelIsInstalled = models.some((model) => model.id === modelId);
+    const disabledRuntimeKeys = runtimes
+        .filter((runtime) => runtime.models.length === 0)
+        .map((runtime) => runtime.id);
+    if (!initialRuntime) {
+        disabledRuntimeKeys.push(agent.desiredRuntimeId);
+    }
 
     return (
         <Form
-            className="contents"
             onSubmit={(event) => {
                 event.preventDefault();
                 if (canSave) {
@@ -92,19 +79,23 @@ function RuntimeConfigForm({
                 }
             }}
         >
-            <DialogHeader>
-                <DialogTitle>Runtime config</DialogTitle>
-                <DialogDescription>
-                    Choose the installed runtime and model this Agent uses.
-                </DialogDescription>
-            </DialogHeader>
-            <DialogPanel className="grid gap-4">
-                <Field>
-                    <FieldLabel htmlFor="agent-runtime">Runtime</FieldLabel>
+            <Modal.Header>
+                <div className="min-w-0 flex-1">
+                    <Modal.Heading>Runtime Config</Modal.Heading>
+                    <p className="mt-1 text-muted text-sm">
+                        Choose the installed runtime and model this Agent uses.
+                    </p>
+                </div>
+            </Modal.Header>
+            <Modal.Body>
+                <div className="grid gap-4">
                     <Select
-                        id="agent-runtime"
-                        onValueChange={(value) => {
-                            const runtime = runtimes.find((candidate) => candidate.id === value);
+                        disabledKeys={disabledRuntimeKeys}
+                        fullWidth
+                        onChange={(value) => {
+                            const runtime = runtimes.find(
+                                (candidate) => candidate.id === String(value)
+                            );
                             if (!runtime) {
                                 return;
                             }
@@ -112,80 +103,89 @@ function RuntimeConfigForm({
                             setModelId(runtime.models[0]?.id ?? '');
                         }}
                         value={runtimeId}
+                        variant="secondary"
                     >
-                        <SelectTrigger aria-label="Runtime">
-                            <SelectValue>
-                                {selectedRuntime?.label ??
-                                    `${initialRuntime?.label ?? agent.desiredRuntimeId} (not installed)`}
-                            </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                            {initialRuntime ? null : (
-                                <SelectItem disabled value={agent.desiredRuntimeId}>
-                                    {agent.desiredRuntimeId} (not installed)
-                                </SelectItem>
-                            )}
-                            {runtimes.map((runtime) => (
-                                <SelectItem
-                                    disabled={runtime.models.length === 0}
-                                    key={runtime.id}
-                                    value={runtime.id}
-                                >
-                                    {runtime.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
+                        <Label>Runtime</Label>
+                        <Select.Trigger>
+                            <Select.Value />
+                            <Select.Indicator />
+                        </Select.Trigger>
+                        <Select.Popover>
+                            <ListBox>
+                                {initialRuntime ? null : (
+                                    <ListBox.Item
+                                        id={agent.desiredRuntimeId}
+                                        textValue={`${agent.desiredRuntimeId} (not installed)`}
+                                    >
+                                        <Label>{agent.desiredRuntimeId} (not installed)</Label>
+                                    </ListBox.Item>
+                                )}
+                                {runtimes.map((runtime) => (
+                                    <ListBox.Item
+                                        id={runtime.id}
+                                        key={runtime.id}
+                                        textValue={runtime.label}
+                                    >
+                                        <Label>{runtime.label}</Label>
+                                        <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                ))}
+                            </ListBox>
+                        </Select.Popover>
                     </Select>
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor="agent-model">Model</FieldLabel>
                     <Select
-                        disabled={!selectedRuntime}
-                        id="agent-model"
-                        onValueChange={(value) => setModelId(value ?? '')}
+                        disabledKeys={modelIsInstalled ? [] : [modelId]}
+                        fullWidth
+                        isDisabled={!selectedRuntime}
+                        onChange={(value) => setModelId(value ? String(value) : '')}
                         value={modelId}
+                        variant="secondary"
                     >
-                        <SelectTrigger aria-label="Model">
-                            <SelectValue>
-                                {selectedRuntime?.models.find((model) => model.id === modelId)
-                                    ?.label ?? `${modelId} (not installed)`}
-                            </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                            {selectedRuntime &&
-                            !selectedRuntime.models.some((model) => model.id === modelId) ? (
-                                <SelectItem disabled value={modelId}>
-                                    {modelId} (not installed)
-                                </SelectItem>
-                            ) : null}
-                            {selectedRuntime?.models.map((model) => (
-                                <SelectItem key={model.id} value={model.id}>
-                                    {model.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
+                        <Label>Model</Label>
+                        <Select.Trigger>
+                            <Select.Value />
+                            <Select.Indicator />
+                        </Select.Trigger>
+                        <Select.Popover>
+                            <ListBox>
+                                {modelIsInstalled ? null : (
+                                    <ListBox.Item
+                                        id={modelId}
+                                        textValue={`${modelId} (not installed)`}
+                                    >
+                                        <Label>{modelId} (not installed)</Label>
+                                    </ListBox.Item>
+                                )}
+                                {models.map((model) => (
+                                    <ListBox.Item
+                                        id={model.id}
+                                        key={model.id}
+                                        textValue={model.label}
+                                    >
+                                        <Label>{model.label}</Label>
+                                        <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                ))}
+                            </ListBox>
+                        </Select.Popover>
                     </Select>
-                </Field>
-                {error ? (
-                    <Alert variant="error">
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                ) : null}
-            </DialogPanel>
-            <DialogFooter variant="bare">
-                <Button
-                    disabled={pending}
-                    onClick={onCancel}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                >
+                    {error ? (
+                        <Alert status="danger">
+                            <Alert.Content>
+                                <Alert.Description>{error}</Alert.Description>
+                            </Alert.Content>
+                        </Alert>
+                    ) : null}
+                </div>
+            </Modal.Body>
+            <Modal.Footer>
+                <Button isDisabled={pending} slot="close" type="button" variant="secondary">
                     Cancel
                 </Button>
-                <Button disabled={!canSave} loading={pending} size="sm" type="submit">
+                <Button isDisabled={!canSave} isPending={pending} type="submit">
                     Save
                 </Button>
-            </DialogFooter>
+            </Modal.Footer>
         </Form>
     );
 }

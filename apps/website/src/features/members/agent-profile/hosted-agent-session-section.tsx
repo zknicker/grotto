@@ -1,16 +1,14 @@
+import { AlertDialog, Button, Separator } from '@heroui/react';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
-import { BadgeDivider } from '../../../components/ui/badge-divider.tsx';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '../../../components/ui/dialog.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import { withSavingToast } from '../../../lib/saving-toast.ts';
+import {
+    SettingsGroup,
+    SettingsRow,
+    SettingsSection,
+} from '../../settings/layout/settings-page.tsx';
 
 export function HostedAgentSessionSection({
     agent,
@@ -50,99 +48,78 @@ export function HostedAgentSessionSection({
     }
 
     return (
-        <>
-            <section className="grid gap-4 border-border/50 border-b py-5">
-                <BadgeDivider variant="subtle">Session</BadgeDivider>
-                <div className="divide-y divide-border/50 border-border/60 border-y">
-                    <SessionAction
-                        action={
-                            <Button
-                                disabled={reset.isPending}
-                                loading={reset.isPending && !fullResetOpen}
-                                onClick={() => requestReset('session').catch(() => undefined)}
-                                size="sm"
-                                variant="secondary"
-                            >
-                                Start fresh session
-                            </Button>
-                        }
-                        description="Start the Agent's next turn with fresh context. Workspace, MEMORY.md, and skills persist."
-                        title="Start fresh session"
-                    />
-                    <SessionAction
-                        action={
-                            <Button
-                                disabled={reset.isPending}
-                                onClick={() => setFullResetOpen(true)}
-                                size="sm"
-                                variant="destructive-outline"
-                            >
-                                Full reset
-                            </Button>
-                        }
-                        description="Start fresh and restore the Agent's workspace, memory, and skills to the factory starter kit."
-                        title="Full reset"
-                    />
-                </div>
-            </section>
-            <Dialog onOpenChange={setFullResetOpen} open={fullResetOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Full reset?</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-5">
-                        <p className="text-muted-foreground text-sm leading-relaxed">
-                            This starts a fresh session and permanently wipes the Agent&apos;s
-                            workspace, MEMORY.md, skills, and runtime-local state. Identity, Chat
-                            history, model configuration, and connections are kept.
-                        </p>
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                disabled={reset.isPending}
-                                onClick={() => setFullResetOpen(false)}
-                                size="sm"
-                                type="button"
-                                variant="ghost"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                loading={reset.isPending}
-                                onClick={() =>
-                                    requestReset('full')
-                                        .then(() => setFullResetOpen(false))
-                                        .catch(() => undefined)
-                                }
-                                size="sm"
-                                type="button"
-                                variant="destructive"
-                            >
-                                Full reset
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </>
-    );
-}
-
-function SessionAction({
-    action,
-    description,
-    title,
-}: {
-    action: React.ReactNode;
-    description: string;
-    title: string;
-}) {
-    return (
-        <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div className="min-w-0">
-                <h3 className="font-medium text-foreground text-sm">{title}</h3>
-                <p className="text-meta text-muted-foreground">{description}</p>
-            </div>
-            <div className="shrink-0">{action}</div>
-        </div>
+        <SettingsSection title="Session">
+            <SettingsGroup>
+                <SettingsRow
+                    description="Start the Agent's next turn with fresh context. Workspace, MEMORY.md, and skills persist."
+                    title="Start Fresh Session"
+                    trailingWidth="intrinsic"
+                >
+                    <Button
+                        isDisabled={reset.isPending}
+                        isPending={reset.isPending && !fullResetOpen}
+                        onPress={() => requestReset('session').catch(() => undefined)}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        Start Fresh Session
+                    </Button>
+                </SettingsRow>
+                <Separator />
+                <SettingsRow
+                    description="Start fresh and restore the Agent's workspace, memory, and skills to the factory starter kit."
+                    title="Full Reset"
+                    trailingWidth="intrinsic"
+                >
+                    <Button
+                        isDisabled={reset.isPending}
+                        onPress={() => setFullResetOpen(true)}
+                        size="sm"
+                        variant="danger-soft"
+                    >
+                        Full Reset
+                    </Button>
+                </SettingsRow>
+            </SettingsGroup>
+            <AlertDialog isOpen={fullResetOpen} onOpenChange={setFullResetOpen}>
+                <AlertDialog.Backdrop>
+                    <AlertDialog.Container size="sm">
+                        <AlertDialog.Dialog>
+                            <AlertDialog.Header>
+                                <AlertDialog.Icon status="danger" />
+                                <AlertDialog.Heading>Full Reset?</AlertDialog.Heading>
+                            </AlertDialog.Header>
+                            <AlertDialog.Body>
+                                This starts a fresh session and permanently wipes the Agent&apos;s
+                                workspace, MEMORY.md, skills, and runtime-local state. Identity,
+                                Chat history, model configuration, and connections are kept.
+                            </AlertDialog.Body>
+                            <AlertDialog.Footer>
+                                <Button
+                                    isDisabled={reset.isPending}
+                                    slot="close"
+                                    type="button"
+                                    variant="secondary"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    isPending={reset.isPending}
+                                    onPress={() =>
+                                        requestReset('full')
+                                            .then(() => setFullResetOpen(false))
+                                            .catch(() => undefined)
+                                    }
+                                    type="button"
+                                    variant="danger"
+                                >
+                                    Full Reset
+                                </Button>
+                            </AlertDialog.Footer>
+                        </AlertDialog.Dialog>
+                    </AlertDialog.Container>
+                </AlertDialog.Backdrop>
+            </AlertDialog>
+        </SettingsSection>
     );
 }

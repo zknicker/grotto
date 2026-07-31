@@ -1,20 +1,20 @@
+import { Separator } from '@heroui/react';
+import { EmptyState } from '@heroui-pro/react';
 import { Folder01Icon, Link04Icon, Notification03Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import { CopyButton } from '../../../components/ui/copy-button.tsx';
-import {
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-} from '../../../components/ui/empty.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { SettingsGroup } from '../../../components/ui/settings-row.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import { HostedAgentTools } from '../../../routes/app/hosted-agent-tools.tsx';
 import { WorkspaceBrowserContent } from '../../chats/chat-artifact-workspace-content.tsx';
+import {
+    SettingsGroup,
+    SettingsItem,
+    SettingsPage,
+    SettingsSection,
+} from '../../settings/layout/settings-page.tsx';
 import { HostedAgentProfileTab } from './hosted-agent-profile-tab.tsx';
 
 export { HostedAgentActivityTab } from './hosted-agent-activity-tab.tsx';
@@ -32,29 +32,42 @@ export function HostedAgentRemindersTab({
         { agentId: agent.id, serverId: server.id },
         { enabled: server.role !== 'member' }
     );
-    if (server.role === 'member' || (reminders.data?.length ?? 0) === 0) {
+    const rows = reminders.data ?? [];
+    if (server.role === 'member' || rows.length === 0) {
         return (
-            <EmptyState
+            <TabEmptyState
                 description={`Just tell ${agent.displayName} what to remember and when.`}
                 icon={Notification03Icon}
-                title="No reminders yet"
+                title="No Reminders Yet"
             />
         );
     }
+
     return (
-        <SettingsGroup className="mx-auto my-6 w-full max-w-3xl">
-            <ul className="divide-y divide-border">
-                {reminders.data?.map((reminder) => (
-                    <li className="grid gap-1 px-4 py-3 text-sm" key={reminder.id}>
-                        <span className="font-medium">{reminder.title}</span>
-                        <span className="text-muted-foreground">
-                            {new Date(reminder.fireAt).toLocaleString()}
-                            {reminder.repeat ? ` · ${reminder.repeat}` : ''}
-                        </span>
-                    </li>
-                ))}
-            </ul>
-        </SettingsGroup>
+        <div className="px-5 py-6 sm:px-7">
+            <SettingsPage>
+                <SettingsSection title="Reminders">
+                    <SettingsGroup>
+                        {rows.map((reminder, index) => (
+                            <React.Fragment key={reminder.id}>
+                                {index > 0 ? <Separator /> : null}
+                                <SettingsItem>
+                                    <div className="grid gap-1 text-sm">
+                                        <span className="font-medium text-foreground">
+                                            {reminder.title}
+                                        </span>
+                                        <span className="text-muted">
+                                            {new Date(reminder.fireAt).toLocaleString()}
+                                            {reminder.repeat ? ` · ${reminder.repeat}` : ''}
+                                        </span>
+                                    </div>
+                                </SettingsItem>
+                            </React.Fragment>
+                        ))}
+                    </SettingsGroup>
+                </SettingsSection>
+            </SettingsPage>
+        </div>
     );
 }
 
@@ -72,19 +85,19 @@ export function HostedAgentWorkspaceTab({
     );
     if (server.role === 'member') {
         return (
-            <EmptyState
+            <TabEmptyState
                 description="Only Server Owners and Admins can inspect raw Agent workspace files."
                 icon={Folder01Icon}
-                title="Workspace unavailable"
+                title="Workspace Unavailable"
             />
         );
     }
 
     return (
         <div className="flex h-full min-h-[32rem] flex-col py-3">
-            <div className="flex min-h-10 shrink-0 items-center justify-between gap-3 border-border border-b px-3 pb-3">
+            <div className="flex min-h-10 shrink-0 items-center justify-between gap-3 border-separator border-b px-3 pb-3">
                 <div className="flex min-w-0 items-center gap-1.5">
-                    <span className="truncate font-mono text-meta text-muted-foreground">
+                    <span className="truncate font-mono text-muted text-xs">
                         {workspace.data?.workspaceRoot ?? 'Workspace'}
                     </span>
                     <CopyButton
@@ -109,10 +122,10 @@ export function HostedAgentWorkspaceTab({
 
 export function HostedAgentAppsTab() {
     return (
-        <EmptyState
+        <TabEmptyState
             description="Apps this Agent signs into will appear here."
             icon={Link04Icon}
-            title="No connected apps yet"
+            title="No Connected Apps Yet"
         />
     );
 }
@@ -120,17 +133,19 @@ export function HostedAgentAppsTab() {
 export function HostedAgentMcpTab({ agent, server }: { agent: HostedAgent; server: ServerDetail }) {
     const connections = grottoTrpc.mcp.list.useQuery({ serverId: server.id });
     return (
-        <div className="mx-auto w-full max-w-3xl py-6">
-            <HostedAgentTools
-                agent={agent}
-                connections={connections.data ?? []}
-                serverId={server.id}
-            />
+        <div className="px-5 py-6 sm:px-7">
+            <SettingsPage>
+                <HostedAgentTools
+                    agent={agent}
+                    connections={connections.data ?? []}
+                    serverId={server.id}
+                />
+            </SettingsPage>
         </div>
     );
 }
 
-function EmptyState({
+function TabEmptyState({
     description,
     icon,
     title,
@@ -140,14 +155,14 @@ function EmptyState({
     title: string;
 }) {
     return (
-        <Empty>
-            <EmptyHeader>
-                <EmptyMedia variant="icon">
+        <EmptyState>
+            <EmptyState.Header>
+                <EmptyState.Media variant="icon">
                     <Icon icon={icon} />
-                </EmptyMedia>
-                <EmptyTitle className="text-base">{title}</EmptyTitle>
-                <EmptyDescription className="text-sm">{description}</EmptyDescription>
-            </EmptyHeader>
-        </Empty>
+                </EmptyState.Media>
+                <EmptyState.Title>{title}</EmptyState.Title>
+                <EmptyState.Description>{description}</EmptyState.Description>
+            </EmptyState.Header>
+        </EmptyState>
     );
 }

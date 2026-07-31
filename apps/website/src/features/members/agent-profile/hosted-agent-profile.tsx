@@ -1,3 +1,4 @@
+import { Tabs } from '@heroui/react';
 import {
     Activity01Icon,
     BubbleChatIcon,
@@ -10,12 +11,7 @@ import {
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    TabsSubtle,
-    TabsSubtleItem,
-    TabsSubtleList,
-    TabsSubtlePanel,
-} from '../../../components/ui/tabs-subtle.tsx';
+import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { serverMembersRoute } from '../../servers/server-routes.ts';
@@ -64,10 +60,11 @@ export function HostedAgentProfile({
     };
 
     return (
-        <TabsSubtle
+        <Tabs
             className="h-full min-h-0 w-full gap-0"
-            onValueChange={(value) => setActiveTab(value as HostedAgentTab)}
-            value={activeTab}
+            onSelectionChange={(key) => setActiveTab(key as HostedAgentTab)}
+            selectedKey={activeTab}
+            variant="secondary"
         >
             <HostedAgentProfileHeader
                 agent={agent}
@@ -75,31 +72,27 @@ export function HostedAgentProfile({
                 server={server}
                 variant={variant}
             />
-            <div
-                className={cn(
-                    'shrink-0 border-[var(--content-card-border)] border-b',
-                    variant === 'page' ? 'px-5' : 'px-3'
-                )}
+            <Tabs.ListContainer
+                className={cn('shrink-0', variant === 'page' ? 'px-5 sm:px-7' : 'px-3')}
             >
-                <TabsSubtleList className="max-w-full overflow-x-auto" variant="underline">
+                <Tabs.List aria-label="Agent sections">
                     {tabs.map((tab) => (
-                        <TabsSubtleItem
-                            icon={tab.icon}
-                            key={tab.value}
-                            label={tab.label}
-                            size="sm"
-                            value={tab.value}
-                        />
+                        <Tabs.Tab id={tab.value} key={tab.value}>
+                            <span className="flex items-center gap-2">
+                                <Icon aria-hidden="true" icon={tab.icon} size={16} />
+                                {tab.label}
+                            </span>
+                            <Tabs.Indicator />
+                        </Tabs.Tab>
                     ))}
-                </TabsSubtleList>
-            </div>
-            <TabsSubtlePanel
+                </Tabs.List>
+            </Tabs.ListContainer>
+            <Tabs.Panel
                 className={cn(
-                    'min-h-0',
-                    activeTab === 'workspace' ? 'overflow-hidden' : 'overflow-y-auto',
-                    !['activity', 'chat', 'profile'].includes(activeTab) && 'px-3'
+                    'mt-0 min-h-0 flex-1 p-0',
+                    activeTab === 'workspace' ? 'overflow-hidden' : 'overflow-y-auto'
                 )}
-                value={activeTab}
+                id={activeTab}
             >
                 <ActiveTab
                     agent={agent}
@@ -113,8 +106,8 @@ export function HostedAgentProfile({
                     server={server}
                     tab={activeTab}
                 />
-            </TabsSubtlePanel>
-        </TabsSubtle>
+            </Tabs.Panel>
+        </Tabs>
     );
 }
 

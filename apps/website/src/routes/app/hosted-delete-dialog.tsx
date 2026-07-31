@@ -1,16 +1,5 @@
+import { AlertDialog, Button, Input, Label, TextField } from '@heroui/react';
 import * as React from 'react';
-import {
-    AlertDialog,
-    AlertDialogClose,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogPopup,
-    AlertDialogTitle,
-} from '../../components/ui/alert-dialog.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { Input } from '../../components/ui/primitives/input.tsx';
-import { Label } from '../../components/ui/primitives/label.tsx';
 
 export function HostedDeleteDialog({
     confirmation,
@@ -28,40 +17,53 @@ export function HostedDeleteDialog({
     title: string;
 }) {
     const [typed, setTyped] = React.useState('');
+
     return (
-        <AlertDialog onOpenChange={onOpenChange} open>
-            <AlertDialogPopup>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{title}</AlertDialogTitle>
-                    <AlertDialogDescription>{description}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="hosted-delete-confirmation">
-                        Type <span className="font-medium text-foreground">{confirmation}</span> to
-                        confirm
-                    </Label>
-                    <Input
-                        autoComplete="off"
-                        id="hosted-delete-confirmation"
-                        onChange={(event) => setTyped(event.currentTarget.value)}
-                        value={typed}
-                    />
-                </div>
-                <AlertDialogFooter>
-                    <AlertDialogClose render={<Button type="button" variant="ghost" />}>
-                        Cancel
-                    </AlertDialogClose>
-                    <Button
-                        disabled={typed !== confirmation}
-                        loading={pending}
-                        onClick={onConfirm}
-                        type="button"
-                        variant="destructive"
-                    >
-                        {title}
-                    </Button>
-                </AlertDialogFooter>
-            </AlertDialogPopup>
+        <AlertDialog isOpen onOpenChange={onOpenChange}>
+            <AlertDialog.Backdrop>
+                <AlertDialog.Container size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="danger" />
+                            <AlertDialog.Heading>{title}</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <div className="grid gap-4">
+                                <p className="text-muted text-sm">{description}</p>
+                                <TextField
+                                    autoComplete="off"
+                                    fullWidth
+                                    onChange={setTyped}
+                                    value={typed}
+                                >
+                                    <Label>
+                                        Type{' '}
+                                        <span className="font-medium text-foreground">
+                                            {confirmation}
+                                        </span>{' '}
+                                        to confirm
+                                    </Label>
+                                    <Input />
+                                </TextField>
+                            </div>
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" type="button" variant="secondary">
+                                Cancel
+                            </Button>
+                            <Button
+                                isDisabled={typed !== confirmation}
+                                isPending={pending}
+                                onPress={onConfirm}
+                                type="button"
+                                variant="danger"
+                            >
+                                {title}
+                            </Button>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
         </AlertDialog>
     );
 }

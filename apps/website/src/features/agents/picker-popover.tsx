@@ -1,9 +1,7 @@
+import { Button, Popover, SearchField } from '@heroui/react';
 import { Add01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { Button } from '../../components/ui/button.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { Popover, PopoverPopup, PopoverTrigger } from '../../components/ui/popover.tsx';
-import { SearchInput } from '../../components/ui/primitives/search-input.tsx';
 
 export interface PickerPopoverItem {
     id: string;
@@ -21,7 +19,7 @@ export function PickerPopover<Item extends PickerPopoverItem>({
     label,
     onAdd,
     searchPlaceholder,
-    triggerVariant = 'outline',
+    triggerVariant = 'secondary',
 }: {
     emptyText: string;
     isPending: boolean;
@@ -29,7 +27,7 @@ export function PickerPopover<Item extends PickerPopoverItem>({
     label: string;
     onAdd: (item: Item) => void;
     searchPlaceholder: string;
-    triggerVariant?: 'ghost' | 'outline';
+    triggerVariant?: 'ghost' | 'secondary';
 }) {
     const [open, setOpen] = React.useState(false);
     const [query, setQuery] = React.useState('');
@@ -46,62 +44,65 @@ export function PickerPopover<Item extends PickerPopoverItem>({
         : items;
 
     return (
-        <Popover onOpenChange={setOpen} open={open}>
-            <PopoverTrigger render={<Button size="sm" type="button" variant={triggerVariant} />}>
-                <Icon data-icon="inline-start" icon={Add01Icon} />
+        <Popover isOpen={open} onOpenChange={setOpen}>
+            <Button size="sm" type="button" variant={triggerVariant}>
+                <Icon aria-hidden="true" icon={Add01Icon} />
                 {label}
-            </PopoverTrigger>
-            <PopoverPopup
-                align="end"
-                className="w-[min(19rem,calc(100vw-2rem))] overflow-hidden py-0 [--viewport-inline-padding:--spacing(0)] [&_[data-slot=popover-viewport]]:p-0"
-                sideOffset={8}
-            >
-                <div className="max-h-[min(20rem,calc(100dvh-8rem))] overflow-y-auto rounded-[inherit]">
-                    {items.length === 0 ? (
-                        <p className="px-3 py-4 text-muted-foreground text-sm">{emptyText}</p>
-                    ) : (
-                        <>
-                            <div className="sticky top-0 z-10 border-border-subtle border-b bg-popover">
-                                <SearchInput
-                                    aria-label={searchPlaceholder}
-                                    name="picker-search"
-                                    onChange={(event) => setQuery(event.target.value)}
-                                    placeholder={searchPlaceholder}
-                                    size="xl"
-                                    value={query}
-                                    variant="flush"
-                                />
-                            </div>
-                            {visibleItems.length > 0 ? (
-                                <ul className="divide-y divide-border-subtle">
-                                    {visibleItems.map((item) => (
-                                        <li key={item.id}>
-                                            <button
-                                                aria-label={`Add ${item.name}`}
-                                                className="flex min-h-10 w-full cursor-pointer items-center px-3 py-2 text-left outline-none hover:bg-hover focus-visible:bg-hover disabled:cursor-default disabled:opacity-64"
-                                                disabled={isPending}
-                                                onClick={() => {
-                                                    setOpen(false);
-                                                    onAdd(item);
-                                                }}
-                                                type="button"
-                                            >
-                                                <span className="truncate font-medium text-foreground text-sm">
-                                                    {item.name}
-                                                </span>
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="px-3 py-4 text-muted-foreground text-sm">
-                                    No matches.
-                                </p>
-                            )}
-                        </>
-                    )}
-                </div>
-            </PopoverPopup>
+            </Button>
+            <Popover.Content offset={8} placement="bottom end">
+                <Popover.Dialog>
+                    <div className="w-[min(19rem,calc(100vw-2rem))] p-2">
+                        {items.length === 0 ? (
+                            <p className="py-6 text-center text-muted text-sm">{emptyText}</p>
+                        ) : (
+                            <>
+                                <div className="sticky top-0 z-10 bg-overlay pb-2">
+                                    <SearchField
+                                        aria-label={searchPlaceholder}
+                                        fullWidth
+                                        name="picker-search"
+                                        onChange={setQuery}
+                                        value={query}
+                                        variant="secondary"
+                                    >
+                                        <SearchField.Group>
+                                            <SearchField.SearchIcon />
+                                            <SearchField.Input placeholder={searchPlaceholder} />
+                                            <SearchField.ClearButton />
+                                        </SearchField.Group>
+                                    </SearchField>
+                                </div>
+                                {visibleItems.length > 0 ? (
+                                    <ul className="max-h-[min(20rem,calc(100dvh-10rem))] divide-y divide-separator overflow-y-auto">
+                                        {visibleItems.map((item) => (
+                                            <li key={item.id}>
+                                                <button
+                                                    aria-label={`Add ${item.name}`}
+                                                    className="flex min-h-10 w-full cursor-[var(--cursor-interactive)] items-center rounded-xl px-3 py-2 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-default disabled:opacity-64"
+                                                    disabled={isPending}
+                                                    onClick={() => {
+                                                        setOpen(false);
+                                                        onAdd(item);
+                                                    }}
+                                                    type="button"
+                                                >
+                                                    <span className="truncate font-medium text-foreground text-sm">
+                                                        {item.name}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="py-6 text-center text-muted text-sm">
+                                        No matches.
+                                    </p>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </Popover.Dialog>
+            </Popover.Content>
         </Popover>
     );
 }

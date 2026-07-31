@@ -1,7 +1,7 @@
+import { Avatar } from '@heroui/react';
 import type { RuntimeUser } from '@tavern/api';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar.tsx';
 import { appRoutes } from '../../lib/app-routes.ts';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { trpc } from '../../lib/trpc.tsx';
@@ -31,18 +31,16 @@ function MemberSection({ count, users }: { count: number; users: RuntimeUser[] }
                         className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2"
                         key={user.id}
                     >
-                        <Avatar className="size-8">
+                        <Avatar size="sm">
                             {user.avatarUrl ? (
-                                <AvatarImage alt={`${name} avatar`} src={user.avatarUrl} />
+                                <Avatar.Image alt={`${name} avatar`} src={user.avatarUrl} />
                             ) : null}
-                            <AvatarFallback>{getInitials(name)}</AvatarFallback>
+                            <Avatar.Fallback>{getInitials(name)}</Avatar.Fallback>
                         </Avatar>
                         <div className="min-w-0">
                             <p className="truncate font-medium text-sm">{name}</p>
                             {user.email ? (
-                                <p className="truncate text-muted-foreground text-sm">
-                                    {user.email}
-                                </p>
+                                <p className="truncate text-muted text-sm">{user.email}</p>
                             ) : null}
                         </div>
                     </div>
@@ -62,9 +60,9 @@ export function HumanMemberSection({
     manageTo: string;
 }) {
     return (
-        <section className="mt-6">
-            <div className="mb-2 flex items-center justify-between px-3">
-                <h2 className="flex items-center gap-2 font-mono text-sidebar-muted text-xs uppercase tracking-wider">
+        <section>
+            <div className="mb-2 flex items-center justify-between gap-2 px-2">
+                <h2 className="flex min-w-0 items-center gap-2 font-medium text-muted text-sm">
                     <span>Humans</span>
                     <span className="tabular-nums">{count}</span>
                 </h2>
@@ -72,7 +70,7 @@ export function HumanMemberSection({
                     className={({ isActive }) =>
                         isActive
                             ? 'font-medium text-foreground text-xs'
-                            : 'text-sidebar-muted text-xs hover:text-foreground'
+                            : 'text-muted text-xs hover:text-foreground'
                     }
                     to={manageTo}
                 >

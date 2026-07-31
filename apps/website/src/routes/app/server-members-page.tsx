@@ -1,8 +1,10 @@
+import { Button, Tooltip } from '@heroui/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
+import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { HostedAgentProfile } from '../../features/members/agent-profile/hosted-agent-profile.tsx';
 import { CreateHostedAgentDialog } from '../../features/members/create-hosted-agent-dialog.tsx';
 import { HostedAgentFace } from '../../features/members/hosted-agent-face.tsx';
@@ -13,6 +15,9 @@ import { useHostedServerContext } from '../../features/servers/hosted-server-con
 import { serverMembersRoute } from '../../features/servers/server-routes.ts';
 import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
 import { cn } from '../../lib/utils.ts';
+
+const memberRowClass =
+    'flex min-h-11 items-center gap-3 rounded-xl px-2 py-2 outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus';
 
 export function ServerMembersPage() {
     const { agentId } = useParams();
@@ -35,15 +40,21 @@ export function ServerMembersPage() {
             createControl={
                 server.role === 'owner' || server.role === 'admin' ? (
                     <>
-                        <button
-                            aria-label="Create agent"
-                            className="no-drag flex size-5 cursor-pointer items-center justify-center rounded-md text-sidebar-muted hover:bg-[var(--nav-hover)] hover:text-foreground"
-                            onClick={() => setCreatingAgent(true)}
-                            title="Create agent"
-                            type="button"
-                        >
-                            <Icon aria-hidden="true" icon={Plus} size={14} />
-                        </button>
+                        <Tooltip delay={0}>
+                            <Tooltip.Trigger>
+                                <Button
+                                    aria-label="Create Agent"
+                                    className="no-drag"
+                                    isIconOnly
+                                    onPress={() => setCreatingAgent(true)}
+                                    size="sm"
+                                    variant="ghost"
+                                >
+                                    <Icon aria-hidden="true" icon={Plus} size={16} />
+                                </Button>
+                            </Tooltip.Trigger>
+                            <Tooltip.Content>Create Agent</Tooltip.Content>
+                        </Tooltip>
                         <CreateHostedAgentDialog
                             agents={agents}
                             onCreated={(createdAgentId) => {
@@ -74,7 +85,7 @@ export function ServerMembersPage() {
                         serverSlug={server.slug}
                     />
                 ) : (
-                    <p className="m-auto text-muted-foreground text-sm">Select a member</p>
+                    <p className="m-auto text-muted text-sm">Select a member</p>
                 )
             }
             humanMembers={
@@ -86,23 +97,21 @@ export function ServerMembersPage() {
                         <NavLink
                             className={({ isActive }) =>
                                 cn(
-                                    'flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 hover:bg-[var(--nav-hover)]',
-                                    isActive && humansSelected
-                                        ? 'bg-secondary shadow-[0_2px_0_0_var(--hard-shadow)] ring-1 ring-input ring-inset'
-                                        : null
+                                    memberRowClass,
+                                    isActive && humansSelected ? 'bg-surface-secondary' : null
                                 )
                             }
                             key={member.userId}
                             to={humansRoute}
                         >
-                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-xs">
                                 {member.userId.slice(0, 2).toUpperCase()}
                             </span>
                             <span className="min-w-0">
                                 <span className="block truncate font-medium text-sm">
                                     {member.userId}
                                 </span>
-                                <span className="block text-muted-foreground text-sm capitalize">
+                                <span className="block text-muted text-xs capitalize">
                                     {member.role}
                                 </span>
                             </span>
@@ -118,49 +127,45 @@ function AgentRow({ agent, slug }: { agent: HostedAgent; slug: string }) {
     return (
         <NavLink
             className={({ isActive }) =>
-                cn(
-                    'block rounded-lg px-2 py-2 hover:bg-[var(--nav-hover)]',
-                    isActive
-                        ? 'bg-secondary shadow-[0_2px_0_0_var(--hard-shadow)] ring-1 ring-input ring-inset'
-                        : null
-                )
+                cn(memberRowClass, isActive ? 'bg-surface-secondary' : null)
             }
             to={`${serverMembersRoute(slug)}/agents/${agent.id}`}
         >
-            <span className="flex min-w-0 items-center gap-3">
-                <span className="relative flex size-8 shrink-0 items-center justify-center overflow-visible">
-                    <HostedAgentFace
-                        agent={agent}
-                        animate={false}
-                        size={32}
-                        style={{
-                            flexShrink: 0,
-                            height: 32,
-                            overflow: 'visible',
-                            width: 32,
-                        }}
-                    />
-                    <span
-                        className={`absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-sidebar ${
-                            agent.availability === 'idle'
-                                ? 'bg-success'
-                                : agent.availability === 'working'
-                                  ? 'bg-warning'
-                                  : agent.availability === 'error'
-                                    ? 'bg-error'
-                                    : 'bg-muted-foreground'
-                        }`}
-                    />
-                </span>
-                <span className="min-w-0">
-                    <span className="block truncate font-semibold text-sm">
-                        {agent.displayName}
-                    </span>
-                    <span className="block truncate text-muted-foreground text-sm">
-                        @{agent.handle}
-                    </span>
-                </span>
+            <span className="relative flex size-8 shrink-0 items-center justify-center overflow-visible">
+                <HostedAgentFace
+                    agent={agent}
+                    animate={false}
+                    size={32}
+                    style={{
+                        flexShrink: 0,
+                        height: 32,
+                        overflow: 'visible',
+                        width: 32,
+                    }}
+                />
+                <StatusDot
+                    className="absolute -right-0.5 -bottom-0.5 ring-2 ring-surface"
+                    size="md"
+                    status={agentStatus(agent.availability)}
+                />
+            </span>
+            <span className="min-w-0">
+                <span className="block truncate font-medium text-sm">{agent.displayName}</span>
+                <span className="block truncate text-muted text-xs">@{agent.handle}</span>
             </span>
         </NavLink>
     );
+}
+
+function agentStatus(availability: HostedAgent['availability']) {
+    switch (availability) {
+        case 'idle':
+            return 'success' as const;
+        case 'working':
+            return 'warning' as const;
+        case 'error':
+            return 'error' as const;
+        default:
+            return 'muted' as const;
+    }
 }

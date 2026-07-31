@@ -1,10 +1,12 @@
+import { Chip, Separator, Switch } from '@heroui/react';
+import { EmptyState } from '@heroui-pro/react';
 import type { HostedAgent, HostedMcpConnection } from '@tavern/api';
 import * as React from 'react';
-import { Badge } from '../../components/ui/badge.tsx';
-import { EmptyState } from '../../components/ui/empty-state.tsx';
-import { Separator } from '../../components/ui/separator.tsx';
-import { SettingsGroup, SettingsRow, SettingsSection } from '../../components/ui/settings-row.tsx';
-import { Switch } from '../../components/ui/switch.tsx';
+import {
+    SettingsGroup,
+    SettingsRow,
+    SettingsSection,
+} from '../../features/settings/layout/settings-page.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
 export function HostedAgentTools({
@@ -25,17 +27,27 @@ export function HostedAgentTools({
     );
 
     return (
-        <SettingsSection title={`Agent MCP access (${available.length})`}>
-            <p className="px-3 text-meta text-muted-foreground">
+        <SettingsSection
+            action={
+                <Chip size="sm" variant="soft">
+                    {available.length}
+                </Chip>
+            }
+            title="Agent MCP Access"
+        >
+            <p className="px-1 text-muted text-sm">
                 Choose which Server-managed MCP connections this Agent can use.
             </p>
             <SettingsGroup>
                 {available.length === 0 ? (
-                    <EmptyState
-                        className="py-10 md:py-12"
-                        description="Connect an MCP server in Settings → Connections."
-                        title="No connections available"
-                    />
+                    <EmptyState size="sm">
+                        <EmptyState.Header>
+                            <EmptyState.Title>No connections available</EmptyState.Title>
+                            <EmptyState.Description>
+                                Connect an MCP server in Settings → Connections.
+                            </EmptyState.Description>
+                        </EmptyState.Header>
+                    </EmptyState>
                 ) : (
                     available.map((connection, index) => {
                         const checked = connection.grants.some(
@@ -49,25 +61,32 @@ export function HostedAgentTools({
                                     title={
                                         <span className="flex min-w-0 items-center gap-2">
                                             <span className="truncate">{connection.name}</span>
-                                            <Badge variant="subtle">MCP</Badge>
+                                            <Chip size="sm" variant="soft">
+                                                MCP
+                                            </Chip>
                                         </span>
                                     }
+                                    trailingWidth="intrinsic"
                                 >
-                                    <div className="flex justify-start md:justify-end">
-                                        <Switch
-                                            aria-label={`Enable ${connection.name} for ${agent.displayName}`}
-                                            checked={checked}
-                                            disabled={setGrant.isPending}
-                                            onCheckedChange={(enabled) =>
-                                                setGrant.mutate({
-                                                    agentId: agent.id,
-                                                    connectionId: connection.id,
-                                                    enabled,
-                                                    serverId,
-                                                })
-                                            }
-                                        />
-                                    </div>
+                                    <Switch
+                                        aria-label={`Enable ${connection.name} for ${agent.displayName}`}
+                                        isDisabled={setGrant.isPending}
+                                        isSelected={checked}
+                                        onChange={(enabled) =>
+                                            setGrant.mutate({
+                                                agentId: agent.id,
+                                                connectionId: connection.id,
+                                                enabled,
+                                                serverId,
+                                            })
+                                        }
+                                    >
+                                        <Switch.Content>
+                                            <Switch.Control>
+                                                <Switch.Thumb />
+                                            </Switch.Control>
+                                        </Switch.Content>
+                                    </Switch>
                                 </SettingsRow>
                             </React.Fragment>
                         );

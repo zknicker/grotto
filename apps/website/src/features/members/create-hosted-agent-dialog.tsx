@@ -1,28 +1,19 @@
+import {
+    Alert,
+    Button,
+    Description,
+    Form,
+    Input,
+    Label,
+    ListBox,
+    Modal,
+    Select,
+    Spinner,
+    TextArea,
+    TextField,
+} from '@heroui/react';
 import type { HostedAgent, HostedComputerInventory } from '@tavern/api';
 import * as React from 'react';
-import { Alert, AlertDescription } from '../../components/ui/alert.tsx';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogPanel,
-    DialogTitle,
-} from '../../components/ui/dialog.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
-import { Field, FieldLabel } from '../../components/ui/primitives/field.tsx';
-import { Form } from '../../components/ui/primitives/form.tsx';
-import { Input } from '../../components/ui/primitives/input.tsx';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '../../components/ui/select.tsx';
-import { Spinner } from '../../components/ui/spinner.tsx';
-import { Textarea } from '../../components/ui/textarea.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { computerLabel } from '../computers/presentation.ts';
 import { createHostedAgentHandle } from './create-hosted-agent-handle.ts';
@@ -63,48 +54,51 @@ export function CreateHostedAgentDialog({
         }));
 
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent showCloseButton={false} size="lg">
-                <DialogHeader>
-                    <DialogTitle>Create Agent</DialogTitle>
-                    <DialogDescription>
-                        Choose where this Agent runs and what role it should take on.
-                    </DialogDescription>
-                </DialogHeader>
-                {open ? (
-                    computers.isPending ? (
-                        <div className="flex min-h-32 items-center justify-center">
-                            <Spinner className="size-4" />
-                        </div>
-                    ) : reported.length === 0 ? (
-                        <NoComputerState onClose={() => onOpenChange(false)} />
-                    ) : (
-                        <CreateHostedAgentForm
-                            agents={agents}
-                            firstAgent={agents.length === 0}
-                            onClose={() => onOpenChange(false)}
-                            onCreated={onCreated}
-                            reported={reported}
-                            serverId={serverId}
-                        />
-                    )
-                ) : null}
-            </DialogContent>
-        </Dialog>
+        <Modal isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Backdrop>
+                <Modal.Container scroll="outside" size="lg">
+                    <Modal.Dialog>
+                        <Modal.Header>
+                            <div className="min-w-0 flex-1">
+                                <Modal.Heading>Create Agent</Modal.Heading>
+                                <p className="mt-1 text-muted text-sm">
+                                    Choose where this Agent runs and what role it should take on.
+                                </p>
+                            </div>
+                        </Modal.Header>
+                        {computers.isPending ? (
+                            <Modal.Body>
+                                <div className="flex min-h-32 items-center justify-center">
+                                    <Spinner />
+                                </div>
+                            </Modal.Body>
+                        ) : reported.length === 0 ? (
+                            <NoComputerState />
+                        ) : (
+                            <CreateHostedAgentForm
+                                agents={agents}
+                                firstAgent={agents.length === 0}
+                                onCreated={onCreated}
+                                reported={reported}
+                                serverId={serverId}
+                            />
+                        )}
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
+        </Modal>
     );
 }
 
 function CreateHostedAgentForm({
     agents,
     firstAgent,
-    onClose,
     onCreated,
     reported,
     serverId,
 }: {
     agents: HostedAgent[];
     firstAgent: boolean;
-    onClose: () => void;
     onCreated: (agentId: string) => void;
     reported: ReportedComputer[];
     serverId: string;
@@ -150,41 +144,24 @@ function CreateHostedAgentForm({
     });
 
     return (
-        <Form className="contents" onSubmit={handleSubmit}>
-            <DialogPanel className="grid gap-4">
-                <Field>
-                    <FieldLabel>Computer</FieldLabel>
-                    <Select
-                        onValueChange={(value) => {
-                            const nextId = value ?? '';
+        <Form onSubmit={handleSubmit}>
+            <Modal.Body>
+                <div className="grid gap-4">
+                    <InventorySelect
+                        label="Computer"
+                        onChange={(nextId) => {
                             const next = reported.find((entry) => entry.id === nextId);
                             const firstRuntime = next?.inventory.runtimes[0];
                             setComputerId(nextId);
                             setRuntimeId(firstRuntime?.id ?? '');
                             setModelId(firstRuntime?.models[0]?.id ?? '');
                         }}
+                        options={reported}
                         value={computer?.id ?? ''}
-                    >
-                        <SelectTrigger aria-label="Computer">
-                            <SelectValue>{computer?.label}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                            {reported.map((entry) => (
-                                <SelectItem key={entry.id} value={entry.id}>
-                                    {entry.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor="create-agent-name">Name</FieldLabel>
-                    <Input
-                        autoFocus
-                        id="create-agent-name"
-                        maxLength={80}
-                        onChange={(event) => {
-                            const nextName = event.currentTarget.value;
+                    />
+                    <TextField
+                        fullWidth
+                        onChange={(nextName) => {
                             if (
                                 firstAgent &&
                                 displayName === 'Cove' &&
@@ -195,98 +172,111 @@ function CreateHostedAgentForm({
                             }
                             setDisplayName(nextName);
                         }}
-                        placeholder="e.g. Alice"
-                        type="text"
                         value={displayName}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor="create-agent-description">
-                        Description <span className="text-muted-foreground">(optional)</span>
-                    </FieldLabel>
-                    <Textarea
-                        id="create-agent-description"
-                        maxLength={500}
-                        onChange={(event) => setDescription(event.currentTarget.value)}
-                        placeholder="Leave blank for a general-purpose Agent, or describe a role…"
-                        rows={4}
-                        value={description}
-                    />
-                </Field>
-                <Field>
-                    <FieldLabel>Runtime</FieldLabel>
-                    <Select
-                        onValueChange={(value) => {
-                            const nextId = value ?? '';
+                    >
+                        <Label>Name</Label>
+                        <Input autoFocus maxLength={80} placeholder="e.g. Alice" />
+                    </TextField>
+                    <TextField fullWidth onChange={setDescription} value={description}>
+                        <Label>Description</Label>
+                        <TextArea
+                            maxLength={500}
+                            placeholder="Leave blank for a general-purpose Agent, or describe a role…"
+                            rows={4}
+                        />
+                        <Description>Optional</Description>
+                    </TextField>
+                    <InventorySelect
+                        label="Runtime"
+                        onChange={(nextId) => {
                             const nextRuntime = runtimes.find((entry) => entry.id === nextId);
                             setRuntimeId(nextId);
                             setModelId(nextRuntime?.models[0]?.id ?? '');
                         }}
+                        options={runtimes}
                         value={runtime?.id ?? ''}
-                    >
-                        <SelectTrigger aria-label="Runtime">
-                            <SelectValue>{runtime?.label}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                            {runtimes.map((entry) => (
-                                <SelectItem key={entry.id} value={entry.id}>
-                                    {entry.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </Field>
-                <Field>
-                    <FieldLabel>Model</FieldLabel>
-                    <Select
-                        onValueChange={(value) => setModelId(value ?? '')}
+                    />
+                    <InventorySelect
+                        label="Model"
+                        onChange={setModelId}
+                        options={models}
                         value={model?.id ?? ''}
-                    >
-                        <SelectTrigger aria-label="Model">
-                            <SelectValue>{model?.label}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                            {models.map((entry) => (
-                                <SelectItem key={entry.id} value={entry.id}>
-                                    {entry.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </Field>
-                {create.error ? (
-                    <Alert variant="error">
-                        <AlertDescription>{create.error.message}</AlertDescription>
-                    </Alert>
-                ) : null}
-            </DialogPanel>
-            <DialogFooter variant="bare">
-                <Button onClick={onClose} size="sm" type="button" variant="ghost">
+                    />
+                    {create.error ? (
+                        <Alert status="danger">
+                            <Alert.Content>
+                                <Alert.Description>{create.error.message}</Alert.Description>
+                            </Alert.Content>
+                        </Alert>
+                    ) : null}
+                </div>
+            </Modal.Body>
+            <Modal.Footer>
+                <Button slot="close" type="button" variant="secondary">
                     Cancel
                 </Button>
-                <Button disabled={!canSubmit} loading={create.isPending} size="sm" type="submit">
+                <Button isDisabled={!canSubmit} isPending={create.isPending} type="submit">
                     Create Agent
                 </Button>
-            </DialogFooter>
+            </Modal.Footer>
         </Form>
     );
 }
 
-function NoComputerState({ onClose }: { onClose: () => void }) {
+function InventorySelect({
+    label,
+    onChange,
+    options,
+    value,
+}: {
+    label: string;
+    onChange: (value: string) => void;
+    options: Array<{ id: string; label: string }>;
+    value: string;
+}) {
+    return (
+        <Select
+            fullWidth
+            onChange={(next) => onChange(next ? String(next) : '')}
+            value={value}
+            variant="secondary"
+        >
+            <Label>{label}</Label>
+            <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+                <ListBox>
+                    {options.map((option) => (
+                        <ListBox.Item id={option.id} key={option.id} textValue={option.label}>
+                            <Label>{option.label}</Label>
+                            <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                    ))}
+                </ListBox>
+            </Select.Popover>
+        </Select>
+    );
+}
+
+function NoComputerState() {
     return (
         <>
-            <DialogPanel>
-                <Alert>
-                    <AlertDescription>
-                        Connect an online Computer before creating an Agent.
-                    </AlertDescription>
+            <Modal.Body>
+                <Alert status="warning">
+                    <Alert.Content>
+                        <Alert.Description>
+                            Connect an online Computer before creating an Agent.
+                        </Alert.Description>
+                    </Alert.Content>
                 </Alert>
-            </DialogPanel>
-            <DialogFooter variant="bare">
-                <Button onClick={onClose} size="sm" type="button" variant="ghost">
+            </Modal.Body>
+            <Modal.Footer>
+                <Button slot="close" type="button" variant="secondary">
                     Close
                 </Button>
-            </DialogFooter>
+            </Modal.Footer>
         </>
     );
 }

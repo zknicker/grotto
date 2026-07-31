@@ -1,6 +1,7 @@
 import { SidebarRightIcon, UserMultiple02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
 import * as React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Badge } from '../../components/ui/badge.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -51,6 +52,7 @@ export function ServerChat({
     viewerUserId: string;
 }) {
     const [viewTab, setViewTab] = React.useState<ChatViewTab>('chat');
+    const [searchParams, setSearchParams] = useSearchParams();
     const { agentLifecycles } = useHostedServerContext();
     const artifactState = useHostedChatArtifactPanel(chat.id);
     const activeSidePane = useChatSidePane(chat.id);
@@ -101,18 +103,46 @@ export function ServerChat({
         threadSelection?.initialSummary ??
         null;
     const initialThreadChatId = initialTask?.threadChatId;
+    const threadAnchorId = searchParams.get('thread');
     React.useEffect(() => {
         if (initialThreadChatId) {
             setChatSidePane(chat.id, 'thread');
         }
     }, [chat.id, initialThreadChatId]);
+    React.useEffect(() => {
+        if (!(threadAnchorId && transcriptMessages)) {
+            return;
+        }
+        const anchor = transcriptMessages.find((message) => message.id === threadAnchorId);
+        if (!anchor || threadSelection?.anchor.id === anchor.id) {
+            return;
+        }
+        setThreadSelection({ anchor, initialSummary: null });
+        setChatSidePane(chat.id, 'thread');
+    }, [chat.id, threadAnchorId, threadSelection?.anchor.id, transcriptMessages]);
 
     const closeThread = () => {
         setThreadSelection(null);
+        setSearchParams(
+            (current) => {
+                const next = new URLSearchParams(current);
+                next.delete('thread');
+                return next;
+            },
+            { replace: true }
+        );
         setChatSidePane(chat.id, 'artifact');
     };
     const openThread = (anchor: HostedChatMessage, initialSummary: HostedThreadSummary | null) => {
         setThreadSelection({ anchor, initialSummary });
+        setSearchParams(
+            (current) => {
+                const next = new URLSearchParams(current);
+                next.set('thread', anchor.id);
+                return next;
+            },
+            { replace: true }
+        );
         setChatSidePane(chat.id, 'thread');
     };
     const viewThreadInChannel = () => {

@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import type { HostedDurableEvent } from '@tavern/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
@@ -6,9 +7,11 @@ import {
     laterHostedEventCursor,
     walkHostedEventCatchUp,
 } from './server-chat-event-cursor.ts';
+import { serverThreadMessagesQueryKey } from './use-server-thread-messages.ts';
 
 export function useServerChatEvents(serverId: string | undefined) {
     const utils = grottoTrpc.useUtils();
+    const queryClient = useQueryClient();
     const eventStateRef = React.useRef({ cursor: '0', serverId });
 
     if (eventStateRef.current.serverId !== serverId) {
@@ -40,6 +43,11 @@ export function useServerChatEvents(serverId: string | undefined) {
             invalidations.push(
                 ...[...new Set([...targets.messageChatIds, ...targets.parentChatIds])].map(
                     (chatId) => utils.chat.messages.invalidate({ chatId, serverId })
+                ),
+                ...targets.messageChatIds.map((chatId) =>
+                    queryClient.invalidateQueries({
+                        queryKey: serverThreadMessagesQueryKey(serverId, chatId),
+                    })
                 )
             );
 
@@ -47,6 +55,7 @@ export function useServerChatEvents(serverId: string | undefined) {
         },
         [
             serverId,
+            queryClient,
             utils.chat.list,
             utils.chat.messages,
             utils.chat.search,

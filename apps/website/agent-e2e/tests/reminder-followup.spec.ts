@@ -82,7 +82,7 @@ test('an Agent schedules and performs a one-shot business follow-up in its sourc
 
     await expect(panel.getByText(scheduleReceipt?.content ?? '', { exact: true })).toBeVisible();
     await expect(panel.getByText(receipts[0]?.content ?? '', { exact: true })).toBeVisible();
-    await expect(panel.getByText(result ?? '', { exact: true })).toBeVisible();
+    await expect(panel.getByText(result ?? '', { exact: true }).first()).toBeVisible();
     suite.reminder = { ...scheduled, status: 'fired' };
 });
 

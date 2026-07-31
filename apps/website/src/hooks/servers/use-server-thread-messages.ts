@@ -15,7 +15,7 @@ export function useServerThreadMessages(
         limit: 50,
         serverId: serverId ?? '',
     };
-    const queryKey = getQueryKey(grottoTrpc.chat.messages, input, 'infinite');
+    const queryKey = serverThreadMessagesQueryKey(input.serverId, input.chatId);
     const query = useInfiniteQuery<
         HostedThreadMessagePage,
         Error,
@@ -50,6 +50,14 @@ export function useServerThreadMessages(
 }
 
 type HostedThreadMessagePage = GrottoOutputs['chat']['messages'];
+
+export function serverThreadMessagesQueryKey(serverId: string, threadChatId: string) {
+    return getQueryKey(
+        grottoTrpc.chat.messages,
+        { chatId: threadChatId, limit: 50, serverId },
+        'infinite'
+    );
+}
 
 export function mergeHostedThreadMessagePages(
     pages: Array<{ messages: HostedChatMessage[] }> | undefined

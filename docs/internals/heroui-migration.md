@@ -133,36 +133,43 @@ sandboxed agent widgets render unthemed.
   Linear-style grouped list adapted from the operator's "Tracker Issue
   Manager" HeroUI AI Chat generation), reminders, computers, skills,
   overview chrome, and the no-server flow.
-- Phase 4 (2026-07-31, in progress): chat topbar is the shared
-  `SectionHeader` band, view tabs are HeroUI Tabs, the turn/tool drawer
-  stack is stock HeroUI Drawer (Chip/Disclosure/Alert inside), the
-  composer is Pro `PromptInput` with the ProseMirror mention editor
-  slotted into `PromptInput.Content` unchanged and Pro `ChatAttachment`
-  tiles, and the channel dialog / agent hover card / thread message menus
-  are Modal / Pro HoverCard / Pro ContextMenu. Dead tavern-era chat chrome
-  (old room topbar, channel edit dialog, participants control, pane
-  toggle, agent status stack) and the scripted-turn dev toolkit were
-  deleted outright. Remaining phase-4 surface: the transcript chrome
-  (message containers, day dividers, thinking steps, working log), the
-  artifact side panel (+ legacy pane/sidebar kit it holds alive), and the
-  thread panel chrome.
+- Phase 4 is DONE (2026-07-31): chat topbar on the shared `SectionHeader`
+  band, view tabs on HeroUI Tabs, turn/tool drawers on stock HeroUI
+  Drawer, composer on Pro `PromptInput` (ProseMirror mention editor
+  slotted into `PromptInput.Content` unchanged; Pro `ChatAttachment`
+  tiles for staged files), channel dialog / agent hover card / thread
+  menus on Modal / Pro HoverCard / Pro ContextMenu, thread panel on the
+  shared band metrics, and the artifact panel on Dropdown/ScrollShadow/
+  SearchField with a chat-owned closeable tab strip (RAC Tabs cannot
+  express per-tab close buttons). The transcript keeps its homegrown
+  Slack-roster containers — Pro `ChatMessage` is a two-party AI-chat
+  layout and does not fit a multi-party roster — now living in
+  `components/chats/` (message-scroller, message, bubble, day-divider,
+  attachment) on semantic tokens only. The workspace file tree stays on
+  `@pierre/trees` (Pro FileTree has no imperative/controlled API),
+  matching the skills tree. Dead tavern-era chat chrome and the
+  scripted-turn dev toolkit were deleted outright; sidebar rosters got a
+  shared `HostedAgentStatusFace` (presence dot outset past the visual
+  corner with a `ring-background` separation — the face art deliberately
+  overflows its layout box) and a domain `MemberInitialsAvatar` (stock
+  Avatar has no size below 32px).
 - Theme-layer follow-ups collected during phase 4 (all belong in
   `grotto-theme.css`, never call sites): drawer width — stock HeroUI side
   drawer is a fixed `w-96`, too narrow for diffs/terminal output (was
   36–40rem); circular send button for the composer if wanted (stock
-  Button radius is rounded, radius is not a prop).
-- Remaining legacy kit surface after the phase-4 sweeps: pane, message
-  scroller, message/bubble, day-divider, badge-divider, badge (transcript
-  + working log), surface, tabs (artifact panel), tabs-subtle (freed),
-  scroll-area, closeable-tab, resizable-pane-rail, sidebar kit (artifact
-  workspace holds `drawer.tsx` alive via `sidebar/layout.tsx`),
-  image-lightbox, context-menu (kept only for the desktop
-  `edit-context-menu` provider in `main.tsx`), attachment (transcript +
-  hosted attachments), collapsible (thinking steps), copy-button,
-  spinner remnants, textarea, alert, dialog (channel create was the last
-  Modal port; legacy `dialog.tsx` may already be freed — verify), icon
-  (sanctioned), status-dot (sanctioned), app-shell (Electron drag —
-  sanctioned), code-snippet. Phase 5 deletes the rest and rewrites
-  `DESIGN.md` around HeroUI.
+  Button radius is rounded, radius is not a prop). Known stock trade-off:
+  the artifact tab strip lost base-ui's arrow-key roving focus
+  (click/Enter selection now), and legacy three-tier muted text collapsed
+  to HeroUI's two tiers.
+- Legacy kit still standing after phase 4, with why: icon + status-dot +
+  app-shell (drag region) + resizable-pane-rail (sanctioned);
+  copy-button (hover-reveal behavior, port in phase 5); context-menu +
+  menu (desktop `edit-context-menu` provider in `main.tsx`); dialog +
+  alert-dialog + surface + scroll-area + autocomplete (manage-servers
+  dialog in `server-layout.tsx` and shared overlays); alert, spinner,
+  empty (one consumer each); badge (~9 non-chat consumers); textarea,
+  code-snippet, secret-input, image-lightbox, calendar and friends. Phase
+  5 ports/deletes the rest, drops the dead deps, rewrites `DESIGN.md`,
+  and repairs e2e.
 - e2e specs were only patched where copy changed; the full e2e repair pass
   remains phase-5 work.

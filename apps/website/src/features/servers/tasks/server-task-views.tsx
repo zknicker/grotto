@@ -1,4 +1,5 @@
-import { Kanban, ListView } from '@heroui-pro/react';
+import { Kanban } from '@heroui-pro/react';
+import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedTaskLabel } from '@tavern/api';
 import * as React from 'react';
 import { RelativeTime } from '../../../components/time/relative-time.tsx';
@@ -74,37 +75,112 @@ export function ServerTasksBoard({
     );
 }
 
-export function ServerTasksList({
-    canAssign,
-    labels,
-    onOpen,
-    serverId,
-    tasks,
-    viewerUserId,
-}: ServerTaskViewProps) {
+/**
+ * Linear-style grouped list: collapsible status groups with dense
+ * display-only rows; opening the task is the row action, and metadata
+ * edits live on the board cards and the task thread.
+ */
+export function ServerTasksList({ onOpen, tasks }: ServerTaskViewProps) {
+    const groups = React.useMemo(
+        () => groupServerTasks(tasks).filter((group) => group.tasks.length > 0),
+        [tasks]
+    );
+
     return (
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
-            <div className="mx-auto max-w-5xl">
-                <ListView aria-label="Tasks" items={tasks} variant="secondary">
-                    {(task: ServerTask) => (
-                        <ListView.Item id={task.id} textValue={task.title}>
-                            <ListView.ItemContent>
-                                <TaskSummary onOpen={onOpen} task={task} />
-                            </ListView.ItemContent>
-                            <ListView.ItemAction>
-                                <ServerTaskActions
-                                    canAssign={canAssign}
-                                    labels={labels}
-                                    serverId={serverId}
-                                    task={task}
-                                    viewerUserId={viewerUserId}
-                                />
-                            </ListView.ItemAction>
-                        </ListView.Item>
-                    )}
-                </ListView>
-            </div>
+        <div className="min-h-0 flex-1 overflow-y-auto pb-8">
+            {groups.map((group) => (
+                <TaskListGroup
+                    key={group.status}
+                    onOpen={onOpen}
+                    status={group.status}
+                    tasks={group.tasks}
+                />
+            ))}
         </div>
+    );
+}
+
+function TaskListGroup({
+    onOpen,
+    status,
+    tasks,
+}: {
+    onOpen: (task: ServerTask) => void;
+    status: ServerTask['status'];
+    tasks: ServerTask[];
+}) {
+    const [open, setOpen] = React.useState(true);
+
+    return (
+        <section>
+            <div className="sticky top-0 z-10 flex h-9 items-center gap-2 border-separator border-b bg-background/80 px-3 backdrop-blur">
+                <button
+                    aria-expanded={open}
+                    className="flex min-w-0 flex-1 cursor-[var(--cursor-interactive)] items-center gap-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    onClick={() => setOpen((value) => !value)}
+                    type="button"
+                >
+                    <Icon
+                        aria-hidden="true"
+                        className="size-3.5 shrink-0 text-muted transition-transform duration-150"
+                        icon={ArrowRight01Icon}
+                        style={{ transform: open ? 'rotate(90deg)' : 'none' }}
+                    />
+                    <Icon
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-muted"
+                        icon={taskStatusIcons[status]}
+                    />
+                    <span className="font-semibold text-foreground text-sm">
+                        {taskStatusLabels[status]}
+                    </span>
+                    <span className="text-muted text-xs tabular-nums">{tasks.length}</span>
+                </button>
+            </div>
+            <div
+                className="grid transition-[grid-template-rows] duration-200 ease-out"
+                style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+            >
+                <div className="overflow-hidden">
+                    <div className="divide-y divide-separator">
+                        {tasks.map((task) => (
+                            <TaskListRow key={task.id} onOpen={onOpen} task={task} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function TaskListRow({ onOpen, task }: { onOpen: (task: ServerTask) => void; task: ServerTask }) {
+    return (
+        <button
+            aria-label={`Open task #${task.number} ${task.title}`}
+            className="flex h-9 w-full cursor-[var(--cursor-interactive)] items-center gap-2 px-3 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+            onClick={() => onOpen(task)}
+            type="button"
+        >
+            <span className="w-10 shrink-0 text-right font-mono text-muted text-xs tabular-nums">
+                #{task.number}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-foreground text-sm">{task.title}</span>
+            <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
+                {task.labels.map((label) => (
+                    <LabelChip color={label.color} key={label.id} name={label.name} />
+                ))}
+                {task.priority === 'none' ? null : (
+                    <span className="text-muted text-xs">{taskPriorityLabels[task.priority]}</span>
+                )}
+                <span className="text-muted text-xs">{task.chatLabel}</span>
+            </div>
+            <span className="hidden shrink-0 text-muted text-xs tabular-nums sm:inline">
+                <RelativeTime value={task.updatedAt} />
+            </span>
+            <span className="w-24 shrink-0 truncate text-right text-muted text-xs">
+                {assigneeLabel(task)}
+            </span>
+        </button>
     );
 }
 

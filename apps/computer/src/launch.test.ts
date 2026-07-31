@@ -11,6 +11,7 @@ import {
     type Attachment,
     type HostedAgentStartCommand,
     parseResetCommand,
+    parseRestartCommand,
     resetAgentState,
     runAgentLaunch,
 } from './launch.ts';
@@ -300,7 +301,80 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
     }
 });
 
-test('session and full reset preserve only the intended Agent-local state', async () => {
+test('session reset rotates harness context while preserving Agent-owned state', async () => {
+    const { agentRoot, configuration, configurationJson } = await seedResetFixture();
+
+    expect(
+        parseResetCommand({
+            agentId: 'agt_reset',
+            kind: 'session',
+            sessionGeneration: 2,
+            type: 'agent-reset',
+        })
+    ).toEqual({
+        agentId: 'agt_reset',
+        kind: 'session',
+        sessionGeneration: 2,
+        type: 'agent-reset',
+    });
+    expect(
+        parseResetCommand({
+            agentId: 'agt_reset',
+            kind: 'unknown',
+            sessionGeneration: 2,
+            type: 'agent-reset',
+        })
+    ).toBe(null);
+
+    await resetAgentState({
+        agentId: configuration.agentId,
+        dataRoot,
+        kind: 'session',
+        serverId: 'srv_reset',
+    });
+
+    await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
+    await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
+    expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toBe(
+        '# Durable memory\n\nBluebird remains active.\n'
+    );
+    expect(await readFile(join(agentRoot, 'workspace', 'kept.txt'), 'utf8')).toBe('kept');
+    expect(await readFile(join(agentRoot, 'skills', 'custom-skill', 'SKILL.md'), 'utf8')).toBe(
+        'name: custom-skill\n'
+    );
+    expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
+});
+
+test('full reset independently clears harness context and restores the starter kit', async () => {
+    const { agentRoot, configuration, configurationJson } = await seedResetFixture();
+
+    await resetAgentState({
+        agentId: configuration.agentId,
+        dataRoot,
+        kind: 'full',
+        serverId: 'srv_reset',
+    });
+
+    await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
+    await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
+    await expect(stat(join(agentRoot, 'workspace', 'kept.txt'))).rejects.toThrow();
+    await expect(stat(join(agentRoot, 'skills', 'custom-skill'))).rejects.toThrow();
+    expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
+    expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toContain(
+        'notes/onboarding-playbook.md'
+    );
+    await expect(
+        readFile(join(agentRoot, 'workspace', 'notes', 'onboarding-objectives.md'), 'utf8')
+    ).resolves.toContain("# What I'm here to help the owner do");
+    await expect(
+        readFile(join(agentRoot, 'skills', 'tavern-agent', 'SKILL.md'), 'utf8')
+    ).resolves.toContain('# Grotto Agent');
+    await expect(
+        readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
+    ).resolves.toContain('name: visuals');
+});
+
+async function seedResetFixture() {
     const agentId = 'agt_resetxxxxxxxxxxx';
     const agentRoot = join(dataRoot, 'servers', 'srv_reset', 'agents', agentId);
     const configuration = parseAgentConfigureCommand({
@@ -331,64 +405,42 @@ test('session and full reset preserve only the intended Agent-local state', asyn
         },
         serverId: 'srv_reset',
     });
+    const configurationJson = await readFile(join(agentRoot, 'configuration.json'), 'utf8');
     await Promise.all(
-        ['home', 'skills', 'workspace', 'runtime', '.agent-runs'].map((dir) =>
-            mkdir(join(agentRoot, dir), { recursive: true })
+        ['home', 'skills', 'skills/custom-skill', 'workspace', 'runtime', '.agent-runs'].map(
+            (dir) => mkdir(join(agentRoot, dir), { recursive: true })
         )
     );
     await Promise.all([
-        writeFile(join(agentRoot, 'session.json'), '{}'),
+        writeFile(
+            join(agentRoot, 'session.json'),
+            JSON.stringify({
+                effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
+                generation: 1,
+                resumeState: {
+                    data: { nativeSessionId: 'native-reset-session' },
+                    harnessId: 'codex',
+                    type: 'resume-session',
+                },
+                runtimeSessionId: 'harness-reset-session',
+            })
+        ),
         writeFile(join(agentRoot, '.agent-runs', 'old-run'), 'state'),
+        writeFile(
+            join(agentRoot, 'workspace', 'MEMORY.md'),
+            '# Durable memory\n\nBluebird remains active.\n'
+        ),
         writeFile(join(agentRoot, 'workspace', 'kept.txt'), 'kept'),
+        writeFile(join(agentRoot, 'skills', 'custom-skill', 'SKILL.md'), 'name: custom-skill\n'),
     ]);
+    return { agentRoot, configuration, configurationJson };
+}
 
-    expect(
-        parseResetCommand({
-            agentId: 'agt_reset',
-            kind: 'session',
-            sessionGeneration: 2,
-            type: 'agent-reset',
-        })
-    ).toEqual({
-        agentId: 'agt_reset',
-        kind: 'session',
-        sessionGeneration: 2,
-        type: 'agent-reset',
+test('restart commands require one Agent id', () => {
+    expect(parseRestartCommand({ agentId: 'agt_restart', type: 'agent-restart' })).toEqual({
+        agentId: 'agt_restart',
+        type: 'agent-restart',
     });
-    expect(
-        parseResetCommand({
-            agentId: 'agt_reset',
-            kind: 'unknown',
-            sessionGeneration: 2,
-            type: 'agent-reset',
-        })
-    ).toBe(null);
-
-    await resetAgentState({
-        agentId: configuration.agentId,
-        dataRoot,
-        kind: 'session',
-        serverId: 'srv_reset',
-    });
-    await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
-    expect(await readFile(join(agentRoot, 'workspace', 'kept.txt'), 'utf8')).toBe('kept');
-
-    await resetAgentState({
-        agentId: configuration.agentId,
-        dataRoot,
-        kind: 'full',
-        serverId: 'srv_reset',
-    });
-    expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toContain(
-        'notes/onboarding-playbook.md'
-    );
-    await expect(stat(join(agentRoot, 'workspace', 'kept.txt'))).rejects.toThrow();
-    expect((await stat(join(agentRoot, 'configuration.json'))).isFile()).toBe(true);
-    await expect(
-        readFile(join(agentRoot, 'skills', 'tavern-agent', 'SKILL.md'), 'utf8')
-    ).resolves.toContain('# Grotto Agent');
-    await expect(
-        readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
-    ).resolves.toContain('name: visuals');
+    expect(parseRestartCommand({ agentId: '', type: 'agent-restart' })).toBe(null);
+    expect(parseRestartCommand({ agentId: 'agt_restart', type: 'agent-reset' })).toBe(null);
 });

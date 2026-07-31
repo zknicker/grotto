@@ -8,31 +8,54 @@
    skills: z.array(z.string()).optional(),
    // Resume signal. When true, the bridge passes `{ continue: true }` to the
    // Claude SDK so the in-workdir thread state is rehydrated. The host sets this
-@@ -472,6 +473,7 @@
+@@ -434,6 +435,7 @@
+       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
+       const isResume = lifecycleState != null;
+       const isContinue = startOpts.continueFrom != null;
++      const refreshInstructions = lifecycleState?.data?.refreshInstructions === true;
+       const coords = isResume ? lifecycleState?.data?.bridge : void 0;
+       const workDir = startOpts.sessionWorkDir;
+       const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+@@ -472,7 +474,9 @@
              model: settings.model,
              maxTurns: settings.maxTurns,
              thinking: settings.thinking,
 +            disallowedTools: settings.disallowedTools,
              isResume: true,
++            refreshInstructions,
              continueOnFirstPrompt: false,
              rerunContinue: false,
-@@ -590,6 +592,7 @@
+             bridgePort: coords.port,
+@@ -590,7 +594,9 @@
          model: settings.model,
          maxTurns: settings.maxTurns,
          thinking: settings.thinking,
 +        disallowedTools: settings.disallowedTools,
          isResume: respawnStrategy !== void 0,
++        refreshInstructions,
          continueOnFirstPrompt: respawnStrategy !== void 0,
          rerunContinue: respawnStrategy === "rerun",
-@@ -947,6 +950,7 @@
+         bridgePort: boundPort,
+@@ -947,7 +953,9 @@
    model,
    maxTurns,
    thinking,
 +  disallowedTools,
    isResume,
++  refreshInstructions,
    continueOnFirstPrompt,
    rerunContinue,
-@@ -1099,6 +1103,7 @@
+   bridgePort,
+@@ -960,7 +968,7 @@
+   let stopped = false;
+   let stopPromise;
+   let pendingResumeFlag = continueOnFirstPrompt;
+-  let instructionsApplied = isResume;
++  let instructionsApplied = isResume && !refreshInstructions;
+   const wireTurn = (turnOpts) => {
+     let pendingResolve;
+     let pendingReject;
+@@ -1099,6 +1107,7 @@
          model,
          maxTurns,
          thinking,
@@ -40,7 +63,7 @@
          ...skills.length > 0 ? { skills: skills.map((skill) => skill.name) } : {},
          ...permissionMode ? { permissionMode } : {},
          ...debug ? { debug } : {},
-@@ -1133,6 +1138,7 @@
+@@ -1133,6 +1142,7 @@
            model,
            maxTurns,
            thinking,

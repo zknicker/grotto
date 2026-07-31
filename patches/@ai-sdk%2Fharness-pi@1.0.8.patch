@@ -1,11 +1,6 @@
-diff --git a/node_modules/@ai-sdk/harness-pi/.bun-tag-f6b29c15a5a65fa2 b/.bun-tag-f6b29c15a5a65fa2
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-diff --git a/dist/index.js b/dist/index.js
-index 86ae6f9db637ede643a17a6625cc09278275e87e..3c82e3e4703e2b7562fb19228aa96a3cb564639f 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -263,10 +263,20 @@ function applyCustomEnv(customEnv, registries) {
+@@ -263,10 +263,20 @@
      if (!baseUrl) {
        continue;
      }
@@ -27,7 +22,7 @@ index 86ae6f9db637ede643a17a6625cc09278275e87e..3c82e3e4703e2b7562fb19228aa96a3c
      });
    }
    return out;
-@@ -379,7 +389,8 @@ function createPiModelResolver(modelRegistry, env = process.env) {
+@@ -379,7 +389,8 @@
      if (!effectiveId) return void 0;
      const models = loadModels();
      const matches = (m) => m.id === effectiveId || m.name === effectiveId;
@@ -37,3 +32,29 @@ index 86ae6f9db637ede643a17a6625cc09278275e87e..3c82e3e4703e2b7562fb19228aa96a3c
    };
  }
  
+@@ -1399,7 +1410,7 @@
+   ls: "readonly"
+ };
+ async function createPiSession(input) {
+-  if (input.isResume) {
++  if (input.isResume && !input.refreshInstructions) {
+     const parkedSession = parkedPiSessions.get(input.sessionId);
+     if (parkedSession) {
+       parkedPiSessions.delete(input.sessionId);
+@@ -1513,7 +1524,7 @@
+   let sessionFileName;
+   let stopped = false;
+   let suspending = false;
+-  let instructionsApplied = input.isResume;
++  let instructionsApplied = input.isResume && !input.refreshInstructions;
+   const pendingToolResults = /* @__PURE__ */ new Map();
+   const pendingToolApprovals = /* @__PURE__ */ new Map();
+   let currentEmit;
+@@ -2230,6 +2241,7 @@
+           ...settings.thinkingLevel ? { thinkingLevel: settings.thinkingLevel } : {}
+         },
+         isResume: lifecycleState != null,
++        refreshInstructions: resumeData?.refreshInstructions === true,
+         permissionMode: startOpts.permissionMode,
+         ...resumeData?.sessionFileName ? { resumeSessionFileName: resumeData.sessionFileName } : {},
+         ...startOpts.abortSignal ? { abortSignal: startOpts.abortSignal } : {}

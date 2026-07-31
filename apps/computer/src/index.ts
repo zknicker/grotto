@@ -39,6 +39,7 @@ import {
 } from './diagnostics.ts';
 import { readEffectiveAgentStates } from './effective-state.ts';
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
+import { requestSessionRestart } from './harness/session-restart.ts';
 import {
     acceptHostSkillImport,
     finishHostSkillImport,
@@ -58,6 +59,7 @@ import {
     type HostedAgentTurnFrame,
     parseNoticeCommand,
     parseResetCommand,
+    parseRestartCommand,
     parseServerDeleteCommand,
     parseStartCommand,
     parseStopCommand,
@@ -842,6 +844,30 @@ async function connect(attachment: Attachment) {
             const stop = parseStopCommand(frame);
             if (stop) {
                 running.get(stop.runId)?.abort();
+                return;
+            }
+            const restart = parseRestartCommand(frame);
+            if (restart) {
+                if (retiredAgents.has(restart.agentId)) {
+                    return;
+                }
+                void trackWriter(
+                    agentConfigurations
+                        .enqueue(restart.agentId, async () => {
+                            await runSettlements.wait(restart.agentId);
+                            disposeAgentLaunchHost(attachment.serverId, restart.agentId);
+                            await requestSessionRestart(
+                                join(
+                                    dataRoot,
+                                    'servers',
+                                    attachment.serverId,
+                                    'agents',
+                                    restart.agentId
+                                )
+                            );
+                        })
+                        .catch(reportStateError)
+                );
                 return;
             }
             const retirement = parseAgentRetireCommand(frame);

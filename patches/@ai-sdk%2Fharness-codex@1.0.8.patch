@@ -1,0 +1,53 @@
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -139,7 +139,8 @@
+ });
+ var codexResumeStateSchema = z2.object({
+   threadId: z2.string().optional(),
+-  bridge: codexBridgeCoordsSchema.optional()
++  bridge: codexBridgeCoordsSchema.optional(),
++  refreshInstructions: z2.boolean().optional()
+ });
+ function createCodex(settings = {}) {
+   let cachedBootstrap;
+@@ -192,6 +193,7 @@
+       const isResume = lifecycleState != null;
+       const isContinue = startOpts.continueFrom != null;
+       const resumeData = isResume && typeof lifecycleState?.data === "object" ? lifecycleState.data : void 0;
++      const refreshInstructions = resumeData?.refreshInstructions === true;
+       const resumeThreadId = resumeData?.threadId;
+       const resumeThreadIdString = typeof resumeThreadId === "string" && resumeThreadId.length > 0 ? resumeThreadId : void 0;
+       const coords = resumeData?.bridge;
+@@ -229,6 +231,7 @@
+             webSearch: settings.webSearch,
+             resumeThreadId: resumeThreadIdString,
+             isResume: true,
++            refreshInstructions,
+             seedResumeThreadOnFirstPrompt: false,
+             rerunContinue: false,
+             bridgePort: coords.port,
+@@ -323,6 +326,7 @@
+         webSearch: settings.webSearch,
+         resumeThreadId: resumeThreadIdString,
+         isResume: respawnStrategy !== void 0,
++        refreshInstructions,
+         seedResumeThreadOnFirstPrompt: respawnStrategy !== void 0,
+         rerunContinue: respawnStrategy === "rerun",
+         bridgePort: boundPort,
+@@ -502,6 +506,7 @@
+   webSearch,
+   resumeThreadId,
+   isResume,
++  refreshInstructions,
+   seedResumeThreadOnFirstPrompt,
+   rerunContinue,
+   bridgePort,
+@@ -513,7 +518,7 @@
+   let stopped = false;
+   let stopPromise;
+   let pendingResumeThreadId = seedResumeThreadOnFirstPrompt ? resumeThreadId : void 0;
+-  let instructionsApplied = isResume;
++  let instructionsApplied = isResume && !refreshInstructions;
+   let latestThreadId = resumeThreadId;
+   channel.on("bridge-thread", (msg) => {
+     latestThreadId = msg.threadId;

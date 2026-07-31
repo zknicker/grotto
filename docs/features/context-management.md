@@ -27,6 +27,9 @@ model session. Per-turn message delivery is an inbox concern; see
   stored resume state.
 - The first delivery to a fresh session begins with `Start.`. Later deliveries
   resume the same session without replaying that marker.
+- Restart recreates the Agent runner and resumes the same native conversation.
+  Its next delivery applies the latest composed instructions once without
+  rotating the session generation or replaying `Start.`.
 - Session reset preserves workspace, memory notes, skills, identity, and
   Server history. Full reset restores the factory starter kit.
 

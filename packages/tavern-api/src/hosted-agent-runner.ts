@@ -69,6 +69,19 @@ export const hostedAgentStopCommandSchema = z
 
 export type HostedAgentStopCommand = z.infer<typeof hostedAgentStopCommandSchema>;
 
+/**
+ * Recreates one Agent's harness runner while preserving its native conversation.
+ * The next resumed prompt receives the latest Computer-composed instructions.
+ */
+export const hostedAgentRestartCommandSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        type: z.literal('agent-restart'),
+    })
+    .strict();
+
+export type HostedAgentRestartCommand = z.infer<typeof hostedAgentRestartCommandSchema>;
+
 export const hostedAgentResetCommandSchema = z
     .object({
         agentId: hostedIdSchema,
@@ -319,6 +332,7 @@ export type HostedBrowserRequest = z.infer<typeof hostedBrowserRequestSchema>;
 export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
     hostedAgentStartCommandSchema,
     hostedAgentStopCommandSchema,
+    hostedAgentRestartCommandSchema,
     hostedAgentResetCommandSchema,
     hostedAgentRetireCommandSchema,
     hostedAgentConfigureCommandSchema,

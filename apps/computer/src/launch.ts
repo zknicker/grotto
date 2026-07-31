@@ -74,6 +74,12 @@ export interface HostedAgentStopCommand {
     type: 'stop';
 }
 
+/** Server→Computer command to refresh instructions without rotating context. */
+export interface HostedAgentRestartCommand {
+    agentId: string;
+    type: 'agent-restart';
+}
+
 /** Server→Computer command to rotate one Agent's local execution state. */
 export interface HostedAgentResetCommand {
     agentId: string;
@@ -370,6 +376,19 @@ export function parseStopCommand(frame: unknown): HostedAgentStopCommand | null 
         return null;
     }
     return { agentId: frame.agentId, runId: frame.runId, type: 'stop' };
+}
+
+/** Validates a Server→Computer restart command. Fails closed to null. */
+export function parseRestartCommand(frame: unknown): HostedAgentRestartCommand | null {
+    if (
+        !isRecord(frame) ||
+        frame.type !== 'agent-restart' ||
+        typeof frame.agentId !== 'string' ||
+        frame.agentId.length === 0
+    ) {
+        return null;
+    }
+    return { agentId: frame.agentId, type: 'agent-restart' };
 }
 
 /** Validates a Server→Computer reset command. Fails closed to null. */

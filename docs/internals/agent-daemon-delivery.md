@@ -95,6 +95,13 @@ Session reset preserves workspace, skills, identity, and Server history. Full
 reset restores the Agent's factory starter kit. Retirement is the only normal
 lifecycle operation that removes the Agent execution host.
 
+Human Restart is distinct from session reset. Server requires the assigned
+Computer to be online, stops any active run, and sends an `agent-restart`
+command before redriving pending work. Computer records that command durably,
+recreates the runner boundary, resumes the same native conversation, and
+applies the latest composed instructions exactly once on the next delivery.
+Ordinary resume never redelivers instructions.
+
 Reminders are canonical Server schedules anchored to an Agent and Chat
 target. When due, they enter the same delivery path as other work. Computer
 executes the resulting turn; it does not own an independent reminder
@@ -139,6 +146,7 @@ presentation plumbing.
 | Principle | Smallest proving lane |
 | --- | --- |
 | One persistent session; cold `Start.` then resume | `apps/computer/src/harness/executor.test.ts` |
+| Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
 | Tool names become bounded safe Activity evidence | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace; full reset restores only the starter kit | `apps/computer/src/launch.test.ts` |

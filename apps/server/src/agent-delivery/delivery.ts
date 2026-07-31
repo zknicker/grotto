@@ -219,6 +219,10 @@ export class AgentDelivery {
 
     /** Restarts the executor while preserving the Agent's current session. */
     async restart(input: { agentId: string; serverId: string }): Promise<void> {
+        const config = await store.readAgentDispatchConfig(this.db, input.agentId);
+        if (!(config?.computerId && this.transport.isOnline(config.computerId))) {
+            throw new Error('The assigned Computer must be online to restart this Agent.');
+        }
         const interrupted = await this.interruptActiveRun(input);
         if (interrupted) {
             if (interrupted.chatId) {
@@ -236,6 +240,14 @@ export class AgentDelivery {
                 runId: interrupted.runId,
                 type: 'stop',
             });
+        }
+        if (
+            !this.transport.send(config.computerId, {
+                agentId: input.agentId,
+                type: 'agent-restart',
+            })
+        ) {
+            throw new Error('The assigned Computer disconnected before the Agent could restart.');
         }
         const plan = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, input.serverId);

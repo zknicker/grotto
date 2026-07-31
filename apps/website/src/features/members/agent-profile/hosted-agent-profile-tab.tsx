@@ -20,6 +20,7 @@ import { formatSkillName } from '../../skills/skill-name-format.ts';
 import { AgentIdentityDialog } from './agent-identity-dialog.tsx';
 import { AgentSkillFileDialog } from './agent-skill-file-dialog.tsx';
 import { HostedAgentDangerSection } from './hosted-agent-danger-section.tsx';
+import { HostedAgentSessionSection } from './hosted-agent-session-section.tsx';
 import { RuntimeConfigDialog } from './runtime-config-dialog.tsx';
 import { resolveRuntimeConfig, runtimeConfigStatusLabel } from './runtime-config-model.ts';
 
@@ -226,6 +227,7 @@ export function HostedAgentProfileTab({
                         );
                     })}
                 </DetailSection>
+                {canEdit ? <HostedAgentSessionSection agent={agent} server={server} /> : null}
                 <HostedAgentDangerSection agent={agent} onDeleted={onDeleted} server={server} />
             </div>
             <AgentIdentityDialog

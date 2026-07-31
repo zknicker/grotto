@@ -17,6 +17,7 @@ import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { projectHostedMessageForAgent } from './rich-reference-projection.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
+import { clearSessionRestartRequest, isSessionRestartRequested } from './session-restart.ts';
 import {
     type AgentSessionState,
     readAgentSessionState,
@@ -90,20 +91,24 @@ export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTu
         modelId: input.modelId,
         runtimeId: input.runtimeId,
     });
-    // A rotated generation (fresh Agent or a runtime/model change) drops resume
-    // state and cold-starts; matching Runtime, instructions only ride a cold
-    // start — the adapter persists them in the runtime's own first message.
-    return await executeHarnessTurn(input, session);
+    const restartRequested = await isSessionRestartRequested(input.agentRoot);
+    const refreshInstructions = session.resumeState !== null && restartRequested;
+    const result = await executeHarnessTurn(input, session, refreshInstructions);
+    if (restartRequested) {
+        await clearSessionRestartRequest(input.agentRoot);
+    }
+    return result;
 }
 
 async function executeHarnessTurn(
     input: HarnessTurnInput,
-    session: AgentSessionState
+    session: AgentSessionState,
+    refreshInstructions: boolean
 ): Promise<HarnessTurnResult> {
     const skills = await readAgentSkills(input.skillsDir);
     // The Computer composes the managed Grotto operating contract itself; the
-    // harness adapter delivers it once, on the first message of a fresh (cold)
-    // session, and never re-applies it on resume (no-redelivery preserved).
+    // harness adapter delivers it on a fresh session or once after an explicit
+    // Restart. Ordinary resumes preserve the no-redelivery contract.
     const { instructions } = composeAgentInstructions({
         agentId: input.agentId,
         agentName: input.agentName,
@@ -119,6 +124,7 @@ async function executeHarnessTurn(
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
         const resumeFrom =
             (session.resumeState as HarnessAgentResumeSessionState | null) ?? undefined;
+        let effectiveResumeFrom = resumeFrom;
         // Unlike Runtime's DB-issued session ids, Computer derives its cold id
         // from the durable generation. A failed/interrupted cold start can leave
         // an unresumable harness run directory behind; remove only that exact
@@ -130,10 +136,24 @@ async function executeHarnessTurn(
                 recursive: true,
             });
         }
+        if (resumeFrom && refreshInstructions) {
+            let parked: HarnessAgentSession | undefined;
+            try {
+                parked = await agent.createSession({
+                    abortSignal: input.signal,
+                    resumeFrom,
+                    sessionId,
+                });
+                effectiveResumeFrom = withInstructionRefresh(await parked.stop());
+            } catch (error) {
+                await parked?.destroy().catch(() => undefined);
+                throw new AgentSessionResumeRejectedError(input.agentId, { cause: error });
+            }
+        }
         try {
             live = await agent.createSession({
                 abortSignal: input.signal,
-                resumeFrom,
+                resumeFrom: effectiveResumeFrom,
                 sessionId,
             });
         } catch (error) {
@@ -189,6 +209,18 @@ async function executeHarnessTurn(
         await live?.destroy().catch(() => undefined);
         throw error;
     }
+}
+
+function withInstructionRefresh(
+    state: HarnessAgentResumeSessionState
+): HarnessAgentResumeSessionState {
+    return {
+        ...state,
+        data: {
+            ...(isRecord(state.data) ? state.data : {}),
+            refreshInstructions: true,
+        },
+    };
 }
 
 function createNoticeDelivery(session: HarnessAgentSession, agentRoot: string) {

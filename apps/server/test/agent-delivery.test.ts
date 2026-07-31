@@ -510,6 +510,10 @@ test('Stop persists across a restart, suppresses wakes, and keeps accumulating',
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
     const delivery = new AgentDelivery(connection.db, transport);
+    const generationBefore = await connection.db
+        .select({ generation: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -547,6 +551,11 @@ test('Stop persists across a restart, suppresses wakes, and keeps accumulating',
     expect(starts).toHaveLength(2);
     expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['live work', 'while stopped']);
     expect((await readDeliveryState(connection.db, seed.agentId))?.stopped).toBe(false);
+    const generationAfter = await connection.db
+        .select({ generation: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(generationAfter).toEqual(generationBefore);
 });
 
 test('queues while the Computer is offline and redelivers on reconnect', async () => {
@@ -574,6 +583,38 @@ test('queues while the Computer is offline and redelivers on reconnect', async (
     expect(starts[0]?.runId).toBe(
         (await readDeliveryState(connection.db, seed.agentId))?.activeRunId
     );
+});
+
+test('repeated reconnects settle one durable result for one delivery', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'buffered once',
+        dedupeKey: 'msg-reconnect-once',
+        serverId: seed.serverId,
+    });
+
+    transport.online.add(seed.computerId);
+    await delivery.onComputerReconnect(seed.computerId);
+    await delivery.onComputerReconnect(seed.computerId);
+    await delivery.onComputerReconnect(seed.computerId);
+
+    const starts = transport.framesOfType('start');
+    expect(starts).toHaveLength(3);
+    expect(new Set(starts.map((frame) => frame.runId)).size).toBe(1);
+    const runId = starts[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
+    await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
+    await delivery.onComputerReconnect(seed.computerId);
+
+    expect(transport.framesOfType('start')).toHaveLength(3);
+    expect(await countTurns(seed.agentId)).toBe(1);
+    expect(await countAllPending(seed.agentId)).toBe(0);
 });
 
 test('records a duplicate turn summary exactly once', async () => {
@@ -653,6 +694,50 @@ test('a failed turn backs off instead of tight-looping', async () => {
     // The sweep respects the backoff window: no resend while retry_after is future.
     await delivery.sweep();
     expect(transport.framesOfType('start')).toHaveLength(1);
+});
+
+test('an expired backoff redrives and settles the queued work once', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'retry me',
+        dedupeKey: 'msg-backoff-expiry',
+        serverId: seed.serverId,
+    });
+    const firstRunId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId: firstRunId });
+    await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, firstRunId, 'failed'));
+    await connection.db
+        .update(agentDeliveryTable)
+        .set({ retryAfter: new Date(Date.now() - 1) })
+        .where(eq(agentDeliveryTable.agentId, seed.agentId));
+
+    await delivery.sweep();
+    const starts = transport.framesOfType('start');
+    expect(starts).toHaveLength(2);
+    expect(starts[1]?.runId).not.toBe(firstRunId);
+    expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['retry me']);
+
+    const retryRunId = starts[1]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId: retryRunId });
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, retryRunId, 'completed')
+    );
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, retryRunId, 'completed')
+    );
+    await delivery.sweep();
+
+    expect(transport.framesOfType('start')).toHaveLength(2);
+    expect(await countTurns(seed.agentId)).toBe(2);
+    expect(await countAllPending(seed.agentId)).toBe(0);
 });
 
 test('an operator-action failure degrades immediately instead of spending retries', async () => {
@@ -833,8 +918,27 @@ test('Restart preserves the session generation and immediately redrives pending 
     expect(transport.framesOfType('stop')).toEqual([
         { agentId: seed.agentId, runId: first?.runId, type: 'stop' },
     ]);
+    expect(transport.framesOfType('agent-restart')).toEqual([
+        { agentId: seed.agentId, type: 'agent-restart' },
+    ]);
     expect(transport.framesOfType('start')).toHaveLength(2);
     expect(transport.framesOfType('start')[1]?.runId).not.toBe(first?.runId);
+    const [agent] = await connection.db
+        .select({ generation: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(agent?.generation).toBe(1);
+});
+
+test('Restart fails without disturbing pending work when the assigned Computer is offline', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await expect(
+        delivery.restart({ agentId: seed.agentId, serverId: seed.serverId })
+    ).rejects.toThrow('The assigned Computer must be online');
+    expect(transport.sent).toEqual([]);
     const [agent] = await connection.db
         .select({ generation: agentsTable.sessionGeneration })
         .from(agentsTable)
@@ -1095,7 +1199,7 @@ test('agent-only chain ceiling preserves work until human intent arrives', async
     expect(transport.framesOfType('start')[0]?.inbox).toHaveLength(2);
 });
 
-test('a resent run keeps the runtime and model frozen at first dispatch', async () => {
+test('a resent run stays frozen and the next delivery uses the changed runtime and model', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
@@ -1122,6 +1226,28 @@ test('a resent run keeps the runtime and model frozen at first dispatch', async 
     const resent = transport.framesOfType('start')[1];
     expect(resent?.runId).toBe(first?.runId);
     expect(resent).toMatchObject({ modelId: 'fake-model', runtimeId: 'fake' });
+
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, first?.runId ?? '', 'completed')
+    );
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'next work',
+        dedupeKey: 'msg-2',
+        serverId: seed.serverId,
+    });
+
+    const next = transport.framesOfType('start')[2];
+    expect(next?.runId).not.toBe(first?.runId);
+    expect(next).toMatchObject({ modelId: 'new-model', runtimeId: 'new-runtime' });
+    expect(next?.inbox.map((item) => item.content)).toEqual(['next work']);
+    expect(
+        transport
+            .framesOfType('start')
+            .filter((frame) => frame.modelId === 'new-model' && frame.runtimeId === 'new-runtime')
+    ).toHaveLength(1);
 });
 
 test('bounds one drain and carries the overflow in a later run', async () => {

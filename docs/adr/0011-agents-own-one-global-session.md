@@ -69,7 +69,8 @@ likely multi-human future.
   recovery from Grotto history plus `MEMORY.md`/notes. Only a failed cold start
   leaves the Agent offline with an error.
 - **Reset is a human-initiated, agent-scoped contract** living in agent
-  settings: restart (restart the executor and resume the current session),
+  settings: restart (recreate the executor, resume the current native
+  conversation, and apply current instructions once on its next delivery),
   session reset (fresh context; workspace, `MEMORY.md`, and skills persist),
   and full reset (fresh context plus a wiped workspace, including
   `MEMORY.md`, canonical Agent skills, and runtime-local state). Full reset

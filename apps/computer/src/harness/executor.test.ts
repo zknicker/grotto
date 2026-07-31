@@ -16,6 +16,7 @@ import type { AgentSessionState } from './session-store.ts';
 // resume/reset/model-switch behavior is proven without a model call.
 
 interface CreateSessionCall {
+    refreshInstructions: boolean;
     resumeFrom: unknown;
     sessionId: string;
 }
@@ -25,6 +26,7 @@ let createSessionCalls: CreateSessionCall[];
 let restore: () => void;
 let rejectResume: boolean;
 let sentUserMessages: string[];
+let stoppedSessions: number;
 let streamedPrompts: string[];
 let streamToolNames: string[];
 
@@ -33,6 +35,7 @@ beforeEach(async () => {
     createSessionCalls = [];
     rejectResume = false;
     sentUserMessages = [];
+    stoppedSessions = 0;
     streamedPrompts = [];
     streamToolNames = [];
     restore = setHarnessAgentFactoryForTesting((_input, _options) => fakeAgent());
@@ -47,6 +50,7 @@ function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
     return {
         createSession: (async (options: { resumeFrom?: unknown; sessionId: string }) => {
             createSessionCalls.push({
+                refreshInstructions: hasInstructionRefresh(options.resumeFrom),
                 resumeFrom: options.resumeFrom,
                 sessionId: options.sessionId,
             });
@@ -62,6 +66,14 @@ function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
                     return true;
                 },
                 sessionId: 'engine_session_1',
+                stop: async () => {
+                    stoppedSessions += 1;
+                    return {
+                        data: { nativeSessionId: 'native_session_1' },
+                        harnessId: 'fake',
+                        type: 'resume-session',
+                    };
+                },
             };
         }) as unknown as HarnessAgent['createSession'],
         stream: (async (options: { prompt: string }) => {
@@ -79,6 +91,19 @@ function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
             };
         }) as unknown as HarnessAgent['stream'],
     };
+}
+
+function hasInstructionRefresh(resumeFrom: unknown): boolean {
+    if (
+        typeof resumeFrom !== 'object' ||
+        resumeFrom === null ||
+        !('data' in resumeFrom) ||
+        typeof resumeFrom.data !== 'object' ||
+        resumeFrom.data === null
+    ) {
+        return false;
+    }
+    return 'refreshInstructions' in resumeFrom.data && resumeFrom.data.refreshInstructions === true;
 }
 
 function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput {
@@ -190,6 +215,34 @@ test('a Server generation change cold-starts the assigned runtime and model', as
         modelId: 'claude-opus-4-8',
         runtimeId: 'claude-code',
     });
+});
+
+test('Restart resumes the same session and refreshes its current instructions once', async () => {
+    await runHarnessTurn(turnInput());
+    const runtimeDir = join(agentRoot, 'runtime');
+    await mkdir(runtimeDir, { recursive: true });
+    await writeFile(join(runtimeDir, 'restart-requested'), '');
+
+    await runHarnessTurn(turnInput());
+
+    expect(createSessionCalls[1]).toMatchObject({
+        refreshInstructions: false,
+        sessionId: 'engine_session_1',
+    });
+    expect(createSessionCalls[2]).toMatchObject({
+        refreshInstructions: true,
+        sessionId: 'engine_session_1',
+    });
+    expect(createSessionCalls[2]?.resumeFrom).toMatchObject({
+        data: { nativeSessionId: 'native_session_1', refreshInstructions: true },
+        type: 'resume-session',
+    });
+    expect(stoppedSessions).toBe(1);
+    expect((await readSession()).generation).toBe(1);
+    await expect(access(join(runtimeDir, 'restart-requested'))).rejects.toThrow();
+
+    await runHarnessTurn(turnInput());
+    expect(createSessionCalls[3]?.refreshInstructions).toBe(false);
 });
 
 test('a rejected resume returns control to the Server without local rotation', async () => {

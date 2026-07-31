@@ -521,14 +521,8 @@
      * The topbar itself has no background so the sidebar and main column
      * visually extend to the top of the window behind its controls.
      */
-    .app-shell {
-        background: var(--app-chrome-fill);
-    }
-
-    .app-shell[data-app-layout='sidebar'] {
-        background: var(--app-chrome-fill);
-    }
-
+    /* The shell paints no chrome fill of its own — the HeroUI --background
+       ground shows uniformly behind every surface, chat included. */
     .app-window-shell,
     .app-shell [data-slot='sidebar-container'].app-shell-sidebar,
     .app-shell [data-slot='sidebar-inner'] {

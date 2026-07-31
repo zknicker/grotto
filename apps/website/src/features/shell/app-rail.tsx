@@ -1,4 +1,4 @@
-import { Button, Description, Dropdown, Label } from '@heroui/react';
+import { Avatar, Button, Description, Dropdown, Label } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { ComputerIcon, Setting07Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -50,7 +50,7 @@ export function AppRail({
 
     return (
         <Sidebar.Provider
-            className="app-shell-sidebar-top-inset h-full min-h-0 w-auto shrink-0"
+            className="h-full min-h-0 w-auto shrink-0"
             collapsible="icon"
             open={false}
             toggleShortcut={false}
@@ -153,9 +153,9 @@ function ServerSwitcher({
                 isIconOnly
                 variant="ghost"
             >
-                <span className="grid size-6 place-items-center rounded-lg bg-accent font-semibold text-accent-foreground text-xs">
-                    {initial}
-                </span>
+                <Avatar className="size-6">
+                    <Avatar.Fallback>{initial}</Avatar.Fallback>
+                </Avatar>
             </Button>
             <Dropdown.Popover placement="right top">
                 <Dropdown.Menu

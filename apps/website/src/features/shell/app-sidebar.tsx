@@ -1,17 +1,17 @@
 import { Button } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
-import { Activity03Icon, ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot, type StatusDotProps } from '../../components/ui/status-dot.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { HostedAgentFace } from '../members/hosted-agent-face.tsx';
-import { serverActivityRoute, serverChatRoute } from '../servers/server-routes.ts';
+import { serverChatRoute } from '../servers/server-routes.ts';
 import { SidebarAccount } from './sidebar-account.tsx';
 
-/** Contextual sidebar for the server: activity, channels, and DMs. */
+/** Contextual sidebar for the server: channels and DMs. */
 export function AppSidebar({
     agents,
     chats,
@@ -32,29 +32,7 @@ export function AppSidebar({
 
     return (
         <Sidebar aria-label="Server">
-            <Sidebar.Header>
-                <div className="flex h-12 min-w-0 shrink-0 flex-col justify-center px-2">
-                    <span className="block truncate font-semibold text-sm">
-                        {currentServer.displayName}
-                    </span>
-                    <span className="block truncate text-muted text-xs">/{slug}</span>
-                </div>
-            </Sidebar.Header>
             <Sidebar.Content>
-                <Sidebar.Menu aria-label="Server home">
-                    <Sidebar.MenuItem
-                        href={serverActivityRoute(slug)}
-                        id="activity"
-                        textValue="Activity"
-                    >
-                        <Sidebar.MenuIcon>
-                            <Icon aria-hidden="true" icon={Activity03Icon} />
-                        </Sidebar.MenuIcon>
-                        <Sidebar.MenuItemContent>
-                            <Sidebar.MenuLabel>Activity</Sidebar.MenuLabel>
-                        </Sidebar.MenuItemContent>
-                    </Sidebar.MenuItem>
-                </Sidebar.Menu>
                 <ChatGroup
                     action={
                         <Button

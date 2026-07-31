@@ -1,16 +1,6 @@
+import { Button, Form, Input, Modal, TextField } from '@heroui/react';
 import type { HostedTaskLabel } from '@tavern/api';
 import * as React from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogPanel,
-    DialogTitle,
-} from '../../../components/ui/dialog.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Input } from '../../../components/ui/primitives/input.tsx';
 import { useCreateServerTaskLabel } from '../../../hooks/servers/use-create-server-task-label.ts';
 import { useDeleteServerTaskLabel } from '../../../hooks/servers/use-delete-server-task-label.ts';
 import { useUpdateServerTaskLabel } from '../../../hooks/servers/use-update-server-task-label.ts';
@@ -43,61 +33,71 @@ export function ServerTaskLabelsDialog({
     }
 
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent size="lg">
-                <DialogHeader>
-                    <DialogTitle>Task labels</DialogTitle>
-                    <DialogDescription>
-                        Server labels stay task-specific and are shared across this task board.
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogPanel className="grid gap-4">
-                    <form className="flex gap-2" onSubmit={createLabel}>
-                        <Input
-                            aria-label="New task label"
-                            onChange={(event) => setName(event.target.value)}
-                            placeholder="New label"
-                            size="sm"
-                            value={name}
-                        />
-                        <Button
-                            disabled={!name.trim()}
-                            loading={create.isPending}
-                            size="sm"
-                            type="submit"
-                        >
-                            Add label
-                        </Button>
-                    </form>
-                    {create.error ? (
-                        <p className="text-destructive text-sm" role="alert">
-                            {create.error.message}
-                        </p>
-                    ) : null}
-                    {labels.length === 0 ? (
-                        <p className="py-4 text-center text-muted-foreground text-sm">
-                            No task labels yet.
-                        </p>
-                    ) : (
-                        <ul className="grid max-h-72 gap-1 overflow-y-auto">
-                            {labels.map((label) => (
-                                <ServerTaskLabelRow
-                                    canManage={canManage}
-                                    key={label.id}
-                                    label={label}
-                                    serverId={serverId}
-                                />
-                            ))}
-                        </ul>
-                    )}
-                </DialogPanel>
-                <DialogFooter>
-                    <Button onClick={() => onOpenChange(false)} size="sm" variant="secondary">
-                        Done
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <Modal isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Backdrop>
+                <Modal.Container scroll="outside" size="lg">
+                    <Modal.Dialog>
+                        <Modal.Header>
+                            <div className="min-w-0 flex-1">
+                                <Modal.Heading>Task Labels</Modal.Heading>
+                                <p className="mt-1 text-muted text-sm">
+                                    Server labels stay task-specific and are shared across this task
+                                    board.
+                                </p>
+                            </div>
+                        </Modal.Header>
+                        <Modal.Body>
+                            <div className="grid gap-4">
+                                <Form className="flex items-end gap-2" onSubmit={createLabel}>
+                                    <TextField
+                                        aria-label="New task label"
+                                        className="flex-1"
+                                        onChange={setName}
+                                        value={name}
+                                        variant="secondary"
+                                    >
+                                        <Input placeholder="New label" />
+                                    </TextField>
+                                    <Button
+                                        isDisabled={!name.trim()}
+                                        isPending={create.isPending}
+                                        type="submit"
+                                    >
+                                        Add Label
+                                    </Button>
+                                </Form>
+                                {create.error ? (
+                                    <p className="text-danger text-sm" role="alert">
+                                        {create.error.message}
+                                    </p>
+                                ) : null}
+                                {labels.length === 0 ? (
+                                    <p className="py-4 text-center text-muted text-sm">
+                                        No task labels yet.
+                                    </p>
+                                ) : (
+                                    <ul className="grid max-h-72 gap-1 overflow-y-auto">
+                                        {labels.map((label) => (
+                                            <ServerTaskLabelRow
+                                                canManage={canManage}
+                                                key={label.id}
+                                                label={label}
+                                                serverId={serverId}
+                                            />
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button slot="close" type="button" variant="secondary">
+                                Done
+                            </Button>
+                        </Modal.Footer>
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
+        </Modal>
     );
 }
 
@@ -126,38 +126,42 @@ function ServerTaskLabelRow({
     };
 
     return (
-        <li className="flex items-center gap-2 rounded-lg px-1 py-1">
+        <li className="flex flex-wrap items-center gap-2 py-1">
             <LabelSwatchPicker
                 color={label.color}
                 disabled={!canManage || update.isPending}
                 onChange={(color) => update.mutate({ color, labelId: label.id, serverId })}
             />
-            <Input
+            <TextField
                 aria-label={`Rename ${label.name}`}
-                disabled={!canManage || update.isPending}
-                onBlur={commitName}
-                onChange={(event) => setName(event.target.value)}
-                onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                        event.currentTarget.blur();
-                    }
-                }}
-                size="sm"
+                className="flex-1"
+                isDisabled={!canManage || update.isPending}
+                onChange={setName}
                 value={name}
-            />
+                variant="secondary"
+            >
+                <Input
+                    onBlur={commitName}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                            event.currentTarget.blur();
+                        }
+                    }}
+                />
+            </TextField>
             {canManage ? (
                 <Button
                     aria-label={`Delete ${label.name}`}
-                    loading={remove.isPending}
-                    onClick={() => remove.mutate({ labelId: label.id, serverId })}
-                    size="xs"
-                    variant="destructive-ghost"
+                    isPending={remove.isPending}
+                    onPress={() => remove.mutate({ labelId: label.id, serverId })}
+                    size="sm"
+                    variant="danger-soft"
                 >
                     Delete
                 </Button>
             ) : null}
             {update.error || remove.error ? (
-                <span className="basis-full text-destructive text-xs" role="alert">
+                <span className="basis-full text-danger text-xs" role="alert">
                     {(update.error ?? remove.error)?.message}
                 </span>
             ) : null}

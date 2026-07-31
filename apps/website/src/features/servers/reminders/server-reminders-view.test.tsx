@@ -61,6 +61,6 @@ test('renders redacted hosted state and only scheduled cancellation actions', ()
     expect(markup).not.toContain('Reconnecting');
     expect(markup).toContain('All Agents');
     expect(markup).toContain('Script · 12 bytes · local execution only');
-    expect(markup.match(/Cancel reminder/g)).toHaveLength(1);
+    expect(markup.match(/Cancel Reminder/g)).toHaveLength(1);
     expect(markup).not.toContain('touch ');
 });

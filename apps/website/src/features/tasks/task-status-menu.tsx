@@ -1,9 +1,6 @@
-import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Button, Chip, Dropdown, Label } from '@heroui/react';
 import type * as React from 'react';
-import { Icon } from '../../components/ui/icon.tsx';
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from '../../components/ui/menu.tsx';
 import { useTaskUpdate } from '../../hooks/tasks/use-task-mutations.ts';
-import { cn } from '../../lib/utils.ts';
 import {
     type TaskStatus,
     taskStatusClasses,
@@ -13,14 +10,9 @@ import {
 
 export function TaskStatusPill({ status }: { status: TaskStatus }) {
     return (
-        <span
-            className={cn(
-                'inline-flex h-5 items-center rounded-sm px-1.5 font-mono text-caption uppercase tracking-wide',
-                taskStatusClasses[status]
-            )}
-        >
+        <Chip className={taskStatusClasses[status]} size="sm" variant="soft">
             {taskStatusLabels[status]}
-        </span>
+        </Chip>
     );
 }
 
@@ -38,34 +30,52 @@ export function TaskStatusMenu({
     status: TaskStatus;
 }) {
     const update = useTaskUpdate();
+
     return (
-        <Menu>
-            <MenuTrigger
-                aria-label={ariaLabel}
-                className="inline-flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
+        <Dropdown>
+            <Button aria-label={ariaLabel} size="sm" variant="ghost">
                 {children ?? <TaskStatusPill status={status} />}
                 {showPencil ? (
-                    <span aria-hidden="true" className="text-caption text-muted-foreground">
+                    <span aria-hidden="true" className="text-muted text-xs">
                         ✎
                     </span>
                 ) : null}
-            </MenuTrigger>
-            <MenuPopup align="end" className="min-w-40">
-                {taskStatusOrder.map((option) => (
-                    <MenuItem
-                        key={option}
-                        onClick={() => update.mutate({ messageId, patch: { status: option } })}
-                    >
-                        <span className="w-4">
-                            {option === status ? (
-                                <Icon className="size-4" icon={Tick02Icon} />
-                            ) : null}
-                        </span>
-                        <TaskStatusPill status={option} />
-                    </MenuItem>
-                ))}
-            </MenuPopup>
-        </Menu>
+            </Button>
+            <Dropdown.Popover placement="bottom end">
+                <Dropdown.Menu
+                    onSelectionChange={(keys) => {
+                        const next = selectedStatus(keys);
+                        if (next && next !== status) {
+                            update.mutate({ messageId, patch: { status: next } });
+                        }
+                    }}
+                    selectedKeys={[status]}
+                    selectionMode="single"
+                >
+                    {taskStatusOrder.map((option) => (
+                        <Dropdown.Item
+                            id={option}
+                            key={option}
+                            textValue={taskStatusLabels[option]}
+                        >
+                            <Label>
+                                <TaskStatusPill status={option} />
+                            </Label>
+                            <Dropdown.ItemIndicator />
+                        </Dropdown.Item>
+                    ))}
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
     );
+}
+
+function selectedStatus(keys: 'all' | Set<React.Key>): TaskStatus | null {
+    if (keys === 'all') {
+        return null;
+    }
+    const [first] = [...keys];
+    return typeof first === 'string' && taskStatusOrder.includes(first as TaskStatus)
+        ? (first as TaskStatus)
+        : null;
 }

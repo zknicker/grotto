@@ -1,5 +1,5 @@
+import { Button } from '@heroui/react';
 import type { HostedTaskLabel } from '@tavern/api';
-import { Button } from '../../../components/ui/primitives/button.tsx';
 import { useClaimServerTask } from '../../../hooks/servers/use-claim-server-task.ts';
 import { useUnclaimServerTask } from '../../../hooks/servers/use-unclaim-server-task.ts';
 import { ServerTaskAssignmentControl } from './server-task-assignment-control.tsx';
@@ -30,37 +30,37 @@ export function ServerTaskActions({
             <ServerTaskAssignmentControl enabled={canAssign} serverId={serverId} task={task} />
             {action === 'claim' || action === 'claim-reservation' ? (
                 <Button
-                    loading={claim.isPending}
-                    onClick={() =>
+                    isPending={claim.isPending}
+                    onPress={() =>
                         claim.mutate({
                             expectedVersion: task.version,
                             messageId: task.id,
                             serverId,
                         })
                     }
-                    size="xs"
+                    size="sm"
                     variant="secondary"
                 >
-                    {action === 'claim' ? 'Claim' : 'Claim reservation'}
+                    {action === 'claim' ? 'Claim' : 'Claim Reservation'}
                 </Button>
             ) : action === 'unclaim' ? (
                 <Button
-                    loading={unclaim.isPending}
-                    onClick={() =>
+                    isPending={unclaim.isPending}
+                    onPress={() =>
                         unclaim.mutate({
                             expectedVersion: task.version,
                             messageId: task.id,
                             serverId,
                         })
                     }
-                    size="xs"
+                    size="sm"
                     variant="ghost"
                 >
                     Unclaim
                 </Button>
             ) : null}
             {error ? (
-                <span className="basis-full text-destructive text-xs" role="alert">
+                <span className="basis-full text-danger text-xs" role="alert">
                     {error.message}
                 </span>
             ) : null}

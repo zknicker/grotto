@@ -1,11 +1,9 @@
+import { Button, Disclosure } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Link } from 'react-router-dom';
 import { ModelProviderBadge } from '../../components/badges/model-provider-badge.tsx';
-import { BadgeDivider } from '../../components/ui/badge-divider.tsx';
 import { CodeSnippet } from '../../components/ui/code-snippet.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { PaneTopbar, PaneTopbarTitle } from '../../components/ui/pane.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
 import { getModelProviderConfig } from '../../lib/model-provider-config.ts';
@@ -39,24 +37,24 @@ export function ComputerDetail({
 
     return (
         <div className="w-full pb-8">
-            <PaneTopbar className="px-5 sm:px-7">
+            <header className="flex h-10 items-center gap-2 border-separator border-b px-5 sm:px-7">
                 <Icon
                     aria-hidden="true"
-                    className="size-4 shrink-0 text-muted-foreground"
+                    className="size-4 shrink-0 text-muted"
                     icon={ComputerIcon}
                 />
-                <PaneTopbarTitle aria-level={1} role="heading">
+                <h1 className="min-w-0 truncate font-semibold text-sm">
                     {computerLabel(computer)}
-                </PaneTopbarTitle>
-                <p className="ml-auto flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
+                </h1>
+                <p className="ms-auto flex shrink-0 items-center gap-1.5 text-muted text-xs">
                     <StatusDot status={computerHealthStatus(computer.health)} />
                     {computerHealthLabel(computer.health)}
                 </p>
-            </PaneTopbar>
+            </header>
 
             <div className="px-5 sm:px-7">
                 <section className="grid gap-4 py-5">
-                    <BadgeDivider variant="subtle">Info</BadgeDivider>
+                    <h2 className="font-medium text-muted text-sm">Info</h2>
                     <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
                         <Fact label="System" value={computerSystemLabel(computer)} />
                         <Fact
@@ -74,7 +72,7 @@ export function ComputerDetail({
                         <Fact label="Created" value={formatDate(computer.createdAt)} />
                     </dl>
                     <div className="grid gap-2">
-                        <p className="text-meta text-muted-foreground">Detected runtimes</p>
+                        <p className="text-muted text-xs">Detected runtimes</p>
                         <div className="flex flex-wrap gap-1.5">
                             {runtimes.map((runtime) => (
                                 <RuntimeBadge key={runtime.id} runtime={runtime} />
@@ -84,11 +82,12 @@ export function ComputerDetail({
                 </section>
 
                 <section className="grid gap-4 py-5">
-                    <BadgeDivider subtext={agents.length.toString()} variant="subtle">
-                        Agents on this Computer
-                    </BadgeDivider>
+                    <h2 className="font-medium text-muted text-sm">
+                        Agents on This Computer
+                        <span className="ms-2 tabular-nums">{agents.length}</span>
+                    </h2>
                     {agents.length > 0 ? (
-                        <div className="divide-y divide-border/50">
+                        <div className="grid">
                             {agents.map((agent) => (
                                 <AgentRow
                                     agent={agent}
@@ -99,53 +98,50 @@ export function ComputerDetail({
                             ))}
                         </div>
                     ) : (
-                        <p className="text-base text-muted-foreground sm:text-sm">
-                            No Agents on this Computer.
-                        </p>
+                        <p className="text-muted text-sm">No Agents on this Computer.</p>
                     )}
                 </section>
 
                 <section className="grid gap-4 py-5">
-                    <BadgeDivider variant="subtle">Actions</BadgeDivider>
-                    <div className="divide-y divide-border/50">
-                        <div className="py-4">
-                            <ComputerUpdateControls computer={computer} serverId={serverId} />
-                        </div>
-                        <details className="py-4">
-                            <summary className="cursor-pointer font-medium text-foreground text-sm">
-                                Recovery commands
-                            </summary>
-                            <div className="grid gap-3 pt-3">
-                                <p className="text-base text-muted-foreground sm:text-sm">
-                                    If the App and this Computer disagree, check the machine
-                                    directly.
-                                </p>
-                                <CodeSnippet
-                                    lines={[
-                                        'grotto-computer status',
-                                        'grotto-computer doctor',
-                                        `grotto-computer restart /${serverSlug}`,
-                                        'grotto-computer upgrade --rollback',
-                                    ]}
-                                />
-                            </div>
-                        </details>
-                        <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className="font-medium text-muted text-sm">Actions</h2>
+                    <div className="grid gap-5">
+                        <ComputerUpdateControls computer={computer} serverId={serverId} />
+                        <Disclosure>
+                            <Disclosure.Heading>
+                                <Button slot="trigger" variant="ghost">
+                                    Recovery Commands
+                                    <Disclosure.Indicator />
+                                </Button>
+                            </Disclosure.Heading>
+                            <Disclosure.Content>
+                                <Disclosure.Body>
+                                    <div className="grid gap-3">
+                                        <p className="text-muted text-sm">
+                                            If the App and this Computer disagree, check the machine
+                                            directly.
+                                        </p>
+                                        <CodeSnippet
+                                            lines={[
+                                                'grotto-computer status',
+                                                'grotto-computer doctor',
+                                                `grotto-computer restart /${serverSlug}`,
+                                                'grotto-computer upgrade --rollback',
+                                            ]}
+                                        />
+                                    </div>
+                                </Disclosure.Body>
+                            </Disclosure.Content>
+                        </Disclosure>
+                        <div className="flex flex-col gap-3 border-separator border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2 className="font-medium text-foreground text-sm">
+                                <h3 className="font-medium text-foreground text-sm">
                                     Remove Computer
-                                </h2>
-                                <p className="text-base text-muted-foreground sm:text-sm">
+                                </h3>
+                                <p className="text-muted text-sm">
                                     Delete every Agent on this Computer first.
                                 </p>
                             </div>
-                            <Button
-                                className="text-destructive"
-                                onClick={onRemove}
-                                size="sm"
-                                type="button"
-                                variant="secondary"
-                            >
+                            <Button onPress={onRemove} size="sm" variant="danger-soft">
                                 Remove Computer
                             </Button>
                         </div>
@@ -185,7 +181,7 @@ function RuntimeBadge({
 function Fact({ label, value }: { label: string; value: string }) {
     return (
         <div className="grid gap-1">
-            <dt className="text-meta text-muted-foreground">{label}</dt>
+            <dt className="text-muted text-xs">{label}</dt>
             <dd className="font-medium text-foreground text-sm">{value}</dd>
         </div>
     );
@@ -204,7 +200,7 @@ function AgentRow({
 
     return (
         <Link
-            className="flex min-w-0 items-center gap-3 py-3 outline-none hover:bg-legacy-accent/20 focus-visible:bg-legacy-accent/20"
+            className="flex min-w-0 items-center gap-3 border-separator border-b py-3 outline-none last:border-b-0 hover:bg-surface-secondary focus-visible:bg-surface-secondary"
             to={`${serverMembersRoute(serverSlug)}/agents/${agent.id}`}
         >
             <span
@@ -220,11 +216,11 @@ function AgentRow({
             </span>
             <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
                 <p className="truncate font-medium text-foreground text-sm">{agent.displayName}</p>
-                <p className="truncate text-meta text-muted-foreground">
+                <p className="truncate text-muted text-xs">
                     {execution.runtime} · {execution.model}
                 </p>
             </div>
-            <div className="flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-1.5 text-muted text-xs">
                 <StatusDot status={availabilityStatus(agent.availability)} />
                 {availabilityLabel(agent.availability)}
             </div>

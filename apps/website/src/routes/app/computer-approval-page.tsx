@@ -1,5 +1,5 @@
+import { Button } from '@heroui/react';
 import { useSearchParams } from 'react-router-dom';
-import { Button } from '../../components/ui/primitives/button.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
 /** Browser-only, one-use approval for a Computer setup invocation. */
@@ -14,25 +14,23 @@ export function ComputerApprovalPage() {
         <main className="grid min-h-dvh place-content-center gap-4 px-6 text-center">
             <div className="space-y-1">
                 <h1 className="font-semibold text-foreground text-xl">Attach this Computer?</h1>
-                <p className="max-w-sm text-muted-foreground text-sm">
+                <p className="max-w-sm text-muted text-sm">
                     Server Owners and Admins can use this Computer’s configured execution capacity.
                 </p>
             </div>
             {approval.isSuccess ? (
-                <p className="text-muted-foreground text-sm">
-                    Approved. Return to Grotto Computer.
-                </p>
+                <p className="text-muted text-sm">Approved. Return to Grotto Computer.</p>
             ) : (
                 <Button
-                    disabled={invalid}
-                    loading={approval.isPending}
-                    onClick={() => approval.mutate({ approvalId, secret })}
+                    isDisabled={invalid}
+                    isPending={approval.isPending}
+                    onPress={() => approval.mutate({ approvalId, secret })}
                 >
                     Approve Computer
                 </Button>
             )}
             {approval.error ? (
-                <p className="text-destructive text-sm">{approval.error.message}</p>
+                <p className="text-danger text-sm">{approval.error.message}</p>
             ) : null}
         </main>
     );

@@ -1,23 +1,6 @@
-import { Alert, AlertDescription } from '../../../components/ui/alert.tsx';
-import { Badge } from '../../../components/ui/badge.tsx';
-import {
-    Pane,
-    PaneBody,
-    PaneTopbar,
-    PaneTopbarTitle,
-    SidePane,
-} from '../../../components/ui/pane.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { SearchInput } from '../../../components/ui/primitives/search-input.tsx';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '../../../components/ui/select.tsx';
+import { Alert, Button, Chip, Label, ListBox, SearchField, Select } from '@heroui/react';
+import { EmptyState } from '@heroui-pro/react';
 import { StatusDot } from '../../../components/ui/status-dot.tsx';
-import { Elevated } from '../../../components/ui/surface.tsx';
 import type { ServerReminderConnectionState } from '../../../hooks/servers/use-server-reminder-events.ts';
 import { formatTimestamp } from '../../../lib/format.ts';
 import type { GrottoOutputs } from '../../../lib/grotto-server.tsx';
@@ -28,11 +11,13 @@ type ReminderRun = GrottoOutputs['reminder']['runs'][number];
 type ReminderStatus = 'all' | 'canceled' | 'fired' | 'scheduled';
 
 const statusFilterLabels: Record<ReminderStatus, string> = {
-    all: 'All statuses',
+    all: 'All Statuses',
     canceled: 'Canceled',
     fired: 'Fired',
     scheduled: 'Scheduled',
 };
+
+const statusFilters = Object.keys(statusFilterLabels) as ReminderStatus[];
 
 interface ServerRemindersViewProps {
     actionErrorMessage: string | null;
@@ -79,178 +64,208 @@ export function ServerRemindersView({
 
     return (
         <div className="flex min-h-0 flex-1">
-            <Pane>
-                <PaneTopbar className="no-drag">
+            <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <header className="flex min-h-10 shrink-0 flex-wrap items-center gap-2 border-separator border-b px-3 py-1.5">
                     <Select
-                        onValueChange={(value) => {
-                            onAgentChange(value === 'all' ? null : value);
-                        }}
+                        aria-label="Filter by agent"
+                        onChange={(value) => onAgentChange(value === 'all' ? null : String(value))}
                         value={agentId ?? 'all'}
+                        variant="secondary"
                     >
-                        <SelectTrigger aria-label="Filter by agent" className="w-44">
-                            <SelectValue>
+                        <Select.Trigger>
+                            <Select.Value>
                                 {selectedAgent ? (
                                     <AgentOptionLabel agent={selectedAgent} />
                                 ) : (
                                     'All Agents'
                                 )}
-                            </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Agents</SelectItem>
-                            {agents.map((agent) => (
-                                <SelectItem key={agent.id} value={agent.id}>
-                                    <AgentOptionLabel agent={agent} />
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
+                            </Select.Value>
+                            <Select.Indicator />
+                        </Select.Trigger>
+                        <Select.Popover>
+                            <ListBox>
+                                <ListBox.Item id="all" textValue="All Agents">
+                                    <Label>All Agents</Label>
+                                    <ListBox.ItemIndicator />
+                                </ListBox.Item>
+                                {agents.map((agent) => (
+                                    <ListBox.Item
+                                        id={agent.id}
+                                        key={agent.id}
+                                        textValue={agent.name}
+                                    >
+                                        <Label>
+                                            <AgentOptionLabel agent={agent} />
+                                        </Label>
+                                        <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                ))}
+                            </ListBox>
+                        </Select.Popover>
                     </Select>
                     <Select
-                        onValueChange={(value) => {
-                            if (value) {
-                                onStatusChange(value as ReminderStatus);
-                            }
-                        }}
+                        aria-label="Filter by status"
+                        onChange={(value) => onStatusChange(String(value) as ReminderStatus)}
                         value={status}
+                        variant="secondary"
                     >
-                        <SelectTrigger aria-label="Filter by status" className="w-36">
-                            <SelectValue>{statusFilterLabels[status]}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                            {(Object.keys(statusFilterLabels) as ReminderStatus[]).map((value) => (
-                                <SelectItem key={value} value={value}>
-                                    {statusFilterLabels[value]}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
+                        <Select.Trigger>
+                            <Select.Value>{statusFilterLabels[status]}</Select.Value>
+                            <Select.Indicator />
+                        </Select.Trigger>
+                        <Select.Popover>
+                            <ListBox>
+                                {statusFilters.map((value) => (
+                                    <ListBox.Item
+                                        id={value}
+                                        key={value}
+                                        textValue={statusFilterLabels[value]}
+                                    >
+                                        <Label>{statusFilterLabels[value]}</Label>
+                                        <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                ))}
+                            </ListBox>
+                        </Select.Popover>
                     </Select>
-                    <SearchInput
+                    <SearchField
                         aria-label="Search hosted reminders"
-                        className="w-full max-w-96"
-                        onChange={(event) => onQueryChange(event.target.value)}
-                        placeholder="Search reminders..."
-                        size="default"
+                        className="min-w-48 flex-1"
+                        onChange={onQueryChange}
                         value={query}
-                    />
+                    >
+                        <SearchField.Group>
+                            <SearchField.SearchIcon />
+                            <SearchField.Input placeholder="Search reminders..." />
+                            <SearchField.ClearButton />
+                        </SearchField.Group>
+                    </SearchField>
                     {connectionState === 'connected' ? null : (
-                        <span className="ml-auto shrink-0 whitespace-nowrap text-meta text-muted-foreground">
+                        <span className="ms-auto shrink-0 whitespace-nowrap text-muted text-xs">
                             Reconnecting · showing last hosted state
                         </span>
                     )}
-                </PaneTopbar>
+                </header>
                 {actionErrorMessage ? (
-                    <Alert className="rounded-none border-x-0 border-t-0" variant="error">
-                        <AlertDescription>{actionErrorMessage}</AlertDescription>
-                    </Alert>
+                    <div className="px-6 pt-4">
+                        <Alert role="alert" status="danger">
+                            <Alert.Indicator />
+                            <Alert.Content>
+                                <Alert.Description>{actionErrorMessage}</Alert.Description>
+                            </Alert.Content>
+                        </Alert>
+                    </div>
                 ) : null}
-                <PaneBody className="overflow-y-auto px-6 py-5">
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
                     {isPending ? (
-                        <p className="text-muted-foreground text-sm">Loading reminders…</p>
+                        <p className="text-muted text-sm">Loading reminders…</p>
                     ) : reminders.length === 0 ? (
-                        <div className="grid min-h-52 place-content-center gap-1 text-center">
-                            <h2 className="font-medium text-foreground">No hosted reminders</h2>
-                            <p className="max-w-sm text-muted-foreground text-sm">
-                                Agents schedule reminders from messages and Threads. There is no
-                                creation or execution control on this operator page.
-                            </p>
-                        </div>
+                        <EmptyState>
+                            <EmptyState.Header>
+                                <EmptyState.Title>No hosted reminders</EmptyState.Title>
+                                <EmptyState.Description>
+                                    Agents schedule reminders from messages and Threads. There is no
+                                    creation or execution control on this operator page.
+                                </EmptyState.Description>
+                            </EmptyState.Header>
+                        </EmptyState>
                     ) : (
-                        <div className="grid gap-2">
+                        <ul className="grid gap-px overflow-hidden rounded-xl border border-separator">
                             {reminders.map((reminder) => (
-                                <Elevated
-                                    className="flex flex-wrap items-center gap-3 rounded-xl px-4 py-3"
+                                <ReminderRow
+                                    isCanceling={activeCancelId === reminder.id}
                                     key={reminder.id}
-                                    offset={1}
-                                >
-                                    <StatusDot
-                                        status={
-                                            reminder.status === 'scheduled' ? 'success' : 'muted'
-                                        }
-                                    />
-                                    <div className="min-w-52 flex-1">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="font-medium text-foreground text-sm">
-                                                {reminder.title}
-                                            </h3>
-                                            <Badge
-                                                variant={
-                                                    reminder.status === 'scheduled'
-                                                        ? 'success'
-                                                        : 'subtle'
-                                                }
-                                            >
-                                                {reminder.status}
-                                            </Badge>
-                                        </div>
-                                        <p className="text-meta text-muted-foreground">
-                                            {reminder.ownerLabel} · {reminder.schedule}
-                                        </p>
-                                        {reminder.scriptLabel ? (
-                                            <p className="mt-1 font-mono text-meta text-muted-foreground">
-                                                {reminder.scriptLabel}
-                                            </p>
-                                        ) : null}
-                                    </div>
-                                    <Button
-                                        onClick={() => onOpenRuns(reminder)}
-                                        size="sm"
-                                        variant="ghost"
-                                    >
-                                        Fire log
-                                    </Button>
-                                    {reminder.status === 'scheduled' ? (
-                                        <Button
-                                            loading={activeCancelId === reminder.id}
-                                            onClick={() => onCancel(reminder)}
-                                            size="sm"
-                                            variant="destructive-ghost"
-                                        >
-                                            Cancel reminder
-                                        </Button>
-                                    ) : null}
-                                </Elevated>
+                                    onCancel={onCancel}
+                                    onOpenRuns={onOpenRuns}
+                                    reminder={reminder}
+                                />
                             ))}
-                        </div>
+                        </ul>
                     )}
-                </PaneBody>
-            </Pane>
+                </div>
+            </section>
             {selectedReminder ? (
-                <SidePane className="w-80 flex-col bg-sidebar">
-                    <PaneTopbar className="bg-transparent">
-                        <PaneTopbarTitle className="font-medium">
-                            Fire log
-                            <span className="ml-2 font-normal text-muted-foreground">
+                <aside className="flex w-80 shrink-0 flex-col border-separator border-l">
+                    <header className="flex h-10 shrink-0 items-center gap-2 border-separator border-b px-3">
+                        <h2 className="min-w-0 truncate font-medium text-sm">
+                            Fire Log
+                            <span className="ms-2 font-normal text-muted">
                                 {selectedReminder.title}
                             </span>
-                        </PaneTopbarTitle>
-                        <Button className="ml-auto" onClick={onCloseRuns} size="xs" variant="ghost">
+                        </h2>
+                        <Button className="ms-auto" onPress={onCloseRuns} size="sm" variant="ghost">
                             Close
                         </Button>
-                    </PaneTopbar>
-                    <PaneBody className="gap-3 overflow-y-auto p-4">
+                    </header>
+                    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
                         {runsPending ? (
-                            <p className="text-muted-foreground text-sm">Loading fire log…</p>
+                            <p className="text-muted text-sm">Loading fire log…</p>
                         ) : runs.length === 0 ? (
-                            <p className="text-muted-foreground text-sm">No fires yet.</p>
+                            <p className="text-muted text-sm">No fires yet.</p>
                         ) : (
                             runs.map((run) => (
-                                <Elevated
-                                    className="rounded-lg p-3 text-sm"
-                                    key={run.id}
-                                    offset={1}
-                                >
-                                    <p className="text-foreground">
+                                <div key={run.id}>
+                                    <p className="text-foreground text-sm">
                                         Fired {formatTimestamp(run.firedAt)}
                                     </p>
-                                    <p className="text-meta text-muted-foreground">
+                                    <p className="text-muted text-xs">
                                         Scheduled {formatTimestamp(run.scheduledFor)}
                                     </p>
-                                </Elevated>
+                                </div>
                             ))
                         )}
-                    </PaneBody>
-                </SidePane>
+                    </div>
+                </aside>
             ) : null}
         </div>
+    );
+}
+
+function ReminderRow({
+    isCanceling,
+    onCancel,
+    onOpenRuns,
+    reminder,
+}: {
+    isCanceling: boolean;
+    onCancel: (reminder: HostedReminderListItem) => void;
+    onOpenRuns: (reminder: HostedReminderListItem) => void;
+    reminder: HostedReminderListItem;
+}) {
+    return (
+        <li className="flex flex-wrap items-center gap-3 bg-surface px-4 py-3">
+            <StatusDot status={reminder.status === 'scheduled' ? 'success' : 'muted'} />
+            <div className="min-w-52 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-medium text-foreground text-sm">{reminder.title}</h3>
+                    <Chip
+                        color={reminder.status === 'scheduled' ? 'success' : 'default'}
+                        size="sm"
+                        variant="soft"
+                    >
+                        {reminder.status}
+                    </Chip>
+                </div>
+                <p className="text-muted text-xs">
+                    {reminder.ownerLabel} · {reminder.schedule}
+                </p>
+                {reminder.scriptLabel ? (
+                    <p className="mt-1 font-mono text-muted text-xs">{reminder.scriptLabel}</p>
+                ) : null}
+            </div>
+            <Button onPress={() => onOpenRuns(reminder)} size="sm" variant="ghost">
+                Fire Log
+            </Button>
+            {reminder.status === 'scheduled' ? (
+                <Button
+                    isPending={isCanceling}
+                    onPress={() => onCancel(reminder)}
+                    size="sm"
+                    variant="danger-soft"
+                >
+                    Cancel Reminder
+                </Button>
+            ) : null}
+        </li>
     );
 }

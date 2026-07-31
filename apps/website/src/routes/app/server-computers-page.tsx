@@ -1,12 +1,9 @@
+import { Button, Chip, Tooltip } from '@heroui/react';
+import { EmptyState } from '@heroui-pro/react';
 import { ComputerIcon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Empty, EmptyDescription, EmptyHeader } from '../../components/ui/empty.tsx';
-import { EmptyState } from '../../components/ui/empty-state.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { navSelectedClass } from '../../components/ui/nav.tsx';
-import { SidePane } from '../../components/ui/pane.tsx';
-import { Button } from '../../components/ui/primitives/button.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { AddComputerDialog } from '../../features/computers/add-computer-dialog.tsx';
 import {
@@ -47,33 +44,35 @@ export function ServerComputersPage() {
             role={server.role}
         >
             <div className="flex h-full min-h-0 w-full">
-                <SidePane
-                    className="app-shell-sidebar-top-inset w-72 flex-col bg-sidebar"
-                    side="left"
-                >
-                    <div className="mb-2 flex items-center justify-between px-3">
-                        <h1 className="flex items-center gap-2 font-mono text-sidebar-muted text-xs uppercase tracking-wider">
+                <aside className="app-shell-sidebar-top-inset flex w-72 shrink-0 flex-col border-separator border-r">
+                    <div className="mb-2 flex items-center justify-between gap-2 px-3">
+                        <h1 className="flex items-center gap-2 font-medium text-muted text-sm">
                             <span>Computers</span>
-                            <span className="tabular-nums">{items.length}</span>
+                            <Chip size="sm" variant="soft">
+                                {items.length}
+                            </Chip>
                         </h1>
-                        <Button
-                            aria-label="Add Computer"
-                            onClick={() => setAdding(true)}
-                            size="icon-sm"
-                            title="Add Computer"
-                            variant="ghost"
-                        >
-                            <Icon aria-hidden="true" icon={PlusSignIcon} />
-                        </Button>
+                        <Tooltip>
+                            <Button
+                                aria-label="Add Computer"
+                                isIconOnly
+                                onPress={() => setAdding(true)}
+                                size="sm"
+                                variant="ghost"
+                            >
+                                <Icon aria-hidden="true" icon={PlusSignIcon} />
+                            </Button>
+                            <Tooltip.Content>Add Computer</Tooltip.Content>
+                        </Tooltip>
                     </div>
                     <div className="min-h-0 flex-1 overflow-y-auto p-2">
                         {items.map((computer) => (
                             <button
                                 className={cn(
-                                    'flex w-full items-start gap-2.5 rounded-lg px-3 py-2 text-left text-sm',
+                                    'flex w-full items-start gap-2.5 rounded-lg px-3 py-2 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-focus',
                                     selected?.id === computer.id
-                                        ? navSelectedClass
-                                        : 'hover:bg-[var(--nav-hover)]'
+                                        ? 'bg-surface-secondary'
+                                        : 'hover:bg-surface-secondary'
                                 )}
                                 key={computer.id}
                                 onClick={() => setSearchParams({ computer: computer.id })}
@@ -81,14 +80,14 @@ export function ServerComputersPage() {
                             >
                                 <Icon
                                     aria-hidden="true"
-                                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                                    className="mt-0.5 size-4 shrink-0 text-muted"
                                     icon={ComputerIcon}
                                 />
                                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                                     <span className="truncate font-medium">
                                         {computerLabel(computer)}
                                     </span>
-                                    <span className="flex items-center gap-1.5 text-meta text-muted-foreground">
+                                    <span className="flex items-center gap-1.5 text-muted text-xs">
                                         <StatusDot status={computerHealthStatus(computer.health)} />
                                         {computerHealthLabel(computer.health)} · v
                                         {computer.productVersion ?? '—'}
@@ -97,16 +96,12 @@ export function ServerComputersPage() {
                             </button>
                         ))}
                         {items.length === 0 ? (
-                            <Empty className="px-3 py-10 md:py-10">
-                                <EmptyHeader>
-                                    <EmptyDescription size="sm">
-                                        No Computers attached.
-                                    </EmptyDescription>
-                                </EmptyHeader>
-                            </Empty>
+                            <p className="px-3 py-10 text-center text-muted text-sm">
+                                No Computers attached.
+                            </p>
                         ) : null}
                     </div>
-                </SidePane>
+                </aside>
                 <main className="min-w-0 flex-1 overflow-y-auto">
                     {selected ? (
                         <ComputerDetail
@@ -117,11 +112,23 @@ export function ServerComputersPage() {
                             serverSlug={slug}
                         />
                     ) : (
-                        <EmptyState
-                            className="min-h-full"
-                            description="Computers run Agents and keep their workspaces, runtime access, and execution state on your machine."
-                            title="Attach a Computer"
-                        />
+                        <div className="flex min-h-full items-center justify-center p-6">
+                            <EmptyState>
+                                <EmptyState.Header>
+                                    <EmptyState.Media variant="icon">
+                                        <Icon icon={ComputerIcon} />
+                                    </EmptyState.Media>
+                                    <EmptyState.Title>Attach a Computer</EmptyState.Title>
+                                    <EmptyState.Description>
+                                        Computers run Agents and keep their workspaces, runtime
+                                        access, and execution state on your machine.
+                                    </EmptyState.Description>
+                                </EmptyState.Header>
+                                <EmptyState.Content>
+                                    <Button onPress={() => setAdding(true)}>Add Computer</Button>
+                                </EmptyState.Content>
+                            </EmptyState>
+                        </div>
                     )}
                 </main>
                 <AddComputerDialog onOpenChange={setAdding} open={adding} serverSlug={slug} />

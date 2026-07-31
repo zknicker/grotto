@@ -13,7 +13,7 @@ test('renders a durable error state without replacing it with an empty board', (
 
     expect(html).toContain('Tasks unavailable');
     expect(html).toContain('You no longer have access');
-    expect(html).toContain('text-destructive');
+    expect(html).toContain('role="alert"');
 });
 
 test('renders loading copy as a non-error snapshot state', () => {
@@ -22,6 +22,6 @@ test('renders loading copy as a non-error snapshot state', () => {
     );
 
     expect(html).toContain('Loading tasks');
-    expect(html).toContain('text-muted-foreground');
-    expect(html).not.toContain('text-destructive');
+    expect(html).toContain('Fetching the Server task snapshot.');
+    expect(html).not.toContain('role="alert"');
 });

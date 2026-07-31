@@ -1,8 +1,7 @@
+import { Alert, Button, SearchField, Tabs, ToggleButton, ToggleButtonGroup } from '@heroui/react';
+import { EmptyState } from '@heroui-pro/react';
 import type { HostedChat } from '@tavern/api';
 import * as React from 'react';
-import { PaneTopbar } from '../../../components/ui/pane.tsx';
-import { Button } from '../../../components/ui/primitives/button.tsx';
-import { Input } from '../../../components/ui/primitives/input.tsx';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
 import { NewServerTaskDialog } from './new-server-task-dialog.tsx';
@@ -19,7 +18,7 @@ import { ServerTasksBoard, ServerTasksList } from './server-task-views.tsx';
 type ServerTaskMode = 'board' | 'list';
 
 const viewOptions: Array<{ label: string; value: ServerTaskView }> = [
-    { label: 'All tasks', value: 'all' },
+    { label: 'All', value: 'all' },
     { label: 'Active', value: 'active' },
     { label: 'Unassigned', value: 'unassigned' },
 ];
@@ -55,52 +54,62 @@ export function ServerTasksSurface({
 
     return (
         <section aria-label="Server tasks" className="flex min-h-0 flex-1 flex-col">
-            <PaneTopbar className="no-drag">
-                <nav aria-label="Task views" className="flex items-center gap-1">
-                    {viewOptions.map((option) => (
-                        <Button
-                            key={option.value}
-                            onClick={() => setView(option.value)}
-                            size="sm"
-                            variant={view === option.value ? 'secondary' : 'ghost'}
-                        >
-                            {option.label}
-                        </Button>
-                    ))}
-                </nav>
-                <Input
+            <header className="flex min-h-10 shrink-0 flex-wrap items-center gap-2 border-separator border-b px-3 py-1.5">
+                <Tabs
+                    onSelectionChange={(value) => setView(String(value) as ServerTaskView)}
+                    selectedKey={view}
+                    variant="secondary"
+                >
+                    <Tabs.ListContainer>
+                        <Tabs.List aria-label="Task views">
+                            {viewOptions.map((option) => (
+                                <Tabs.Tab id={option.value} key={option.value}>
+                                    {option.label}
+                                    <Tabs.Indicator />
+                                </Tabs.Tab>
+                            ))}
+                        </Tabs.List>
+                    </Tabs.ListContainer>
+                </Tabs>
+                <SearchField
                     aria-label="Search tasks"
                     className="min-w-48 flex-1"
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search tasks"
-                    size="sm"
-                    type="search"
+                    onChange={setQuery}
                     value={query}
-                />
-                <div className="flex items-center gap-1 rounded-lg bg-legacy-muted p-0.5">
-                    {(['board', 'list'] as const).map((option) => (
-                        <Button
-                            aria-pressed={mode === option}
-                            key={option}
-                            onClick={() => setMode(option)}
-                            size="xs"
-                            variant={mode === option ? 'secondary' : 'ghost'}
-                        >
-                            {option === 'board' ? 'Board' : 'List'}
-                        </Button>
-                    ))}
-                </div>
-                <Button onClick={() => setLabelsOpen(true)} size="sm" variant="secondary">
-                    Task labels
-                </Button>
-                <Button
-                    disabled={chatOptions.length === 0}
-                    onClick={() => setComposeOpen(true)}
+                >
+                    <SearchField.Group>
+                        <SearchField.SearchIcon />
+                        <SearchField.Input placeholder="Search tasks..." />
+                        <SearchField.ClearButton />
+                    </SearchField.Group>
+                </SearchField>
+                <ToggleButtonGroup
+                    aria-label="Task layout"
+                    disallowEmptySelection
+                    onSelectionChange={(keys) => {
+                        const [next] = [...keys];
+                        if (next === 'board' || next === 'list') {
+                            setMode(next);
+                        }
+                    }}
+                    selectedKeys={[mode]}
+                    selectionMode="single"
                     size="sm"
                 >
-                    New task
+                    <ToggleButton id="board">Board</ToggleButton>
+                    <ToggleButton id="list">List</ToggleButton>
+                </ToggleButtonGroup>
+                <Button onPress={() => setLabelsOpen(true)} size="sm" variant="secondary">
+                    Task Labels
                 </Button>
-            </PaneTopbar>
+                <Button
+                    isDisabled={chatOptions.length === 0}
+                    onPress={() => setComposeOpen(true)}
+                    size="sm"
+                >
+                    New Task
+                </Button>
+            </header>
 
             {tasksQuery.error ? (
                 <ServerTaskState
@@ -160,6 +169,8 @@ export function ServerTasksSurface({
     );
 }
 
+// The board's non-task states. A lost snapshot is an alert, not an empty
+// board — the operator must be able to tell "no tasks" from "no access".
 export function ServerTaskState({
     description,
     title,
@@ -169,16 +180,28 @@ export function ServerTaskState({
     title: string;
     tone?: 'error' | 'muted';
 }) {
+    if (tone === 'error') {
+        return (
+            <div className="flex flex-1 items-center justify-center p-6">
+                <Alert role="alert" status="danger">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                        <Alert.Title>{title}</Alert.Title>
+                        <Alert.Description>{description}</Alert.Description>
+                    </Alert.Content>
+                </Alert>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-1 px-6 text-center">
-            <h2 className="font-medium text-foreground">{title}</h2>
-            <p
-                className={
-                    tone === 'error' ? 'text-destructive text-sm' : 'text-muted-foreground text-sm'
-                }
-            >
-                {description}
-            </p>
+        <div className="flex flex-1 items-center justify-center p-6">
+            <EmptyState>
+                <EmptyState.Header>
+                    <EmptyState.Title>{title}</EmptyState.Title>
+                    <EmptyState.Description>{description}</EmptyState.Description>
+                </EmptyState.Header>
+            </EmptyState>
         </div>
     );
 }

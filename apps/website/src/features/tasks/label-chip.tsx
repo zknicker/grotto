@@ -1,20 +1,17 @@
+import { Chip } from '@heroui/react';
 import type { TaskLabelColor } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
 import { taskLabelChipClass, taskLabelDotClass } from './label-colors.ts';
 
-// A colored label pill for board rows and pickers. Not the shared Badge: labels
-// own their palette rather than the badge status variants.
+// A colored label pill for board rows and pickers. A soft Chip carrying the
+// task-label palette: labels own their nine product colors rather than the
+// chip status colors.
 export function LabelChip({ color, name }: { color: TaskLabelColor; name: string }) {
     return (
-        <span
-            className={cn(
-                'inline-flex max-w-40 items-center gap-1 rounded-sm px-1.5 py-0.5 font-medium text-xs',
-                taskLabelChipClass[color]
-            )}
-        >
-            <span className={cn('size-1.5 shrink-0 rounded-full', taskLabelDotClass[color])} />
-            <span className="truncate">{name}</span>
-        </span>
+        <Chip className={taskLabelChipClass[color]} size="sm" variant="soft">
+            <LabelDot color={color} />
+            <Chip.Label className="max-w-40 truncate">{name}</Chip.Label>
+        </Chip>
     );
 }
 

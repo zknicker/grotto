@@ -22,7 +22,9 @@ const {
     waitForAgentQuiet,
 } = harness;
 
-const [alpha, beta] = await requireAgents(2);
+const agents = await requireAgents(2);
+const alpha = agents.find((agent) => agent.desiredModelId?.includes('terra')) ?? agents[0];
+const beta = agents.find((agent) => agent.id !== alpha.id) ?? agents[1];
 const all = await requireChannel('all');
 const product = await requireChannel('product');
 
@@ -58,6 +60,23 @@ try {
         assert(
             replies.length === 0,
             `expected DM silence, got: ${replies.join(' | ').slice(0, 200)}`
+        );
+    });
+
+    await scenario('DM brevity: ordinary question gets only the requested answer', async () => {
+        const dm = requireDm(alpha);
+        const head = await readHead(dm);
+        const token = `READY-${stamp}`;
+        await send(dm, `Ordinary status check: reply with exactly ${token} and nothing else.`);
+        const messages = await pollMessages(
+            dm,
+            (rows) => authoredBy(rows, alpha.id, head).some((text) => text.includes(token)),
+            240_000
+        );
+        const replies = authoredBy(messages, alpha.id, head);
+        assert(
+            replies.length === 1 && replies[0]?.trim() === token,
+            `expected one exact reply, got: ${replies.join(' | ').slice(0, 200)}`
         );
     });
 

@@ -17,8 +17,8 @@ import { getStoredAgent, updateStoredAgent, upsertStoredAgent } from './agents-s
 const now = '2026-06-29T12:00:00.000Z';
 
 // Prompt CONTENT is guarded by agent-prompt-contract.test.ts; this suite
-// covers composition mechanics: body + model-family sections, the
-// description-fed initial role, and the session freshness fingerprint.
+// covers composition mechanics, the description-fed initial role, and the
+// session freshness fingerprint.
 describe('agent instructions', () => {
     let skillsDir: string;
     let workspaceDir: string;
@@ -90,36 +90,19 @@ describe('agent instructions', () => {
         expect(await agentSessionInstructionsFresh(session)).toBe(false);
     });
 
-    it('adds tool-use enforcement and execution discipline for gpt-family models', async () => {
+    it.each([
+        'gpt-5.5',
+        'gemini-2.5-pro',
+        'claude-opus-4-8',
+    ])('adds no model-specific steering for %s', async (model) => {
         const instructions = await buildAgentInstructions(
-            executorInput({ workspaceFolder: workspaceDir }, 'gpt-5.5'),
-            { db: getDb(), skillsDir }
-        );
-
-        expect(instructions).toContain('## Tool-Use Enforcement');
-        expect(instructions).toContain('## Execution Discipline');
-        expect(instructions).not.toContain('## Operational Directives');
-    });
-
-    it('adds Google operational directives for gemini models', async () => {
-        const instructions = await buildAgentInstructions(
-            executorInput({ workspaceFolder: workspaceDir }, 'gemini-2.5-pro'),
-            { db: getDb(), skillsDir }
-        );
-
-        expect(instructions).toContain('## Tool-Use Enforcement');
-        expect(instructions).toContain('## Operational Directives');
-        expect(instructions).not.toContain('## Execution Discipline');
-    });
-
-    it('adds no model steering for claude models', async () => {
-        const instructions = await buildAgentInstructions(
-            executorInput({ workspaceFolder: workspaceDir }, 'claude-opus-4-8'),
+            executorInput({ workspaceFolder: workspaceDir }, model),
             { db: getDb(), skillsDir }
         );
 
         expect(instructions).not.toContain('## Tool-Use Enforcement');
         expect(instructions).not.toContain('## Execution Discipline');
+        expect(instructions).not.toContain('## Operational Directives');
     });
 
     it('keeps assigned skills out of the instruction text (W2)', async () => {

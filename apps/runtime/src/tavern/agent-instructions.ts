@@ -7,7 +7,6 @@ import type { AgentRuntimeContextFacts } from '../workspace/instructions.ts';
 import type { AgentExecutorInput } from './agent-executor.ts';
 import { readAgentSessionInstructionsHash } from './agent-session-store.ts';
 import { getStoredAgent } from './agents-store.ts';
-import { modelOperationalInstructions } from './model-instructions.ts';
 
 // PROMPT CONTRACT: this module composes every agent's system prompt. Text
 // changes must pass agent-prompt-contract.test.ts and need explicit operator
@@ -48,8 +47,7 @@ export async function buildAgentInstructionBundle(
         seedSkills: options.seedSkills,
         skillsDir: options.skillsDir,
     });
-    const modelSections = modelOperationalInstructions(input.agentSession.effectiveModel);
-    const instructions = [prepared.content, ...(modelSections ? [modelSections] : [])].join('\n\n');
+    const instructions = prepared.content;
     const fingerprint = createHash('sha256').update(instructions).digest('hex');
     return { fingerprint, instructions };
 }

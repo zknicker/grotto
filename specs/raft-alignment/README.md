@@ -257,11 +257,9 @@ inbox. Human **Start** resumes the current session and drains that work.
 - **D3 — Raft memory model wholesale.** Retired: `USER.md`/`MEMORY.md` core-memory injection,
   capture/extraction, dreaming, memory workers/jobs/settings surfaces, the Memory capability
   gate, `NOTES.md` injection. Agents self-maintain `MEMORY.md` (index) + `notes/` in their
-  workspace, taught by Raft's Workspace & Memory + compaction-safety sections verbatim, with
-  "re-read/update at natural boundaries" added (global sessions reset rarely, so startup-only
-  reading is not enough). Hygiene is social: seeded habits + self-scheduled review reminders +
-  human correction, not pipelines. Existing core memory content is seeded into workspaces as a
-  manual cutover step.
+  workspace, taught by Raft's Workspace & Memory + compaction-safety sections verbatim. Hygiene
+  is social: seeded habits + self-scheduled review reminders + human correction, not pipelines.
+  Existing core memory content is seeded into workspaces as a manual cutover step.
 - **D3b — Wiki removed as a Grotto primitive.** `wiki_*` tools, per-turn recall injection,
   TAXONOMY routing, and operator CLI wiki verbs all retire. If a shared vault survives it is a
   plain folder some agent tends, not product.
@@ -431,14 +429,14 @@ one deliberate diff; `bun run eval:prompt` runs against a dev stack after the sw
 ### Raft sections taken (verbatim modulo naming)
 
 Identity + `## Who you are`; `## Current Runtime Context`; `## Communication — CLI ONLY`
-(grotto command families); `### Credential hygiene` (minus profile-resolution paragraph, until
+(grotto command families); Raft's credential-intent policy (minus the profile-resolution paragraph, until
 external agents); CRITICAL RULES; `## Startup sequence`; `## Messaging` header contract;
 `### Sending messages` + draft flow (`GROTTOMSG` delimiter); `### Reminders`; `### Threads`;
 `### Discovering people and channels`; `### Channel awareness`; `### Reading history`;
 `### Historical references`; `### Tasks` + splitting (reconciled to D8); `## @Mentions`;
 `## Communication style` + etiquette; Formatting sections; `## Workspace & Memory` + MEMORY.md +
-compaction safety (now our entire memory story per D3, plus the natural-boundaries re-read
-line); `## Capabilities`; `## Message Notifications`; `## Initial role`.
+compaction safety (now our entire memory story per D3); `## Capabilities`;
+`## Message Notifications`; `## Initial role`.
 
 ### Raft sections not taken
 
@@ -455,11 +453,9 @@ line); `## Capabilities`; `## Message Notifications`; `## Initial role`.
 
 Outputs & Visuals (the landed rev3 skill pointer — `visual`/`artifact` fences ride send bodies,
 taught by the seeded visuals skill; the widget catalog and `document` fence died pre-flip with
-main a20acd0c); per-plugin CLI mentions; **Security** (3 bullets — omitted from the original
-disposition tables in error, retained by WS2-prep ruling); model-family operational sections
-(unchanged mechanism; empirical per-family behavior patches, re-earn-their-place candidates at
-post-flip evals); web-access lines. ~~SOUL~~ and ~~Skills listing~~ retired by W2 — identity is
-description + memory; skill discovery is harness-native.
+main a20acd0c); per-plugin CLI mentions; web-access lines. ~~SOUL~~ and ~~Skills listing~~ retired
+by W2 — identity is description + memory; skill discovery is harness-native. Grotto adds no
+general security override or model-family steering.
 
 ### What dies
 

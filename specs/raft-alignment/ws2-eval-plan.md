@@ -22,8 +22,9 @@ the current scenario list.
 | Scenario (today) | Disposition |
 | --- | --- |
 | handoff: mention dispatches a turn on the target seat | Keep — assert the mentioned agent wakes and acts (delivery now via inbox) |
-| silence: FYI-only mention ends with NO_REPLY | Rewrite → **silence-is-default**: turn ends with zero `message send` calls; no NO_REPLY artifact anywhere |
-| dm silence: explicit no-response FYI ends with zero sends | Keep — asserts that an explicit no-response instruction wins in a DM, matching Raft's silence-by-default contract |
+| silence: FYI-only mention ends with NO_REPLY | Rewrite → turn ends with zero `message send` calls; this is a matched Raft behavioral regression, not extra prompt policy |
+| dm silence: explicit no-response FYI ends with zero sends | Keep — matched Raft behavioral regression; both products rely on model judgment |
+| dm brevity: ordinary question gets only the requested answer | Add — proves ordinary DMs still receive a response while the Raft brevity contract suppresses preamble and routine narration |
 | cross-post: chat_send lands exact text in a member chat | Rewrite — `message send --target "#other"` lands exact text |
 | consult: cross-post mention wakes the agent in the target chat | Keep, CLI form |
 | cross-post refusal: non-member chat stays untouched | Rewrite — send to unjoined channel fails; agent reports instead of forcing |
@@ -57,11 +58,7 @@ the current scenario list.
    turn, each answered to its own exact target.
 8. **Fresh-session recovery.** After a session reset, first turn re-reads
    MEMORY.md before acting (guards the fresh-session line + startup step 2).
-9. **Memory at natural boundaries.** After completing a multi-step task, the
-   agent updates MEMORY.md/notes without being asked (guards the D3
-   natural-boundaries line — the behavior D3 depends on, since capture and
-   dreaming are gone).
-10. **No polling.** After finishing work with nothing pending, the agent stops
+9. **No polling.** After finishing work with nothing pending, the agent stops
     — no sleep loops, no repeated `message check`.
 
 ## Cut list

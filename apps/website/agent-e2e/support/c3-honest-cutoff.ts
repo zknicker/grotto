@@ -159,11 +159,7 @@ async function cleanupC3Resources(
     for (const cleanup of [
         () =>
             deleteCreatedChats(harness, chatIds, (operation, label) =>
-                withCleanupTimeout(
-                    operation,
-                    `C3 ${label}`,
-                    10_000
-                )
+                withCleanupTimeout(operation, `C3 ${label}`, 10_000)
             ),
         () => deleteTemporaryAgents(harness, agents),
         () => withCleanupTimeout(harness.cleanup(), 'C3 harness cleanup', 15_000),

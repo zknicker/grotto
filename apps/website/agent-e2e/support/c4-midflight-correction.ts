@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
+import { cleanupEvalChats } from './cleanup-eval-chats.ts';
 
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 
@@ -117,7 +118,10 @@ async function cleanupC4Resources(
 ) {
     const failures: unknown[] = [];
     for (const cleanup of [
-        () => deleteCreatedChats(harness, chatIds),
+        () =>
+            cleanupEvalChats(harness, chatIds, (operation, label) =>
+                withCleanupTimeout(operation, `C4 ${label}`, 10_000)
+            ),
         () => deleteTemporaryAgents(harness, agents),
         () => withCleanupTimeout(harness.cleanup(), 'C4 harness cleanup', 15_000),
     ]) {
@@ -133,32 +137,6 @@ async function cleanupC4Resources(
     throw new AggregateError(
         originalError === undefined ? failures : [originalError, ...failures],
         `C4 resource cleanup failed: ${failures.map(formatCleanupFailure).join('; ')}`
-    );
-}
-
-async function deleteCreatedChats(
-    harness: Awaited<ReturnType<typeof createEvalHarness>>,
-    chatIds: string[]
-) {
-    const requestedChatIds = new Set(chatIds);
-    const tasks = (await withCleanupTimeout(
-        harness.trpc('task.list', { serverId: harness.serverId }),
-        'list C4 task Threads for cleanup',
-        10_000
-    )) as TaskItem[];
-    for (const task of tasks) {
-        if (requestedChatIds.has(task.task.chatId)) {
-            requestedChatIds.add(task.task.threadChatId);
-        }
-    }
-    const exactChatIds = [...requestedChatIds];
-    await withCleanupTimeout(
-        harness.trpc('dev.cleanupEvalChats', {
-            chatIds: exactChatIds,
-            serverId: harness.serverId,
-        }),
-        `delete request for C4 chats ${exactChatIds.join(', ')}`,
-        10_000
     );
 }
 

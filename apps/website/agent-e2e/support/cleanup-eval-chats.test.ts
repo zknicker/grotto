@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { expandEvalCleanupChatIds, type EvalCleanupTask } from './cleanup-eval-chats.ts';
+import { type EvalCleanupTask, expandEvalCleanupChatIds } from './cleanup-eval-chats.ts';
 
 const task: EvalCleanupTask = {
     task: {
@@ -23,13 +23,16 @@ test('rejects deleting a task Thread without its parent Chat', () => {
 
 test('does not expand an unrelated task from a permanent Chat', () => {
     expect(
-        expandEvalCleanupChatIds(['chat_probe'], [
-            {
-                task: {
-                    chatId: 'chat_permanent',
-                    threadChatId: 'cht_thr_permanent_task',
+        expandEvalCleanupChatIds(
+            ['chat_probe'],
+            [
+                {
+                    task: {
+                        chatId: 'chat_permanent',
+                        threadChatId: 'cht_thr_permanent_task',
+                    },
                 },
-            },
-        ])
+            ]
+        )
     ).toEqual(['chat_probe']);
 });

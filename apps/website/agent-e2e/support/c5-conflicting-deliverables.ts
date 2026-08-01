@@ -30,13 +30,15 @@ export async function setupC5ConflictingDeliverablesSuite() {
         temporaryAgents.push(coordinator);
         trackDm(temporaryChatIds, coordinator);
         const alpha = await createTemporaryAgent(harness, template, {
-            description: 'Owns the Alpha launch-date evidence lane and reports only its assigned work.',
+            description:
+                'Owns the Alpha launch-date evidence lane and reports only its assigned work.',
             lane: 'Alpha',
         });
         temporaryAgents.push(alpha);
         trackDm(temporaryChatIds, alpha);
         const beta = await createTemporaryAgent(harness, template, {
-            description: 'Owns the Beta launch-date evidence lane and reports only its assigned work.',
+            description:
+                'Owns the Beta launch-date evidence lane and reports only its assigned work.',
             lane: 'Beta',
         });
         temporaryAgents.push(beta);
@@ -122,11 +124,7 @@ async function cleanupC5Resources(
     for (const cleanup of [
         () =>
             cleanupEvalChats(harness, chatIds, (operation, label) =>
-                withCleanupTimeout(
-                    operation,
-                    `C5 ${label}`,
-                    15_000
-                )
+                withCleanupTimeout(operation, `C5 ${label}`, 15_000)
             ),
         () => deleteTemporaryAgents(harness, agents),
         () => withCleanupTimeout(harness.cleanup(), 'C5 harness cleanup', 15_000),

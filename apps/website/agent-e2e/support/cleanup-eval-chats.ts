@@ -40,9 +40,7 @@ export async function cleanupEvalChats(
     chatIds: Iterable<string | null | undefined>,
     runOperation: EvalCleanupOperation = (operation) => operation
 ) {
-    const requestedChatIds = [...chatIds].filter(
-        (chatId): chatId is string => Boolean(chatId)
-    );
+    const requestedChatIds = [...chatIds].filter((chatId): chatId is string => Boolean(chatId));
     if (requestedChatIds.length === 0) {
         return;
     }

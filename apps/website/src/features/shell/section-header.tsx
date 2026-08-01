@@ -43,25 +43,33 @@ export function SectionHeader({
     meta?: ReactNode;
     title: ReactNode;
 }) {
+    if (center) {
+        // Equal flexible side columns anchor the center slot to the band's
+        // true middle, so it does not drift with the title's width.
+        return (
+            <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                    {leading}
+                    <h1 className="min-w-0 shrink truncate font-semibold text-sm">{title}</h1>
+                    {meta}
+                    {description ? (
+                        <p className="truncate text-muted text-xs">{description}</p>
+                    ) : null}
+                </div>
+                <div className="flex min-w-0 items-center justify-center">{center}</div>
+                <div className="flex min-w-0 items-center justify-end gap-2">{children}</div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex min-w-0 flex-1 items-center gap-3">
             {leading}
             <h1 className="min-w-0 shrink truncate font-semibold text-sm">{title}</h1>
             {meta}
             {description ? <p className="truncate text-muted text-xs">{description}</p> : null}
-            {center ? (
-                <div className="flex min-w-0 flex-1 items-center justify-center">{center}</div>
-            ) : null}
             {children ? (
-                <div
-                    className={
-                        center
-                            ? 'flex min-w-0 shrink-0 items-center gap-2'
-                            : 'ms-auto flex min-w-0 items-center gap-2'
-                    }
-                >
-                    {children}
-                </div>
+                <div className="ms-auto flex min-w-0 items-center gap-2">{children}</div>
             ) : null}
         </div>
     );

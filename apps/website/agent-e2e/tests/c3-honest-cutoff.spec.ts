@@ -3,7 +3,7 @@ import { findC3Task, pollC3Tasks, setupC3HonestCutoffSuite } from '../support/c3
 import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
 test.describe.configure({ mode: 'serial' });
-test.setTimeout(420_000);
+test.setTimeout(540_000);
 
 let suite: Awaited<ReturnType<typeof setupC3HonestCutoffSuite>>;
 
@@ -26,7 +26,7 @@ test('coordinator ships at the cutoff and reports an unavailable input as unknow
         `Create exactly two independently owned tasks in #${channelName}: ${researchMarker} assigned to @${responsive.handle}, and ${governanceMarker} assigned to @${unavailable.handle}.`,
         `For ${researchMarker}, ask for one customer-readiness risk based on this supplied note: beta users value fast setup, but three of eight needed help importing data.`,
         `For ${governanceMarker}, ask for one governance risk based on the collaborator's own review.`,
-        'Use a firm 60-second cutoff from this request. At the cutoff, publish the useful brief in the channel even if an input is still missing; do not wait indefinitely.',
+        'Use a firm 150-second cutoff from this request. At the cutoff, publish the useful brief in the channel even if an input is still missing; do not wait indefinitely.',
         'Use the headings Recommendation, Received input, Pending input, and Unknowns.',
         `Name both ${researchMarker} and ${governanceMarker}. Treat silence only as pending or unknown—not as approval, a negative finding, or completed work.`,
     ].join('\n');
@@ -77,6 +77,15 @@ test('coordinator ships at the cutoff and reports an unavailable input as unknow
                 /import|setup|onboard/iu.test(message.content)
         )
     ).toBe(true);
+    const researchReply = researchMessages.find(
+        (message) =>
+            message.author.kind === 'agent' &&
+            message.author.agentId === responsive.id &&
+            /import|setup|onboard/iu.test(message.content)
+    );
+    if (!researchReply) {
+        throw new Error('C3 responsive collaborator did not provide its finding.');
+    }
 
     const parentMessages = await harness.pollMessages(
         channel,
@@ -106,8 +115,11 @@ test('coordinator ships at the cutoff and reports an unavailable input as unknow
     }
 
     const synthesisDelay = Date.parse(synthesis.createdAt) - sentAt;
-    expect(synthesisDelay).toBeGreaterThanOrEqual(45_000);
-    expect(synthesisDelay).toBeLessThan(180_000);
+    expect(synthesisDelay).toBeGreaterThanOrEqual(135_000);
+    expect(synthesisDelay).toBeLessThan(270_000);
+    expect(Date.parse(researchReply.createdAt)).toBeLessThanOrEqual(
+        Date.parse(synthesis.createdAt)
+    );
     expect(synthesis.content).toMatch(
         new RegExp(`Received input[\\s\\S]*${researchMarker}[\\s\\S]*Pending input`, 'iu')
     );

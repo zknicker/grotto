@@ -16,6 +16,7 @@ export async function setupC3HonestCutoffSuite() {
     }
 
     const temporaryAgents: AgentItem[] = [];
+    let channel: { id: string } | null = null;
     try {
         const coordinator = await createTemporaryAgent(harness, template, {
             description: 'Coordinates Bluebird launch-readiness work.',
@@ -34,7 +35,7 @@ export async function setupC3HonestCutoffSuite() {
         temporaryAgents.push(unavailable);
 
         const channelName = `c3-${harness.stamp.slice(-8)}`;
-        const channel = (await harness.trpc('chat.createChannel', {
+        channel = (await harness.trpc('chat.createChannel', {
             agentIds: [coordinator.id, responsive.id, unavailable.id],
             name: channelName,
             serverId: harness.serverId,
@@ -57,11 +58,12 @@ export async function setupC3HonestCutoffSuite() {
             channel: channel.id,
             channelName,
             cleanup: async () => {
-                try {
-                    await deleteTemporaryAgents(harness, temporaryAgents);
-                } finally {
-                    await harness.cleanup();
-                }
+                await cleanupC3Resources(harness, temporaryAgents, [
+                    channel?.id,
+                    coordinator.dmChatId,
+                    responsive.dmChatId,
+                    unavailable.dmChatId,
+                ]);
             },
             coordinator,
             harness,
@@ -70,13 +72,12 @@ export async function setupC3HonestCutoffSuite() {
             unavailable,
         };
     } catch (error) {
-        try {
-            await deleteTemporaryAgents(harness, temporaryAgents);
-        } catch (cleanupError) {
-            throw new AggregateError([error, cleanupError], 'C3 setup and cleanup both failed.');
-        } finally {
-            await harness.cleanup();
-        }
+        await cleanupC3Resources(
+            harness,
+            temporaryAgents,
+            [channel?.id, ...temporaryAgents.map((agent) => agent.dmChatId)],
+            error
+        );
         throw error;
     }
 }
@@ -125,21 +126,107 @@ async function deleteTemporaryAgents(
     harness: Awaited<ReturnType<typeof createEvalHarness>>,
     agents: AgentItem[]
 ) {
-    let firstError: unknown;
+    const failures: Error[] = [];
     for (const agent of [...agents].reverse()) {
         try {
-            await harness.trpc('agent.delete', {
-                agentId: agent.id,
-                confirmation: agent.displayName,
-                serverId: harness.serverId,
-            });
+            await withCleanupTimeout(
+                harness.trpc('agent.delete', {
+                    agentId: agent.id,
+                    confirmation: agent.displayName,
+                    serverId: harness.serverId,
+                }),
+                `delete request for temporary C3 Agent ${agent.id}`,
+                15_000
+            );
             await pollAgentAbsent(harness, agent.id);
         } catch (error) {
-            firstError ??= error;
+            failures.push(
+                new Error(`Could not delete temporary C3 Agent ${agent.id}.`, { cause: error })
+            );
         }
     }
-    if (firstError) {
-        throw firstError;
+    if (failures.length > 0) {
+        throw new AggregateError(
+            failures,
+            `C3 Agent cleanup failed: ${failures.map((failure) => failure.message).join('; ')}`
+        );
+    }
+}
+
+async function archiveCreatedChats(
+    harness: Awaited<ReturnType<typeof createEvalHarness>>,
+    chatIds: Array<string | null | undefined>
+) {
+    const failures: Error[] = [];
+    for (const chatId of chatIds) {
+        if (!chatId) {
+            continue;
+        }
+        try {
+            await withCleanupTimeout(
+                harness.trpc('chat.archive', { chatId }),
+                `archive request for C3 chat ${chatId}`,
+                10_000
+            );
+        } catch (error) {
+            failures.push(new Error(`Could not archive C3 chat ${chatId}.`, { cause: error }));
+        }
+    }
+    if (failures.length > 0) {
+        throw new AggregateError(
+            failures,
+            `C3 chat cleanup failed: ${failures.map((failure) => failure.message).join('; ')}`
+        );
+    }
+}
+
+async function cleanupC3Resources(
+    harness: Awaited<ReturnType<typeof createEvalHarness>>,
+    agents: AgentItem[],
+    chatIds: Array<string | null | undefined>,
+    originalError?: unknown
+) {
+    const failures: unknown[] = [];
+    for (const cleanup of [
+        () => archiveCreatedChats(harness, chatIds),
+        () => deleteTemporaryAgents(harness, agents),
+        () => withCleanupTimeout(harness.cleanup(), 'C3 harness cleanup', 15_000),
+    ]) {
+        try {
+            await cleanup();
+        } catch (error) {
+            failures.push(error);
+        }
+    }
+    if (failures.length === 0) {
+        return;
+    }
+    throw new AggregateError(
+        originalError === undefined ? failures : [originalError, ...failures],
+        `C3 resource cleanup failed: ${failures.map(formatCleanupFailure).join('; ')}`
+    );
+}
+
+function formatCleanupFailure(error: unknown) {
+    return error instanceof Error ? error.message : String(error);
+}
+
+async function withCleanupTimeout<T>(operation: Promise<T>, label: string, timeoutMs: number) {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+        return await Promise.race([
+            operation,
+            new Promise<never>((_, reject) => {
+                timeout = setTimeout(
+                    () => reject(new Error(`${label} timed out after ${timeoutMs / 1000}s.`)),
+                    timeoutMs
+                );
+            }),
+        ]);
+    } finally {
+        if (timeout) {
+            clearTimeout(timeout);
+        }
     }
 }
 
@@ -162,7 +249,7 @@ async function pollAgentAbsent(
     harness: Awaited<ReturnType<typeof createEvalHarness>>,
     agentId: string
 ) {
-    const deadline = Date.now() + 60_000;
+    const deadline = Date.now() + 15_000;
     while (Date.now() < deadline) {
         const agents = (await harness.trpc('agent.list', {
             serverId: harness.serverId,
@@ -172,7 +259,7 @@ async function pollAgentAbsent(
         }
         await new Promise((resolve) => setTimeout(resolve, 1000));
     }
-    throw new Error(`Timed out waiting for temporary Agent ${agentId} to disappear.`);
+    throw new Error(`Temporary C3 Agent ${agentId} remained after 15s.`);
 }
 
 interface AgentItem {

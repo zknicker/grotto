@@ -1,3 +1,4 @@
+import { Avatar } from '@heroui/react';
 import { AlertCircleIcon, ListViewIcon } from '@hugeicons/core-free-icons';
 import type { AgentCharacter } from '@tavern/api/agent-appearance';
 import { splitVisualFences } from '@tavern/api/widgets/visual';
@@ -91,6 +92,10 @@ const newTurnGapClassName = '';
 // the avatar reads inline with the sender line rather than floating high.
 const turnAvatarBaseClassName =
     'mt-1.5 size-10 min-w-10 self-start ring-1 ring-separator group-has-data-[slot=message-footer]/message:translate-y-0';
+// Stock Avatar owns the human identity mark; this only positions it in the
+// turn row.
+const turnAvatarPositionClassName =
+    'mt-1.5 shrink-0 self-start group-has-data-[slot=message-footer]/message:translate-y-0';
 // The character head is the avatar: a square-ish little character at the
 // same footprint and roundedness as the people avatars beside it.
 const faceStyle = { flexShrink: 0, height: 40, overflow: 'visible', width: 40 } as const;
@@ -304,41 +309,15 @@ function TurnAvatar({
         );
     }
 
-    if (variant === 'image') {
-        return (
-            <MessageAvatar className={cn(turnAvatarBaseClassName, 'rounded-lg')}>
-                <img
-                    alt={`${name} avatar`}
-                    className="size-full object-cover"
-                    height={32}
-                    src={avatarUrl ?? undefined}
-                    width={32}
-                />
-            </MessageAvatar>
-        );
-    }
-
-    const style = color
-        ? ({
-              '--chat-avatar-color': color,
-          } as React.CSSProperties)
-        : undefined;
-
-    // Initials read as a flat tinted chip (badge-style: soft fill, legible
-    // colored text) instead of a heavy solid block — no ring, no shadow.
+    // People are stock Avatars — image when uploaded, initials fallback —
+    // the same mark as the server monogram and sidebar minis.
     return (
-        <MessageAvatar
-            className={cn(
-                turnAvatarBaseClassName,
-                'rounded-lg font-semibold text-xs ring-0',
-                color
-                    ? 'bg-[color-mix(in_srgb,var(--chat-avatar-color)_16%,transparent)] text-[color-mix(in_srgb,var(--chat-avatar-color)_75%,var(--foreground))]'
-                    : 'bg-brand-muted text-brand-muted-foreground'
-            )}
-            style={style}
-        >
-            {getActorInitials(name)}
-        </MessageAvatar>
+        <Avatar className={turnAvatarPositionClassName}>
+            {variant === 'image' ? (
+                <Avatar.Image alt={`${name} avatar`} src={avatarUrl ?? undefined} />
+            ) : null}
+            <Avatar.Fallback>{getActorInitials(name)}</Avatar.Fallback>
+        </Avatar>
     );
 }
 

@@ -93,6 +93,22 @@ test('hosted messages and durable events keep stable Server and Chat identity', 
     ).toMatchObject({ action: 'fired', reminderId: 'rem_one' });
 });
 
+test('hosted message contracts carry Server-authored task timeline receipts', () => {
+    expect(
+        hostedChatMessageSchema.parse({
+            attachments: [],
+            author: { kind: 'system', system: 'task' },
+            chatId: 'cht_all',
+            content: '📋 1 new task created: #1 "Audit the hosted export"',
+            createdAt: '2026-07-26T12:00:00.000Z',
+            id: 'msg_task_receipt',
+            nonce: 'task-receipt:send-1',
+            sequence: 2,
+            serverId: 'srv_main',
+        })
+    ).toMatchObject({ author: { kind: 'system', system: 'task' } });
+});
+
 test('hosted sends allow attachment-only messages but reject empty messages', () => {
     expect(
         hostedChatSendInputSchema.parse({

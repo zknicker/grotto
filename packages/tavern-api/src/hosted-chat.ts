@@ -8,7 +8,9 @@ const hostedTimestampSchema = z.iso.datetime({ offset: true });
 export const hostedChatMessageAuthorSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('human'), userId: hostedIdSchema }).strict(),
     z.object({ agentId: hostedIdSchema, kind: z.literal('agent') }).strict(),
-    z.object({ kind: z.literal('system'), system: z.enum(['reminder', 'session']) }).strict(),
+    z
+        .object({ kind: z.literal('system'), system: z.enum(['reminder', 'session', 'task']) })
+        .strict(),
 ]);
 
 export const hostedChatMessageSchema = z

@@ -905,6 +905,17 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         'task.updated',
         'task.updated',
     ]);
+    const [createdReceipt] = (await harness.sql`
+        select content, system_author
+        from chat_messages
+        where server_id = ${serverId}
+          and chat_id = 'cht_targetchannel01'
+          and nonce = 'task-receipt:agent_tasks_create_1'
+    `) as Array<{ content: string; system_author: string }>;
+    expect(createdReceipt).toEqual({
+        content: '📋 1 new task created: #1 "Audit the delivery boundary"',
+        system_author: 'task',
+    });
 
     const regular = await owner.trpc.chat.send.mutate({
         chatId: 'cht_targetchannel01',
@@ -950,6 +961,17 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         'task.created',
         'task.updated',
     ]);
+    const [conversionReceipt] = (await harness.sql`
+        select content, system_author
+        from chat_messages
+        where server_id = ${serverId}
+          and chat_id = 'cht_targetchannel01'
+          and nonce = ${`task-receipt:${regular.message.id}`}
+    `) as Array<{ content: string; system_author: string }>;
+    expect(conversionReceipt).toEqual({
+        content: '📋 @cove converted a message to task #2 "Turn this ordinary message…"',
+        system_author: 'task',
+    });
 });
 
 test('task ownership is one lock across human and Agent actors', async () => {

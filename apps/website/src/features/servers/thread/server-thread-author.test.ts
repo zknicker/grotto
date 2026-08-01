@@ -21,6 +21,19 @@ test('keeps reminder system rows distinct from Agent replies', () => {
     });
 });
 
+test('projects task receipts with the Server system identity', () => {
+    const taskReceipt = {
+        ...agentMessage(),
+        author: { kind: 'system' as const, system: 'task' as const },
+        content: '📋 1 new task created: #1 "Audit the hosted export"',
+    };
+
+    expect(serverThreadAuthor(taskReceipt, new Map())).toEqual({
+        kind: 'system',
+        label: 'Grotto',
+    });
+});
+
 function agentMessage(): HostedChatMessage {
     return {
         attachments: [],

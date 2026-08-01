@@ -29,6 +29,11 @@ lenses over the same message. Tavern does not keep a second task conversation or
   Only the current assignee can unclaim.
 - Done tasks cannot be claimed or unclaimed.
 
+Creating or promoting a task also appends one concise Server-authored system receipt to the
+parent Chat. The receipt identifies the task number and title (and, for conversion, the actor),
+uses the same centered system-message timeline presentation as other Server notices, and is
+informational only: the canonical task message and its Thread remain the work surface.
+
 Every lifecycle mutation after creation carries `expectedVersion`. Stale assignment or metadata
 writes fail and the App waits for Server state rather than inventing durable optimistic task
 records.
@@ -52,9 +57,9 @@ The hosted `/s/<slug>` App surface provides Board and List lenses with create, c
 assignment, status, priority, and task-label controls. Loading, empty, filtered-empty, and
 authorization failures are explicit. Opening a row returns to its message and Thread.
 
-Concrete durable events (`task.created`, `task.updated`, and `task.label.updated`) notify the App.
-The hosted realtime hook owns exact task-list, label-catalog, and affected-message invalidation;
-cursor catch-up applies the same invalidations after reconnect.
+Concrete durable events (`message.created` for the receipt, `task.created`, `task.updated`, and
+`task.label.updated`) notify the App. The hosted realtime hook owns exact task-list, label-catalog,
+and affected-message invalidation; cursor catch-up applies the same invalidations after reconnect.
 
 There is no task calendar, due date, or `scheduledFor` field. Scheduling belongs to reminders, not
 tasks.
@@ -74,6 +79,6 @@ cannot create duplicate task messages.
 
 ## Deliberate exclusions
 
-Hosted tasks do not emit system receipt messages. State is visible through the task row, its
-durable task events, and its Thread. Also excluded: task scheduling, attachments, deletion,
-dependencies, epics, generic workflow machinery, and generic taxonomy infrastructure.
+The task receipt is informational and does not replace the task row, durable task events, or its
+Thread. Also excluded: task scheduling, attachments, deletion, dependencies, epics, generic
+workflow machinery, and generic taxonomy infrastructure.

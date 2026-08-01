@@ -1,12 +1,14 @@
 import type { HostedDurableEvent, HostedMessageTask } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { requireChatAccess } from '../chats/chat-access.ts';
+import { insertHostedSystemMessage } from '../chats/insert-system-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { ensureHostedThread } from '../threads/ensure-thread.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { insertHostedTaskEvent } from './task-events.ts';
+import { taskReceiptContent } from './task-receipts.ts';
 import { findHostedMessageTask } from './task-shape.ts';
 
 export class TaskMessageNotFoundError extends Error {
@@ -27,7 +29,12 @@ export async function promoteHostedMessageTask(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { messageId: string; serverId: string }
-): Promise<{ event: HostedDurableEvent | null; idempotent: boolean; task: HostedMessageTask }> {
+): Promise<{
+    event: HostedDurableEvent | null;
+    idempotent: boolean;
+    receiptEvent: HostedDurableEvent | null;
+    task: HostedMessageTask;
+}> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         if (!member) {
@@ -45,6 +52,7 @@ export async function promoteHostedMessageTask(
         const [message] = await tx
             .select({
                 chatId: chatMessagesTable.chatId,
+                content: chatMessagesTable.content,
                 id: chatMessagesTable.id,
                 systemAuthor: chatMessagesTable.systemAuthor,
             })
@@ -76,7 +84,7 @@ export async function promoteHostedMessageTask(
 
         const existing = await findHostedMessageTask(tx, input.serverId, input.messageId);
         if (existing) {
-            return { event: null, idempotent: true, task: existing };
+            return { event: null, idempotent: true, receiptEvent: null, task: existing };
         }
 
         const [numberedChat] = await tx
@@ -112,7 +120,22 @@ export async function promoteHostedMessageTask(
             serverId: input.serverId,
             type: 'task.created',
         });
+        const receiptContent = taskReceiptContent({
+            actorLabel: 'Operator',
+            kind: 'converted',
+            tasks: [{ number: task.number, title: message.content }],
+        });
+        if (!receiptContent) {
+            throw new Error('Task promotion did not produce a receipt.');
+        }
+        const receiptEvent = await insertHostedSystemMessage(tx, {
+            chatId: message.chatId,
+            content: receiptContent,
+            nonce: `task-receipt:${message.id}`,
+            serverId: input.serverId,
+            systemAuthor: 'task',
+        });
 
-        return { event, idempotent: false, task };
+        return { event, idempotent: false, receiptEvent, task };
     });
 }

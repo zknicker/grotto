@@ -3,7 +3,8 @@ import type { HostedAgent, HostedChatMessage } from '@tavern/api';
 export type ServerThreadAuthor =
     | { kind: 'agent'; agent: HostedAgent }
     | { kind: 'human'; label: string }
-    | { kind: 'reminder'; label: string };
+    | { kind: 'reminder'; label: string }
+    | { kind: 'system'; label: string };
 
 export function serverThreadAuthor(
     message: HostedChatMessage,
@@ -19,5 +20,7 @@ export function serverThreadAuthor(
     if (message.author.kind === 'human') {
         return { kind: 'human', label: `Human ${message.author.userId.slice(-6)}` };
     }
-    return { kind: 'reminder', label: 'Reminder' };
+    return message.author.system === 'reminder'
+        ? { kind: 'reminder', label: 'Reminder' }
+        : { kind: 'system', label: 'Grotto' };
 }

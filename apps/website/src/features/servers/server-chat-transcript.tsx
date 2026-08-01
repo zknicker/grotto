@@ -228,7 +228,9 @@ export function projectHostedChatMessages(
                         ? message.author.userId
                         : message.author.kind === 'agent'
                           ? message.author.agentId
-                          : 'Reminder',
+                          : message.author.system === 'reminder'
+                            ? 'Reminder'
+                            : 'Grotto',
                 senderType,
                 sourceSessionId: null,
                 sourceSessionKey: `hosted:${agentId ?? message.author.kind}`,

@@ -27,8 +27,13 @@ capability lives; keep route and feature folders for page assembly.
 * App sections may supply their own shell sidebar: the server layout picks the
   sidebar component per active section (chat sections get the channel sidebar;
   settings and tasks provide their own). A section sidebar is owned by its
-  feature folder, renders HeroUI `Sidebar` parts, and drives selection through
-  routes or URL search params — never through state shared with the page.
+  feature folder, fills the shared `ShellSidebar` frame
+  (`features/shell/shell-sidebar.tsx`) with content — an optional band row
+  (aligned with the shell topbar midline), menu content, and an optional
+  footer — and drives selection through routes or URL search params, never
+  through state shared with the page. Sidebar chrome (top spacing, band
+  alignment, the macOS traffic-light inset) lives in the frame and the
+  shell, not in section sidebars.
 * The shell owns the topbar. The server layout renders one `ShellTopbar` band
   above the routed content; pages fill it with
   `<PageTopbar><SectionHeader …/></PageTopbar>`

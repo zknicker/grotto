@@ -9,7 +9,9 @@ import { setChatSidePane, useChatSidePane } from '../../hooks/pane/use-chat-side
 import { useEnsureServerDm } from '../../hooks/servers/use-ensure-server-dm.ts';
 import { useMarkServerChatReadOnView } from '../../hooks/servers/use-mark-server-chat-read.ts';
 import { useServerChatMessages } from '../../hooks/servers/use-server-chat-messages.ts';
+import { useUpdateServerChannel } from '../../hooks/servers/use-update-server-channel.ts';
 import { useViewportBelow } from '../../hooks/use-viewport-below.ts';
+import { ChannelDialog } from '../chats/channel-dialog.tsx';
 import { ChatArtifactPanel } from '../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../chats/chat-detail-frame.tsx';
 import { ChatViewSwitcher, type ChatViewTab } from '../chats/chat-view-tabs.tsx';
@@ -201,6 +203,7 @@ export function ServerChat({
         >
             <PageTopbar>
                 <HostedChatTopbar
+                    agents={agents}
                     artifactVisible={artifactState.visible}
                     chat={chat}
                     chatName={chatName}
@@ -325,6 +328,7 @@ export function ServerChat({
 }
 
 function HostedChatTopbar({
+    agents,
     artifactVisible,
     chat,
     chatName,
@@ -333,6 +337,7 @@ function HostedChatTopbar({
     retired,
     viewTab,
 }: {
+    agents: HostedAgent[];
     artifactVisible: boolean;
     chat: HostedChat;
     chatName: string;
@@ -348,10 +353,7 @@ function HostedChatTopbar({
             meta={retired ? <Chip size="sm">Retired</Chip> : null}
             title={chatName}
         >
-            <span className="flex items-center gap-1 text-muted text-xs">
-                <Icon aria-hidden="true" className="size-4" icon={UserMultiple02Icon} />
-                {chat.participantUserIds.length}
-            </span>
+            <ChannelParticipantsControl agents={agents} chat={chat} />
             <Tooltip>
                 <Button
                     aria-label={artifactVisible ? 'Hide artifacts' : 'Show artifacts'}
@@ -367,6 +369,75 @@ function HostedChatTopbar({
                 </Tooltip.Content>
             </Tooltip>
         </SectionHeader>
+    );
+}
+
+/**
+ * Channel participants: a people count that opens the channel dialog to
+ * rename the channel or change its Agents. DMs have fixed membership, so
+ * they render a static count.
+ */
+function ChannelParticipantsControl({ agents, chat }: { agents: HostedAgent[]; chat: HostedChat }) {
+    const updateChannel = useUpdateServerChannel();
+    const [editing, setEditing] = React.useState(false);
+    const count =
+        chat.kind === 'channel'
+            ? chat.participantAgentIds.length + chat.participantUserIds.length
+            : chat.participantUserIds.length;
+
+    if (chat.kind !== 'channel') {
+        return (
+            <span className="flex items-center gap-1 text-muted text-xs">
+                <Icon aria-hidden="true" className="size-4" icon={UserMultiple02Icon} />
+                {count}
+            </span>
+        );
+    }
+
+    return (
+        <>
+            <Tooltip>
+                <Button
+                    aria-label="Edit participants"
+                    onPress={() => {
+                        updateChannel.reset();
+                        setEditing(true);
+                    }}
+                    size="sm"
+                    variant="ghost"
+                >
+                    <Icon aria-hidden="true" icon={UserMultiple02Icon} size={16} />
+                    {count}
+                </Button>
+                <Tooltip.Content>Edit participants</Tooltip.Content>
+            </Tooltip>
+            <ChannelDialog
+                agents={agents.map((agent) => ({
+                    effectiveCharacter: agent.character,
+                    effectivePrimaryColor: null,
+                    id: agent.id,
+                    name: agent.displayName,
+                }))}
+                agentsPending={false}
+                errorMessage={updateChannel.error?.message ?? null}
+                initialAgentIds={chat.participantAgentIds}
+                initialDisplayName={chat.name ?? ''}
+                isPending={updateChannel.isPending}
+                onClose={() => setEditing(false)}
+                onSubmit={async ({ agentIds, displayName }) => {
+                    await updateChannel.mutateAsync({
+                        agentIds,
+                        chatId: chat.id,
+                        name: displayName,
+                        serverId: chat.serverId,
+                    });
+                    setEditing(false);
+                }}
+                open={editing}
+                submitLabel="Save"
+                title="Edit channel"
+            />
+        </>
     );
 }
 

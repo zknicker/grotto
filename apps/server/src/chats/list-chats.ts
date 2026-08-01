@@ -27,6 +27,19 @@ export async function listHostedChats(
             lastActivityAt: chatsTable.lastActivityAt,
             lastMessageSequence: chatsTable.lastMessageSequence,
             name: chatsTable.name,
+            participantAgentIds: sql<string[]>`
+                case
+                    when ${chatsTable.kind} = 'dm'
+                        then array_remove(array[${chatsTable.dmAgentId}], null)::text[]
+                    else array(
+                        select participant.agent_id
+                        from channel_agent_participants participant
+                        where participant.server_id = "chats"."server_id"
+                            and participant.chat_id = "chats"."id"
+                        order by participant.agent_id
+                    )
+                end
+            `,
             participantUserIds: sql<string[]>`
                 case
                     when ${chatsTable.kind} = 'dm'

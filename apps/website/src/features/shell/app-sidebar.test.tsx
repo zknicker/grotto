@@ -43,6 +43,7 @@ function retiredDm(): HostedChat {
         lastActivityAt: null,
         lastMessageSequence: 4,
         name: null,
+        participantAgentIds: [],
         participantUserIds: ['user_one'],
         peerAgentDisplayName: 'Fen',
         peerAgentId: 'agt_fen0000000000000',

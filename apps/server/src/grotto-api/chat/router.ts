@@ -12,6 +12,7 @@ import { onChatEventProcedure } from './on-event.ts';
 import { publishCompositionProcedure } from './publish-composition.ts';
 import { searchChatMessagesProcedure } from './search.ts';
 import { sendChatMessageProcedure } from './send.ts';
+import { updateChannelProcedure } from './update-channel.ts';
 
 export const chatRouter = createRouter({
     createChannel: createChannelProcedure,
@@ -27,4 +28,5 @@ export const chatRouter = createRouter({
     publishComposition: publishCompositionProcedure,
     search: searchChatMessagesProcedure,
     send: sendChatMessageProcedure,
+    updateChannel: updateChannelProcedure,
 });

@@ -78,6 +78,7 @@ function hostedChat(
         lastActivityAt: input.lastActivityAt,
         lastMessageSequence: 1,
         name: input.name,
+        participantAgentIds: [],
         participantUserIds: [],
         peerAgentDisplayName: null,
         peerAgentId: input.peerAgentId,

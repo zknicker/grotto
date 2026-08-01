@@ -80,6 +80,7 @@ export const hostedChatSchema = z
         lastActivityAt: hostedTimestampSchema.nullable(),
         lastMessageSequence: z.number().int().nonnegative(),
         name: z.string().min(1).nullable(),
+        participantAgentIds: z.array(hostedIdSchema),
         participantUserIds: z.array(hostedIdSchema),
         peerAgentDisplayName: z.string().min(1).nullable(),
         peerAgentId: hostedIdSchema.nullable(),
@@ -115,6 +116,31 @@ export const hostedChannelCreateInputSchema = z
     });
 
 export type HostedChannelCreateInput = z.infer<typeof hostedChannelCreateInputSchema>;
+
+export const hostedChannelUpdateInputSchema = z
+    .object({
+        agentIds: z.array(hostedIdSchema).min(1),
+        chatId: hostedIdSchema,
+        name: z
+            .string()
+            .trim()
+            .min(1)
+            .max(32)
+            .regex(/^[A-Za-z0-9_-]+$/u),
+        serverId: hostedIdSchema,
+    })
+    .strict()
+    .superRefine((input, context) => {
+        if (new Set(input.agentIds).size !== input.agentIds.length) {
+            context.addIssue({
+                code: 'custom',
+                message: 'Agent ids must be unique.',
+                path: ['agentIds'],
+            });
+        }
+    });
+
+export type HostedChannelUpdateInput = z.infer<typeof hostedChannelUpdateInputSchema>;
 
 export const hostedEnsureDmInputSchema = z
     .object({

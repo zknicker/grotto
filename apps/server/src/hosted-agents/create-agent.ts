@@ -131,6 +131,7 @@ export async function createHostedAgent(
                 lastActivityAt: null,
                 lastMessageSequence: 0,
                 name: null,
+                participantAgentIds: [agentId],
                 participantUserIds: [member.id],
                 peerAgentDisplayName: input.displayName,
                 peerAgentId: agentId,

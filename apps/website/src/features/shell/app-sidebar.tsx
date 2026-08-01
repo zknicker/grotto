@@ -8,6 +8,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { HostedAgentStatusFace } from '../members/hosted-agent-face.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
+import { ShellSidebar } from './shell-sidebar.tsx';
 import { SidebarAccount } from './sidebar-account.tsx';
 
 /** Contextual sidebar for the server: channels and DMs. */
@@ -30,72 +31,71 @@ export function AppSidebar({
     const directMessages = chats.filter((chat) => chat.kind === 'dm');
 
     return (
-        <Sidebar aria-label="Server">
-            <Sidebar.Content>
-                <ChatGroup
-                    action={
-                        <Button
-                            aria-label="New channel"
-                            isIconOnly
-                            onPress={onCreateChannel}
-                            size="sm"
-                            variant="ghost"
-                        >
-                            <Icon aria-hidden="true" icon={Plus} size={16} />
-                        </Button>
-                    }
-                    agents={agentById}
-                    chats={channels}
-                    label="Channels"
-                    selectedChatId={selectedChatId}
-                    slug={slug}
-                />
-                <ChatGroup
-                    agents={agentById}
-                    chats={directMessages}
-                    label="Direct messages"
-                    selectedChatId={selectedChatId}
-                    slug={slug}
-                />
-                <Sidebar.Menu aria-label="Archive">
-                    <Sidebar.MenuItem id="archived" textValue="Archived">
-                        <Sidebar.MenuIcon>
-                            <Icon aria-hidden="true" icon={ArchiveIcon} />
-                        </Sidebar.MenuIcon>
-                        <Sidebar.MenuItemContent>
-                            <Sidebar.MenuLabel>Archived</Sidebar.MenuLabel>
-                        </Sidebar.MenuItemContent>
-                    </Sidebar.MenuItem>
-                </Sidebar.Menu>
-            </Sidebar.Content>
-            <Sidebar.Footer>
-                <SidebarAccount />
-            </Sidebar.Footer>
-        </Sidebar>
+        <ShellSidebar
+            ariaLabel="Server"
+            band={
+                <div className="flex w-full items-center justify-between pe-1">
+                    <Sidebar.GroupLabel>Channels</Sidebar.GroupLabel>
+                    <Button
+                        aria-label="New channel"
+                        isIconOnly
+                        onPress={onCreateChannel}
+                        size="sm"
+                        variant="ghost"
+                    >
+                        <Icon aria-hidden="true" icon={Plus} size={16} />
+                    </Button>
+                </div>
+            }
+            footer={<SidebarAccount />}
+        >
+            <ChatGroup
+                agents={agentById}
+                chats={channels}
+                label="Channels"
+                selectedChatId={selectedChatId}
+                showLabel={false}
+                slug={slug}
+            />
+            <ChatGroup
+                agents={agentById}
+                chats={directMessages}
+                label="Direct messages"
+                selectedChatId={selectedChatId}
+                slug={slug}
+            />
+            <Sidebar.Menu aria-label="Archive">
+                <Sidebar.MenuItem id="archived" textValue="Archived">
+                    <Sidebar.MenuIcon>
+                        <Icon aria-hidden="true" icon={ArchiveIcon} />
+                    </Sidebar.MenuIcon>
+                    <Sidebar.MenuItemContent>
+                        <Sidebar.MenuLabel>Archived</Sidebar.MenuLabel>
+                    </Sidebar.MenuItemContent>
+                </Sidebar.MenuItem>
+            </Sidebar.Menu>
+        </ShellSidebar>
     );
 }
 
 function ChatGroup({
-    action,
     agents,
     chats,
     label,
     selectedChatId,
+    showLabel = true,
     slug,
 }: {
-    action?: React.ReactNode;
     agents: Map<string, HostedAgent>;
     chats: HostedChat[];
     label: string;
     selectedChatId: string | undefined;
+    showLabel?: boolean;
     slug: string;
 }) {
     return (
         <Sidebar.Group>
-            <div className="flex items-center justify-between pe-1">
-                <Sidebar.GroupLabel>{label}</Sidebar.GroupLabel>
-                {action}
-            </div>
+            {showLabel ? <Sidebar.GroupLabel>{label}</Sidebar.GroupLabel> : null}
             <Sidebar.Menu aria-label={label}>
                 {chats.map((chat) => {
                     const agent = chat.peerAgentId ? (agents.get(chat.peerAgentId) ?? null) : null;

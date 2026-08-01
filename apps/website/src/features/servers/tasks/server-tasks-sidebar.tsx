@@ -6,6 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
+import { ShellSidebar } from '../../shell/shell-sidebar.tsx';
 import { LabelDot } from '../../tasks/label-chip.tsx';
 import { serverTasksRoute } from '../server-routes.ts';
 import { ServerTaskLabelsDialog } from './server-task-labels-dialog.tsx';
@@ -51,8 +52,9 @@ export function ServerTasksSidebar({
     const labelHref = (labelId?: string) => taskFilterHref(route, activeView, labelId);
 
     return (
-        <Sidebar aria-label="Tasks">
-            <Sidebar.Header>
+        <ShellSidebar
+            ariaLabel="Tasks"
+            band={
                 <SearchField
                     aria-label="Search tasks"
                     onChange={(value) => {
@@ -77,82 +79,81 @@ export function ServerTasksSidebar({
                         <SearchField.ClearButton />
                     </SearchField.Group>
                 </SearchField>
-            </Sidebar.Header>
-            <Sidebar.Content>
+            }
+        >
+            <Sidebar.Group>
+                <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
+                <Sidebar.Menu aria-label="Task views">
+                    {views.map((view) => (
+                        <Sidebar.MenuItem
+                            href={viewHref(view.value)}
+                            id={view.value}
+                            isCurrent={view.value === activeView}
+                            key={view.value}
+                            textValue={view.label}
+                        >
+                            <Sidebar.MenuItemContent>
+                                <Sidebar.MenuLabel>{view.label}</Sidebar.MenuLabel>
+                                <Sidebar.MenuChip>
+                                    {countForView(tasks, view.value)}
+                                </Sidebar.MenuChip>
+                            </Sidebar.MenuItemContent>
+                        </Sidebar.MenuItem>
+                    ))}
+                </Sidebar.Menu>
+            </Sidebar.Group>
+            {(labelsQuery.data && labelsQuery.data.length > 0) || canManage ? (
                 <Sidebar.Group>
-                    <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
-                    <Sidebar.Menu aria-label="Task views">
-                        {views.map((view) => (
+                    <div className="flex items-center justify-between pe-1">
+                        <Sidebar.GroupLabel>Labels</Sidebar.GroupLabel>
+                        {canManage ? (
+                            <Tooltip delay={0}>
+                                <Button
+                                    aria-label="Manage Labels"
+                                    isIconOnly
+                                    onPress={() => setLabelsOpen(true)}
+                                    size="sm"
+                                    variant="ghost"
+                                >
+                                    <Icon aria-hidden="true" icon={Edit02Icon} size={14} />
+                                </Button>
+                                <Tooltip.Content>Manage Labels</Tooltip.Content>
+                            </Tooltip>
+                        ) : null}
+                    </div>
+                    <Sidebar.Menu aria-label="Label filters">
+                        <Sidebar.MenuItem
+                            href={labelHref(undefined)}
+                            id="all-labels"
+                            isCurrent={activeLabel === null}
+                            textValue="All Labels"
+                        >
+                            <Sidebar.MenuItemContent>
+                                <Sidebar.MenuLabel>All Labels</Sidebar.MenuLabel>
+                            </Sidebar.MenuItemContent>
+                        </Sidebar.MenuItem>
+                        {(labelsQuery.data ?? []).map((label) => (
                             <Sidebar.MenuItem
-                                href={viewHref(view.value)}
-                                id={view.value}
-                                isCurrent={view.value === activeView}
-                                key={view.value}
-                                textValue={view.label}
+                                href={labelHref(label.id)}
+                                id={label.id}
+                                isCurrent={label.id === activeLabel}
+                                key={label.id}
+                                textValue={label.name}
                             >
+                                <Sidebar.MenuIcon>
+                                    <LabelDot color={label.color} />
+                                </Sidebar.MenuIcon>
                                 <Sidebar.MenuItemContent>
-                                    <Sidebar.MenuLabel>{view.label}</Sidebar.MenuLabel>
+                                    <Sidebar.MenuLabel>{label.name}</Sidebar.MenuLabel>
                                     <Sidebar.MenuChip>
-                                        {countForView(tasks, view.value)}
+                                        {countForLabel(tasks, label.id)}
                                     </Sidebar.MenuChip>
                                 </Sidebar.MenuItemContent>
                             </Sidebar.MenuItem>
                         ))}
                     </Sidebar.Menu>
                 </Sidebar.Group>
-                {(labelsQuery.data && labelsQuery.data.length > 0) || canManage ? (
-                    <Sidebar.Group>
-                        <div className="flex items-center justify-between pe-1">
-                            <Sidebar.GroupLabel>Labels</Sidebar.GroupLabel>
-                            {canManage ? (
-                                <Tooltip delay={0}>
-                                    <Button
-                                        aria-label="Manage Labels"
-                                        isIconOnly
-                                        onPress={() => setLabelsOpen(true)}
-                                        size="sm"
-                                        variant="ghost"
-                                    >
-                                        <Icon aria-hidden="true" icon={Edit02Icon} size={14} />
-                                    </Button>
-                                    <Tooltip.Content>Manage Labels</Tooltip.Content>
-                                </Tooltip>
-                            ) : null}
-                        </div>
-                        <Sidebar.Menu aria-label="Label filters">
-                            <Sidebar.MenuItem
-                                href={labelHref(undefined)}
-                                id="all-labels"
-                                isCurrent={activeLabel === null}
-                                textValue="All Labels"
-                            >
-                                <Sidebar.MenuItemContent>
-                                    <Sidebar.MenuLabel>All Labels</Sidebar.MenuLabel>
-                                </Sidebar.MenuItemContent>
-                            </Sidebar.MenuItem>
-                            {(labelsQuery.data ?? []).map((label) => (
-                                <Sidebar.MenuItem
-                                    href={labelHref(label.id)}
-                                    id={label.id}
-                                    isCurrent={label.id === activeLabel}
-                                    key={label.id}
-                                    textValue={label.name}
-                                >
-                                    <Sidebar.MenuIcon>
-                                        <LabelDot color={label.color} />
-                                    </Sidebar.MenuIcon>
-                                    <Sidebar.MenuItemContent>
-                                        <Sidebar.MenuLabel>{label.name}</Sidebar.MenuLabel>
-                                        <Sidebar.MenuChip>
-                                            {countForLabel(tasks, label.id)}
-                                        </Sidebar.MenuChip>
-                                    </Sidebar.MenuItemContent>
-                                </Sidebar.MenuItem>
-                            ))}
-                        </Sidebar.Menu>
-                    </Sidebar.Group>
-                ) : null}
-            </Sidebar.Content>
+            ) : null}
             <ServerTaskLabelsDialog
                 canManage={canManage}
                 labels={labelsQuery.data ?? []}
@@ -160,7 +161,7 @@ export function ServerTasksSidebar({
                 open={labelsOpen}
                 serverId={serverId}
             />
-        </Sidebar>
+        </ShellSidebar>
     );
 }
 

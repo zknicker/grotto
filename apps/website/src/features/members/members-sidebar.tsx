@@ -8,6 +8,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { serverMembersRoute } from '../servers/server-routes.ts';
+import { ShellSidebar } from '../shell/shell-sidebar.tsx';
 import { CreateHostedAgentDialog } from './create-hosted-agent-dialog.tsx';
 import { HostedAgentStatusFace } from './hosted-agent-face.tsx';
 import { MemberInitialsAvatar } from './member-initials-avatar.tsx';
@@ -34,92 +35,94 @@ export function MembersSidebar({
     const humans = directory.data?.members ?? [];
 
     return (
-        <Sidebar aria-label="Members">
-            <Sidebar.Content>
-                <Sidebar.Group>
-                    <div className="flex items-center justify-between pe-1">
-                        <Sidebar.GroupLabel>
-                            Agents{agentListStatus === 'ready' ? ` · ${agents.length}` : ''}
-                        </Sidebar.GroupLabel>
-                        {canOperate ? (
-                            <Tooltip delay={0}>
-                                <Button
-                                    aria-label="Create Agent"
-                                    isIconOnly
-                                    onPress={() => setCreatingAgent(true)}
-                                    size="sm"
-                                    variant="ghost"
-                                >
-                                    <Icon aria-hidden="true" icon={Plus} size={16} />
-                                </Button>
-                                <Tooltip.Content>Create Agent</Tooltip.Content>
-                            </Tooltip>
-                        ) : null}
-                    </div>
-                    {agentListStatus === 'loading' ? (
-                        <p className="px-2 py-1 text-muted text-sm">Loading Agents…</p>
-                    ) : agentListStatus === 'error' ? (
-                        <p className="px-2 py-1 text-muted text-sm" role="alert">
-                            Couldn’t load Agents
-                        </p>
-                    ) : (
-                        <Sidebar.Menu aria-label="Agents">
-                            {agents.map((agent) => (
-                                <Sidebar.MenuItem
-                                    href={`${membersRoute}/agents/${agent.id}`}
-                                    id={agent.id}
-                                    isCurrent={agent.id === selectedAgentId}
-                                    key={agent.id}
-                                    textValue={agent.displayName}
-                                >
-                                    <Sidebar.MenuIcon>
-                                        <HostedAgentStatusFace agent={agent} />
-                                    </Sidebar.MenuIcon>
-                                    <Sidebar.MenuItemContent>
-                                        <Sidebar.MenuLabel>{agent.displayName}</Sidebar.MenuLabel>
-                                    </Sidebar.MenuItemContent>
-                                </Sidebar.MenuItem>
-                            ))}
-                        </Sidebar.Menu>
-                    )}
-                </Sidebar.Group>
-                <Sidebar.Group>
+        <ShellSidebar
+            ariaLabel="Members"
+            band={
+                <div className="flex w-full items-center justify-between pe-1">
                     <Sidebar.GroupLabel>
-                        Humans{directory.data ? ` · ${humans.length}` : ''}
+                        Agents{agentListStatus === 'ready' ? ` · ${agents.length}` : ''}
                     </Sidebar.GroupLabel>
-                    <Sidebar.Menu aria-label="Humans">
-                        {humans.map((member) => (
+                    {canOperate ? (
+                        <Tooltip delay={0}>
+                            <Button
+                                aria-label="Create Agent"
+                                isIconOnly
+                                onPress={() => setCreatingAgent(true)}
+                                size="sm"
+                                variant="ghost"
+                            >
+                                <Icon aria-hidden="true" icon={Plus} size={16} />
+                            </Button>
+                            <Tooltip.Content>Create Agent</Tooltip.Content>
+                        </Tooltip>
+                    ) : null}
+                </div>
+            }
+        >
+            <Sidebar.Group>
+                {agentListStatus === 'loading' ? (
+                    <p className="px-2 py-1 text-muted text-sm">Loading Agents…</p>
+                ) : agentListStatus === 'error' ? (
+                    <p className="px-2 py-1 text-muted text-sm" role="alert">
+                        Couldn’t load Agents
+                    </p>
+                ) : (
+                    <Sidebar.Menu aria-label="Agents">
+                        {agents.map((agent) => (
                             <Sidebar.MenuItem
-                                href={humansRoute}
-                                id={member.userId}
-                                isCurrent={humansSelected}
-                                key={member.userId}
-                                textValue={member.userId}
+                                href={`${membersRoute}/agents/${agent.id}`}
+                                id={agent.id}
+                                isCurrent={agent.id === selectedAgentId}
+                                key={agent.id}
+                                textValue={agent.displayName}
                             >
                                 <Sidebar.MenuIcon>
-                                    <MemberInitialsAvatar
-                                        label={member.userId.slice(0, 2).toUpperCase()}
-                                    />
+                                    <HostedAgentStatusFace agent={agent} />
                                 </Sidebar.MenuIcon>
                                 <Sidebar.MenuItemContent>
-                                    <Sidebar.MenuLabel>{member.userId}</Sidebar.MenuLabel>
-                                    <Sidebar.MenuChip>{member.role}</Sidebar.MenuChip>
+                                    <Sidebar.MenuLabel>{agent.displayName}</Sidebar.MenuLabel>
                                 </Sidebar.MenuItemContent>
                             </Sidebar.MenuItem>
                         ))}
+                    </Sidebar.Menu>
+                )}
+            </Sidebar.Group>
+            <Sidebar.Group>
+                <Sidebar.GroupLabel>
+                    Humans{directory.data ? ` · ${humans.length}` : ''}
+                </Sidebar.GroupLabel>
+                <Sidebar.Menu aria-label="Humans">
+                    {humans.map((member) => (
                         <Sidebar.MenuItem
                             href={humansRoute}
-                            id="manage-humans"
-                            isCurrent={false}
-                            textValue="Manage Humans"
+                            id={member.userId}
+                            isCurrent={humansSelected}
+                            key={member.userId}
+                            textValue={member.userId}
                         >
+                            <Sidebar.MenuIcon>
+                                <MemberInitialsAvatar
+                                    label={member.userId.slice(0, 2).toUpperCase()}
+                                />
+                            </Sidebar.MenuIcon>
                             <Sidebar.MenuItemContent>
-                                <Sidebar.MenuLabel>Manage Humans…</Sidebar.MenuLabel>
+                                <Sidebar.MenuLabel>{member.userId}</Sidebar.MenuLabel>
+                                <Sidebar.MenuChip>{member.role}</Sidebar.MenuChip>
                             </Sidebar.MenuItemContent>
                         </Sidebar.MenuItem>
-                    </Sidebar.Menu>
-                </Sidebar.Group>
-            </Sidebar.Content>
+                    ))}
+                    <Sidebar.MenuItem
+                        href={humansRoute}
+                        id="manage-humans"
+                        isCurrent={false}
+                        textValue="Manage Humans"
+                    >
+                        <Sidebar.MenuItemContent>
+                            <Sidebar.MenuLabel>Manage Humans…</Sidebar.MenuLabel>
+                        </Sidebar.MenuItemContent>
+                    </Sidebar.MenuItem>
+                </Sidebar.Menu>
+            </Sidebar.Group>
             <CreateHostedAgentDialog
                 agents={agents}
                 onCreated={(createdAgentId) => {
@@ -130,7 +133,7 @@ export function MembersSidebar({
                 open={creatingAgent}
                 serverId={server.id}
             />
-        </Sidebar>
+        </ShellSidebar>
     );
 }
 

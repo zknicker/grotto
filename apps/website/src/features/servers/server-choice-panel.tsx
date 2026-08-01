@@ -50,6 +50,7 @@ function JoinServerForm() {
 
     return (
         <Form
+            className="flex flex-col items-stretch gap-4"
             onSubmit={(event) => {
                 event.preventDefault();
                 if (token) {
@@ -57,7 +58,7 @@ function JoinServerForm() {
                 }
             }}
         >
-            <TextField fullWidth onChange={setInvitation} value={invitation}>
+            <TextField fullWidth onChange={setInvitation} value={invitation} variant="secondary">
                 <Label htmlFor="server-invitation">Invitation</Label>
                 <Input
                     autoComplete="off"
@@ -65,9 +66,11 @@ function JoinServerForm() {
                     placeholder="https://app.grotto.com/invite/…"
                 />
             </TextField>
-            <Button className="self-start" isDisabled={!token} type="submit" variant="secondary">
-                Continue
-            </Button>
+            <div className="mt-1">
+                <Button isDisabled={!token} type="submit" variant="secondary">
+                    Continue
+                </Button>
+            </div>
         </Form>
     );
 }

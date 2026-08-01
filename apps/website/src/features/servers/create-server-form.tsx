@@ -13,6 +13,7 @@ export function CreateServerForm() {
 
     return (
         <Form
+            className="flex flex-col items-stretch gap-4"
             onSubmit={(event) => {
                 event.preventDefault();
                 createServer.mutate(
@@ -21,7 +22,7 @@ export function CreateServerForm() {
                 );
             }}
         >
-            <TextField fullWidth onChange={setDisplayName} value={displayName}>
+            <TextField fullWidth onChange={setDisplayName} value={displayName} variant="secondary">
                 <Label htmlFor="server-display-name">Name</Label>
                 <Input autoComplete="off" id="server-display-name" placeholder="Grotto HQ" />
             </TextField>
@@ -30,19 +31,21 @@ export function CreateServerForm() {
                 isInvalid={Boolean(createServer.error)}
                 onChange={setSlug}
                 value={slug}
+                variant="secondary"
             >
                 <Label htmlFor="server-slug">Address</Label>
                 <Input autoComplete="off" id="server-slug" placeholder="grotto-hq" />
                 {createServer.error ? <FieldError>{createServer.error.message}</FieldError> : null}
             </TextField>
-            <Button
-                className="self-start"
-                isDisabled={displayName.trim().length === 0 || slug.trim().length === 0}
-                isPending={createServer.isPending}
-                type="submit"
-            >
-                Create Server
-            </Button>
+            <div className="mt-1">
+                <Button
+                    isDisabled={displayName.trim().length === 0 || slug.trim().length === 0}
+                    isPending={createServer.isPending}
+                    type="submit"
+                >
+                    Create Server
+                </Button>
+            </div>
         </Form>
     );
 }

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
+import { cleanupEvalChats as deleteCreatedChats } from './cleanup-eval-chats.ts';
 
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 
@@ -148,35 +149,6 @@ async function deleteTemporaryAgents(
     }
 }
 
-async function deleteCreatedChats(
-    harness: Awaited<ReturnType<typeof createEvalHarness>>,
-    chatIds: string[]
-) {
-    if (chatIds.length === 0) {
-        return;
-    }
-    const requestedChatIds = new Set(chatIds);
-    const tasks = (await withCleanupTimeout(
-        harness.trpc('task.list', { serverId: harness.serverId }),
-        'list C3 task Threads for cleanup',
-        10_000
-    )) as TaskItem[];
-    for (const task of tasks) {
-        if (requestedChatIds.has(task.task.chatId)) {
-            requestedChatIds.add(task.task.threadChatId);
-        }
-    }
-    const exactChatIds = [...requestedChatIds];
-    await withCleanupTimeout(
-        harness.trpc('dev.cleanupEvalChats', {
-            chatIds: exactChatIds,
-            serverId: harness.serverId,
-        }),
-        `delete request for C3 chats ${exactChatIds.join(', ')}`,
-        10_000
-    );
-}
-
 async function cleanupC3Resources(
     harness: Awaited<ReturnType<typeof createEvalHarness>>,
     agents: AgentItem[],
@@ -185,7 +157,14 @@ async function cleanupC3Resources(
 ) {
     const failures: unknown[] = [];
     for (const cleanup of [
-        () => deleteCreatedChats(harness, chatIds),
+        () =>
+            deleteCreatedChats(harness, chatIds, (operation, label) =>
+                withCleanupTimeout(
+                    operation,
+                    `C3 ${label}`,
+                    10_000
+                )
+            ),
         () => deleteTemporaryAgents(harness, agents),
         () => withCleanupTimeout(harness.cleanup(), 'C3 harness cleanup', 15_000),
     ]) {

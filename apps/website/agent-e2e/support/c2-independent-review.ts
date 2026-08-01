@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
+import { cleanupEvalChats as deleteCreatedChats } from './cleanup-eval-chats.ts';
 
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 
@@ -108,28 +109,6 @@ async function createTemporaryAgent(
         serverId: harness.serverId,
     })) as { agent: AgentItem };
     return await pollAgent(harness, created.agent.id);
-}
-
-async function deleteCreatedChats(
-    harness: Awaited<ReturnType<typeof createEvalHarness>>,
-    chatIds: Array<string | null | undefined>
-) {
-    const requestedChatIds = new Set(chatIds.filter((chatId): chatId is string => Boolean(chatId)));
-    if (requestedChatIds.size === 0) {
-        return;
-    }
-    const tasks = (await harness.trpc('task.list', {
-        serverId: harness.serverId,
-    })) as TaskItem[];
-    for (const task of tasks) {
-        if (requestedChatIds.has(task.task.chatId)) {
-            requestedChatIds.add(task.task.threadChatId);
-        }
-    }
-    await harness.trpc('dev.cleanupEvalChats', {
-        chatIds: [...requestedChatIds],
-        serverId: harness.serverId,
-    });
 }
 
 async function deleteTemporaryAgents(

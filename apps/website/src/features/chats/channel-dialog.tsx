@@ -15,8 +15,7 @@ import { CheckboxButtonGroup } from '@heroui-pro/react';
 import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
-import { AgentOptionLabel } from '../agents/agent-option-label.tsx';
-import type { AgentFace } from './agent-face.tsx';
+import { AgentFace } from './agent-face.tsx';
 
 export interface ChannelAgentOption {
     effectiveCharacter: React.ComponentProps<typeof AgentFace>['head'];
@@ -238,8 +237,9 @@ function AgentButtonGroup({
             ) : null}
             {visibleAgents.length > 0 ? (
                 <CheckboxButtonGroup
-                    className="max-h-64 flex-row flex-wrap overflow-y-auto"
+                    className="w-full grid-cols-2"
                     isDisabled={disabled}
+                    layout="grid"
                     // A channel always keeps at least one agent, so an empty
                     // selection is dropped instead of applied.
                     onChange={(nextAgentIds) =>
@@ -251,15 +251,16 @@ function AgentButtonGroup({
                 >
                     {visibleAgents.map((agent) => (
                         <CheckboxButtonGroup.Item key={agent.id} value={agent.id}>
-                            <CheckboxButtonGroup.ItemContent className="flex-row items-center">
-                                <AgentOptionLabel
-                                    agent={{
-                                        character: agent.effectiveCharacter ?? 'none',
-                                        id: agent.id,
-                                        name: agent.name,
-                                        primaryColor: agent.effectivePrimaryColor,
-                                    }}
-                                />
+                            <CheckboxButtonGroup.Indicator />
+                            <CheckboxButtonGroup.ItemContent className="flex-row items-center gap-3">
+                                <CheckboxButtonGroup.ItemIcon>
+                                    <AgentFace
+                                        animate={false}
+                                        head={agent.effectiveCharacter ?? 'none'}
+                                        size={20}
+                                    />
+                                </CheckboxButtonGroup.ItemIcon>
+                                <Label>{agent.name}</Label>
                             </CheckboxButtonGroup.ItemContent>
                         </CheckboxButtonGroup.Item>
                     ))}

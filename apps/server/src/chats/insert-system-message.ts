@@ -18,12 +18,13 @@ export async function insertHostedSystemMessage(
     input: {
         chatId: string;
         content: string;
+        createdAt?: Date;
         nonce: string;
         serverId: string;
         systemAuthor: HostedSystemMessageAuthor;
     }
 ): Promise<HostedDurableEvent> {
-    const createdAt = new Date();
+    const createdAt = input.createdAt ?? new Date();
     const [chat] = await db
         .update(chatsTable)
         .set({
@@ -31,7 +32,10 @@ export async function insertHostedSystemMessage(
             lastMessageSequence: sql`${chatsTable.lastMessageSequence} + 1`,
         })
         .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
-        .returning({ sequence: chatsTable.lastMessageSequence });
+        .returning({
+            parentChatId: chatsTable.parentChatId,
+            sequence: chatsTable.lastMessageSequence,
+        });
     if (!chat) {
         throw new Error('Failed to allocate the system message sequence.');
     }
@@ -53,6 +57,7 @@ export async function insertHostedSystemMessage(
         .insert(chatEventsTable)
         .values({
             chatId: input.chatId,
+            createdAt,
             cursor,
             id: createOpaqueId('evt'),
             messageId,
@@ -68,7 +73,7 @@ export async function insertHostedSystemMessage(
         cursor: cursor.toString(),
         id: event.id,
         messageId,
-        parentChatId: null,
+        parentChatId: chat.parentChatId,
         sequence: chat.sequence,
         serverId: input.serverId,
         type: 'message.created',

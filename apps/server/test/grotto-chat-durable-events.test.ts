@@ -1,14 +1,20 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { and, eq } from 'drizzle-orm';
+import { insertHostedSystemMessage } from '../src/chats/insert-system-message.ts';
+import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { chatEventsTable, chatMessagesTable } from '../src/postgres/schema.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
 let harness: GrottoServerHarness;
+let connection: GrottoConnection;
 let owner: GrottoClient;
 let chatId: string;
 let serverId: string;
 
 beforeAll(async () => {
     harness = await startGrottoServerHarness();
+    connection = await connectGrottoDatabase(harness.databaseUrl);
     owner = await signIn('user_events_owner');
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Events Server',
@@ -20,6 +26,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     owner.close();
+    await connection.close();
     await harness.close();
 });
 
@@ -59,6 +66,78 @@ test('durable cursors catch up messages sent while realtime is disconnected', as
     await expect(owner.trpc.chat.eventHead.query({ serverId })).resolves.toEqual({
         cursor: disconnected.eventCursor,
     });
+});
+
+test('a Thread system message persists and returns its parent Chat in the event', async () => {
+    const anchor = await send('thread system anchor', 'thread-system-anchor');
+    const reply = await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'thread system setup',
+        nonce: 'thread-system-reply',
+        serverId,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+    const threadChatId = reply.threadChatId;
+    expect(threadChatId).not.toBeNull();
+    if (!threadChatId) {
+        throw new Error('Expected the Thread reply to return a child Chat id.');
+    }
+
+    const event = await insertHostedSystemMessage(connection.db, {
+        chatId: threadChatId,
+        content: 'Thread system message',
+        nonce: 'thread-system-message',
+        serverId,
+        systemAuthor: 'task',
+    });
+    expect(event).toMatchObject({
+        chatId: threadChatId,
+        parentChatId: chatId,
+        serverId,
+        type: 'message.created',
+    });
+    expect(event.messageId).toMatch(/^msg_/u);
+    const [message] = await connection.db
+        .select({
+            chatId: chatMessagesTable.chatId,
+            content: chatMessagesTable.content,
+            nonce: chatMessagesTable.nonce,
+            sequence: chatMessagesTable.sequence,
+            systemAuthor: chatMessagesTable.systemAuthor,
+        })
+        .from(chatMessagesTable)
+        .where(
+            and(eq(chatMessagesTable.serverId, serverId), eq(chatMessagesTable.id, event.messageId))
+        );
+    expect(message).toEqual({
+        chatId: threadChatId,
+        content: 'Thread system message',
+        nonce: 'thread-system-message',
+        sequence: 2,
+        systemAuthor: 'task',
+    });
+
+    const [storedEvent] = await connection.db
+        .select({
+            chatId: chatEventsTable.chatId,
+            messageId: chatEventsTable.messageId,
+            sequence: chatEventsTable.sequence,
+            type: chatEventsTable.type,
+        })
+        .from(chatEventsTable)
+        .where(and(eq(chatEventsTable.serverId, serverId), eq(chatEventsTable.id, event.id)));
+    expect(storedEvent).toEqual({
+        chatId: threadChatId,
+        messageId: event.messageId,
+        sequence: 2,
+        type: 'message.created',
+    });
+
+    const recovered = await owner.trpc.chat.events.query({
+        afterCursor: (BigInt(event.cursor) - 1n).toString(),
+        serverId,
+    });
+    expect(recovered).toContainEqual(event);
 });
 
 test('event delivery skips an inaccessible Chat without terminating the Server feed', async () => {

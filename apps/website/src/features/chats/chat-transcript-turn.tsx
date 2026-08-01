@@ -98,7 +98,7 @@ const turnAvatarPositionClassName =
     'mt-1.5 shrink-0 self-start group-has-data-[slot=message-footer]/message:translate-y-0';
 // The character head is the avatar: a square-ish little character at the
 // same footprint and roundedness as the people avatars beside it.
-const faceStyle = { flexShrink: 0, height: 40, overflow: 'visible', width: 40 } as const;
+const faceStyle = { flexShrink: 0, height: 36, overflow: 'visible', width: 36 } as const;
 const hoverGroupClassName = 'group';
 
 export function TranscriptEntryView({
@@ -302,7 +302,7 @@ function TurnAvatar({
                     dark={dark}
                     head={character}
                     ink={resolveAgentInk(dark, color)}
-                    size={40}
+                    size={36}
                     style={faceStyle}
                 />
             </MessageAvatar>

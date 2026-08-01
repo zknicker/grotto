@@ -65,7 +65,7 @@ test('coordinator reconciles ownership and hands off an unresolved conflict hone
                     (message) =>
                         message.author.kind === 'agent' &&
                         message.author.agentId === alpha.id &&
-                        message.content.includes('C5-ALPHA REPORT') &&
+                        message.content.includes('SOURCE_ALPHA') &&
                         message.content.includes('SHIP_DATE=October 15')
                 ),
             300_000
@@ -77,7 +77,7 @@ test('coordinator reconciles ownership and hands off an unresolved conflict hone
                     (message) =>
                         message.author.kind === 'agent' &&
                         message.author.agentId === beta.id &&
-                        message.content.includes('C5-BETA REPORT') &&
+                        message.content.includes('SOURCE_BETA') &&
                         message.content.includes('SHIP_DATE=November 1')
                 ),
             300_000

@@ -120,13 +120,17 @@ function ChannelDialogForm({
         agentIds.length > 0 &&
         !isPending;
 
+    // Seed a default agent once in create mode; after that the selection is
+    // the user's, including an empty one (Save just disables).
+    const seededDefaultAgent = React.useRef(initialAgentIds.length > 0);
     React.useEffect(() => {
-        if (selectedAgentIds.length > 0 || agents.length === 0 || initialAgentIds.length > 0) {
+        if (seededDefaultAgent.current || agents.length === 0) {
             return;
         }
 
+        seededDefaultAgent.current = true;
         setSelectedAgentIds([agents[0]?.id ?? ''].filter(Boolean));
-    }, [agents, initialAgentIds.length, selectedAgentIds.length]);
+    }, [agents]);
 
     const handleSubmit = React.useEffectEvent(async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -240,10 +244,7 @@ function AgentButtonGroup({
                     className="w-full grid-cols-3"
                     isDisabled={disabled}
                     layout="grid"
-                    // A channel always keeps at least one agent, so an empty
-                    // selection is dropped instead of applied.
                     onChange={(nextAgentIds) =>
-                        nextAgentIds.length > 0 &&
                         onSelectedAgentIdsChange(normalizeChannelAgentIds(nextAgentIds))
                     }
                     value={selectedAgentIds}
@@ -251,7 +252,7 @@ function AgentButtonGroup({
                 >
                     {visibleAgents.map((agent) => (
                         <CheckboxButtonGroup.Item
-                            className="flex-row items-center gap-2 rounded-full px-3 py-1.5 data-[selected=true]:border-border data-[selected=true]:bg-accent/10 data-[selected=true]:ring-0"
+                            className="flex-row items-center gap-2 rounded-full px-3 py-1.5 data-[selected=true]:border-border data-[selected=true]:bg-accent/20 data-[selected=true]:ring-0"
                             key={agent.id}
                             value={agent.id}
                         >
@@ -260,11 +261,13 @@ function AgentButtonGroup({
                                 anchored to the control itself. */}
                             <CheckboxButtonGroup.Indicator className="relative end-auto top-auto" />
                             <CheckboxButtonGroup.ItemContent className="flex-row items-center gap-2">
-                                <CheckboxButtonGroup.ItemIcon>
+                                {/* The stock icon slot forces svgs to size-6;
+                                    pills want the smaller face. */}
+                                <CheckboxButtonGroup.ItemIcon className="[&>svg]:size-4">
                                     <AgentFace
                                         animate={false}
                                         head={agent.effectiveCharacter ?? 'none'}
-                                        size={20}
+                                        size={16}
                                     />
                                 </CheckboxButtonGroup.ItemIcon>
                                 <Label>{agent.name}</Label>
@@ -285,7 +288,11 @@ function AgentButtonGroup({
             {!agentsPending && agents.length === 0 ? (
                 <Description>No agents available.</Description>
             ) : null}
-            <Description>A channel keeps at least one Agent.</Description>
+            {!agentsPending && agents.length > 0 && selectedAgentIds.length === 0 ? (
+                <Description className="text-danger">Choose at least one Agent.</Description>
+            ) : (
+                <Description>A channel keeps at least one Agent.</Description>
+            )}
         </div>
     );
 }

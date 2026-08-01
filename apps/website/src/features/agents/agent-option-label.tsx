@@ -9,8 +9,9 @@ export interface AgentSelectOption {
     primaryColor: string | null;
 }
 
-// Matches the sidebar avatar treatment: a 20px slot with a 24px face.
-const faceStyle = { flexShrink: 0, height: 24, overflow: 'visible', width: 24 } as const;
+// Matches the sidebar avatar treatment: the face core fills its 20px slot
+// (no bleed into row gaps); overflow bits may still poke past.
+const faceStyle = { flexShrink: 0, height: 20, overflow: 'visible', width: 20 } as const;
 
 export function AgentOptionLabel({ agent }: { agent: AgentSelectOption }) {
     const dark = useResolvedThemeOptional() === 'dark';
@@ -23,7 +24,7 @@ export function AgentOptionLabel({ agent }: { agent: AgentSelectOption }) {
                     dark={dark}
                     head={agent.character}
                     ink={resolveAgentInk(dark, agent.primaryColor)}
-                    size={24}
+                    size={20}
                     style={faceStyle}
                 />
             </span>

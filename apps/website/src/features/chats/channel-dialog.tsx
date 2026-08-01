@@ -14,10 +14,9 @@ import {
 } from '@heroui/react';
 import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { resolveAgentInk } from '../agents/agent-color-presets.ts';
-import { AgentFace } from './agent-face.tsx';
+import { AgentOptionLabel } from '../agents/agent-option-label.tsx';
+import type { AgentFace } from './agent-face.tsx';
 
 export interface ChannelAgentOption {
     effectiveCharacter: React.ComponentProps<typeof AgentFace>['head'];
@@ -234,8 +233,14 @@ function AgentCheckboxGroup({
                                 <Checkbox.Control>
                                     <Checkbox.Indicator />
                                 </Checkbox.Control>
-                                <AgentAvatar agent={agent} />
-                                <span className="min-w-0 truncate">{agent.name}</span>
+                                <AgentOptionLabel
+                                    agent={{
+                                        character: agent.effectiveCharacter ?? 'none',
+                                        id: agent.id,
+                                        name: agent.name,
+                                        primaryColor: agent.effectivePrimaryColor,
+                                    }}
+                                />
                             </Checkbox.Content>
                         </Checkbox>
                     ))}
@@ -251,23 +256,6 @@ function AgentCheckboxGroup({
                 <Description>No agents available.</Description>
             ) : null}
         </CheckboxGroup>
-    );
-}
-
-function AgentAvatar({ agent }: { agent: ChannelAgentOption }) {
-    const dark = useResolvedThemeOptional() === 'dark';
-
-    return (
-        <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center">
-            <AgentFace
-                animate={false}
-                dark={dark}
-                head={agent.effectiveCharacter}
-                ink={resolveAgentInk(dark, agent.effectivePrimaryColor)}
-                size={24}
-                style={{ flexShrink: 0, height: 24, overflow: 'visible', width: 24 }}
-            />
-        </span>
     );
 }
 

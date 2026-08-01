@@ -57,12 +57,14 @@ export function AppRail({
         >
             <Sidebar aria-label="App sections">
                 <Sidebar.Header>
-                    <ServerSwitcher
-                        currentServer={currentServer}
-                        onManageServers={onManageServers}
-                        onSwitchServer={onSwitchServer}
-                        servers={servers}
-                    />
+                    <div className="-mt-2 flex min-h-10 items-center justify-center">
+                        <ServerSwitcher
+                            currentServer={currentServer}
+                            onManageServers={onManageServers}
+                            onSwitchServer={onSwitchServer}
+                            servers={servers}
+                        />
+                    </div>
                 </Sidebar.Header>
                 <Sidebar.Content>
                     <Sidebar.Menu
@@ -153,7 +155,9 @@ function ServerSwitcher({
                 isIconOnly
                 variant="ghost"
             >
-                <Avatar className="size-6">
+                {/* Stock sm Avatar: 32px with squared-off rounding — the
+                    server monogram reads as an avatar, not a circle. */}
+                <Avatar size="sm">
                     <Avatar.Fallback>{initial}</Avatar.Fallback>
                 </Avatar>
             </Button>

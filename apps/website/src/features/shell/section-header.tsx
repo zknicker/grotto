@@ -1,14 +1,22 @@
 import type { ReactNode } from 'react';
 
 /**
+ * The band height every top-of-column zone shares: the shell topbar, local
+ * SectionBars, and the sidebar frame's header zone. One value, one place.
+ */
+export const bandHeightClassName = 'h-14';
+
+/**
  * The one topbar band chrome: fixed height, bottom hairline, gutter. The
  * shell renders exactly one of these above the routed content
  * (ShellTopbar); embedded surfaces that need a local band (a panel, a tab
- * body) may render their own. Band height lives here and nowhere else.
+ * body) may render their own.
  */
 export function SectionBar({ children }: { children?: ReactNode }) {
     return (
-        <header className="flex h-12 shrink-0 items-center border-separator border-b px-4">
+        <header
+            className={`flex ${bandHeightClassName} shrink-0 items-center border-separator border-b px-4`}
+        >
             {children}
         </header>
     );

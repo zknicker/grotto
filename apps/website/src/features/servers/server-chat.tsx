@@ -12,7 +12,7 @@ import { useServerChatMessages } from '../../hooks/servers/use-server-chat-messa
 import { useViewportBelow } from '../../hooks/use-viewport-below.ts';
 import { ChatArtifactPanel } from '../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../chats/chat-detail-frame.tsx';
-import { type ChatViewTab, ChatViewTabs } from '../chats/chat-view-tabs.tsx';
+import { ChatViewSwitcher, type ChatViewTab } from '../chats/chat-view-tabs.tsx';
 import type { TavernResourceTarget } from '../chats/tavern-resource-link.ts';
 import { SectionHeader } from '../shell/section-header.tsx';
 import {
@@ -244,16 +244,15 @@ export function ServerChat({
                 }
                 hasTransientTimelineContent={hasHostedAgentComposition(chat.id, agentLifecycles)}
                 header={
-                    <>
-                        <HostedChatTopbar
-                            artifactVisible={artifactState.visible}
-                            chat={chat}
-                            chatName={chatName}
-                            onToggleArtifacts={artifactState.toggleVisible}
-                            retired={peerRetired}
-                        />
-                        <ChatViewTabs onValueChange={setViewTab} value={viewTab} />
-                    </>
+                    <HostedChatTopbar
+                        artifactVisible={artifactState.visible}
+                        chat={chat}
+                        chatName={chatName}
+                        onToggleArtifacts={artifactState.toggleVisible}
+                        onViewTabChange={setViewTab}
+                        retired={peerRetired}
+                        viewTab={viewTab}
+                    />
                 }
                 historyLoaded={Boolean(messages.data)}
                 isPending={messages.isPending}
@@ -313,16 +312,21 @@ function HostedChatTopbar({
     chat,
     chatName,
     onToggleArtifacts,
+    onViewTabChange,
     retired,
+    viewTab,
 }: {
     artifactVisible: boolean;
     chat: HostedChat;
     chatName: string;
     onToggleArtifacts: () => void;
+    onViewTabChange: (tab: ChatViewTab) => void;
     retired: boolean;
+    viewTab: ChatViewTab;
 }) {
     return (
         <SectionHeader
+            center={<ChatViewSwitcher onValueChange={onViewTabChange} value={viewTab} />}
             leading={chat.kind === 'channel' ? <ChannelIconBox size="topbar" /> : null}
             meta={retired ? <Chip size="sm">Retired</Chip> : null}
             title={chatName}

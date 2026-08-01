@@ -1,4 +1,4 @@
-import { Tabs } from '@heroui/react';
+import { Segment } from '@heroui-pro/react';
 import {
     Attachment01Icon,
     BubbleChatIcon,
@@ -21,8 +21,13 @@ export function supportsChatViewTabs(chat: { conversationKind: string; type: str
     );
 }
 
-/** View switcher between the chat transcript, its tasks, and its files. */
-export function ChatViewTabs({
+/**
+ * In-band view switcher between the chat transcript, its tasks, and its
+ * files: a ghost Segment using HeroUI's icon-expand pattern — the active
+ * view is an accent pill with icon + label, inactive views collapse to
+ * icons.
+ */
+export function ChatViewSwitcher({
     onValueChange,
     value,
 }: {
@@ -30,24 +35,40 @@ export function ChatViewTabs({
     value: ChatViewTab;
 }) {
     return (
-        <div className="shrink-0 border-separator border-b px-2">
-            <Tabs
-                onSelectionChange={(key) => onValueChange(key as ChatViewTab)}
-                selectedKey={value}
-                variant="secondary"
-            >
-                <Tabs.ListContainer>
-                    <Tabs.List aria-label="Chat views">
-                        {chatViewTabs.map((tab) => (
-                            <Tabs.Tab id={tab.value} key={tab.value}>
-                                <Icon aria-hidden="true" icon={tab.icon} size={16} />
-                                {tab.label}
-                                <Tabs.Indicator />
-                            </Tabs.Tab>
-                        ))}
-                    </Tabs.List>
-                </Tabs.ListContainer>
-            </Tabs>
-        </div>
+        <Segment
+            aria-label="Chat views"
+            onSelectionChange={(key) => onValueChange(key as ChatViewTab)}
+            selectedKey={value}
+            size="sm"
+            variant="ghost"
+        >
+            {chatViewTabs.map((tab) => (
+                <Segment.Item className="w-auto" id={tab.value} key={tab.value} style={{ gap: 0 }}>
+                    {({ isSelected }: { isSelected: boolean }) => (
+                        <>
+                            <Icon aria-hidden="true" icon={tab.icon} size={15} />
+                            <span
+                                className="inline-grid transition-all duration-200 ease-out motion-reduce:transition-none"
+                                style={{
+                                    gridTemplateColumns: isSelected ? '1fr' : '0fr',
+                                    minWidth: 0,
+                                    opacity: isSelected ? 1 : 0,
+                                }}
+                            >
+                                <span
+                                    className="overflow-hidden whitespace-nowrap transition-[padding] duration-200 ease-out motion-reduce:transition-none"
+                                    style={{
+                                        minWidth: 0,
+                                        paddingInlineStart: isSelected ? '0.375rem' : 0,
+                                    }}
+                                >
+                                    {tab.label}
+                                </span>
+                            </span>
+                        </>
+                    )}
+                </Segment.Item>
+            ))}
+        </Segment>
     );
 }

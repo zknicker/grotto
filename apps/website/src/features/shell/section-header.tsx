@@ -7,12 +7,14 @@ import type { ReactNode } from 'react';
  * actions trail.
  */
 export function SectionHeader({
+    center,
     children,
     description,
     leading,
     meta,
     title,
 }: {
+    center?: ReactNode;
     children?: ReactNode;
     description?: ReactNode;
     leading?: ReactNode;
@@ -25,8 +27,19 @@ export function SectionHeader({
             <h1 className="min-w-0 shrink truncate font-semibold text-sm">{title}</h1>
             {meta}
             {description ? <p className="truncate text-muted text-xs">{description}</p> : null}
+            {center ? (
+                <div className="flex min-w-0 flex-1 items-center justify-center">{center}</div>
+            ) : null}
             {children ? (
-                <div className="ms-auto flex min-w-0 items-center gap-2">{children}</div>
+                <div
+                    className={
+                        center
+                            ? 'flex min-w-0 shrink-0 items-center gap-2'
+                            : 'ms-auto flex min-w-0 items-center gap-2'
+                    }
+                >
+                    {children}
+                </div>
             ) : null}
         </header>
     );

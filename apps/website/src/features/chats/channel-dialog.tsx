@@ -237,7 +237,7 @@ function AgentButtonGroup({
             ) : null}
             {visibleAgents.length > 0 ? (
                 <CheckboxButtonGroup
-                    className="w-full grid-cols-2"
+                    className="w-full grid-cols-3"
                     isDisabled={disabled}
                     layout="grid"
                     // A channel always keeps at least one agent, so an empty
@@ -250,9 +250,16 @@ function AgentButtonGroup({
                     variant="secondary"
                 >
                     {visibleAgents.map((agent) => (
-                        <CheckboxButtonGroup.Item key={agent.id} value={agent.id}>
-                            <CheckboxButtonGroup.Indicator />
-                            <CheckboxButtonGroup.ItemContent className="flex-row items-center gap-3">
+                        <CheckboxButtonGroup.Item
+                            className="flex-row items-center gap-2 rounded-full px-3 py-1.5 data-[selected=true]:border-border data-[selected=true]:bg-accent/10 data-[selected=true]:ring-0"
+                            key={agent.id}
+                            value={agent.id}
+                        >
+                            {/* Relative (not static) keeps the checkbox in flow
+                                on the left while its selected-state fill stays
+                                anchored to the control itself. */}
+                            <CheckboxButtonGroup.Indicator className="relative end-auto top-auto" />
+                            <CheckboxButtonGroup.ItemContent className="flex-row items-center gap-2">
                                 <CheckboxButtonGroup.ItemIcon>
                                     <AgentFace
                                         animate={false}

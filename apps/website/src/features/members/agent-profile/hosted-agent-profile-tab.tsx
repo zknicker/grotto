@@ -23,6 +23,7 @@ import {
 import { AgentIdentityDialog } from './agent-identity-dialog.tsx';
 import { AgentSkillFileDialog } from './agent-skill-file-dialog.tsx';
 import { HostedAgentDangerSection } from './hosted-agent-danger-section.tsx';
+import { HostedAgentActions } from './hosted-agent-profile-header.tsx';
 import { HostedAgentSessionSection } from './hosted-agent-session-section.tsx';
 import { HostedAgentSkillsSection } from './hosted-agent-skills-section.tsx';
 import { RuntimeConfigDialog } from './runtime-config-dialog.tsx';
@@ -61,6 +62,9 @@ export function HostedAgentProfileTab({
     return (
         <>
             <div className="px-5 py-6 sm:px-7">
+                <div className="pb-6">
+                    <HostedAgentActions agent={agent} server={server} />
+                </div>
                 <SettingsPage>
                     <SettingsSection
                         action={

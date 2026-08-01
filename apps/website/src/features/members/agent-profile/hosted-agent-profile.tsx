@@ -1,7 +1,8 @@
-import { Tabs } from '@heroui/react';
+import { Button, Tabs, Tooltip } from '@heroui/react';
 import {
     Activity01Icon,
     BubbleChatIcon,
+    Cancel01Icon,
     Folder01Icon,
     Link04Icon,
     Notification03Icon,
@@ -15,7 +16,7 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { serverMembersRoute } from '../../servers/server-routes.ts';
-import { HostedAgentProfileHeader } from './hosted-agent-profile-header.tsx';
+import { HostedAgentIdentity } from './hosted-agent-profile-header.tsx';
 import {
     HostedAgentActivityTab,
     HostedAgentAppsTab,
@@ -61,20 +62,23 @@ export function HostedAgentProfile({
 
     return (
         <Tabs
-            className="h-full min-h-0 w-full gap-0"
+            // The band is one grid row: identity, tab list, close. The list
+            // container must stay a DIRECT child of Tabs — the secondary
+            // variant styles select `.tabs--secondary > .tabs__list-container`.
+            className="grid h-full min-h-0 w-full grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_minmax(0,1fr)] gap-0"
             onSelectionChange={(key) => setActiveTab(key as HostedAgentTab)}
             selectedKey={activeTab}
             variant="secondary"
         >
-            <HostedAgentProfileHeader
-                agent={agent}
-                onClose={onClose}
-                server={server}
-                variant={variant}
-            />
-            <Tabs.ListContainer
-                className={cn('shrink-0', variant === 'page' ? 'px-5 sm:px-7' : 'px-3')}
+            <div
+                className={cn(
+                    'flex items-center border-border border-b pe-5',
+                    variant === 'page' ? 'ps-5 sm:ps-7' : 'ps-3'
+                )}
             >
+                <HostedAgentIdentity agent={agent} />
+            </div>
+            <Tabs.ListContainer className="min-w-0">
                 <Tabs.List aria-label="Agent sections">
                     {tabs.map((tab) => (
                         <Tabs.Tab id={tab.value} key={tab.value}>
@@ -87,9 +91,31 @@ export function HostedAgentProfile({
                     ))}
                 </Tabs.List>
             </Tabs.ListContainer>
+            <div
+                className={cn(
+                    'flex items-center border-border border-b',
+                    variant === 'page' ? 'pe-5 sm:pe-7' : 'pe-3',
+                    onClose ? 'ps-2' : ''
+                )}
+            >
+                {onClose ? (
+                    <Tooltip>
+                        <Button
+                            aria-label="Close"
+                            isIconOnly
+                            onPress={onClose}
+                            size="sm"
+                            variant="ghost"
+                        >
+                            <Icon aria-hidden="true" icon={Cancel01Icon} size={16} />
+                        </Button>
+                        <Tooltip.Content>Close</Tooltip.Content>
+                    </Tooltip>
+                ) : null}
+            </div>
             <Tabs.Panel
                 className={cn(
-                    'mt-0 min-h-0 flex-1 p-0',
+                    'col-span-3 mt-0 min-h-0 p-0',
                     activeTab === 'workspace' ? 'overflow-hidden' : 'overflow-y-auto'
                 )}
                 id={activeTab}

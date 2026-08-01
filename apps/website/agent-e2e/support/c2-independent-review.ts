@@ -110,24 +110,26 @@ async function createTemporaryAgent(
     return await pollAgent(harness, created.agent.id);
 }
 
-async function archiveCreatedChats(
+async function deleteCreatedChats(
     harness: Awaited<ReturnType<typeof createEvalHarness>>,
     chatIds: Array<string | null | undefined>
 ) {
-    const failures: Error[] = [];
-    for (const chatId of chatIds) {
-        if (!chatId) {
-            continue;
-        }
-        try {
-            await harness.trpc('chat.archive', { chatId });
-        } catch (error) {
-            failures.push(new Error(`Could not archive C2 chat ${chatId}.`, { cause: error }));
+    const requestedChatIds = new Set(chatIds.filter((chatId): chatId is string => Boolean(chatId)));
+    if (requestedChatIds.size === 0) {
+        return;
+    }
+    const tasks = (await harness.trpc('task.list', {
+        serverId: harness.serverId,
+    })) as TaskItem[];
+    for (const task of tasks) {
+        if (requestedChatIds.has(task.task.chatId)) {
+            requestedChatIds.add(task.task.threadChatId);
         }
     }
-    if (failures.length > 0) {
-        throw new AggregateError(failures, 'C2 chat cleanup failed.');
-    }
+    await harness.trpc('dev.cleanupEvalChats', {
+        chatIds: [...requestedChatIds],
+        serverId: harness.serverId,
+    });
 }
 
 async function deleteTemporaryAgents(
@@ -162,7 +164,7 @@ async function cleanupC2Resources(
 ) {
     const failures: unknown[] = [];
     for (const cleanup of [
-        () => archiveCreatedChats(harness, chatIds),
+        () => deleteCreatedChats(harness, chatIds),
         () => deleteTemporaryAgents(harness, agents),
         () => harness.cleanup(),
     ]) {
@@ -239,6 +241,7 @@ export interface TaskItem {
     };
     task: {
         assigneeAgentId: string | null;
+        chatId: string;
         createdAt: string;
         threadChatId: string;
     };

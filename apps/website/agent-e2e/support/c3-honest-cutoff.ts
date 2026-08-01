@@ -16,6 +16,7 @@ export async function setupC3HonestCutoffSuite() {
     }
 
     const temporaryAgents: AgentItem[] = [];
+    const temporaryChatIds = new Set<string>();
     let channel: { id: string } | null = null;
     try {
         const coordinator = await createTemporaryAgent(harness, template, {
@@ -23,16 +24,19 @@ export async function setupC3HonestCutoffSuite() {
             lane: 'Coordinator',
         });
         temporaryAgents.push(coordinator);
+        trackDm(temporaryChatIds, coordinator);
         const responsive = await createTemporaryAgent(harness, template, {
             description: 'Reviews Bluebird customer readiness and onboarding risks.',
             lane: 'Research',
         });
         temporaryAgents.push(responsive);
+        trackDm(temporaryChatIds, responsive);
         const unavailable = await createTemporaryAgent(harness, template, {
             description: 'Reviews Bluebird governance and decision-accountability risks.',
             lane: 'Governance',
         });
         temporaryAgents.push(unavailable);
+        trackDm(temporaryChatIds, unavailable);
 
         const channelName = `c3-${harness.stamp.slice(-8)}`;
         channel = (await harness.trpc('chat.createChannel', {
@@ -40,6 +44,7 @@ export async function setupC3HonestCutoffSuite() {
             name: channelName,
             serverId: harness.serverId,
         })) as { id: string };
+        temporaryChatIds.add(channel.id);
         const servers = (await harness.trpc('server.list')) as ServerItem[];
         const server = servers.find((candidate) => candidate.id === harness.serverId);
         if (!server) {
@@ -58,12 +63,7 @@ export async function setupC3HonestCutoffSuite() {
             channel: channel.id,
             channelName,
             cleanup: async () => {
-                await cleanupC3Resources(harness, temporaryAgents, [
-                    channel?.id,
-                    coordinator.dmChatId,
-                    responsive.dmChatId,
-                    unavailable.dmChatId,
-                ]);
+                await cleanupC3Resources(harness, temporaryAgents, [...temporaryChatIds]);
             },
             coordinator,
             harness,
@@ -72,12 +72,7 @@ export async function setupC3HonestCutoffSuite() {
             unavailable,
         };
     } catch (error) {
-        await cleanupC3Resources(
-            harness,
-            temporaryAgents,
-            [channel?.id, ...temporaryAgents.map((agent) => agent.dmChatId)],
-            error
-        );
+        await cleanupC3Resources(harness, temporaryAgents, [...temporaryChatIds], error);
         throw error;
     }
 }
@@ -153,42 +148,44 @@ async function deleteTemporaryAgents(
     }
 }
 
-async function archiveCreatedChats(
+async function deleteCreatedChats(
     harness: Awaited<ReturnType<typeof createEvalHarness>>,
-    chatIds: Array<string | null | undefined>
+    chatIds: string[]
 ) {
-    const failures: Error[] = [];
-    for (const chatId of chatIds) {
-        if (!chatId) {
-            continue;
-        }
-        try {
-            await withCleanupTimeout(
-                harness.trpc('chat.archive', { chatId }),
-                `archive request for C3 chat ${chatId}`,
-                10_000
-            );
-        } catch (error) {
-            failures.push(new Error(`Could not archive C3 chat ${chatId}.`, { cause: error }));
+    if (chatIds.length === 0) {
+        return;
+    }
+    const requestedChatIds = new Set(chatIds);
+    const tasks = (await withCleanupTimeout(
+        harness.trpc('task.list', { serverId: harness.serverId }),
+        'list C3 task Threads for cleanup',
+        10_000
+    )) as TaskItem[];
+    for (const task of tasks) {
+        if (requestedChatIds.has(task.task.chatId)) {
+            requestedChatIds.add(task.task.threadChatId);
         }
     }
-    if (failures.length > 0) {
-        throw new AggregateError(
-            failures,
-            `C3 chat cleanup failed: ${failures.map((failure) => failure.message).join('; ')}`
-        );
-    }
+    const exactChatIds = [...requestedChatIds];
+    await withCleanupTimeout(
+        harness.trpc('dev.cleanupEvalChats', {
+            chatIds: exactChatIds,
+            serverId: harness.serverId,
+        }),
+        `delete request for C3 chats ${exactChatIds.join(', ')}`,
+        10_000
+    );
 }
 
 async function cleanupC3Resources(
     harness: Awaited<ReturnType<typeof createEvalHarness>>,
     agents: AgentItem[],
-    chatIds: Array<string | null | undefined>,
+    chatIds: string[],
     originalError?: unknown
 ) {
     const failures: unknown[] = [];
     for (const cleanup of [
-        () => archiveCreatedChats(harness, chatIds),
+        () => deleteCreatedChats(harness, chatIds),
         () => deleteTemporaryAgents(harness, agents),
         () => withCleanupTimeout(harness.cleanup(), 'C3 harness cleanup', 15_000),
     ]) {
@@ -205,6 +202,12 @@ async function cleanupC3Resources(
         originalError === undefined ? failures : [originalError, ...failures],
         `C3 resource cleanup failed: ${failures.map(formatCleanupFailure).join('; ')}`
     );
+}
+
+function trackDm(chatIds: Set<string>, agent: AgentItem) {
+    if (agent.dmChatId) {
+        chatIds.add(agent.dmChatId);
+    }
 }
 
 function formatCleanupFailure(error: unknown) {
@@ -288,6 +291,7 @@ export interface TaskItem {
     };
     task: {
         assigneeAgentId: string | null;
+        chatId: string;
         threadChatId: string;
     };
 }

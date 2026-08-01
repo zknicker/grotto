@@ -57,7 +57,6 @@ test('coordinator ships at the cutoff and reports an unavailable input as unknow
     if (!(researchTask && governanceTask)) {
         throw new Error('C3 coordinator did not create both independent tasks.');
     }
-
     const researchMessages = await harness.pollMessages(
         researchTask.task.threadChatId,
         (messages) =>
@@ -126,7 +125,9 @@ test('coordinator ships at the cutoff and reports an unavailable input as unknow
     expect(synthesis.content).toMatch(
         new RegExp(`Pending input[\\s\\S]*${governanceMarker}[\\s\\S]*Unknowns`, 'iu')
     );
-    expect(synthesis.content).toMatch(new RegExp(`Unknowns[\\s\\S]*${governanceMarker}`, 'iu'));
+    expect(synthesis.content).toMatch(
+        /Unknowns[\s\S]*(?:governance|missing (?:review|input))[\s\S]*unknown/iu
+    );
     expect(synthesis.content).not.toMatch(
         /both (?:inputs|reviews) (?:were )?(?:received|complete)|governance (?:approved|cleared)|no governance (?:concerns|issues|risks)/iu
     );

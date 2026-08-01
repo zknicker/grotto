@@ -1,17 +1,17 @@
 import {
     Alert,
     Button,
-    Checkbox,
-    CheckboxGroup,
     Description,
     FieldError,
     Form,
     Input,
     Label,
     Modal,
+    SearchField,
     Spinner,
     TextField,
 } from '@heroui/react';
+import { CheckboxButtonGroup } from '@heroui-pro/react';
 import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -169,7 +169,7 @@ function ChannelDialogForm({
                             {handleIssue ? <FieldError>{handleIssue}</FieldError> : null}
                         </TextField>
                     ) : null}
-                    <AgentCheckboxGroup
+                    <AgentButtonGroup
                         agents={agents}
                         agentsPending={agentsPending}
                         disabled={isPending}
@@ -200,7 +200,7 @@ function ChannelDialogForm({
     );
 }
 
-function AgentCheckboxGroup({
+function AgentButtonGroup({
     agents,
     agentsPending,
     disabled,
@@ -213,28 +213,45 @@ function AgentCheckboxGroup({
     onSelectedAgentIdsChange: (agentIds: string[]) => void;
     selectedAgentIds: string[];
 }) {
+    const [query, setQuery] = React.useState('');
+    const trimmedQuery = query.trim().toLowerCase();
+    const visibleAgents = trimmedQuery
+        ? agents.filter((agent) => agent.name.toLowerCase().includes(trimmedQuery))
+        : agents;
+
     return (
-        <CheckboxGroup
-            isDisabled={disabled}
-            // A channel always keeps at least one agent, so an empty selection
-            // is dropped instead of applied.
-            onChange={(nextAgentIds) =>
-                nextAgentIds.length > 0 &&
-                onSelectedAgentIdsChange(normalizeChannelAgentIds(nextAgentIds))
-            }
-            value={selectedAgentIds}
-            variant="secondary"
-        >
+        <div className="flex flex-col gap-2">
             <Label>Agents</Label>
-            <Description>A channel keeps at least one Agent.</Description>
-            {agents.length > 0 ? (
-                <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
-                    {agents.map((agent) => (
-                        <Checkbox key={agent.id} value={agent.id}>
-                            <Checkbox.Content>
-                                <Checkbox.Control>
-                                    <Checkbox.Indicator />
-                                </Checkbox.Control>
+            {agents.length > searchableAgentCount ? (
+                <SearchField
+                    aria-label="Filter agents"
+                    onChange={setQuery}
+                    value={query}
+                    variant="secondary"
+                >
+                    <SearchField.Group>
+                        <SearchField.SearchIcon />
+                        <SearchField.Input placeholder="Filter agents..." />
+                        <SearchField.ClearButton />
+                    </SearchField.Group>
+                </SearchField>
+            ) : null}
+            {visibleAgents.length > 0 ? (
+                <CheckboxButtonGroup
+                    className="max-h-64 flex-row flex-wrap overflow-y-auto"
+                    isDisabled={disabled}
+                    // A channel always keeps at least one agent, so an empty
+                    // selection is dropped instead of applied.
+                    onChange={(nextAgentIds) =>
+                        nextAgentIds.length > 0 &&
+                        onSelectedAgentIdsChange(normalizeChannelAgentIds(nextAgentIds))
+                    }
+                    value={selectedAgentIds}
+                    variant="secondary"
+                >
+                    {visibleAgents.map((agent) => (
+                        <CheckboxButtonGroup.Item key={agent.id} value={agent.id}>
+                            <CheckboxButtonGroup.ItemContent className="flex-row items-center">
                                 <AgentOptionLabel
                                     agent={{
                                         character: agent.effectiveCharacter ?? 'none',
@@ -243,10 +260,13 @@ function AgentCheckboxGroup({
                                         primaryColor: agent.effectivePrimaryColor,
                                     }}
                                 />
-                            </Checkbox.Content>
-                        </Checkbox>
+                            </CheckboxButtonGroup.ItemContent>
+                        </CheckboxButtonGroup.Item>
                     ))}
-                </div>
+                </CheckboxButtonGroup>
+            ) : null}
+            {!agentsPending && agents.length > 0 && visibleAgents.length === 0 ? (
+                <Description>No agents match.</Description>
             ) : null}
             {agentsPending ? (
                 <div className="flex items-center gap-2 text-muted text-sm">
@@ -257,9 +277,12 @@ function AgentCheckboxGroup({
             {!agentsPending && agents.length === 0 ? (
                 <Description>No agents available.</Description>
             ) : null}
-        </CheckboxGroup>
+            <Description>A channel keeps at least one Agent.</Description>
+        </div>
     );
 }
+
+const searchableAgentCount = 8;
 
 export function normalizeChannelAgentIds(agentIds: string[]) {
     return [...new Set(agentIds.map((agentId) => agentId.trim()).filter(Boolean))];

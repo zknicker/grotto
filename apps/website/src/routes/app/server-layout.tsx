@@ -25,6 +25,7 @@ import { AppRail, type AppRailSection } from '../../features/shell/app-rail.tsx'
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
+import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerAgentLifecycle } from '../../hooks/servers/use-server-agent-lifecycle.ts';
@@ -106,129 +107,133 @@ export function ServerLayout() {
     };
 
     return (
-        <AppShell className="w-full">
-            <AppShellDragRegion />
-            <HostedCommandMenu
-                agents={agents.data ?? []}
-                chats={chats.data ?? []}
-                role={server.data.role}
-                serverSlug={slug}
-            />
-            <div className="flex min-h-0 flex-1">
-                <AppRail
-                    active={active}
-                    canOperate={canOperate}
-                    currentServer={server.data}
-                    onManageServers={() => setManagingServers(true)}
-                    onSelect={selectSection}
-                    onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
-                    servers={serverChoices}
+        <TopbarProvider>
+            <AppShell className="w-full">
+                <AppShellDragRegion />
+                <HostedCommandMenu
+                    agents={agents.data ?? []}
+                    chats={chats.data ?? []}
+                    role={server.data.role}
+                    serverSlug={slug}
                 />
-                <AppLayout
-                    className="h-full min-h-0 min-w-0 flex-1"
-                    navigate={navigate}
-                    scrollMode="content"
-                    sidebar={
-                        active === 'settings' ? (
-                            <SettingsSidebar currentSection={settingsSection} slug={slug} />
-                        ) : active === 'tasks' ? (
-                            <ServerTasksSidebar
-                                canManage={canOperate}
-                                serverId={server.data.id}
-                                slug={slug}
-                            />
-                        ) : active === 'members' ? (
-                            <MembersSidebar
-                                agentListStatus={agentListStatus}
-                                agents={agents.data ?? []}
-                                server={server.data}
-                            />
-                        ) : active === 'computers' && canOperate ? (
-                            <ComputersSidebar serverId={server.data.id} slug={slug} />
-                        ) : (
-                            <AppSidebar
-                                agents={agents.data ?? []}
-                                chats={chats.data ?? []}
-                                currentServer={server.data}
-                                onCreateChannel={() => {
-                                    createChannel.reset();
-                                    setCreatingChannel(true);
-                                }}
-                                selectedChatId={selectedChatId}
-                            />
-                        )
-                    }
-                    sidebarCollapsible="offcanvas"
-                    sidebarOpen={showSidebar}
-                    toggleShortcut={false}
-                >
-                    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-                        {server.error || agents.error || connectionState !== 'connected' ? (
-                            <div className="absolute top-2 right-3 z-20 rounded-lg bg-surface-secondary px-2 py-1 text-muted text-xs shadow-surface">
-                                {agents.error && !agents.data
-                                    ? 'Agent directory unavailable'
-                                    : 'Server reconnecting · showing the latest data'}
-                            </div>
-                        ) : null}
-                        <Outlet
-                            context={{
-                                agentListStatus,
-                                agentLifecycles,
-                                agents: agents.data ?? [],
-                                chatListStatus,
-                                chats: chats.data ?? [],
-                                server: server.data,
-                                servers: servers.data ?? [],
-                            }}
-                        />
-                    </div>
-                </AppLayout>
-            </div>
-            <ChannelDialog
-                agents={channelAgents}
-                agentsPending={agents.isPending}
-                errorMessage={createChannel.error?.message ?? null}
-                initialAgentIds={[]}
-                initialDisplayName=""
-                isPending={createChannel.isPending}
-                onClose={() => {
-                    createChannel.reset();
-                    setCreatingChannel(false);
-                }}
-                onSubmit={async ({ agentIds, displayName }) => {
-                    const channel = await createChannel.mutateAsync({
-                        agentIds,
-                        name: displayName,
-                        serverId: server.data.id,
-                    });
-                    setCreatingChannel(false);
-                    openChat(channel.id);
-                }}
-                open={creatingChannel}
-                submitLabel="Create"
-                title="New channel"
-            />
-            <Modal isOpen={managingServers} onOpenChange={setManagingServers}>
-                <Modal.Backdrop>
-                    <Modal.Container scroll="outside" size="lg">
-                        <Modal.Dialog>
-                            <Modal.Header>
-                                <Modal.Heading>Servers</Modal.Heading>
-                                <p className="mt-1 text-muted text-sm">
-                                    Switch to a joined Server, create one, or accept an invitation.
-                                </p>
-                            </Modal.Header>
-                            <Modal.Body>
-                                <ServerChoicePanel
-                                    onServerSelect={() => setManagingServers(false)}
-                                    servers={serverChoices}
+                <div className="flex min-h-0 flex-1">
+                    <AppRail
+                        active={active}
+                        canOperate={canOperate}
+                        currentServer={server.data}
+                        onManageServers={() => setManagingServers(true)}
+                        onSelect={selectSection}
+                        onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
+                        servers={serverChoices}
+                    />
+                    <AppLayout
+                        className="h-full min-h-0 min-w-0 flex-1"
+                        navigate={navigate}
+                        scrollMode="content"
+                        sidebar={
+                            active === 'settings' ? (
+                                <SettingsSidebar currentSection={settingsSection} slug={slug} />
+                            ) : active === 'tasks' ? (
+                                <ServerTasksSidebar
+                                    canManage={canOperate}
+                                    serverId={server.data.id}
+                                    slug={slug}
                                 />
-                            </Modal.Body>
-                        </Modal.Dialog>
-                    </Modal.Container>
-                </Modal.Backdrop>
-            </Modal>
-        </AppShell>
+                            ) : active === 'members' ? (
+                                <MembersSidebar
+                                    agentListStatus={agentListStatus}
+                                    agents={agents.data ?? []}
+                                    server={server.data}
+                                />
+                            ) : active === 'computers' && canOperate ? (
+                                <ComputersSidebar serverId={server.data.id} slug={slug} />
+                            ) : (
+                                <AppSidebar
+                                    agents={agents.data ?? []}
+                                    chats={chats.data ?? []}
+                                    currentServer={server.data}
+                                    onCreateChannel={() => {
+                                        createChannel.reset();
+                                        setCreatingChannel(true);
+                                    }}
+                                    selectedChatId={selectedChatId}
+                                />
+                            )
+                        }
+                        sidebarCollapsible="offcanvas"
+                        sidebarOpen={showSidebar}
+                        toggleShortcut={false}
+                    >
+                        <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+                            <ShellTopbar />
+                            {server.error || agents.error || connectionState !== 'connected' ? (
+                                <div className="absolute top-2 right-3 z-20 rounded-lg bg-surface-secondary px-2 py-1 text-muted text-xs shadow-surface">
+                                    {agents.error && !agents.data
+                                        ? 'Agent directory unavailable'
+                                        : 'Server reconnecting · showing the latest data'}
+                                </div>
+                            ) : null}
+                            <Outlet
+                                context={{
+                                    agentListStatus,
+                                    agentLifecycles,
+                                    agents: agents.data ?? [],
+                                    chatListStatus,
+                                    chats: chats.data ?? [],
+                                    server: server.data,
+                                    servers: servers.data ?? [],
+                                }}
+                            />
+                        </div>
+                    </AppLayout>
+                </div>
+                <ChannelDialog
+                    agents={channelAgents}
+                    agentsPending={agents.isPending}
+                    errorMessage={createChannel.error?.message ?? null}
+                    initialAgentIds={[]}
+                    initialDisplayName=""
+                    isPending={createChannel.isPending}
+                    onClose={() => {
+                        createChannel.reset();
+                        setCreatingChannel(false);
+                    }}
+                    onSubmit={async ({ agentIds, displayName }) => {
+                        const channel = await createChannel.mutateAsync({
+                            agentIds,
+                            name: displayName,
+                            serverId: server.data.id,
+                        });
+                        setCreatingChannel(false);
+                        openChat(channel.id);
+                    }}
+                    open={creatingChannel}
+                    submitLabel="Create"
+                    title="New channel"
+                />
+                <Modal isOpen={managingServers} onOpenChange={setManagingServers}>
+                    <Modal.Backdrop>
+                        <Modal.Container scroll="outside" size="lg">
+                            <Modal.Dialog>
+                                <Modal.Header>
+                                    <Modal.Heading>Servers</Modal.Heading>
+                                    <p className="mt-1 text-muted text-sm">
+                                        Switch to a joined Server, create one, or accept an
+                                        invitation.
+                                    </p>
+                                </Modal.Header>
+                                <Modal.Body>
+                                    <ServerChoicePanel
+                                        onServerSelect={() => setManagingServers(false)}
+                                        servers={serverChoices}
+                                    />
+                                </Modal.Body>
+                            </Modal.Dialog>
+                        </Modal.Container>
+                    </Modal.Backdrop>
+                </Modal>
+            </AppShell>
+        </TopbarProvider>
     );
 }
 

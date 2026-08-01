@@ -524,6 +524,10 @@
 
     html.macos-electron .app-shell {
         background: var(--app-chrome-native-fill);
+        /* One shell-level inset clears the macOS traffic lights: the rail,
+           sidebars, and topbar all start below the native controls, and the
+           drag region overlays the freed strip. */
+        padding-top: 2.25rem;
     }
 
     .scrollbar-hidden {

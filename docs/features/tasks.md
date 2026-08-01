@@ -77,6 +77,13 @@ durable delivery path as direct attention. It wakes only that Agent; it does not
 Channel or wake unrelated muted members. Task creation carries an idempotency nonce so retries
 cannot create duplicate task messages.
 
+## Coordination handoffs
+
+When a user gives an explicit cutoff for independent task lanes, the coordinating Agent works to
+that cutoff instead of waiting indefinitely for every assignee. It delivers the useful result
+available so far, identifies which inputs arrived and which remain pending, and treats silence as
+unknown. A missing reply is not approval, negative evidence, or completed work.
+
 ## Deliberate exclusions
 
 The task receipt is informational and does not replace the task row, durable task events, or its

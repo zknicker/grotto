@@ -155,7 +155,7 @@ function ChannelDialogForm({
                 </div>
             </Modal.Header>
             <Modal.Body>
-                <div className="grid gap-4">
+                <div className="flex flex-col gap-5">
                     {showDisplayName ? (
                         <TextField
                             fullWidth
@@ -223,12 +223,14 @@ function AgentCheckboxGroup({
                 onSelectedAgentIdsChange(normalizeChannelAgentIds(nextAgentIds))
             }
             value={selectedAgentIds}
+            variant="secondary"
         >
             <Label>Agents</Label>
+            <Description>A channel keeps at least one Agent.</Description>
             {agents.length > 0 ? (
-                <div className="grid max-h-64 gap-1 overflow-y-auto rounded-lg border border-separator p-1.5">
+                <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
                     {agents.map((agent) => (
-                        <Checkbox key={agent.id} value={agent.id} variant="secondary">
+                        <Checkbox key={agent.id} value={agent.id}>
                             <Checkbox.Content>
                                 <Checkbox.Control>
                                     <Checkbox.Indicator />

@@ -16,6 +16,8 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { serverMembersRoute } from '../../servers/server-routes.ts';
+import { SectionBar } from '../../shell/section-header.tsx';
+import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { HostedAgentIdentity } from './hosted-agent-profile-header.tsx';
 import {
     HostedAgentActivityTab,
@@ -61,64 +63,31 @@ export function HostedAgentProfile({
     };
 
     return (
-        <Tabs
-            // The band is one grid row: identity, tab list, close. The list
-            // container must stay a DIRECT child of Tabs — the secondary
-            // variant styles select `.tabs--secondary > .tabs__list-container`.
-            className="grid h-full min-h-0 w-full grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_minmax(0,1fr)] gap-0"
-            onSelectionChange={(key) => setActiveTab(key as HostedAgentTab)}
-            selectedKey={activeTab}
-            variant="secondary"
-        >
+        <div className="flex h-full min-h-0 w-full flex-col">
+            {variant === 'page' ? (
+                <PageTopbar>
+                    <AgentTabBand
+                        activeTab={activeTab}
+                        agent={agent}
+                        onClose={onClose}
+                        onTabChange={setActiveTab}
+                    />
+                </PageTopbar>
+            ) : (
+                <SectionBar>
+                    <AgentTabBand
+                        activeTab={activeTab}
+                        agent={agent}
+                        onClose={onClose}
+                        onTabChange={setActiveTab}
+                    />
+                </SectionBar>
+            )}
             <div
                 className={cn(
-                    'flex items-center border-border border-b pe-5',
-                    variant === 'page' ? 'ps-5 sm:ps-7' : 'ps-3'
-                )}
-            >
-                <HostedAgentIdentity agent={agent} />
-            </div>
-            <Tabs.ListContainer className="min-w-0">
-                <Tabs.List aria-label="Agent sections">
-                    {tabs.map((tab) => (
-                        <Tabs.Tab id={tab.value} key={tab.value}>
-                            <span className="flex items-center gap-2">
-                                <Icon aria-hidden="true" icon={tab.icon} size={16} />
-                                {tab.label}
-                            </span>
-                            <Tabs.Indicator />
-                        </Tabs.Tab>
-                    ))}
-                </Tabs.List>
-            </Tabs.ListContainer>
-            <div
-                className={cn(
-                    'flex items-center border-border border-b',
-                    variant === 'page' ? 'pe-5 sm:pe-7' : 'pe-3',
-                    onClose ? 'ps-2' : ''
-                )}
-            >
-                {onClose ? (
-                    <Tooltip>
-                        <Button
-                            aria-label="Close"
-                            isIconOnly
-                            onPress={onClose}
-                            size="sm"
-                            variant="ghost"
-                        >
-                            <Icon aria-hidden="true" icon={Cancel01Icon} size={16} />
-                        </Button>
-                        <Tooltip.Content>Close</Tooltip.Content>
-                    </Tooltip>
-                ) : null}
-            </div>
-            <Tabs.Panel
-                className={cn(
-                    'col-span-3 mt-0 min-h-0 p-0',
+                    'min-h-0 flex-1',
                     activeTab === 'workspace' ? 'overflow-hidden' : 'overflow-y-auto'
                 )}
-                id={activeTab}
             >
                 <ActiveTab
                     agent={agent}
@@ -132,8 +101,71 @@ export function HostedAgentProfile({
                     server={server}
                     tab={activeTab}
                 />
-            </Tabs.Panel>
-        </Tabs>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Identity + section tabs + optional close, sized by the surrounding band.
+ * The Tabs list container must stay a DIRECT child of Tabs — the secondary
+ * variant styles select `.tabs--secondary > .tabs__list-container` — so the
+ * Tabs root itself carries the flex sizing, and the content panel lives
+ * outside (the section switch is controlled state, not Tabs.Panel).
+ */
+function AgentTabBand({
+    activeTab,
+    agent,
+    onClose,
+    onTabChange,
+}: {
+    activeTab: HostedAgentTab;
+    agent: HostedAgent;
+    onClose?: () => void;
+    onTabChange: (tab: HostedAgentTab) => void;
+}) {
+    return (
+        <div className="flex h-full min-w-0 flex-1 items-stretch gap-5">
+            <div className="flex min-w-0 shrink-0 items-center">
+                <HostedAgentIdentity agent={agent} />
+            </div>
+            <Tabs
+                className="-mb-px min-w-0 flex-1 self-end"
+                onSelectionChange={(key) => onTabChange(key as HostedAgentTab)}
+                selectedKey={activeTab}
+                variant="secondary"
+            >
+                <Tabs.ListContainer>
+                    <Tabs.List aria-label="Agent sections">
+                        {tabs.map((tab) => (
+                            <Tabs.Tab id={tab.value} key={tab.value}>
+                                <span className="flex items-center gap-2">
+                                    <Icon aria-hidden="true" icon={tab.icon} size={16} />
+                                    {tab.label}
+                                </span>
+                                <Tabs.Indicator />
+                            </Tabs.Tab>
+                        ))}
+                    </Tabs.List>
+                </Tabs.ListContainer>
+            </Tabs>
+            {onClose ? (
+                <div className="flex shrink-0 items-center">
+                    <Tooltip>
+                        <Button
+                            aria-label="Close"
+                            isIconOnly
+                            onPress={onClose}
+                            size="sm"
+                            variant="ghost"
+                        >
+                            <Icon aria-hidden="true" icon={Cancel01Icon} size={16} />
+                        </Button>
+                        <Tooltip.Content>Close</Tooltip.Content>
+                    </Tooltip>
+                </div>
+            ) : null}
+        </div>
     );
 }
 

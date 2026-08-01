@@ -14,7 +14,8 @@ import { ChatArtifactPanel } from '../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../chats/chat-detail-frame.tsx';
 import { ChatViewSwitcher, type ChatViewTab } from '../chats/chat-view-tabs.tsx';
 import type { TavernResourceTarget } from '../chats/tavern-resource-link.ts';
-import { SectionHeader } from '../shell/section-header.tsx';
+import { SectionBar, SectionHeader } from '../shell/section-header.tsx';
+import { PageTopbar } from '../shell/shell-topbar.tsx';
 import {
     HostedAgentCompositionBubbles,
     hasHostedAgentComposition,
@@ -24,7 +25,11 @@ import { HostedChatFiles } from './hosted-chat-files.tsx';
 import { useHostedServerContext } from './hosted-server-context.ts';
 import { ServerChatComposer } from './server-chat-composer.tsx';
 import { projectHostedChatMessages, ServerChatTranscript } from './server-chat-transcript.tsx';
-import { ServerTasksSurface } from './tasks/server-tasks-surface.tsx';
+import {
+    ServerTasksBody,
+    ServerTasksHeaderControls,
+    ServerTasksProvider,
+} from './tasks/server-tasks-surface.tsx';
 import { ServerThreadPanel } from './thread/server-thread-panel.tsx';
 import { useHostedChatArtifactPanel } from './use-hosted-chat-artifact-panel.ts';
 
@@ -194,17 +199,40 @@ export function ServerChat({
             className="relative flex min-h-0 flex-1"
             data-slot="chat-surface"
         >
+            <PageTopbar>
+                <HostedChatTopbar
+                    artifactVisible={artifactState.visible}
+                    chat={chat}
+                    chatName={chatName}
+                    onToggleArtifacts={artifactState.toggleVisible}
+                    onViewTabChange={setViewTab}
+                    retired={peerRetired}
+                    viewTab={viewTab}
+                />
+            </PageTopbar>
             <ChatDetailFrame
                 activeReplies={[]}
                 body={
                     viewTab === 'tasks' ? (
-                        <ServerTasksSurface
+                        <ServerTasksProvider
                             chats={[chat]}
                             onOpenTask={() => setViewTab('chat')}
                             role={role}
                             serverId={chat.serverId}
                             viewerUserId={viewerUserId}
-                        />
+                        >
+                            <section
+                                aria-label="Chat tasks"
+                                className="flex min-h-0 flex-1 flex-col"
+                            >
+                                <SectionBar>
+                                    <SectionHeader title="Tasks">
+                                        <ServerTasksHeaderControls />
+                                    </SectionHeader>
+                                </SectionBar>
+                                <ServerTasksBody />
+                            </section>
+                        </ServerTasksProvider>
                     ) : viewTab === 'files' ? (
                         <HostedChatFiles messages={messages.data?.messages} />
                     ) : undefined
@@ -243,17 +271,6 @@ export function ServerChat({
                     ) : null
                 }
                 hasTransientTimelineContent={hasHostedAgentComposition(chat.id, agentLifecycles)}
-                header={
-                    <HostedChatTopbar
-                        artifactVisible={artifactState.visible}
-                        chat={chat}
-                        chatName={chatName}
-                        onToggleArtifacts={artifactState.toggleVisible}
-                        onViewTabChange={setViewTab}
-                        retired={peerRetired}
-                        viewTab={viewTab}
-                    />
-                }
                 historyLoaded={Boolean(messages.data)}
                 isPending={messages.isPending}
                 rows={transcriptRows}

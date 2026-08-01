@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { SectionHeader } from '../shell/section-header.tsx';
+import { PageTopbar } from '../shell/shell-topbar.tsx';
 import { HomeCanvas } from './home-canvas.tsx';
 import type { OverviewActivityItem } from './overview-activity.ts';
 import { OverviewActivity, OverviewAgentCards } from './overview-sections.tsx';
@@ -30,7 +31,9 @@ export function OverviewView({
 }: OverviewViewProps) {
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <SectionHeader title="Activity" />
+            <PageTopbar>
+                <SectionHeader title="Activity" />
+            </PageTopbar>
             <OverviewBody
                 activity={activity}
                 activityHref={activityHref}

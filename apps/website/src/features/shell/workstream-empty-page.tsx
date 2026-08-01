@@ -2,6 +2,7 @@ import { EmptyState } from '@heroui-pro/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { SectionHeader } from './section-header.tsx';
+import { PageTopbar } from './shell-topbar.tsx';
 
 /**
  * Honest empty state for a rail tab whose workstream has not landed yet
@@ -19,10 +20,14 @@ export function WorkstreamEmptyPage({
 }) {
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <SectionHeader
-                leading={<Icon aria-hidden="true" className="text-muted" icon={icon} size={18} />}
-                title={title}
-            />
+            <PageTopbar>
+                <SectionHeader
+                    leading={
+                        <Icon aria-hidden="true" className="text-muted" icon={icon} size={18} />
+                    }
+                    title={title}
+                />
+            </PageTopbar>
             <div className="flex min-h-0 flex-1 items-center justify-center">
                 <EmptyState>
                     <EmptyState.Header>

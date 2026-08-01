@@ -6,6 +6,7 @@ import { formatTimestamp } from '../../../lib/format.ts';
 import type { GrottoOutputs } from '../../../lib/grotto-server.tsx';
 import { AgentOptionLabel, type AgentSelectOption } from '../../agents/agent-option-label.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
+import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import type { HostedReminderListItem } from './server-reminder-view-model.ts';
 
 type ReminderRun = GrottoOutputs['reminder']['runs'][number];
@@ -66,87 +67,91 @@ export function ServerRemindersView({
     return (
         <div className="flex min-h-0 flex-1">
             <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <SectionHeader title="Reminders">
-                    <Select
-                        aria-label="Filter by agent"
-                        onChange={(value) => onAgentChange(value === 'all' ? null : String(value))}
-                        value={agentId ?? 'all'}
-                        variant="secondary"
-                    >
-                        <Select.Trigger>
-                            <Select.Value>
-                                {selectedAgent ? (
-                                    <AgentOptionLabel agent={selectedAgent} />
-                                ) : (
-                                    'All Agents'
-                                )}
-                            </Select.Value>
-                            <Select.Indicator />
-                        </Select.Trigger>
-                        <Select.Popover>
-                            <ListBox>
-                                <ListBox.Item id="all" textValue="All Agents">
-                                    <Label>All Agents</Label>
-                                    <ListBox.ItemIndicator />
-                                </ListBox.Item>
-                                {agents.map((agent) => (
-                                    <ListBox.Item
-                                        id={agent.id}
-                                        key={agent.id}
-                                        textValue={agent.name}
-                                    >
-                                        <Label>
-                                            <AgentOptionLabel agent={agent} />
-                                        </Label>
+                <PageTopbar>
+                    <SectionHeader title="Reminders">
+                        <Select
+                            aria-label="Filter by agent"
+                            onChange={(value) =>
+                                onAgentChange(value === 'all' ? null : String(value))
+                            }
+                            value={agentId ?? 'all'}
+                            variant="secondary"
+                        >
+                            <Select.Trigger>
+                                <Select.Value>
+                                    {selectedAgent ? (
+                                        <AgentOptionLabel agent={selectedAgent} />
+                                    ) : (
+                                        'All Agents'
+                                    )}
+                                </Select.Value>
+                                <Select.Indicator />
+                            </Select.Trigger>
+                            <Select.Popover>
+                                <ListBox>
+                                    <ListBox.Item id="all" textValue="All Agents">
+                                        <Label>All Agents</Label>
                                         <ListBox.ItemIndicator />
                                     </ListBox.Item>
-                                ))}
-                            </ListBox>
-                        </Select.Popover>
-                    </Select>
-                    <Select
-                        aria-label="Filter by status"
-                        onChange={(value) => onStatusChange(String(value) as ReminderStatus)}
-                        value={status}
-                        variant="secondary"
-                    >
-                        <Select.Trigger>
-                            <Select.Value>{statusFilterLabels[status]}</Select.Value>
-                            <Select.Indicator />
-                        </Select.Trigger>
-                        <Select.Popover>
-                            <ListBox>
-                                {statusFilters.map((value) => (
-                                    <ListBox.Item
-                                        id={value}
-                                        key={value}
-                                        textValue={statusFilterLabels[value]}
-                                    >
-                                        <Label>{statusFilterLabels[value]}</Label>
-                                        <ListBox.ItemIndicator />
-                                    </ListBox.Item>
-                                ))}
-                            </ListBox>
-                        </Select.Popover>
-                    </Select>
-                    <SearchField
-                        aria-label="Search hosted reminders"
-                        className="min-w-48 flex-1"
-                        onChange={onQueryChange}
-                        value={query}
-                    >
-                        <SearchField.Group>
-                            <SearchField.SearchIcon />
-                            <SearchField.Input placeholder="Search reminders..." />
-                            <SearchField.ClearButton />
-                        </SearchField.Group>
-                    </SearchField>
-                    {connectionState === 'connected' ? null : (
-                        <span className="ms-auto shrink-0 whitespace-nowrap text-muted text-xs">
-                            Reconnecting · showing last hosted state
-                        </span>
-                    )}
-                </SectionHeader>
+                                    {agents.map((agent) => (
+                                        <ListBox.Item
+                                            id={agent.id}
+                                            key={agent.id}
+                                            textValue={agent.name}
+                                        >
+                                            <Label>
+                                                <AgentOptionLabel agent={agent} />
+                                            </Label>
+                                            <ListBox.ItemIndicator />
+                                        </ListBox.Item>
+                                    ))}
+                                </ListBox>
+                            </Select.Popover>
+                        </Select>
+                        <Select
+                            aria-label="Filter by status"
+                            onChange={(value) => onStatusChange(String(value) as ReminderStatus)}
+                            value={status}
+                            variant="secondary"
+                        >
+                            <Select.Trigger>
+                                <Select.Value>{statusFilterLabels[status]}</Select.Value>
+                                <Select.Indicator />
+                            </Select.Trigger>
+                            <Select.Popover>
+                                <ListBox>
+                                    {statusFilters.map((value) => (
+                                        <ListBox.Item
+                                            id={value}
+                                            key={value}
+                                            textValue={statusFilterLabels[value]}
+                                        >
+                                            <Label>{statusFilterLabels[value]}</Label>
+                                            <ListBox.ItemIndicator />
+                                        </ListBox.Item>
+                                    ))}
+                                </ListBox>
+                            </Select.Popover>
+                        </Select>
+                        <SearchField
+                            aria-label="Search hosted reminders"
+                            className="min-w-48 flex-1"
+                            onChange={onQueryChange}
+                            value={query}
+                        >
+                            <SearchField.Group>
+                                <SearchField.SearchIcon />
+                                <SearchField.Input placeholder="Search reminders..." />
+                                <SearchField.ClearButton />
+                            </SearchField.Group>
+                        </SearchField>
+                        {connectionState === 'connected' ? null : (
+                            <span className="ms-auto shrink-0 whitespace-nowrap text-muted text-xs">
+                                Reconnecting · showing last hosted state
+                            </span>
+                        )}
+                    </SectionHeader>
+                </PageTopbar>
                 {actionErrorMessage ? (
                     <div className="px-6 pt-4">
                         <Alert role="alert" status="danger">

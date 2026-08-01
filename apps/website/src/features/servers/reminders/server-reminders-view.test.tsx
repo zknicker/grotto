@@ -57,9 +57,9 @@ test('renders redacted hosted state and only scheduled cancellation actions', ()
         />
     );
 
-    // Connected state shows no reconnect note; the filters render instead.
+    // Connected state shows no reconnect note. (The filter controls now
+    // portal into the shell topbar, which static markup cannot capture.)
     expect(markup).not.toContain('Reconnecting');
-    expect(markup).toContain('All Agents');
     expect(markup).toContain('Script · 12 bytes · local execution only');
     expect(markup.match(/Cancel Reminder/g)).toHaveLength(1);
     expect(markup).not.toContain('touch ');

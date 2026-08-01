@@ -5,7 +5,6 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
-import { SectionHeader } from '../../shell/section-header.tsx';
 import { NewServerTaskDialog } from './new-server-task-dialog.tsx';
 import {
     filterServerTasks,
@@ -18,14 +17,48 @@ import { resolveTaskView } from './server-tasks-sidebar.tsx';
 
 type ServerTaskMode = 'board' | 'list';
 
-export function ServerTasksSurface({
+interface ServerTasksContextValue {
+    canAssign: boolean;
+    composeDisabled: boolean;
+    error: string | null;
+    filtered: ServerTask[];
+    labels: NonNullable<ReturnType<typeof useServerTaskLabels>['data']>;
+    loaded: boolean;
+    mode: ServerTaskMode;
+    onOpenTask: (task: ServerTask) => void;
+    openCompose: () => void;
+    serverId: string;
+    setMode: (mode: ServerTaskMode) => void;
+    taskCount: number;
+    viewerUserId: string;
+}
+
+const ServerTasksContext = React.createContext<ServerTasksContextValue | null>(null);
+
+function useServerTasksContext() {
+    const context = React.use(ServerTasksContext);
+    if (!context) {
+        throw new Error('ServerTasks parts must render inside ServerTasksProvider.');
+    }
+    return context;
+}
+
+/**
+ * Owns the tasks surface state: queries, board/list mode, URL filters, and
+ * the compose dialog. Compose the header controls and body wherever the
+ * host surface wants them — the tasks page puts the controls in the shell
+ * topbar, the chat Tasks tab in a local band.
+ */
+export function ServerTasksProvider({
     chats,
+    children,
     onOpenTask,
     role,
     serverId,
     viewerUserId,
 }: {
     chats: HostedChat[];
+    children: React.ReactNode;
     onOpenTask: (task: ServerTask) => void;
     role: 'admin' | 'member' | 'owner';
     serverId: string;
@@ -46,85 +79,142 @@ export function ServerTasksSurface({
         [labelId, query, tasks, view]
     );
     const chatOptions = React.useMemo(() => serverTaskChatOptions(chats), [chats]);
-    const canAssign = role === 'owner' || role === 'admin';
-    const labels = labelsQuery.data ?? [];
+    const value = React.useMemo<ServerTasksContextValue>(
+        () => ({
+            canAssign: role === 'owner' || role === 'admin',
+            composeDisabled: chatOptions.length === 0,
+            error: tasksQuery.error?.message ?? null,
+            filtered,
+            labels: labelsQuery.data ?? [],
+            loaded: tasksQuery.data !== undefined,
+            mode,
+            onOpenTask,
+            openCompose: () => setComposeOpen(true),
+            serverId,
+            setMode,
+            taskCount: tasks.length,
+            viewerUserId,
+        }),
+        [
+            chatOptions.length,
+            filtered,
+            labelsQuery.data,
+            mode,
+            onOpenTask,
+            role,
+            serverId,
+            tasks.length,
+            tasksQuery.data,
+            tasksQuery.error?.message,
+            viewerUserId,
+        ]
+    );
 
     return (
-        <section aria-label="Server tasks" className="flex min-h-0 flex-1 flex-col">
-            <SectionHeader title="Tasks">
-                <ToggleButtonGroup
-                    aria-label="Task layout"
-                    disallowEmptySelection
-                    onSelectionChange={(keys) => {
-                        const [next] = [...keys];
-                        if (next === 'board' || next === 'list') {
-                            setMode(next);
-                        }
-                    }}
-                    selectedKeys={[mode]}
-                    selectionMode="single"
-                    size="sm"
-                >
-                    <ToggleButton id="board">Board</ToggleButton>
-                    <ToggleButton id="list">List</ToggleButton>
-                </ToggleButtonGroup>
-                <Button
-                    isDisabled={chatOptions.length === 0}
-                    onPress={() => setComposeOpen(true)}
-                    size="sm"
-                >
-                    New Task
-                </Button>
-            </SectionHeader>
-
-            {tasksQuery.error ? (
-                <ServerTaskState
-                    description={tasksQuery.error.message}
-                    title="Tasks unavailable"
-                    tone="error"
-                />
-            ) : tasksQuery.data === undefined ? (
-                <ServerTaskState
-                    description="Fetching the Server task snapshot."
-                    title="Loading tasks"
-                />
-            ) : tasks.length === 0 ? (
-                <ServerTaskState
-                    description="Create a task from a new message. Its Thread becomes the work surface."
-                    title="No tasks yet"
-                />
-            ) : filtered.length === 0 ? (
-                <ServerTaskState
-                    description="Change the view or search to see more tasks."
-                    title="No matching tasks"
-                />
-            ) : mode === 'board' ? (
-                <ServerTasksBoard
-                    canAssign={canAssign}
-                    labels={labels}
-                    onOpen={onOpenTask}
-                    serverId={serverId}
-                    tasks={filtered}
-                    viewerUserId={viewerUserId}
-                />
-            ) : (
-                <ServerTasksList
-                    canAssign={canAssign}
-                    labels={labels}
-                    onOpen={onOpenTask}
-                    serverId={serverId}
-                    tasks={filtered}
-                    viewerUserId={viewerUserId}
-                />
-            )}
-
+        <ServerTasksContext value={value}>
+            {children}
             <NewServerTaskDialog
                 chats={chatOptions}
                 onOpenChange={setComposeOpen}
                 open={composeOpen}
                 serverId={serverId}
             />
-        </section>
+        </ServerTasksContext>
+    );
+}
+
+/** Board/List switch and the New Task button, for the host's topbar. */
+export function ServerTasksHeaderControls() {
+    const { composeDisabled, mode, openCompose, setMode } = useServerTasksContext();
+
+    return (
+        <>
+            <ToggleButtonGroup
+                aria-label="Task layout"
+                disallowEmptySelection
+                onSelectionChange={(keys) => {
+                    const [next] = [...keys];
+                    if (next === 'board' || next === 'list') {
+                        setMode(next);
+                    }
+                }}
+                selectedKeys={[mode]}
+                selectionMode="single"
+                size="sm"
+            >
+                <ToggleButton id="board">Board</ToggleButton>
+                <ToggleButton id="list">List</ToggleButton>
+            </ToggleButtonGroup>
+            <Button isDisabled={composeDisabled} onPress={openCompose} size="sm">
+                New Task
+            </Button>
+        </>
+    );
+}
+
+/** The task board/list body with its loading, empty, and error states. */
+export function ServerTasksBody() {
+    const {
+        canAssign,
+        error,
+        filtered,
+        labels,
+        loaded,
+        mode,
+        onOpenTask,
+        serverId,
+        taskCount,
+        viewerUserId,
+    } = useServerTasksContext();
+
+    if (error) {
+        return <ServerTaskState description={error} title="Tasks unavailable" tone="error" />;
+    }
+    if (!loaded) {
+        return (
+            <ServerTaskState
+                description="Fetching the Server task snapshot."
+                title="Loading tasks"
+            />
+        );
+    }
+    if (taskCount === 0) {
+        return (
+            <ServerTaskState
+                description="Create a task from a new message. Its Thread becomes the work surface."
+                title="No tasks yet"
+            />
+        );
+    }
+    if (filtered.length === 0) {
+        return (
+            <ServerTaskState
+                description="Change the view or search to see more tasks."
+                title="No matching tasks"
+            />
+        );
+    }
+    if (mode === 'board') {
+        return (
+            <ServerTasksBoard
+                canAssign={canAssign}
+                labels={labels}
+                onOpen={onOpenTask}
+                serverId={serverId}
+                tasks={filtered}
+                viewerUserId={viewerUserId}
+            />
+        );
+    }
+    return (
+        <ServerTasksList
+            canAssign={canAssign}
+            labels={labels}
+            onOpen={onOpenTask}
+            serverId={serverId}
+            tasks={filtered}
+            viewerUserId={viewerUserId}
+        />
     );
 }
 

@@ -98,7 +98,15 @@ const turnAvatarPositionClassName =
     'mt-1.5 shrink-0 self-start group-has-data-[slot=message-footer]/message:translate-y-0';
 // The character head is the avatar: a square-ish little character at the
 // same footprint and roundedness as the people avatars beside it.
-const faceStyle = { flexShrink: 0, height: 36, overflow: 'visible', width: 36 } as const;
+// The art is bottom-weighted inside its viewBox (overflow bits live at the
+// top), so a small upward nudge centers the visible body in the slot.
+const faceStyle = {
+    flexShrink: 0,
+    height: 36,
+    overflow: 'visible',
+    transform: 'translateY(-2px)',
+    width: 36,
+} as const;
 const hoverGroupClassName = 'group';
 
 export function TranscriptEntryView({

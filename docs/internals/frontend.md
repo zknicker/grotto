@@ -29,6 +29,15 @@ capability lives; keep route and feature folders for page assembly.
   settings and tasks provide their own). A section sidebar is owned by its
   feature folder, renders HeroUI `Sidebar` parts, and drives selection through
   routes or URL search params — never through state shared with the page.
+* The shell owns the topbar. The server layout renders one `ShellTopbar` band
+  above the routed content; pages fill it with
+  `<PageTopbar><SectionHeader …/></PageTopbar>`
+  (`features/shell/shell-topbar.tsx`). Band chrome — height, hairline,
+  gutter — lives only in `SectionBar`; never hand-roll a page header with
+  its own height. Embedded surfaces that need a local band inside content
+  (a side panel, a tab body) render `SectionBar` directly. Portaled topbar
+  content does not appear in `renderToStaticMarkup` — test band content by
+  rendering it directly, not through the page.
 * Promote shared chat, agent, automation, or stats UI to the matching
   `components/<capability>` or `hooks/<capability>` folder.
 * Keep global command menu actions under `src/commands`. Command modules own

@@ -20,6 +20,7 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { insertHostedTaskEvent } from '../tasks/task-events.ts';
 import { agentOwnsTask, taskHasOtherOwnerForAgent } from '../tasks/task-ownership.ts';
 import { taskReceiptContent } from '../tasks/task-receipts.ts';
+import { ensureHostedThreadRecord } from '../threads/ensure-thread.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import {
     type MessageRow,
@@ -557,15 +558,12 @@ async function createAgentTaskThread(
     if (!parent || parent.kind === 'thread') {
         throw new AgentTaskError('Tasks require a top-level Channel or DM.');
     }
-    const threadChatId = `cht_thr_${messageId.replace(/^msg_/u, '')}`;
-    await db.insert(chatsTable).values({
+    const thread = await ensureHostedThreadRecord(db, {
         anchorMessageId: messageId,
-        id: threadChatId,
-        kind: 'thread',
         parentChatId,
-        parentChatKind: parent.kind,
         serverId: runner.serverId,
     });
+    const threadChatId = thread.id;
     await db
         .insert(agentThreadFollowsTable)
         .values({

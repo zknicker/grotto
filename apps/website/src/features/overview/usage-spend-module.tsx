@@ -1,12 +1,7 @@
 import { Button, Card, Description, FieldError, Form, Input, TextField } from '@heroui/react';
+import { BarChart } from '@heroui-pro/react';
 import { AiAudioIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { Bar } from '../../components/charts/bar.tsx';
-import { BarChart } from '../../components/charts/bar-chart.tsx';
-import { BarXAxis } from '../../components/charts/bar-x-axis.tsx';
-import { Grid } from '../../components/charts/grid.tsx';
-import { ChartTooltip, type TooltipRow } from '../../components/charts/tooltip/index.ts';
-import { YAxis } from '../../components/charts/y-axis.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useSaveOpenRouterSettings } from '../../hooks/connections/use-save-openrouter-settings.ts';
 import type { UsageOverview } from './usage-modules.tsx';
@@ -18,15 +13,13 @@ interface UsageSpendModuleProps {
     liveUsage: UsageOverview | undefined;
 }
 
+// The theme's categorical series palette (grotto-base.css), cycled.
 const keyColors = [
-    '#f97316',
-    '#38bdf8',
-    '#a78bfa',
-    '#34d399',
-    '#fb7185',
-    '#facc15',
-    '#06b6d4',
-    '#f472b6',
+    'var(--chart-1)',
+    'var(--chart-2)',
+    'var(--chart-3)',
+    'var(--chart-4)',
+    'var(--chart-5)',
 ];
 
 export function UsageSpendModule({
@@ -78,27 +71,32 @@ export function UsageSpendModule({
                 </Card.Title>
             </Card.Header>
             <Card.Content>
-                <div className="h-48" style={usageChartStyleVars}>
-                    <BarChart
-                        aspectRatio={undefined}
-                        data={chartData}
-                        margin={{ bottom: 34, left: 44, right: 10, top: 8 }}
-                        stacked={true}
-                        stackGap={0}
-                        xDataKey="day"
-                    >
-                        <Grid horizontal={true} vertical={false} />
-                        <YAxis formatValue={(value) => `$${value.toFixed(0)}`} numTicks={4} />
-                        <ChartTooltip rows={(point) => buildUsageSpendTooltipRows(keys, point)} />
+                <div className="h-48">
+                    <BarChart data={chartData} height={192}>
+                        <BarChart.Grid vertical={false} />
+                        <BarChart.XAxis dataKey="day" tickMargin={8} />
+                        <BarChart.YAxis
+                            tickFormatter={(value: number) => `$${value.toFixed(0)}`}
+                            width={40}
+                        />
                         {keys.map((key, index) => (
-                            <Bar
+                            <BarChart.Bar
                                 dataKey={key.id}
                                 fill={keyColors[index % keyColors.length]}
                                 key={key.id}
-                                lineCap={3}
+                                name={key.label}
+                                // Only the topmost segment rounds, so the stack reads as one bar.
+                                radius={index === keys.length - 1 ? [4, 4, 0, 0] : undefined}
+                                stackId="spend"
                             />
                         ))}
-                        <BarXAxis maxLabels={6} />
+                        <BarChart.Tooltip
+                            content={
+                                <BarChart.TooltipContent
+                                    valueFormatter={(value) => `$${Number(value).toFixed(2)}`}
+                                />
+                            }
+                        />
                     </BarChart>
                 </div>
                 <UsageSpendSummary grandTotal={grandTotal} stats={keyStats} />
@@ -165,30 +163,3 @@ function _getOpenRouterRangeLabel(latestReportedDate: string | null) {
 
     return `Through ${formatDay(latestReportedDate)} UTC`;
 }
-
-function buildUsageSpendTooltipRows(
-    keys: { id: string; label: string }[],
-    point: Record<string, unknown>
-): TooltipRow[] {
-    return keys
-        .map((key, index) => {
-            const value = Number(point[key.id] ?? 0);
-
-            return {
-                color: keyColors[index % keyColors.length] ?? keyColors[0],
-                label: key.label,
-                value: Number.isFinite(value) ? `$${value.toFixed(2)}` : '$0.00',
-            };
-        })
-        .filter((row) => row.value !== '$0.00');
-}
-
-const usageChartStyleVars = {
-    '--chart-background': 'var(--surface-tertiary)',
-    '--chart-crosshair': 'var(--muted)',
-    '--chart-grid': 'color-mix(in srgb, var(--border) 45%, transparent)',
-    '--chart-label': 'var(--muted)',
-    '--chart-tooltip-background': 'color-mix(in srgb, var(--foreground) 88%, transparent)',
-    '--chart-tooltip-foreground': 'var(--background)',
-    '--chart-tooltip-muted': 'color-mix(in srgb, var(--background) 62%, transparent)',
-} as React.CSSProperties;

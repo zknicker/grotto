@@ -6,7 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./app-protocol": "./src/app-protocol.ts",
-    "./agent-appearance": "./src/agent-appearance.ts",
+    "./avatar": "./src/avatar.ts",
     "./config": "./src/runtime/config.ts",
     "./development-chat-demos": "./src/development-chat-demos.ts",
     "./hosted-computer-runtime": "./src/hosted-computer-runtime.ts",

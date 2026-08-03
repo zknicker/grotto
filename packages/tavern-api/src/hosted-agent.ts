@@ -1,5 +1,4 @@
 import * as z from 'zod';
-import { agentCharacterSchema } from './agent-appearance.ts';
 import { hostedWorkspacePathSchema } from './hosted-agent-runner.ts';
 import { hostedChatSchema, hostedIdSchema } from './hosted-chat.ts';
 import { agentArchetypeIdSchema } from './runtime/contracts.ts';
@@ -130,9 +129,10 @@ export const hostedAgentSchema = z
     .object({
         archetype: agentArchetypeIdSchema.nullable(),
         availability: hostedAgentAvailabilitySchema,
-        character: agentCharacterSchema,
+        avatarUrl: z.string().nullable(),
         computerId: hostedIdSchema,
         createdAt: hostedTimestampSchema,
+        createdByUserId: z.string().nullable(),
         description: z.string().max(500).nullable(),
         desiredModelId: z.string(),
         desiredRuntimeId: z.string(),

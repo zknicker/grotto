@@ -1,5 +1,6 @@
 import * as z from 'zod';
 
+import { avatarMaxBytes } from '../avatar.ts';
 import { agentRuntimeModelProviderIdSchema } from './model-providers.ts';
 
 export const agentRuntimeProtocolVersion = 1 as const;
@@ -468,6 +469,20 @@ export const agentRuntimeUpdateAgentBioSchema = agentRuntimeAgentEngineConfigMut
     bio: z.string().trim().min(1).max(280).nullable(),
 });
 
+// The local runtime keeps avatars inline as data: URLs; base64 inflates the
+// stored image ceiling by 4/3.
+const agentRuntimeAvatarUrlSchema = z
+    .string()
+    .trim()
+    .min(1)
+    .max(Math.ceil((avatarMaxBytes * 4) / 3) + 128)
+    .nullable();
+
+export const agentRuntimeUpdateAgentAvatarSchema =
+    agentRuntimeAgentEngineConfigMutationSchema.extend({
+        avatarUrl: agentRuntimeAvatarUrlSchema,
+    });
+
 export const agentRuntimeUpdateAgentModelSchema =
     agentRuntimeAgentEngineConfigMutationSchema.extend({
         model: agentRuntimeModelNameSchema,
@@ -561,6 +576,7 @@ export const agentRuntimeDiscordBindingListSchema = z.object({
 
 export const agentRuntimeAgentSchema = z.object({
     webAccessEnabled: z.boolean().optional(),
+    avatarUrl: agentRuntimeAvatarUrlSchema.optional(),
     bio: z.string().trim().min(1).nullable().optional(),
     enabledSkillIds: z.array(z.string().trim().min(1)),
     id: z.string().trim().min(1),
@@ -584,6 +600,7 @@ export const agentRuntimeArchiveAgentSchema = z.object({
 export const agentRuntimeCreateAgentSchema = z.object({
     webAccessEnabled: z.boolean().optional(),
     archetype: agentArchetypeIdSchema.optional(),
+    avatarUrl: agentRuntimeAvatarUrlSchema.optional(),
     bio: z.string().trim().min(1).nullable().optional(),
     enabledSkillIds: z.array(z.string().trim().min(1)).optional(),
     id: z.string().trim().min(1),
@@ -595,6 +612,7 @@ export const agentRuntimeCreateAgentSchema = z.object({
 
 export const agentRuntimeUpdateAgentSchema = z.object({
     webAccessEnabled: z.boolean().optional(),
+    avatarUrl: agentRuntimeAvatarUrlSchema.optional(),
     bio: z.string().trim().min(1).nullable().optional(),
     enabledSkillIds: z.array(z.string().trim().min(1)).optional(),
     isAdmin: z.boolean().optional(),
@@ -1962,6 +1980,7 @@ export type AgentRuntimeApplyAgentEngineConfig = z.infer<
     typeof agentRuntimeApplyAgentEngineConfigSchema
 >;
 export type AgentRuntimeUpdateAgentName = z.infer<typeof agentRuntimeUpdateAgentNameSchema>;
+export type AgentRuntimeUpdateAgentAvatar = z.infer<typeof agentRuntimeUpdateAgentAvatarSchema>;
 export type AgentRuntimeUpdateAgentBio = z.infer<typeof agentRuntimeUpdateAgentBioSchema>;
 export type AgentRuntimeUpdateAgentModel = z.infer<typeof agentRuntimeUpdateAgentModelSchema>;
 export type AgentRuntimeUpdateAgentThinkingDefault = z.infer<

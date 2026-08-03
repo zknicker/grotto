@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
 import { startControlledMcp } from '../support/controlled-mcp.ts';
-import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import { messageTimeline, openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -24,22 +24,19 @@ test('an Agent uses an assigned Server-owned MCP connection', async ({ page }) =
 
     const prompt = `Use the assigned Audit Ledger MCP to look up record ${first.key}. Reply with its exact title and owner. Do not guess.`;
     await openChat(page, server.slug, dm, agent.name);
+    const head = await harness.readHead(dm);
     await sendFromComposer(page, prompt);
-    const task = await pollTask(harness, prompt);
     const messages = await harness.pollMessages(
-        task.task.threadChatId,
+        dm,
         (items) =>
             harness
-                .authoredBy(items, agent.id)
+                .authoredBy(items, agent.id, head)
                 .some((content) => content.includes(first.title) && content.includes(first.owner)),
         240_000
     );
-    const reply = harness.authoredBy(messages, agent.id).join('\n');
+    const reply = harness.authoredBy(messages, agent.id, head).join('\n');
 
-    await openThread(page, prompt);
-    await expect(
-        page.getByRole('complementary', { name: 'Thread' }).getByText(new RegExp(first.title, 'u'))
-    ).toBeVisible();
+    await expect(messageTimeline(page).getByText(new RegExp(first.title, 'u'))).toBeVisible();
     expect(reply).toContain(first.owner);
     expect(mcp.calls.filter((call) => call.key === first.key)).toHaveLength(1);
 });
@@ -52,14 +49,14 @@ test('revoking the connection prevents a later lookup from returning private fac
 
     const prompt = `Use the Audit Ledger MCP to look up the new record ${second.key}. Reply with its exact title and owner. Do not guess.`;
     await openChat(page, server.slug, dm, agent.name);
+    const head = await harness.readHead(dm);
     await sendFromComposer(page, prompt);
-    const task = await pollTask(harness, prompt);
     const messages = await harness.pollMessages(
-        task.task.threadChatId,
-        (items) => harness.authoredBy(items, agent.id).length > 0,
+        dm,
+        (items) => harness.authoredBy(items, agent.id, head).length > 0,
         240_000
     );
-    const reply = harness.authoredBy(messages, agent.id).join('\n');
+    const reply = harness.authoredBy(messages, agent.id, head).join('\n');
 
     expect(mcp.calls.filter((call) => call.key === second.key)).toHaveLength(0);
     expect(reply).not.toContain(second.title);
@@ -130,45 +127,14 @@ async function setGrant(
     enabled: boolean
 ) {
     await page.goto(`/s/${serverSlug}/members/agents/${agentId}`);
-    await page.getByRole('tab', { name: 'MCP' }).click();
+    await page.getByRole('radio', { name: 'Overview' }).click();
+    await expect(page.getByRole('heading', { name: 'Agent MCP Access' })).toBeVisible();
     const grant = page.getByRole('switch', {
         name: `Enable ${connectionName} for ${agentName}`,
     });
     await expect(grant).toBeVisible();
     if ((await grant.isChecked()) !== enabled) {
-        await grant.click();
+        await grant.press('Space');
     }
-    await expect(grant).toHaveAttribute('aria-checked', String(enabled));
-}
-
-async function pollTask(harness: Awaited<ReturnType<typeof createEvalHarness>>, content: string) {
-    const deadline = Date.now() + 60_000;
-    while (Date.now() < deadline) {
-        const tasks = (await harness.trpc('task.list', {
-            serverId: harness.serverId,
-        })) as TaskItem[];
-        const task = tasks.find((item) => item.message.content === content);
-        if (task) {
-            return task;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-    throw new Error('Timed out waiting for the MCP request task.');
-}
-
-async function openThread(page: Parameters<typeof openChat>[0], content: string) {
-    const anchor = page
-        .getByText(content, { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchor.hover();
-    await anchor.getByRole('button', { name: 'Reply in thread' }).click();
-}
-
-interface TaskItem {
-    message: {
-        content: string;
-    };
-    task: {
-        threadChatId: string;
-    };
+    await expect(grant).toBeChecked({ checked: enabled });
 }

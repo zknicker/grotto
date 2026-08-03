@@ -2,7 +2,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
-import { openChat, sendTaskFromComposer } from '../support/live-agent-app.ts';
+import {
+    messageSurface,
+    openChat,
+    openMessageThread,
+    sendTaskFromComposer,
+} from '../support/live-agent-app.ts';
 
 /**
  * User story: an Agent claims a promoted task, asks for missing input in its Thread,
@@ -32,11 +37,7 @@ test('a claimed task waits for Thread clarification, uses it, and moves to revie
     await sendTaskFromComposer(page, prompt);
 
     const task = await pollTask(harness, (item) => item.message.content === prompt);
-    const anchor = page
-        .getByText(prompt, { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchor.hover();
-    await anchor.getByRole('button', { name: 'Reply in thread' }).click();
+    await openMessageThread(page.getByText(prompt, { exact: true }));
 
     const panel = page.getByRole('complementary', { name: 'Thread' });
     const claimed = await pollTask(
@@ -96,9 +97,7 @@ test('a task message visibly projects its task state in the Chat', async ({ page
     await openChat(page, server.slug, channel, channelName);
     await sendTaskFromComposer(page, prompt);
 
-    const anchor = page
-        .getByText(prompt, { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
+    const anchor = messageSurface(page.getByText(prompt, { exact: true }));
     await expect(anchor.getByTestId('message-task-badge')).toBeVisible();
 });
 

@@ -8,20 +8,22 @@ const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../../', import
 export async function setupC2IndependentReviewSuite() {
     const harness = await createEvalHarness({ evalName: 'c2independentreview', repositoryRoot });
     const templates = await harness.requireAgents(2);
-    const coordinator = templates.find((candidate) =>
+    const template = templates.find((candidate) =>
         candidate.desiredModelId.toLowerCase().includes('terra')
     );
-    if (!coordinator) {
+    if (!template) {
         await harness.cleanup();
-        throw new Error('C2 needs one applied online Terra coordinator Agent.');
+        throw new Error('C2 needs one applied online Terra Agent as a configuration template.');
     }
 
     const temporaryAgents: AgentItem[] = [];
     let channel: { id: string } | null = null;
     try {
-        const author = await createTemporaryAgent(harness, coordinator, 'Author');
+        const coordinator = await createTemporaryAgent(harness, template, 'Coordinator');
+        temporaryAgents.push(coordinator);
+        const author = await createTemporaryAgent(harness, template, 'Author');
         temporaryAgents.push(author);
-        const verifier = await createTemporaryAgent(harness, coordinator, 'Verifier');
+        const verifier = await createTemporaryAgent(harness, template, 'Verifier');
         temporaryAgents.push(verifier);
         const channelName = `c2-${harness.stamp.slice(-8)}`;
         channel = (await harness.trpc('chat.createChannel', {
@@ -40,11 +42,12 @@ export async function setupC2IndependentReviewSuite() {
             channel: channel.id,
             channelName,
             cleanup: async () => {
-                await cleanupC2Resources(
-                    harness,
-                    [author, verifier],
-                    [channel?.id, author.dmChatId, verifier.dmChatId]
-                );
+                await cleanupC2Resources(harness, temporaryAgents, [
+                    channel?.id,
+                    coordinator.dmChatId,
+                    author.dmChatId,
+                    verifier.dmChatId,
+                ]);
             },
             coordinator,
             harness,
@@ -98,9 +101,13 @@ async function createTemporaryAgent(
     lane: string
 ) {
     const displayName = `C2 ${lane} ${harness.stamp.slice(-6)}`;
+    const description =
+        lane === 'Coordinator'
+            ? 'Coordinates reviewed Bluebird launch announcements through distinct author and verifier lanes.'
+            : `Temporary C2 ${lane.toLowerCase()} collaborator. Wait for an explicitly assigned task before acting on ordinary Channel messages.`;
     const created = (await harness.trpc('agent.create', {
         computerId: template.computerId,
-        description: `Temporary C2 ${lane.toLowerCase()} collaborator. Wait for an explicitly assigned task before acting on ordinary Channel messages.`,
+        description,
         displayName,
         handle: `c2-${lane.toLowerCase()}-${harness.stamp.slice(-8).toLowerCase()}`,
         modelId: template.desiredModelId,
@@ -116,7 +123,7 @@ async function deleteTemporaryAgents(
     agents: AgentItem[]
 ) {
     const failures: Error[] = [];
-    for (const agent of agents) {
+    for (const agent of [...agents].reverse()) {
         try {
             await harness.trpc('agent.delete', {
                 agentId: agent.id,

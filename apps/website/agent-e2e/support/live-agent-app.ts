@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 export async function openChat(
@@ -10,8 +10,9 @@ export async function openChat(
     await page.goto('/');
     await expect(page).toHaveURL(new RegExp(`/s/${serverSlug}/`, 'u'));
     await page
-        .locator('button')
-        .filter({ hasText: new RegExp(`^${escapeRegExp(sidebarLabel)}\\d*$`, 'u') })
+        .getByRole('row', {
+            name: new RegExp(`^${escapeRegExp(sidebarLabel)}(?:\\s+\\d+)?$`, 'u'),
+        })
         .click();
     await expect(page).toHaveURL(new RegExp(`/s/${serverSlug}/chats/${chatId}`, 'u'));
     await expect(singleComposer(page)).toBeVisible();
@@ -28,9 +29,19 @@ export async function sendFromComposer(page: Page, content: string) {
 export async function sendTaskFromComposer(page: Page, content: string) {
     const composer = singleComposer(page);
     await composer.fill(content);
-    await page.getByRole('checkbox', { name: 'As Task' }).check();
+    await setTaskMode(page, true);
     await send(page);
     await expect(messageTimeline(page).getByText(content, { exact: true }).last()).toBeVisible();
+}
+
+export async function setTaskMode(page: Page, enabled: boolean) {
+    const taskMode = page.getByRole('switch', { name: /^Send as task/u });
+    await expect(taskMode).toBeVisible();
+
+    if ((await taskMode.isChecked()) !== enabled) {
+        await taskMode.press('Space');
+    }
+    await expect(taskMode).toBeChecked({ checked: enabled });
 }
 
 export async function expectVisibleReply(page: Page, content: string) {
@@ -39,12 +50,22 @@ export async function expectVisibleReply(page: Page, content: string) {
     });
 }
 
+export function messageSurface(message: Locator) {
+    return message.locator('xpath=ancestor::*[@data-slot="chat-message-assistant"][1]');
+}
+
+export async function openMessageThread(message: Locator) {
+    const surface = messageSurface(message);
+    await surface.hover();
+    await surface.locator('button[aria-label="Reply in thread"]').click();
+}
+
 function singleComposer(page: Page) {
     return page.getByRole('textbox', { name: /^Message /u });
 }
 
-function messageTimeline(page: Page) {
-    return page.getByLabel('Messages');
+export function messageTimeline(page: Page) {
+    return page.getByRole('region', { name: 'Messages', exact: true });
 }
 
 async function send(page: Page) {

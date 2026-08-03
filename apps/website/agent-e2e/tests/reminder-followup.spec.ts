@@ -2,7 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
-import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import { openChat, openMessageThread, sendFromComposer } from '../support/live-agent-app.ts';
 
 /**
  * User story: a human can ask an Agent to check something later without keeping a turn
@@ -42,11 +42,7 @@ test('an Agent schedules and performs a one-shot business follow-up in its sourc
 
     await openChat(page, server.slug, channel, channelName);
     await sendFromComposer(page, anchor);
-    const anchorSurface = page
-        .getByText(anchor, { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchorSurface.hover();
-    await anchorSurface.getByRole('button', { name: 'Reply in thread' }).click();
+    await openMessageThread(page.getByText(anchor, { exact: true }));
 
     const panel = page.getByRole('complementary', { name: 'Thread' });
     await panel.getByRole('textbox', { name: /Message Thread/u }).fill(prompt);

@@ -2,7 +2,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
-import { expectVisibleReply, openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import {
+    expectVisibleReply,
+    openChat,
+    openMessageThread,
+    sendFromComposer,
+} from '../support/live-agent-app.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -25,11 +30,7 @@ test('an addressed Thread reply stays in that exact Thread', async ({ page }) =>
     await openChat(page, server.slug, channel, channelName);
     await sendFromComposer(page, anchor);
 
-    const anchorSurface = page
-        .getByText(anchor, { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchorSurface.hover();
-    await anchorSurface.getByRole('button', { name: 'Reply in thread' }).click();
+    await openMessageThread(page.getByText(anchor, { exact: true }));
 
     const panel = page.getByRole('complementary', { name: 'Thread' });
     await panel
@@ -41,7 +42,7 @@ test('an addressed Thread reply stays in that exact Thread', async ({ page }) =>
     });
 
     await panel.getByRole('button', { name: 'Close thread' }).click();
-    await expect(page.getByText(token, { exact: true })).toHaveCount(0);
+    await expect(panel).toBeHidden();
 
     const pageSnapshot = await harness.trpc('chat.messages', {
         chatId: channel,

@@ -5,7 +5,12 @@ import {
     pollC1Tasks,
     setupC1CoordinatorSuite,
 } from '../support/c1-coordinator-synthesis.ts';
-import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import {
+    messageTimeline,
+    openChat,
+    sendFromComposer,
+    setTaskMode,
+} from '../support/live-agent-app.ts';
 
 /**
  * User story: a coordinator divides independent work among named owners, waits for their
@@ -46,10 +51,7 @@ test('coordinator fans out source-backed lanes and synthesizes one recommendatio
         throw new Error('C1 coordinator has no seeded Owner DM.');
     }
     await openChat(page, server.slug, coordinator.dmChatId, coordinator.displayName);
-    const taskMode = page.getByRole('checkbox', { name: 'As Task' });
-    if (await taskMode.isChecked()) {
-        await taskMode.uncheck();
-    }
+    await setTaskMode(page, false);
     await sendFromComposer(page, prompt);
 
     const tasks = await pollC1Tasks(harness, (items) => {
@@ -143,10 +145,10 @@ test('coordinator fans out source-backed lanes and synthesizes one recommendatio
     expect(receipt).toBeDefined();
     if (receipt) {
         await expect(
-            page.getByLabel('Messages').getByText(receipt.content, { exact: true })
+            messageTimeline(page).getByText(receipt.content, { exact: true })
         ).toBeVisible();
     }
-    const messages = page.getByLabel('Messages');
+    const messages = messageTimeline(page);
     await expect(messages).toContainText('Recommendation');
     await expect(messages).toContainText('Tradeoffs');
     await expect(messages).toContainText('Uncertainties');

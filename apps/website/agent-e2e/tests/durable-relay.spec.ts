@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { resolveThreadChatId, setupDurableRelaySuite } from '../support/durable-relay.ts';
-import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import { openChat, openMessageThread, sendFromComposer } from '../support/live-agent-app.ts';
 
 /**
  * User story: a fresh Agent can continue another Agent's sourced work from the durable
@@ -44,6 +44,10 @@ test('a fresh Agent continues a sourced artifact handoff from its durable Thread
         'Keep the inline reply complete enough that another Agent can verify it from canonical Thread history. Do not delegate.',
     ].join('\n');
 
+    await Promise.all([
+        harness.waitForAgentQuiet(author.id, 2000, 120_000),
+        harness.waitForAgentQuiet(successor.id, 2000, 120_000),
+    ]);
     await openChat(page, server.slug, channel, channelName);
     await sendFromComposer(page, authorPrompt);
     await openThread(page, authorPrompt);
@@ -100,7 +104,12 @@ test('a fresh Agent continues a sourced artifact handoff from its durable Thread
         timeout: 60_000,
     });
 
-    await harness.waitForAgentQuiet(successor.id, 2000, 60_000);
+    await harness.trpc('chat.updateChannel', {
+        agentIds: [author.id, successor.id],
+        chatId: channel,
+        name: channelName,
+        serverId: harness.serverId,
+    });
     await harness.trpc('agent.reset', {
         agentId: successor.id,
         kind: 'session',
@@ -152,11 +161,7 @@ test('a fresh Agent continues a sourced artifact handoff from its durable Thread
 });
 
 async function openThread(page: Page, content: string) {
-    const anchor = page
-        .getByText(content, { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchor.hover();
-    await anchor.getByRole('button', { name: 'Reply in thread' }).click();
+    await openMessageThread(page.getByText(content, { exact: true }));
     await expect(page.getByRole('complementary', { name: 'Thread' })).toBeVisible();
 }
 

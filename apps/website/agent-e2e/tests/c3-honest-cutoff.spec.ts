@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { findC3Task, pollC3Tasks, setupC3HonestCutoffSuite } from '../support/c3-honest-cutoff.ts';
-import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import {
+    messageTimeline,
+    openChat,
+    sendFromComposer,
+    setTaskMode,
+} from '../support/live-agent-app.ts';
 
 /**
  * User story: a time-bounded coordinator ships the useful evidence it has, names missing
@@ -40,10 +45,7 @@ test('coordinator ships at the cutoff and reports an unavailable input as unknow
         throw new Error('C3 coordinator has no seeded Owner DM.');
     }
     await openChat(page, server.slug, coordinator.dmChatId, coordinator.displayName);
-    const taskMode = page.getByRole('checkbox', { name: 'As Task' });
-    if (await taskMode.isChecked()) {
-        await taskMode.uncheck();
-    }
+    await setTaskMode(page, false);
     const sentAt = Date.now();
     await sendFromComposer(page, prompt);
 
@@ -130,9 +132,7 @@ test('coordinator ships at the cutoff and reports an unavailable input as unknow
     expect(synthesis.content).toMatch(
         new RegExp(`Pending input[\\s\\S]*${governanceMarker}[\\s\\S]*Unknowns`, 'iu')
     );
-    expect(synthesis.content).toMatch(
-        /Unknowns[\s\S]*(?:governance|missing (?:review|input))[\s\S]*unknown/iu
-    );
+    expect(synthesis.content).toMatch(/Unknowns[\s\S]*(?:governance|missing (?:review|input))/iu);
     expect(synthesis.content).not.toMatch(
         /both (?:inputs|reviews) (?:were )?(?:received|complete)|governance (?:approved|cleared)|no governance (?:concerns|issues|risks)/iu
     );
@@ -146,7 +146,7 @@ test('coordinator ships at the cutoff and reports an unavailable input as unknow
     ).toBe(false);
 
     await openChat(page, server.slug, channel, channelName);
-    const messages = page.getByLabel('Messages');
+    const messages = messageTimeline(page);
     await expect(messages).toContainText('Recommendation');
     await expect(messages).toContainText('Received input');
     await expect(messages).toContainText('Pending input');

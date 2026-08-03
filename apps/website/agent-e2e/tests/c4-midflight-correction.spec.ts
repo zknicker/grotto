@@ -5,7 +5,12 @@ import {
     setupC4MidflightCorrectionSuite,
     type TaskItem,
 } from '../support/c4-midflight-correction.ts';
-import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import {
+    messageTimeline,
+    openChat,
+    sendFromComposer,
+    setTaskMode,
+} from '../support/live-agent-app.ts';
 
 /**
  * User story: when a human changes a material requirement during active delegated work,
@@ -50,10 +55,7 @@ test('coordinator propagates a material correction before synthesizing active la
         throw new Error('C4 coordinator has no seeded Owner DM.');
     }
     await openChat(page, server.slug, coordinator.dmChatId, coordinator.displayName);
-    const taskMode = page.getByRole('checkbox', { name: 'As Task' });
-    if (await taskMode.isChecked()) {
-        await taskMode.uncheck();
-    }
+    await setTaskMode(page, false);
     await sendFromComposer(page, initialPrompt);
 
     const createdTasks = await pollC4Tasks(harness, (items) => {
@@ -106,8 +108,14 @@ test('coordinator propagates a material correction before synthesizing active la
     }
 
     const [northstarRevision, atlasRevision] = await Promise.all([
-        waitForRevision(harness, northstarTask, northstar.id, coordinator.id, correctionMarker),
-        waitForRevision(harness, atlasTask, atlas.id, coordinator.id, correctionMarker),
+        waitForRevision(
+            harness,
+            northstarTask,
+            northstar.id,
+            coordinator.id,
+            correctionDm.createdAt
+        ),
+        waitForRevision(harness, atlasTask, atlas.id, coordinator.id, correctionDm.createdAt),
     ]);
     for (const lane of [northstarRevision, atlasRevision]) {
         expect(Date.parse(lane.propagation.createdAt)).toBeGreaterThanOrEqual(
@@ -168,7 +176,7 @@ test('coordinator propagates a material correction before synthesizing active la
     ).not.toMatch(candidateSelectionPattern);
 
     await openChat(page, server.slug, channel, channelName);
-    const messages = page.getByLabel('Messages');
+    const messages = messageTimeline(page);
     await expect(messages).toContainText('CORRECTED RECOMMENDATION');
     await expect(messages).toContainText('SELECT NEITHER YET');
     await expect(messages).toContainText('EU data residency');
@@ -208,17 +216,22 @@ async function waitForRevision(
     task: TaskItem,
     agentId: string,
     coordinatorId: string,
-    correctionMarker: string
+    correctionCreatedAt: string
 ) {
+    const isCorrectionPropagation = (message: {
+        author: { agentId?: string; kind: string };
+        content: string;
+        createdAt: string;
+    }) =>
+        message.author.kind === 'agent' &&
+        message.author.agentId === coordinatorId &&
+        Date.parse(message.createdAt) >= Date.parse(correctionCreatedAt) &&
+        /EU data residency/iu.test(message.content) &&
+        completeExportPattern.test(message.content);
     const messages = await harness.pollMessages(
         task.task.threadChatId,
         (items) =>
-            items.some(
-                (message) =>
-                    message.author.kind === 'agent' &&
-                    message.author.agentId === coordinatorId &&
-                    message.content.includes(correctionMarker)
-            ) &&
+            items.some(isCorrectionPropagation) &&
             items.some(
                 (message) =>
                     message.author.kind === 'agent' &&
@@ -227,12 +240,7 @@ async function waitForRevision(
             ),
         300_000
     );
-    const propagation = messages.find(
-        (message) =>
-            message.author.kind === 'agent' &&
-            message.author.agentId === coordinatorId &&
-            message.content.includes(correctionMarker)
-    );
+    const propagation = messages.find(isCorrectionPropagation);
     const revision = messages.find(
         (message) =>
             message.author.kind === 'agent' &&

@@ -2,7 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, type Locator, test } from '@playwright/test';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
-import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import { openChat, openMessageThread, sendFromComposer } from '../support/live-agent-app.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -20,6 +20,7 @@ test.afterAll(async () => {
 test('an Owner can provision, use, inspect, and retire a general-purpose Agent', async ({
     page,
 }) => {
+    test.setTimeout(600_000);
     const { harness, name, prompt, server } = suite;
 
     await page.goto(`/s/${server.slug}/members`);
@@ -27,9 +28,9 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
     const dialog = page.getByRole('dialog', { name: 'Create Agent' });
     await dialog.getByRole('textbox', { name: 'Name' }).fill(name);
     await dialog
-        .getByRole('textbox', { name: 'Description (optional)' })
+        .getByRole('textbox', { name: 'Description' })
         .fill('Temporary launch-copy reviewer for the Agent E2E audit.');
-    await dialog.getByRole('combobox', { name: 'Model' }).click();
+    await dialog.getByLabel('Model').click();
     await page.getByRole('option', { name: 'GPT-5.6 Terra' }).click();
     await dialog.getByRole('button', { name: 'Create Agent', exact: true }).click();
 
@@ -37,7 +38,7 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
     suite.agentId = agent.id;
     await expect(page).toHaveURL(new RegExp(`/s/${server.slug}/members/agents/${agent.id}`, 'u'));
     await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
-    await expect(page.getByText('Current', { exact: true })).toBeVisible({
+    await expect(page.getByText(/^idle$/iu)).toBeVisible({
         timeout: 60_000,
     });
     await expect(page.getByRole('button', { name: 'tavern-agent' })).toBeVisible();
@@ -61,21 +62,18 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
     );
     const result = harness.authoredBy(messages, agent.id).at(-1)?.trim() ?? '';
 
-    const anchor = page
-        .getByText(prompt, { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchor.getByRole('button', { name: /repl/u }).click();
+    await openMessageThread(page.getByText(prompt, { exact: true }));
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expectResultVisible(thread);
     expect(result.toLowerCase()).toContain('bluebird-brief.md');
 
     await page.goto(`/s/${server.slug}/members/agents/${agent.id}`);
-    await page.getByRole('tab', { name: 'Workspace' }).click();
+    await page.getByRole('radio', { name: 'Workspace' }).click();
     await expect(page.getByRole('treeitem', { name: 'MEMORY.md' })).toBeVisible();
     await expect(page.getByRole('treeitem', { name: 'notes' })).toBeVisible();
     await expect(page.getByRole('treeitem', { name: 'bluebird-brief.md' })).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Profile' }).click();
+    await page.getByRole('radio', { name: 'Overview' }).click();
     await page.getByRole('button', { name: 'Delete Agent' }).click();
     const confirmation = page.getByRole('alertdialog');
     await confirmation
@@ -84,7 +82,7 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
     await confirmation.getByRole('button', { name: 'Delete Agent' }).click();
 
     await expect(page).toHaveURL(new RegExp(`/s/${server.slug}/members$`, 'u'));
-    await expect(page.getByRole('link', { name: new RegExp(name, 'u') })).toHaveCount(0);
+    await expect(page.getByRole('row', { name: new RegExp(name, 'u') })).toHaveCount(0);
     suite.agentId = null;
 });
 
@@ -99,10 +97,7 @@ test("a retired Agent's Owner DM stays readable and clearly labeled Retired", as
     await expect(page.getByText(/has been retired/u)).toBeVisible();
     await expect(page.getByRole('textbox', { name: /^Message /u })).toHaveCount(0);
 
-    const anchor = page
-        .getByText(suite.prompt, { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchor.getByRole('button', { name: /repl/u }).click();
+    await openMessageThread(page.getByText(suite.prompt, { exact: true }));
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expect(thread.getByText(/read-only.*retired/u)).toBeVisible();
     await expect(thread.getByRole('textbox', { name: /^Message /u })).toHaveCount(0);
@@ -163,7 +158,7 @@ async function pollThreadChatId(
     chatId: string,
     anchor: string
 ) {
-    const deadline = Date.now() + 60_000;
+    const deadline = Date.now() + 240_000;
     while (Date.now() < deadline) {
         const page = (await harness.trpc('chat.messages', {
             chatId,

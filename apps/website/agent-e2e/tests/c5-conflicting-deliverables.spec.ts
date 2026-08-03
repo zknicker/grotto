@@ -5,7 +5,12 @@ import {
     setupC5ConflictingDeliverablesSuite,
     type TaskItem,
 } from '../support/c5-conflicting-deliverables.ts';
-import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import {
+    messageTimeline,
+    openChat,
+    sendFromComposer,
+    setTaskMode,
+} from '../support/live-agent-app.ts';
 
 /**
  * User story: independently owned lanes may return contradictory evidence. The
@@ -42,10 +47,7 @@ test('coordinator reconciles ownership and hands off an unresolved conflict hone
     ].join('\n');
 
     await openChat(page, server.slug, channel, channelName);
-    const taskMode = page.getByRole('checkbox', { name: 'As Task' });
-    if (await taskMode.isChecked()) {
-        await taskMode.uncheck();
-    }
+    await setTaskMode(page, false);
     await sendFromComposer(page, prompt);
 
     const tasks = await pollC5Tasks(harness, (items) => {
@@ -127,7 +129,7 @@ test('coordinator reconciles ownership and hands off an unresolved conflict hone
     expect(final.content).toContain('HUMAN DECISION REQUIRED');
 
     await openChat(page, server.slug, channel, channelName);
-    const messages = page.getByLabel('Messages');
+    const messages = messageTimeline(page);
     await expect(messages).toContainText('C5 FINAL');
     await expect(messages).toContainText('SOURCE_ALPHA');
     await expect(messages).toContainText('SOURCE_BETA');

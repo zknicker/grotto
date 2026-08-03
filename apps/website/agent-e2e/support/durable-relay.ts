@@ -34,7 +34,7 @@ export async function setupDurableRelaySuite() {
 
         const channelName = `relay-${harness.stamp.slice(-8)}`;
         const channel = (await harness.trpc('chat.createChannel', {
-            agentIds: agents.map((agent) => agent.id),
+            agentIds: [author.id],
             name: channelName,
             serverId: harness.serverId,
         })) as { id: string };
@@ -136,8 +136,8 @@ async function cleanupResources(
 ) {
     const failures: unknown[] = [];
     for (const cleanup of [
-        () => deleteTemporaryAgents(harness, agents),
         () => cleanupEvalChats(harness, chatIds),
+        () => deleteTemporaryAgents(harness, agents),
         () => harness.cleanup(),
     ]) {
         try {

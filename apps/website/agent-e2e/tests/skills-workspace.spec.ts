@@ -2,7 +2,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
-import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import {
+    messageTimeline,
+    openChat,
+    openMessageThread,
+    sendFromComposer,
+} from '../support/live-agent-app.ts';
 
 /**
  * User story: an Owner can equip an Agent with a skill, rely on Agent-owned files across
@@ -48,14 +53,16 @@ test('an imported skill shapes the Agent next turn', async ({ page }) => {
     );
 
     expect(reply).toContain(harness.stamp);
-    const thread = page.getByRole('complementary', { name: 'Thread' });
-    await expect(thread.getByRole('heading', { name: 'Decision Matrix' })).toBeVisible();
+    const replySurface = threadChatId
+        ? page.getByRole('complementary', { name: 'Thread' })
+        : messageTimeline(page);
+    await expect(replySurface.getByText('Decision Matrix', { exact: true })).toBeVisible();
     expect(threadChatId).toMatch(/^cht_/u);
 });
 
 test('a new session recovers the exact Agent-owned workspace file', async ({ page }) => {
     const { agent, harness } = suite;
-    const createPrompt = `Create ${suite.workspacePath} in your workspace. Generate a fresh unpredictable token beginning FILE- with at least 20 characters, and save it on a line beginning "Workspace token:". Do not reveal the token in Chat; reply only SAVED when the file is durable.`;
+    const createPrompt = `Create ${suite.workspacePath} in your workspace. Generate a fresh unpredictable marker beginning FILE- with at least 20 characters, and save it on a line beginning "Workspace marker:". Do not reveal the marker in Chat; reply only SAVED when the file is durable.`;
     const { reply: savedReply } = await runTask(
         page,
         suite,
@@ -70,12 +77,12 @@ test('a new session recovers the exact Agent-owned workspace file', async ({ pag
         serverId: harness.serverId,
     })) as { content: string; path: string };
     expect(file.path).toBe(suite.workspacePath);
-    const token = file.content.match(/Workspace token:\s*(FILE-[A-Za-z0-9_-]{15,})/u)?.[1];
-    expect(token).toBeTruthy();
-    if (!token) {
-        throw new Error('The Agent workspace file did not contain the generated token.');
+    const marker = file.content.match(/Workspace marker:\s*(FILE-[A-Za-z0-9_-]{15,})/u)?.[1];
+    expect(marker).toBeTruthy();
+    if (!marker) {
+        throw new Error('The Agent workspace file did not contain the generated marker.');
     }
-    expect(savedReply).not.toContain(token);
+    expect(savedReply).not.toContain(marker);
 
     await harness.waitForAgentQuiet(agent.id, 2000, 60_000);
     await harness.trpc('agent.reset', {
@@ -84,14 +91,14 @@ test('a new session recovers the exact Agent-owned workspace file', async ({ pag
         serverId: harness.serverId,
     });
 
-    const readPrompt = `Read ${suite.workspacePath} from your workspace. Reply only with the complete "Workspace token:" line from that file.`;
+    const readPrompt = `Read ${suite.workspacePath} from your workspace. Reply only with the complete "Workspace marker:" line from that file.`;
     const { reply, threadChatId } = await runTask(page, suite, readPrompt, (content) =>
-        content.includes(token)
+        content.includes(marker)
     );
-    expect(reply).toContain(token);
+    expect(reply).toContain(marker);
 
     const replySurface = threadChatId ? page.getByRole('complementary', { name: 'Thread' }) : page;
-    await expect(replySurface.getByText(token, { exact: false })).toBeVisible();
+    await expect(replySurface.getByText(marker, { exact: false })).toBeVisible();
 });
 
 test('an Agent-authored HTML artifact opens with the exact workspace bytes', async ({ page }) => {
@@ -281,16 +288,14 @@ async function pollReplyLocation(
             harness.readMessages(dmChatId),
         ]);
         const task = tasks.find((item) => item.message.content === content);
-        if (task) {
-            const messages = await harness.pollMessages(
-                task.task.threadChatId,
-                (items) => harness.authoredBy(items, agentId).some(complete),
-                Math.max(1, deadline - Date.now())
-            );
-            return { messages, threadChatId: task.task.threadChatId };
-        }
         if (harness.authoredBy(directMessages, agentId).some(complete)) {
             return { messages: directMessages, threadChatId: undefined };
+        }
+        if (task) {
+            const threadMessages = await harness.readMessages(task.task.threadChatId);
+            if (harness.authoredBy(threadMessages, agentId).some(complete)) {
+                return { messages: threadMessages, threadChatId: task.task.threadChatId };
+            }
         }
         await new Promise((resolve) => setTimeout(resolve, 1000));
     }
@@ -298,11 +303,7 @@ async function pollReplyLocation(
 }
 
 async function openThread(page: Page, content: string) {
-    const anchor = page
-        .getByText(content, { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchor.hover();
-    await anchor.getByRole('button', { name: 'Reply in thread' }).click();
+    await openMessageThread(page.getByText(content, { exact: true }));
 }
 
 interface TaskItem {

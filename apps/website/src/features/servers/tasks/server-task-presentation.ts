@@ -5,6 +5,7 @@ import type {
     HostedTaskListItem,
 } from '@tavern/api';
 import type { TaskPriority, TaskStatus } from '../../tasks/task-presentation.ts';
+import type { HumanDirectory } from '../human-identity.ts';
 
 export type ServerTaskView = 'all' | 'active' | 'unassigned';
 
@@ -55,7 +56,7 @@ export function serverTaskClaimAction(
     return task.claimedAt === null ? 'claim-reservation' : 'unclaim';
 }
 
-export function serverTaskChatOptions(chats: HostedChat[]) {
+export function serverTaskChatOptions(chats: HostedChat[], humans: HumanDirectory) {
     return chats
         .filter((chat) => !chat.peerAgentRetired)
         .map((chat) => ({
@@ -63,14 +64,11 @@ export function serverTaskChatOptions(chats: HostedChat[]) {
             label:
                 chat.kind === 'channel'
                     ? `#${chat.name}`
-                    : `Direct · ${
-                          chat.peerAgentDisplayName ??
-                          (chat.peerUserId ? `Human ${chat.peerUserId.slice(-6)}` : 'Human')
-                      }`,
+                    : `Direct · ${chat.peerAgentDisplayName ?? humans.name(chat.peerUserId)}`,
         }));
 }
 
-export function toServerTask(item: HostedTaskListItem): ServerTask {
+export function toServerTask(item: HostedTaskListItem, humans: HumanDirectory): ServerTask {
     return {
         assigneeAgentId: item.task.assigneeAgentId,
         assigneeUserId: item.task.assigneeUserId,
@@ -78,9 +76,7 @@ export function toServerTask(item: HostedTaskListItem): ServerTask {
         chatLabel:
             item.chatKind === 'channel'
                 ? `#${item.chatName ?? 'channel'}`
-                : `Direct · ${
-                      item.chatPeerUserId ? `Human ${item.chatPeerUserId.slice(-6)}` : 'Human'
-                  }`,
+                : `Direct · ${humans.name(item.chatPeerUserId)}`,
         claimedAt: item.task.claimedAt,
         createdAt: item.task.createdAt,
         id: item.message.id,

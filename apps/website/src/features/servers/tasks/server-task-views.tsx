@@ -12,6 +12,7 @@ import {
 } from '../../tasks/task-presentation.ts';
 import { ServerTaskActions } from './server-task-actions.tsx';
 import { groupServerTasks, type ServerTask } from './server-task-presentation.ts';
+import { useServerAssigneeName } from './use-server-assignee-name.ts';
 
 interface ServerTaskViewProps {
     canAssign: boolean;
@@ -31,6 +32,7 @@ export function ServerTasksBoard({
     viewerUserId,
 }: ServerTaskViewProps) {
     const groups = React.useMemo(() => groupServerTasks(tasks), [tasks]);
+    const assigneeName = useServerAssigneeName(serverId);
 
     return (
         <div className="min-h-0 flex-1 p-4">
@@ -56,7 +58,11 @@ export function ServerTasksBoard({
                             >
                                 {(task) => (
                                     <Kanban.Card id={task.id} textValue={task.title}>
-                                        <TaskSummary onOpen={onOpen} task={task} />
+                                        <TaskSummary
+                                            assigneeLabel={assigneeName(task)}
+                                            onOpen={onOpen}
+                                            task={task}
+                                        />
                                         <ServerTaskActions
                                             canAssign={canAssign}
                                             labels={labels}
@@ -80,16 +86,18 @@ export function ServerTasksBoard({
  * display-only rows; opening the task is the row action, and metadata
  * edits live on the board cards and the task thread.
  */
-export function ServerTasksList({ onOpen, tasks }: ServerTaskViewProps) {
+export function ServerTasksList({ onOpen, serverId, tasks }: ServerTaskViewProps) {
     const groups = React.useMemo(
         () => groupServerTasks(tasks).filter((group) => group.tasks.length > 0),
         [tasks]
     );
+    const assigneeName = useServerAssigneeName(serverId);
 
     return (
         <div className="min-h-0 flex-1 overflow-y-auto pb-8">
             {groups.map((group) => (
                 <TaskListGroup
+                    assigneeName={assigneeName}
                     key={group.status}
                     onOpen={onOpen}
                     status={group.status}
@@ -101,10 +109,12 @@ export function ServerTasksList({ onOpen, tasks }: ServerTaskViewProps) {
 }
 
 function TaskListGroup({
+    assigneeName,
     onOpen,
     status,
     tasks,
 }: {
+    assigneeName: (task: ServerTask) => string;
     onOpen: (task: ServerTask) => void;
     status: ServerTask['status'];
     tasks: ServerTask[];
@@ -144,7 +154,12 @@ function TaskListGroup({
                 <div className="overflow-hidden">
                     <div className="divide-y divide-separator">
                         {tasks.map((task) => (
-                            <TaskListRow key={task.id} onOpen={onOpen} task={task} />
+                            <TaskListRow
+                                assigneeLabel={assigneeName(task)}
+                                key={task.id}
+                                onOpen={onOpen}
+                                task={task}
+                            />
                         ))}
                     </div>
                 </div>
@@ -153,7 +168,15 @@ function TaskListGroup({
     );
 }
 
-function TaskListRow({ onOpen, task }: { onOpen: (task: ServerTask) => void; task: ServerTask }) {
+function TaskListRow({
+    assigneeLabel,
+    onOpen,
+    task,
+}: {
+    assigneeLabel: string;
+    onOpen: (task: ServerTask) => void;
+    task: ServerTask;
+}) {
     return (
         <button
             aria-label={`Open task #${task.number} ${task.title}`}
@@ -178,7 +201,7 @@ function TaskListRow({ onOpen, task }: { onOpen: (task: ServerTask) => void; tas
                 <RelativeTime value={task.updatedAt} />
             </span>
             <span className="w-24 shrink-0 truncate text-right text-muted text-xs">
-                {assigneeLabel(task)}
+                {assigneeLabel}
             </span>
         </button>
     );
@@ -186,7 +209,15 @@ function TaskListRow({ onOpen, task }: { onOpen: (task: ServerTask) => void; tas
 
 // The task's own open affordance. Board cards and list rows both carry inline
 // controls, so opening stays on an explicit button rather than a row action.
-function TaskSummary({ onOpen, task }: { onOpen: (task: ServerTask) => void; task: ServerTask }) {
+function TaskSummary({
+    assigneeLabel,
+    onOpen,
+    task,
+}: {
+    assigneeLabel: string;
+    onOpen: (task: ServerTask) => void;
+    task: ServerTask;
+}) {
     return (
         <button
             aria-label={`Open task #${task.number} ${task.title}`}
@@ -205,21 +236,11 @@ function TaskSummary({ onOpen, task }: { onOpen: (task: ServerTask) => void; tas
                 {task.priority === 'none' ? null : (
                     <span className="text-muted text-xs">{taskPriorityLabels[task.priority]}</span>
                 )}
-                <span className="text-muted text-xs">{assigneeLabel(task)}</span>
+                <span className="text-muted text-xs">{assigneeLabel}</span>
                 <span className="text-muted text-xs">
                     <RelativeTime value={task.updatedAt} />
                 </span>
             </div>
         </button>
     );
-}
-
-function assigneeLabel(task: ServerTask) {
-    if (task.assigneeAgentId) {
-        return `Agent ${task.assigneeAgentId.slice(-6)}`;
-    }
-    if (task.assigneeUserId) {
-        return `Human ${task.assigneeUserId.slice(-6)}`;
-    }
-    return 'Unassigned';
 }

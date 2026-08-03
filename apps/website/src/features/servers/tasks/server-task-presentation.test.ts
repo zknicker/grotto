@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { HostedTaskListItem } from '@tavern/api';
+import { humanDirectory } from '../human-identity.ts';
 import {
     filterServerTasks,
     groupServerTasks,
@@ -8,8 +9,10 @@ import {
     toServerTask,
 } from './server-task-presentation.ts';
 
+const humans = humanDirectory([]);
+
 test('projects a hosted task from its canonical message', () => {
-    const task = toServerTask(item());
+    const task = toServerTask(item(), humans);
 
     expect(task.id).toBe('message_one');
     expect(task.title).toBe('Ship the hosted board');
@@ -20,7 +23,7 @@ test('projects a hosted task from its canonical message', () => {
 });
 
 test('filters hosted tasks by lifecycle and text without a second content store', () => {
-    const todo = toServerTask(item());
+    const todo = toServerTask(item(), humans);
     const done = {
         ...todo,
         id: 'message_two',
@@ -35,10 +38,10 @@ test('filters hosted tasks by lifecycle and text without a second content store'
 
 test('filters hosted tasks by label id', () => {
     const labeled = {
-        ...toServerTask(item()),
+        ...toServerTask(item(), humans),
         labels: [{ color: 'red' as const, id: 'lbl_one', name: 'Bug' }],
     };
-    const bare = { ...toServerTask(item()), id: 'message_two', labels: [], number: 2 };
+    const bare = { ...toServerTask(item(), humans), id: 'message_two', labels: [], number: 2 };
 
     expect(
         filterServerTasks([labeled, bare], { labelId: 'lbl_one', query: '', view: 'all' })
@@ -50,7 +53,7 @@ test('filters hosted tasks by label id', () => {
 });
 
 test('groups every lifecycle column in stable order', () => {
-    const groups = groupServerTasks([toServerTask(item())]);
+    const groups = groupServerTasks([toServerTask(item(), humans)]);
 
     expect(groups.map((group) => group.status)).toEqual([
         'todo',
@@ -63,7 +66,7 @@ test('groups every lifecycle column in stable order', () => {
 });
 
 test('shows claim controls only when the viewer can perform the action', () => {
-    const task = toServerTask(item());
+    const task = toServerTask(item(), humans);
 
     expect(serverTaskClaimAction(task, 'user_viewer')).toBe('claim');
     expect(
@@ -91,83 +94,86 @@ test('shows claim controls only when the viewer can perform the action', () => {
 });
 
 test('treats Agent-owned tasks as assigned in task filters', () => {
-    const task = { ...toServerTask(item()), assigneeAgentId: 'agent_owner' };
+    const task = { ...toServerTask(item(), humans), assigneeAgentId: 'agent_owner' };
 
     expect(filterServerTasks([task], { query: '', view: 'unassigned' })).toEqual([]);
 });
 
 test('offers writable Channels and DMs as task creation work surfaces', () => {
     expect(
-        serverTaskChatOptions([
-            {
-                createdAt: '2026-07-26T12:00:00.000Z',
-                id: 'chat_channel',
-                isAll: true,
-                kind: 'channel',
-                lastActivityAt: '2026-07-26T12:00:00.000Z',
-                lastMessageSequence: 0,
-                name: 'all',
-                participantAgentIds: [],
-                participantUserIds: ['user_viewer'],
-                peerAgentDisplayName: null,
-                peerAgentId: null,
-                peerAgentRetired: false,
-                peerUserId: null,
-                serverId: 'server_one',
-                unreadCount: 0,
-            },
-            {
-                createdAt: '2026-07-26T12:00:00.000Z',
-                id: 'chat_dm',
-                isAll: false,
-                kind: 'dm',
-                lastActivityAt: '2026-07-26T12:00:00.000Z',
-                lastMessageSequence: 0,
-                name: null,
-                participantAgentIds: [],
-                participantUserIds: ['user_viewer', 'user_peer'],
-                peerAgentDisplayName: null,
-                peerAgentId: null,
-                peerAgentRetired: false,
-                peerUserId: 'user_peer',
-                serverId: 'server_one',
-                unreadCount: 0,
-            },
-            {
-                createdAt: '2026-07-26T12:00:00.000Z',
-                id: 'chat_agent_dm',
-                isAll: false,
-                kind: 'dm',
-                lastActivityAt: '2026-07-26T12:00:00.000Z',
-                lastMessageSequence: 0,
-                name: null,
-                participantAgentIds: [],
-                participantUserIds: ['user_viewer'],
-                peerAgentDisplayName: 'Cove',
-                peerAgentId: 'agent_cove',
-                peerAgentRetired: false,
-                peerUserId: null,
-                serverId: 'server_one',
-                unreadCount: 0,
-            },
-            {
-                createdAt: '2026-07-26T12:00:00.000Z',
-                id: 'chat_retired_agent_dm',
-                isAll: false,
-                kind: 'dm',
-                lastActivityAt: '2026-07-26T12:00:00.000Z',
-                lastMessageSequence: 0,
-                name: null,
-                participantAgentIds: [],
-                participantUserIds: ['user_viewer'],
-                peerAgentDisplayName: 'Fen',
-                peerAgentId: 'agent_fen',
-                peerAgentRetired: true,
-                peerUserId: null,
-                serverId: 'server_one',
-                unreadCount: 0,
-            },
-        ])
+        serverTaskChatOptions(
+            [
+                {
+                    createdAt: '2026-07-26T12:00:00.000Z',
+                    id: 'chat_channel',
+                    isAll: true,
+                    kind: 'channel',
+                    lastActivityAt: '2026-07-26T12:00:00.000Z',
+                    lastMessageSequence: 0,
+                    name: 'all',
+                    participantAgentIds: [],
+                    participantUserIds: ['user_viewer'],
+                    peerAgentDisplayName: null,
+                    peerAgentId: null,
+                    peerAgentRetired: false,
+                    peerUserId: null,
+                    serverId: 'server_one',
+                    unreadCount: 0,
+                },
+                {
+                    createdAt: '2026-07-26T12:00:00.000Z',
+                    id: 'chat_dm',
+                    isAll: false,
+                    kind: 'dm',
+                    lastActivityAt: '2026-07-26T12:00:00.000Z',
+                    lastMessageSequence: 0,
+                    name: null,
+                    participantAgentIds: [],
+                    participantUserIds: ['user_viewer', 'user_peer'],
+                    peerAgentDisplayName: null,
+                    peerAgentId: null,
+                    peerAgentRetired: false,
+                    peerUserId: 'user_peer',
+                    serverId: 'server_one',
+                    unreadCount: 0,
+                },
+                {
+                    createdAt: '2026-07-26T12:00:00.000Z',
+                    id: 'chat_agent_dm',
+                    isAll: false,
+                    kind: 'dm',
+                    lastActivityAt: '2026-07-26T12:00:00.000Z',
+                    lastMessageSequence: 0,
+                    name: null,
+                    participantAgentIds: [],
+                    participantUserIds: ['user_viewer'],
+                    peerAgentDisplayName: 'Cove',
+                    peerAgentId: 'agent_cove',
+                    peerAgentRetired: false,
+                    peerUserId: null,
+                    serverId: 'server_one',
+                    unreadCount: 0,
+                },
+                {
+                    createdAt: '2026-07-26T12:00:00.000Z',
+                    id: 'chat_retired_agent_dm',
+                    isAll: false,
+                    kind: 'dm',
+                    lastActivityAt: '2026-07-26T12:00:00.000Z',
+                    lastMessageSequence: 0,
+                    name: null,
+                    participantAgentIds: [],
+                    participantUserIds: ['user_viewer'],
+                    peerAgentDisplayName: 'Fen',
+                    peerAgentId: 'agent_fen',
+                    peerAgentRetired: true,
+                    peerUserId: null,
+                    serverId: 'server_one',
+                    unreadCount: 0,
+                },
+            ],
+            humans
+        )
     ).toEqual([
         { id: 'chat_channel', label: '#all' },
         { id: 'chat_dm', label: 'Direct · Human r_peer' },
@@ -177,12 +183,15 @@ test('offers writable Channels and DMs as task creation work surfaces', () => {
 
 test('identifies a DM task by its peer', () => {
     expect(
-        toServerTask({
-            ...item(),
-            chatKind: 'dm',
-            chatName: null,
-            chatPeerUserId: 'user_peer',
-        }).chatLabel
+        toServerTask(
+            {
+                ...item(),
+                chatKind: 'dm',
+                chatName: null,
+                chatPeerUserId: 'user_peer',
+            },
+            humans
+        ).chatLabel
     ).toBe('Direct · Human r_peer');
 });
 
@@ -224,6 +233,7 @@ function item(): HostedTaskListItem {
             anchorMessageId: 'message_one',
             followed: false,
             latestReplyAt: '2026-07-26T12:05:00.000Z',
+            recentReplies: [],
             replyCount: 3,
             threadChatId: 'thread_one',
             unreadCount: 2,

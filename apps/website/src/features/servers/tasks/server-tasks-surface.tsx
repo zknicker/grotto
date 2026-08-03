@@ -3,6 +3,7 @@ import { EmptyState } from '@heroui-pro/react';
 import type { HostedChat } from '@tavern/api';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
 import { NewServerTaskDialog } from './new-server-task-dialog.tsx';
@@ -66,6 +67,7 @@ export function ServerTasksProvider({
 }) {
     const tasksQuery = useServerTasks(serverId);
     const labelsQuery = useServerTaskLabels(serverId);
+    const humans = useHumanDirectory(serverId);
     const [searchParams] = useSearchParams();
     const [composeOpen, setComposeOpen] = React.useState(false);
     const [mode, setMode] = React.useState<ServerTaskMode>('board');
@@ -73,12 +75,15 @@ export function ServerTasksProvider({
     const view = resolveTaskView(searchParams.get('view'));
     const labelId = searchParams.get('label');
     const query = searchParams.get('q') ?? '';
-    const tasks = React.useMemo(() => tasksQuery.data?.map(toServerTask) ?? [], [tasksQuery.data]);
+    const tasks = React.useMemo(
+        () => tasksQuery.data?.map((item) => toServerTask(item, humans)) ?? [],
+        [humans, tasksQuery.data]
+    );
     const filtered = React.useMemo(
         () => filterServerTasks(tasks, { labelId, query, view }),
         [labelId, query, tasks, view]
     );
-    const chatOptions = React.useMemo(() => serverTaskChatOptions(chats), [chats]);
+    const chatOptions = React.useMemo(() => serverTaskChatOptions(chats, humans), [chats, humans]);
     const value = React.useMemo<ServerTasksContextValue>(
         () => ({
             canAssign: role === 'owner' || role === 'admin',

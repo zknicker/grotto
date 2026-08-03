@@ -4,6 +4,7 @@ import { Edit02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
 import { ShellSidebar } from '../../shell/shell-sidebar.tsx';
@@ -42,7 +43,11 @@ export function ServerTasksSidebar({
     const [labelsOpen, setLabelsOpen] = React.useState(false);
     const tasksQuery = useServerTasks(serverId);
     const labelsQuery = useServerTaskLabels(serverId);
-    const tasks = React.useMemo(() => tasksQuery.data?.map(toServerTask) ?? [], [tasksQuery.data]);
+    const humans = useHumanDirectory(serverId);
+    const tasks = React.useMemo(
+        () => tasksQuery.data?.map((item) => toServerTask(item, humans)) ?? [],
+        [humans, tasksQuery.data]
+    );
 
     const activeView = resolveTaskView(searchParams.get('view'));
     const activeLabel = searchParams.get('label');

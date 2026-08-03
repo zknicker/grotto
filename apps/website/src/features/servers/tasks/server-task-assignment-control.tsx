@@ -1,9 +1,11 @@
 import { Label, ListBox, Select } from '@heroui/react';
 import * as React from 'react';
 import { useAssignServerTask } from '../../../hooks/servers/use-assign-server-task.ts';
+import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useServerTaskAssignees } from '../../../hooks/servers/use-server-task-assignees.ts';
 import { serverTaskAssignmentInput } from './server-task-control-input.ts';
 import type { ServerTask } from './server-task-presentation.ts';
+import { useServerAssigneeName } from './use-server-assignee-name.ts';
 
 export function ServerTaskAssignmentControl({
     enabled,
@@ -17,13 +19,11 @@ export function ServerTaskAssignmentControl({
     const [open, setOpen] = React.useState(false);
     const assignees = useServerTaskAssignees(serverId, task.id, enabled && open);
     const assign = useAssignServerTask();
+    const humans = useHumanDirectory(serverId);
+    const assigneeName = useServerAssigneeName(serverId);
     const agentValue = task.assigneeAgentId ? `agent:${task.assigneeAgentId}` : null;
     const value = agentValue ?? task.assigneeUserId ?? 'unassigned';
-    const valueLabel = task.assigneeAgentId
-        ? agentLabel(task.assigneeAgentId)
-        : task.assigneeUserId
-          ? humanLabel(task.assigneeUserId)
-          : 'Unassigned';
+    const valueLabel = assigneeName(task);
 
     if (!enabled) {
         return null;
@@ -68,10 +68,10 @@ export function ServerTaskAssignmentControl({
                             <ListBox.Item
                                 id={assignee.userId}
                                 key={assignee.userId}
-                                textValue={`${humanLabel(assignee.userId)} · ${assignee.role}`}
+                                textValue={`${humans.name(assignee.userId)} · ${assignee.role}`}
                             >
                                 <Label>
-                                    {humanLabel(assignee.userId)} · {assignee.role}
+                                    {humans.name(assignee.userId)} · {assignee.role}
                                 </Label>
                                 <ListBox.ItemIndicator />
                             </ListBox.Item>
@@ -86,12 +86,4 @@ export function ServerTaskAssignmentControl({
             ) : null}
         </>
     );
-}
-
-function humanLabel(userId: string) {
-    return `Human ${userId.slice(-6)}`;
-}
-
-function agentLabel(agentId: string) {
-    return `Agent ${agentId.slice(-6)}`;
 }

@@ -7,16 +7,28 @@
 @import '@fontsource/geist-mono/600.css';
 @import '@fontsource/geist-mono/700.css';
 @import 'slot-text/style.css';
+/* HeroUI's documented layer order. Declared before any import so our theme
+   files land in `theme` and can never outrank component styles. */
+@layer theme, base, components, utilities;
+
 @import "tailwindcss";
 @import "tw-animate-css";
-/* HeroUI design system: OSS base, then Pro, then Grotto's theme layer.
-   tokens.css is the legacy kit's token set — transitional while the old
-   components/ui kit is retired (docs/internals/heroui-migration.md).
-   grotto-theme.css imports last so HeroUI semantics win at :root. */
+
+/* Top level, not inside a layer: Tailwind rejects a nested @custom-variant,
+   and the token files are imported with layer(theme). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* The design system, in layers.
+   HeroUI ships the semantic base; grotto-base.css extends it with the product
+   tokens a UI kit cannot know. Those two together are Grotto's DEFAULT THEME.
+   artifact-tokens.css publishes the agent-facing vocabulary as aliases onto
+   that base. A `*-theme.css` variant imports last and tweaks values on top —
+   grotto-theme.css is that slot and is currently near-empty. */
 @import "@heroui/styles";
 @import "@heroui-pro/react/css";
-@import "./tokens.css";
-@import "./grotto-theme.css";
+@import "./grotto-base.css" layer(theme);
+@import "./artifact-tokens.css" layer(theme);
+@import "./grotto-theme.css" layer(theme);
 
 /* Reel (Jamie Clarke Type) — display face for the logo, greetings, and
    page-level headings. Currently the trial cut (limited charset: no V/v,
@@ -40,26 +52,6 @@
     font-weight: 100 900;
     font-display: swap;
     src: url('../assets/fonts/reel-variable.woff2') format('woff2');
-}
-
-@keyframes thinking-indicator-shimmer {
-    from {
-        background-position: 0% 0;
-    }
-    to {
-        background-position: 100% 0;
-    }
-}
-
-@keyframes thinking-indicator-word-in {
-    from {
-        opacity: 0;
-        transform: translateY(80%);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 @keyframes chat-streaming-text-unit-in {
@@ -96,13 +88,6 @@
         animation: none !important;
     }
 
-    .thinking-indicator-text,
-    .thinking-indicator-word,
-    .chat-streaming-text-unit,
-    [class*='desktop-update-indicator'] {
-        animation: none !important;
-    }
-
     .chat-step-enter,
     .chat-turn-work-panel {
         transition: none !important;
@@ -134,109 +119,6 @@
             opacity: 0;
         }
     }
-
-    /* Pop-in for a newly appearing tab: rises from just below the strip with a slight
-       scale, growing from its base. @starting-style runs once on insert, so only new
-       tabs animate — existing tabs keep their node and do not re-pop on re-render. */
-    .chrome-tab-enter {
-        transform-origin: bottom center;
-        transition:
-            opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
-            transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
-
-        @starting-style {
-            opacity: 0;
-            transform: translateY(9px) scale(0.96);
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .chrome-tab-enter {
-            transition: opacity 140ms cubic-bezier(0.23, 1, 0.32, 1);
-
-            @starting-style {
-                transform: none;
-            }
-        }
-    }
-
-    .chat-approval-flow {
-        position: relative;
-        isolation: isolate;
-    }
-
-    .chat-approval-flow-card {
-        position: relative;
-        z-index: 3;
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-        transform-origin: bottom center;
-        animation: chat-approval-card-in 320ms cubic-bezier(0.22, 0.68, 0.2, 1) both;
-        transition:
-            opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
-            transform 320ms cubic-bezier(0.22, 0.68, 0.2, 1);
-        will-change: opacity, transform;
-    }
-
-    .chat-approval-flow-active .chat-approval-flow-card {
-        position: absolute;
-        right: 0;
-        bottom: calc(100% - 3.625rem);
-        left: 0;
-    }
-
-    .chat-approval-flow-composer {
-        position: relative;
-        z-index: 2;
-        transform: translate3d(0, 0, 0) scale(1);
-        transform-origin: center center;
-        transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
-        will-change: transform;
-    }
-
-    .chat-approval-flow-active .chat-approval-flow-composer {
-        transform: translate3d(0, 0.5rem, 0) scale(0.972);
-        transition-duration: 480ms;
-        transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .chat-approval-flow-card {
-            animation: none !important;
-            transform: none !important;
-            transition: opacity 120ms cubic-bezier(0.23, 1, 0.32, 1) !important;
-            will-change: auto;
-        }
-
-        .chat-approval-flow-composer {
-            transform: none !important;
-            transition: none !important;
-            will-change: auto;
-        }
-    }
-
-    .thinking-indicator-text {
-        color: transparent;
-        background: linear-gradient(
-            90deg,
-            var(--muted-foreground) 0%,
-            var(--muted-foreground) 35%,
-            var(--foreground) 50%,
-            var(--muted-foreground) 65%,
-            var(--muted-foreground) 100%
-        );
-        background-size: 300% 100%;
-        background-clip: text;
-        -webkit-background-clip: text;
-        animation: thinking-indicator-shimmer 1.5s ease-in-out infinite;
-    }
-
-    .thinking-indicator-word {
-        animation:
-            thinking-indicator-shimmer 1.5s ease-in-out infinite,
-            thinking-indicator-word-in 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
-    }
-
     .chat-streaming-text-chunk {
         display: inline;
         line-height: inherit;
@@ -249,62 +131,49 @@
         animation: chat-streaming-text-unit-in 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
         will-change: opacity, transform, filter;
     }
+
+    /* HeroUI BEM overrides. These live here rather than in a theme file: a
+       `layer(theme)` import is for variables, and component restyles must sit
+       in the `components` layer to rank against HeroUI's own component CSS. */
+
+    /* One avatar shape across the app. HeroUI scales the radius per size
+       (13.5px at `sm`, 19.8px at `md`, so a 32px mark reads square in the rail
+       and round in the transcript) and `overflow-hidden` on the root clips the
+       image, so setting the root radius once is enough. Pro's ChatMessage
+       avatar renders the same `.avatar`, so the transcript follows too. */
+    .avatar,
+    .avatar--sm,
+    .avatar--md,
+    .avatar--lg {
+        border-radius: var(--avatar-radius);
+    }
+
+    /* Sidebar rows are containers for avatars, so their corners follow
+       `--sidebar-row-radius` rather than HeroUI's much rounder `rounded-2xl`
+       — see the token for the proportions. */
+    .sidebar__menu-item-content {
+        border-radius: var(--sidebar-row-radius);
+    }
+
+    /* A sidebar row paints `bg-default` when hovered or current, so a presence
+       dot's page-coloured ring would punch a dark hole in it. Rescope the
+       stand-in to the fill the row actually draws — the same seam HeroUI leaves
+       open on Badge via `--badge-border`. */
+    .sidebar__menu-item:hover .sidebar__menu-item-content,
+    .sidebar__menu-item[data-hovered='true'] .sidebar__menu-item-content,
+    .sidebar__menu-item[data-current='true'] .sidebar__menu-item-content {
+        --presence-ring: var(--default);
+    }
 }
 
 @layer utilities {
-    .text-inline-meta {
-        font-size: 0.8125em;
-        line-height: 1.35;
-    }
 
-    /* Overview greeting display line — Reel Variable, wider than the static
-       Medium cut and deliberately light so the greeting reads airy, not
-       shouty. */
-    .font-display-overview {
-        font-family: 'Reel Variable', var(--font-heading);
-        font-variation-settings:
-            'HGHT' 16,
-            'wght' 420;
-    }
 
-    .wrap-break-word {
-        overflow-wrap: anywhere;
-        word-break: normal;
-    }
 
-    .scrollbar-gutter-stable {
-        scrollbar-gutter: stable;
-    }
-
-    .scrollbar-none {
-        scrollbar-width: none;
-    }
-
-    .scrollbar-none::-webkit-scrollbar {
-        display: none;
-    }
-
-    .scrollbar-thin {
-        scrollbar-width: thin;
-        scrollbar-color: color-mix(in srgb, var(--border) 72%, transparent) transparent;
-    }
-
-    .scrollbar-thin::-webkit-scrollbar {
-        width: 0.5rem;
-        height: 0.5rem;
-    }
-
-    .scrollbar-thin::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .scrollbar-thin::-webkit-scrollbar-thumb {
-        border: 2px solid transparent;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--border) 72%, transparent);
-        background-clip: padding-box;
-    }
-
+    /* Bottom edge fade for the chat scroller. HeroUI's ScrollShadow owns its
+       own scroll element and its hook needs a ref the scroller primitive does
+       not forward, so this one stays hand-rolled. The attachment strip uses
+       the stock component. */
     .scroll-fade-b {
         --scroll-fade-size: 2rem;
         -webkit-mask-image: linear-gradient(
@@ -321,48 +190,15 @@
         );
     }
 
-    .scroll-fade-x {
-        --scroll-fade-size: 1.25rem;
-        -webkit-mask-image: linear-gradient(
-            to right,
-            transparent 0,
-            #000 var(--scroll-fade-size),
-            #000 calc(100% - var(--scroll-fade-size)),
-            transparent 100%
-        );
-        mask-image: linear-gradient(
-            to right,
-            transparent 0,
-            #000 var(--scroll-fade-size),
-            #000 calc(100% - var(--scroll-fade-size)),
-            transparent 100%
-        );
+    .scrollbar-gutter-stable {
+        scrollbar-gutter: stable;
     }
 
-    .shimmer {
-        position: relative;
-        overflow: hidden;
-    }
-
-    .shimmer::after {
-        position: absolute;
-        inset: 0;
-        content: '';
-        background: linear-gradient(
-            90deg,
-            transparent,
-            color-mix(in srgb, var(--foreground) 16%, transparent),
-            transparent
-        );
-        animation: shimmer 1.4s ease-in-out infinite;
-    }
 }
 
+/* Squircle corners where the browser supports them; the radius values
+   themselves come from Tailwind/HeroUI. */
 @supports (corner-shape: superellipse(1.5)) {
-    :root {
-        --corner-radius-scale: 0.9;
-    }
-
     .rounded-md,
     .rounded-lg,
     .rounded-xl,
@@ -503,16 +339,6 @@
         -webkit-app-region: no-drag;
     }
 
-    .chrome-noise {
-        background-image: radial-gradient(
-            circle at 14px 14px,
-            --alpha(var(--color-white) / 8%) 0 1.15px,
-            transparent 1.2px
-        );
-        background-size: 28px 28px;
-        background-repeat: repeat;
-        background-position: -6px -6px;
-    }
 
     /* The shell paints no chrome fill of its own — the HeroUI --background
        ground shows uniformly behind every surface, chat included. The
@@ -530,43 +356,17 @@
         padding-top: 2.25rem;
     }
 
-    .scrollbar-hidden {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
 
-    .scrollbar-hidden::-webkit-scrollbar {
-        display: none;
-    }
 
-    :root[data-theme='light'] .chrome-noise {
-        background-image: radial-gradient(
-            circle at 14px 14px,
-            --alpha(var(--color-black) / 4.5%) 0 1.15px,
-            transparent 1.2px
-        );
-    }
 
-    ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-        background: --alpha(var(--color-white) / 8%);
-        border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-        background: --alpha(var(--color-white) / 14%);
-    }
-
-    :root[data-theme='light'] ::-webkit-scrollbar-thumb {
-        background: --alpha(var(--color-black) / 12%);
-    }
-    :root[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
-        background: --alpha(var(--color-black) / 20%);
+    /* HeroUI styles its own scroll slots per component. Tavern has ~25 of its
+       own overflow containers, so rather than annotate each one they opt in
+       here with the stock `scrollbar` utility — the approach HeroUI's theming
+       guide prescribes for custom overflow areas. Mode stays switchable per
+       subtree via data-scrollbar (thin | default | none), and any element can
+       still override with scrollbar-none. */
+    * {
+        @apply scrollbar;
     }
 }
 
@@ -585,16 +385,5 @@
     :focus-visible {
         outline: 2px solid var(--color-ring);
         outline-offset: 1px;
-    }
-}
-@keyframes progress-indeterminate {
-    0% {
-        transform: translateX(-110%);
-    }
-    50% {
-        transform: translateX(200%);
-    }
-    100% {
-        transform: translateX(-110%);
     }
 }

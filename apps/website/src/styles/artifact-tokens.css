@@ -1,0 +1,46 @@
+/*
+ * Artifact tokens — the vocabulary Tavern publishes to agent-authored pages.
+ *
+ * This is a deliberately small, stable public API, not a compatibility shim.
+ * Agents write self-contained HTML that renders in a sandboxed iframe; the
+ * seeded `visuals` skill teaches these names, and the allowlists in
+ * `features/chats/host-token-style.ts` and `widgets/visual-tokens.ts` inject
+ * the resolved values into the frame.
+ *
+ * Agents deliberately do NOT write HeroUI's internal names. An artifact is
+ * durable — it sits in chat history and re-renders months later — so it must
+ * be insulated from HeroUI renaming a token, from a theme swap, and from us
+ * changing our minds about which HeroUI role a thing maps to. This file is
+ * that insulation layer: re-point an alias here and every artifact ever
+ * written follows, with no reauthoring.
+ *
+ * Every name is a pure alias onto a HeroUI semantic — never an independent
+ * value, so artifacts always wear the same palette the app does. Aliases need
+ * no light/dark variants; the HeroUI token underneath carries those.
+ *
+ * Adding, renaming, or removing a name here changes a published contract.
+ * Pair it with an update to the skill in the same change.
+ */
+
+:root {
+    --card: var(--surface);
+    --card-foreground: var(--surface-foreground);
+    --popover: var(--overlay);
+    --popover-foreground: var(--overlay-foreground);
+    --primary: var(--accent);
+    --primary-foreground: var(--accent-foreground);
+    --secondary: var(--surface-secondary);
+    --secondary-foreground: var(--surface-secondary-foreground);
+    --destructive: var(--danger);
+    --destructive-foreground: var(--danger-foreground);
+    --error: var(--danger);
+    --error-foreground: var(--danger-foreground);
+    --error-bg: var(--danger-soft);
+    --success-bg: var(--success-soft);
+    --warning-bg: var(--warning-soft);
+    --muted-foreground: var(--muted);
+    --subtle: var(--surface-secondary);
+    --border-strong: var(--border-secondary);
+    --input: var(--border);
+    --ring: var(--focus);
+}

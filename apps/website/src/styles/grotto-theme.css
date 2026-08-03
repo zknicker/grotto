@@ -1,26 +1,17 @@
-/* Grotto design system — HeroUI theme layer.
+/* Grotto theme variant.
  *
- * Contract (docs/internals/heroui-migration.md): we start from HeroUI's
- * default theme, unmodified. Identity (accent, neutrals, radius, fonts) gets
- * authored in the HeroUI Pro Design Systems editor (heroui.pro/dashboard/ds)
- * when we're ready, and its export replaces the base block below verbatim.
+ * The default theme is HeroUI's base plus `grotto-base.css`. This file is the
+ * tweak slot on top of that package — the same slot a `brutalism-theme.css`
+ * or a HeroUI Pro Design Systems export would occupy. It imports last, so
+ * anything set here wins.
  *
- * Rules:
- *   - Theme changes are variable overrides here (or a DS-editor export) —
- *     never ad hoc values in feature code.
- *   - Component styling: props/variants first; app-wide restyles go in the
- *     @layer components block below as HeroUI BEM overrides. Never style
- *     HeroUI internals via className at call sites.
+ * It is intentionally near-empty: Grotto currently runs on HeroUI's defaults
+ * plus its own base extensions, with nothing to override. Values that are
+ * simply Grotto's (avatar radius, chat surfaces, product palettes) belong in
+ * `grotto-base.css`, not here — putting them here would make a second theme
+ * have to restate them instead of just adjusting them.
  */
 
 @layer base {
-    /* (HeroUI defaults — no overrides yet. DS-editor export lands here.) */
-}
-
-/* Grotto component overrides (HeroUI BEM classes).
- * The only sanctioned home for app-wide component restyles. Reach for a
- * variant/prop first, a theme token second, and a BEM override only when
- * every instance of the component should change. Comment the why on each. */
-@layer components {
-    /* (intentionally empty) */
+    /* (no overrides — Grotto runs the default theme) */
 }

@@ -14,7 +14,6 @@ export const appRoutes = {
         return `/members/agents/${encodeURIComponent(agentId)}`;
     },
 
-    designFaces: '/design/faces',
     settings: '/settings',
     settingsAgentRuntime: '/settings/agent-runtime',
     settingsAppearance: '/settings/appearance',

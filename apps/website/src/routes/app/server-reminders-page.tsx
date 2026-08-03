@@ -11,10 +11,9 @@ export function ServerRemindersPage() {
         >
             <HostedServerReminders
                 agents={agents.map((agent) => ({
-                    character: agent.character,
+                    avatarUrl: agent.avatarUrl,
                     id: agent.id,
                     name: agent.displayName,
-                    primaryColor: null,
                 }))}
                 serverId={server.id}
             />

@@ -54,7 +54,7 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
     },
     connections: () => <ServerConnectionsPage embedded />,
     models: ({ computers }) => <HostedModelsSettings computers={computers} />,
-    profile: () => <ProfileSettings />,
+    profile: ({ server }) => <ProfileSettings serverId={server.id} />,
     skills: ({ computers }) => (
         <HostedSkillsBrowser
             sources={computers.flatMap((computer) =>

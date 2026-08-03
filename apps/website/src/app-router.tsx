@@ -120,6 +120,13 @@ export function createAppRouter() {
                                     ),
                                 },
                                 {
+                                    path: 'members/humans/:userId',
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-members-page.tsx'),
+                                        'ServerMembersPage'
+                                    ),
+                                },
+                                {
                                     path: 'computers',
                                     lazy: lazyRoute(
                                         () => import('./routes/app/server-computers-page.tsx'),

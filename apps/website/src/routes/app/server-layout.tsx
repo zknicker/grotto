@@ -32,6 +32,7 @@ import { useServerAgentLifecycle } from '../../hooks/servers/use-server-agent-li
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
 import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
+import { useSyncHumanIdentity } from '../../hooks/servers/use-sync-human-identity.ts';
 import { grottoTrpc, useGrottoServerConnectionState } from '../../lib/grotto-server.tsx';
 
 export function ServerLayout() {
@@ -47,6 +48,7 @@ export function ServerLayout() {
         { enabled: Boolean(server.data) }
     );
     const connectionState = useGrottoServerConnectionState();
+    useSyncHumanIdentity(server.data?.id);
     const currentServerSlug = server.data?.slug;
     const [creatingChannel, setCreatingChannel] = React.useState(false);
     const [managingServers, setManagingServers] = React.useState(false);
@@ -79,8 +81,7 @@ export function ServerLayout() {
     const chatListStatus = chats.data ? 'ready' : chats.isPending ? 'loading' : 'error';
     const serverChoices = servers.data ?? [server.data];
     const channelAgents: ChannelAgentOption[] = (agents.data ?? []).map((agent) => ({
-        effectiveCharacter: agent.character,
-        effectivePrimaryColor: null,
+        avatarUrl: agent.avatarUrl,
         id: agent.id,
         name: agent.displayName,
     }));

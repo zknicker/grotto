@@ -1,7 +1,7 @@
 import type { ServerMemberDirectory } from '@tavern/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { serverMembershipsTable } from '../postgres/schema.ts';
+import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { toServerMember } from './member-access.ts';
 import { requireServerMembership } from './server-access.ts';
@@ -24,11 +24,17 @@ export async function listServerMembers(
 
     const memberships = await db
         .select({
+            avatarId: usersTable.avatarId,
+            description: usersTable.description,
+            displayName: usersTable.displayName,
+            email: usersTable.email,
+            handle: usersTable.handle,
             joinedAt: serverMembershipsTable.joinedAt,
             role: serverMembershipsTable.role,
             userId: serverMembershipsTable.userId,
         })
         .from(serverMembershipsTable)
+        .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
         .where(
             and(
                 eq(serverMembershipsTable.serverId, server.id),

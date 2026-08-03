@@ -1,0 +1,19 @@
+import * as React from 'react';
+import { humanDirectory } from '../../features/servers/human-identity.ts';
+import { useServerMembers } from './use-server-members.ts';
+
+/**
+ * Names and faces for humans a surface only knows by id. Backed by the member
+ * directory the Server already returns, so a transcript author, a task
+ * assignee, and the members page never disagree about who someone is.
+ */
+export function useHumanDirectory(serverId: string | undefined) {
+    const directory = useServerMembers(serverId);
+    const members = directory.data?.members;
+    const viewerUserId = directory.data?.viewerUserId;
+
+    return React.useMemo(
+        () => humanDirectory(members ?? [], viewerUserId),
+        [members, viewerUserId]
+    );
+}

@@ -1,10 +1,9 @@
-import { Button, Chip } from '@heroui/react';
+import { Button, Chip, Separator } from '@heroui/react';
 import type { ServerMember, ServerMemberDirectory } from '@tavern/api/hosted-membership';
-import {
-    humanLabel,
-    type ServerMemberRowAction,
-    serverMemberRowActions,
-} from './server-member-actions.ts';
+import * as React from 'react';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { humanDisplayName } from './human-identity.ts';
+import { type ServerMemberRowAction, serverMemberRowActions } from './server-member-actions.ts';
 
 /**
  * The humans on one Server. Rows render from the directory the Server returned,
@@ -19,42 +18,47 @@ export function ServerMemberList({
     onChoose(member: ServerMember, action: ServerMemberRowAction): void;
 }) {
     return (
-        <ul className="flex flex-col gap-1">
-            {directory.members.map((member) => (
-                <li
-                    className="flex items-center justify-between gap-4 rounded-lg px-3 py-2 hover:bg-surface-secondary"
-                    data-member-id={member.userId}
-                    key={member.userId}
-                >
-                    <div className="flex min-w-0 items-baseline gap-2">
-                        <span className="text-foreground text-sm">{humanLabel(member.userId)}</span>
-                        <Chip size="sm" variant="secondary">
-                            {member.role}
-                        </Chip>
-                        {member.userId === directory.viewerUserId ? (
-                            <span className="text-muted text-xs">you</span>
-                        ) : null}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                        {serverMemberRowActions(directory, member).map((action) => (
-                            // A disabled button receives no pointer events, so a
-                            // Tooltip on it would never open. The reason the
-                            // Server refuses the action hangs off the wrapper.
-                            <span key={action.kind} title={action.disabledReason ?? undefined}>
-                                <Button
-                                    isDisabled={action.disabledReason !== null}
-                                    onPress={() => onChoose(member, action)}
-                                    size="sm"
-                                    variant={actionVariant(action)}
-                                >
-                                    {action.label}
-                                </Button>
+        <>
+            {directory.members.map((member, index) => (
+                <React.Fragment key={member.userId}>
+                    {index > 0 ? <Separator /> : null}
+                    <div
+                        className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
+                        data-member-id={member.userId}
+                    >
+                        <div className="flex min-w-0 items-center gap-2.5">
+                            <EntityAvatar name={humanDisplayName(member)} size="sm" />
+                            <span className="min-w-0 truncate font-medium text-foreground text-sm">
+                                {humanDisplayName(member)}
                             </span>
-                        ))}
+                            <Chip size="sm" variant="secondary">
+                                <Chip.Label className="capitalize">{member.role}</Chip.Label>
+                            </Chip>
+                            {member.userId === directory.viewerUserId ? (
+                                <span className="text-muted text-xs">you</span>
+                            ) : null}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                            {serverMemberRowActions(directory, member).map((action) => (
+                                // A disabled button receives no pointer events, so a
+                                // Tooltip on it would never open. The reason the
+                                // Server refuses the action hangs off the wrapper.
+                                <span key={action.kind} title={action.disabledReason ?? undefined}>
+                                    <Button
+                                        isDisabled={action.disabledReason !== null}
+                                        onPress={() => onChoose(member, action)}
+                                        size="sm"
+                                        variant={actionVariant(action)}
+                                    >
+                                        {action.label}
+                                    </Button>
+                                </span>
+                            ))}
+                        </div>
                     </div>
-                </li>
+                </React.Fragment>
             ))}
-        </ul>
+        </>
     );
 }
 

@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ServerMemberDirectory } from '@tavern/api/hosted-membership';
-import {
-    humanLabel,
-    memberChangeDescription,
-    serverMemberRowActions,
-} from './server-member-actions.ts';
+import { memberChangeDescription, serverMemberRowActions } from './server-member-actions.ts';
 
 const ownerId = 'usr_aaaaaaowner1';
 const adminId = 'usr_bbbbbbadmin1';
@@ -13,9 +9,36 @@ const memberId = 'usr_ccccccmembr1';
 
 function directory(viewerUserId: string, overrides: Partial<ServerMemberDirectory> = {}) {
     const members = overrides.members ?? [
-        { joinedAt: '2026-01-01T00:00:00.000Z', role: 'owner' as const, userId: ownerId },
-        { joinedAt: '2026-01-02T00:00:00.000Z', role: 'admin' as const, userId: adminId },
-        { joinedAt: '2026-01-03T00:00:00.000Z', role: 'member' as const, userId: memberId },
+        {
+            avatarUrl: null,
+            description: null,
+            displayName: null,
+            email: null,
+            handle: null,
+            joinedAt: '2026-01-01T00:00:00.000Z',
+            role: 'owner' as const,
+            userId: ownerId,
+        },
+        {
+            avatarUrl: null,
+            description: null,
+            displayName: null,
+            email: null,
+            handle: null,
+            joinedAt: '2026-01-02T00:00:00.000Z',
+            role: 'admin' as const,
+            userId: adminId,
+        },
+        {
+            avatarUrl: null,
+            description: null,
+            displayName: null,
+            email: null,
+            handle: null,
+            joinedAt: '2026-01-03T00:00:00.000Z',
+            role: 'member' as const,
+            userId: memberId,
+        },
     ];
     const viewer = members.find((entry) => entry.userId === viewerUserId);
 
@@ -35,8 +58,22 @@ function actionKinds(viewerUserId: string, targetUserId: string) {
     return serverMemberRowActions(current, target).map((action) => action.kind);
 }
 
-test('a human is named by the tail of their id and their role', () => {
-    assert.equal(humanLabel(ownerId), 'Human owner1');
+test('a change description names the human the way every other surface does', () => {
+    const current = directory(ownerId);
+    const target = current.members.find((entry) => entry.userId === memberId);
+    assert.ok(target);
+    const [remove] = serverMemberRowActions(current, target).filter(
+        (action) => action.kind === 'remove'
+    );
+    assert.ok(remove);
+
+    // No profile yet: the id tail stands in.
+    assert.match(memberChangeDescription(target, remove, 'dev'), /Human membr1/);
+    // Once they have a name, the description uses it.
+    assert.match(
+        memberChangeDescription({ ...target, displayName: 'Ada Lovelace' }, remove, 'dev'),
+        /Ada Lovelace/
+    );
 });
 
 test('an Owner may manage everyone else', () => {
@@ -47,8 +84,26 @@ test('an Owner may manage everyone else', () => {
 test('revoking Owner is its own action rather than a mislabelled demotion', () => {
     const current = directory(ownerId, {
         members: [
-            { joinedAt: '2026-01-01T00:00:00.000Z', role: 'owner', userId: ownerId },
-            { joinedAt: '2026-01-02T00:00:00.000Z', role: 'owner', userId: 'usr_ddddddowner2' },
+            {
+                avatarUrl: null,
+                description: null,
+                displayName: null,
+                email: null,
+                handle: null,
+                joinedAt: '2026-01-01T00:00:00.000Z',
+                role: 'owner',
+                userId: ownerId,
+            },
+            {
+                avatarUrl: null,
+                description: null,
+                displayName: null,
+                email: null,
+                handle: null,
+                joinedAt: '2026-01-02T00:00:00.000Z',
+                role: 'owner',
+                userId: 'usr_ddddddowner2',
+            },
         ],
         viewerRole: 'owner',
         viewerUserId: ownerId,
@@ -82,7 +137,18 @@ test('every human is offered leaving on their own row, and never removal', () =>
 
 test('the last Owner sees the protected actions explained rather than hidden', () => {
     const soleOwner = directory(ownerId, {
-        members: [{ joinedAt: '2026-01-01T00:00:00.000Z', role: 'owner', userId: ownerId }],
+        members: [
+            {
+                avatarUrl: null,
+                description: null,
+                displayName: null,
+                email: null,
+                handle: null,
+                joinedAt: '2026-01-01T00:00:00.000Z',
+                role: 'owner',
+                userId: ownerId,
+            },
+        ],
         viewerRole: 'owner',
         viewerUserId: ownerId,
     });

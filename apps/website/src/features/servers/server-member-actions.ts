@@ -6,14 +6,7 @@ import {
     type ServerMemberDirectory,
     type ServerRole,
 } from '@tavern/api/hosted-membership';
-
-/**
- * Hosted Users have no display profile, so a human is named by the tail of
- * their opaque id — the same shorthand the transcript and DM list already use.
- */
-export function humanLabel(userId: string): string {
-    return `Human ${userId.slice(-6)}`;
-}
+import { humanDisplayName } from './human-identity.ts';
 
 export type ServerMemberActionKind =
     | 'demote-member'
@@ -91,7 +84,7 @@ export function memberChangeDescription(
     action: ServerMemberRowAction,
     slug: string
 ): string {
-    const who = humanLabel(target.userId);
+    const who = humanDisplayName(target);
 
     if (action.kind === 'leave') {
         return `You are the ${target.role} ${who}. You will lose access to /${slug} immediately, and rejoining needs a fresh invitation. Messages you wrote stay.`;

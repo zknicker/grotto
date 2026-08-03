@@ -1,13 +1,18 @@
 import type { HostedChat } from '@tavern/api';
 import { threadAnchorShortId } from '../../chats/thread/thread-target.ts';
+import type { HumanDirectory } from '../human-identity.ts';
 
-export function serverThreadTitles(chat: HostedChat, anchorMessageId: string) {
+export function serverThreadTitles(
+    chat: HostedChat,
+    anchorMessageId: string,
+    humans: HumanDirectory
+) {
     const anchorReference = threadAnchorShortId(anchorMessageId);
 
     if (chat.kind === 'dm') {
-        const peer = chat.peerUserId ? `Human ${chat.peerUserId.slice(-6)}` : 'Human';
+        const peer = chat.peerAgentDisplayName ?? humans.name(chat.peerUserId);
         return {
-            header: `Thread — @${peer}`,
+            header: `Thread — ${peer}`,
             target: `dm:@${peer}:${anchorReference}`,
         };
     }

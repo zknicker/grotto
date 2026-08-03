@@ -1,8 +1,15 @@
+import { Separator } from '@heroui/react';
 import type { ServerMember, ServerMemberDirectory } from '@tavern/api/hosted-membership';
 import { canManageServerInvitations } from '@tavern/api/hosted-membership';
 import * as React from 'react';
 import { useServerInvitations } from '../../hooks/servers/use-server-invitations.ts';
 import { useServerMembershipCommands } from '../../hooks/servers/use-server-membership-commands.ts';
+import {
+    SettingsGroup,
+    SettingsItem,
+    SettingsPage,
+    SettingsSection,
+} from '../settings/layout/settings-page.tsx';
 import { InviteMemberForm, ServerInvitationList } from './server-invitations.tsx';
 import { memberChangeDescription, type ServerMemberRowAction } from './server-member-actions.ts';
 import {
@@ -34,51 +41,49 @@ export function HostedHumanDirectory({
             buildPendingChange(member, action, serverSlug, commands, () => setPending(null))
         );
 
+    const commandError =
+        commands.changeRole.error?.message ??
+        commands.remove.error?.message ??
+        commands.leave.error?.message ??
+        null;
+
     return (
         <div className="min-w-0 flex-1 overflow-y-auto">
-            <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-12">
-                <header className="flex flex-col gap-1">
-                    <h1 className="font-display text-2xl text-foreground">Members</h1>
-                </header>
-                <section className="flex flex-col gap-3">
-                    <h2 className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
-                        Humans
-                    </h2>
-                    <ServerMemberList directory={directory} onChoose={openChange} />
-                    {commands.changeRole.error ? (
-                        <p className="text-destructive text-xs">
-                            {commands.changeRole.error.message}
-                        </p>
+            <div className="px-5 py-6 sm:px-7">
+                <SettingsPage>
+                    <SettingsSection title={`Humans · ${directory.members.length}`}>
+                        <SettingsGroup>
+                            <ServerMemberList directory={directory} onChoose={openChange} />
+                        </SettingsGroup>
+                        {commandError ? (
+                            <p className="px-1 text-danger text-xs">{commandError}</p>
+                        ) : null}
+                    </SettingsSection>
+                    {canInvite ? (
+                        <SettingsSection title="Invitations">
+                            <SettingsGroup>
+                                <SettingsItem>
+                                    <InviteMemberForm serverId={serverId} />
+                                </SettingsItem>
+                                <Separator />
+                                <ServerInvitationList
+                                    invitations={invitations.data ?? []}
+                                    serverId={serverId}
+                                />
+                            </SettingsGroup>
+                        </SettingsSection>
                     ) : null}
-                    {commands.remove.error ? (
-                        <p className="text-destructive text-xs">{commands.remove.error.message}</p>
-                    ) : null}
-                    {commands.leave.error ? (
-                        <p className="text-destructive text-xs">{commands.leave.error.message}</p>
-                    ) : null}
-                </section>
-                {canInvite ? (
-                    <section className="flex flex-col gap-4">
-                        <h2 className="font-mono text-muted-foreground text-xs uppercase tracking-wider">
-                            Invitations
-                        </h2>
-                        <InviteMemberForm serverId={serverId} />
-                        <ServerInvitationList
-                            invitations={invitations.data ?? []}
-                            serverId={serverId}
-                        />
-                    </section>
-                ) : null}
-                <ServerMemberConfirmDialog
-                    onOpenChange={(open) => {
-                        if (!open) {
-                            setPending(null);
-                        }
-                    }}
-                    pending={pending}
-                    slug={serverSlug}
-                />
-            </main>
+                </SettingsPage>
+            </div>
+            <ServerMemberConfirmDialog
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPending(null);
+                    }
+                }}
+                pending={pending}
+                slug={serverSlug}
+            />
         </div>
     );
 }

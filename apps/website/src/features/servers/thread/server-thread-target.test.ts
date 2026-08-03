@@ -1,5 +1,8 @@
 import { expect, test } from 'bun:test';
+import { humanDirectory } from '../human-identity.ts';
 import { serverThreadTitles } from './server-thread-target.ts';
+
+const humans = humanDirectory([]);
 
 test('hosted Thread targets preserve non-canonical opaque anchor ids', () => {
     expect(
@@ -21,7 +24,8 @@ test('hosted Thread targets preserve non-canonical opaque anchor ids', () => {
                 serverId: 'srv_one',
                 unreadCount: 0,
             },
-            'msg_opaque-base64'
+            'msg_opaque-base64',
+            humans
         )
     ).toEqual({
         header: 'Thread — #all',

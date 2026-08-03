@@ -7,6 +7,7 @@ export * from './schema/agent-runner-credentials.ts';
 export * from './schema/agent-turns.ts';
 export * from './schema/agents.ts';
 export * from './schema/attachments.ts';
+export * from './schema/avatars.ts';
 export * from './schema/chat-events.ts';
 export * from './schema/chat-messages.ts';
 export * from './schema/chat-reads.ts';

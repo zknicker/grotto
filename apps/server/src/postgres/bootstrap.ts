@@ -7,12 +7,32 @@ import { taskSchemaStatements } from './task-bootstrap.ts';
  * the same tables for typed queries. There is no migration history.
  */
 const schemaStatements = [
+    `CREATE TABLE avatars (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT avatars_id_shape CHECK (id ~ '^avt_[a-z0-9]{16}$'),
+        media_type text NOT NULL
+            CONSTRAINT avatars_media_type CHECK (
+                media_type IN ('image/jpeg', 'image/png', 'image/webp')
+            ),
+        byte_size integer NOT NULL
+            CONSTRAINT avatars_size CHECK (byte_size > 0 AND byte_size <= 524288),
+        sha256 text NOT NULL
+            CONSTRAINT avatars_sha256 CHECK (sha256 ~ '^[a-f0-9]{64}$'),
+        bytes bytea NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now()
+    );`,
     `CREATE TABLE users (
         id text PRIMARY KEY NOT NULL,
         clerk_user_id text NOT NULL,
+        display_name text,
+        handle text,
+        email text,
+        description text,
+        avatar_id text REFERENCES avatars (id) ON DELETE SET NULL,
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
     'CREATE UNIQUE INDEX users_clerk_user_id_key ON users (clerk_user_id);',
+    'CREATE UNIQUE INDEX users_handle_key ON users (handle) WHERE handle IS NOT NULL;',
     `CREATE TABLE servers (
         id text PRIMARY KEY NOT NULL,
         slug text NOT NULL,
@@ -157,10 +177,7 @@ const schemaStatements = [
                     'coordinator', 'patrol', 'gate', 'guide'
                 )
             ),
-        character text NOT NULL
-            CONSTRAINT agents_character CHECK (
-                character IN ('knight', 'owl', 'bird', 'robot', 'alien', 'blob')
-            ),
+        avatar_id text REFERENCES avatars (id) ON DELETE SET NULL,
         handle text NOT NULL,
         display_name text NOT NULL,
         description text
@@ -181,6 +198,7 @@ const schemaStatements = [
         effective_reported_at timestamptz,
         effective_missing jsonb,
         retired_at timestamptz,
+        created_by_user_id text REFERENCES users (id) ON DELETE SET NULL,
         created_at timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT agents_computer_fk
             FOREIGN KEY (server_id, computer_id)

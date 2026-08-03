@@ -1,0 +1,57 @@
+import { createHash, randomUUID } from 'node:crypto';
+import { type AvatarMediaType, avatarMaxBytes } from '@tavern/api/avatar';
+import { AvatarRejectedError } from './avatar-errors.ts';
+
+export interface AvatarBytes {
+    bytes: Uint8Array;
+    sha256: string;
+}
+
+/**
+ * Decodes one uploaded avatar and refuses anything the serve route could not
+ * hand back safely: an oversized image, or bytes whose signature contradicts
+ * the declared media type.
+ */
+export function readAvatarBytes(bytesBase64: string, mediaType: AvatarMediaType): AvatarBytes {
+    const bytes = new Uint8Array(Buffer.from(bytesBase64, 'base64'));
+
+    if (bytes.byteLength === 0) {
+        throw new AvatarRejectedError('size', 'An avatar image cannot be empty.');
+    }
+    if (bytes.byteLength > avatarMaxBytes) {
+        throw new AvatarRejectedError('size', 'An avatar image must be 512 KiB or smaller.');
+    }
+    if (!matchesSignature(bytes, mediaType)) {
+        throw new AvatarRejectedError(
+            'media_type',
+            `Those bytes are not a ${mediaType.replace('image/', '').toUpperCase()} image.`
+        );
+    }
+
+    return { bytes, sha256: createHash('sha256').update(bytes).digest('hex') };
+}
+
+export function createAvatarId(): string {
+    return `avt_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
+}
+
+function matchesSignature(bytes: Uint8Array, mediaType: AvatarMediaType): boolean {
+    if (mediaType === 'image/png') {
+        return startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    }
+    if (mediaType === 'image/jpeg') {
+        return startsWith(bytes, [0xff, 0xd8, 0xff]);
+    }
+    return startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) && readAscii(bytes, 8, 4) === 'WEBP';
+}
+
+function startsWith(bytes: Uint8Array, signature: number[]): boolean {
+    return (
+        bytes.byteLength >= signature.length &&
+        signature.every((byte, index) => bytes[index] === byte)
+    );
+}
+
+function readAscii(bytes: Uint8Array, offset: number, length: number): string {
+    return Buffer.from(bytes.subarray(offset, offset + length)).toString('ascii');
+}

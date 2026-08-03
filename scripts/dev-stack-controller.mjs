@@ -6,6 +6,7 @@ import {
     hasGrottoSchema,
     prepareDevPostgres,
     reserveDevPostgresPort,
+    stopStaleDevPostgres,
     waitForDevPostgres,
 } from './dev-postgres.mjs';
 import {
@@ -250,12 +251,17 @@ export class DevStackController extends EventEmitter {
     }
 
     cleanupStaleProcesses() {
+        const devStackEnvironment = createDevStackEnvironment({
+            ports: this.ports,
+            repositoryRoot: this.repositoryRoot,
+        });
         this.update((snapshot) => {
-            snapshot.staleCleanupCount = cleanupStaleProcesses({
-                mode: this.mode,
-                ports: this.ports,
-                repositoryRoot: this.repositoryRoot,
-            });
+            snapshot.staleCleanupCount =
+                cleanupStaleProcesses({
+                    mode: this.mode,
+                    ports: this.ports,
+                    repositoryRoot: this.repositoryRoot,
+                }) + stopStaleDevPostgres(devStackEnvironment);
         });
     }
 

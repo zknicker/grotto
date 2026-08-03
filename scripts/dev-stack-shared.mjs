@@ -162,6 +162,12 @@ export function cleanupStaleProcesses({
             port: Number(ports.serverPort),
         },
         {
+            commandPattern: 'bun --watch src/grotto-server.ts',
+            cwd: path.join(repositoryRoot, 'apps', 'server'),
+            enabled: true,
+            port: Number(ports.grottoPort),
+        },
+        {
             commandPattern: 'vite',
             cwd: path.join(repositoryRoot, 'apps', 'website'),
             enabled: true,

@@ -133,3 +133,31 @@ test('cleanupStaleProcesses closes the old Tauri desktop app in desktop mode', (
         [111, 'SIGTERM'],
     ]);
 });
+
+test('cleanupStaleProcesses closes an orphaned hosted Server watcher', () => {
+    const repositoryRoot = '/repo';
+    const killedProcesses = [];
+    const cleanupCount = cleanupStaleProcesses({
+        mode: 'web',
+        ports: {
+            grottoPort: 8083,
+            serverPort: 8081,
+            websitePort: 8080,
+        },
+        processTools: {
+            killProcess: (pid, signal) => {
+                killedProcesses.push([pid, signal]);
+            },
+            listListeningProcessIds: (port) => (port === 8083 ? [333] : []),
+            readProcessCommand: (pid) => (pid === 333 ? 'bun --watch src/grotto-server.ts' : ''),
+            readProcessParentId: () => null,
+            readProcessWorkingDirectory: (pid) =>
+                pid === 333 ? path.join(repositoryRoot, 'apps', 'server') : null,
+            waitForProcessExit: () => undefined,
+        },
+        repositoryRoot,
+    });
+
+    assert.equal(cleanupCount, 1);
+    assert.deepEqual(killedProcesses, [[333, 'SIGTERM']]);
+});

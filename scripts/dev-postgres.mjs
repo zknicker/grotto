@@ -5,6 +5,41 @@ import path from 'node:path';
 
 const postgresUser = 'grotto';
 const postgresDatabase = 'grotto';
+
+export function stopStaleDevPostgres(environment, options = {}) {
+    const fileSystem = options.fileSystem ?? fs;
+    const spawnCommand = options.spawnCommand ?? spawnSync;
+    const dataRoot = environment.GROTTO_POSTGRES_DATA_ROOT;
+    const postmasterPath = path.join(dataRoot, 'postmaster.pid');
+
+    if (!fileSystem.existsSync(postmasterPath)) {
+        return 0;
+    }
+
+    const binaries = options.binaries ?? resolvePostgresBinaries();
+    const status = spawnCommand(binaries.pgCtl, ['--pgdata', dataRoot, 'status'], {
+        encoding: 'utf8',
+    });
+    if (status.status !== 0) {
+        return 0;
+    }
+
+    const result = spawnCommand(
+        binaries.pgCtl,
+        ['--pgdata', dataRoot, '--mode', 'fast', '--wait', 'stop'],
+        { encoding: 'utf8' }
+    );
+    if (result.status !== 0) {
+        throw new Error(
+            result.stderr?.trim() ||
+                result.stdout?.trim() ||
+                'Failed to stop stale development PostgreSQL.'
+        );
+    }
+
+    return 1;
+}
+
 export function prepareDevPostgres(environment, port) {
     const binaries = resolvePostgresBinaries();
     const dataRoot = environment.GROTTO_POSTGRES_DATA_ROOT;
@@ -153,6 +188,7 @@ function resolvePostgresBinaries() {
         const candidate = {
             createdb: path.join(searchRoot, 'createdb'),
             initdb: path.join(searchRoot, 'initdb'),
+            pgCtl: path.join(searchRoot, 'pg_ctl'),
             pgIsReady: path.join(searchRoot, 'pg_isready'),
             postgres: path.join(searchRoot, 'postgres'),
             psql: path.join(searchRoot, 'psql'),

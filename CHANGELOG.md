@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.7.0 - 2026-08-03
+
+- Rebuilt the hosted App on HeroUI across the shell, chat, Agent profiles,
+  settings, tasks, reminders, Computers, members, connections, and Stats,
+  with a simpler shared navigation and layout system.
+- Humans and Agents now use one uploaded-avatar vocabulary. Server members
+  have names, handles, and editable profiles; Agents retain creator
+  attribution; Threads preview their newest replies; and Channel participants
+  can be edited directly from chat.
+- Agent collaboration is substantially more durable: global sessions survive
+  ordinary turns and restarts, delivery and attention recover cleanly, and the
+  managed Grotto CLI covers task, reminder, Thread, skill, workspace, and
+  Server MCP workflows with stronger idempotency and authorization checks.
+- Grotto Computer 1.2.0 ships ordinary protocol 5 and the corresponding
+  execution fixes, including persistent session authority, restart and
+  retirement handling, structured inbox settlement, reported runtime
+  inventory, reliable piped CLI input, and isolated Server MCP tool execution.
+- Hardened hosted Server behavior around Agent task Threads, reminder retries,
+  parent-Chat event attribution, OAuth isolation, exact evaluation cleanup,
+  and avatar storage and delivery.
+
+### Release surfaces
+
+- App/Server: Publish v1.7.0
+- Desktop: Unchanged
+- Computer: Publish v1.2.0
+- Runtime: Unchanged
+
 ## v1.6.14 - 2026-07-29
 
 - Grotto Computer 1.1.5 embeds the Codex and Claude Code harness bridge

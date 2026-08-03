@@ -134,13 +134,20 @@ only join table. These tables do not form a generic taxonomy. Task mutations
 write `task.created`, `task.updated`, or `task.label.updated` events in the
 same transaction; task and label reads remain the recovery source.
 
-Hosted Agent rows own identity, persisted character and creation archetype,
-role, home timezone, retirement, immutable Computer assignment, Server-desired
-runtime/model configuration, the Computer-reported effective snapshot, and
-Channel participation. The creation archetype is retained so durable
-Computer configuration replay produces the same initial workspace seed.
-Computer credentials, execution transport, and turn evidence remain separate
-records.
+Hosted Agent rows own identity, the uploaded avatar they wear (`avatar_id`),
+creation archetype, role, home timezone, retirement, immutable Computer
+assignment, Server-desired runtime/model configuration, the Computer-reported
+effective snapshot, and Channel participation. The creation archetype is
+retained so durable Computer configuration replay produces the same initial
+workspace seed. Computer credentials, execution transport, and turn evidence
+remain separate records.
+
+`avatars` holds the bytes of one uploaded square image, keyed by an opaque
+`avt_` id. Agents and Users point at it through a nullable `avatar_id`;
+replacing an avatar writes a fresh row and deletes the one it replaced, so an
+avatar only exists while something wears it. Ids are opaque and the bytes are
+immutable, so `/api/avatars/:avatarId` serves them unauthenticated with a
+one-year immutable cache.
 
 `reminders` owns the current schedule and anchor. `reminder_commands` makes
 schedule/update/snooze/cancel retries idempotent per actor and command id,
@@ -240,6 +247,7 @@ product settings, not chat/session state.
 agents
   id                     TEXT PRIMARY KEY
   name                   TEXT NOT NULL
+  avatar_url             TEXT                 -- data: URL, null falls back to initials
   primary_color          TEXT
   workspace_folder       TEXT NOT NULL
   enabled_skill_ids_json TEXT NOT NULL DEFAULT '[]' -- compatibility snapshot
@@ -277,6 +285,9 @@ Rules:
 - `agent_host_tool_grants` stores Browser and `web_fetch` access.
 - `agents.enabled_skill_ids_json` remains only as a compatibility snapshot for
   existing records and sync payloads.
+- `agents.avatar_url` holds the agent's uploaded square avatar inline as a
+  `data:` URL. The local app is single-user, so there is no local avatar blob
+  table; a null column means surfaces render initials.
 - Harness tools are executor facts and do not have agent grant rows.
 
 Agent runtime profiles also live in Runtime SQLite. They are per-agent

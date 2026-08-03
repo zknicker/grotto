@@ -87,7 +87,8 @@ PostgreSQL owns the hosted collaboration tables
 
 | Table | Owns |
 | --- | --- |
-| `users` | Grotto Users keyed by a unique `clerk_user_id` |
+| `users` | Grotto Users keyed by a unique `clerk_user_id`, plus the avatar they wear (`avatar_id`) |
+| `avatars` | Uploaded square avatar bytes, media type, size, and digest, served publicly at `/api/avatars/:avatarId` |
 | `servers` | Opaque id, address/display fields, and the commit-serialized Chat event cursor |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
 | `computers` / `computer_setup_approvals` | Server-scoped Computer credentials (hash only), one-use expiring browser approvals, last authenticated handshake facts, and attachment-visible update progress |
@@ -95,7 +96,7 @@ PostgreSQL owns the hosted collaboration tables
 | `chats` | Server-owned Channels, canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and hidden child Threads |
 | `channel_participants` | One human's participation in one Channel |
 | `thread_follows` | Per-human Thread attention; never membership |
-| `agents` / `channel_agent_participants` | Hosted Agent identity and character, creation archetype for workspace seeding, immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, and Channel access for reminder authorship |
+| `agents` / `channel_agent_participants` | Hosted Agent identity and uploaded avatar (`avatar_id`), creation archetype for workspace seeding, immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, and Channel access for reminder authorship |
 | `agent_delivery` / `agent_pending_work` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the durable pending inbox drained into runs |
 | `agent_turns` | Compact per-run turn summary reported by a Computer after a launch settles |
 | `chat_messages` | Immutable human or reminder-system messages ordered by per-Chat sequence and nonce |

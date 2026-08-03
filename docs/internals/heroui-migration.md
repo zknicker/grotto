@@ -32,9 +32,10 @@ not proposals.
    BEM class overrides, in one place, tweakable later. This migration exists to
    simplify — if a screen needs bespoke CSS scattered in components, the design
    is wrong.
-   The theme layer (`apps/website/src/styles/grotto-theme.css`) **starts as
-   HeroUI's default theme with zero overrides**. The file is exactly the
-   design-system customization set and nothing else, so it round-trips with
+   The theme variant (`apps/website/src/styles/grotto-theme.css`) **starts as
+   HeroUI's default theme with zero overrides** and is still near-empty. It is
+   exactly the design-system customization set and nothing else — Grotto's own
+   product tokens live in `grotto-base.css` — so it round-trips with
    the HeroUI Pro Design Systems editor (heroui.pro/dashboard/ds): the
    editor's Import accepts pasted CSS variables (replace semantics — anything
    absent resets to default), and saved design systems pull back into the
@@ -42,9 +43,15 @@ not proposals.
    color, fonts, radius) in the editor, land its export in this one file. Do
    not add derived/calculated token systems on top. Matching the retired
    kit's exact look is explicitly a non-goal — greenfield HeroUI defaults win
-   over pixel continuity with the old UI, and the legacy `tokens.css`
-   vocabulary is fully `--legacy-*` namespaced so it cannot leak into HeroUI
-   names.
+   over pixel continuity with the old UI. Phase 6 deleted the retired
+   kit's `tokens.css` entirely. The CSS stack is now three files:
+   `grotto-base.css` (the product tokens extending HeroUI's base, plus the
+   component rules consuming them — HeroUI's base plus this file IS the
+   default theme), `artifact-tokens.css` (the small stable vocabulary
+   published to agent-authored artifacts — pure aliases onto that base, so a
+   durable artifact survives HeroUI renames and theme swaps), and `grotto-theme.css` (the `*-theme.css`
+   tweak slot, imported last, currently near-empty because Grotto runs the
+   default theme). HeroUI owns every semantic name and is never redefined.
 5. **HeroUI best practices.** Tailwind v4, `@import "tailwindcss"` →
    `@import "@heroui/styles"` → `@import "@heroui-pro/react/css"` → project theme
    layer. Compound component anatomy (`Card.Header`, `Sheet.Content`), `onPress`
@@ -107,16 +114,16 @@ must work after each phase.
    `@shadcn/react`, cva; rewrite `DESIGN.md` fully; repair e2e specs (they
    are role/text-based and will break broadly — budgeted per phase).
 
-Quarantined (not ported, only token-remapped): the visx chart library
-(`components/charts`), the ProseMirror mention composer internals
-(`features/mentions`), `agent-face.tsx`. Token renames must be mirrored in
-`src/widgets/visual-tokens.ts` and `features/chats/host-token-style.ts` or
-sandboxed agent widgets render unthemed.
+Quarantined (not ported, only token-remapped): the ProseMirror mention
+composer internals
+(`features/mentions`). Token renames must be mirrored in the one
+published list (`src/agent-html/tokens.ts`) or agent-authored HTML renders
+unthemed.
 
 ## Dependency notes
 
 - `@heroui-pro/react`'s barrel statically imports every component, so its full
-  peer set must be installed even for unused components (recharts, tiptap,
+  peer set must be installed even for unused components (tiptap,
   shiki, streamdown, maplibre-gl, …).
 - `maplibre-gl` is pinned to 5.x: Pro's map component default-imports it and
   maplibre 6 removed the default export, which breaks Vite dep optimization
@@ -149,12 +156,30 @@ sandboxed agent widgets render unthemed.
   `@pierre/trees` (Pro FileTree has no imperative/controlled API),
   matching the skills tree. Dead tavern-era chat chrome and the
   scripted-turn dev toolkit were deleted outright; sidebar rosters got a
-  shared `HostedAgentStatusFace` (presence dot outset past the visual
-  corner with a `ring-background` separation — the face art deliberately
-  overflows its layout box) and a domain `MemberInitialsAvatar` (stock
-  Avatar has no size below 32px).
+  shared `HostedAgentRailAvatar` (presence dot outset past the visual
+  corner with a `ring-background` separation). The sub-32px slots stock
+  Avatar has no size for are served by passing `EntityAvatar` a pixel
+  number; the app has exactly one avatar component and one radius. See
+  [Avatars](avatars.md).
+- Deliberate divergences from HeroUI's own scales, living in
+  `grotto-base.css` as tokens plus the BEM overrides that consume them.
+  Because they are part of the base rather than a theme variant, a
+  `*-theme.css` (or a Design Systems export) retunes them by setting the
+  token — it never has to restate the rules. Never redefine a name HeroUI
+  already owns.
+  - `--avatar-radius` (30%) on `.avatar`. HeroUI scales avatar radius per
+    size; we want one shape at every size, and a rounded square rather
+    than a circle. `ChannelIconBox` consumes the same token.
+  - `--sidebar-row-radius` (12px) on `.sidebar__menu-item-content`. Pro's
+    `rounded-2xl` row is 44% of a 36px row — a stadium wrapping a 30%
+    square mark. 12px puts the container in the avatar's shape family.
+  - `--presence-ring` (defaults to `--background`) rescoped to `--default`
+    on hovered/current rows. Not an identity choice but a fix: an opaque
+    ring standing in for the backdrop is HeroUI's own Badge technique
+    (`--badge-border`), and it needs rescoping wherever a surface paints
+    its own fill.
 - Theme-layer follow-ups collected during phase 4 (all belong in
-  `grotto-theme.css`, never call sites): drawer width — stock HeroUI side
+  `grotto-theme.css` or `grotto-base.css`, never call sites): drawer width — stock HeroUI side
   drawer is a fixed `w-96`, too narrow for diffs/terminal output (was
   36–40rem); circular send button for the composer if wanted (stock
   Button radius is rounded, radius is not a prop). Known stock trade-off:

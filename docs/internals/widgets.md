@@ -7,7 +7,26 @@ read_when:
   - touching legacy stored widget activity or its fallback rendering
 ---
 
-# Visuals and Artifacts
+# Agent-authored HTML
+
+Agents write HTML. Tavern hands that HTML one set of CSS variables, and it
+renders in one of three places.
+
+| surface | what it is | where it renders | renderer |
+| --- | --- | --- | --- |
+| Visual | a ```` ```visual ```` fence inside a message | inline in the transcript | `features/chats/visual-card.tsx` |
+| Artifact | a durable `.html` file in the workspace | card in chat → artifact side pane | `features/chats/artifact-card.tsx` → `chat-artifact-workspace-preview.tsx` |
+| Home canvas | `workbench/home.html` (or the starter) | top of the activity page | `features/overview/home-canvas.tsx` |
+
+All three share `src/agent-html/`: `tokens.ts` is the single published token
+list plus the snapshot/injection helpers, and `sandbox.ts` is the single
+`sandbox=` capability list. Never add `allow-same-origin` — the opaque origin
+is what stops agent HTML reaching app cookies, storage, or DOM.
+
+`features/chats/legacy-widget-row.tsx` replays catalog widgets stored before
+the 2026-07 retirement as fallback-text cards; nothing emits new ones.
+
+## The two fence-backed kinds
 
 Agents render exactly two kinds of visual output: **visuals** — bespoke
 inline HTML/SVG drawn in a ```` ```visual ```` fence and rendered in a
@@ -49,7 +68,7 @@ registration), with optional info-string text as the title:
   HTML degrades to whatever the parser can render, never an error state.
 - **Sandbox.** Opaque origin, `srcDoc`, scripts allowed, never
   `allow-same-origin`, no browser storage
-  (`apps/website/src/widgets/visual.tsx`). A CSP meta locks the document
+  (`apps/website/src/features/chats/visual-card.tsx`). A CSP meta locks the document
   down: `default-src 'none'`, inline scripts/styles allowed, `img-src
   data: blob:` only, `connect-src 'none'` (no exfil channel).
 - **CDN allowlist.** One pinned external source: Chart.js `4.5.1` via
@@ -62,7 +81,7 @@ registration), with optional info-string text as the title:
 - **Theming.** The iframe cannot read app styles, so the host snapshots a
   curated token list (surfaces, text tiers, borders, status, `--chart-1..5`,
   radii, fonts) from computed styles and injects them as `:root` variables,
-  re-snapshotting on theme change (`apps/website/src/widgets/visual-tokens.ts`).
+  re-snapshotting on theme change (`apps/website/src/agent-html/tokens.ts`).
   Generated visuals reference only those variables — never hardcoded surface
   or text colors — which is what makes them wear Tavern's brand in both
   schemes.

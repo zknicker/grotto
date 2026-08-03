@@ -32,12 +32,11 @@ policy.
   nullable). Runtime injects each agent seat's bio into the participant roster
   of every agent turn prompt in shared chats, so co-resident agents know what
   each agent is for.
-* Agent appearance is app-owned presentation stored in the agent profile:
-  a primary color and a character (`knight`, `penguin`, `cat`, `dog`, `robot`,
-  `ghost`, or `cloud`). The catalog returns `character`, `effectiveCharacter`,
-  and `defaultCharacter` alongside the color fields; a null character resolves
-  to a stable default derived from the agent id. Color is a name label only and
-  does not tint the avatar.
+* Agent appearance is one uploaded square image or nothing at all. Hosted
+  records expose `avatarUrl`, a URL the app puts straight into an `<img src>`;
+  local records expose the runtime's inline `avatarUrl`. Surfaces with no
+  avatar fall back to initials. The agent profile still carries a primary
+  color, which is a name label only and does not tint the avatar.
 * Skill selections are ids of installed Runtime skills. Runtime resolves those
   ids during execution and passes the matching skill bundles through the AI SDK
   skill surface for executors that support it. Skill content is not appended to

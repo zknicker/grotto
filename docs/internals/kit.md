@@ -34,26 +34,24 @@ cold by an author who has only seen a short reference:
 - Colors come from `src/styles/global.css` tokens only (directly or via
   `chartStyleVars`, which every kit chart scopes onto its own root), so every
   component is theme-clean in light and dark.
-- No `Widget` prefix in the kit. "Widget" is the fence/catalog layer above the
-  kit; the thin `Widget*` wrappers under `src/widgets/` keep that prefix so the
-  layering is self-documenting.
+- No `Widget` prefix in the kit. The renderers that sit above it live with
+  their features (`features/chats/visual-card.tsx`,
+  `features/chats/artifact-card.tsx`); shared frame plumbing is in
+  `src/agent-html/`.
 - Kit prop types are kit-local. Widget fence schemas in `@tavern/api` are one
   consumer whose parsed props structurally satisfy kit props; the kit does not
   import the fence contract.
-- Deeper primitives stay where they live: the chart engine under
-  `src/components/charts/` and COSS UI primitives under `src/components/ui/`
-  are implementation dependencies the kit composes, not part of its surface.
+- Charts come from HeroUI Pro (`BarChart`, `LineChart`, `AreaChart`, …,
+  with `ChartTooltip`), which wraps Recharts and themes axes, grid, and
+  tooltip from HeroUI tokens. The visx-based chart engine that used to live
+  under `src/components/charts/` was deleted in phase 7 — 75 files for one
+  chart — along with its eight `@visx/*` dependencies.
 
 ## Components
 
 | Export | Role |
 | --- | --- |
 | `Card` | Titled framed surface: optional header title + action, elevated rounded body, `compact`/`full` width. |
-| `BarChart` | Bar chart with grid, axes, tooltip, and hoverable legend. Props: `data`, `series`, `xKey`, `unit?`. Unframed — compose inside `Card`. |
-| `LineChart` | Area/line chart; same props as `BarChart`, dual y-axes when two series. |
-| `ComposedChart` | Bars-plus-line chart. Props: `data`, `barSeries`, `lineSeries`, `xKey`, `unit?`, `barUnit?`, `lineUnit?`, plus layout knobs (`chartMargin`, `xAxisTickCount`, `showLegend`, `onActiveIndexChange`, ...). |
-| `ChartLegend` | Hover-linked legend row used by the kit charts; exported for custom chart compositions. |
-| `ChartStatus` | Loading/error/empty text panel sized to sit in place of a chart body. |
 | `Table` | Bordered data table with per-column `align` and Yes/No boolean formatting. Props: `columns`, `rows`. |
 | `CalendarEvent` | Single-event card with a date tile and time range label. |
 | `CalendarDay` | Day agenda card: date tile, timezone label, event cards, empty state. |
@@ -69,13 +67,13 @@ with those features, not speculatively.
 
 ## Consumers
 
-Widget renderers under `src/widgets/` are thin `Widget*` wrappers: map fence
-props onto kit components (`WidgetBarChart` = fence props → `Card` +
-`BarChart`), and keep widget-only concerns (fallback rows, workspace file
-queries, plugin queries) outside the kit. See [widgets.md](widgets.md) for the
-fence contract and [frontend.md](frontend.md) for folder ownership.
+Renderers for agent-authored HTML live with their features and share the
+frame plumbing in `src/agent-html/` (one token list, one sandbox constant).
+Fence-specific concerns — fallback rows, workspace file queries — stay outside
+the kit. See [widgets.md](widgets.md) for the fence contract and
+[frontend.md](frontend.md) for folder ownership.
 
 The kit is app-internal only. Agent artifacts render as self-contained HTML
-with the `src/styles/tokens.css` variables injected into their sandboxed frame
+with the `src/styles/artifact-tokens.css` vocabulary injected into their sandboxed frame
 — they share Tavern's theme through tokens, never through kit code (see
 [artifacts.md](artifacts.md)).

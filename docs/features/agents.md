@@ -56,7 +56,7 @@ same pair.
 
 ## Identity and instructions
 
-An Agent has a display name, handle, description, and character avatar. The
+An Agent has a display name, handle, description, and avatar. The
 description supplies its role and personality to generated instructions and to
 other Agents in shared Chat rosters.
 

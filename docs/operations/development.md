@@ -26,8 +26,15 @@ brew install postgresql@16
 Do not start a Homebrew PostgreSQL service. The dev stack owns its direct child,
 chooses a private loopback port, bootstraps a fresh schema, and preserves that
 worktree's data across runs. On first use, Server creates one demo Server with
-Otto, Wren, `#all`, and starter messages, then Computer runs their real Agent
-turns using the host's Codex, Claude Code, or Pi sign-in.
+the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
+`#product` Channels, starter messages, a Thread, two tasks, and one MCP
+connection — enough to open any surface without hand-building data. Computer
+then runs their real Agent turns using the host's Codex, Claude Code, or Pi
+sign-in.
+
+Seeding runs once per Server. To pick up changes to
+`apps/server/src/development/seed-hosted-server.ts`, delete the demo Server row
+(its Threads and messages first, since both reference it) and reload the App.
 
 The dev stack uses worktree-isolated development state by default:
 

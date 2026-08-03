@@ -51,9 +51,9 @@ per-message redaction.
 
 ## Read/unread
 
-Thread chats reuse `chat_reads` unchanged: opening a thread pane marks it read; the reply-count
-pill shows an inline unread qualifier ("2 replies · 1 new") computed from the viewer's thread
-read receipt. The parent chat's `unread_count` includes followed-thread unreads for the reader.
+Thread chats reuse `chat_reads` unchanged: opening a thread pane marks it read; the anchor's
+preview block shows an inline unread qualifier ("3 replies · 2 new") computed from the viewer's
+thread read receipt. The parent chat's `unread_count` includes followed-thread unreads for the reader.
 
 ## Surfaces (T3/U5)
 
@@ -64,7 +64,12 @@ read receipt. The parent chat's `unread_count` includes followed-thread unreads 
   a "Beginning of replies / N replies" divider ("No replies yet" when empty), replies as normal
   messages, thread composer.
 - The anchor message shows a highlight outline in the parent transcript while its pane is open,
-  and a **reply-count pill** underneath ("2 replies · 1 new") that opens the pane.
+  and a **thread preview block** underneath that opens the pane: a header ("3 replies · 2 new")
+  over the newest replies, oldest first, each with the author's avatar, name, one-line content,
+  and relative time. `HostedThreadSummary.recentReplies` carries those rows; an anchor whose
+  Thread has no replies shows nothing, since "Reply in thread" already lives in the hover
+  actions. A message carrying a task or a Thread never merges into a neighbouring row, so its
+  block stays attached to its own prose.
 - "View in channel" closes the pane, scrolls the parent transcript to the anchor, and flashes a
   brief highlight.
 - Message hover cluster: Reply in thread, Add Reaction (placeholder until reactions land),

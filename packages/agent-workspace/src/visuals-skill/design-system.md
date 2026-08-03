@@ -230,7 +230,7 @@ Hard ceilings; past them, split the output or simplify:
   communicate progress or state. Use the shared motion tokens instead of
   arbitrary values: durations `--t-micro` / `--t-fast` / `--t-normal` /
   `--t-slow` (80–300ms), easings `--ease-out` / `--ease-in` /
-  `--ease-standard`.
+  `--ease-in-out-quad`.
 - Responsive, natural width `100%`; the host card fills the content column.
   No `position: fixed` — everything stays in normal document flow. Avoid
   nested scrolling; let height follow content, don't reserve empty vertical
@@ -345,7 +345,7 @@ page skeleton).
 Diagrams are boxes, labels, and connectors drawn with flex/grid for
 structure and inline SVG for connectors — no diagram library, no mermaid.
 
-- Nodes: fill `var(--surface-3)`, border 1px `var(--border-strong)`, radius
+- Nodes: fill `var(--surface-secondary)`, border 1px `var(--border-strong)`, radius
   `var(--radius-lg)`, text `var(--foreground)`. Secondary text and edge
   labels: `var(--muted-foreground)`, 12px, beside the line — not on colored
   chips.
@@ -368,14 +368,14 @@ structure and inline SVG for connectors — no diagram library, no mermaid.
 
 ```
 <div style="display:flex;align-items:center;gap:8px">
-  <div style="padding:10px 14px;background:var(--surface-3);border:1px solid var(--border-strong);border-radius:var(--radius-lg)">
+  <div style="padding:10px 14px;background:var(--surface-secondary);border:1px solid var(--border-strong);border-radius:var(--radius-lg)">
     <div style="font-weight:500">Build</div>
     <div style="font-size:12px;color:var(--muted-foreground)">2m 10s</div>
   </div>
   <svg width="28" height="12" viewBox="0 0 28 12" aria-hidden="true">
     <path d="M0 6h22m-5-5 5 5-5 5" fill="none" stroke="var(--border-strong)" stroke-width="1.5"/>
   </svg>
-  <div style="padding:10px 14px;background:var(--surface-3);border:1px solid var(--border-strong);border-radius:var(--radius-lg)">
+  <div style="padding:10px 14px;background:var(--surface-secondary);border:1px solid var(--border-strong);border-radius:var(--radius-lg)">
     <div style="font-weight:500">Test</div>
     <div style="font-size:12px;color:var(--success-foreground)">Passing</div>
   </div>
@@ -390,7 +390,7 @@ Full self-contained HTML pages (artifact pages) follow everything above,
 plus:
 
 - Pages own their ground: `background: var(--background)` on the page,
-  `var(--card)` panels, `--surface-2..4` for nested elevation. This is the
+  `var(--card)` panels, `--surface-secondary` and `--surface-tertiary` for nested elevation. This is the
   one surface where you set a base background.
 - One file: inline `<style>` and `<script>`, `data:` URIs for small images.
   No external fonts, scripts, stylesheets, or fetches; assume the page
@@ -441,8 +441,8 @@ variables; prefer runtime variables over hardcoded values.
 
 - Text: `--foreground`, `--muted-foreground`, `--foreground-tertiary`,
   `--foreground-quaternary`
-- Surfaces: `--background` (pages only), `--card`, `--surface-2`,
-  `--surface-3`, `--surface-4`
+- Surfaces: `--background` (pages only), `--card`, then `--surface-secondary`
+  and `--surface-tertiary` for nested elevation
 - Structure: `--border`, `--border-strong`; form surfaces `--input`, focus
   `--ring` (pages)
 - Status: `--success`, `--warning`, `--error`, `--info`, each with
@@ -453,7 +453,7 @@ variables; prefer runtime variables over hardcoded values.
   neutral); derived chrome `--chart-grid`, `--chart-label` (visual fences)
 - Radii: `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-xl`
 - Motion: `--t-micro`, `--t-fast`, `--t-normal`, `--t-slow`, `--ease-out`,
-  `--ease-in`, `--ease-standard`
+  `--ease-in`, `--ease-in-out-quad`
 - Fonts: `--font-sans`, `--font-mono`; base size `--app-ui-font-size`
 
 Do not use `prefers-color-scheme` or maintain a separate light/dark token

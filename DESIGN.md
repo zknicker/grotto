@@ -131,10 +131,10 @@ neutral `#f8f8f8` (`--background` — never pink) and the main content column is
 (`--content-card`); the main column rescopes `--background` to white so content-side surfaces
 resolve against their own ground. Every other light surface
 derives from, with a warm charcoal dark theme. The UI itself stays quiet and gets out of the way;
-color arrives through accents — the brand pill, status colors, and the agents' single-color
-thick-outline avatars. Borders and secondary surfaces are solid opaque values, not alpha washes —
-they should read like drawn lines and flat fills, matching the avatar doodle style (avatar ink is
-`#1b1b1b`, which is also `--primary` in light mode).
+color arrives through accents — the brand pill, status colors, and the uploaded square avatars
+agents and people share. Borders and secondary surfaces are solid opaque values, not alpha washes
+— they should read like drawn lines and flat fills (the shared ink is `#1b1b1b`, which is also
+`--primary` in light mode).
 `--brand` (`#7b51cc`) is reserved for primary emphasis and accents. Selected nav rows — sidebar
 sections, channels, DMs, settings nav, and file-tree rows alike — use the inked outline +
 press-slab treatment (solid `--secondary` fill, inset `--input` ring, 2px `--hard-shadow`

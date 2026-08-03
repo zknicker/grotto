@@ -47,14 +47,14 @@ crosses the boundary.
 
 The `artifact` fence funnels into the widget machinery (component id
 `tavern.widget.artifact`; see [widgets.md](widgets.md)). The transcript
-renderer (`apps/website/src/widgets/artifact-card.tsx`) draws the compact
+renderer (`apps/website/src/features/chats/artifact-card.tsx`) draws the compact
 card — title, kind line, open affordance — and performs no workspace read.
 Clicking calls the artifact-panel open path with a `workspaceFile` target,
 the same merge-or-focus flow `grotto://workspace` links and the agent
 `pane_open` tool use. In the pane, the workspace HTML preview
 (`apps/website/src/features/chats/chat-artifact-workspace-preview.tsx`)
 renders the page with host tokens injected
-(`features/chats/host-token-style.ts`): the token allowlist is read off the
+(`agent-html/tokens.ts`): the token allowlist is read off the
 live document with `getComputedStyle` at render time and re-injected when the
 app scheme flips. External-asset policy is self-contained-only; if a CDN
 allowlist lands for in-chat visuals, artifact rendering should mirror it.

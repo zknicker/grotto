@@ -64,13 +64,13 @@ their kind and target. Transcript rendering reconstructs chips by parsing the
 message content, not by reading message metadata.
 
 All surfaces render one shared mention chip component. Agent chips show the
-agent's face tinted with its configured color — the same color the user picks
+agent's avatar tinted with its configured color — the same color the user picks
 from the agent color presets in Settings. Transcript surfaces resolve that
 appearance live from the agent record by decoding the `agent://...` target;
 the composer embeds the same appearance in local option metadata at pick time
-because composer chips mount outside app providers. An agent without a face
-character keeps its configured color as the chip tint; unknown agents fall
-back to the generic agent icon.
+because composer chips mount outside app providers. An agent with no uploaded
+avatar shows its initials and keeps its configured color as the chip tint;
+unknown agents fall back to the generic agent icon.
 
 ## Autocomplete Options
 

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { buildVisualSrcDoc, VisualCard, visualChartJsUrl } from './visual.tsx';
+import { buildVisualSrcDoc, VisualCard, visualChartJsUrl } from './visual-card.tsx';
 
 test('renders a sandboxed opaque-origin iframe around the visual body', () => {
     const markup = renderToStaticMarkup(

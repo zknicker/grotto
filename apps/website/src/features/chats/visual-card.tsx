@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { cn } from '../lib/utils.ts';
-import { visualColorScheme, visualTokenDeclarations } from './visual-tokens.ts';
+import { agentHtmlSandbox } from '../../agent-html/sandbox.ts';
+import { agentHtmlColorScheme, agentHtmlTokenDeclarations } from '../../agent-html/tokens.ts';
+import { cn } from '../../lib/utils.ts';
 
 /**
  * Generative visual: model-authored HTML rendered in a sandboxed iframe.
@@ -9,7 +10,6 @@ import { visualColorScheme, visualTokenDeclarations } from './visual-tokens.ts';
  * allowed external source to the Chart.js CDN entry below. Treat the body as
  * attacker-controlled; nothing from the fence may reach the app origin.
  */
-const visualSandbox = 'allow-forms allow-modals allow-pointer-lock allow-popups allow-scripts';
 
 /**
  * The one allowed external script, pinned by version. Bumping the pin is a
@@ -65,7 +65,7 @@ export function VisualCard({
                 <iframe
                     className="block w-full border-0 bg-transparent"
                     ref={frameRef}
-                    sandbox={visualSandbox}
+                    sandbox={agentHtmlSandbox}
                     srcDoc={buildVisualSrcDoc(displayHtml, tokensCss)}
                     style={{ height, transition: 'height 200ms cubic-bezier(0.23, 1, 0.32, 1)' }}
                     title={title ?? 'Visual'}
@@ -78,7 +78,7 @@ export function VisualCard({
                 <button
                     className={cn(
                         'block w-full border-border border-t px-3 py-1.5 text-center text-muted-foreground text-xs',
-                        'hover:bg-legacy-muted hover:text-foreground'
+                        'hover:bg-default hover:text-foreground'
                     )}
                     onClick={() => setExpanded((value) => !value)}
                     type="button"
@@ -97,7 +97,7 @@ export function VisualCard({
  * bodies still parse (error-tolerant HTML parsing is the streaming renderer).
  */
 export function buildVisualSrcDoc(html: string, tokensCss: string): string {
-    const scheme = visualColorScheme();
+    const scheme = agentHtmlColorScheme();
     return [
         '<!doctype html><html><head><meta charset="utf-8">',
         `<meta http-equiv="Content-Security-Policy" content="${visualCsp}">`,
@@ -201,10 +201,10 @@ function useThrottledValue<Value>(value: Value, delayMs: number): Value {
 // race the iframe's initial navigation and leave a tokenless document — and
 // again when the app theme flips, so visuals follow the active scheme.
 function useVisualTokens() {
-    const [tokens, setTokens] = React.useState(() => visualTokenDeclarations());
+    const [tokens, setTokens] = React.useState(() => agentHtmlTokenDeclarations());
 
     React.useEffect(() => {
-        const observer = new MutationObserver(() => setTokens(visualTokenDeclarations()));
+        const observer = new MutationObserver(() => setTokens(agentHtmlTokenDeclarations()));
         observer.observe(document.documentElement, {
             attributeFilter: ['data-theme'],
             attributes: true,

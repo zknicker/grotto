@@ -1,8 +1,8 @@
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { WidgetArtifactProps } from '@tavern/api/widgets/artifact';
-import { Icon } from '../components/ui/icon.tsx';
-import { useArtifactPanelOpen } from '../features/chats/artifact-panel-context.tsx';
-import { cn } from '../lib/utils.ts';
+import { Icon } from '../../components/ui/icon.tsx';
+import { cn } from '../../lib/utils.ts';
+import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
 
 /**
  * Compact transcript card for an agent artifact. The card itself reads
@@ -18,16 +18,16 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
     return (
         <button
             className={cn(
-                'group flex w-full max-w-[28rem] items-center gap-3 rounded-lg border border-border bg-surface-2/65 px-3.5 py-3 text-left',
+                'group flex w-full max-w-[28rem] items-center gap-3 rounded-lg border border-border bg-surface-secondary/65 px-3.5 py-3 text-left',
                 'transition-colors',
                 openArtifactPanel
-                    ? 'cursor-pointer hover:border-border-strong hover:bg-surface-3/70'
+                    ? 'cursor-pointer hover:border-border-strong hover:bg-surface-tertiary/70'
                     : 'cursor-default'
             )}
             onClick={() => openArtifactPanel?.({ kind: 'workspaceFile', path: props.path })}
             type="button"
         >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border/70 bg-legacy-muted/35">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border/70 bg-default/35">
                 <Icon className="size-4 text-muted-foreground" icon={File01Icon} />
             </span>
             <span className="min-w-0 flex-1">

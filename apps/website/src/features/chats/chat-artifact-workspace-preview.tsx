@@ -1,6 +1,8 @@
 import { Button } from '@heroui/react';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useMemo, useState } from 'react';
+import { agentHtmlSandbox } from '../../agent-html/sandbox.ts';
+import { agentHtmlTokenCss, injectHostTokenStyle } from '../../agent-html/tokens.ts';
 import { SimpleCodeEditor } from '../../components/code-editor/simple-code-editor.tsx';
 import { SelectionQuoteContainer } from '../../components/quote/selection-quote.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
@@ -8,7 +10,6 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { trpc } from '../../lib/trpc.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
-import { injectHostTokenStyle, readHostTokenCss } from './host-token-style.ts';
 import { formatTavernResourceLink, type TavernResourceTarget } from './tavern-resource-link.ts';
 
 export function WorkspaceArtifactContent({
@@ -184,14 +185,14 @@ export function formatWorkspaceFileBytes(sizeBytes: number) {
 function WorkspaceHtmlPreview({ content, path }: { content: string; path: string }) {
     const scheme = useResolvedThemeOptional();
     const srcDoc = useMemo(
-        () => injectHostTokenStyle(content, readHostTokenCss(scheme)),
+        () => injectHostTokenStyle(content, agentHtmlTokenCss(scheme)),
         [content, scheme]
     );
 
     return (
         <iframe
             className="h-full min-h-0 w-full"
-            sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-scripts"
+            sandbox={agentHtmlSandbox}
             srcDoc={srcDoc}
             style={{ colorScheme: scheme }}
             title={path}

@@ -1,8 +1,8 @@
 import { type WidgetRenderInput, widgetRenderInputSchema } from '@tavern/api/widgets';
-import type { ChatLogOutput } from '../lib/trpc.tsx';
-import { cn } from '../lib/utils.ts';
+import type { ChatLogOutput } from '../../lib/trpc.tsx';
+import { cn } from '../../lib/utils.ts';
 import { WidgetArtifactCard } from './artifact-card.tsx';
-import { VisualCard } from './visual.tsx';
+import { VisualCard } from './visual-card.tsx';
 
 type WidgetRow = Extract<NonNullable<ChatLogOutput>['rows'][number], { kind: 'widget' }>;
 
@@ -59,7 +59,7 @@ function WidgetFallback({ error, text }: { error: string | null; text: string })
     return (
         <div
             className={cn(
-                'max-w-[42rem] rounded-md border border-border bg-surface-2/70 px-3 py-2.5',
+                'max-w-[42rem] rounded-md border border-border bg-surface-secondary/70 px-3 py-2.5',
                 'text-sm leading-5'
             )}
             role="note"

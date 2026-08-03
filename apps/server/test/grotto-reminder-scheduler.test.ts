@@ -419,7 +419,6 @@ async function seedOverdueReminder(grotto: GrottoConnection) {
         systemAuthor: 'reminder',
     });
     await grotto.db.insert(agentsTable).values({
-        character: 'blob',
         displayName: 'Cove',
         handle: 'Cove',
         homeTimezone: 'America/New_York',

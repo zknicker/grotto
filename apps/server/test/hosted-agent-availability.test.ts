@@ -5,11 +5,12 @@ import { deriveAgentAvailability } from '../src/hosted-agents/agent-shape.ts';
 const base: ConfiguredAgentRow = {
     activeRunId: null,
     archetype: 'guide',
-    character: 'blob',
+    avatarId: null,
     computerHealth: 'healthy',
     computerId: 'cmp_1234567890123456',
     consecutiveFailures: 0,
     createdAt: new Date('2026-07-28T00:00:00Z'),
+    createdByUserId: null,
     description: null,
     desiredModelId: 'gpt-5.6-sol',
     desiredRuntimeId: 'codex',

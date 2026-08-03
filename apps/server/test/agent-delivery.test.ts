@@ -98,7 +98,6 @@ async function seedAgent(): Promise<Seed> {
         serverId,
     });
     await db.insert(agentsTable).values({
-        character: 'owl',
         computerId,
         desiredModelId: 'fake-model',
         desiredRuntimeId: 'fake',

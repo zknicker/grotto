@@ -83,7 +83,7 @@ test('provisions Cove through hosted Agent creation with its ordinary DM', async
 
     expect(created.agent).toMatchObject({
         archetype: 'guide',
-        character: 'blob',
+        avatarUrl: null,
         computerId: computerA,
         desiredModelId: 'gpt-5.6-sol',
         desiredRuntimeId: 'codex',
@@ -101,7 +101,7 @@ test('provisions Cove through hosted Agent creation with its ordinary DM', async
 
     const agents = await owner.trpc.agent.list.query({ serverId });
     expect(agents.map((agent) => agent.handle)).toEqual(['cove']);
-    expect(agents[0]).toMatchObject({ archetype: 'guide', character: 'blob' });
+    expect(agents[0]).toMatchObject({ archetype: 'guide', avatarUrl: null });
     expect(agents[0]?.dmChatId).toBe(created.chat.id);
 });
 

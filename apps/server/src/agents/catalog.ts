@@ -1,9 +1,4 @@
-import {
-    type AgentCharacter,
-    type AgentRuntimeAgent,
-    agentCharacterSchema,
-    resolveAgentDefaultCharacter,
-} from '@tavern/api';
+import type { AgentRuntimeAgent } from '@tavern/api';
 import { z } from 'zod';
 import {
     deleteAgentRuntimeAgent,
@@ -43,8 +38,8 @@ const hexColorPattern = /^#[0-9a-f]{6}$/i;
 const fallbackAgentUpdatedAt = new Date(0).toISOString();
 
 export interface Agent {
+    avatarUrl: string | null;
     bio: string | null;
-    character: AgentCharacter | null;
     enabledSkillIds: string[] | null;
     id: string;
     name: string;
@@ -56,7 +51,6 @@ export interface Agent {
 }
 
 interface AgentProfileLike {
-    character: string | null;
     primaryColor: string | null;
     updatedAt: string;
     userInstructions: string;
@@ -84,14 +78,11 @@ export const agentPrimaryColorSchema = z
 
 export const agentEnabledSkillIdsSchema = z.array(skillIdSchema).nullable();
 export const agentUserInstructionsSchema = z.string().max(20_000).nullable();
-export const agentCharacterProfileSchema = agentCharacterSchema.nullable();
 
 export interface AgentCatalogItem {
+    avatarUrl: string | null;
     bio: string | null;
-    character: AgentCharacter | null;
-    defaultCharacter: AgentCharacter;
     defaultPrimaryColor: string;
-    effectiveCharacter: AgentCharacter;
     effectivePrimaryColor: string;
     enabledSkillIds: string[];
     id: string;
@@ -111,17 +102,12 @@ function parseEnabledSkillIds(agent: AgentRecord) {
     return parsed.success ? parsed.data : [];
 }
 
-function parseCharacter(value: string | null | undefined): AgentCharacter | null {
-    const parsed = agentCharacterSchema.safeParse(value);
-    return parsed.success ? parsed.data : null;
-}
-
 function toAgent(agent: AgentRecord, profile: AgentProfileLike | null): Agent {
     const runtimeAgent = parseAgentRawJson(agent);
     return {
         webAccessEnabled: runtimeAgent.webAccessEnabled === true,
-        bio: parseAgentRawJson(agent).bio ?? null,
-        character: parseCharacter(profile?.character),
+        avatarUrl: runtimeAgent.avatarUrl ?? null,
+        bio: runtimeAgent.bio ?? null,
         enabledSkillIds: parseEnabledSkillIds(agent),
         id: agent.id,
         name: agent.name,
@@ -172,15 +158,11 @@ export function toAgentCatalogItem(
             ? [...new Set(agent.enabledSkillIds ?? [])]
             : resolveEnabledSkillIds(agent.enabledSkillIds, availableSkillIds);
 
-    const defaultCharacter = resolveAgentDefaultCharacter(agent.id);
-
     return {
         webAccessEnabled: agent.webAccessEnabled,
+        avatarUrl: agent.avatarUrl,
         bio: agent.bio,
-        character: agent.character,
-        defaultCharacter,
         defaultPrimaryColor: resolveAgentDefaultPrimaryColor(agent.id),
-        effectiveCharacter: agent.character ?? defaultCharacter,
         effectivePrimaryColor: buildAgentPalette(agent).accentFrom,
         enabledSkillIds,
         id: agent.id,
@@ -362,7 +344,6 @@ export async function saveCatalogAgentSettings(
 
 export async function saveCatalogAgentProfile(input: {
     agentId: string;
-    character?: AgentCharacter | null;
     primaryColor?: string | null;
     userInstructions?: string | null;
 }) {
@@ -378,7 +359,6 @@ export async function saveCatalogAgentProfile(input: {
     const profileInput = {
         agentId: input.agentId,
         runtimeId,
-        ...(input.character !== undefined ? { character: input.character } : {}),
         ...(input.primaryColor !== undefined ? { primaryColor: input.primaryColor } : {}),
         ...(input.userInstructions !== undefined
             ? { userInstructions: input.userInstructions }
@@ -517,8 +497,8 @@ function toAgentFromAgentRuntimeAgent(input: {
 }): Agent {
     return {
         webAccessEnabled: input.agent.webAccessEnabled === true,
+        avatarUrl: input.agent.avatarUrl ?? null,
         bio: input.agent.bio ?? null,
-        character: parseCharacter(input.profile?.character),
         enabledSkillIds: input.agent.enabledSkillIds,
         id: input.id,
         name: input.agent.name,

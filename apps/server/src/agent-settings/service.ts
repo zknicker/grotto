@@ -14,7 +14,6 @@ import {
 import { getAgent, toAgentCatalogItem } from '../agents/catalog.ts';
 import { emitAgentUpdated, emitModelUpdated } from '../api/invalidation-events.ts';
 import { parseAgentModelRef } from '../model/model-mapping.ts';
-import { saveAgentProfile } from '../storage/agent-profiles.ts';
 import { syncAgentsForRuntime } from '../storage/agents.ts';
 import { syncAgentWorkspaceInstructions } from '../sync/agent-runtime-sync.ts';
 
@@ -44,15 +43,6 @@ export async function createAgent(input: {
             primaryColor: input.primaryColor ?? null,
         });
         await refreshAgentSnapshot({ client, runtimeId: runtime.id });
-        // The onboarding guide wears the blob (ADR 0018); other archetypes
-        // keep the id-derived default character.
-        if (input.archetype === 'guide') {
-            await saveAgentProfile({
-                agentId: created.id,
-                character: 'blob',
-                runtimeId: runtime.id,
-            });
-        }
         emitAgentUpdated();
         const agent = await getAgent(created.id);
         if (!agent) {

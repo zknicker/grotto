@@ -29,6 +29,7 @@ export const defaultSeededSkillIds = [tavernAgentSkillId, visualsSkillId];
 
 export interface CreateRuntimeAgentInput {
     archetype?: AgentArchetypeId | null;
+    avatarUrl?: string | null;
     bio?: string | null;
     db?: Database;
     enabledSkillIds?: string[];
@@ -45,6 +46,7 @@ export async function createRuntimeAgent(input: CreateRuntimeAgentInput) {
     const id = input.id ?? generateAgentId(input.name);
     const agent = upsertStoredAgent({
         agent: {
+            avatarUrl: input.avatarUrl ?? null,
             bio: input.bio ?? null,
             enabledSkillIds: input.enabledSkillIds ?? [...defaultSeededSkillIds],
             id,

@@ -9,6 +9,7 @@ import {
     agentRuntimeSkillListSchema,
     agentRuntimeSkillSchema,
     agentRuntimeStopTurnResultSchema,
+    agentRuntimeUpdateAgentAvatarSchema,
     agentRuntimeUpdateAgentBioSchema,
     agentRuntimeUpdateAgentModelSchema,
     agentRuntimeUpdateAgentNameSchema,
@@ -84,6 +85,20 @@ async function dispatchAgentEngineStatic({ request, url }: { request: Request; u
     if (method === 'GET' && segments[0] === 'agents' && segments[1] && segments[2] === 'config') {
         const agent = getStoredAgent(segments[1]);
         return agent ? withResolvedModelName(agent) : undefined;
+    }
+    if (
+        method === 'PATCH' &&
+        segments[0] === 'agents' &&
+        segments[1] &&
+        segments[2] === 'avatar' &&
+        !segments[3]
+    ) {
+        const payload = agentRuntimeUpdateAgentAvatarSchema.parse(await readJson(request));
+        const updatedAgent = updateStoredAgent({
+            agentId: segments[1],
+            avatarUrl: payload.avatarUrl,
+        });
+        return updatedAgent ? withResolvedModelName(updatedAgent) : undefined;
     }
     if (
         method === 'PATCH' &&

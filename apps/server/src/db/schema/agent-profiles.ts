@@ -5,7 +5,6 @@ export const agentProfilesTable = sqliteTable(
     {
         createdAt: text('created_at').notNull(),
         agentId: text('agent_id').notNull(),
-        character: text('avatar_character'),
         primaryColor: text('primary_color'),
         runtimeId: text('runtime_id').notNull(),
         updatedAt: text('updated_at').notNull(),

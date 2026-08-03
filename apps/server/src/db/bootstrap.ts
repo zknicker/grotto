@@ -154,7 +154,6 @@ const schemaStatements = [
         runtime_id TEXT NOT NULL,
         agent_id TEXT NOT NULL,
         primary_color TEXT,
-        avatar_character TEXT,
         user_instructions TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -446,14 +445,14 @@ export function ensureDatabaseSchema() {
     );
     runSchemaStatements((statement) => statement.startsWith('CREATE INDEX'));
     migrateAgentProfilesUserInstructions();
-    migrateAgentProfilesCharacter();
+    dropAgentProfilesCharacter();
 }
 
-function migrateAgentProfilesCharacter() {
+function dropAgentProfilesCharacter() {
     try {
-        databaseClient.exec('ALTER TABLE agent_profiles ADD COLUMN avatar_character TEXT;');
+        databaseClient.exec('ALTER TABLE agent_profiles DROP COLUMN avatar_character;');
     } catch {
-        /* column already exists */
+        /* column already dropped or table is fresh */
     }
 }
 

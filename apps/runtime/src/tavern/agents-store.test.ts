@@ -265,6 +265,49 @@ describe('Runtime agent and agent engine reads', () => {
         expect(clearedConfig.bio ?? null).toBeNull();
     });
 
+    it('persists the agent avatar through create, update, and clear', async () => {
+        const createdAvatar = 'data:image/png;base64,iVBORw0KGgo=';
+        const updatedAvatar = 'data:image/webp;base64,UklGRh4AAABXRUJQ';
+
+        const createResponse = await handleTavernRuntimeRequest(
+            new Request('http://runtime.test/agents', {
+                body: JSON.stringify({
+                    avatarUrl: createdAvatar,
+                    id: 'agt_avatar',
+                    name: 'Avatar',
+                    workspaceFolder: '/tmp/tavern-avatar-workspace',
+                }),
+                headers: { 'content-type': 'application/json' },
+                method: 'POST',
+            })
+        );
+        expect(createResponse.status).toBe(200);
+        await expect(createResponse.json()).resolves.toMatchObject({
+            avatarUrl: createdAvatar,
+            id: 'agt_avatar',
+        });
+
+        const updateResponse = await handleTavernRuntimeRequest(
+            new Request('http://runtime.test/agents/agt_avatar/avatar', {
+                body: JSON.stringify({ avatarUrl: updatedAvatar }),
+                headers: { 'content-type': 'application/json' },
+                method: 'PATCH',
+            })
+        );
+        expect(updateResponse.status).toBe(200);
+        expect(getStoredAgent('agt_avatar')?.avatarUrl).toBe(updatedAvatar);
+
+        const clearResponse = await handleTavernRuntimeRequest(
+            new Request('http://runtime.test/agents/agt_avatar/avatar', {
+                body: JSON.stringify({ avatarUrl: null }),
+                headers: { 'content-type': 'application/json' },
+                method: 'PATCH',
+            })
+        );
+        expect(clearResponse.status).toBe(200);
+        expect(getStoredAgent('agt_avatar')?.avatarUrl ?? null).toBeNull();
+    });
+
     it('sets and clears the agent thinking default', async () => {
         await handleTavernRuntimeRequest(
             new Request('http://runtime.test/agents', {

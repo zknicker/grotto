@@ -13,6 +13,7 @@ import { archiveAgentDmChat, ensureAgentDmChat } from './bootstrap-chats.ts';
 import { assertParticipantHandleAvailable, assertParticipantSeatAvailable } from './handles.ts';
 
 interface AgentRow {
+    avatar_url: string | null;
     created_at: string;
     enabled_skill_ids_json: string;
     id: string;
@@ -94,6 +95,7 @@ export function deleteStoredAgent(agentId: string, db: Database = getDb()) {
 export function updateStoredAgent(input: {
     agentId: string;
     webAccessEnabled?: boolean;
+    avatarUrl?: string | null;
     bio?: string | null;
     db?: Database;
     enabledSkillIds?: string[];
@@ -112,6 +114,7 @@ export function updateStoredAgent(input: {
             ...(input.webAccessEnabled === undefined
                 ? {}
                 : { webAccessEnabled: input.webAccessEnabled }),
+            ...(input.avatarUrl === undefined ? {} : { avatarUrl: input.avatarUrl }),
             ...(input.bio === undefined ? {} : { bio: input.bio }),
             ...(input.enabledSkillIds === undefined
                 ? {}
@@ -192,6 +195,7 @@ function rowToAgent(row: AgentRow, db: Database): AgentRuntimeAgent {
 
     return agentRuntimeAgentSchema.parse({
         webAccessEnabled: raw?.webAccessEnabled ?? false,
+        avatarUrl: row.avatar_url,
         ...(raw?.bio == null ? {} : { bio: raw.bio }),
         enabledSkillIds: listAssignedSkillIds(row.id, db),
         id: row.id,
@@ -219,6 +223,7 @@ function listAssignedSkillIds(agentId: string, db: Database = getDb()) {
 function stableAgentJson(agent: AgentRuntimeAgent) {
     return JSON.stringify({
         webAccessEnabled: agent.webAccessEnabled ?? false,
+        avatarUrl: agent.avatarUrl ?? null,
         ...(agent.bio == null ? {} : { bio: agent.bio }),
         enabledSkillIds: agent.enabledSkillIds,
         id: agent.id,
@@ -255,6 +260,7 @@ function writeStoredAgent(input: {
             `INSERT INTO agents (
                 id,
                 name,
+                avatar_url,
                 primary_color,
                 workspace_folder,
                 enabled_skill_ids_json,
@@ -267,6 +273,7 @@ function writeStoredAgent(input: {
             VALUES (
                 $id,
                 $name,
+                $avatarUrl,
                 $primaryColor,
                 $workspaceFolder,
                 $enabledSkillIdsJson,
@@ -278,6 +285,7 @@ function writeStoredAgent(input: {
             )
             ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
+                avatar_url = excluded.avatar_url,
                 primary_color = excluded.primary_color,
                 workspace_folder = excluded.workspace_folder,
                 enabled_skill_ids_json = excluded.enabled_skill_ids_json,
@@ -288,6 +296,7 @@ function writeStoredAgent(input: {
         )
         .run(
             namedParams({
+                avatarUrl: input.agent.avatarUrl ?? null,
                 createdAt: input.createdAt ?? input.syncedAt,
                 enabledSkillIdsJson: JSON.stringify(enabledSkillIds),
                 id: input.agent.id,

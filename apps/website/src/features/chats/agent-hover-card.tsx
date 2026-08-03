@@ -2,7 +2,7 @@ import { Separator, Spinner } from '@heroui/react';
 import { HoverCard } from '@heroui-pro/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgentActivity } from '../../hooks/agents/use-agent-activity.ts';
 import { useAgentAppearanceLookup } from '../../hooks/agents/use-agent-appearance.ts';
 import { useAgentList } from '../../hooks/agents/use-agent-list.ts';
@@ -10,13 +10,11 @@ import { useAgentSession } from '../../hooks/agents/use-agent-session.ts';
 import { appRoutes } from '../../lib/app-routes.ts';
 import { getModelProviderConfig } from '../../lib/model-provider-config.ts';
 import { cn } from '../../lib/utils.ts';
-import { resolveAgentInk } from '../agents/agent-color-presets.ts';
 import {
     type AgentActivityEntry,
     formatAgentActivityEntry,
     formatAgentActivityTime,
 } from './agent-activity-labels.ts';
-import { AgentFace } from './agent-face.tsx';
 import { useAgentPresenceEntry } from './agent-presence.tsx';
 
 const hoverCardEntryLimit = 5;
@@ -96,8 +94,7 @@ function AgentHoverCardBody({
     chatId: string;
     enabled: boolean;
 }) {
-    const dark = useResolvedThemeOptional() === 'dark';
-    const appearance = useAgentAppearanceLookup()(agentId);
+    const { avatarUrl } = useAgentAppearanceLookup()(agentId);
     const bio = useAgentList().data?.agents.find((agent) => agent.id === agentId)?.bio ?? null;
     const session = useAgentSession({ agentId, chatId, enabled }).data?.session ?? null;
     const presence = useAgentPresenceEntry(agentId);
@@ -107,15 +104,7 @@ function AgentHoverCardBody({
     return (
         <div className="flex min-w-0 flex-col gap-2.5">
             <div className="flex min-w-0 items-center gap-2.5">
-                <span aria-hidden="true" className="flex size-11 shrink-0 items-center">
-                    <AgentFace
-                        animate={false}
-                        dark={dark}
-                        head={appearance.character}
-                        ink={resolveAgentInk(dark, appearance.primaryColor)}
-                        size={44}
-                    />
-                </span>
+                <EntityAvatar name={agentName} size="lg" src={avatarUrl} />
                 <div className="flex min-w-0 flex-col gap-0.5">
                     <span className="flex min-w-0 items-center gap-2">
                         <span className="min-w-0 truncate font-semibold text-base text-foreground">

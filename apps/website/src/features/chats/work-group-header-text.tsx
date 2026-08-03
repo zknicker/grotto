@@ -1,3 +1,4 @@
+import { TextShimmer } from '@heroui-pro/react';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { SlotText } from 'slot-text/react';
@@ -111,13 +112,16 @@ export function WorkGroupHeaderTextView({
         return null;
     }
 
-    const className = cn(
-        'min-w-0 max-w-[28rem] truncate text-left',
-        isActive && !canSlot && 'thinking-indicator-text'
-    );
+    const className = 'min-w-0 max-w-[28rem] truncate text-left';
 
     if (!canSlot) {
-        return <span className={className}>{label}</span>;
+        // Stock Pro shimmer for the active label; SlotText owns the animation
+        // in the other branch, so the two never stack.
+        return isActive ? (
+            <TextShimmer className={className}>{label}</TextShimmer>
+        ) : (
+            <span className={className}>{label}</span>
+        );
     }
 
     return (

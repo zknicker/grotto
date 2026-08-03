@@ -1,12 +1,10 @@
 import { Drawer } from '@heroui/react';
-import { useReducedMotion } from 'framer-motion';
 import { useDevMode } from '../../components/dev-mode-provider.tsx';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useChatTurnPrompt } from '../../hooks/chats/use-chat-turn-prompt.ts';
 import { formatShortTime, formatTimestamp } from '../../lib/format.ts';
 import { trpc } from '../../lib/trpc.tsx';
-import { resolveAgentInk } from '../agents/agent-color-presets.ts';
-import { AgentFace, type HeadName } from './agent-face.tsx';
+import { isActivityItem } from './chat-transcript-activity-utils.ts';
 import { groupAgentItems } from './chat-transcript-item-utils.ts';
 import {
     getItemRunId,
@@ -15,8 +13,7 @@ import {
     type TranscriptTurnEntry,
 } from './chat-transcript-model.ts';
 import { AgentTurnSegment } from './chat-transcript-turn.tsx';
-
-const faceStyle = { flexShrink: 0, overflow: 'visible' } as const;
+import { DrawerActivityGroup } from './chat-turn-drawer-activity.tsx';
 
 /**
  * Full detail for one agent turn: every tool/work drawer, preamble and
@@ -24,8 +21,7 @@ const faceStyle = { flexShrink: 0, overflow: 'visible' } as const;
  * active status row — the transcript pane itself stays prose-only.
  */
 export function ChatTurnDrawer({
-    agentCharacter = null,
-    agentColor = null,
+    agentAvatarUrl = null,
     agentName,
     chatId,
     embeddedEvidence = false,
@@ -34,8 +30,7 @@ export function ChatTurnDrawer({
     open,
     turnActive = false,
 }: {
-    agentCharacter?: HeadName | null;
-    agentColor?: string | null;
+    agentAvatarUrl?: string | null;
     agentName: string;
     chatId?: string;
     embeddedEvidence?: boolean;
@@ -50,8 +45,7 @@ export function ChatTurnDrawer({
                 <Drawer.Dialog>
                     <Drawer.CloseTrigger />
                     <ChatTurnDrawerHeader
-                        agentCharacter={agentCharacter}
-                        agentColor={agentColor}
+                        agentAvatarUrl={agentAvatarUrl}
                         agentName={agentName}
                         entry={entry}
                         turnActive={turnActive}
@@ -75,24 +69,19 @@ export function ChatTurnDrawer({
     );
 }
 
-// The agent fronts their own turn: a large living face on a soft wash of
-// their color, with the turn's when/how-long/what at a glance beneath the
-// name.
+// The agent fronts their own turn: their avatar, with the turn's
+// when/how-long/what at a glance beneath the name.
 function ChatTurnDrawerHeader({
-    agentCharacter,
-    agentColor,
+    agentAvatarUrl,
     agentName,
     entry,
     turnActive,
 }: {
-    agentCharacter: HeadName | null;
-    agentColor: string | null;
+    agentAvatarUrl: string | null;
     agentName: string;
     entry: TranscriptTurnEntry | null;
     turnActive: boolean;
 }) {
-    const dark = useResolvedThemeOptional() === 'dark';
-    const shouldReduceMotion = useReducedMotion();
     const startedAt = entry?.timestamp ?? null;
     const duration = turnActive ? null : formatTurnDuration(entry);
     const metaParts = turnActive
@@ -102,18 +91,7 @@ function ChatTurnDrawerHeader({
     return (
         <Drawer.Header>
             <div className="flex items-center gap-2.5">
-                <div className="flex size-11 shrink-0 items-center justify-center">
-                    <AgentFace
-                        blinking={!shouldReduceMotion}
-                        dark={dark}
-                        head={agentCharacter ?? 'none'}
-                        ink={resolveAgentInk(dark, agentColor)}
-                        intensity={turnActive ? 1 : 0.92}
-                        size={40}
-                        speed={shouldReduceMotion ? 0.35 : turnActive ? 1.05 : 0.78}
-                        style={faceStyle}
-                    />
-                </div>
+                <EntityAvatar name={agentName} size="lg" src={agentAvatarUrl} />
                 <div className="flex min-w-0 flex-col gap-0.5">
                     <Drawer.Heading>{agentName}</Drawer.Heading>
                     <p className="flex min-w-0 items-center gap-1.5 text-muted text-sm">
@@ -190,21 +168,29 @@ export function ChatTurnItems({
 
     return (
         <div className="flex min-w-0 flex-col gap-3 pt-2 pb-2">
-            {segments.map((segment, index) => (
-                // Work groups draw their own card surface (header above,
-                // rows on the card) via the 'card' activity appearance.
-                <AgentTurnSegment
-                    activityAppearance="card"
-                    chatId={chatId}
-                    defaultOpenWorkGroups
-                    key={segment.key}
-                    segment={segment}
-                    turnActive={turnActive && index === segments.length - 1}
-                    turnCompletedAt={null}
-                    turnStartedAt={turnStartedAt}
-                    turnStopped={false}
-                />
-            ))}
+            {segments.map((segment, index) =>
+                segment.kind === 'activity' ? (
+                    // Activity renders through the stock Pro AI components:
+                    // ChatTool cards for tools, ChainOfThought for the rest.
+                    <DrawerActivityGroup
+                        chatId={chatId}
+                        items={segment.items.filter(isActivityItem)}
+                        key={segment.key}
+                        turnActive={turnActive && index === segments.length - 1}
+                    />
+                ) : (
+                    <AgentTurnSegment
+                        chatId={chatId}
+                        defaultOpenWorkGroups
+                        key={segment.key}
+                        segment={segment}
+                        turnActive={turnActive && index === segments.length - 1}
+                        turnCompletedAt={null}
+                        turnStartedAt={turnStartedAt}
+                        turnStopped={false}
+                    />
+                )
+            )}
             {showPromptEvidence ? <TurnPromptEvidence runId={runId} /> : null}
         </div>
     );

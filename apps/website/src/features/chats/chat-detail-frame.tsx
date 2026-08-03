@@ -1,4 +1,3 @@
-import type { AgentCharacter } from '@tavern/api/agent-appearance';
 import * as React from 'react';
 import {
     MessageScroller,
@@ -17,7 +16,6 @@ import type { ConversationMessageLayout } from './chat-transcript-model.ts';
 
 export function ChatDetailFrame({
     activeReplies,
-    agentStatusCharacter = null,
     canRequestMention = true,
     chatId,
     conversationLayout,
@@ -41,7 +39,6 @@ export function ChatDetailFrame({
     totalMessages,
 }: {
     activeReplies: readonly ChatActiveReply[];
-    agentStatusCharacter?: AgentCharacter | null;
     canRequestMention?: boolean;
     chatId: string;
     conversationLayout?: ConversationMessageLayout;
@@ -123,7 +120,6 @@ export function ChatDetailFrame({
                                             timelineContent(contentRef)
                                         ) : (
                                             <ChatTimeline
-                                                agentStatusCharacter={agentStatusCharacter}
                                                 canRequestMention={canRequestMention}
                                                 chatId={chatId}
                                                 conversationLayout={conversationLayout}

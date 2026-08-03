@@ -1,18 +1,11 @@
+import { ChatMessage } from '@heroui-pro/react';
 import * as React from 'react';
-import {
-    Message,
-    MessageAvatar,
-    MessageContent,
-    MessageHeader,
-} from '../../components/chats/message.tsx';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import { getEntityInitials } from '../../components/ui/entity-avatar.tsx';
 import { useAgentList } from '../../hooks/agents/use-agent-list.ts';
 import type { ChatComposition } from '../../hooks/chats/use-chat-compositions.ts';
 import { useChatCompositions } from '../../hooks/chats/use-chat-compositions.ts';
 import { useChatList } from '../../hooks/chats/use-chat-list.ts';
 import type { AgentListOutput } from '../../lib/trpc.tsx';
-import { resolveAgentInk } from '../agents/agent-color-presets.ts';
-import { AgentFace } from './agent-face.tsx';
 import { resolveChatCompositionTarget } from './chat-composition-target.ts';
 import { buildChatList } from './chat-list-data.ts';
 
@@ -76,7 +69,6 @@ function TargetedChatCompositionBubbles({
 }) {
     const { compositions, dropComposition } = useChatCompositions();
     const agents = useAgentList().data?.agents ?? [];
-    const dark = useResolvedThemeOptional() === 'dark';
 
     React.useEffect(() => {
         for (const compositionId of messageCompositionIds) {
@@ -105,7 +97,6 @@ function TargetedChatCompositionBubbles({
                 <CompositionBubble
                     agent={agents.find((entry) => entry.id === composition.agentId) ?? null}
                     composition={composition}
-                    dark={dark}
                     key={compositionId}
                 />
             ))}
@@ -116,27 +107,27 @@ function TargetedChatCompositionBubbles({
 function CompositionBubble({
     agent,
     composition,
-    dark,
 }: {
     agent: Agent | null;
     composition: ChatComposition;
-    dark: boolean;
 }) {
+    const displayName = agent?.name ?? 'Agent';
+
     return (
-        <Message aria-live="polite" className="opacity-60">
-            <MessageAvatar>
-                <AgentFace
-                    animate={false}
-                    dark={dark}
-                    head={agent?.effectiveCharacter ?? 'none'}
-                    ink={resolveAgentInk(dark, agent?.effectivePrimaryColor)}
-                    size={32}
-                />
-            </MessageAvatar>
-            <MessageContent>
-                <MessageHeader>{agent?.name ?? 'Agent'}</MessageHeader>
-                <p className="whitespace-pre-wrap text-foreground text-sm">{composition.text}</p>
-            </MessageContent>
-        </Message>
+        <ChatMessage.Assistant aria-live="polite" className="opacity-60">
+            <ChatMessage.Avatar
+                alt={`${displayName} avatar`}
+                fallback={getEntityInitials(displayName)}
+                src={agent?.avatarUrl ?? undefined}
+            />
+            <ChatMessage.Body>
+                <span className="font-semibold text-foreground text-sm leading-5">
+                    {displayName}
+                </span>
+                <ChatMessage.Content>
+                    <p className="whitespace-pre-wrap">{composition.text}</p>
+                </ChatMessage.Content>
+            </ChatMessage.Body>
+        </ChatMessage.Assistant>
     );
 }

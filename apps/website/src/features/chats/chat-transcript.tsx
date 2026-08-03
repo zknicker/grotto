@@ -1,4 +1,3 @@
-import type { AgentCharacter } from '@tavern/api/agent-appearance';
 import * as React from 'react';
 import {
     MessageScroller,
@@ -7,6 +6,7 @@ import {
     MessageScrollerProvider,
     MessageScrollerViewport,
 } from '../../components/chats/message-scroller.tsx';
+import { useChatReaction } from '../../hooks/chats/use-chat-reaction.ts';
 import { useChatSidePane } from '../../hooks/pane/use-chat-side-pane.ts';
 import { useMessageFlash } from '../../hooks/threads/use-message-flash.ts';
 import { openThreadPane, useThreadPane } from '../../hooks/threads/use-thread-pane.ts';
@@ -40,7 +40,6 @@ const directConversationMessageLayout: ConversationMessageLayout = {
 };
 
 export function ChatTranscript({
-    agentStatusCharacter = null,
     canRequestMention = true,
     chatId,
     compositionTarget,
@@ -57,7 +56,6 @@ export function ChatTranscript({
     threadActionsEnabled = true,
     viewportClassName,
 }: {
-    agentStatusCharacter?: AgentCharacter | null;
     canRequestMention?: boolean;
     chatId?: string;
     compositionTarget?: string | null;
@@ -125,6 +123,12 @@ export function ChatTranscript({
         (threadChatId: string) => mutateThreadFollow({ follow: false, threadChatId }),
         [mutateThreadFollow]
     );
+    const reaction = useChatReaction();
+    const mutateReaction = reaction.mutate;
+    const onToggleReaction = React.useCallback(
+        (input: { emoji: string; messageId: string; remove: boolean }) => mutateReaction(input),
+        [mutateReaction]
+    );
     const renderContext = React.useMemo(
         () =>
             ({
@@ -139,6 +143,7 @@ export function ChatTranscript({
                 flashMessageId,
                 hiddenCount,
                 onOpenThread,
+                onToggleReaction,
                 onUnfollowThread,
                 profilePaneChatId: interactionHosts.profilePaneChatId,
                 repliedRunIds,
@@ -157,6 +162,7 @@ export function ChatTranscript({
             flashMessageId,
             hiddenCount,
             onOpenThread,
+            onToggleReaction,
             onUnfollowThread,
             interactionHosts.profilePaneChatId,
             repliedRunIds,
@@ -178,7 +184,6 @@ export function ChatTranscript({
 
     const transcript = (
         <ChatTranscriptRowsPresentation
-            agentStatusCharacter={agentStatusCharacter}
             composition={
                 chatId ? (
                     <ChatCompositionBubbles
@@ -226,14 +231,12 @@ export function ChatTranscript({
 }
 
 export function ChatTranscriptPresentation({
-    agentStatusCharacter = null,
     composition,
     leadingContent,
     renderContext,
     rows,
     scrollContentRef,
 }: {
-    agentStatusCharacter?: AgentCharacter | null;
     composition?: React.ReactNode;
     leadingContent?: React.ReactNode;
     renderContext: TranscriptRenderContextValue;
@@ -249,7 +252,6 @@ export function ChatTranscriptPresentation({
 
     return (
         <ChatTranscriptRowsPresentation
-            agentStatusCharacter={agentStatusCharacter}
             composition={composition}
             leadingContent={leadingContent}
             renderContext={renderContext}
@@ -260,14 +262,12 @@ export function ChatTranscriptPresentation({
 }
 
 function ChatTranscriptRowsPresentation({
-    agentStatusCharacter,
     composition,
     leadingContent,
     renderContext,
     scrollContentRef,
     transcriptRows,
 }: {
-    agentStatusCharacter: AgentCharacter | null;
     composition?: React.ReactNode;
     leadingContent?: React.ReactNode;
     renderContext: TranscriptRenderContextValue;
@@ -277,7 +277,9 @@ function ChatTranscriptRowsPresentation({
     return (
         <TranscriptRenderProvider value={renderContext}>
             <div className="relative min-h-full w-full">
-                <MessageScrollerContent className="w-full gap-2" ref={scrollContentRef}>
+                {/* Rows carry their own stock py; the stack adds no extra gap
+                    so adjacent turns sit Raft-tight. */}
+                <MessageScrollerContent className="w-full gap-0" ref={scrollContentRef}>
                     {leadingContent}
                     {transcriptRows.map((row) =>
                         row.kind === 'hiddenCount' && renderContext.hiddenCount === 0 ? null : (
@@ -289,10 +291,7 @@ function ChatTranscriptRowsPresentation({
                                 key={row.id}
                                 messageId={row.id}
                             >
-                                <TranscriptRenderRowItem
-                                    agentStatusCharacter={agentStatusCharacter}
-                                    row={row}
-                                />
+                                <TranscriptRenderRowItem row={row} />
                             </MessageScrollerItem>
                         )
                     )}

@@ -1,32 +1,22 @@
-import { Avatar } from '@heroui/react';
+import { Separator } from '@heroui/react';
+import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { AlertCircleIcon, ListViewIcon } from '@hugeicons/core-free-icons';
-import type { AgentCharacter } from '@tavern/api/agent-appearance';
 import { splitVisualFences } from '@tavern/api/widgets/visual';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { requestChatComposerMention } from '../../commands/chat-composer-mention.ts';
-import { ChatMessage } from '../../components/chats/chat-message.tsx';
-import {
-    Message,
-    MessageAvatar,
-    MessageContent,
-    MessageHeader,
-} from '../../components/chats/message.tsx';
-import { CopyButton } from '../../components/copy-button.tsx';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { RelativeTime } from '../../components/time/relative-time.tsx';
+import { getEntityInitials } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { type ActorProfile, useActorProfile } from '../../hooks/actors/use-actor.ts';
 import { isLocalTimelineMessageMetadata } from '../../hooks/chats/chat-timeline-messages.ts';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import { openAgentProfilePane } from '../../hooks/pane/use-agent-profile-pane.ts';
+import { writeClipboardText } from '../../lib/clipboard.ts';
 import { formatShortTime } from '../../lib/format.ts';
 import { cn } from '../../lib/utils.ts';
-import { AgentWidget } from '../../widgets/render-widget.tsx';
-import { VisualCard } from '../../widgets/visual.tsx';
-import { resolveAgentInk } from '../agents/agent-color-presets.ts';
-import { AgentFace, type HeadName } from './agent-face.tsx';
 import { AgentHoverCard } from './agent-hover-card.tsx';
+import { ActionTooltip } from './chat-action-tooltip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { useStreamingTextRanges } from './chat-streaming-text-ranges.ts';
 import {
@@ -48,6 +38,7 @@ import {
     renderTranscriptMessageAttachments,
     type TranscriptMessage,
 } from './chat-transcript-message.tsx';
+import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 import type {
     ConversationMessageLayout,
     TranscriptEntry,
@@ -67,51 +58,35 @@ import {
 import type { SessionNoticeRow } from './chat-transcript-row-model.ts';
 import { RuntimeNoticeEntry, SessionNoticeAction } from './chat-transcript-system-step.tsx';
 import { ChatTurnDrawer } from './chat-turn-drawer.tsx';
-import { ThreadMessageSurface } from './thread/thread-message-surface.tsx';
+import { AgentWidget } from './legacy-widget-row.tsx';
+import { MessageReactionActions } from './thread/message-reactions.tsx';
+import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
 import { useRevealedText } from './use-revealed-text.ts';
+import { VisualCard } from './visual-card.tsx';
 import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
 
-// `group/turn` is the hover unit for a whole message: hovering the row reveals
-// its actions (the copy button next to the timestamp, or above the owner's own
-// bubble). Spacing is intentionally tight — the row's own `py` padding carries
-// most of the room between messages, with only a small gap between scroller
-// items (see chat-transcript.tsx). gap-3 widens the avatar gutter past the
-// Message default so the roster breathes.
-const rowClassName = 'group/turn w-full gap-3 py-1';
-// Message actions stay hidden until the row is hovered or focused. No
-// transition — the affordance tracks the pointer instantly.
-const hoverActionsClassName =
-    'flex items-center gap-0.5 opacity-0 focus-within:opacity-100 group-hover/turn:opacity-100';
-const newTurnGapClassName = '';
-// Pin the identity avatar to the top of the row. The shadcn MessageAvatar
-// defaults to self-end and lifts by -translate-y-8 when the message has a
-// footer; our roster layout keeps it aligned with the name header instead.
-// 40px avatar spans the header + first message line as one block (Raft
-// proportions). mt-1.5 seats the top edge ~2px above the username's visible
-// cap (the name's line box has ~3px of half-leading above the glyphs), so
-// the avatar reads inline with the sender line rather than floating high.
-const turnAvatarBaseClassName =
-    'mt-1.5 size-10 min-w-10 self-start ring-1 ring-separator group-has-data-[slot=message-footer]/message:translate-y-0';
-// Stock Avatar owns the human identity mark; this only positions it in the
-// turn row.
-const turnAvatarPositionClassName =
-    'mt-1.5 shrink-0 self-start group-has-data-[slot=message-footer]/message:translate-y-0';
-// The character head is the avatar: a square-ish little character at the
-// same footprint and roundedness as the people avatars beside it.
-// The art is bottom-weighted inside its viewBox (overflow bits live at the
-// top), so a small upward nudge centers the visible body in the slot.
-const faceStyle = {
-    flexShrink: 0,
-    height: 36,
-    overflow: 'visible',
-    transform: 'translateY(-2px)',
-    width: 36,
-} as const;
-const hoverGroupClassName = 'group';
+// Raft-style geometry: the name line plus the first message line read as one
+// tight block the avatar sits centered against. Rows wash on hover so the
+// hovered message reads as one unit (Discord-style); the bleed margins let
+// the wash span the full chat width past the viewport's px-5 gutter.
+// bg-chat-log-row-hover is the app's subtle chat-row wash, shared with the
+// work-group tool rows so every hoverable chat row reads the same.
+const turnRowClassName =
+    'group/turn -mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2 hover:bg-chat-log-row-hover';
+const turnBodyClassName = 'gap-0';
+const turnAvatarOffsetClassName = 'mt-1.5';
+// Stock action buttons are composer-sized; transcript rows want the compact
+// footprint with slightly smaller glyphs.
+const turnActionClassName = 'size-7 [&_svg]:size-3.5';
+// The actions bar is a floating pill straddling the hovered message's top
+// edge (Discord-style): elevated surface, hover/focus reveal (instant, so it
+// tracks the row wash), and inert while hidden so it never intercepts clicks
+// meant for the row above.
+const turnActionsClassName =
+    'pointer-events-none absolute -top-4 right-4 z-10 gap-0.5 rounded-xl border border-border bg-overlay p-0.5 opacity-0 shadow-overlay transition-none focus-within:pointer-events-auto focus-within:opacity-100 group-hover/turn:pointer-events-auto group-hover/turn:opacity-100';
 
 export function TranscriptEntryView({
     activeReply,
-    agentStatusCharacter = null,
     chatId,
     conversationLayout,
     currentSessionKey,
@@ -122,7 +97,6 @@ export function TranscriptEntryView({
     turnStartedAt,
 }: {
     activeReply: ChatActiveReply | null;
-    agentStatusCharacter?: AgentCharacter | null;
     chatId?: string;
     conversationLayout: ConversationMessageLayout;
     currentSessionKey?: string | null;
@@ -170,7 +144,6 @@ export function TranscriptEntryView({
     return (
         <AgentTurn
             activeReply={activeReply}
-            agentStatusCharacter={agentStatusCharacter}
             chatId={chatId}
             currentSessionKey={currentSessionKey}
             defaultOpenWorkGroups={defaultOpenWorkGroups}
@@ -228,27 +201,17 @@ function UserTurnPresentation({
 }) {
     const context = useTranscriptRenderContextOptional();
     const displayName = actorProfile?.name ?? getTurnFallbackName(entry) ?? 'You';
-    const lastMessage = getLastMessage(entry.items);
+    const lastMessageRow = getLastMessageRow(entry.items);
 
     // Every human turn — the app owner's included — shares the same
     // left-aligned Slack-style roster row as agents: avatar, name header,
     // plain text. No right-anchored self bubbles.
     return (
-        <Message align="start" className={cn(rowClassName, newTurnGapClassName)}>
-            <TurnAvatar
-                actorKind={actorProfile?.kind ?? 'participant'}
-                avatarUrl={actorProfile?.avatarUrl}
-                color={actorProfile?.primaryColor}
-                name={displayName}
-            />
-            <MessageContent className="gap-0 pt-0.5">
+        <ChatMessage.Assistant className={turnRowClassName}>
+            <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
+            <ChatMessage.Body className={turnBodyClassName}>
                 {layout.showHumanIdentity ? (
                     <TurnHeader
-                        actions={
-                            lastMessage ? (
-                                <TranscriptMessageActions value={lastMessage.content} />
-                            ) : null
-                        }
                         displayName={displayName}
                         onClick={
                             entry.actor && context?.onActorClick
@@ -258,13 +221,27 @@ function UserTurnPresentation({
                         timestamp={entry.timestamp}
                     />
                 ) : null}
-                <div className="-mt-0.5 flex min-w-0 flex-col gap-1.5">
-                    {entry.items.map((item) => (
-                        <UserTurnItem from="user" item={item} key={getTranscriptItemKey(item)} />
-                    ))}
-                </div>
-            </MessageContent>
-        </Message>
+                {entry.items.map((item) => (
+                    <UserTurnItem from="user" item={item} key={getTranscriptItemKey(item)} />
+                ))}
+                {lastMessageRow ? (
+                    <ChatMessageActions className={turnActionsClassName}>
+                        <MessageReactionActions
+                            className={turnActionClassName}
+                            row={lastMessageRow}
+                        />
+                        {context?.onToggleReaction ? (
+                            <Separator className="mx-0.5 h-4" orientation="vertical" />
+                        ) : null}
+                        <TranscriptMessageActions value={lastMessageRow.message.content} />
+                        <ThreadMessageActions
+                            className={turnActionClassName}
+                            row={lastMessageRow}
+                        />
+                    </ChatMessageActions>
+                ) : null}
+            </ChatMessage.Body>
+        </ChatMessage.Assistant>
     );
 }
 
@@ -278,54 +255,16 @@ function getActiveReplyText(items: TranscriptItem[]) {
     return '';
 }
 
-function TurnAvatar({
-    actorKind,
-    avatarUrl,
-    character = 'none',
-    color,
-    name,
-}: {
-    actorKind: 'agent' | 'participant' | 'profile';
-    avatarUrl?: string | null;
-    character?: HeadName;
-    color?: string | null;
-    name: string;
-}) {
-    // Agents wear their character face as their identity avatar; people use an
-    // uploaded image, falling back to initials.
-    const dark = useResolvedThemeOptional() === 'dark';
-    const variant = resolveTurnAvatarVariant(actorKind, avatarUrl);
-
-    if (variant === 'eyes') {
-        // The character head is its own avatar shape — no chrome behind it.
-        return (
-            <MessageAvatar
-                className={cn(
-                    turnAvatarBaseClassName,
-                    'overflow-visible rounded-none bg-transparent ring-0'
-                )}
-            >
-                <AgentFace
-                    animate={false}
-                    dark={dark}
-                    head={character}
-                    ink={resolveAgentInk(dark, color)}
-                    size={36}
-                    style={faceStyle}
-                />
-            </MessageAvatar>
-        );
-    }
-
-    // People are stock Avatars — image when uploaded, initials fallback —
-    // the same mark as the server monogram and sidebar minis.
+// Agents and people share one identity mark: the uploaded square image when
+// there is one, initials otherwise.
+function TurnAvatar({ avatarUrl, name }: { avatarUrl?: string | null; name: string }) {
     return (
-        <Avatar className={turnAvatarPositionClassName}>
-            {variant === 'image' ? (
-                <Avatar.Image alt={`${name} avatar`} src={avatarUrl ?? undefined} />
-            ) : null}
-            <Avatar.Fallback>{getActorInitials(name)}</Avatar.Fallback>
-        </Avatar>
+        <ChatMessage.Avatar
+            alt={`${name} avatar`}
+            className={turnAvatarOffsetClassName}
+            fallback={getEntityInitials(name)}
+            src={avatarUrl ?? undefined}
+        />
     );
 }
 
@@ -334,7 +273,6 @@ function TurnAvatar({
 const turnHeaderBioMaxChars = 165;
 
 function TurnHeader({
-    actions,
     bio,
     composerId,
     displayName,
@@ -342,7 +280,6 @@ function TurnHeader({
     onClick,
     timestamp,
 }: {
-    actions?: React.ReactNode;
     bio?: string | null;
     composerId?: string;
     displayName: string;
@@ -351,7 +288,7 @@ function TurnHeader({
     timestamp: string | null;
 }) {
     return (
-        <MessageHeader className="gap-2 px-0">
+        <div className="flex min-w-0 max-w-full items-center gap-2 text-muted text-xs">
             {mentionAgentId && composerId ? (
                 <button
                     aria-label={`Mention ${displayName}`}
@@ -388,20 +325,8 @@ function TurnHeader({
                     {formatShortTime(timestamp)}
                 </time>
             ) : null}
-            {actions ? <span className={hoverActionsClassName}>{actions}</span> : null}
-        </MessageHeader>
+        </div>
     );
-}
-
-export function resolveTurnAvatarVariant(
-    actorKind: 'agent' | 'participant' | 'profile',
-    avatarUrl?: string | null
-): 'eyes' | 'image' | 'initials' {
-    if (actorKind === 'agent') {
-        return 'eyes';
-    }
-
-    return avatarUrl ? 'image' : 'initials';
 }
 
 export function resolveMentionAgentId(
@@ -412,26 +337,8 @@ export function resolveMentionAgentId(
     return canRequestMention && actorKind === 'agent' ? (actorId ?? undefined) : undefined;
 }
 
-function getActorInitials(name: string) {
-    const parts = name
-        .trim()
-        .split(/\s+/)
-        .filter((part) => part.length > 0);
-
-    if (parts.length === 0) {
-        return '?';
-    }
-
-    if (parts.length === 1) {
-        return parts[0]?.slice(0, 2).toUpperCase() ?? '?';
-    }
-
-    return `${parts[0]?.[0] ?? ''}${parts.at(-1)?.[0] ?? ''}`.toUpperCase();
-}
-
 function AgentTurn({
     activeReply,
-    agentStatusCharacter,
     chatId,
     currentSessionKey,
     defaultOpenWorkGroups,
@@ -440,18 +347,7 @@ function AgentTurn({
     layout,
     sessionNotice,
     turnStartedAt,
-}: {
-    activeReply: ChatActiveReply | null;
-    agentStatusCharacter: AgentCharacter | null;
-    chatId?: string;
-    currentSessionKey?: string | null;
-    defaultOpenWorkGroups: boolean;
-    entry: Extract<TranscriptEntry, { kind: 'turn' }>;
-    followsRuntimeNotice: boolean;
-    layout: ConversationMessageLayout;
-    sessionNotice?: SessionNoticeRow | null;
-    turnStartedAt?: string | null;
-}) {
+}: AgentTurnProps) {
     const context = useTranscriptRenderContext();
 
     if (context.resolveActorProfile) {
@@ -459,7 +355,6 @@ function AgentTurn({
             <AgentTurnPresentation
                 activeReply={activeReply}
                 actorProfile={context.resolveActorProfile(entry.actor)}
-                agentStatusCharacter={agentStatusCharacter}
                 chatId={chatId}
                 currentSessionKey={currentSessionKey}
                 defaultOpenWorkGroups={defaultOpenWorkGroups}
@@ -475,7 +370,6 @@ function AgentTurn({
     return (
         <LocalAgentTurn
             activeReply={activeReply}
-            agentStatusCharacter={agentStatusCharacter}
             chatId={chatId}
             currentSessionKey={currentSessionKey}
             defaultOpenWorkGroups={defaultOpenWorkGroups}
@@ -490,7 +384,6 @@ function AgentTurn({
 
 interface AgentTurnProps {
     activeReply: ChatActiveReply | null;
-    agentStatusCharacter: AgentCharacter | null;
     chatId?: string;
     currentSessionKey?: string | null;
     defaultOpenWorkGroups: boolean;
@@ -510,7 +403,6 @@ function LocalAgentTurn(props: AgentTurnProps) {
 function AgentTurnPresentation({
     activeReply,
     actorProfile,
-    agentStatusCharacter,
     chatId,
     currentSessionKey,
     defaultOpenWorkGroups,
@@ -524,12 +416,14 @@ function AgentTurnPresentation({
     const items = entry.items;
     const displayName = actorProfile?.name ?? getTurnFallbackName(entry) ?? 'Agent';
     const showIdentity = layout.showAgentIdentity;
-    const lastMessage = getLastMessage(items);
+    const lastMessageRow = getLastMessageRow(items);
+    const lastMessage = lastMessageRow?.message ?? null;
     const turnCompletedAt = lastMessage?.timestamp ?? null;
     const {
         canRequestMention,
         composerId,
         disableAgentHoverCard,
+        onToggleReaction,
         profilePaneChatId,
         repliedRunIds,
         turnEvidenceSource,
@@ -542,28 +436,35 @@ function AgentTurnPresentation({
     const copyValue = lastMessage?.content ?? getActiveReplyText(items);
     const [inspectOpen, setInspectOpen] = React.useState(false);
     const [inspectMounted, setInspectMounted] = React.useState(false);
-    const headerActions = (
+    const turnActions = (
         <>
+            {lastMessageRow ? (
+                <MessageReactionActions className={turnActionClassName} row={lastMessageRow} />
+            ) : null}
+            {lastMessageRow && onToggleReaction ? (
+                <Separator className="mx-0.5 h-4" orientation="vertical" />
+            ) : null}
             {lastMessage ? (
                 <TranscriptMessageActions value={lastMessage.content} />
             ) : copyValue ? (
                 <TranscriptMessageActions disabled value={copyValue} />
             ) : null}
-            <button
-                aria-label="View turn details"
-                className={messageActionButtonClassName}
-                onClick={() => {
-                    setInspectMounted(true);
-                    setInspectOpen(true);
-                }}
-                title="View turn details"
-                type="button"
-            >
-                <Icon className="size-3.5" icon={ListViewIcon} strokeWidth={2} />
-            </button>
-            {sessionNotice ? (
-                <SessionNoticeAction className={messageActionButtonClassName} row={sessionNotice} />
+            {lastMessageRow ? (
+                <ThreadMessageActions className={turnActionClassName} row={lastMessageRow} />
             ) : null}
+            <ActionTooltip label="View turn details">
+                <ChatMessage.Action
+                    aria-label="View turn details"
+                    className={turnActionClassName}
+                    onPress={() => {
+                        setInspectMounted(true);
+                        setInspectOpen(true);
+                    }}
+                >
+                    <Icon icon={ListViewIcon} strokeWidth={2} />
+                </ChatMessage.Action>
+            </ActionTooltip>
+            {sessionNotice ? <SessionNoticeAction row={sessionNotice} /> : null}
         </>
     );
 
@@ -580,12 +481,8 @@ function AgentTurnPresentation({
     }
 
     return (
-        <Message
-            align="start"
-            className={cn(
-                rowClassName,
-                showIdentity ? newTurnGapClassName : followsRuntimeNotice ? 'mt-0' : null
-            )}
+        <ChatMessage.Assistant
+            className={cn(turnRowClassName, !showIdentity && followsRuntimeNotice && 'mt-0')}
         >
             {chatId && actorId && !disableAgentHoverCard ? (
                 <AgentHoverCard
@@ -602,12 +499,7 @@ function AgentTurnPresentation({
                     // height and re-centering the avatar it wraps.
                     triggerClassName="shrink-0 self-start"
                 >
-                    <TurnAvatar
-                        actorKind="agent"
-                        character={actorProfile?.character ?? agentStatusCharacter ?? 'none'}
-                        color={actorProfile?.primaryColor}
-                        name={displayName}
-                    />
+                    <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
                 </AgentHoverCard>
             ) : chatId && actorId && profilePaneChatId ? (
                 <button
@@ -616,25 +508,14 @@ function AgentTurnPresentation({
                     onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
                     type="button"
                 >
-                    <TurnAvatar
-                        actorKind="agent"
-                        character={actorProfile?.character ?? agentStatusCharacter ?? 'none'}
-                        color={actorProfile?.primaryColor}
-                        name={displayName}
-                    />
+                    <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
                 </button>
             ) : (
-                <TurnAvatar
-                    actorKind="agent"
-                    character={actorProfile?.character ?? agentStatusCharacter ?? 'none'}
-                    color={actorProfile?.primaryColor}
-                    name={displayName}
-                />
+                <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
             )}
-            <MessageContent className="gap-0 pt-0.5">
+            <ChatMessage.Body className={turnBodyClassName}>
                 {showIdentity ? (
                     <TurnHeader
-                        actions={headerActions}
                         bio={actorProfile?.bio}
                         composerId={composerId}
                         displayName={displayName}
@@ -646,30 +527,28 @@ function AgentTurnPresentation({
                         timestamp={entry.timestamp}
                     />
                 ) : null}
-                <div className={cn(hoverGroupClassName, 'relative -mt-0.5 min-w-0')}>
-                    <div className="flex min-w-0 flex-col gap-3">
-                        {visibleSegments.map((segment, index) => (
-                            <AgentTurnSegment
-                                chatId={chatId}
-                                currentSessionKey={currentSessionKey}
-                                defaultOpenWorkGroups={defaultOpenWorkGroups}
-                                key={segment.key}
-                                revealNarration={turnActive}
-                                segment={segment}
-                                turnActive={turnActive && index === visibleSegments.length - 1}
-                                turnCompletedAt={turnCompletedAt}
-                                turnStartedAt={turnStartedAt}
-                                turnStopped={turnStopped}
-                            />
-                        ))}
-                    </div>
-                </div>
-            </MessageContent>
+                {visibleSegments.map((segment, index) => (
+                    <AgentTurnSegment
+                        chatId={chatId}
+                        currentSessionKey={currentSessionKey}
+                        defaultOpenWorkGroups={defaultOpenWorkGroups}
+                        key={segment.key}
+                        revealNarration={turnActive}
+                        segment={segment}
+                        turnActive={turnActive && index === visibleSegments.length - 1}
+                        turnCompletedAt={turnCompletedAt}
+                        turnStartedAt={turnStartedAt}
+                        turnStopped={turnStopped}
+                    />
+                ))}
+                <ChatMessageActions className={turnActionsClassName}>
+                    {turnActions}
+                </ChatMessageActions>
+            </ChatMessage.Body>
             {/* Mounted on first use so long transcripts don't pay a drawer per turn. */}
             {inspectMounted ? (
                 <ChatTurnDrawer
-                    agentCharacter={actorProfile?.character ?? agentStatusCharacter ?? null}
-                    agentColor={actorProfile?.primaryColor ?? null}
+                    agentAvatarUrl={actorProfile?.avatarUrl ?? null}
                     agentName={displayName}
                     chatId={chatId}
                     embeddedEvidence={turnEvidenceSource === 'embedded'}
@@ -679,14 +558,13 @@ function AgentTurnPresentation({
                     turnActive={turnActive}
                 />
             ) : null}
-        </Message>
+        </ChatMessage.Assistant>
     );
 }
 
 // Exported for the turn drawer, which renders a turn's full segment list —
 // activity groups included — outside the transcript pane.
 export function AgentTurnSegment({
-    activityAppearance,
     chatId,
     currentSessionKey,
     defaultOpenWorkGroups,
@@ -697,7 +575,6 @@ export function AgentTurnSegment({
     turnStopped,
     turnStartedAt,
 }: {
-    activityAppearance?: 'card' | 'transcript';
     chatId?: string;
     currentSessionKey?: string | null;
     defaultOpenWorkGroups: boolean;
@@ -711,7 +588,6 @@ export function AgentTurnSegment({
     if (segment.kind === 'activity') {
         return (
             <ChatTranscriptActivityGroup
-                appearance={activityAppearance}
                 chatId={chatId}
                 currentSessionKey={currentSessionKey}
                 defaultOpen={defaultOpenWorkGroups}
@@ -877,13 +753,13 @@ function UserTurnItem({ from, item }: { from: 'assistant' | 'user'; item: Transc
 
     return body ? (
         <ThreadMessageSurface row={item.row}>
-            <ChatMessage
+            <TranscriptMessageBlock
                 animateEnter={isLocalTimelineMessageMetadata(message.metadata) || animateLiveEnter}
                 attachments={attachments}
                 from={from}
             >
                 {body}
-            </ChatMessage>
+            </TranscriptMessageBlock>
         </ThreadMessageSurface>
     ) : null;
 }
@@ -1056,7 +932,7 @@ function AssistantReplyText({
     );
 
     return (
-        <ChatMessage
+        <TranscriptMessageBlock
             animateEnter={animateEnter}
             attachments={attachments}
             className={isCommentary ? 'opacity-85' : undefined}
@@ -1074,7 +950,7 @@ function AssistantReplyText({
             ) : (
                 body
             )}
-        </ChatMessage>
+        </TranscriptMessageBlock>
     );
 }
 
@@ -1238,23 +1114,21 @@ function TranscriptMessageActions({
     disabled?: boolean;
     value: string;
 }) {
+    const label = disabled ? 'Copy available when complete' : 'Copy message';
+
     return (
-        <CopyButton
-            className={messageActionButtonClassName}
-            copiedLabel="Copied message"
-            disabled={disabled}
-            label={disabled ? 'Copy available when complete' : 'Copy message'}
-            value={value}
-        />
+        <ActionTooltip label={label}>
+            <ChatMessageActions.Copy
+                aria-label={label}
+                className={turnActionClassName}
+                isDisabled={disabled}
+                onPress={() => void writeClipboardText(value)}
+            />
+        </ActionTooltip>
     );
 }
 
-// cursor-default overrides the button primitive's cursor-pointer: clickable
-// app chrome keeps the regular arrow cursor.
-const messageActionButtonClassName =
-    'inline-flex size-5 cursor-default items-center justify-center rounded-md border-0 bg-transparent p-0 text-muted shadow-none hover:bg-transparent hover:text-foreground';
-
-function getLastMessage(items: TranscriptItem[]) {
+function getLastMessageRow(items: TranscriptItem[]) {
     for (let index = items.length - 1; index >= 0; index -= 1) {
         const item = items[index];
 
@@ -1263,11 +1137,15 @@ function getLastMessage(items: TranscriptItem[]) {
             item.row.kind === 'message' &&
             !isActivityBackedMessageRow(item.row)
         ) {
-            return item.row.message;
+            return item.row;
         }
     }
 
     return null;
+}
+
+function getLastMessage(items: TranscriptItem[]) {
+    return getLastMessageRow(items)?.message ?? null;
 }
 
 function isActiveTurn(

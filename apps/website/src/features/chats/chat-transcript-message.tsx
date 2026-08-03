@@ -65,8 +65,10 @@ export function ChatTranscriptMessageContent({
         return null;
     }
 
+    // Type scale comes from the surrounding ChatMessage.Content slot; this
+    // wrapper only sets color so live and durable replies share geometry.
     return (
-        <CollapsibleText className={cn('text-sm', textClassName ?? 'text-foreground')}>
+        <CollapsibleText className={cn(textClassName ?? 'text-foreground')}>
             <ChatMarkdownText
                 animatedRanges={animatedRanges}
                 content={content}

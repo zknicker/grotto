@@ -1,4 +1,5 @@
 import { Drawer } from '@heroui/react';
+import { ChatMessage } from '@heroui-pro/react';
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import {
     BrainIcon,
@@ -16,6 +17,7 @@ import { formatTimestamp } from '../../lib/format.ts';
 import { AccessEventLogEntry } from '../sessions/log/event-entry/access-entry.tsx';
 import { ArtifactLogEntry } from '../sessions/log/event-entry/artifact-entry.tsx';
 import { DeliveryLogEntry } from '../sessions/log/event-entry/delivery-entry.tsx';
+import { ActionTooltip } from './chat-action-tooltip.tsx';
 import type { TranscriptRow } from './chat-transcript-model.ts';
 import { ThinkingStep, ThinkingStepDetails } from './thinking-steps.tsx';
 
@@ -85,7 +87,9 @@ export function SystemStep({
     );
 }
 
-function getSystemBody({
+// Exported for the turn drawer, which renders system rows as ChainOfThought
+// steps but reuses the same summaries and evidence bodies.
+export function getSystemBody({
     currentSessionKey,
     row,
 }: {
@@ -113,7 +117,7 @@ function getSystemBody({
     }
 }
 
-function getSystemSummary(row: Extract<TranscriptRow, { kind: 'system' }>): {
+export function getSystemSummary(row: Extract<TranscriptRow, { kind: 'system' }>): {
     description?: string;
     icon: StepIcon;
     label: string;
@@ -204,27 +208,21 @@ function formatCompactionDescription(count: number | null | undefined) {
 // Hover affordance for a turn that opened a fresh session: an icon button in
 // the turn's header actions (beside copy and turn details) that opens the
 // notice drawer, instead of a standalone row ahead of the reply.
-export function SessionNoticeAction({
-    className,
-    row,
-}: {
-    className?: string;
-    row: RuntimeNoticeRow;
-}) {
+export function SessionNoticeAction({ row }: { row: RuntimeNoticeRow }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const summary = getRuntimeNoticeSummary(row);
 
     return (
         <>
-            <button
-                aria-label="Started a fresh session"
-                className={className}
-                onClick={() => setIsOpen(true)}
-                title="Started a fresh session"
-                type="button"
-            >
-                <Icon className="size-3.5" icon={summary.icon} strokeWidth={2} />
-            </button>
+            <ActionTooltip label="Started a fresh session">
+                <ChatMessage.Action
+                    aria-label="Started a fresh session"
+                    className="size-7 [&_svg]:size-3.5"
+                    onPress={() => setIsOpen(true)}
+                >
+                    <Icon icon={summary.icon} strokeWidth={2} />
+                </ChatMessage.Action>
+            </ActionTooltip>
             <RuntimeNoticeDrawer
                 isOpen={isOpen}
                 onOpenChange={setIsOpen}

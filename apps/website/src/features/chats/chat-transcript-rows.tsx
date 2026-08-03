@@ -1,4 +1,3 @@
-import type { AgentCharacter } from '@tavern/api/agent-appearance';
 import * as React from 'react';
 import { DayDivider } from '../../components/chats/day-divider.tsx';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
@@ -13,26 +12,19 @@ import { TranscriptEntryView } from './chat-transcript-turn.tsx';
 
 interface TranscriptRenderRowProps {
     activeReplies?: readonly ChatActiveReply[];
-    agentStatusCharacter?: AgentCharacter | null;
     row: TranscriptRenderRow;
 }
 
 interface TranscriptRenderRowViewProps {
     activeReply: ChatActiveReply | null;
-    agentStatusCharacter?: AgentCharacter | null;
     row: TranscriptRenderRow;
 }
 
-export function TranscriptRenderRowItem({
-    activeReplies = [],
-    row,
-    ...props
-}: TranscriptRenderRowProps) {
+export function TranscriptRenderRowItem({ activeReplies = [], row }: TranscriptRenderRowProps) {
     return (
         <TranscriptRenderRowView
             activeReply={findTranscriptRenderRowActiveReply(row, activeReplies)}
             row={row}
-            {...props}
         />
     );
 }
@@ -40,41 +32,32 @@ export function TranscriptRenderRowItem({
 // Entry and item wrappers are rebuilt on every streaming update, but the
 // underlying row objects keep their identity. Comparing structurally lets
 // historical rows skip re-rendering while text streams into the live turn.
-const TranscriptRenderRowView = React.memo(
-    ({ activeReply, agentStatusCharacter = null, row }: TranscriptRenderRowViewProps) => {
-        const {
-            chatId,
-            conversationLayout,
-            currentSessionKey,
-            defaultOpenWorkGroups,
-            hiddenCount,
-        } = useTranscriptRenderContext();
+const TranscriptRenderRowView = React.memo(({ activeReply, row }: TranscriptRenderRowViewProps) => {
+    const { chatId, conversationLayout, currentSessionKey, defaultOpenWorkGroups, hiddenCount } =
+        useTranscriptRenderContext();
 
-        if (row.kind === 'hiddenCount') {
-            return <SessionLogHiddenCount hiddenCount={hiddenCount} />;
-        }
+    if (row.kind === 'hiddenCount') {
+        return <SessionLogHiddenCount hiddenCount={hiddenCount} />;
+    }
 
-        if (row.kind === 'dayDivider') {
-            return <DayDivider className="mx-3 mt-2" label={row.label} />;
-        }
+    if (row.kind === 'dayDivider') {
+        return <DayDivider className="mx-3 mt-2" label={row.label} />;
+    }
 
-        return (
-            <TranscriptEntryView
-                activeReply={activeReply}
-                agentStatusCharacter={agentStatusCharacter}
-                chatId={chatId}
-                conversationLayout={conversationLayout}
-                currentSessionKey={currentSessionKey}
-                defaultOpenWorkGroups={defaultOpenWorkGroups}
-                entry={row.entry}
-                followsRuntimeNotice={row.followsRuntimeNotice}
-                sessionNotice={row.sessionNotice}
-                turnStartedAt={row.turnStartedAt}
-            />
-        );
-    },
-    areTranscriptRenderRowViewPropsEqual
-);
+    return (
+        <TranscriptEntryView
+            activeReply={activeReply}
+            chatId={chatId}
+            conversationLayout={conversationLayout}
+            currentSessionKey={currentSessionKey}
+            defaultOpenWorkGroups={defaultOpenWorkGroups}
+            entry={row.entry}
+            followsRuntimeNotice={row.followsRuntimeNotice}
+            sessionNotice={row.sessionNotice}
+            turnStartedAt={row.turnStartedAt}
+        />
+    );
+}, areTranscriptRenderRowViewPropsEqual);
 
 TranscriptRenderRowView.displayName = 'TranscriptRenderRowView';
 
@@ -82,11 +65,7 @@ function areTranscriptRenderRowViewPropsEqual(
     previous: TranscriptRenderRowViewProps,
     next: TranscriptRenderRowViewProps
 ) {
-    return (
-        previous.activeReply === next.activeReply &&
-        previous.agentStatusCharacter === next.agentStatusCharacter &&
-        areRenderRowsEqual(previous.row, next.row)
-    );
+    return previous.activeReply === next.activeReply && areRenderRowsEqual(previous.row, next.row);
 }
 
 function areRenderRowsEqual(

@@ -1,11 +1,9 @@
-import type { AgentCharacter } from '@tavern/api/agent-appearance';
 import type * as React from 'react';
 import type { ChatLogOutput } from '../../lib/trpc.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
 import type { ConversationMessageLayout } from './chat-transcript-model.ts';
 
 export function ChatTimeline({
-    agentStatusCharacter = null,
     canRequestMention = true,
     chatId,
     conversationLayout,
@@ -14,7 +12,6 @@ export function ChatTimeline({
     scrollContentRef,
     totalMessages,
 }: {
-    agentStatusCharacter?: AgentCharacter | null;
     canRequestMention?: boolean;
     chatId?: string;
     conversationLayout?: ConversationMessageLayout;
@@ -27,7 +24,6 @@ export function ChatTimeline({
 
     return (
         <ChatTranscript
-            agentStatusCharacter={agentStatusCharacter}
             canRequestMention={canRequestMention}
             chatId={chatId}
             conversationLayout={conversationLayout}

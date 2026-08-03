@@ -14,12 +14,11 @@ import {
 import { CheckboxButtonGroup } from '@heroui-pro/react';
 import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { AgentFace } from './agent-face.tsx';
 
 export interface ChannelAgentOption {
-    effectiveCharacter: React.ComponentProps<typeof AgentFace>['head'];
-    effectivePrimaryColor: string | null;
+    avatarUrl: string | null;
     id: string;
     name: string;
 }
@@ -261,13 +260,11 @@ function AgentButtonGroup({
                                 anchored to the control itself. */}
                             <CheckboxButtonGroup.Indicator className="relative end-auto top-auto" />
                             <CheckboxButtonGroup.ItemContent className="flex-row items-center gap-2">
-                                {/* The stock icon slot forces svgs to size-6;
-                                    pills want the smaller face. */}
-                                <CheckboxButtonGroup.ItemIcon className="[&>svg]:size-4">
-                                    <AgentFace
-                                        animate={false}
-                                        head={agent.effectiveCharacter ?? 'none'}
-                                        size={16}
+                                <CheckboxButtonGroup.ItemIcon>
+                                    <EntityAvatar
+                                        name={agent.name}
+                                        size="sm"
+                                        src={agent.avatarUrl}
                                     />
                                 </CheckboxButtonGroup.ItemIcon>
                                 <Label>{agent.name}</Label>

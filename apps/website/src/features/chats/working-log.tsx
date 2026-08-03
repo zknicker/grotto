@@ -18,7 +18,6 @@ import { useStableWorkGroupLabel, WorkGroupHeaderText } from './work-group-heade
 
 export function WorkingLog({
     animateEnter = false,
-    appearance = 'transcript',
     chatId,
     currentSessionKey,
     defaultOpen: defaultOpenOverride,
@@ -29,9 +28,6 @@ export function WorkingLog({
     status,
 }: {
     animateEnter?: boolean;
-    // 'card' fills a bordered container (the turn drawer): full-bleed header
-    // strip, no transcript alignment offsets.
-    appearance?: 'card' | 'transcript';
     chatId?: string;
     currentSessionKey?: string | null;
     defaultOpen?: boolean;
@@ -95,11 +91,9 @@ export function WorkingLog({
                 // Group mode keeps the horizontal hover affordance without
                 // compressing the surrounding turn rhythm.
                 className={cn(
-                    'w-full',
-                    appearance === 'transcript' && 'max-w-[34rem]',
+                    'w-full max-w-[34rem]',
                     // The hover rail positions against this container.
-                    groupMode && 'relative',
-                    groupMode && appearance === 'transcript' && '-ml-2 w-[calc(100%+0.5rem)]',
+                    groupMode && 'relative -ml-2 w-[calc(100%+0.5rem)]',
                     groupMode && animateEnter && 'chat-step-enter'
                 )}
                 onOpenChange={setOpen}
@@ -109,24 +103,12 @@ export function WorkingLog({
                     aria-controls={panelId}
                     className={
                         groupMode
-                            ? cn(
-                                  'relative z-10 w-full py-1.5 pr-2 pl-3 font-normal text-muted text-sm outline-none transition-none hover:bg-chat-log-row-hover hover:text-muted focus-visible:bg-chat-log-row-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-                                  // Card appearance: a true header above the
-                                  // rows card, hugging its own label. Hover
-                                  // lightens the text and icons instead of
-                                  // painting a bg behind the tight label.
-                                  appearance === 'card' &&
-                                      'h-7 w-auto items-center rounded-md py-0 pr-2 pl-1.5 font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:bg-transparent hover:[&_svg]:text-foreground'
-                              )
+                            ? 'relative z-10 w-full py-1.5 pr-2 pl-3 font-normal text-muted text-sm outline-none transition-none hover:bg-chat-log-row-hover hover:text-muted focus-visible:bg-chat-log-row-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
                             : undefined
                     }
                     onFocus={groupMode ? rowHover.clearActiveItem : undefined}
                     onHoverStart={groupMode ? rowHover.clearActiveItem : undefined}
-                    wrapperClassName={
-                        groupMode
-                            ? cn('relative z-10 w-full', appearance === 'card' && 'w-fit')
-                            : undefined
-                    }
+                    wrapperClassName={groupMode ? 'relative z-10 w-full' : undefined}
                 >
                     {groupMode ? (
                         <span className="flex min-w-0 items-center gap-2">
@@ -155,35 +137,15 @@ export function WorkingLog({
                 <ThinkingStepsContent
                     className={showDurationHeader ? undefined : cn('relative z-10 pt-1')}
                     id={panelId}
-                    ref={groupMode && appearance !== 'card' ? rowHover.contentRef : undefined}
+                    ref={groupMode ? rowHover.contentRef : undefined}
                 >
-                    {groupMode && appearance === 'card' ? (
-                        // The rows sit on their own card surface below the
-                        // header; it owns the hover rail so the moving bg
-                        // clips to the card's rounded corners.
-                        <div
-                            className="relative overflow-hidden rounded-xl border border-separator bg-surface-secondary p-1 [--tool-row-min-h:2.25rem]"
-                            ref={rowHover.contentRef}
-                        >
-                            {rowHover.hoverLayer}
-                            <WorkingLogSteps
-                                chatId={chatId}
-                                currentSessionKey={currentSessionKey}
-                                isActive={isActive}
-                                items={items}
-                            />
-                        </div>
-                    ) : (
-                        <>
-                            {rowHover.hoverLayer}
-                            <WorkingLogSteps
-                                chatId={chatId}
-                                currentSessionKey={currentSessionKey}
-                                isActive={isActive}
-                                items={items}
-                            />
-                        </>
-                    )}
+                    {rowHover.hoverLayer}
+                    <WorkingLogSteps
+                        chatId={chatId}
+                        currentSessionKey={currentSessionKey}
+                        isActive={isActive}
+                        items={items}
+                    />
                 </ThinkingStepsContent>
             </ThinkingSteps>
         </ToolRowHoverRoot>

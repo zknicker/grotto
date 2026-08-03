@@ -1,5 +1,5 @@
-import { Button } from '@heroui/react';
-import type * as React from 'react';
+import { Button, useScrollShadow } from '@heroui/react';
+import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 
 /**
@@ -98,13 +98,26 @@ function AttachmentDownloadLink({ className, ...props }: React.ComponentProps<'a
 }
 
 function AttachmentGroup({ className, ...props }: React.ComponentProps<'div'>) {
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
+    // Stock HeroUI edge fade. The hook drives the mask off scroll position, so
+    // the strip keeps owning its own snap scrolling.
+    useScrollShadow({
+        containerRef: containerRef as React.RefObject<HTMLElement>,
+        isEnabled: true,
+        offset: 0,
+        orientation: 'horizontal',
+        visibility: 'auto',
+    });
+
     return (
         <div
             className={cn(
-                'scroll-fade-x scrollbar-none flex min-w-0 snap-x snap-mandatory scroll-px-1 gap-3 overflow-x-auto overscroll-x-contain py-1 *:data-[slot=attachment]:flex-none *:data-[slot=attachment]:snap-start',
+                'scroll-shadow scroll-shadow--fade scroll-shadow--horizontal scrollbar-none flex min-w-0 snap-x snap-mandatory scroll-px-1 gap-3 overscroll-x-contain py-1 *:data-[slot=attachment]:flex-none *:data-[slot=attachment]:snap-start',
                 className
             )}
             data-slot="attachment-group"
+            ref={containerRef}
             {...props}
         />
     );

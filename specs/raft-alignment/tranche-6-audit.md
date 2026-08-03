@@ -1,7 +1,7 @@
 # Tranche 6 audit — reminders and autonomous follow-up
 
-Audit date: 2026-07-30  
-Grotto revision at audit start: `a21591494`  
+Audit date: 2026-07-30\
+Grotto revision at audit start: `a21591494`\
 Status: corrective implementation and focused/live verification complete
 
 ## Method

@@ -1,7 +1,7 @@
 # Tranche 5 audit — MCP, skills, and Agent workspace
 
-Audit date: 2026-07-29  
-Grotto revision: `f7f3f8f91`  
+Audit date: 2026-07-29\
+Grotto revision: `f7f3f8f91`\
 Status: corrective implementation and focused/live verification complete
 
 ## Corrective implementation

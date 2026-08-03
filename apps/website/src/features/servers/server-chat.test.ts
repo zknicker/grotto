@@ -62,6 +62,26 @@ test('projects hosted messages into the preserved transcript contract', () => {
     expect(agentRow?.kind === 'message' ? agentRow.runId : null).toBe('hosted:message_agent');
 });
 
+test('projects a hosted system receipt as a quiet Grotto timeline row', () => {
+    const receipt: HostedChatMessage = {
+        ...message('message_receipt', 2),
+        author: { kind: 'system', system: 'task' },
+        content: '📋 1 new task created: #1 "Audit the hosted export"',
+    };
+
+    const [row] = projectHostedChatMessages([receipt], []);
+
+    expect(row).toMatchObject({
+        actor: null,
+        kind: 'message',
+        message: {
+            content: receipt.content,
+            sender: 'Grotto',
+            senderType: 'system',
+        },
+    });
+});
+
 function message(id: string, sequence: number): HostedChatMessage {
     return {
         attachments: [],

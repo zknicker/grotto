@@ -1,9 +1,8 @@
 import type { HostedDurableEvent } from '@tavern/api';
-import { and, eq, sql } from 'drizzle-orm';
-import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
+import { and, eq } from 'drizzle-orm';
+import { insertHostedSystemMessage } from '../chats/insert-system-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import { chatsTable } from '../postgres/schema.ts';
 
 type SessionRotationReason = 'configuration' | 'full' | 'recovery' | 'session';
 
@@ -35,51 +34,16 @@ export async function recordHostedSessionRotationReceipts(
     const events: HostedDurableEvent[] = [];
     const now = new Date();
     for (const dm of dms) {
-        const [chat] = await db
-            .update(chatsTable)
-            .set({
-                lastActivityAt: now,
-                lastMessageSequence: sql`${chatsTable.lastMessageSequence} + 1`,
+        events.push(
+            await insertHostedSystemMessage(db, {
+                chatId: dm.chatId,
+                content: rotationText(input.reason),
+                createdAt: now,
+                nonce: `session:${input.agentId}:${input.generation}`,
+                serverId: input.serverId,
+                systemAuthor: 'session',
             })
-            .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, dm.chatId)))
-            .returning({ sequence: chatsTable.lastMessageSequence });
-        if (!chat) {
-            continue;
-        }
-        const messageId = createOpaqueId('msg');
-        await db.insert(chatMessagesTable).values({
-            chatId: dm.chatId,
-            content: rotationText(input.reason),
-            createdAt: now,
-            id: messageId,
-            nonce: `session:${input.agentId}:${input.generation}`,
-            sequence: chat.sequence,
-            serverId: input.serverId,
-            systemAuthor: 'session',
-        });
-        const cursor = await allocateHostedEventCursor(db, input.serverId);
-        const eventId = createOpaqueId('evt');
-        await db.insert(chatEventsTable).values({
-            chatId: dm.chatId,
-            createdAt: now,
-            cursor,
-            id: eventId,
-            messageId,
-            sequence: chat.sequence,
-            serverId: input.serverId,
-            type: 'message.created',
-        });
-        events.push({
-            chatId: dm.chatId,
-            createdAt: now.toISOString(),
-            cursor: cursor.toString(),
-            id: eventId,
-            messageId,
-            parentChatId: null,
-            sequence: chat.sequence,
-            serverId: input.serverId,
-            type: 'message.created',
-        });
+        );
     }
     return events;
 }

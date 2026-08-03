@@ -905,11 +905,35 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         'task.updated',
         'task.updated',
     ]);
+    const [createdReceipt] = (await harness.sql`
+        select content, system_author
+        from chat_messages
+        where server_id = ${serverId}
+          and chat_id = 'cht_targetchannel01'
+          and nonce = 'task-receipt:agent_tasks_create_1'
+    `) as Array<{ content: string; system_author: string }>;
+    expect(createdReceipt).toEqual({
+        content: '📋 1 new task created: #1 "Audit the delivery boundary"',
+        system_author: 'task',
+    });
 
     const regular = await owner.trpc.chat.send.mutate({
         chatId: 'cht_targetchannel01',
         content: 'Turn this ordinary message into claimed work.',
         nonce: 'human_task_conversion_1',
+        serverId,
+    });
+    const existingThreadReply = await owner.trpc.chat.send.mutate({
+        chatId: 'cht_targetchannel01',
+        content: 'Existing thread context must survive task conversion.',
+        nonce: 'human_task_conversion_thread_1',
+        serverId,
+        thread: { anchorMessageId: regular.message.id },
+    });
+    await advanceServedCursor(connection.db, {
+        agentId,
+        chatId: existingThreadReply.message.chatId,
+        sequence: existingThreadReply.message.sequence,
         serverId,
     });
     const converted = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
@@ -929,6 +953,21 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         },
         status: 200,
     });
+    expect(existingThreadReply.threadChatId).toBe(
+        `cht_thr_${regular.message.id.slice('msg_'.length)}`
+    );
+    const preservedThread = await owner.trpc.chat.messages.query({
+        chatId: existingThreadReply.threadChatId as string,
+        serverId,
+    });
+    expect(preservedThread.messages).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                content: 'Existing thread context must survive task conversion.',
+                id: existingThreadReply.message.id,
+            }),
+        ])
+    );
     const [convertedRow] = (await harness.sql`
         select origin, message_id, assignee_agent_id
         from message_tasks
@@ -950,6 +989,17 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         'task.created',
         'task.updated',
     ]);
+    const [conversionReceipt] = (await harness.sql`
+        select content, system_author
+        from chat_messages
+        where server_id = ${serverId}
+          and chat_id = 'cht_targetchannel01'
+          and nonce = ${`task-receipt:${regular.message.id}`}
+    `) as Array<{ content: string; system_author: string }>;
+    expect(conversionReceipt).toEqual({
+        content: '📋 @cove converted a message to task #2 "Turn this ordinary message…"',
+        system_author: 'task',
+    });
 });
 
 test('task ownership is one lock across human and Agent actors', async () => {

@@ -15,7 +15,9 @@ and [Agent Inbox](../../specs/inbox.md).
 
 ## In the box
 
-* **Durable messages.** User, assistant, and system rows are stable history.
+* **Durable messages.** User, assistant, and Server-authored system rows are stable history.
+  Task creation and promotion can add a concise system receipt to the parent Chat; it is an
+  informational timeline row, while the task message and its Thread remain canonical.
   The timeline carries conversation units only — messages, artifacts,
   notices, thread anchors — and nothing turn-shaped. See
   [chat-timeline](../../specs/chat-timeline.md).

@@ -10,9 +10,9 @@ rows at all.
 ## Product Expectations
 
 - A chat reads like a conversation between participants. Humans and agents
-  contribute messages; system receipts (task events later, session resets,
-  thread notices) render as quiet centered lines; nothing else appears as a
-  timeline unit.
+  contribute messages; Server-authored system receipts (including task
+  creation/promotion, session resets, and thread notices) render as quiet
+  centered lines; nothing else appears as a timeline unit.
 - An agent message is an explicit send, immutable once committed. There are
   no edits, no streamed replacements, no silent-turn placeholders.
 - The only live chat-level signal is the **composition stream**

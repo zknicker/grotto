@@ -4,6 +4,11 @@ import { expect, test } from '@playwright/test';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
 import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
+/**
+ * User story: a human can ask an Agent to check something later without keeping a turn
+ * open. When the reminder fires, the Agent rereads the source Thread and reports the
+ * newest business state there exactly once.
+ */
 test.describe.configure({ mode: 'serial' });
 
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));

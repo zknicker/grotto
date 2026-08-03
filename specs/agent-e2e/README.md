@@ -77,11 +77,11 @@ Status values:
 
 | ID | Grotto behavior | Coverage | Status |
 | --- | --- | --- | --- |
-| T1 | Promoting a message creates one task with that message's Thread as its work surface. | Browser E2E + deterministic | quarantined |
+| T1 | Promoting a message creates one task with that message's Thread as its work surface. | Browser E2E + deterministic | passing |
 | T2 | An Agent claims actionable work before acting and reports in the task Thread. | Agent E2E | passing |
 | T3 | Competing claims produce one owner; the loser stands down. | Deterministic race + prompt contract | passing |
-| T4 | An Agent can acknowledge work, deliver the result, and advance the task state. Useful unsolicited progress is model judgment and remains an observation. | Agent E2E + observation | quarantined |
-| T5 | A task status update uses fresh Thread context rather than stale delivery context. | Agent E2E + deterministic freshness | quarantined |
+| T4 | An Agent can acknowledge work, deliver the result, and advance the task state. Useful unsolicited progress is model judgment and remains an observation. | Agent E2E + observation | passing |
+| T5 | A task status update uses fresh Thread context rather than stale delivery context. | Agent E2E + deterministic freshness | passing |
 | T6 | Losing membership or task access prevents further reads and mutations. | Deterministic authorization | passing |
 
 ### Tranche 4 — Agent creation, onboarding, and retirement
@@ -109,13 +109,30 @@ Status values:
 
 | ID | Grotto behavior | Coverage | Status |
 | --- | --- | --- | --- |
-| R1 | An Agent schedules a one-shot follow-up and later replies in the source Thread. | Agent E2E | quarantined |
-| R2 | A natural-language future time schedules directly when it is unambiguous. | Agent E2E | quarantined |
-| R3 | A follow-up checks the requested business condition rather than merely announcing that a timer fired. | Agent E2E | quarantined |
+| R1 | An Agent schedules a one-shot follow-up and later replies in the source Thread. | Agent E2E | passing |
+| R2 | A natural-language future time schedules directly when it is unambiguous. | Agent E2E | passing |
+| R3 | A follow-up checks the requested business condition rather than merely announcing that a timer fired. | Agent E2E | passing |
 | R4 | A reminder firing while its Computer is offline is delivered once after reconnect. | Deterministic | passing |
 | R5 | Schedule, snooze, update, cancel, and retry preserve one logical reminder. | Deterministic | passing |
 | R6 | Cancel and fire races resolve to one authoritative lifecycle outcome. | Deterministic | passing |
 | R7 | Only the owning Agent can manage or receive its reminder. | Deterministic authorization | passing |
+
+### Tranche 7 — Multi-Agent coordination
+
+| ID | Grotto behavior | Coverage | Status |
+| --- | --- | --- | --- |
+| C1 | A coordinator divides independent work into owned lanes and synthesizes one recommendation from their evidence. | Agent E2E | passing |
+| C2 | A verifier reviews the author's actual output before the coordinator presents the reviewed result. | Agent E2E | passing |
+| C3 | A time-bounded coordinator reports received and pending input honestly instead of waiting forever or treating silence as evidence. | Agent E2E | passing |
+| C4 | A mid-flight human correction reaches active lanes and changes the final synthesis. | Agent E2E + deterministic freshness | passing |
+| C5 | A coordinator preserves contradictory owned evidence and asks the human to resolve a conflict instead of inventing a winner. | Agent E2E | passing |
+| C6 | A standing owner transfers a recurring lane with evidence and remains the backstop until the new owner proves one real delivery. | Observation | mapped |
+
+### Tranche 8 — Durable handoff
+
+| ID | Grotto behavior | Coverage | Status |
+| --- | --- | --- | --- |
+| H1 | A fresh Agent continues another Agent's sourced work from its durable Thread and shared artifact without the human restating the assignment. | Agent E2E + deterministic Thread identity | passing |
 
 ## Existing executable lanes
 
@@ -141,3 +158,4 @@ failure-mode coverage or browser-only UI regressions.
 - [2026-07-30 MCP, skills, and workspace](./observations/2026-07-30-mcp-skills-workspace.md)
 - [2026-07-31 Agent artifact pane](./observations/2026-07-31-agent-artifact-pane.md)
 - [2026-07-30 reminders and follow-up](./observations/2026-07-30-reminders-and-follow-up.md)
+- [2026-08-02 durable relay](./observations/2026-08-02-durable-relay.md)

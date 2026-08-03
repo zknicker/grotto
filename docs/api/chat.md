@@ -11,8 +11,8 @@ read_when:
 
 The Chat API has a hosted collaboration surface and a local Runtime
 execution surface. The hosted surface is canonical for Server Channels, DMs,
-human and reminder-system messages, reads, search, and durable events. It does not require a
-Computer.
+human and Server-authored system messages, reads, search, and durable events. It does not require
+a Computer.
 
 Agent runtimes have sessions and turns. Chat apps have messages and responses.
 Tavern Runtime exposes agent responses, response activity,
@@ -65,9 +65,11 @@ Message order is the positive per-Chat `sequence`, allocated while the Chat row
 is transactionally locked. `(server_id, chat_id, nonce)` is unique. Retrying
 the same actor, content, and ordered attachment ids returns the original
 message and event cursor; reusing the nonce for a different send is a conflict.
-An author is either the current human membership author or the explicit
-`system: "reminder"` author. The system shape exists only for canonical
-reminder receipts and is never represented as a human membership.
+An author is either the current human membership author or an explicit Server-authored system
+author: `system: "reminder"`, `"session"`, or `"task"`. System rows are never represented as a
+human membership. Task creation and promotion use `system: "task"` for a concise informational
+receipt in the parent Chat; the receipt is persisted as an ordinary `message.created` timeline
+event and is recovered through the same cursor path as other messages.
 
 Every attachment must be ready, uploaded by the author, unassociated, and in
 the same Server and Chat. Message creation, attachment association, and the

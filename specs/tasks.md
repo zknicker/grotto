@@ -17,7 +17,9 @@ Server tenant. `chat_messages.task` and task-list reads project the same row.
 
 Only top-level Channel or DM messages can be promoted. Promotion is idempotent by canonical
 message identity. Atomic create uses the message nonce for replay and creates the message, task,
-Thread, and durable events in one transaction.
+Thread, and durable events in one transaction. Creation and promotion also append one
+Server-authored `system: "task"` message to the parent Chat in that transaction. The receipt is
+informational; the canonical task message and deterministic Thread remain the work surface.
 
 ## Authority and concurrency
 
@@ -43,12 +45,14 @@ Assignee and status are independent. Claiming an unassigned `todo` task moves it
 
 Task transactions emit small concrete durable events:
 
+- `message.created`: the Server-authored task receipt's Chat sequence and cursor
 - `task.created`: Server, parent Chat, canonical message, sequence, and cursor
 - `task.updated`: the same ids for lifecycle changes
 - `task.label.updated`: Server, label, and cursor
 
 Events notify; PostgreSQL task/message/label reads remain authoritative. The App uses the same
-event targeting for live delivery and cursor catch-up after reconnect.
+event targeting for live delivery and cursor catch-up after reconnect, so a receipt appears live
+and is recovered after a reconnect or restart.
 
 ## Surfaces
 
@@ -63,7 +67,7 @@ to PRD-141. Production activation of the managed CLI belongs to PRD-145.
 
 ## Non-goals
 
-No hosted system receipts, due dates, task-owned reminders, attachments, task deletion,
-task-specific queue, per-task conversation store, generic workflow engine, or generic
-label/taxonomy framework. Reminders may separately anchor to task messages. Task delivery and peer
-assignment use the ordinary Agent inbox path.
+No due dates, task-owned reminders, attachments, task deletion, task-specific queue, per-task
+conversation store, generic workflow engine, or generic label/taxonomy framework. Reminders may
+separately anchor to task messages. Task delivery and peer assignment use the ordinary Agent inbox
+path.

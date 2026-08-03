@@ -406,7 +406,7 @@ const schemaStatements = [
             OR
             (author_agent_id IS NOT NULL AND author_user_id IS NULL AND system_author IS NULL)
             OR
-            (author_user_id IS NULL AND author_agent_id IS NULL AND system_author IN ('reminder', 'session'))
+            (author_user_id IS NULL AND author_agent_id IS NULL AND system_author IN ('reminder', 'session', 'task'))
         )
     );`,
     'CREATE UNIQUE INDEX chat_messages_server_id_key ON chat_messages (server_id, id);',

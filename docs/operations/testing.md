@@ -179,6 +179,10 @@ message such as `Codex smoke <timestamp>: <purpose>`, record the created chat
 ids, and delete only those chats before finishing. If cleanup fails, report the
 exact chat ids or titles left behind.
 
+Live Agent E2E teardown uses the localhost-only `dev.cleanupEvalChats`
+procedure to delete exact test-created Chat ids. This is an authenticated,
+non-production test seam, not a product Chat archive or deletion contract.
+
 ## Live Provider Smoke
 
 Live provider tests are opt-in. They are not part of normal CI or default local

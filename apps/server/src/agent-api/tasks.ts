@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
+import { insertHostedSystemMessage } from '../chats/insert-system-message.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -18,6 +19,8 @@ import {
 import { lockServerRow } from '../servers/server-lock.ts';
 import { insertHostedTaskEvent } from '../tasks/task-events.ts';
 import { agentOwnsTask, taskHasOtherOwnerForAgent } from '../tasks/task-ownership.ts';
+import { taskReceiptContent } from '../tasks/task-receipts.ts';
+import { ensureHostedThreadRecord } from '../threads/ensure-thread.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import {
     type MessageRow,
@@ -193,6 +196,22 @@ export async function createAgentTasks(
                 );
             created.push(await taskRow(tx, runner, message, task));
         }
+        const receiptContent = taskReceiptContent({
+            kind: 'created',
+            tasks: created.map((task) => ({ number: task.number, title: task.message.content })),
+        });
+        if (!receiptContent) {
+            throw new AgentTaskError('Task creation did not produce a receipt.');
+        }
+        events.push(
+            await insertHostedSystemMessage(tx, {
+                chatId,
+                content: receiptContent,
+                nonce: `task-receipt:${input.nonce}`,
+                serverId: runner.serverId,
+                systemAuthor: 'task',
+            })
+        );
         return {
             events,
             tasks: created,
@@ -218,9 +237,7 @@ export async function claimAgentTasks(
     if (tasks.length === 0 && messageId) {
         const promoted = await promoteAgentMessageTask(db, runner, chatId, messageId);
         tasks = [promoted.task];
-        if (promoted.event) {
-            events.push(promoted.event);
-        }
+        events.push(...promoted.events);
     }
     if (tasks.length === 0) {
         throw new AgentTaskError('No matching task exists in that target.');
@@ -401,7 +418,11 @@ async function promoteAgentMessageTask(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         const [message] = await tx
-            .select({ chatId: chatMessagesTable.chatId, id: chatMessagesTable.id })
+            .select({
+                chatId: chatMessagesTable.chatId,
+                content: chatMessagesTable.content,
+                id: chatMessagesTable.id,
+            })
             .from(chatMessagesTable)
             .where(
                 and(
@@ -416,7 +437,7 @@ async function promoteAgentMessageTask(
         }
         const existing = await queryAgentTasks(tx, runner, chatId, { messageId });
         if (existing[0]) {
-            return { event: null, task: existing[0] };
+            return { events: [], task: existing[0] };
         }
         const [numberedChat] = await tx
             .update(chatsTable)
@@ -448,7 +469,22 @@ async function promoteAgentMessageTask(
             serverId: runner.serverId,
             type: 'task.created',
         });
-        return { event, task: created };
+        const receiptContent = taskReceiptContent({
+            actorLabel: `@${await agentHandle(tx, runner)}`,
+            kind: 'converted',
+            tasks: [{ number: created.number, title: message.content }],
+        });
+        if (!receiptContent) {
+            throw new AgentTaskError('Task conversion did not produce a receipt.');
+        }
+        const receiptEvent = await insertHostedSystemMessage(tx, {
+            chatId,
+            content: receiptContent,
+            nonce: `task-receipt:${messageId}`,
+            serverId: runner.serverId,
+            systemAuthor: 'task',
+        });
+        return { events: [event, receiptEvent], task: created };
     });
 }
 
@@ -522,15 +558,12 @@ async function createAgentTaskThread(
     if (!parent || parent.kind === 'thread') {
         throw new AgentTaskError('Tasks require a top-level Channel or DM.');
     }
-    const threadChatId = `cht_thr_${messageId.replace(/^msg_/u, '')}`;
-    await db.insert(chatsTable).values({
+    const thread = await ensureHostedThreadRecord(db, {
         anchorMessageId: messageId,
-        id: threadChatId,
-        kind: 'thread',
         parentChatId,
-        parentChatKind: parent.kind,
         serverId: runner.serverId,
     });
+    const threadChatId = thread.id;
     await db
         .insert(agentThreadFollowsTable)
         .values({

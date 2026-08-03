@@ -15,6 +15,7 @@ const path = require('node:path');
 const { execFile } = require('node:child_process');
 const electronUpdater = require('electron-updater');
 const { registerClerkAuth } = require('./clerk-auth.cjs');
+const { resolveClerkAuthOrigins } = require('./clerk-auth-origins.cjs');
 const { registerNativeClerkRequestHeaders } = require('./clerk-native-requests.cjs');
 const { registerEditContextMenuHandlers } = require('./edit-context-menu.cjs');
 const { registerExternalLinkHandlers } = require('./external-link-handlers.cjs');
@@ -34,7 +35,6 @@ for (const stream of [process.stdout, process.stderr]) {
 const updateCheckIntervalMs = 10 * 60 * 1000;
 const openDevtoolsMenuId = 'open-devtools';
 const productionAppUrl = 'https://grotto.sh';
-const productionClerkOrigin = 'https://clerk.grotto.sh';
 // Matches --topbar-height in the renderer so the traffic lights center in
 // the shell's headroom band.
 const topbarHeightPx = 48;
@@ -48,6 +48,11 @@ const useMockUpdater = !app.isPackaged && process.env.TAVERN_ELECTRON_UPDATER_MO
 const appUrl = app.isPackaged
     ? productionAppUrl
     : (process.env.TAVERN_ELECTRON_DEV_URL ?? productionAppUrl);
+const clerkAuthOrigins = resolveClerkAuthOrigins({
+    appUrl,
+    clerkIssuerUrl: process.env.CLERK_ISSUER_URL,
+    isPackaged: app.isPackaged,
+});
 
 const windows = new Set();
 let mainWindow = null;
@@ -385,8 +390,8 @@ function getErrorMessage(error) {
 app.whenReady().then(() => {
     registerNativeClerkRequestHeaders(
         session.defaultSession.webRequest,
-        productionClerkOrigin,
-        productionAppUrl
+        clerkAuthOrigins.clerkOrigin,
+        clerkAuthOrigins.appOrigin
     );
     registerIpcHandlers();
     installAppMenu();

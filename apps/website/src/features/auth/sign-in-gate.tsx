@@ -157,7 +157,7 @@ function SignInAction() {
 }
 
 function DesktopGoogleSignIn() {
-    const { startGoogleSignIn } = useDesktopOAuth();
+    const { cancelGoogleSignIn, startGoogleSignIn } = useDesktopOAuth();
     const [error, setError] = useState<string | null>(null);
     const [isStarting, setIsStarting] = useState(false);
 
@@ -168,7 +168,9 @@ function DesktopGoogleSignIn() {
         try {
             await startGoogleSignIn();
         } catch (signInError) {
-            setError(getErrorMessage(signInError));
+            if (!(signInError instanceof Error && signInError.name === 'AbortError')) {
+                setError(getErrorMessage(signInError));
+            }
         } finally {
             setIsStarting(false);
         }
@@ -176,14 +178,21 @@ function DesktopGoogleSignIn() {
 
     return (
         <div className="flex flex-col items-center gap-2">
-            <Button
-                isPending={isStarting}
-                onPress={() => {
-                    void handleSignIn();
-                }}
-            >
-                {isStarting ? 'Opening Google…' : 'Continue with Google'}
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button
+                    isPending={isStarting}
+                    onPress={() => {
+                        void handleSignIn();
+                    }}
+                >
+                    {isStarting ? 'Waiting for Google…' : 'Continue with Google'}
+                </Button>
+                {isStarting ? (
+                    <Button onPress={cancelGoogleSignIn} variant="outline">
+                        Cancel
+                    </Button>
+                ) : null}
+            </div>
             {error ? <p className="max-w-sm text-center text-danger text-sm">{error}</p> : null}
         </div>
     );

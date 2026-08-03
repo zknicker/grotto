@@ -18,6 +18,8 @@ module.exports = {
     },
     files: [
         'electron/clerk-auth.cjs',
+        'electron/clerk-auth-origins.cjs',
+        'electron/clerk-loopback-callback.cjs',
         'electron/clerk-native-requests.cjs',
         'electron/edit-context-menu.cjs',
         'electron/external-link-handlers.cjs',

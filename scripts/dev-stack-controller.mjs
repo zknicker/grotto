@@ -331,11 +331,12 @@ export class DevStackController extends EventEmitter {
             }
         };
 
-        const getDesktopEnv = () => ({
-            ...devStackEnvironment,
-            TAVERN_SERVER_PORT: String(this.ports.serverPort),
-            TAVERN_WEBSITE_PORT: String(this.ports.websitePort),
-        });
+        const getDesktopEnv = () =>
+            createDesktopDevEnvironment({
+                clerkEnvironmentOverrides: this.clerkEnvironmentOverrides,
+                devStackEnvironment,
+                ports: this.ports,
+            });
 
         const startDesktopPrebuild = () => {
             if (!(isDesktopMode(this.mode) && !desktopPrebuildPromise)) {
@@ -538,6 +539,19 @@ export class DevStackController extends EventEmitter {
         });
         this.emit('steady');
     }
+}
+
+export function createDesktopDevEnvironment({
+    clerkEnvironmentOverrides,
+    devStackEnvironment,
+    ports,
+}) {
+    return {
+        ...devStackEnvironment,
+        ...clerkEnvironmentOverrides,
+        TAVERN_SERVER_PORT: String(ports.serverPort),
+        TAVERN_WEBSITE_PORT: String(ports.websitePort),
+    };
 }
 
 export function signalChildProcessGroup(child, signal, killProcessGroup = process.kill) {

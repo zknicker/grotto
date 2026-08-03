@@ -2,10 +2,34 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import test from 'node:test';
 import {
+    createDesktopDevEnvironment,
     DevStackController,
     signalChildProcessGroup,
     waitForChildShutdown,
 } from './dev-stack-controller.mjs';
+
+test('desktop development receives the Clerk issuer used by the hosted App', () => {
+    assert.deepEqual(
+        createDesktopDevEnvironment({
+            clerkEnvironmentOverrides: {
+                CLERK_ISSUER_URL: 'https://clerk.shared.lcl.dev',
+            },
+            devStackEnvironment: {
+                PATH: '/usr/bin',
+            },
+            ports: {
+                serverPort: 25_249,
+                websitePort: 25_248,
+            },
+        }),
+        {
+            CLERK_ISSUER_URL: 'https://clerk.shared.lcl.dev',
+            PATH: '/usr/bin',
+            TAVERN_SERVER_PORT: '25249',
+            TAVERN_WEBSITE_PORT: '25248',
+        }
+    );
+});
 
 test('dev stack shutdown signals all managed processes before waiting in order', async () => {
     const controller = new DevStackController({

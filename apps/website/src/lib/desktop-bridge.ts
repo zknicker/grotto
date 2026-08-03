@@ -14,6 +14,8 @@ export interface TavernDesktopBridge {
     authTokenGet: () => Promise<string | null>;
     /** Persist or clear Clerk's native client JWT in main-process storage. */
     authTokenSet: (token: string | null) => Promise<void>;
+    /** Stop waiting for a development loopback OAuth callback. */
+    cancelSsoCallback?: () => Promise<void>;
     checkForUpdate: () => Promise<void>;
     closeWindow: () => Promise<void>;
     downloadUpdate: () => Promise<void>;
@@ -28,6 +30,8 @@ export interface TavernDesktopBridge {
     /** Open an HTTP(S) URL in the operating system's default browser. */
     openExternal: (url: string) => Promise<void>;
     openWindow: (route: string) => Promise<void>;
+    /** Reserve the callback URL owned by this desktop process. */
+    prepareSsoCallback?: () => Promise<string>;
     restartForUpdate: () => Promise<void>;
     runEditCommand: (command: DesktopEditCommand) => Promise<void>;
     setTheme: (theme: 'dark' | 'light' | null) => Promise<void>;

@@ -104,7 +104,9 @@ implemented surface:
   identity instead of locking the user out. The Electron shell loads the same
   hosted App but uses Clerk's native header authentication, keeps the encrypted
   client token in Electron storage, and completes Google sign-in in the system
-  browser through the `grotto://sso-callback` protocol. Electron removes the
+  browser. Packaged builds return through the `grotto://sso-callback` protocol;
+  development uses a process-owned loopback callback because unbundled Electron
+  apps share a generic macOS protocol-handler identity. Electron removes the
   hosted renderer's automatic `Origin` header only from Clerk requests explicitly
   marked as native, because Clerk accepts either native `Authorization` or a
   browser `Origin`, never both. The shell permits only the configured hosted App

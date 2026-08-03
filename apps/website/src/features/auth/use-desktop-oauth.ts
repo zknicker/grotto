@@ -1,15 +1,18 @@
 import { useSignIn, useSignUp } from '@clerk/clerk-react';
 import { useCallback, useEffect, useRef } from 'react';
 import { getDesktopBridge, isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
-import { getDesktopOAuthReloadOptions } from './desktop-oauth-callback.ts';
-import { desktopGoogleOAuthRequest } from './desktop-oauth-request.ts';
+import {
+    getDesktopOAuthReloadOptions,
+    waitForDesktopOAuthCallback,
+} from './desktop-oauth-callback.ts';
+import { desktopGoogleOAuthRequest, getDesktopOAuthCallbackUrl } from './desktop-oauth-request.ts';
 
 export function useDesktopOAuth() {
     const { isLoaded: isSignInLoaded, setActive, signIn } = useSignIn();
     const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
-    const unsubscribeRef = useRef<null | (() => void)>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
-    useEffect(() => () => unsubscribeRef.current?.(), []);
+    useEffect(() => () => abortControllerRef.current?.abort(), []);
 
     const startGoogleSignIn = useCallback(async () => {
         if (!(isSignInLoaded && isSignUpLoaded)) {
@@ -30,24 +33,22 @@ export function useDesktopOAuth() {
             throw new Error('The Grotto desktop bridge is unavailable.');
         }
 
-        await signIn.create(desktopGoogleOAuthRequest);
+        abortControllerRef.current?.abort();
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
 
-        const redirectUrl = signIn.firstFactorVerification.externalVerificationRedirectURL;
-        if (!redirectUrl) {
-            throw new Error('Google sign-in did not return an authorization URL.');
-        }
-        unsubscribeRef.current?.();
-        await bridge.openExternal(redirectUrl.toString());
+        try {
+            const callbackUrl = await getDesktopOAuthCallbackUrl(bridge);
+            await signIn.create(desktopGoogleOAuthRequest(callbackUrl));
 
-        await new Promise<void>((resolve, reject) => {
-            let handlingCallback = false;
-            const unsubscribe = bridge.onSsoCallback(async (callbackUrl) => {
-                if (handlingCallback) {
-                    return;
-                }
-                handlingCallback = true;
+            const redirectUrl = signIn.firstFactorVerification.externalVerificationRedirectURL;
+            if (!redirectUrl) {
+                throw new Error('Google sign-in did not return an authorization URL.');
+            }
+            await bridge.openExternal(redirectUrl.toString());
 
-                try {
+            await waitForDesktopOAuthCallback({
+                onCallback: async (callbackUrl) => {
                     await signIn.reload(getDesktopOAuthReloadOptions(callbackUrl));
 
                     let createdSessionId: string | null = null;
@@ -65,17 +66,21 @@ export function useDesktopOAuth() {
                     }
 
                     await setActive({ session: createdSessionId });
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                } finally {
-                    unsubscribe();
-                    unsubscribeRef.current = null;
-                }
+                },
+                signal: abortController.signal,
+                subscribe: bridge.onSsoCallback,
             });
-            unsubscribeRef.current = unsubscribe;
-        });
+        } finally {
+            await bridge.cancelSsoCallback?.().catch(() => undefined);
+            if (abortControllerRef.current === abortController) {
+                abortControllerRef.current = null;
+            }
+        }
     }, [isSignInLoaded, isSignUpLoaded, setActive, signIn, signUp]);
 
-    return { startGoogleSignIn };
+    const cancelGoogleSignIn = useCallback(() => {
+        abortControllerRef.current?.abort();
+    }, []);
+
+    return { cancelGoogleSignIn, startGoogleSignIn };
 }

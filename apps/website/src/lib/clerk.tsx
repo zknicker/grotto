@@ -2,6 +2,7 @@ import { ClerkProvider, useAuth } from '@clerk/clerk-react';
 import { type ReactNode, useLayoutEffect, useState, useSyncExternalStore } from 'react';
 import { getNativeClerk, getNativeClerkSessionToken } from './clerk-native.ts';
 import { clerkNativeOptions } from './clerk-native-options.ts';
+import { resolveClerkTransport } from './clerk-transport.ts';
 import { isElectronDesktopApp } from './desktop-bridge.ts';
 
 export const clerkPublishableKey: string | null =
@@ -98,7 +99,12 @@ function ClerkSessionTokenBridge({ children }: { children: ReactNode }) {
 }
 
 function usesNativeClerk() {
-    return isElectronDesktopApp() && !import.meta.env.DEV;
+    return (
+        resolveClerkTransport({
+            development: import.meta.env.DEV,
+            electron: isElectronDesktopApp(),
+        }) === 'native'
+    );
 }
 
 export function readClerkSessionTokenState() {

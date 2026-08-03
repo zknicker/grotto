@@ -2,6 +2,7 @@
 
 const path = require('node:path');
 const { existsSync, readFileSync, unlinkSync, writeFileSync } = require('node:fs');
+const { createLoopbackSsoCallback } = require('./clerk-loopback-callback.cjs');
 const { assertTrustedRenderer, isTrustedRendererUrl } = require('./trusted-renderer.cjs');
 
 const callbackChannel = 'desktop:auth:sso-callback';
@@ -18,13 +19,19 @@ function registerClerkAuth({
     shell,
     webContents,
 }) {
-    registerProtocolClient(app);
+    if (app.isPackaged) {
+        registerProtocolClient(app);
+    }
 
     const hasLock = app.requestSingleInstanceLock();
     if (!hasLock) {
         app.quit();
         return false;
     }
+
+    const loopbackCallback = createLoopbackSsoCallback((url) => {
+        broadcastSsoCallback(url, webContents, appUrl);
+    });
 
     app.on('open-url', (event, url) => {
         event.preventDefault();
@@ -55,12 +62,23 @@ function registerClerkAuth({
         assertTrustedRenderer(event, appUrl);
         return writeToken(app, safeStorage, token);
     });
+    ipcMain.handle('desktop:auth:sso-callback-prepare', async (event) => {
+        assertTrustedRenderer(event, appUrl);
+        return app.isPackaged ? 'grotto://sso-callback' : await loopbackCallback.prepare();
+    });
+    ipcMain.handle('desktop:auth:sso-callback-cancel', async (event) => {
+        assertTrustedRenderer(event, appUrl);
+        await loopbackCallback.close();
+    });
     ipcMain.handle('desktop:open-external', async (event, url) => {
         assertTrustedRenderer(event, appUrl);
         if (!isExternalBrowserUrl(url)) {
             throw new Error('Only HTTP(S) URLs can open in the system browser.');
         }
         await shell.openExternal(url);
+    });
+    app.on('before-quit', () => {
+        void loopbackCallback.close();
     });
 
     return true;
@@ -95,7 +113,13 @@ function isSsoCallbackUrl(value) {
     }
 
     try {
-        return new URL(value).protocol === `${protocolScheme}:`;
+        const url = new URL(value);
+        return (
+            url.protocol === `${protocolScheme}:` ||
+            (url.protocol === 'http:' &&
+                url.hostname === '127.0.0.1' &&
+                /^\/sso-callback\/[a-f0-9]{48}$/u.test(url.pathname))
+        );
     } catch {
         return false;
     }

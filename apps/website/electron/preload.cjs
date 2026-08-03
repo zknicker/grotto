@@ -6,11 +6,13 @@ contextBridge.exposeInMainWorld('tavernDesktop', {
     loadsHostedApp: true,
     authTokenGet: () => ipcRenderer.invoke('desktop:auth:token-get'),
     authTokenSet: (token) => ipcRenderer.invoke('desktop:auth:token-set', token),
+    cancelSsoCallback: () => ipcRenderer.invoke('desktop:auth:sso-callback-cancel'),
     onSsoCallback: (listener) => {
         const handler = (_event, url) => listener(url);
         ipcRenderer.on('desktop:auth:sso-callback', handler);
         return () => ipcRenderer.off('desktop:auth:sso-callback', handler);
     },
+    prepareSsoCallback: () => ipcRenderer.invoke('desktop:auth:sso-callback-prepare'),
     openExternal: (url) => ipcRenderer.invoke('desktop:open-external', url),
     onDevModeToggle: (listener) => {
         const handler = () => listener();

@@ -96,6 +96,22 @@ describe('dev.cleanupEvalChats', () => {
         if (!threadChatId) {
             throw new Error('Expected eval cleanup fixture to create a Thread.');
         }
+        const agentId = 'agt_eval_cleanup';
+        const reminderId = 'rem_eval_cleanup';
+        await harness.sql`
+            insert into agents (id, server_id, handle, display_name, home_timezone, role)
+            values (${agentId}, ${server.id}, 'eval-cleanup', 'Eval Cleanup', 'UTC', 'member')
+        `;
+        await harness.sql`
+            insert into reminders (
+                id, server_id, owner_agent_id, anchor_chat_id, anchor_message_id,
+                title, fire_at, timezone, status, created_at, updated_at
+            )
+            values (
+                ${reminderId}, ${server.id}, ${agentId}, ${parentChatId}, ${anchor.message.id},
+                'Temporary eval reminder', now() + interval '1 hour', 'UTC', 'scheduled', now(), now()
+            )
+        `;
 
         await expect(
             owner.trpc.dev.cleanupEvalChats.mutate({
@@ -117,6 +133,10 @@ describe('dev.cleanupEvalChats', () => {
             where server_id = ${server.id}
               and chat_id in (${parentChatId}, ${threadChatId})
         `;
+        const deletedReminders = await harness.sql`
+            select id from reminders
+            where server_id = ${server.id} and id = ${reminderId}
+        `;
         const [preservedOtherChat] = await harness.sql`
             select id from chats
             where server_id = ${otherServer.id} and id = ${otherChatId}
@@ -124,6 +144,7 @@ describe('dev.cleanupEvalChats', () => {
 
         expect(deletedChats).toHaveLength(0);
         expect(deletedMessages).toHaveLength(0);
+        expect(deletedReminders).toHaveLength(0);
         expect(preservedOtherChat?.id).toBe(otherChatId);
     });
 });

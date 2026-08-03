@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { chatsTable } from '../../postgres/schema.ts';
+import { chatsTable, remindersTable } from '../../postgres/schema.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
@@ -27,10 +27,22 @@ export function createCleanupEvalChatsProcedure(
         await requireServerMembership(ctx.grottoDb, ctx.member, input.serverId);
 
         const chatIds = [...new Set(input.chatIds)];
-        const deleted = await ctx.grottoDb
-            .delete(chatsTable)
-            .where(and(eq(chatsTable.serverId, input.serverId), inArray(chatsTable.id, chatIds)))
-            .returning({ id: chatsTable.id });
+        const deleted = await ctx.grottoDb.transaction(async (tx) => {
+            await tx
+                .delete(remindersTable)
+                .where(
+                    and(
+                        eq(remindersTable.serverId, input.serverId),
+                        inArray(remindersTable.anchorChatId, chatIds)
+                    )
+                );
+            return await tx
+                .delete(chatsTable)
+                .where(
+                    and(eq(chatsTable.serverId, input.serverId), inArray(chatsTable.id, chatIds))
+                )
+                .returning({ id: chatsTable.id });
+        });
         const deletedChatIds = deleted.map((chat) => chat.id).sort();
 
         return { count: deletedChatIds.length, deletedChatIds };

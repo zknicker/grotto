@@ -1,10 +1,6 @@
 import * as React from 'react';
 import { agentHtmlSandbox } from '../../agent-html/sandbox.ts';
-import {
-    agentHtmlFontFaceCss,
-    agentHtmlTokenCss,
-    injectHostTokenStyle,
-} from '../../agent-html/tokens.ts';
+import { agentHtmlTokenCss, injectHostTokenStyle } from '../../agent-html/tokens.ts';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { trpc } from '../../lib/trpc.tsx';
 import starterHtml from './home-canvas-starter.html?raw';
@@ -12,7 +8,7 @@ import type { OverviewAgent } from './overview-types.ts';
 
 // The home canvas (specs/home-brief.md): an agent-authored HTML page at
 // workbench/home.html, maintained by the Home brief automation and rendered
-// in the sandboxed artifact frame with the host token and font bridge. Any
+// in the sandboxed artifact frame with the host token bridge. Any
 // agent may own the file; the freshest copy across agents wins. When nobody
 // has authored one yet, the shipped starter renders instead.
 export const homeCanvasPath = 'workbench/home.html';
@@ -105,7 +101,7 @@ function HomeCanvasDocument({ agents, html }: { agents: OverviewAgent[]; html: s
         () =>
             injectHostTokenStyle(
                 html,
-                `${agentHtmlTokenCss(scheme)}${agentHtmlFontFaceCss()}${buildAvatarSpriteCss(toAvatarSprites(agents))}`
+                `${agentHtmlTokenCss(scheme)}${buildAvatarSpriteCss(toAvatarSprites(agents))}`
             ),
         [agents, html, scheme]
     );

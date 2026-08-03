@@ -40,7 +40,7 @@ export function AcceptInvitationPage() {
     return (
         <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-6 py-24 text-center">
             <div className="flex flex-col gap-2">
-                <h1 className="font-display text-2xl text-foreground">
+                <h1 className="font-semibold text-2xl text-foreground">
                     Join {preview.data.serverDisplayName}
                 </h1>
                 <p className="text-muted text-sm">

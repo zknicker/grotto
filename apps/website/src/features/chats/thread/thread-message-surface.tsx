@@ -75,7 +75,7 @@ function RuntimeThreadMessageSurface({
             <ContextMenu.Trigger
                 className={cn(
                     'group/message-row relative block min-w-0 rounded-lg',
-                    active && 'bg-active ring-1 ring-brand-ring',
+                    active && 'bg-accent-soft ring-1 ring-focus',
                     flashing && 'chat-thread-flash'
                 )}
             >
@@ -151,7 +151,7 @@ function EmbeddedThreadMessageSurface({
         <div
             className={cn(
                 'group/message-row relative block min-w-0 rounded-lg',
-                active && 'bg-active ring-1 ring-brand-ring',
+                active && 'bg-accent-soft ring-1 ring-focus',
                 flashing && 'chat-thread-flash'
             )}
             data-message-id={row.message.id}
@@ -161,7 +161,7 @@ function EmbeddedThreadMessageSurface({
                 {row.message.task && canOpenThread ? (
                     <button
                         aria-label={`Task ${formatTaskNumber(row.message.task)} — ${taskStatusLabels[row.message.task.status]}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}. Open thread`}
-                        className="inline-flex cursor-[var(--cursor-interactive)] rounded-sm outline-none ring-transparent transition-[box-shadow] hover:ring-1 hover:ring-border-strong focus-visible:ring-2 focus-visible:ring-brand-ring"
+                        className="inline-flex cursor-[var(--cursor-interactive)] rounded-sm outline-none ring-transparent transition-[box-shadow] hover:ring-1 hover:ring-border-secondary focus-visible:ring-2 focus-visible:ring-focus"
                         onClick={openThread}
                         type="button"
                     >

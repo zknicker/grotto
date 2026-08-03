@@ -8,7 +8,7 @@ type BrandIconProps = Pick<
 export function brandIconProps(isActive = true): BrandIconProps {
     return {
         disableSecondaryOpacity: true,
-        primaryColor: isActive ? 'var(--color-brand)' : 'var(--sidebar-icon-muted)',
-        secondaryColor: isActive ? 'var(--color-brand-ring)' : 'var(--sidebar-icon-muted)',
+        primaryColor: isActive ? 'var(--accent)' : 'var(--muted)',
+        secondaryColor: isActive ? 'var(--focus)' : 'var(--muted)',
     };
 }

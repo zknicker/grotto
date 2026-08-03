@@ -34,8 +34,8 @@ import {
 // Dev hack page (/design/brief): candidate treatments for the home brief,
 // rendered side by side against tonight's sample data so taste calls can be
 // made on real pixels. The base voice is settled (italic muted grey, chips
-// shine); what varies now is sentence structure and the wordmark cut. The
-// winner gets folded back into the OverviewBriefSegment renderer.
+// shine); what varies now is sentence structure. The winner gets folded back
+// into the OverviewBriefSegment renderer.
 export function BriefVariations() {
     const agents = useAgentList().data?.agents ?? [];
 
@@ -48,7 +48,7 @@ export function BriefVariationsView({ agents }: { agents: VariationProps['agents
     return (
         <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
             <div className="w-full max-w-4xl px-10 pt-8 pb-24">
-                <h1 className="font-mono text-caption text-muted-foreground uppercase tracking-widest">
+                <h1 className="font-mono text-muted text-xs uppercase tracking-widest">
                     Brief variations
                 </h1>
 
@@ -79,13 +79,6 @@ export function BriefVariationsView({ agents }: { agents: VariationProps['agents
                     <KimiPatterns agents={agents} dark={dark} />
 
                     <VariationSection
-                        eyebrow="Wordmark lab"
-                        note="Inline cuts in sentence context — HGHT backed off, sized up, and tracked against the squish — plus color trials for dark ground."
-                    >
-                        <WordmarkLab />
-                    </VariationSection>
-
-                    <VariationSection
                         eyebrow="Chip lab"
                         note="The chip vocabulary: bold colored text with a same-color icon, no backgrounds. Agents use their face as the icon and their own color."
                     >
@@ -97,7 +90,7 @@ export function BriefVariationsView({ agents }: { agents: VariationProps['agents
     );
 }
 
-const proseClassName = 'max-w-[52ch] font-light text-3xl text-muted-foreground italic leading-snug';
+const proseClassName = 'max-w-[52ch] font-light text-3xl text-muted italic leading-snug';
 
 /** A1. Scene opens over the Grotto, then the facts stroll in. */
 function SceneFirst({ agents, dark }: VariationProps) {
@@ -182,115 +175,6 @@ function QuietOne({ agents, dark }: VariationProps) {
     );
 }
 
-interface WordmarkTrial {
-    hght: number;
-    label: string;
-    size: string;
-    track: string;
-    wght: number;
-}
-
-const wordmarkInlineTrials: WordmarkTrial[] = [
-    {
-        hght: 100,
-        label: 'HGHT 100 · 1.08em · flush (previous)',
-        size: '1.08em',
-        track: '0em',
-        wght: 700,
-    },
-    {
-        hght: 80,
-        label: 'HGHT 80 · 1.14em · tracked',
-        size: '1.14em',
-        track: '0.025em',
-        wght: 660,
-    },
-    { hght: 64, label: 'HGHT 64 · 1.22em · tracked', size: '1.22em', track: '0.03em', wght: 630 },
-    {
-        hght: 46,
-        label: 'HGHT 46 · 1.3em · airy (current)',
-        size: '1.3em',
-        track: '0.035em',
-        wght: 600,
-    },
-    {
-        hght: 16,
-        label: 'HGHT 16 · 1.42em · greeting cut',
-        size: '1.42em',
-        track: '0.04em',
-        wght: 520,
-    },
-];
-
-const wordmarkColorTrials = [
-    { label: 'brand raw', value: 'var(--brand)' },
-    { label: 'brand 52% + white', value: 'color-mix(in srgb, var(--brand) 52%, white)' },
-    { label: 'brand 38% + white', value: 'color-mix(in srgb, var(--brand) 38%, white)' },
-    { label: 'ink', value: 'var(--color-foreground)' },
-];
-
-/** Wordmark cuts judged inline, in the real sentence voice, plus colors. */
-function WordmarkLab() {
-    return (
-        <div className="flex flex-col gap-8">
-            <div className="flex flex-col gap-5">
-                {wordmarkInlineTrials.map((trial) => (
-                    <figure key={trial.label}>
-                        <p className="font-light text-3xl text-muted-foreground italic leading-snug">
-                            sparkles over the <TrialMark trial={trial} /> tonight
-                        </p>
-                        <figcaption className="mt-1 font-mono text-micro text-muted-foreground uppercase tracking-widest">
-                            {trial.label}
-                        </figcaption>
-                    </figure>
-                ))}
-            </div>
-            <div>
-                <div className="font-mono text-micro text-muted-foreground uppercase tracking-widest">
-                    Color · at the current cut
-                </div>
-                <div className="mt-3 flex flex-wrap items-end gap-x-10 gap-y-6">
-                    {wordmarkColorTrials.map((color) => (
-                        <figure key={color.label}>
-                            <div
-                                className="text-5xl leading-none"
-                                style={{
-                                    color: color.value,
-                                    fontFamily: "'Reel Variable', var(--font-heading)",
-                                    fontVariationSettings: "'HGHT' 80, 'wght' 660",
-                                    letterSpacing: '0.025em',
-                                }}
-                            >
-                                Grotto
-                            </div>
-                            <figcaption className="mt-2 font-mono text-micro text-muted-foreground uppercase tracking-widest">
-                                {color.label}
-                            </figcaption>
-                        </figure>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function TrialMark({ trial }: { trial: WordmarkTrial }) {
-    return (
-        <span
-            className="whitespace-nowrap text-brand not-italic leading-none dark:text-[color-mix(in_srgb,var(--brand)_52%,white)]"
-            style={{
-                fontFamily: "'Reel Variable', var(--font-heading)",
-                fontSize: trial.size,
-                fontVariationSettings: `'HGHT' ${trial.hght}, 'wght' ${trial.wght}`,
-                letterSpacing: trial.track,
-                marginRight: '-0.08em',
-            }}
-        >
-            Grotto
-        </span>
-    );
-}
-
 interface ChipSpec {
     icon: IconSvgElement;
     // Plain muted text after the chip ("on Amazon") — context, never colored.
@@ -368,7 +252,7 @@ function ChipLab({ agents, dark }: VariationProps) {
         <div className="flex flex-col gap-8">
             {chipGroups.map((group) => (
                 <div key={group.label}>
-                    <div className="font-mono text-micro text-muted-foreground uppercase tracking-widest">
+                    <div className="font-mono text-muted text-xs uppercase tracking-widest">
                         {group.label}
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-3 text-3xl">
@@ -378,7 +262,7 @@ function ChipLab({ agents, dark }: VariationProps) {
                                     {chip.text}
                                 </Chip>
                                 {chip.suffix ? (
-                                    <span className="text-muted-foreground"> {chip.suffix}</span>
+                                    <span className="text-muted"> {chip.suffix}</span>
                                 ) : null}
                             </span>
                         ))}
@@ -386,9 +270,7 @@ function ChipLab({ agents, dark }: VariationProps) {
                 </div>
             ))}
             <div>
-                <div className="font-mono text-micro text-muted-foreground uppercase tracking-widest">
-                    Agents
-                </div>
+                <div className="font-mono text-muted text-xs uppercase tracking-widest">Agents</div>
                 <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-3 text-3xl">
                     <AgentChip agents={agents} dark={dark} fallback="Otto" id="agt_primary" />
                     <AgentChip agents={agents} dark={dark} fallback="Wren" id="agt_wren" />

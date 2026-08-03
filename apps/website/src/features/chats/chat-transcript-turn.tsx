@@ -69,10 +69,8 @@ import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
 // tight block the avatar sits centered against. Rows wash on hover so the
 // hovered message reads as one unit (Discord-style); the bleed margins let
 // the wash span the full chat width past the viewport's px-5 gutter.
-// bg-chat-log-row-hover is the app's subtle chat-row wash, shared with the
-// work-group tool rows so every hoverable chat row reads the same.
 const turnRowClassName =
-    'group/turn -mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2 hover:bg-chat-log-row-hover';
+    'group/turn -mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2 hover:bg-surface-hover';
 const turnBodyClassName = 'gap-0';
 const turnAvatarOffsetClassName = 'mt-1.5';
 // Stock action buttons are composer-sized; transcript rows want the compact
@@ -110,7 +108,7 @@ export function TranscriptEntryView({
         if (entry.item.kind === 'row' && entry.item.row.kind === 'message') {
             return (
                 <ThreadMessageSurface row={entry.item.row}>
-                    <p className="flex justify-center gap-2 px-5 py-2 text-center text-meta text-muted">
+                    <p className="flex justify-center gap-2 px-5 py-2 text-center text-muted text-xs">
                         <span>{entry.item.row.message.content}</span>
                         <span aria-hidden="true">·</span>
                         <RelativeTime value={entry.item.row.message.timestamp} />
@@ -314,14 +312,14 @@ function TurnHeader({
                 </span>
             )}
             {bio ? (
-                <span className="min-w-0 truncate text-meta text-muted leading-5">
+                <span className="min-w-0 truncate text-muted text-xs leading-5">
                     {bio.length > turnHeaderBioMaxChars
                         ? `${bio.slice(0, turnHeaderBioMaxChars).trimEnd()}…`
                         : bio}
                 </span>
             ) : null}
             {timestamp ? (
-                <time className="shrink-0 text-meta text-muted tabular-nums" dateTime={timestamp}>
+                <time className="shrink-0 text-muted text-xs tabular-nums" dateTime={timestamp}>
                     {formatShortTime(timestamp)}
                 </time>
             ) : null}
@@ -494,7 +492,7 @@ function AgentTurnPresentation({
                             ? () => openAgentProfilePane(profilePaneChatId, actorId)
                             : undefined
                     }
-                    triggerButtonClassName="cursor-pointer rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    triggerButtonClassName="cursor-pointer rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     // self-start keeps the trigger from stretching to the row
                     // height and re-centering the avatar it wraps.
                     triggerClassName="shrink-0 self-start"
@@ -504,7 +502,7 @@ function AgentTurnPresentation({
             ) : chatId && actorId && profilePaneChatId ? (
                 <button
                     aria-label={`Agent details: ${displayName}`}
-                    className="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
                     type="button"
                 >

@@ -27,7 +27,7 @@ export const taskLabelColorNames: Record<TaskLabelColor, string> = {
 };
 
 // Chip fill + text, keyed by color. Static class strings so Tailwind keeps the
-// arbitrary token references. Colors live in global.css label tokens.
+// arbitrary product-token references.
 export const taskLabelChipClass: Record<TaskLabelColor, string> = {
     amber: 'bg-[var(--label-amber-bg)] text-[var(--label-amber-fg)]',
     blue: 'bg-[var(--label-blue-bg)] text-[var(--label-blue-fg)]',

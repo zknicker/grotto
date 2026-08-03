@@ -28,6 +28,12 @@ test('the sandbox document pins external sources to the Chart.js CDN', () => {
     expect(visualChartJsUrl.startsWith('https://cdn.jsdelivr.net/npm/chart.js@4.5.1/')).toBe(true);
 });
 
+test('the sandbox fallback uses HeroUI body typography', () => {
+    const doc = buildVisualSrcDoc('<p>Body</p>', '');
+
+    expect(doc).toContain('font-size: var(--app-ui-font-size, 16px)');
+});
+
 test('the model body streams last so partial documents still parse', () => {
     const doc = buildVisualSrcDoc('<div><h2>Par', '--foreground: #fff;');
 

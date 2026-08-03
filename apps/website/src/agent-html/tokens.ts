@@ -19,10 +19,6 @@
  * token because only one copy got updated.
  */
 
-// Reel Variable is small enough (~15 KiB) to carry into every frame as a data
-// URI; an opaque-origin frame cannot reach the app's font files.
-import reelVariableFontUrl from '../assets/fonts/reel-variable.woff2?inline';
-
 export const agentHtmlTokenNames = [
     '--font-sans',
     '--font-heading',
@@ -126,11 +122,6 @@ export function agentHtmlTokenDeclarations(): string {
         '--chart-grid: color-mix(in srgb, var(--border-strong) 58%, transparent);',
         '--chart-label: color-mix(in srgb, var(--muted-foreground) 86%, transparent);',
     ].join('\n');
-}
-
-/** Display-face @font-face rules for agent frames (the wordmark). */
-export function agentHtmlFontFaceCss(): string {
-    return `@font-face{font-family:'Reel Variable';font-style:normal;font-weight:100 900;font-display:swap;src:url('${reelVariableFontUrl}') format('woff2');}`;
 }
 
 /** A ready `:root { ... }` block for the current theme. */

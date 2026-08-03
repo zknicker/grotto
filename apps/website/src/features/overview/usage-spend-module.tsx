@@ -13,7 +13,7 @@ interface UsageSpendModuleProps {
     liveUsage: UsageOverview | undefined;
 }
 
-// The theme's categorical series palette (grotto-base.css), cycled.
+// HeroUI's categorical series palette, cycled.
 const keyColors = [
     'var(--chart-1)',
     'var(--chart-2)',

@@ -14,15 +14,25 @@
  * that insulation layer: re-point an alias here and every artifact ever
  * written follows, with no reauthoring.
  *
- * Every name is a pure alias onto a HeroUI semantic — never an independent
- * value, so artifacts always wear the same palette the app does. Aliases need
- * no light/dark variants; the HeroUI token underneath carries those.
+ * Color names are pure aliases onto HeroUI semantics, so artifacts always
+ * wear the same palette the app does. Font sizes and motion steps are frozen
+ * compatibility values; iframe token snapshots must remain self-contained.
  *
  * Adding, renaming, or removing a name here changes a published contract.
  * Pair it with an update to the skill in the same change.
  */
 
 :root {
+    /* Published compatibility alias for durable agent-authored HTML. */
+    --font-heading: var(--font-sans);
+    --app-ui-font-size: 1rem;
+    --app-code-font-size: 0.875rem;
+    --t-micro: 90ms;
+    --t-fast: 140ms;
+    --t-normal: 220ms;
+    --t-slow: 360ms;
+    --foreground-tertiary: var(--muted);
+    --foreground-quaternary: var(--muted);
     --card: var(--surface);
     --card-foreground: var(--surface-foreground);
     --popover: var(--overlay);
@@ -40,7 +50,14 @@
     --warning-bg: var(--warning-soft);
     --muted-foreground: var(--muted);
     --subtle: var(--surface-secondary);
+    --brand: var(--accent);
+    --brand-foreground: var(--accent-foreground);
+    --brand-muted: var(--accent-soft);
+    --brand-muted-foreground: var(--accent-soft-foreground);
     --border-strong: var(--border-secondary);
     --input: var(--border);
     --ring: var(--focus);
+    --info: var(--accent);
+    --info-foreground: var(--accent-foreground);
+    --info-bg: var(--accent-soft);
 }

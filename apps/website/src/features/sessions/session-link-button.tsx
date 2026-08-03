@@ -20,22 +20,22 @@ export function SessionLinkButton({
             className={cn(
                 'flex min-w-0 flex-col rounded-lg border px-3 py-2 text-left',
                 tone === 'amber'
-                    ? 'border-[color:var(--warning-border)] bg-[var(--warning-bg)]'
+                    ? 'border-warning-soft bg-warning-soft'
                     : tone === 'sky'
-                      ? 'border-[color:var(--info-border)] bg-[var(--info-bg)]'
-                      : 'border-border-subtle bg-default',
+                      ? 'border-accent-soft bg-accent-soft'
+                      : 'border-separator bg-default',
                 className
             )}
         >
             {label ? (
                 <span
                     className={cn(
-                        'font-medium text-caption uppercase tracking-[0.16em]',
+                        'font-medium text-xs uppercase tracking-[0.16em]',
                         tone === 'amber'
                             ? 'text-warning'
                             : tone === 'sky'
-                              ? 'text-info'
-                              : 'text-muted-foreground'
+                              ? 'text-accent'
+                              : 'text-muted'
                     )}
                 >
                     {label}
@@ -45,20 +45,18 @@ export function SessionLinkButton({
             {subtitle ? (
                 <span
                     className={cn(
-                        'min-w-0 truncate text-caption',
+                        'min-w-0 truncate text-xs',
                         tone === 'amber'
                             ? 'text-warning'
                             : tone === 'sky'
-                              ? 'text-info-foreground'
-                              : 'text-muted-foreground'
+                              ? 'text-accent-soft-foreground'
+                              : 'text-muted'
                     )}
                 >
                     {subtitle}
                 </span>
             ) : null}
-            <span className="min-w-0 truncate font-mono text-caption text-muted-foreground">
-                {sessionKey}
-            </span>
+            <span className="min-w-0 truncate font-mono text-muted text-xs">{sessionKey}</span>
         </div>
     );
 }

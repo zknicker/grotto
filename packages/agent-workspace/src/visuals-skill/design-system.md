@@ -117,14 +117,14 @@ Use the host fonts, not artifact-specific or presentation fonts.
 
 ### Scale
 
-The base body size is **14px** (`var(--app-ui-font-size)`, line-height
+The base body size is **16px** (`var(--app-ui-font-size)`, line-height
 1.5) — the frame sets this on `body`, so plain text is already correct;
 don't resize it.
 
-- Body text: 14px, line-height 1.5. Emphasized body: 14px weight 500.
-- Title / section labels: 15–16px, weight 500.
-- Secondary text and dense table cells: 12–13px.
-- Metadata and compact labels: 11–12px. No font-size below 11px.
+- Body text: 16px, line-height 1.5. Emphasized body: 16px weight 500.
+- Title / section labels: 18–20px, weight 500.
+- Secondary text, dense table cells, and code: 14px.
+- Metadata and compact labels: 12px. No font-size below 12px.
 - Primary display values: usually 24–36px, never larger than 42px in a
   compact visual; weight 500, line-height at least 1.08 so glyphs don't
   crop.
@@ -138,8 +138,8 @@ don't resize it.
 
 ### Text fitting (SVG and fixed boxes)
 
-Geist averages ~0.52em per character. Before putting text in a box or SVG,
-check it fits:
+Font metrics vary by platform. Before putting text in a box or SVG, use these
+conservative host-sans budgets to check that it fits:
 
 | Font size | Budget per character |
 | --- | --- |

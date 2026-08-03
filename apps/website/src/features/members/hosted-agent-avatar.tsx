@@ -33,10 +33,8 @@ export function hostedAvailabilityStatus(availability: HostedAgent['availability
 
 /**
  * Rail avatar with the agent's presence dot pinned to its corner. The dot is
- * outset past the corner and ringed in `--presence-ring`, an opaque stand-in
- * for the surface behind it, so it separates from the avatar instead of
- * sitting on top of it. Surfaces that paint their own fill rescope that
- * variable rather than the dot restyling itself per context.
+ * outset past the corner and ringed in the page background so it separates
+ * from the avatar instead of sitting on top of it.
  */
 export function HostedAgentRailAvatar({
     agent,
@@ -52,7 +50,7 @@ export function HostedAgentRailAvatar({
         >
             <EntityAvatar name={agent.displayName} size={size} src={agent.avatarUrl} />
             <StatusDot
-                className="absolute -right-0.5 -bottom-0.5 ring-2 ring-[var(--presence-ring)]"
+                className="absolute -right-0.5 -bottom-0.5 ring-2 ring-background"
                 size="md"
                 status={hostedAvailabilityStatus(agent.availability)}
                 title={agent.availability}

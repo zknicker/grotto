@@ -1,6 +1,5 @@
 import type { IconSvgElement } from '@hugeicons/react';
 import type { ReactNode } from 'react';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { OverviewAgent } from './overview-types.ts';
@@ -16,26 +15,10 @@ export function resolveAgentBriefColor(dark: boolean, agent: Agent): string | un
     return `color-mix(in srgb, ${agent.primaryColor} ${dark ? '65%, white' : '82%, black'})`;
 }
 
-/** The inline wordmark. Reel runs narrow at high HGHT, so this backs the
- *  axis off, sizes up, and letter-tracks to fight the squish. The right
- *  margin trims Reel's wide trailing bearing plus the tracking's phantom
- *  space after the final glyph. Brand purple is lifted toward white on dark
- *  ground where the raw token dies. */
+/** Inline product name using the active HeroUI typography and accent. */
 export function GrottoMark() {
-    const dark = useResolvedThemeOptional() === 'dark';
-
     return (
-        <span
-            className="whitespace-nowrap not-italic leading-none"
-            style={{
-                color: dark ? 'color-mix(in srgb, var(--brand) 52%, white)' : 'var(--brand)',
-                fontFamily: "'Reel Variable', var(--font-heading)",
-                fontSize: '1.5em',
-                fontVariationSettings: "'HGHT' 46, 'wght' 600",
-                letterSpacing: '0.035em',
-                marginRight: '-0.08em',
-            }}
-        >
+        <span className="whitespace-nowrap font-semibold text-accent not-italic leading-none">
             Grotto
         </span>
     );
@@ -57,10 +40,8 @@ export function VariationSection({
 }) {
     return (
         <section className="border-border border-t pt-6 first:border-t-0 first:pt-0">
-            <div className="font-mono text-caption text-muted-foreground uppercase tracking-widest">
-                {eyebrow}
-            </div>
-            <p className="mt-1 max-w-[60ch] text-muted-foreground text-sm">{note}</p>
+            <div className="font-mono text-muted text-xs uppercase tracking-widest">{eyebrow}</div>
+            <p className="mt-1 max-w-[60ch] text-muted text-sm">{note}</p>
             <div className="mt-8">{children}</div>
         </section>
     );
@@ -68,11 +49,11 @@ export function VariationSection({
 
 const chipTones = {
     amber: 'text-(--label-amber-fg)',
-    blue: 'text-info-foreground',
+    blue: 'text-accent-foreground',
     green: 'text-success',
     orange: 'text-(--label-orange-fg)',
     pink: 'text-(--label-pink-fg)',
-    purple: 'text-brand-muted-foreground',
+    purple: 'text-accent-soft-foreground',
     red: 'text-(--label-red-fg)',
 } as const;
 

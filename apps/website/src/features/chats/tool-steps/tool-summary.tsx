@@ -115,7 +115,7 @@ export function InlineToolLabel({
             </span>
             <span className={cn('truncate', isRunning ? null : 'text-muted')}>{visibleTarget}</span>
             {duration ? (
-                <span className="shrink-0 font-mono text-caption text-muted/70 tabular-nums">
+                <span className="shrink-0 font-mono text-muted/70 text-xs tabular-nums">
                     {duration}
                 </span>
             ) : null}

@@ -255,9 +255,7 @@ export function TavernProviders({ children }: React.PropsWithChildren) {
                     <p className="font-medium text-lg">
                         Grotto failed to start its desktop backend.
                     </p>
-                    <p className="mt-2 text-muted-foreground text-sm">
-                        {agentRuntimeError.message}
-                    </p>
+                    <p className="mt-2 text-muted text-sm">{agentRuntimeError.message}</p>
                 </div>
             </div>
         );

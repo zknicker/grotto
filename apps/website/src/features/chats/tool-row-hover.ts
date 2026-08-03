@@ -139,7 +139,7 @@ function ToolRowHoverHighlight({
                     height: activeRect.height,
                 },
                 className:
-                    'absolute rounded-[var(--tool-row-hover-radius,var(--radius-md))] bg-hover',
+                    'absolute rounded-[var(--tool-row-hover-radius,var(--radius-md))] bg-surface-hover',
                 initial: {
                     opacity: 0,
                     top: activeRect.top,

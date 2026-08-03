@@ -23,7 +23,7 @@ export function MessageTaskChip({ task }: { task: MessageTask }) {
     return (
         <span
             className={cn(
-                'inline-flex h-6 items-center gap-1 rounded-sm px-2 font-mono text-meta',
+                'inline-flex h-6 items-center gap-1 rounded-sm px-2 font-mono text-xs',
                 taskStatusClasses[task.status]
             )}
             data-testid="message-task-badge"

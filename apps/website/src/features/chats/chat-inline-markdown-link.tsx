@@ -9,7 +9,7 @@ export function MarkdownLink({ children, href }: { children: React.ReactNode; hr
     if (tavernTarget && openArtifactPanel) {
         return (
             <a
-                className="cursor-pointer text-primary underline underline-offset-2 hover:text-primary-deep"
+                className="cursor-pointer text-accent underline underline-offset-2 hover:text-accent-hover"
                 href={href}
                 onClick={(event) => {
                     event.preventDefault();
@@ -23,7 +23,7 @@ export function MarkdownLink({ children, href }: { children: React.ReactNode; hr
 
     return (
         <a
-            className="text-primary underline underline-offset-2 hover:text-primary-deep"
+            className="text-accent underline underline-offset-2 hover:text-accent-hover"
             href={href}
             rel="noreferrer"
             target="_blank"

@@ -10,7 +10,7 @@ describe('mention appearance', () => {
                 label: 'ui',
             })
         ).toEqual({
-            brandColor: 'var(--brand)',
+            brandColor: 'var(--accent)',
             icon: 'skill',
         });
     });

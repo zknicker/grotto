@@ -70,5 +70,10 @@
     "@ai-sdk/harness-pi@1.0.8": "patches/@ai-sdk%2Fharness-pi@1.0.8.patch",
     "@ai-sdk/harness-claude-code@1.0.8": "patches/@ai-sdk%2Fharness-claude-code@1.0.8.patch",
     "@ai-sdk/harness@1.0.8": "patches/@ai-sdk%2Fharness@1.0.8.patch"
-  }
+  },
+  "trustedDependencies": [
+    "heroui-pro",
+    "@heroui-pro/react",
+    "heroui-native-pro"
+  ]
 }

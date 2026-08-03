@@ -1,0 +1,106 @@
+@keyframes chat-loading-indicator-in {
+    from {
+        opacity: 0;
+        transform: translateY(-3px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes chat-streaming-text-unit-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.45em);
+        filter: blur(1px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+    }
+}
+
+@keyframes chat-thread-flash {
+    0%,
+    24% {
+        background-color: var(--warning-soft);
+        box-shadow: 0 0 0 2px var(--warning);
+    }
+    100% {
+        background-color: transparent;
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+.chat-thread-flash {
+    animation: chat-thread-flash 1.5s ease-out both;
+}
+
+@layer components {
+    /* Measured manually so the turn disclosure does not share the smaller
+       tool drawers' auto/closed handoff. */
+    .chat-turn-work-panel {
+        height: 0;
+        overflow: hidden;
+        transition: height 320ms cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    /* Tied to insertion rather than status so fast tool transitions cannot
+       skip or cut the entrance short. */
+    .chat-step-enter {
+        transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1);
+
+        @starting-style {
+            opacity: 0;
+        }
+    }
+
+    .chat-streaming-text-chunk {
+        display: inline;
+        line-height: inherit;
+    }
+
+    .chat-streaming-text-unit {
+        display: inline-block;
+        line-height: inherit;
+        vertical-align: baseline;
+        animation: chat-streaming-text-unit-in 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        will-change: opacity, transform, filter;
+    }
+}
+
+@layer utilities {
+    /* The message scroller cannot hand HeroUI ScrollShadow the ref it needs. */
+    .scroll-fade-b {
+        --scroll-fade-size: 2rem;
+        -webkit-mask-image: linear-gradient(
+            to bottom,
+            #000 0,
+            #000 calc(100% - var(--scroll-fade-size)),
+            transparent 100%
+        );
+        mask-image: linear-gradient(
+            to bottom,
+            #000 0,
+            #000 calc(100% - var(--scroll-fade-size)),
+            transparent 100%
+        );
+    }
+
+    .scrollbar-gutter-stable {
+        scrollbar-gutter: stable;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chat-step-enter,
+    .chat-turn-work-panel {
+        transition: none !important;
+    }
+
+    .chat-thread-flash {
+        animation: none !important;
+    }
+}

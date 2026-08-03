@@ -30,11 +30,11 @@ export function ThreadPreviewBlock({ row }: { row: TranscriptMessageRow }) {
 
     return (
         <button
-            className="group/thread mt-1.5 flex w-full min-w-0 cursor-[var(--cursor-interactive)] flex-col gap-1 rounded-lg bg-chat-inline-panel px-2.5 py-2 text-left outline-none transition-colors hover:bg-chat-inline-panel-hover focus-visible:ring-2 focus-visible:ring-focus"
+            className="group/thread mt-1.5 flex w-full min-w-0 cursor-[var(--cursor-interactive)] flex-col gap-1 rounded-lg bg-surface-secondary px-2.5 py-2 text-left outline-none transition-colors hover:bg-surface-tertiary focus-visible:ring-2 focus-visible:ring-focus"
             onClick={() => context.onOpenThread(row)}
             type="button"
         >
-            <span className="flex shrink-0 items-center gap-1 font-semibold text-meta text-muted group-hover/thread:text-foreground">
+            <span className="flex shrink-0 items-center gap-1 font-semibold text-muted text-xs group-hover/thread:text-foreground">
                 {replyLabel(thread.replyCount)}
                 {thread.unreadCount > 0 ? (
                     <>
@@ -80,7 +80,7 @@ function ThreadPreviewReply({
     const name = profile?.name ?? 'Reminder';
 
     return (
-        <span className="flex min-w-0 items-center gap-1.5 text-meta leading-tight">
+        <span className="flex min-w-0 items-center gap-1.5 text-xs leading-tight">
             <EntityAvatar name={name} size={20} src={profile?.avatarUrl} />
             <span className="shrink-0 font-semibold text-foreground">{name}</span>
             <span className="min-w-0 flex-1 truncate text-muted">{oneLine(reply.content)}</span>

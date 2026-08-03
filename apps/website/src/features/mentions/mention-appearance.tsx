@@ -54,7 +54,7 @@ const defaultMentionAppearance = {
     file: { icon: 'file' },
     image: { icon: 'image' },
     plugin: { icon: 'plugin' },
-    skill: { brandColor: 'var(--brand)', icon: 'skill' },
+    skill: { brandColor: 'var(--accent)', icon: 'skill' },
     user: { icon: 'user' },
 } satisfies Record<MentionOptionKind, MentionAppearance>;
 
@@ -161,7 +161,7 @@ export function getMentionChipColor(appearance: MentionAppearance) {
         return appearance.brandColor ?? agentColorPresets[0].color;
     }
 
-    return appearance.brandColor ?? 'var(--info-foreground)';
+    return appearance.brandColor ?? 'var(--accent-foreground)';
 }
 
 function getMentionAppearanceOverride(input: MentionAppearanceInput) {

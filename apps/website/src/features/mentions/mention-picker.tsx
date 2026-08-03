@@ -55,7 +55,7 @@ export function MentionPicker({
     return (
         <div
             className={cn(
-                'absolute right-0 bottom-[calc(100%+0.4rem)] left-0 z-20 flex max-h-64 w-full flex-col overflow-hidden rounded-lg border border-border-subtle bg-popover p-1 text-meta shadow-overlay',
+                'absolute right-0 bottom-[calc(100%+0.4rem)] left-0 z-20 flex max-h-64 w-full flex-col overflow-hidden rounded-lg border border-separator bg-overlay p-1 text-sm shadow-overlay',
                 className
             )}
             role="listbox"
@@ -66,14 +66,12 @@ export function MentionPicker({
                 ref={scrollContainerRef}
             >
                 <div className="flex w-full flex-col">
-                    {hasVisibleRows ? null : (
-                        <div className="px-2 py-2 text-muted-foreground">No results</div>
-                    )}
+                    {hasVisibleRows ? null : <div className="px-2 py-2 text-muted">No results</div>}
                     {groups.map((group, groupIndex) => (
                         <div key={group.label}>
                             <div
                                 className={cn(
-                                    'sticky top-0 z-10 bg-popover px-2 py-1 text-muted-foreground',
+                                    'sticky top-0 z-10 bg-overlay px-2 py-1 text-muted',
                                     groupIndex > 0 && 'pt-2'
                                 )}
                                 data-mention-group-label
@@ -81,7 +79,7 @@ export function MentionPicker({
                                 {group.label}
                             </div>
                             {group.status ? (
-                                <div className="flex h-8 items-center gap-2 px-2 text-muted-foreground">
+                                <div className="flex h-8 items-center gap-2 px-2 text-muted">
                                     <Spinner color="current" size="sm" />
                                     <span>Searching files...</span>
                                 </div>
@@ -136,12 +134,12 @@ export function MentionPicker({
                                                 {displayLabel}
                                             </span>
                                             {option.description ? (
-                                                <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                                                <span className="min-w-0 flex-1 truncate text-muted">
                                                     {option.description}
                                                 </span>
                                             ) : null}
                                             {option.sourceLabel && !option.description ? (
-                                                <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                                                <span className="min-w-0 flex-1 truncate text-muted">
                                                     {option.sourceLabel}
                                                 </span>
                                             ) : null}

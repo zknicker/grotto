@@ -4,7 +4,7 @@ import { cn } from '../../../lib/utils.ts';
 
 export function ToolDrawerSectionLabel({ children }: { children: ReactNode }) {
     return (
-        <p className="mb-2 font-medium text-caption text-muted uppercase tracking-[0.14em]">
+        <p className="mb-2 font-medium text-muted text-xs uppercase tracking-[0.14em]">
             {children}
         </p>
     );

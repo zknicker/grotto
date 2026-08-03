@@ -53,7 +53,7 @@ export function ServerChatTranscript({
             composition={composition}
             leadingContent={
                 downloadError ? (
-                    <p className="px-2 text-destructive text-xs">{downloadError}</p>
+                    <p className="px-2 text-danger text-xs">{downloadError}</p>
                 ) : undefined
             }
             renderContext={renderContext}

@@ -1,17 +1,17 @@
 .tavern-simple-code-editor {
-    background-color: var(--card);
+    background-color: var(--surface);
     color: var(--foreground);
     font-family: var(--font-mono);
 }
 
 .tavern-simple-code-editor.tavern-simple-code-editor--plain {
-    background-color: var(--popover);
+    background-color: var(--overlay);
 }
 
 .tavern-simple-code-editor textarea,
 .tavern-simple-code-editor pre {
     font-family: var(--font-mono);
-    font-size: var(--text-code);
+    font-size: var(--text-sm);
     line-height: 1.65;
     overflow-wrap: normal !important;
     white-space: pre !important;

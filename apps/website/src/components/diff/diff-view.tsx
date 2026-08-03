@@ -21,20 +21,20 @@ export function DiffView({
     );
 
     if (hunks.length === 0) {
-        return <p className="text-meta text-muted-foreground">{emptyLabel}</p>;
+        return <p className="text-muted text-sm">{emptyLabel}</p>;
     }
 
     return (
         <div
             className={cn(
-                'overflow-hidden rounded-md border border-border-subtle bg-card font-mono text-code',
+                'overflow-hidden rounded-md border border-separator bg-surface font-mono text-sm',
                 className
             )}
         >
             {hunks.map((hunk, hunkIndex) => (
                 <div key={hunk.header}>
                     {hunkIndex > 0 ? (
-                        <div className="border-border-subtle border-t bg-default px-3 py-0.5 text-caption text-muted-foreground">
+                        <div className="border-separator border-t bg-default px-3 py-0.5 text-muted text-xs">
                             {hunk.header}
                         </div>
                     ) : null}
@@ -52,14 +52,14 @@ function DiffViewLine({ line }: { line: DiffLine }) {
         <div
             className={cn(
                 'flex min-w-0 leading-5',
-                line.kind === 'add' && 'bg-success-bg',
-                line.kind === 'del' && 'bg-error-bg'
+                line.kind === 'add' && 'bg-success-soft',
+                line.kind === 'del' && 'bg-danger-soft'
             )}
         >
-            <span className="w-9 shrink-0 select-none pr-1.5 text-right text-foreground-quaternary tabular-nums">
+            <span className="w-9 shrink-0 select-none pr-1.5 text-right text-muted tabular-nums">
                 {line.oldLine ?? ''}
             </span>
-            <span className="w-9 shrink-0 select-none pr-1.5 text-right text-foreground-quaternary tabular-nums">
+            <span className="w-9 shrink-0 select-none pr-1.5 text-right text-muted tabular-nums">
                 {line.newLine ?? ''}
             </span>
             <span
@@ -67,7 +67,7 @@ function DiffViewLine({ line }: { line: DiffLine }) {
                 className={cn(
                     'w-4 shrink-0 select-none text-center',
                     line.kind === 'add' && 'text-success',
-                    line.kind === 'del' && 'text-destructive'
+                    line.kind === 'del' && 'text-danger'
                 )}
             >
                 {line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ''}
@@ -82,10 +82,10 @@ export function DiffStatBadge({ additions, deletions }: { additions: number; del
         return null;
     }
     return (
-        <span className="shrink-0 font-mono text-caption tabular-nums">
+        <span className="shrink-0 font-mono text-xs tabular-nums">
             {additions > 0 ? <span className="text-success">+{additions}</span> : null}
             {additions > 0 && deletions > 0 ? ' ' : null}
-            {deletions > 0 ? <span className="text-destructive">−{deletions}</span> : null}
+            {deletions > 0 ? <span className="text-danger">−{deletions}</span> : null}
         </span>
     );
 }

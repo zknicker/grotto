@@ -14,7 +14,7 @@ import {
     VariationSection,
 } from './brief-variations-shared.tsx';
 
-const proseClassName = 'max-w-[52ch] font-light text-3xl text-muted-foreground italic leading-snug';
+const proseClassName = 'max-w-[52ch] font-light text-3xl text-muted italic leading-snug';
 
 // Kimi K3's round-2 sentence patterns, re-cut to the house rules
 // (specs/home-brief.md): storybook narrator, no decorative adverbs, named

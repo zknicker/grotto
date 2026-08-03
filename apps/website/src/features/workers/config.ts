@@ -9,16 +9,16 @@ import type { WorkerListOutput } from '../../lib/trpc.tsx';
 
 export const workerKindConfig = {
     acp: {
-        accent: 'var(--brand)',
-        accentMuted: 'oklch(from var(--brand) l c h / 0.25)',
-        bg: 'bg-brand/10',
+        accent: 'var(--accent)',
+        accentMuted: 'oklch(from var(--accent) l c h / 0.25)',
+        bg: 'bg-accent/10',
         icon: ZapIcon,
         label: 'ACP',
     },
     cli: {
-        accent: 'var(--info)',
-        accentMuted: 'oklch(from var(--info) l c h / 0.25)',
-        bg: 'bg-info/10',
+        accent: 'var(--accent)',
+        accentMuted: 'oklch(from var(--accent) l c h / 0.25)',
+        bg: 'bg-accent/10',
         icon: TerminalIcon,
         label: 'CLI',
     },

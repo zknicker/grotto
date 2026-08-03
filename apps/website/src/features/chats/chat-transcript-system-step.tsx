@@ -320,7 +320,7 @@ function RuntimeNoticeDrawer({
                                         </p>
                                     </div>
                                     <div className="rounded-md border border-separator bg-surface-secondary px-3 py-2">
-                                        <code className="break-all font-mono text-code text-foreground leading-relaxed">
+                                        <code className="break-all font-mono text-foreground text-sm leading-relaxed">
                                             {row.runtimeNotice.text}
                                         </code>
                                     </div>

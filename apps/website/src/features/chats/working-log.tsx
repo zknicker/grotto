@@ -103,7 +103,7 @@ export function WorkingLog({
                     aria-controls={panelId}
                     className={
                         groupMode
-                            ? 'relative z-10 w-full py-1.5 pr-2 pl-3 font-normal text-muted text-sm outline-none transition-none hover:bg-chat-log-row-hover hover:text-muted focus-visible:bg-chat-log-row-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
+                            ? 'relative z-10 w-full py-1.5 pr-2 pl-3 font-normal text-muted text-sm outline-none transition-none hover:bg-surface-hover hover:text-muted focus-visible:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset'
                             : undefined
                     }
                     onFocus={groupMode ? rowHover.clearActiveItem : undefined}

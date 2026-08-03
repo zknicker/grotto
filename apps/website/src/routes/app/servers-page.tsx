@@ -38,7 +38,9 @@ function EmptyServerShell() {
             <main className="flex min-h-0 flex-1 justify-center overflow-y-auto px-6 py-16">
                 <div className="flex w-full max-w-lg flex-col gap-6">
                     <header className="flex flex-col gap-2">
-                        <h1 className="font-display text-2xl text-foreground">Your First Server</h1>
+                        <h1 className="font-semibold text-2xl text-foreground">
+                            Your First Server
+                        </h1>
                         <p className="text-muted text-sm">
                             Create a Server or join one with an invitation.
                         </p>

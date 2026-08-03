@@ -15,13 +15,13 @@ export function DeliveryCard({
         <div
             className={`flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left ${
                 outgoing
-                    ? 'border-[color:var(--info-border)] bg-[var(--info-bg)]'
-                    : 'border-[color:var(--warning-border)] bg-[var(--warning-bg)]'
+                    ? 'border-accent-soft bg-accent-soft'
+                    : 'border-warning-soft bg-warning-soft'
             }`}
         >
             <span
-                className={`font-medium text-caption uppercase tracking-[0.16em] ${
-                    outgoing ? 'text-info' : 'text-warning'
+                className={`font-medium text-xs uppercase tracking-[0.16em] ${
+                    outgoing ? 'text-accent' : 'text-warning'
                 }`}
             >
                 {outgoing ? `Delivered to ${targetLabel}` : `Delivered from ${targetLabel}`}
@@ -29,7 +29,7 @@ export function DeliveryCard({
             <span className="line-clamp-3 text-foreground text-sm">
                 {delivery.messageText ?? targetLabel}
             </span>
-            <span className="font-mono text-caption text-muted-foreground">{targetSessionKey}</span>
+            <span className="font-mono text-muted text-xs">{targetSessionKey}</span>
         </div>
     );
 }

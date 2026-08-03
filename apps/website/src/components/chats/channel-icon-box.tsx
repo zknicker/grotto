@@ -3,23 +3,22 @@ import type * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 import { Icon } from '../ui/icon.tsx';
 
-// Sidebar and topbar boxes match the 24px agent avatars beside them, and take
-// the same `--avatar-radius` so a Channel and an Agent read as one row of
-// identity marks; `inline` keeps the smaller chip for text rows.
+// Sidebar and topbar boxes match the 24px agent avatars beside them;
+// `inline` keeps the smaller chip for text rows.
 const channelIconBoxVariants = {
     inline: {
         boxClassName:
-            'size-5 rounded-[var(--avatar-radius)] bg-[var(--channel-color-bg-light,var(--sidebar-accent))] text-[var(--channel-color-light,var(--sidebar-muted))] dark:bg-[var(--channel-color-bg-dark,var(--sidebar-accent))] dark:text-[var(--channel-color-dark,var(--sidebar-muted))]',
+            'size-5 rounded-lg bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
         iconSize: 14,
     },
     sidebar: {
         boxClassName:
-            'size-6 rounded-[var(--avatar-radius)] bg-[var(--channel-color-bg-light,var(--sidebar-accent))] text-[var(--channel-color-light,var(--sidebar-muted))] dark:bg-[var(--channel-color-bg-dark,var(--sidebar-accent))] dark:text-[var(--channel-color-dark,var(--sidebar-muted))]',
+            'size-6 rounded-lg bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
         iconSize: 16,
     },
     topbar: {
         boxClassName:
-            'size-6 rounded-[var(--avatar-radius)] bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted-foreground))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted-foreground))]',
+            'size-6 rounded-lg bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
         iconSize: 16,
     },
 } as const;

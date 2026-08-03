@@ -96,9 +96,7 @@ export function ThinkingStepsHeader({
     ...props
 }: ThinkingStepsHeaderProps) {
     return (
-        // text-meta rides the wrapper: merging a size token with the trigger's
-        // color classes would collapse them into one utility.
-        <div className={cn('w-fit text-meta', wrapperClassName)}>
+        <div className={cn('w-fit text-sm', wrapperClassName)}>
             <Disclosure.Heading>
                 <Disclosure.Trigger
                     className={cn(
@@ -230,7 +228,7 @@ export function ThinkingStep({
                         {isLast ? null : <div className="mt-1 w-px flex-1 bg-separator" />}
                     </div>
 
-                    <div className="flex min-w-0 flex-1 flex-col gap-1 text-meta">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
                         <span
                             className={cn(
                                 'min-w-0 text-foreground leading-tight',
@@ -240,7 +238,7 @@ export function ThinkingStep({
                             {label}
                         </span>
                         {description ? (
-                            <span className="min-w-0 text-meta text-muted leading-snug">
+                            <span className="min-w-0 text-muted text-sm leading-snug">
                                 {description}
                             </span>
                         ) : null}
@@ -271,7 +269,7 @@ export function ThinkingStepDetails({
         <Disclosure className={cn('mt-1 -ml-3', className)} defaultExpanded={defaultOpen}>
             <div className="w-fit">
                 <Disclosure.Heading>
-                    <Disclosure.Trigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-meta text-muted leading-tight hover:bg-surface-secondary hover:text-foreground">
+                    <Disclosure.Trigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-muted text-sm leading-tight hover:bg-surface-secondary hover:text-foreground">
                         <span>{summary}</span>
                         <Disclosure.Indicator />
                     </Disclosure.Trigger>
@@ -281,7 +279,7 @@ export function ThinkingStepDetails({
                 <Disclosure.Body>
                     <div className="flex flex-col gap-0.5 pt-0.5">
                         {details?.map((item) => (
-                            <span className="text-meta text-muted leading-snug" key={item}>
+                            <span className="text-muted text-sm leading-snug" key={item}>
                                 {item}
                             </span>
                         ))}

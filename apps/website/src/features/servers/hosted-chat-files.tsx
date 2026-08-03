@@ -7,14 +7,14 @@ export function HostedChatFiles({ messages }: { messages: HostedChatMessage[] | 
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
             {attachments.length === 0 ? (
-                <p className="m-auto text-muted-foreground text-sm">No files in this chat.</p>
+                <p className="m-auto text-muted text-sm">No files in this chat.</p>
             ) : (
                 attachments.map((attachment) => (
                     <div
                         className="flex items-center gap-3 border-border border-b py-3"
                         key={attachment.id}
                     >
-                        <Icon className="size-4 text-muted-foreground" icon={Attachment01Icon} />
+                        <Icon className="size-4 text-muted" icon={Attachment01Icon} />
                         <span className="text-sm">{attachment.filename}</span>
                     </div>
                 ))

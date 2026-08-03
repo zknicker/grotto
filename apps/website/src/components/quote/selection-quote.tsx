@@ -126,7 +126,7 @@ export function SelectionQuoteContainer({
             {children}
             {anchor && composerPresent ? (
                 <button
-                    className="absolute z-20 flex -translate-x-1/2 translate-y-[calc(-100%-6px)] items-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-popover px-2.5 py-1 text-caption text-popover-foreground shadow-overlay hover:bg-hover"
+                    className="absolute z-20 flex -translate-x-1/2 translate-y-[calc(-100%-6px)] items-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-overlay px-2.5 py-1 text-overlay-foreground text-xs shadow-overlay hover:bg-surface-hover"
                     onClick={quoteSelection}
                     onMouseDown={(event) => event.preventDefault()}
                     style={{ left: anchor.x, top: Math.max(anchor.y, 30) }}

@@ -2,8 +2,8 @@ import type React from 'react';
 import { cn } from '../../lib/utils.ts';
 
 const statusFills = {
-    error: 'bg-error',
-    info: 'bg-info',
+    error: 'bg-danger',
+    info: 'bg-accent',
     muted: 'bg-foreground-quaternary',
     success: 'bg-success',
     warning: 'bg-warning',

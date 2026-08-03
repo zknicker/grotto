@@ -5,8 +5,8 @@ import { cn } from '../../../lib/utils.ts';
 /**
  * Settings composition layer on stock HeroUI: page column, header, Title Case
  * section labels, Card-backed groups, and the shared two-column row grid.
- * Composition and layout only — visual identity stays in the design system
- * (docs/internals/heroui-migration.md).
+ * Composition and layout only — visual identity stays in the generated design
+ * system.
  */
 
 export function SettingsPage({ className, ...props }: React.ComponentProps<'div'>) {

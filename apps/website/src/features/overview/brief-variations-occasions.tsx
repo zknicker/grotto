@@ -17,7 +17,7 @@ import {
     VariationSection,
 } from './brief-variations-shared.tsx';
 
-const proseClassName = 'max-w-[52ch] font-light text-3xl text-muted-foreground italic leading-snug';
+const proseClassName = 'max-w-[52ch] font-light text-3xl text-muted italic leading-snug';
 
 // The day cycle's missing morning stance plus occasion overlays
 // (specs/home-brief.md): weekends, holidays, the small hours, and the

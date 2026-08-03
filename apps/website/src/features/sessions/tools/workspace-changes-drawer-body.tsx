@@ -50,7 +50,7 @@ export function WorkspaceChangesDrawerBody({ call }: { call: ToolDrawerCall }) {
                                     <span className="flex w-full min-w-0 items-center gap-2 px-3 py-2 text-left hover:bg-surface-hover">
                                         <span
                                             className={cn(
-                                                'shrink-0 font-medium text-caption uppercase tracking-wide',
+                                                'shrink-0 font-medium text-xs uppercase tracking-wide',
                                                 change.change === 'created' && 'text-success',
                                                 change.change === 'deleted' && 'text-danger',
                                                 change.change === 'modified' && 'text-muted'
@@ -58,7 +58,7 @@ export function WorkspaceChangesDrawerBody({ call }: { call: ToolDrawerCall }) {
                                         >
                                             {change.change}
                                         </span>
-                                        <span className="min-w-0 flex-1 truncate font-mono text-code text-foreground">
+                                        <span className="min-w-0 flex-1 truncate font-mono text-foreground text-sm">
                                             {change.path}
                                         </span>
                                         <DiffStatBadge

@@ -1,5 +1,5 @@
 import { Button, Card, Description, FieldError, Form, Input, TextField } from '@heroui/react';
-import { BarChart } from '@heroui-pro/react';
+import { BarChart } from '@heroui-pro/react/bar-chart';
 import { AiAudioIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';

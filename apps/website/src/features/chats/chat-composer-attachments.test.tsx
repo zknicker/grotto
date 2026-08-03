@@ -40,7 +40,7 @@ describe('ChatComposerAttachmentList', () => {
         expect(markup).toContain('first.png - 128 B');
     });
 
-    test('renders non-image attachments with the document fallback preview', () => {
+    test('renders non-image attachments with the document icon', () => {
         const markup = renderToStaticMarkup(
             <ChatComposerAttachmentList
                 attachments={[
@@ -56,7 +56,8 @@ describe('ChatComposerAttachmentList', () => {
             />
         );
 
-        expect(markup).toContain('chat-attachment__preview-fallback');
+        expect(markup).toContain('data-media-type="document"');
+        expect(markup).toContain('data-slot="chat-attachment-icon"');
         expect(markup).not.toContain('<img');
         expect(markup).toContain('notes.md');
         expect(markup).toContain('Remove notes.md');

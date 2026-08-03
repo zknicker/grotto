@@ -1,5 +1,6 @@
 import { Spinner } from '@heroui/react';
-import { ChainOfThought, ChatTool, type ToolPartState } from '@heroui-pro/react';
+import { ChainOfThought } from '@heroui-pro/react';
+import { ChatTool, type ToolPartState } from '@heroui-pro/react/chat-tool';
 import * as React from 'react';
 import { useChatTool } from '../../hooks/chats/use-chat-tool.ts';
 import { useSessionTool } from '../../hooks/sessions/use-session-tool.ts';

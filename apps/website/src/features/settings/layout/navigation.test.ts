@@ -16,3 +16,7 @@ test('settings navigation uses current agent configuration vocabulary', () => {
     assert.ok(!labels.includes('Connectors'));
     assert.ok(!labels.includes('McpServers'));
 });
+
+test('settings navigation exposes Server administration', () => {
+    assert.ok(settingsNavItems.some((item) => item.id === 'server' && item.label === 'Server'));
+});

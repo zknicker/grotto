@@ -26,13 +26,13 @@ import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
+import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerAgentLifecycle } from '../../hooks/servers/use-server-agent-lifecycle.ts';
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
 import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
-import { useSyncHumanIdentity } from '../../hooks/servers/use-sync-human-identity.ts';
 import { grottoTrpc, useGrottoServerConnectionState } from '../../lib/grotto-server.tsx';
 
 export function ServerLayout() {
@@ -48,7 +48,6 @@ export function ServerLayout() {
         { enabled: Boolean(server.data) }
     );
     const connectionState = useGrottoServerConnectionState();
-    useSyncHumanIdentity(server.data?.id);
     const currentServerSlug = server.data?.slug;
     const [creatingChannel, setCreatingChannel] = React.useState(false);
     const [managingServers, setManagingServers] = React.useState(false);
@@ -110,6 +109,7 @@ export function ServerLayout() {
     return (
         <TopbarProvider>
             <AppShell className="w-full">
+                <SyncHumanIdentity serverId={server.data.id} />
                 <AppShellDragRegion />
                 <HostedCommandMenu
                     agents={agents.data ?? []}

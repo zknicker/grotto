@@ -29,7 +29,7 @@ export function ServerChoicePanel({
                         Start a new place for your people and Agents.
                     </p>
                 </div>
-                <CreateServerForm />
+                <CreateServerForm onCreated={onServerSelect} />
             </section>
             <Separator />
             <section className="flex flex-col gap-3">

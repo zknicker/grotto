@@ -5,7 +5,7 @@ import { useCreateServer } from '../../hooks/servers/use-create-server.ts';
 import { serverRoute } from './server-routes.ts';
 
 /** Creates a Grotto server and opens it at its new address. */
-export function CreateServerForm() {
+export function CreateServerForm({ onCreated }: { onCreated?: () => void } = {}) {
     const navigate = useNavigate();
     const createServer = useCreateServer();
     const [displayName, setDisplayName] = React.useState('');
@@ -18,7 +18,12 @@ export function CreateServerForm() {
                 event.preventDefault();
                 createServer.mutate(
                     { displayName: displayName.trim(), slug: slug.trim() },
-                    { onSuccess: (server) => navigate(serverRoute(server.slug)) }
+                    {
+                        onSuccess: (server) => {
+                            onCreated?.();
+                            navigate(serverRoute(server.slug));
+                        },
+                    }
                 );
             }}
         >

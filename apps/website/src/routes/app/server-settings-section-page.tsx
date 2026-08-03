@@ -18,6 +18,7 @@ import {
 import type { HostedModelsComputer } from '../../features/settings/models/hosted-catalog.ts';
 import { HostedModelsSettings } from '../../features/settings/models/hosted-page.tsx';
 import { ProfileSettings } from '../../features/settings/profile/page.tsx';
+import { ServerSettings } from '../../features/settings/server/page.tsx';
 import { UpdatesSettings } from '../../features/settings/updates/page.tsx';
 import { HostedSkillsBrowser } from '../../features/skills/hosted-skills-browser.tsx';
 import { HostedStatsSettings } from '../../features/stats/hosted-stats.tsx';
@@ -55,6 +56,7 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
     connections: () => <ServerConnectionsPage embedded />,
     models: ({ computers }) => <HostedModelsSettings computers={computers} />,
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,
+    server: ({ server }) => <ServerSettings server={server} />,
     skills: ({ computers }) => (
         <HostedSkillsBrowser
             sources={computers.flatMap((computer) =>

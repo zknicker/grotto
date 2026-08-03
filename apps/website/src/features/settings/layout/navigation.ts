@@ -6,6 +6,7 @@ import {
     ComputerTerminal01Icon,
     PaintBrush03Icon,
     Plug01Icon,
+    ServerStack01Icon,
     SystemUpdate01Icon,
     UserCircleIcon,
     ZapIcon,
@@ -13,6 +14,12 @@ import {
 import { appRoutes } from '../../../lib/app-routes.ts';
 
 export const staticSettingsNavItems = [
+    {
+        icon: ServerStack01Icon,
+        id: 'server',
+        label: 'Server',
+        to: appRoutes.settings,
+    },
     {
         icon: ComputerTerminal01Icon,
         id: 'agent-runtime',
@@ -80,6 +87,7 @@ export const settingsNavSections = [
     {
         id: 'general',
         itemIds: [
+            'server',
             'agent-runtime',
             'appearance',
             'profile',

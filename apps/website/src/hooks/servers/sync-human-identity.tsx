@@ -1,5 +1,6 @@
 import { useUser } from '@clerk/clerk-react';
 import * as React from 'react';
+import { isClerkEnabled } from '../../lib/clerk.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
 /**
@@ -7,7 +8,15 @@ import { grottoTrpc } from '../../lib/grotto-server.tsx';
  * members see a name instead of an opaque id. The Server only fills blanks, so
  * this never overwrites a name the human has chosen.
  */
-export function useSyncHumanIdentity(serverId: string | undefined) {
+export function SyncHumanIdentity({ serverId }: { serverId: string | undefined }) {
+    if (!isClerkEnabled) {
+        return null;
+    }
+
+    return <ClerkHumanIdentitySync serverId={serverId} />;
+}
+
+function ClerkHumanIdentitySync({ serverId }: { serverId: string | undefined }) {
     const { isSignedIn, user } = useUser();
     const sync = grottoTrpc.member.syncIdentity.useMutation();
     const syncMutate = sync.mutate;
@@ -24,4 +33,6 @@ export function useSyncHumanIdentity(serverId: string | undefined) {
             name: user.fullName ?? null,
         });
     }, [isSignedIn, serverId, syncMutate, user]);
+
+    return null;
 }

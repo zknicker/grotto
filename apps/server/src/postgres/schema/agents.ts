@@ -1,4 +1,4 @@
-import type { AgentArchetypeId, AgentCharacter } from '@tavern/api';
+import type { AgentArchetypeId } from '@tavern/api';
 import { sql } from 'drizzle-orm';
 import {
     check,
@@ -10,6 +10,7 @@ import {
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { avatarsTable } from './avatars.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { chatsTable } from './chats.ts';
 import { computersTable } from './computers.ts';
@@ -24,9 +25,10 @@ export const agentsTable = pgTable(
     'agents',
     {
         archetype: text('archetype').$type<AgentArchetypeId>(),
-        character: text('character').notNull().$type<AgentCharacter>(),
+        avatarId: text('avatar_id').references(() => avatarsTable.id, { onDelete: 'set null' }),
         computerId: text('computer_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        createdByUserId: text('created_by_user_id'),
         desiredModelId: text('desired_model_id'),
         desiredRuntimeId: text('desired_runtime_id'),
         description: text('description'),
@@ -61,10 +63,6 @@ export const agentsTable = pgTable(
         check(
             'agents_archetype',
             sql`${table.archetype} is null or ${table.archetype} in ('operator', 'analyst', 'designer', 'writer', 'coordinator', 'patrol', 'gate', 'guide')`
-        ),
-        check(
-            'agents_character',
-            sql`${table.character} in ('knight', 'owl', 'bird', 'robot', 'alien', 'blob')`
         ),
         check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
         check('agents_session_reset_kind', sql`${table.sessionResetKind} in ('full', 'session')`),

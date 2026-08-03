@@ -24,8 +24,9 @@ export async function listHostedAgents(
         .select({
             activeRunId: agentDeliveryTable.activeRunId,
             archetype: agentsTable.archetype,
-            character: agentsTable.character,
+            avatarId: agentsTable.avatarId,
             computerId: agentsTable.computerId,
+            createdByUserId: agentsTable.createdByUserId,
             computerHealth: computersTable.health,
             consecutiveFailures: agentDeliveryTable.consecutiveFailures,
             createdAt: agentsTable.createdAt,

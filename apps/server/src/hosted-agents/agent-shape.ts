@@ -1,19 +1,20 @@
 import type {
     AgentArchetypeId,
-    AgentCharacter,
     HostedAgent,
     HostedAgentAvailability,
     HostedAgentStatus,
 } from '@tavern/api';
+import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 export interface ConfiguredAgentRow {
     activeRunId: string | null;
     archetype: AgentArchetypeId | null;
-    character: AgentCharacter;
+    avatarId: string | null;
     computerHealth: 'degraded' | 'healthy' | 'offline' | 'update-required';
     computerId: string | null;
     consecutiveFailures: number;
     createdAt: Date;
+    createdByUserId: string | null;
     description: string | null;
     desiredModelId: string | null;
     desiredRuntimeId: string | null;
@@ -76,9 +77,10 @@ export function toHostedAgent(row: ConfiguredAgentRow): HostedAgent {
     return {
         archetype: row.archetype,
         availability: deriveAgentAvailability(row),
-        character: row.character,
+        avatarUrl: avatarUrlFor(row.avatarId),
         computerId: row.computerId,
         createdAt: row.createdAt.toISOString(),
+        createdByUserId: row.createdByUserId ?? null,
         description: row.description,
         desiredModelId: row.desiredModelId,
         desiredRuntimeId: row.desiredRuntimeId,

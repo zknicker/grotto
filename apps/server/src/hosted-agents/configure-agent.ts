@@ -60,6 +60,7 @@ export async function configureHostedAgent(
         const [agent] = await tx
             .select({
                 computerId: agentsTable.computerId,
+                createdByUserId: agentsTable.createdByUserId,
                 desiredModelId: agentsTable.desiredModelId,
                 desiredRuntimeId: agentsTable.desiredRuntimeId,
             })
@@ -135,8 +136,9 @@ export async function configureHostedAgent(
             .select({
                 activeRunId: agentDeliveryTable.activeRunId,
                 archetype: agentsTable.archetype,
-                character: agentsTable.character,
+                avatarId: agentsTable.avatarId,
                 computerId: agentsTable.computerId,
+                createdByUserId: agentsTable.createdByUserId,
                 consecutiveFailures: agentDeliveryTable.consecutiveFailures,
                 createdAt: agentsTable.createdAt,
                 description: agentsTable.description,
@@ -177,6 +179,7 @@ export async function configureHostedAgent(
                 ...row,
                 activeRunId: row.activeRunId ?? null,
                 computerHealth,
+                createdByUserId: row.createdByUserId ?? null,
                 consecutiveFailures: row.consecutiveFailures ?? 0,
                 stopped: row.stopped ?? false,
             } satisfies ConfiguredAgentRow),

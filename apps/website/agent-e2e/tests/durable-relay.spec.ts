@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { resolveThreadChatId, setupDurableRelaySuite } from '../support/durable-relay.ts';
-import { openChat, sendTaskFromComposer } from '../support/live-agent-app.ts';
+import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(720_000);
@@ -15,7 +15,7 @@ test.afterAll(async () => {
     await suite?.cleanup();
 });
 
-test.fixme('a fresh Agent continues a sourced artifact handoff from its durable Thread', async ({
+test('a fresh Agent continues a sourced artifact handoff from its durable Thread', async ({
     page,
 }) => {
     const {
@@ -40,7 +40,7 @@ test.fixme('a fresh Agent continues a sourced artifact handoff from its durable 
     ].join('\n');
 
     await openChat(page, server.slug, channel, channelName);
-    await sendTaskFromComposer(page, authorPrompt);
+    await sendFromComposer(page, authorPrompt);
     await openThread(page, authorPrompt);
 
     const threadChatId = await resolveThreadChatId(harness, channel, authorPrompt);

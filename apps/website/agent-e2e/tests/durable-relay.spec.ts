@@ -2,6 +2,11 @@ import { expect, type Page, test } from '@playwright/test';
 import { resolveThreadChatId, setupDurableRelaySuite } from '../support/durable-relay.ts';
 import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
+/**
+ * User story: a fresh Agent can continue another Agent's sourced work from the durable
+ * Thread and shared artifact without the human restating the assignment. The hidden
+ * relay token proves recovery from product state rather than prompt leakage.
+ */
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(720_000);
 

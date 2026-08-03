@@ -4,6 +4,11 @@ import { expect, test } from '@playwright/test';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
 import { openChat, sendTaskFromComposer } from '../support/live-agent-app.ts';
 
+/**
+ * User story: an Agent claims a promoted task, asks for missing input in its Thread,
+ * waits for the fresh answer, delivers there, and only then hands the work to review.
+ * This protects ownership, live Thread freshness, and visible task state as one flow.
+ */
 test.describe.configure({ mode: 'serial' });
 
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));

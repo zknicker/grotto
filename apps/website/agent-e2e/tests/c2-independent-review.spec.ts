@@ -8,6 +8,11 @@ import {
 } from '../support/c2-independent-review.ts';
 import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
+/**
+ * User story: consequential work passes from its author to a distinct verifier before
+ * publication. The verifier must inspect the actual draft, remove unsupported claims,
+ * and return the corrected result and remaining caveat to the coordinator.
+ */
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(480_000);
 

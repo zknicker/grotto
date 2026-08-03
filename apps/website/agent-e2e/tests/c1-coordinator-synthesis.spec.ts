@@ -7,6 +7,11 @@ import {
 } from '../support/c1-coordinator-synthesis.ts';
 import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
+/**
+ * User story: a coordinator divides independent work among named owners, waits for their
+ * source-backed findings, and publishes one recommendation without redoing their lanes.
+ * The test protects real delegation, evidence handoff, and synthesis.
+ */
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(360_000);
 

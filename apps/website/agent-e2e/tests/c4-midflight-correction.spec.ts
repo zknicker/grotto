@@ -7,6 +7,11 @@ import {
 } from '../support/c4-midflight-correction.ts';
 import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
+/**
+ * User story: when a human changes a material requirement during active delegated work,
+ * the correction reaches every affected lane before synthesis and the final answer uses
+ * the new requirement rather than stale starting context.
+ */
 const completeExportPattern =
     /complete (?:standard-format export|export in (?:a )?standard format)/iu;
 const candidateSelectionPattern =

@@ -2,6 +2,11 @@ import { expect, test } from '@playwright/test';
 import { findC3Task, pollC3Tasks, setupC3HonestCutoffSuite } from '../support/c3-honest-cutoff.ts';
 import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
+/**
+ * User story: a time-bounded coordinator ships the useful evidence it has, names missing
+ * input plainly, and does not treat an unavailable collaborator's silence as approval,
+ * rejection, or completed work.
+ */
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(540_000);
 

@@ -4,6 +4,11 @@ import { expect, type Page, test } from '@playwright/test';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
 import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
+/**
+ * User story: an Owner can equip an Agent with a skill, rely on Agent-owned files across
+ * fresh sessions, and share a workspace artifact that opens the exact file in the App.
+ * The gates protect durable capability changes and workspace identity, not model prose.
+ */
 test.describe.configure({ mode: 'serial' });
 
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));

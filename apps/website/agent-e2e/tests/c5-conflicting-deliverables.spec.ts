@@ -7,6 +7,11 @@ import {
 } from '../support/c5-conflicting-deliverables.ts';
 import { openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
+/**
+ * User story: independently owned lanes may return contradictory evidence. The
+ * coordinator preserves each claim and owner, names the unresolved conflict, and asks
+ * the human to decide instead of silently merging or inventing a winner.
+ */
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(600_000);
 

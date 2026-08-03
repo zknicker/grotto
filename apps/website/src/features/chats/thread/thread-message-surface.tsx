@@ -1,16 +1,14 @@
-import { Button, Label, Popover } from '@heroui/react';
-import { ContextMenu } from '@heroui-pro/react';
+import { Label } from '@heroui/react';
+import { ChatMessage, ContextMenu } from '@heroui-pro/react';
 import {
     Bookmark01Icon,
     BubbleChatIcon,
     Copy01Icon,
-    SmileIcon,
     Task01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { isLocalTimelineMessageMetadata } from '../../../hooks/chats/chat-timeline-messages.ts';
-import { useChatReaction } from '../../../hooks/chats/use-chat-reaction.ts';
 import { useTaskConvert } from '../../../hooks/tasks/use-task-mutations.ts';
 import { appRoutes } from '../../../lib/app-routes.ts';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
@@ -18,15 +16,15 @@ import { cn } from '../../../lib/utils.ts';
 import { MessageTaskChip, messageTaskAssigneeLabel } from '../../tasks/message-task-chip.tsx';
 import { formatTaskNumber, taskStatusLabels } from '../../tasks/task-presentation.ts';
 import { TaskStatusMenu } from '../../tasks/task-status-menu.tsx';
+import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import { isActivityBackedMessageRow, isStreamingPostMessageRow } from '../chat-transcript-model.ts';
 import {
     getTranscriptMessageThread,
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
 } from '../chat-transcript-render-context.tsx';
-import { ThreadReplyPill } from './thread-reply-pill.tsx';
-
-export const quickReactionEmoji = ['👍', '❤️', '🎉', '👀', '🔥', '😂', '✅'] as const;
+import { MessageReactionPills, QuickReactionStrip } from './message-reactions.tsx';
+import { ThreadPreviewBlock } from './thread-preview-block.tsx';
 
 export function ThreadMessageSurface({
     children,
@@ -52,19 +50,12 @@ function RuntimeThreadMessageSurface({
     row: TranscriptMessageRow;
 }) {
     const context = useTranscriptRenderContextOptional();
-    const reaction = useChatReaction();
     const convert = useTaskConvert();
     const durable = isThreadAnchorRow(row);
     const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
     const thread = getTranscriptMessageThread(row);
     const active = context?.activeThreadAnchorId === row.message.id;
     const flashing = context?.flashMessageId === row.message.id;
-    const ownReaction = (emoji: string) =>
-        row.message.reactions
-            ?.find((item) => item.emoji === emoji)
-            ?.actors.some(({ id }) => id === 'usr_tavern') ?? false;
-    const toggleReaction = (emoji: string) =>
-        reaction.mutate({ emoji, messageId: row.message.id, remove: ownReaction(emoji) });
     const openThread = () => context?.onOpenThread(row);
     const menuActions: Record<string, () => void> = {
         'convert-task': () => convert.mutate({ messageId: row.message.id, origin: 'converted' }),
@@ -88,11 +79,6 @@ function RuntimeThreadMessageSurface({
                     flashing && 'chat-thread-flash'
                 )}
             >
-                <MessageHoverActions
-                    canOpenThread={canOpenThread}
-                    onOpenThread={openThread}
-                    onReact={toggleReaction}
-                />
                 {children}
                 <div className="flex flex-wrap items-center gap-1.5">
                     {row.message.task ? (
@@ -104,17 +90,12 @@ function RuntimeThreadMessageSurface({
                             <MessageTaskChip task={row.message.task} />
                         </TaskStatusMenu>
                     ) : null}
-                    {thread && canOpenThread ? (
-                        <ThreadReplyPill onClick={openThread} summary={thread} />
-                    ) : null}
-                    <ReactionPills
-                        onToggle={toggleReaction}
-                        reactions={row.message.reactions ?? []}
-                    />
+                    <MessageReactionPills row={row} />
                 </div>
+                {canOpenThread ? <ThreadPreviewBlock row={row} /> : null}
             </ContextMenu.Trigger>
             <ContextMenu.Popover>
-                <QuickReactionStrip onReact={toggleReaction} />
+                <QuickReactionStrip row={row} />
                 <ContextMenu.Menu onAction={(key) => menuActions[String(key)]?.()}>
                     <ContextMenu.Item id="copy-link" textValue="Copy Link">
                         <Icon icon={Copy01Icon} />
@@ -161,7 +142,6 @@ function EmbeddedThreadMessageSurface({
     const context = useTranscriptRenderContextOptional();
     const durable = isThreadAnchorRow(row);
     const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
-    const thread = getTranscriptMessageThread(row);
     const active = context?.activeThreadAnchorId === row.message.id;
     const flashing = context?.flashMessageId === row.message.id;
     const openThread = () => context?.onOpenThread(row);
@@ -176,128 +156,60 @@ function EmbeddedThreadMessageSurface({
             )}
             data-message-id={row.message.id}
         >
-            <MessageHoverActions
-                canOpenThread={canOpenThread}
-                onOpenThread={openThread}
-                onReact={() => undefined}
-                reactionsEnabled={false}
-            />
             {children}
-            {row.message.task || (thread && canOpenThread) ? (
-                <div className="flex flex-wrap items-center gap-1.5">
-                    {row.message.task && canOpenThread ? (
-                        <button
-                            aria-label={`Task ${formatTaskNumber(row.message.task)} — ${taskStatusLabels[row.message.task.status]}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}. Open thread`}
-                            className="inline-flex rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-brand-ring"
-                            onClick={openThread}
-                            type="button"
-                        >
-                            <MessageTaskChip task={row.message.task} />
-                        </button>
-                    ) : row.message.task ? (
-                        <MessageTaskChip task={row.message.task} />
-                    ) : null}
-                    {thread && canOpenThread ? (
-                        <ThreadReplyPill onClick={openThread} summary={thread} />
-                    ) : null}
-                </div>
-            ) : null}
-        </div>
-    );
-}
-
-function MessageHoverActions({
-    canOpenThread,
-    onOpenThread,
-    onReact,
-    reactionsEnabled = true,
-}: {
-    canOpenThread: boolean;
-    onOpenThread: () => void;
-    onReact: (emoji: string) => void;
-    reactionsEnabled?: boolean;
-}) {
-    return (
-        <div className="absolute -top-3 right-1 z-10 flex items-center gap-0.5 rounded-lg border border-separator bg-overlay p-0.5 opacity-0 focus-within:opacity-100 group-hover/message-row:opacity-100">
-            {canOpenThread ? (
-                <Button
-                    aria-label="Reply in thread"
-                    isIconOnly
-                    onPress={onOpenThread}
-                    size="sm"
-                    variant="ghost"
-                >
-                    <Icon icon={BubbleChatIcon} />
-                </Button>
-            ) : null}
-            {reactionsEnabled ? (
-                <Popover>
-                    <Button aria-label="Add Reaction" isIconOnly size="sm" variant="ghost">
-                        <Icon icon={SmileIcon} />
-                    </Button>
-                    <Popover.Content placement="bottom end">
-                        <Popover.Dialog>
-                            <QuickReactionStrip onReact={onReact} />
-                        </Popover.Dialog>
-                    </Popover.Content>
-                </Popover>
-            ) : null}
-        </div>
-    );
-}
-
-function QuickReactionStrip({ onReact }: { onReact: (emoji: string) => void }) {
-    return (
-        <div className="flex gap-0.5">
-            {quickReactionEmoji.map((emoji) => (
-                <Button
-                    aria-label={`React with ${emoji}`}
-                    isIconOnly
-                    key={emoji}
-                    onPress={() => onReact(emoji)}
-                    size="sm"
-                    variant="ghost"
-                >
-                    {emoji}
-                </Button>
-            ))}
-        </div>
-    );
-}
-
-function ReactionPills({
-    onToggle,
-    reactions,
-}: {
-    onToggle: (emoji: string) => void;
-    reactions: NonNullable<TranscriptMessageRow['message']['reactions']>;
-}) {
-    return (
-        <>
-            {reactions.map((reaction) => {
-                const own = reaction.actors.some(({ id }) => id === 'usr_tavern');
-                const handles = reaction.actors
-                    .map(({ handle, id }) => handle ?? (id === 'usr_tavern' ? 'you' : id))
-                    .join(', ');
-                return (
+            <div className="flex flex-wrap items-center gap-1.5">
+                {row.message.task && canOpenThread ? (
                     <button
-                        aria-label={`${reaction.emoji} reaction from ${handles}`}
-                        className={cn(
-                            'inline-flex h-6 items-center gap-1 rounded-full border px-2 text-meta',
-                            own
-                                ? 'border-brand-ring bg-brand-muted text-brand-muted-foreground'
-                                : 'border-border-subtle bg-legacy-muted text-muted-foreground'
-                        )}
-                        key={reaction.emoji}
-                        onClick={() => onToggle(reaction.emoji)}
+                        aria-label={`Task ${formatTaskNumber(row.message.task)} — ${taskStatusLabels[row.message.task.status]}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}. Open thread`}
+                        className="inline-flex cursor-[var(--cursor-interactive)] rounded-sm outline-none ring-transparent transition-[box-shadow] hover:ring-1 hover:ring-border-strong focus-visible:ring-2 focus-visible:ring-brand-ring"
+                        onClick={openThread}
                         type="button"
                     >
-                        <span>{reaction.emoji}</span>
-                        <span>{reaction.actors.length}</span>
+                        <MessageTaskChip task={row.message.task} />
                     </button>
-                );
-            })}
-        </>
+                ) : row.message.task ? (
+                    <MessageTaskChip task={row.message.task} />
+                ) : null}
+                <MessageReactionPills row={row} />
+            </div>
+            {canOpenThread ? <ThreadPreviewBlock row={row} /> : null}
+        </div>
+    );
+}
+
+/**
+ * The reply-in-thread affordance for one message, rendered as a stock
+ * ChatMessage action so it shares the turn's single hover actions bar
+ * beside copy and turn details.
+ */
+export function ThreadMessageActions({
+    className,
+    row,
+}: {
+    className?: string;
+    row: TranscriptMessageRow;
+}) {
+    const context = useTranscriptRenderContextOptional();
+    const canOpenThread = Boolean(context?.threadActionsEnabled && isThreadAnchorRow(row));
+
+    if (!context) {
+        return null;
+    }
+
+    if (!canOpenThread) {
+        return null;
+    }
+
+    return (
+        <ActionTooltip label="Reply in thread">
+            <ChatMessage.Action
+                aria-label="Reply in thread"
+                className={className}
+                onPress={() => context.onOpenThread(row)}
+            >
+                <Icon icon={BubbleChatIcon} />
+            </ChatMessage.Action>
+        </ActionTooltip>
     );
 }
 

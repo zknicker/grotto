@@ -54,8 +54,9 @@ const turnMaxGapMs = 5 * 60 * 1000;
 // live reply, or failure is its own entry keyed by run identity, and the
 // turn's attachments (widgets, clarifications, stop notes) join that entry by
 // run or response id — a direct lookup, never order-sensitive grouping.
-// Consecutive user messages still read as one block, which is presentation
-// adjacency, not turn reconstruction.
+// Consecutive plain user messages still read as one block, which is
+// presentation adjacency, not turn reconstruction; a message carrying a task
+// or a Thread keeps its own row so its block stays attached to its prose.
 export function buildTranscriptEntries(input: {
     activeReplies?: readonly ChatActiveReply[];
     rows: TranscriptRow[];
@@ -212,12 +213,31 @@ function canAppendUserMessage(entry: TranscriptTurnEntry, item: TranscriptItem) 
         return false;
     }
 
+    // A message carrying a task or a Thread owns a block beneath its prose.
+    // Merging it with a neighbour would stack that block against the wrong
+    // message, so anything with attached work stands as its own row.
+    const previous = entry.items.at(-1);
+
+    if (hasAttachedWork(item) || (previous && hasAttachedWork(previous))) {
+        return false;
+    }
+
     const currentTimestamp = parseTimestamp(getItemTimestamp(item));
-    const previousTimestamp = parseTimestamp(
-        entry.items.at(-1) ? getItemTimestamp(entry.items.at(-1) as TranscriptItem) : null
-    );
+    const previousTimestamp = parseTimestamp(previous ? getItemTimestamp(previous) : null);
 
     return Math.abs(currentTimestamp - previousTimestamp) <= turnMaxGapMs;
+}
+
+function hasAttachedWork(item: TranscriptItem) {
+    if (
+        item.kind === 'activeReply' ||
+        item.kind === 'activeStatus' ||
+        item.row.kind !== 'message'
+    ) {
+        return false;
+    }
+
+    return Boolean(item.row.message.task) || Boolean(item.row.thread);
 }
 
 export function getItemRunId(item: TranscriptItem) {

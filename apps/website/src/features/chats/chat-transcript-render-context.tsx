@@ -32,6 +32,11 @@ export interface TranscriptRenderContextValue {
     hiddenCount: number;
     onActorClick?: (actor: TranscriptActor) => void;
     onOpenThread: (row: TranscriptMessageRow) => void;
+    /**
+     * Toggles the viewer's emoji reaction on a message. Absent when the
+     * surface has no reaction support; all reaction UI hides with it.
+     */
+    onToggleReaction?: (input: { emoji: string; messageId: string; remove: boolean }) => void;
     onUnfollowThread: (threadChatId: string) => void;
     profilePaneChatId?: string;
     renderMessageAttachments?: (message: TranscriptMessage) => React.ReactNode;

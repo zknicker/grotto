@@ -53,12 +53,13 @@ export type TavernUpsertArtifactRequest = TavernApiSchema<'UpsertArtifactRequest
 export type TavernUpsertResponseActivityRequest = TavernApiSchema<'UpsertResponseActivityRequest'>;
 export type TavernUpsertResponseRequest = TavernApiSchema<'UpsertResponseRequest'>;
 
-export * from './agent-appearance.ts';
 export * from './app-protocol.ts';
+export * from './avatar.ts';
 export * from './development-chat-demos.ts';
 export * from './hosted-agent.ts';
 export * from './hosted-agent-runner.ts';
 export * from './hosted-attachments.ts';
+export * from './hosted-avatar.ts';
 export * from './hosted-chat.ts';
 export * from './hosted-computer-runtime.ts';
 export * from './hosted-computer-update.ts';

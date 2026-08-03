@@ -12,9 +12,18 @@ export * from './hosted-member-authority.ts';
 const hostedIdSchema = z.string().trim().min(1);
 const hostedTimestampSchema = z.iso.datetime({ offset: true });
 
-/** One human's standing on one Server, as the App's member directory shows it. */
+/**
+ * One human's standing on one Server, as the App's member directory shows it.
+ * Identity fields are nullable: a human who has never opened the App has a
+ * membership but no profile yet, and the App falls back to a derived label.
+ */
 export const serverMemberSchema = z
     .object({
+        avatarUrl: z.string().nullable(),
+        description: z.string().nullable(),
+        displayName: z.string().nullable(),
+        email: z.string().nullable(),
+        handle: z.string().nullable(),
         joinedAt: hostedTimestampSchema,
         role: serverRoleSchema,
         userId: hostedIdSchema,
@@ -22,6 +31,32 @@ export const serverMemberSchema = z
     .strict();
 
 export type ServerMember = z.infer<typeof serverMemberSchema>;
+
+export const humanDisplayNameSchema = z.string().trim().min(1).max(80);
+export const humanDescriptionSchema = z.string().trim().max(500);
+
+/**
+ * The App reports the signed-in human's Clerk identity so the Server can seed
+ * a profile. It never overwrites a name the human has since chosen.
+ */
+export const hostedSyncHumanIdentityInputSchema = z
+    .object({
+        email: z.string().trim().max(320).nullable(),
+        name: z.string().trim().max(80).nullable(),
+    })
+    .strict();
+
+export type HostedSyncHumanIdentityInput = z.infer<typeof hostedSyncHumanIdentityInputSchema>;
+
+/** A human edits only their own profile; the Server judges that from the caller. */
+export const hostedUpdateHumanProfileInputSchema = z
+    .object({
+        description: humanDescriptionSchema.nullable(),
+        displayName: humanDisplayNameSchema,
+    })
+    .strict();
+
+export type HostedUpdateHumanProfileInput = z.infer<typeof hostedUpdateHumanProfileInputSchema>;
 
 /**
  * The directory carries the viewer's own identity and role, so the App renders

@@ -28,11 +28,30 @@ export const hostedChatMessageSchema = z
 
 export type HostedChatMessage = z.infer<typeof hostedChatMessageSchema>;
 
+/**
+ * Enough of one reply for the anchor's Thread preview: who wrote it and what
+ * they said. Authors stay as ids so every surface names them through the same
+ * Agent list and member directory the transcript already reads.
+ */
+export const hostedThreadReplyPreviewSchema = z
+    .object({
+        authorAgentId: hostedIdSchema.nullable(),
+        authorUserId: hostedIdSchema.nullable(),
+        content: z.string(),
+        createdAt: hostedTimestampSchema,
+        id: hostedIdSchema,
+    })
+    .strict();
+
+export type HostedThreadReplyPreview = z.infer<typeof hostedThreadReplyPreviewSchema>;
+
 export const hostedThreadSummarySchema = z
     .object({
         anchorMessageId: hostedIdSchema,
         followed: z.boolean(),
         latestReplyAt: hostedTimestampSchema.nullable(),
+        // The newest replies, oldest first, for the anchor's preview block.
+        recentReplies: z.array(hostedThreadReplyPreviewSchema),
         replyCount: z.number().int().nonnegative(),
         threadChatId: hostedIdSchema,
         unreadCount: z.number().int().nonnegative(),

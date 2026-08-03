@@ -7,6 +7,7 @@ import { startDeliveryRetrySweep } from './agent-delivery/retry-sweep.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { reconcileHostedAttachments } from './attachments/reconcile-attachments.ts';
+import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
 import { ComputerConnections } from './computers/connections.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
 import { markAllComputersOffline } from './computers/service.ts';
@@ -124,6 +125,7 @@ export async function createGrottoServerApplication(
             db: grotto.db,
             root: attachmentRoot,
         });
+        registerAvatarRoutes(app, { db: grotto.db });
         registerComputerRoutes(app, { appOrigin: options.appOrigin, db: grotto.db });
         registerAgentApiRoutes(app, {
             agentDelivery,

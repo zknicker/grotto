@@ -7,7 +7,6 @@ import {
     getCurrentAgentRuntimeUrl,
     loadAgentRuntimeConnection,
 } from './agent-runtime-connection/service.ts';
-import { pinDevelopmentDemoAgentAvatars } from './agents/shipped-default.ts';
 import { apiEventSchedulerIntervals, startApiEventScheduler } from './api/events-scheduler.ts';
 import { emitAgentRuntimeUpdated } from './api/invalidation-events.ts';
 import { env } from './config/env.ts';
@@ -116,9 +115,6 @@ async function refreshRuntimeAfterStartup() {
 
     await syncAgentRuntimeAgents().catch((error) => {
         console.warn('[tavern] failed to sync runtime agents on startup', error);
-    });
-    await pinDevelopmentDemoAgentAvatars().catch((error) => {
-        console.warn('[tavern] failed to pin demo agent avatars', error);
     });
 }
 

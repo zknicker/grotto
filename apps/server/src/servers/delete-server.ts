@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, eq, isNotNull, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -8,6 +8,7 @@ import {
     agentPendingWorkTable,
     agentRunnerCredentialsTable,
     agentsTable,
+    avatarsTable,
     chatEventsTable,
     computerSetupApprovalsTable,
     computersTable,
@@ -137,6 +138,12 @@ export async function purgeDeletedServer(
     try {
         await attachmentRoot.purgeServer(input.serverId);
         await db.transaction(async (tx) => {
+            const worn = await tx
+                .select({ avatarId: agentsTable.avatarId })
+                .from(agentsTable)
+                .where(
+                    and(eq(agentsTable.serverId, input.serverId), isNotNull(agentsTable.avatarId))
+                );
             const deleted = await tx
                 .delete(serversTable)
                 .where(and(eq(serversTable.id, input.serverId), isNotNull(serversTable.deletedAt)))
@@ -145,10 +152,16 @@ export async function purgeDeletedServer(
                 // A `task.label.updated` chat event carries only a Server id and a
                 // label id, so no cascading parent removes it when the Server row
                 // goes. Purge those stragglers explicitly, guarded by the delete
-                // above so a live Server is never touched.
+                // above so a live Server is never touched. Avatar rows are the
+                // same shape of straggler: the Agent wearing one cascades away
+                // and leaves its bytes behind.
                 await tx
                     .delete(chatEventsTable)
                     .where(eq(chatEventsTable.serverId, input.serverId));
+                const avatarIds = worn.map((row) => row.avatarId).filter((id) => id !== null);
+                if (avatarIds.length > 0) {
+                    await tx.delete(avatarsTable).where(inArray(avatarsTable.id, avatarIds));
+                }
             }
             await tx
                 .update(serverDeletionsTable)

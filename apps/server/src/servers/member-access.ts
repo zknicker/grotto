@@ -1,7 +1,8 @@
 import type { ServerMember, ServerMemberAuthorityRefusal, ServerRole } from '@tavern/api';
 import { and, eq, isNull, ne, sql } from 'drizzle-orm';
+import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { serverMembershipsTable } from '../postgres/schema.ts';
+import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';
 
 export class ServerMemberNotFoundError extends Error {
     constructor() {
@@ -42,6 +43,11 @@ const refusalMessages: Record<ServerMemberAuthorityRefusal, string> = {
 type MembershipReader = Pick<GrottoDatabase, 'select'>;
 
 export interface CurrentMembership {
+    avatarId: null | string;
+    description?: null | string;
+    displayName?: null | string;
+    email?: null | string;
+    handle?: null | string;
     joinedAt: Date;
     role: ServerRole;
     userId: string;
@@ -55,11 +61,17 @@ export async function findCurrentMembership(
 ): Promise<CurrentMembership | null> {
     const [membership] = await db
         .select({
+            avatarId: usersTable.avatarId,
+            description: usersTable.description,
+            displayName: usersTable.displayName,
+            email: usersTable.email,
+            handle: usersTable.handle,
             joinedAt: serverMembershipsTable.joinedAt,
             role: serverMembershipsTable.role,
             userId: serverMembershipsTable.userId,
         })
         .from(serverMembershipsTable)
+        .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
         .where(
             and(
                 eq(serverMembershipsTable.serverId, serverId),
@@ -102,6 +114,11 @@ export async function isLastOwner(
 
 export function toServerMember(membership: CurrentMembership): ServerMember {
     return {
+        avatarUrl: avatarUrlFor(membership.avatarId),
+        description: membership.description ?? null,
+        displayName: membership.displayName ?? null,
+        email: membership.email ?? null,
+        handle: membership.handle ?? null,
         joinedAt: membership.joinedAt.toISOString(),
         role: membership.role,
         userId: membership.userId,

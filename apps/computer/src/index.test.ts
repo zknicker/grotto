@@ -90,7 +90,14 @@ test('setup stores only a Server credential and reruns by validation', async () 
             update: { phase: 'idle' },
         });
         expect(socketFrames[0]).not.toHaveProperty('name');
-        expect(socketFrames[1]).toMatchObject({
+        const reportFrame = socketFrames.find(
+            (frame) =>
+                typeof frame === 'object' &&
+                frame !== null &&
+                'type' in frame &&
+                frame.type === 'report'
+        );
+        expect(reportFrame).toMatchObject({
             agents: [
                 {
                     agentId: 'agt_effective',

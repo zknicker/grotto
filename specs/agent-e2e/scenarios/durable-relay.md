@@ -21,9 +21,9 @@ model context:
 The live Agent E2E scenario targets recovery with an Agent-A-generated relay
 token that is absent from the human prompt to Agent B. It verifies the artifact
 bytes through the owning Agent's workspace boundary and requires Agent B to
-carry forward the artifact path and at least one exact source URL. Until a
-complete post-fix sample settles, this lane is non-gating; deterministic Server
-coverage owns the task-Thread idempotency invariant.
+carry forward the artifact path and at least one exact source URL. The lane is
+enabled in the normal Agent E2E suite. Deterministic Server coverage separately
+owns the task-Thread idempotency invariant.
 
 Cross-Agent workspace reads are not part of this contract. Workspace files
 remain Agent-owned; canonical Thread content and the rendered artifact card are

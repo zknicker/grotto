@@ -102,10 +102,26 @@ test never sent Agent B's handoff prompt. The disposable Agents and
 non-gating. It does not replace the matched manual Grotto handoff above, where
 fresh-session Otto recovered the Thread and delivered the continuation.
 
-The committed fixture no longer depends on a mid-test participant edit. Both
-disposable Agents are channel participants from setup, while the initial
-canonical task directly mentions Agent A; Agent B is reset before the later
-direct handoff. This corrected fixture was not rerun after the final-lane cap.
+The next fixture removed the mid-test participant edit. Both disposable Agents
+became Channel participants during setup, while the initial task directly
+mentioned Agent A and Agent B was reset before the later handoff. That removed
+the unavailable UI control but still coupled the relay proof to task ownership.
+
+## Enabled lane
+
+The corrected lane was rerun on 2026-08-03. Its first attempt exposed an
+unrelated task-ownership race: both Agents were Channel participants, and the
+successor claimed the unassigned task before the directly mentioned author.
+The author correctly stood down.
+
+The relay scenario now starts from an ordinary directly mentioned message and
+its Thread. Task claiming remains covered by the task-lifecycle and
+multi-Agent coordination lanes, while the deterministic Server regression
+owns task-Thread idempotency. With that unrelated coupling removed, the full
+fresh-session relay passed in 7.4 minutes. Agent B recovered the hidden relay
+token, artifact path, and prior source evidence, then delivered the required
+evidence amendment, go/no-go gates, and next action. The scenario is enabled in
+the normal Agent E2E suite.
 
 ## Stable gate
 

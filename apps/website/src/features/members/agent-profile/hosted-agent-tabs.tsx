@@ -1,13 +1,12 @@
 import { Separator } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
-import { Folder01Icon, Link04Icon, Notification03Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Folder01Icon, Notification03Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import { CopyButton } from '../../../components/copy-button.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
-import { HostedAgentTools } from '../../../routes/app/hosted-agent-tools.tsx';
 import { WorkspaceBrowserContent } from '../../chats/chat-artifact-workspace-content.tsx';
 import {
     SettingsGroup,
@@ -15,11 +14,10 @@ import {
     SettingsPage,
     SettingsSection,
 } from '../../settings/layout/settings-page.tsx';
-import { HostedAgentProfileTab } from './hosted-agent-profile-tab.tsx';
+import { HostedAgentOverviewTab } from './hosted-agent-overview-tab.tsx';
 
 export { HostedAgentActivityTab } from './hosted-agent-activity-tab.tsx';
-export { HostedAgentChatTab } from './hosted-agent-chat-tab.tsx';
-export { HostedAgentProfileTab };
+export { HostedAgentOverviewTab };
 
 export function HostedAgentRemindersTab({
     agent,
@@ -116,31 +114,6 @@ export function HostedAgentWorkspaceTab({
                     sidebarStorageKey={`grotto.agent-profile.${agent.id}.workspace.width`}
                 />
             </div>
-        </div>
-    );
-}
-
-export function HostedAgentAppsTab() {
-    return (
-        <TabEmptyState
-            description="Apps this Agent signs into will appear here."
-            icon={Link04Icon}
-            title="No Connected Apps Yet"
-        />
-    );
-}
-
-export function HostedAgentMcpTab({ agent, server }: { agent: HostedAgent; server: ServerDetail }) {
-    const connections = grottoTrpc.mcp.list.useQuery({ serverId: server.id });
-    return (
-        <div className="px-5 py-6 sm:px-7">
-            <SettingsPage>
-                <HostedAgentTools
-                    agent={agent}
-                    connections={connections.data ?? []}
-                    serverId={server.id}
-                />
-            </SettingsPage>
         </div>
     );
 }

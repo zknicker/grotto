@@ -1,4 +1,4 @@
-import { Button, Card } from '@heroui/react';
+import { Button, Card, Chip } from '@heroui/react';
 import type React from 'react';
 import { cn } from '../../../lib/utils.ts';
 
@@ -123,6 +123,41 @@ export function SettingsValue({ className, ...props }: React.ComponentProps<'div
 
 export function SettingsItem({ className, ...props }: React.ComponentProps<'div'>) {
     return <div className={cn('px-4 py-3.5', className)} {...props} />;
+}
+
+/**
+ * A row of small labelled facts, each value carried by a stock Chip. Use for
+ * settings a reader scans rather than reads — a configuration summary — where
+ * one line beats a stack of label/value rows.
+ */
+export function SettingsChipRow({ children, className, ...props }: React.ComponentProps<'div'>) {
+    return (
+        <div
+            className={cn('flex flex-wrap items-start gap-x-8 gap-y-4 px-5 py-4', className)}
+            {...props}
+        >
+            {children}
+        </div>
+    );
+}
+
+export function SettingsChipField({
+    color = 'default',
+    label,
+    value,
+}: {
+    color?: React.ComponentProps<typeof Chip>['color'];
+    label: React.ReactNode;
+    value: React.ReactNode;
+}) {
+    return (
+        <div className="flex min-w-0 flex-col gap-1.5">
+            <span className="text-muted text-xs leading-none">{label}</span>
+            <Chip color={color} size="sm" variant="soft">
+                <Chip.Label>{value}</Chip.Label>
+            </Chip>
+        </div>
+    );
 }
 
 export function SettingsActionRow({

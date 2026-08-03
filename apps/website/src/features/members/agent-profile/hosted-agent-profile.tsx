@@ -1,13 +1,11 @@
-import { Button, Tabs, Tooltip } from '@heroui/react';
+import { Button, Tooltip } from '@heroui/react';
+import { Segment } from '@heroui-pro/react';
 import {
     Activity01Icon,
-    BubbleChatIcon,
     Cancel01Icon,
     Folder01Icon,
-    Link04Icon,
     Notification03Icon,
     UserCircleIcon,
-    Wrench01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
@@ -18,25 +16,18 @@ import { cn } from '../../../lib/utils.ts';
 import { serverMembersRoute } from '../../servers/server-routes.ts';
 import { SectionBar } from '../../shell/section-header.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
-import { HostedAgentIdentity } from './hosted-agent-profile-header.tsx';
 import {
     HostedAgentActivityTab,
-    HostedAgentAppsTab,
-    HostedAgentChatTab,
-    HostedAgentMcpTab,
-    HostedAgentProfileTab,
+    HostedAgentOverviewTab,
     HostedAgentRemindersTab,
     HostedAgentWorkspaceTab,
 } from './hosted-agent-tabs.tsx';
 
 const tabs = [
-    { icon: UserCircleIcon, label: 'Profile', value: 'profile' },
+    { icon: UserCircleIcon, label: 'Overview', value: 'overview' },
     { icon: Activity01Icon, label: 'Activity', value: 'activity' },
-    { icon: BubbleChatIcon, label: 'Chat', value: 'chat' },
     { icon: Notification03Icon, label: 'Reminders', value: 'reminders' },
     { icon: Folder01Icon, label: 'Workspace', value: 'workspace' },
-    { icon: Link04Icon, label: 'Apps', value: 'apps' },
-    { icon: Wrench01Icon, label: 'MCP', value: 'mcp' },
 ] as const;
 
 type HostedAgentTab = (typeof tabs)[number]['value'];
@@ -55,7 +46,7 @@ export function HostedAgentProfile({
 }) {
     const navigate = useNavigate();
     const [activeTab, setActiveTabState] = React.useState<HostedAgentTab>(
-        () => activeTabByAgent.get(agent.id) ?? 'profile'
+        () => activeTabByAgent.get(agent.id) ?? 'overview'
     );
     const setActiveTab = (value: HostedAgentTab) => {
         activeTabByAgent.set(agent.id, value);
@@ -68,7 +59,6 @@ export function HostedAgentProfile({
                 <PageTopbar>
                     <AgentTabBand
                         activeTab={activeTab}
-                        agent={agent}
                         onClose={onClose}
                         onTabChange={setActiveTab}
                     />
@@ -77,7 +67,6 @@ export function HostedAgentProfile({
                 <SectionBar>
                     <AgentTabBand
                         activeTab={activeTab}
-                        agent={agent}
                         onClose={onClose}
                         onTabChange={setActiveTab}
                     />
@@ -106,51 +95,38 @@ export function HostedAgentProfile({
     );
 }
 
-/**
- * Identity + section tabs + optional close, sized by the surrounding band.
- * The Tabs list container must stay a DIRECT child of Tabs — the secondary
- * variant styles select `.tabs--secondary > .tabs__list-container` — so the
- * Tabs root itself carries the flex sizing, and the content panel lives
- * outside (the section switch is controlled state, not Tabs.Panel).
- */
+/** The Agent band: section switcher centred, actions trailing. */
 function AgentTabBand({
     activeTab,
-    agent,
     onClose,
     onTabChange,
 }: {
     activeTab: HostedAgentTab;
-    agent: HostedAgent;
     onClose?: () => void;
     onTabChange: (tab: HostedAgentTab) => void;
 }) {
+    // Identity is carried by the Overview header and the roster, so the band
+    // holds only the section switcher, aligned to the content's leading edge.
     return (
-        <div className="flex h-full min-w-0 flex-1 items-stretch gap-5">
-            <div className="flex min-w-0 shrink-0 items-center">
-                <HostedAgentIdentity agent={agent} />
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex min-w-0 items-center">
+                <Segment
+                    aria-label="Agent sections"
+                    onSelectionChange={(key) => onTabChange(key as HostedAgentTab)}
+                    selectedKey={activeTab}
+                    size="sm"
+                    variant="ghost"
+                >
+                    {tabs.map((tab) => (
+                        <Segment.Item id={tab.value} key={tab.value}>
+                            <Icon aria-hidden="true" icon={tab.icon} size={15} />
+                            {tab.label}
+                        </Segment.Item>
+                    ))}
+                </Segment>
             </div>
-            <Tabs
-                className="-mb-px min-w-0 flex-1 self-end"
-                onSelectionChange={(key) => onTabChange(key as HostedAgentTab)}
-                selectedKey={activeTab}
-                variant="secondary"
-            >
-                <Tabs.ListContainer>
-                    <Tabs.List aria-label="Agent sections">
-                        {tabs.map((tab) => (
-                            <Tabs.Tab id={tab.value} key={tab.value}>
-                                <span className="flex items-center gap-2">
-                                    <Icon aria-hidden="true" icon={tab.icon} size={16} />
-                                    {tab.label}
-                                </span>
-                                <Tabs.Indicator />
-                            </Tabs.Tab>
-                        ))}
-                    </Tabs.List>
-                </Tabs.ListContainer>
-            </Tabs>
-            {onClose ? (
-                <div className="flex shrink-0 items-center">
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+                {onClose ? (
                     <Tooltip>
                         <Button
                             aria-label="Close"
@@ -163,8 +139,8 @@ function AgentTabBand({
                         </Button>
                         <Tooltip.Content>Close</Tooltip.Content>
                     </Tooltip>
-                </div>
-            ) : null}
+                ) : null}
+            </div>
         </div>
     );
 }
@@ -181,19 +157,13 @@ function ActiveTab({
     tab: HostedAgentTab;
 }) {
     switch (tab) {
-        case 'profile':
-            return <HostedAgentProfileTab agent={agent} onDeleted={onDeleted} server={server} />;
+        case 'overview':
+            return <HostedAgentOverviewTab agent={agent} onDeleted={onDeleted} server={server} />;
         case 'activity':
             return <HostedAgentActivityTab agent={agent} server={server} />;
-        case 'chat':
-            return <HostedAgentChatTab agent={agent} server={server} />;
         case 'reminders':
             return <HostedAgentRemindersTab agent={agent} server={server} />;
         case 'workspace':
             return <HostedAgentWorkspaceTab agent={agent} server={server} />;
-        case 'apps':
-            return <HostedAgentAppsTab />;
-        case 'mcp':
-            return <HostedAgentMcpTab agent={agent} server={server} />;
     }
 }

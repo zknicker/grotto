@@ -3,7 +3,7 @@ import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
-import { withSavingToast } from '../../../lib/saving-toast.ts';
+import { withSaveErrorToast, withSavingToast } from '../../../lib/saving-toast.ts';
 import {
     SettingsGroup,
     SettingsRow,
@@ -18,15 +18,20 @@ export function HostedAgentSessionSection({
     server: ServerDetail;
 }) {
     const utils = grottoTrpc.useUtils();
-    const reset = grottoTrpc.agent.reset.useMutation({
-        onSuccess: () =>
-            Promise.all([
-                utils.agent.deliveryState.invalidate({
-                    agentId: agent.id,
-                    serverId: server.id,
-                }),
-                utils.agent.list.invalidate({ serverId: server.id }),
-            ]),
+
+    function invalidate() {
+        return Promise.all([
+            utils.agent.deliveryState.invalidate({ agentId: agent.id, serverId: server.id }),
+            utils.agent.list.invalidate({ serverId: server.id }),
+        ]);
+    }
+
+    const reset = grottoTrpc.agent.reset.useMutation({ onSuccess: invalidate });
+    const stop = grottoTrpc.agent.stop.useMutation({ onSuccess: invalidate });
+    const restart = grottoTrpc.agent.restart.useMutation({ onSuccess: invalidate });
+    const state = grottoTrpc.agent.deliveryState.useQuery({
+        agentId: agent.id,
+        serverId: server.id,
     });
     const [fullResetOpen, setFullResetOpen] = React.useState(false);
 
@@ -47,9 +52,51 @@ export function HostedAgentSessionSection({
         );
     }
 
+    // Ordered by how much they disturb the Agent: halt the current run, restart
+    // the process, drop its context, then rebuild it from the starter kit.
     return (
         <SettingsSection title="Session">
             <SettingsGroup>
+                <SettingsRow
+                    description="Halt whatever the Agent is doing right now."
+                    title="Stop"
+                    trailingWidth="intrinsic"
+                >
+                    <Button
+                        isDisabled={!state.data?.running || stop.isPending}
+                        isPending={stop.isPending}
+                        onPress={() =>
+                            withSaveErrorToast(() =>
+                                stop.mutateAsync({ agentId: agent.id, serverId: server.id })
+                            ).catch(() => undefined)
+                        }
+                        size="sm"
+                        variant="secondary"
+                    >
+                        Stop
+                    </Button>
+                </SettingsRow>
+                <Separator />
+                <SettingsRow
+                    description="Restart the Agent's runtime. Context, workspace, and skills persist."
+                    title="Restart"
+                    trailingWidth="intrinsic"
+                >
+                    <Button
+                        isDisabled={restart.isPending}
+                        isPending={restart.isPending}
+                        onPress={() =>
+                            withSaveErrorToast(() =>
+                                restart.mutateAsync({ agentId: agent.id, serverId: server.id })
+                            ).catch(() => undefined)
+                        }
+                        size="sm"
+                        variant="secondary"
+                    >
+                        Restart
+                    </Button>
+                </SettingsRow>
+                <Separator />
                 <SettingsRow
                     description="Start the Agent's next turn with fresh context. Workspace, MEMORY.md, and skills persist."
                     title="Start Fresh Session"

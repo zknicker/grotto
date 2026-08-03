@@ -1,19 +1,13 @@
 import { createHash } from 'node:crypto';
-import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
-import { createTRPCClient, httpLink } from '@trpc/client';
-import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
-import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { computerProtocolVersion } from '@tavern/api';
+import { createHostedTestServer } from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('an Owner updates one Computer from Settings through isolated progress', async ({ page }) => {
-    await signInAsClerkHuman(page);
-    await page.goto('/s');
-    await page.getByLabel('Name').fill('Computer HQ');
-    await page.getByLabel('Address').fill('computer-hq');
-    await page.getByRole('button', { name: 'Create Server' }).click();
-
-    const session = readClerkSessionFixture();
-    const owner = hostedClient(session.token);
+    const { client: owner } = await createHostedTestServer(page, {
+        displayName: 'Computer HQ',
+        slug: 'computer-hq',
+    });
     const credential = 'computer-test-credential-1234567890';
     const setup = await owner.computer.begin.mutate({
         credentialHash: createHash('sha256').update(credential).digest('hex'),
@@ -24,11 +18,9 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     await expect(page.getByText('Approved. Return to Grotto Computer.')).toBeVisible();
 
     await page.goto('/s/computer-hq/computers');
-    await expect(page.getByText('Computers 1', { exact: true })).toBeVisible();
+    await expect(page.getByText('Attached · 1', { exact: true })).toBeVisible();
     await expect(page.getByText('Awaiting first report')).toBeVisible();
-    await expect(
-        page.getByRole('complementary').getByRole('button', { name: 'Copy code' })
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Recovery Commands' })).toBeVisible();
 
     const computer = new WebSocket(
         `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
@@ -42,9 +34,9 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     });
 
     await page.reload();
-    await expect(page.getByText('v1.0.0', { exact: true })).toBeVisible();
-    await expect(page.getByText('999', { exact: true })).toBeVisible();
-    await expect(page.getByText(/Ordinary controls are paused/u)).toBeVisible();
+    const detail = page.getByRole('main', { name: 'Scrollable main content' });
+    await expect(detail.getByText('v1.0.0', { exact: true })).toBeVisible();
+    await expect(detail.getByText(/Ordinary controls are paused/u)).toBeVisible();
 
     await page.getByRole('button', { name: 'Check' }).click();
     await expect(page.getByText('Checking production release…')).toBeVisible();
@@ -125,7 +117,7 @@ function sendBootstrap(socket: WebSocket, credential: string, phase: 'complete' 
             health: 'healthy',
             operatingSystem: 'darwin',
             productVersion: phase === 'complete' ? '1.1.0' : '1.0.0',
-            protocolVersion: phase === 'complete' ? 4 : 999,
+            protocolVersion: phase === 'complete' ? computerProtocolVersion : 999,
             type: 'bootstrap',
             update: {
                 activeAgentCount: null,
@@ -177,19 +169,4 @@ async function reportProgress(
         })
     );
     await new Promise((resolve) => setTimeout(resolve, 50));
-}
-
-function hostedClient(token: string) {
-    return createTRPCClient<GrottoRouter>({
-        links: [
-            httpLink({
-                headers: {
-                    [appProtocolHeaders.productVersion]: '1.6.6-e2e',
-                    [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
-                    authorization: `Bearer ${token}`,
-                },
-                url: `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/trpc`,
-            }),
-        ],
-    });
 }

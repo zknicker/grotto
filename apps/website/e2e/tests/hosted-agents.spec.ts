@@ -1,10 +1,7 @@
 import { createHash } from 'node:crypto';
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@tavern/api';
-import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
-import { createTRPCClient, httpLink } from '@trpc/client';
 import { WebSocket } from 'ws';
-import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
-import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { createHostedTestServer } from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
 const computerCredential = 'agent-e2e-credential-0000000000000000';
@@ -24,14 +21,10 @@ const inventory = {
 test('creates Cove after inventory is reported and fails closed on unreported config', async ({
     page,
 }) => {
-    await signInAsClerkHuman(page);
-    await page.goto('/s');
-    await page.getByLabel('Name').fill('Agent HQ');
-    await page.getByLabel('Address').fill('agent-hq');
-    await page.getByRole('button', { name: 'Create Server' }).click();
-
-    const session = readClerkSessionFixture();
-    const owner = hostedClient(session.token);
+    const { client: owner } = await createHostedTestServer(page, {
+        displayName: 'Agent HQ',
+        slug: 'agent-hq',
+    });
     const setup = await owner.computer.begin.mutate({
         credentialHash: createHash('sha256').update(computerCredential).digest('hex'),
         slug: 'agent-hq',
@@ -43,17 +36,43 @@ test('creates Cove after inventory is reported and fails closed on unreported co
     // The Computer reports its sanitized inventory over its attachment socket.
     await reportInventory();
 
-    await page.goto('/s/agent-hq/agents');
-    await expect(page.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible();
-    await expect(page.getByLabel('Runtime')).toContainText('Codex');
-    await expect(page.getByLabel('Model')).toContainText('GPT-5.6 Sol');
-    // Guided creation offers Cove as the default first Agent.
-    await expect(page.locator('#agent-name')).toHaveValue('Cove');
+    await page.goto('/s/agent-hq/members');
     await page.getByRole('button', { name: 'Create Agent' }).click();
+    const createDialog = page.getByRole('dialog', { name: 'Create Agent' });
+    await expect(createDialog.getByLabel('Runtime')).toContainText('Codex');
+    await expect(createDialog.getByLabel('Model')).toContainText('GPT-5.6 Sol');
+    // Guided creation offers Cove as the default first Agent.
+    await expect(createDialog.getByRole('textbox', { name: 'Name' })).toHaveValue('Cove');
+    await createDialog.getByRole('button', { name: 'Create Agent' }).click();
 
-    await expect(page.getByText('Cove')).toBeVisible();
-    await expect(page.getByLabel('blob agent')).toBeVisible();
-    await expect(page.getByText('pending')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
+    await expect(page.getByText('Applies when Computer reconnects')).toBeVisible();
+
+    // The current hosted profile owns the same lifecycle and configuration
+    // contracts the retired local profile exposed.
+    for (const section of ['Overview', 'Activity', 'Reminders', 'Workspace']) {
+        await expect(page.getByRole('radio', { name: section })).toBeVisible();
+    }
+    const restart = page.getByRole('button', { name: 'Restart', exact: true });
+    await expect(restart).toBeVisible();
+    await restart.click();
+    await expect(restart).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Start Fresh Session' })).toBeVisible();
+    await page.getByRole('button', { name: 'Full Reset' }).click();
+    const resetConfirmation = page.getByRole('alertdialog', { name: 'Full Reset?' });
+    await expect(resetConfirmation).toContainText('MEMORY.md');
+    await expect(resetConfirmation).toContainText('kept');
+    await resetConfirmation.getByRole('button', { name: 'Cancel' }).click();
+
+    await page.getByRole('button', { name: 'Edit' }).click();
+    const runtimeDialog = page.getByRole('dialog', { name: 'Runtime Config' });
+    await runtimeDialog.getByLabel('Model').click();
+    await page.getByRole('option', { name: 'GPT-5.6 Terra' }).click();
+    await runtimeDialog.getByRole('button', { name: 'Save' }).click();
+    await expect(runtimeDialog).toBeHidden();
+    await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
 
     // Deletion requires the exact Agent name. Cancel leaves this isolated
     // e2e Agent intact for the adjacent DM and contract assertions.
@@ -72,7 +91,7 @@ test('creates Cove after inventory is reported and fails closed on unreported co
 
     // The DM appears as an ordinary Agent DM, not a special onboarding Channel.
     await page.goto('/s/agent-hq');
-    await expect(page.getByRole('button', { name: /blob agent.*Cove/iu })).toBeVisible();
+    await expect(page.getByRole('row', { name: 'Cove' })).toBeVisible();
 
     // Cross-Computer / unreported references fail closed at the contract.
     const [computer] = await owner.computer.list.query({ serverId: setup.serverId });
@@ -127,20 +146,5 @@ function reportInventory() {
                 })
             );
         });
-    });
-}
-
-function hostedClient(token: string) {
-    return createTRPCClient<GrottoRouter>({
-        links: [
-            httpLink({
-                headers: {
-                    [appProtocolHeaders.productVersion]: 'e2e',
-                    [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
-                    authorization: `Bearer ${token}`,
-                },
-                url: `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/trpc`,
-            }),
-        ],
     });
 }

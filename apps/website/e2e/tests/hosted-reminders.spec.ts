@@ -1,29 +1,25 @@
-import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
-import { createTRPCClient, httpLink } from '@trpc/client';
-import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
-import { clerkSessionFile, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { existsSync } from 'node:fs';
+import {
+    createHostedTestServer,
+    openHostedChannel,
+    runHostedPsql,
+} from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('hosted reminder operator state cancels and catches up after reconnect', async ({ page }) => {
-    await signInAsClerkHuman(page);
-    await page.goto('/s');
-    await page.getByLabel('Name').fill('Hosted Reminders');
-    await page.getByLabel('Address').fill('hosted-reminders');
-    await page.getByRole('button', { name: 'Create Server' }).click();
-    await page.getByRole('button', { name: 'all', exact: true }).click();
+    const {
+        client: owner,
+        server,
+        session,
+    } = await createHostedTestServer(page, {
+        displayName: 'Hosted Reminders',
+        slug: 'hosted-reminders',
+    });
+    await openHostedChannel(page, 'all');
     await page.getByRole('textbox', { name: 'Message all' }).fill('Reminder anchor');
     await page.getByRole('button', { name: 'Send' }).click();
     await expect(page.getByText('Reminder anchor', { exact: true })).toBeVisible();
 
-    const session = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as {
-        databaseUrl: string;
-        token: string;
-    };
-    const owner = createHostedClient(session.token);
-    const server = await owner.server.bySlug.query({ slug: 'hosted-reminders' });
     const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
     if (!chatId) {
         throw new Error('The hosted reminder fixture did not resolve #all.');
@@ -54,11 +50,12 @@ test('hosted reminder operator state cancels and catches up after reconnect', as
     expect(existsSync(canaryPath)).toBe(false);
 
     await watchdog.getByRole('button', { name: 'Fire log' }).click();
-    await expect(page.getByText('Scheduled Jul 26, 9:00 AM')).toBeVisible();
-    await page.getByRole('button', { name: 'Close' }).click();
+    const fireLog = page.getByRole('complementary').filter({ hasText: 'Fire LogLocal watchdog' });
+    await expect(fireLog.getByText('Scheduled Jul 26, 9:00 AM')).toBeVisible();
+    await fireLog.getByRole('button', { exact: true, name: 'Close' }).click();
     await watchdog.getByRole('button', { name: 'Cancel reminder' }).click();
-    const dialog = page.getByRole('dialog');
-    await expect(dialog.getByText('Cancel reminder?')).toBeVisible();
+    const dialog = page.getByRole('alertdialog', { name: 'Cancel Reminder?' });
+    await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'Cancel reminder' }).click();
     await expect(watchdog).toContainText('canceled');
     expect(existsSync(canaryPath)).toBe(false);
@@ -77,7 +74,7 @@ test('hosted reminder operator state cancels and catches up after reconnect', as
     await expect(offlineReminder).toContainText('canceled');
     await expect(offlineReminder.getByRole('button', { name: 'Cancel reminder' })).toHaveCount(0);
 
-    runPsql(
+    runHostedPsql(
         session.databaseUrl,
         `update server_memberships set role = 'member'
          where server_id = '${server.id}'
@@ -98,7 +95,7 @@ function seedReminderState(input: {
     databaseUrl: string;
     serverId: string;
 }) {
-    runPsql(
+    runHostedPsql(
         input.databaseUrl,
         `begin;
          insert into agents (
@@ -154,39 +151,4 @@ function seedReminderState(input: {
          );
          commit;`
     );
-}
-
-function createHostedClient(token: string) {
-    return createTRPCClient<GrottoRouter>({
-        links: [
-            httpLink({
-                headers: {
-                    [appProtocolHeaders.productVersion]: 'e2e',
-                    [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
-                    authorization: `Bearer ${token}`,
-                },
-                url: `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/trpc`,
-            }),
-        ],
-    });
-}
-
-function runPsql(databaseUrl: string, statement: string) {
-    return execFileSync(resolvePsql(), [
-        databaseUrl,
-        '--no-psqlrc',
-        '--command',
-        statement,
-    ]).toString();
-}
-
-function resolvePsql() {
-    const roots = [
-        process.env.GROTTO_POSTGRES_BIN,
-        '/opt/homebrew/opt/postgresql@16/bin',
-        '/opt/homebrew/opt/libpq/bin',
-        '/usr/local/opt/postgresql@16/bin',
-        '',
-    ].filter((root): root is string => root !== undefined);
-    return roots.map((root) => join(root, 'psql')).find(existsSync) ?? 'psql';
 }

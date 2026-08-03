@@ -1,4 +1,5 @@
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
+import { createHostedClient, openHostedChannel } from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
 /**
@@ -9,23 +10,25 @@ import { expect, test } from '../support/test.ts';
  */
 const slug = 'membership-hq';
 
+test.beforeAll(async () => {
+    const { token } = readClerkSessionFixture();
+    await createHostedClient(token).server.create.mutate({
+        displayName: 'Membership HQ',
+        slug,
+    });
+});
+
 test('an Owner invites, promotes, and removes a human', async ({ browser, page }) => {
     const { peerEmail } = readClerkSessionFixture();
 
     await signInAsClerkHuman(page);
-    await page.goto('/s');
-    await page.getByLabel('Name').fill('Membership HQ');
-    await page.getByLabel('Address').fill(slug);
-    await page.getByRole('button', { name: 'Create Server' }).click();
-    await expect(page).toHaveURL(new RegExp(`/s/${slug}$`, 'u'));
-
-    await page.getByRole('link', { exact: true, name: 'Members' }).click();
-    await expect(page).toHaveURL(new RegExp(`/s/${slug}/members$`, 'u'));
+    await page.goto(`/s/${slug}/members/humans`);
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/members/humans$`, 'u'));
 
     // The sole Owner cannot strand the Server, and the row says why.
     const leaveButton = page.getByRole('button', { name: 'Leave Server' });
     await expect(leaveButton).toBeDisabled();
-    await expect(leaveButton).toHaveAttribute('title', /last Owner/iu);
+    await expect(leaveButton.locator('..')).toHaveAttribute('title', /last Owner/iu);
 
     await page.getByLabel('Invite by email').fill(peerEmail);
     await page.getByRole('button', { name: 'Invite', exact: true }).click();
@@ -43,8 +46,9 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     await peerPage.goto(invitePath);
     await peerPage.getByRole('button', { name: 'Accept invitation' }).click();
 
-    await expect(peerPage).toHaveURL(new RegExp(`/s/${slug}$`, 'u'));
-    await expect(peerPage.getByRole('heading', { level: 2, name: '#all' })).toBeVisible();
+    await expect(peerPage).toHaveURL(new RegExp(`/s/${slug}/activity$`, 'u'));
+    await openHostedChannel(peerPage, 'all');
+    await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
 
     // A single-use token cannot be replayed.
     await peerPage.goto(invitePath);
@@ -70,23 +74,29 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     // The dialog names the human and the role at stake, not just the verb.
     const adminRowForDemotion = page.locator('[data-member-id]').filter({ hasText: 'admin' });
     await adminRowForDemotion.getByRole('button', { name: 'Make Member' }).click();
-    await expect(page.getByText(/Human \w+ goes from admin to member/u)).toBeVisible();
+    await expect(page.getByRole('alertdialog', { name: 'Make Member' })).toContainText(
+        'goes from admin to member'
+    );
     // Stepping down grants nothing, so it stays an ordinary confirmation.
     await expect(page.getByLabel('Type the Server address to confirm')).toHaveCount(0);
     await page.getByRole('button', { name: 'Cancel' }).click();
 
     // The removed human is sitting on the Server with its transcript rendered.
     await peerPage.goto(`/s/${slug}`);
-    await expect(peerPage.getByRole('heading', { level: 2, name: '#all' })).toBeVisible();
+    await openHostedChannel(peerPage, 'all');
+    await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     const peerListPage = await peerContext.newPage();
     await signInAsClerkHuman(peerListPage, 'peer');
-    await peerListPage.goto('/s');
-    await expect(peerListPage.getByRole('link', { name: /Membership HQ/u })).toBeVisible();
+    await peerListPage.goto(`/s/${slug}`);
+    await peerListPage.getByRole('button', { name: `Switch Server (current: ${slug})` }).click();
+    await expect(peerListPage.getByRole('menuitem', { name: /Membership HQ/u })).toBeVisible();
 
     // Removal is destructive, so it takes the exact Server address.
     const adminRow = page.locator('[data-member-id]').filter({ hasText: 'admin' });
     await adminRow.getByRole('button', { name: 'Remove from Server' }).click();
-    await expect(page.getByText(/Human \w+ is currently admin/u)).toBeVisible();
+    await expect(page.getByRole('alertdialog', { name: 'Remove from Server' })).toContainText(
+        'is currently admin'
+    );
     const confirm = page.getByRole('button', { name: 'Remove from Server' }).last();
     await expect(confirm).toBeDisabled();
     await page.getByLabel('Type the Server address to confirm').fill('wrong');
@@ -100,12 +110,12 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     // Their open page drops the Server without being reloaded: losing access
     // arrives as a refused subscription, never as data, so the App has to act on
     // the refusal rather than wait for the next navigation.
-    await expect(peerPage.getByRole('heading', { level: 2, name: '#all' })).toHaveCount(0);
+    await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
     await expect(peerPage.getByText('Server unavailable')).toBeVisible();
 
     // The already-open list loses it too. This proves membership-loss listening
     // belongs to the hosted route rather than only an open Server page.
-    await expect(peerListPage.getByRole('link', { name: /Membership HQ/u })).toHaveCount(0);
+    await expect(peerListPage.getByRole('menuitem', { name: /Membership HQ/u })).toHaveCount(0);
 
     await peerContext.close();
 });

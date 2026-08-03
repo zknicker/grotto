@@ -1,31 +1,38 @@
 # Website E2E
 
-This folder holds Playwright coverage for user-facing app behavior.
+This folder holds Playwright coverage for user-facing App behavior.
 
 ## Lane
 
-- The default lane runs the website, server, Tavern Runtime, and the local agent engine.
-- Runtime's deterministic e2e executor writes normal Tavern response state for
-  browser tests.
-- Tests stay user-shaped: drive setup through the UI or real runtime contracts, then assert visible behavior over time.
-
-## Chat Timing
-
-New-chat responsiveness is covered with browser-visible marks for submit, optimistic route/sidebar/user message, thinking, final assistant message, duplicate final count, and hidden hover metadata. Those marks are enabled by the Playwright runtime flag only; the app should not emit permanent production timing logs for normal users.
+- The default lane runs the website and hosted Server against throwaway PostgreSQL and Clerk fixtures.
+- Browser tests fake only external Computer/model effects, normally by reporting inventory or authoring through the public runner contract.
+- Real App-to-Computer-to-model behavior belongs to `bun run eval:agents`.
+- Tests stay user-shaped: drive behavior through the UI or a public product contract, then assert visible behavior over time.
 
 ## Layout
 
 - `run-playwright.ts`: allocates unique ports and run ids for each Playwright run.
-- `preflight.ts`: verifies Playwright Chromium before Playwright starts its `webServer` readiness timers.
-- `start-tavern-server.ts`: boots the real Tavern server with a run-scoped SQLite database.
-- `start-tavern-runtime.ts`: boots the real Tavern Runtime with a run-scoped data root.
+- `preflight.ts`: verifies Playwright Chromium and builds the SDK before service readiness timers start.
+- `start-grotto-server.ts`: boots the hosted Server with run-scoped PostgreSQL, attachments, and Clerk fixtures.
+- `support/hosted-server.ts`: authenticated Server setup and durable navigation helpers.
 - `support/test.ts`: shared Playwright exports.
-- `tests/*.spec.ts`: user-facing specs grouped by surface area.
+- `tests/*.spec.ts`: user-facing specs grouped by current hosted surface.
 
 ## Rules
 
-- Do not point automated e2e tests at a developer or production agent home, config, or DB.
+- Do not point automated tests at a developer or production Agent home, config, or database.
 - Do not add mock-only product APIs for convenience.
-- Keep expensive dependency setup in preflight, not Playwright `webServer` startup.
-- Prefer one focused e2e regression over broad fixture setup and dozens of brittle assertions.
-- When a regression depends on perceived chat responsiveness, assert both timing marks and visible UI state.
+- Prefer one focused regression over broad fixture setup and brittle assertions.
+- Use role/name locators scoped to a semantic region or row. Avoid generated ids and document-wide text selectors.
+- Create each spec's Server in `beforeAll` or its test. Never depend on another spec's rows or execution order.
+- Reuse `openHostedChannel` and `openHostedSection` so navigation follows the accessible tree contract.
+
+Run one file while repairing a focused surface:
+
+```bash
+bun e2e/run-playwright.ts e2e/tests/hosted-messaging.spec.ts
+```
+
+The default lane starts no local sidecar, Runtime, Computer, or model. Chat, task, membership,
+reminder, Agent, Computer, settings, and reconnect coverage all use the same isolated hosted
+architecture.

@@ -1,69 +1,17 @@
 import { readFileSync } from 'node:fs';
+import type { Locator } from '@playwright/test';
 import { clerkSessionFile, signInAsClerkHuman } from '../support/clerk-session.ts';
 import { createHostedAgentThreadSender } from '../support/hosted-agent-thread.ts';
-import { assertOpaqueId, createHostedClient, runHostedPsql } from '../support/hosted-server.ts';
+import {
+    assertOpaqueId,
+    createHostedClient,
+    openHostedChannel,
+    openHostedSection,
+    runHostedPsql,
+} from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('a human messages in #all with only the hosted Server online', async ({ page }) => {
-    test.setTimeout(60_000);
-    const localProductRequests: string[] = [];
-    const localServerOrigin = `http://127.0.0.1:${process.env.TAVERN_SERVER_PORT}`;
-    const runtimeOrigin = `http://127.0.0.1:${process.env.TAVERN_RUNTIME_PORT}`;
-
-    page.on('request', (request) => {
-        if (
-            request.url().startsWith(localServerOrigin) ||
-            request.url().startsWith(runtimeOrigin)
-        ) {
-            localProductRequests.push(request.url());
-        }
-    });
-
-    await expect(fetch(`${localServerOrigin}/healthz`)).rejects.toThrow();
-    await expect(fetch(`${runtimeOrigin}/capabilities`)).rejects.toThrow();
-    await signInAsClerkHuman(page);
-    await page.goto('/s');
-    await page.getByLabel('Name').fill('Hosted Messages');
-    await page.getByLabel('Address').fill('hosted-messages');
-    await page.getByRole('button', { name: 'Create Server' }).click();
-    await page.getByRole('button', { name: 'all', exact: true }).click();
-
-    const composer = page.getByRole('textbox', { name: 'Message all' });
-    await composer.fill('First durable human message');
-    await page.getByRole('button', { name: 'Send' }).click();
-    await expect(page.getByText('First durable human message')).toBeVisible();
-    await expect(page.getByTestId('read-state')).toContainText('Read through 1');
-
-    await page.reload();
-    await page.getByRole('button', { name: 'all', exact: true }).click();
-    await expect(page.getByText('First durable human message')).toBeVisible();
-    await composer.fill('Second durable human message');
-    await page.getByRole('button', { name: 'Send' }).click();
-
-    const fileChooser = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: 'Add attachments' }).click();
-    await (await fileChooser).setFiles({
-        buffer: Buffer.from('hosted attachment bytes'),
-        mimeType: 'text/plain',
-        name: 'hosted-note.txt',
-    });
-    await expect(page.getByText('hosted-note.txt')).toBeVisible();
-    await page.getByRole('button', { name: 'Send' }).click();
-    const downloadButton = page.getByRole('button', { name: 'Download hosted-note.txt' });
-    await expect(downloadButton).toBeVisible();
-    const download = page.waitForEvent('download');
-    await downloadButton.click();
-    expect((await download).suggestedFilename()).toBe('hosted-note.txt');
-
-    await expect(page.getByText('First durable human message', { exact: true })).toBeVisible();
-    await expect(page.getByText('Second durable human message', { exact: true })).toBeVisible();
-
-    await page.getByRole('button', { name: 'Search', exact: true }).click();
-    await page.getByPlaceholder('Search messages').fill('First durable');
-    await page.getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
-    await expect(page.getByRole('button', { name: /First durable human message/u })).toBeVisible();
-    await page.getByRole('button', { name: 'all', exact: true }).click();
-
+test.beforeAll(async () => {
     const { databaseUrl, peerToken, token } = JSON.parse(
         readFileSync(clerkSessionFile(), 'utf8')
     ) as {
@@ -73,6 +21,10 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     };
     const owner = createHostedClient(token);
     const peer = createHostedClient(peerToken);
+    await owner.server.create.mutate({
+        displayName: 'Hosted Messages',
+        slug: 'hosted-messages',
+    });
     await peer.server.create.mutate({
         displayName: 'Hosted Peer Root',
         slug: 'hosted-peer-root',
@@ -94,17 +46,87 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
          insert into channel_participants (server_id, chat_id, user_id)
          values ('${serverId}', '${allChatId}', '${peerUserId}')`
     );
+    await owner.chat.send.mutate({
+        chatId: allChatId,
+        content: 'First durable human message',
+        nonce: 'e2e-owner-baseline-message',
+        serverId,
+    });
     await peer.chat.send.mutate({
         chatId: allChatId,
         content: 'Peer-authored hosted message',
         nonce: 'e2e-peer-message',
         serverId,
     });
+    seedHostedArtifactThread({ chatId: allChatId, databaseUrl, serverId });
+});
+
+test('a human messages in #all with only the hosted Server online', async ({ page }) => {
+    test.setTimeout(60_000);
+    const localProductRequests: string[] = [];
+    const localServerOrigin = `http://127.0.0.1:${process.env.TAVERN_SERVER_PORT}`;
+    const runtimeOrigin = `http://127.0.0.1:${process.env.TAVERN_RUNTIME_PORT}`;
+
+    page.on('request', (request) => {
+        if (
+            request.url().startsWith(localServerOrigin) ||
+            request.url().startsWith(runtimeOrigin)
+        ) {
+            localProductRequests.push(request.url());
+        }
+    });
+
+    await expect(fetch(`${localServerOrigin}/healthz`)).rejects.toThrow();
+    await expect(fetch(`${runtimeOrigin}/capabilities`)).rejects.toThrow();
+    await signInAsClerkHuman(page);
+    await page.goto('/s/hosted-messages');
+    await openHostedChannel(page, 'all');
+
+    const composer = page.getByRole('textbox', { name: 'Message all' });
+    await composer.fill('/status check');
+    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expect(composer).toHaveText('/status check');
+    await composer.fill('');
+    await composer.fill('Browser-authored durable message');
+    await page.getByRole('button', { name: 'Send' }).click();
+    await expect(page.getByText('Browser-authored durable message')).toBeVisible();
+    await expect(page.getByTestId('read-state')).toContainText(/Read through \d+/u);
+
+    await page.reload();
+    await openHostedChannel(page, 'all');
+    await expect(page.getByText('Browser-authored durable message')).toBeVisible();
+    await composer.fill('Second durable human message');
+    await page.getByRole('button', { name: 'Send' }).click();
+    await expect(page.getByText('Second durable human message', { exact: true })).toBeVisible();
+
+    const fileChooser = page.waitForEvent('filechooser');
+    await page.getByLabel('Add attachments', { exact: true }).click();
+    await (await fileChooser).setFiles({
+        buffer: Buffer.from('hosted attachment bytes'),
+        mimeType: 'text/plain',
+        name: 'hosted-note.txt',
+    });
+    await expect(page.getByText('hosted-note.txt')).toBeVisible();
+    await page.getByRole('button', { name: 'Send' }).click();
+    const downloadButton = page.getByRole('button', { name: 'Download hosted-note.txt' });
+    await expect(downloadButton).toBeVisible();
+    const download = page.waitForEvent('download');
+    await downloadButton.click();
+    expect((await download).suggestedFilename()).toBe('hosted-note.txt');
+
+    await expect(page.getByText('First durable human message', { exact: true })).toBeVisible();
+    await expect(page.getByText('Second durable human message', { exact: true })).toBeVisible();
+
+    await openHostedSection(page, 'Search');
+    await page.getByPlaceholder('Search messages').fill('First durable');
+    await page.getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(
+        page.getByRole('row', { exact: true, name: 'First durable human message' })
+    ).toBeVisible();
+    await openHostedChannel(page, 'all');
 
     const peerMessage = page.getByText('Peer-authored hosted message', { exact: true });
     await expect(peerMessage).toBeVisible();
-
-    seedHostedArtifactThread({ chatId: allChatId, databaseUrl, serverId });
     expect(localProductRequests).toEqual([]);
 });
 
@@ -113,14 +135,10 @@ test('an Agent-authored artifact fence in a Thread opens the chat Artifact Pane'
 }) => {
     await signInAsClerkHuman(page);
     await page.goto('/s/hosted-messages');
-    await page.getByRole('button', { name: 'all', exact: true }).click();
+    await openHostedChannel(page, 'all');
     await page.setViewportSize({ height: 720, width: 800 });
 
-    const anchor = page
-        .getByText('Agent artifact fixture', { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchor.hover();
-    await anchor.getByRole('button', { name: 'Reply in thread' }).click();
+    await page.getByRole('button', { name: /^1 reply/u }).click();
 
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expect(thread).toBeVisible();
@@ -146,14 +164,13 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
 }) => {
     await signInAsClerkHuman(page);
     await page.goto('/s/hosted-messages');
-    await page.getByRole('button', { name: 'all', exact: true }).click();
+    await openHostedChannel(page, 'all');
 
     const anchorText = 'First durable human message';
     const anchorArticle = page
         .getByText(anchorText, { exact: true })
         .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchorArticle.hover();
-    await anchorArticle.getByRole('button', { name: 'Reply in thread' }).click();
+    await openMessageThread(anchorArticle);
 
     const panel = page.getByRole('complementary', { name: 'Thread' });
     await expect(panel).toBeVisible();
@@ -235,7 +252,7 @@ test('an Agent reply reaches an already-open Thread live and after reconnect', a
     test.setTimeout(60_000);
     await signInAsClerkHuman(page);
     await page.goto('/s/hosted-messages');
-    await page.getByRole('button', { name: 'all', exact: true }).click();
+    await openHostedChannel(page, 'all');
 
     const anchorText = 'Agent delivery anchor';
     const composer = page.getByRole('textbox', { name: 'Message all' });
@@ -249,8 +266,7 @@ test('an Agent reply reaches an already-open Thread live and after reconnect', a
     const anchorArticle = page
         .getByText(anchorText, { exact: true })
         .locator('xpath=ancestor::div[@data-message-id][1]');
-    await anchorArticle.hover();
-    await anchorArticle.getByRole('button', { name: 'Reply in thread' }).click();
+    await openMessageThread(anchorArticle);
     const panel = page.getByRole('complementary', { name: 'Thread' });
     await expect(panel).toBeVisible();
 
@@ -351,7 +367,13 @@ test('the direct-hosted App never requests a retired local product endpoint', as
 
     await signInAsClerkHuman(page);
     await page.goto('/s/hosted-messages');
-    await page.getByRole('button', { name: 'all', exact: true }).click();
+    await openHostedChannel(page, 'all');
     await expect(page.getByText('First durable human message')).toBeVisible();
     expect(localRequests).toEqual([]);
 });
+
+async function openMessageThread(message: Locator) {
+    const messageRow = message.locator('xpath=ancestor::*[@data-slot="chat-message-assistant"][1]');
+    await messageRow.hover();
+    await messageRow.locator('button[aria-label="Reply in thread"]').click();
+}

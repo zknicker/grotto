@@ -11,7 +11,8 @@ export function clerkSessionFile(runId = process.env.TAVERN_E2E_RUN_ID ?? 'defau
     );
 }
 
-interface ClerkSessionFixture {
+export interface ClerkSessionFixture {
+    databaseUrl: string;
     peerEmail: string;
     peerToken: string;
     token: string;

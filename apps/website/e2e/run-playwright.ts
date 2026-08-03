@@ -65,7 +65,20 @@ const child = Bun.spawn(command, {
     stdout: 'inherit',
 });
 
-process.exit(await child.exited);
+let forwardedSignal: NodeJS.Signals | null = null;
+const forwardSignal = (signal: NodeJS.Signals) => {
+    if (forwardedSignal) {
+        return;
+    }
+    forwardedSignal = signal;
+    child.kill(signal);
+};
+
+process.once('SIGINT', () => forwardSignal('SIGINT'));
+process.once('SIGTERM', () => forwardSignal('SIGTERM'));
+
+const exitCode = await child.exited;
+process.exit(forwardedSignal === 'SIGINT' ? 130 : forwardedSignal === 'SIGTERM' ? 143 : exitCode);
 
 async function runPreflight(env: NodeJS.ProcessEnv) {
     const child = Bun.spawn([process.execPath, 'e2e/preflight.ts'], {

@@ -32,4 +32,4 @@ recovers relevant context from its workspace and Server history.
 
 Session reset preserves the workspace. Full reset restores the factory starter
 kit described by [ADR 0018](0018-agents-are-born-with-seeded-knowledge.md).
-See [ADR 0011](0011-one-global-agent-session.md) for session continuity.
+See [ADR 0011](0011-agents-own-one-global-session.md) for session continuity.

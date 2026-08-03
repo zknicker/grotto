@@ -70,7 +70,7 @@ Ownership:
 * `@tavern/api`: client-facing contracts
 * `@tavern/sdk`: TypeScript client wrapper
 * runtime code: model-provider mapping, turn execution, and event projection
-* runtime code: canonical chat storage, events, automation delivery
+* runtime code: canonical chat storage, events, and reminder delivery
 * app code: cache, presentation, hooks, UI
 
 ## Capabilities
@@ -82,9 +82,7 @@ Ownership:
 | Chat messages, responses, activity, artifacts, and delivery | [Chat API](api/chat.md) |
 | Health, status, and admin control | [Admin API](api/admin.md) |
 | Agents, models, skills, and tool grants | [Agents API](api/agents.md) |
-| Memory inspection and review | [Memory API](api/memory.md) |
-| Wiki pages and citations | [Memory API](api/memory.md) |
-| Cron automations and run history | [Automations API](api/automations.md) |
+| Hosted reminders and run history | [Chat API](api/chat.md) |
 | Skill packages and assignment | [Skills API](api/skills.md) |
 | MCP connections and exact tool grants | [Connections API](api/connections.md) |
 | Usage and operational stats | [Stats API](api/stats.md) |

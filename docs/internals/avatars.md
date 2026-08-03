@@ -65,13 +65,9 @@ person. The runtime write path is `PATCH /agents/:id/avatar` with
   mention chips at 16px, thread reply previews at 20px); the exact box arrives
   as inline style, which is the one place this primitive reaches past the
   variant. Do not add a second avatar component for small sizes.
-- Every mark is a rounded square, never a circle: `--avatar-radius` (30%,
-  proportional so the shape holds from 16px to 48px) is applied to `.avatar`
-  in the `@layer components` block of `grotto-base.css`, because HeroUI
-  scales the radius per size (13.5px at `sm`, 19.8px at `md`). Pro's
-  `ChatMessage.Avatar` renders the same `.avatar`, so the transcript follows.
-  `ChannelIconBox` takes the same token so a Channel and an Agent read as one
-  row of marks.
+- Avatar shape and styling are HeroUI defaults. Do not override `.avatar`
+  globally or introduce an app-specific radius token. `ChannelIconBox` uses
+  the stock `rounded-lg` utility for the adjacent Channel mark.
 - `getEntityInitials(name)` is the single initials algorithm: empty → `?`, one
   word → its first two letters, otherwise first + last initial. Handle an empty
   display name at the call site (e.g. `name={displayName || 'You'}`) rather

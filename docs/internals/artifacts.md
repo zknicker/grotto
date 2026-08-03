@@ -23,7 +23,7 @@ iterate on, and big surfaces stay out of the chat column.
 - Reference it with a bare `artifact` fence: `{"path": "workbench/...",
   "title"?: string}`. The chat shows a compact card; the pane owns sizing.
 - Tavern theme tokens are injected into the page as CSS variables
-  (`--background`, `--foreground`, `--surface-2`, `--border`,
+  (`--background`, `--foreground`, `--surface-secondary`, `--border`,
   `--muted-foreground`, `--radius-lg`, ...) resolved for the current app
   scheme, so a token-styled page wears the Tavern look in light and dark.
   Pages should use the tokens with fallbacks and must not depend on any other

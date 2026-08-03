@@ -109,63 +109,46 @@ Choose the smallest lane that proves the changed behavior.
 
 ## App E2E
 
-Use Playwright against the real app frontend and app backend for end-to-end contracts.
-The deterministic lane must not point at developer model-provider credentials.
-It should use isolated ports, isolated databases, isolated runtime dirs,
-managed Tavern Runtime, and the deterministic e2e fake executor.
+Use Playwright against the real App and hosted Server for browser-level
+contracts. The lane uses isolated ports, PostgreSQL, attachments, and Clerk
+fixtures. It must not point at developer model-provider credentials or start a
+real Computer.
 
-Chat e2e should prove identity and recovery, not styling details:
+Chat E2E should prove identity and recovery, not styling details:
 
 * accepted user message appears once
-* tool/progress activity appears before the final reply and remains after reload
-* the latest assistant progress update is visible while the turn runs and the
-  final reply replaces it; the full update history stays in the turn details
-* thinking text is persisted and renders inside the turn details drawer
-* final assistant message appears once
 * reload and websocket reconnect recover without duplicates, missing rows, or
   ordering bugs
-* completed activity remains available as durable response history
-* hover/debug metadata stays hidden unless the message surface is hovered
+* completed messages and Threads remain available as durable history
+* Agent-authored effects use the public runner contract rather than a real model
 
 The e2e wrapper runs preflight before Playwright starts service readiness
 timers. Preflight verifies Playwright Chromium and builds the SDK with visible
 terminal progress.
 
-Keep timing thresholds limited to deterministic mock-provider runs. Live
-harness smoke can print timing summaries, but should not fail normal CI on real
-model latency.
-
-Hosted human messaging and membership have a smaller Playwright lane:
+Browser E2E uses the hosted product boundary by default:
 
 ```bash
-TAVERN_E2E_HOSTED_ONLY=1 bun e2e/run-playwright.ts e2e/tests/hosted-messaging.spec.ts
-TAVERN_E2E_HOSTED_ONLY=1 bun e2e/run-playwright.ts e2e/tests/hosted-membership.spec.ts
+bun run test:e2e
 ```
 
-The membership spec drives the real invitation round trip across two Clerk
-identities. The local Clerk issuer answers the verified-email lookup as well as
-JWKS, so nothing about acceptance is stubbed inside the Server.
-
-That lane starts only the hosted Server, throwaway PostgreSQL, Clerk issuer, and
-website. It proves `/s/*` does not launch or query the local sidecar, Runtime,
-Computer, or Agent process; an adjacent local-route assertion proves ordinary
-routes still mount their local boundary.
-
-Hosted chat-first tasks use the same isolated lane:
+Run one spec while repairing a focused surface:
 
 ```bash
-TAVERN_E2E_HOSTED_ONLY=1 bun e2e/run-playwright.ts e2e/tests/hosted-tasks.spec.ts
+bun e2e/run-playwright.ts e2e/tests/hosted-messaging.spec.ts
 ```
 
-It proves create, claim, unclaim, lifecycle metadata, human assignment,
-task-label editing, reconnect catch-up, and parent-Chat authorization against
-real PostgreSQL.
+The lane starts only the hosted Server, throwaway PostgreSQL, Clerk issuer, and
+website. Computer inventory and Agent-authored effects use deterministic
+fixtures or public runner contracts; no model runs. The membership spec still
+drives the real invitation round trip across two Clerk identities. Actual
+App-to-Computer-to-model behavior belongs to the live Agent E2E lane below.
 
 ## Runtime Adapter Contracts
 
 When changing executor routes, event projection, chat behavior, or delivery
-semantics, verify against Runtime fixtures, the deterministic e2e mock, or an
-opt-in live harness smoke when a concrete ambiguity remains.
+semantics, verify against deterministic service fixtures, hosted Browser E2E,
+or an opt-in live harness smoke when a concrete ambiguity remains.
 
 Add raw-frame or fixture-backed tests for behavior Tavern depends on.
 

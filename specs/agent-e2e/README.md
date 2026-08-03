@@ -142,8 +142,9 @@ Status values:
   contract.
 - `bun run eval:agents` drives the real App composer against the running
   development Server, Computer, and configured models.
-- `bun run test:e2e` drives the real App against an isolated deterministic
-  stack with a fake model executor.
+- `bun run test:e2e` drives the real App against an isolated hosted Server,
+  PostgreSQL, and Clerk stack. Computer inventory and Agent-authored effects are
+  deterministic fixtures; it never calls a real model.
 
 The Agent E2E lane complements these. It does not replace deterministic
 failure-mode coverage or browser-only UI regressions.

@@ -231,10 +231,9 @@ unthemed.
   `components/chats/message-scroller.tsx` — replace it with Pro
   ChatConversation/StickToBottom or a vendored implementation when someone
   is ready to re-tune chat scroll behavior.
-- Still open, deliberately deferred to a final pass at the operator's
-  direction: the e2e repair (the suite is heavy — do not run it until the
-  UI refactor is settled; note that the e2e Postgres cluster needs a valid
-  `LC_ALL` in the environment, and `hosted-mcp-oauth.spec.ts` is
-  `testIgnore`d because its `apps/computer/src/mcp-runtime.ts` import was
-  deleted upstream — broken on `origin/main` too) and the `DESIGN.md`
-  rewrite around HeroUI.
+- Browser E2E now targets the hosted App and Server stack exclusively. The
+  retired local Runtime harness and its stale selectors were removed; current
+  Agent, settings, messaging, task, reminder, membership, and Computer
+  contracts run against isolated PostgreSQL and Clerk fixtures. Real
+  Computer/model behavior remains in Agent E2E.
+- Still open: the `DESIGN.md` rewrite around HeroUI.

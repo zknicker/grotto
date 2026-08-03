@@ -3,11 +3,11 @@ import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Link } from 'react-router-dom';
 import { ModelProviderBadge } from '../../components/badges/model-provider-badge.tsx';
 import { CodeSnippet } from '../../components/code-snippet.tsx';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
 import { getModelProviderConfig } from '../../lib/model-provider-config.ts';
-import { HostedAgentFace } from '../members/hosted-agent-face.tsx';
 import { ComputerUpdateControls } from '../servers/computer-update-controls.tsx';
 import { serverMembersRoute } from '../servers/server-routes.ts';
 import {
@@ -203,17 +203,7 @@ function AgentRow({
             className="flex min-w-0 items-center gap-3 border-separator border-b py-3 outline-none last:border-b-0 hover:bg-surface-secondary focus-visible:bg-surface-secondary"
             to={`${serverMembersRoute(serverSlug)}/agents/${agent.id}`}
         >
-            <span
-                aria-hidden="true"
-                className="flex size-7 shrink-0 items-center justify-center overflow-visible"
-            >
-                <HostedAgentFace
-                    agent={agent}
-                    animate={false}
-                    size={28}
-                    style={{ flexShrink: 0, height: 28, overflow: 'visible', width: 28 }}
-                />
-            </span>
+            <EntityAvatar name={agent.displayName} size="sm" src={agent.avatarUrl} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
                 <p className="truncate font-medium text-foreground text-sm">{agent.displayName}</p>
                 <p className="truncate text-muted text-xs">

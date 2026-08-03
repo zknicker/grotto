@@ -1,4 +1,3 @@
-import type { AgentCharacter } from '@tavern/api/agent-appearance';
 import { useMemo } from 'react';
 import type { HistoryActorOutput } from '../../lib/trpc.tsx';
 import { useAgentList } from '../agents/use-agent-list.ts';
@@ -9,12 +8,10 @@ import { useUserProfilePreference } from '../shell/use-user-profile-preference.t
 export interface ActorProfile {
     avatarUrl: string | null;
     bio: string | null;
-    character: AgentCharacter | null;
     id: string;
     isSelf: boolean;
     kind: HistoryActorOutput['kind'];
     name: string;
-    primaryColor: string | null;
 }
 
 const selfProfileActorId = 'profile:self';
@@ -53,14 +50,12 @@ export function useActorProfile(actor: HistoryActorOutput | null) {
 
             return agent
                 ? ({
-                      avatarUrl: null,
+                      avatarUrl: agent.avatarUrl,
                       bio: agent.bio ?? null,
-                      character: agent.effectiveCharacter,
                       id: agent.id,
                       isSelf: false,
                       kind: 'agent',
                       name: agent.name,
-                      primaryColor: agent.effectivePrimaryColor,
                   } satisfies ActorProfile)
                 : null;
         }
@@ -71,12 +66,10 @@ export function useActorProfile(actor: HistoryActorOutput | null) {
             return {
                 avatarUrl: userProfile.avatarUrl,
                 bio: null,
-                character: null,
                 id: actor.id,
                 isSelf: true,
                 kind: actor.kind,
                 name: userProfile.displayName ?? 'You',
-                primaryColor: '#64748b',
             } satisfies ActorProfile;
         }
 
@@ -92,12 +85,10 @@ export function useActorProfile(actor: HistoryActorOutput | null) {
             ? ({
                   avatarUrl: null,
                   bio: null,
-                  character: null,
                   id: participant.id,
                   isSelf: false,
                   kind: 'participant',
                   name: participant.name,
-                  primaryColor: participant.primaryColor || null,
               } satisfies ActorProfile)
             : null;
     }, [

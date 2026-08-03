@@ -7,6 +7,7 @@ import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { setChatSidePane, useChatSidePane } from '../../hooks/pane/use-chat-side-pane.ts';
 import { useEnsureServerDm } from '../../hooks/servers/use-ensure-server-dm.ts';
+import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { useMarkServerChatReadOnView } from '../../hooks/servers/use-mark-server-chat-read.ts';
 import { useServerChatMessages } from '../../hooks/servers/use-server-chat-messages.ts';
 import { useUpdateServerChannel } from '../../hooks/servers/use-update-server-channel.ts';
@@ -94,13 +95,14 @@ export function ServerChat({
         serverId: messages.data ? chat.serverId : undefined,
     });
     const ensureDm = useEnsureServerDm(onOpenChat);
+    const humans = useHumanDirectory(chat.serverId);
     const peerRetired = chat.kind === 'dm' && chat.peerAgentRetired;
     const chatName =
         chat.kind === 'channel'
             ? (chat.name ?? 'channel')
             : chat.peerAgentId
               ? (chat.peerAgentDisplayName ?? 'Agent')
-              : `Direct · ${shortUserId(chat.peerUserId)}`;
+              : `Direct · ${humans.name(chat.peerUserId)}`;
     const threadSummary =
         messages.data?.threads.find(
             (summary) => summary.anchorMessageId === threadSelection?.anchor.id
@@ -318,6 +320,7 @@ export function ServerChat({
                             ensureDm.mutate({ peerUserId, serverId: chat.serverId })
                         }
                         scrollContentRef={scrollContentRef}
+                        serverId={chat.serverId}
                         threads={messages.data?.threads}
                     />
                 )}
@@ -413,8 +416,7 @@ function ChannelParticipantsControl({ agents, chat }: { agents: HostedAgent[]; c
             </Tooltip>
             <ChannelDialog
                 agents={agents.map((agent) => ({
-                    effectiveCharacter: agent.character,
-                    effectivePrimaryColor: null,
+                    avatarUrl: agent.avatarUrl,
                     id: agent.id,
                     name: agent.displayName,
                 }))}
@@ -449,8 +451,4 @@ export function mergeTaskAnchor(
         return messages;
     }
     return [...messages, anchor].sort((left, right) => left.sequence - right.sequence);
-}
-
-function shortUserId(userId: string | null) {
-    return userId ? `Human ${userId.slice(-6)}` : 'Human';
 }

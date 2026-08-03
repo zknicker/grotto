@@ -3,13 +3,11 @@ import { AlertCircleIcon, BubbleChatIcon, Cancel01Icon } from '@hugeicons/core-f
 import type { IconSvgElement } from '@hugeicons/react';
 import { RefreshIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Link, useNavigate } from 'react-router-dom';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { appRoutes } from '../../lib/app-routes.ts';
 import { formatRelativeTime } from '../../lib/format.ts';
-import { resolveAgentInk } from '../agents/agent-color-presets.ts';
-import { AgentFace } from '../chats/agent-face.tsx';
 import type { OverviewActivityItem } from './overview-activity.ts';
 import type { OverviewAgent, OverviewPresenceEntry } from './overview-types.ts';
 
@@ -29,14 +27,11 @@ export function OverviewAgentCards({
     resolveAgentHref?: (agentId: string) => string;
     seriesByAgentId: Map<string, number[]>;
 }) {
-    const dark = useResolvedThemeOptional() === 'dark';
-
     return (
         <div className="flex flex-wrap gap-3">
             {agents.map((agent) => {
                 const entry = presence.find((candidate) => candidate.agentId === agent.id);
                 const busy = entry?.state === 'busy';
-                const animate = entry?.animate ?? busy;
                 const statusLabel = entry?.label ?? (busy ? 'Working' : 'Idle');
                 const statusTone = entry?.tone ?? (busy ? 'warning' : 'success');
                 const modelName = formatModelName(modelRefByAgentId.get(agent.id) ?? null);
@@ -51,16 +46,7 @@ export function OverviewAgentCards({
                     >
                         <Card className="h-full gap-2.5 transition-colors group-hover:bg-surface-secondary">
                             <div className="flex items-center gap-2.5">
-                                <span aria-hidden="true" className="flex shrink-0 items-center">
-                                    <AgentFace
-                                        animate={animate}
-                                        dark={dark}
-                                        emotion={animate ? 'curious' : 'idle'}
-                                        head={agent.effectiveCharacter}
-                                        ink={resolveAgentInk(dark, agent.effectivePrimaryColor)}
-                                        size={30}
-                                    />
-                                </span>
+                                <EntityAvatar name={agent.name} size="sm" src={agent.avatarUrl} />
                                 <span className="min-w-0 flex-1 truncate font-semibold text-foreground text-sm">
                                     {agent.name}
                                 </span>
@@ -109,7 +95,6 @@ export function OverviewActivity({
     now: number;
     resolveAgentHref?: (agentId: string) => string;
 }) {
-    const dark = useResolvedThemeOptional() === 'dark';
     const navigate = useNavigate();
 
     return (
@@ -145,7 +130,7 @@ export function OverviewActivity({
                                     />
                                 </span>
                                 <span className="flex min-w-0 items-center gap-1.5 px-2">
-                                    {agent ? <AgentChip agent={agent} dark={dark} /> : null}
+                                    {agent ? <AgentChip agent={agent} /> : null}
                                     <span className="truncate text-foreground text-sm">
                                         {item.description}
                                     </span>
@@ -170,19 +155,11 @@ const activityKindIcons: Record<OverviewActivityItem['kind'], IconSvgElement> = 
     stopped: Cancel01Icon,
 };
 
-// The same agent identity used in chat rows: face plus name.
-function AgentChip({ agent, dark }: { agent: Agent; dark: boolean }) {
+// The same agent identity used in chat rows: avatar plus name.
+function AgentChip({ agent }: { agent: Agent }) {
     return (
         <span className="flex min-w-0 shrink-0 items-center gap-1.5">
-            <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center">
-                <AgentFace
-                    animate={false}
-                    dark={dark}
-                    head={agent.effectiveCharacter}
-                    ink={resolveAgentInk(dark, agent.effectivePrimaryColor)}
-                    size={24}
-                />
-            </span>
+            <EntityAvatar name={agent.name} size={20} src={agent.avatarUrl} />
             <span className="truncate font-medium text-foreground text-sm">{agent.name}</span>
         </span>
     );

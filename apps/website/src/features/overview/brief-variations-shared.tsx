@@ -1,33 +1,19 @@
 import type { IconSvgElement } from '@hugeicons/react';
 import type { ReactNode } from 'react';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { resolveAgentInk } from '../agents/agent-color-presets.ts';
-import { AgentFace } from '../chats/agent-face.tsx';
 import type { OverviewAgent } from './overview-types.ts';
 
 export type Agent = OverviewAgent;
 
-// Dominant art color per character head (sampled from the face art fills in
-// agent-face.tsx) so a mentioned agent's name reads as the same "ink" as its
-// avatar. primaryColor is a slate default when unset, so art wins.
-const headAccentColors: Record<string, string> = {
-    alien: '#a1d433',
-    bird: '#0265e3',
-    knight: '#4e3e84',
-    owl: '#573aa5',
-    robot: '#04abc5',
-};
-
-/** Chip text color for an agent mention — art accent mixed for text duty. */
+/** Chip text color for an agent mention — the agent's own color, mixed for text duty. */
 export function resolveAgentBriefColor(dark: boolean, agent: Agent): string | undefined {
-    const color = headAccentColors[agent.effectiveCharacter] ?? agent.effectivePrimaryColor;
-
-    if (!color) {
+    if (!agent.primaryColor) {
         return;
     }
 
-    return `color-mix(in srgb, ${color} ${dark ? '65%, white' : '82%, black'})`;
+    return `color-mix(in srgb, ${agent.primaryColor} ${dark ? '65%, white' : '82%, black'})`;
 }
 
 /** The inline wordmark. Reel runs narrow at high HGHT, so this backs the
@@ -83,7 +69,7 @@ export function VariationSection({
 const chipTones = {
     amber: 'text-(--label-amber-fg)',
     blue: 'text-info-foreground',
-    green: 'text-legacy-success-foreground',
+    green: 'text-success',
     orange: 'text-(--label-orange-fg)',
     pink: 'text-(--label-pink-fg)',
     purple: 'text-brand-muted-foreground',
@@ -112,7 +98,7 @@ export function Chip({
     );
 }
 
-/** Agent chip: the face is the icon, and the bold name takes the face art's
+/** Agent chip: the avatar is the icon, and the bold name takes the agent's
  *  own color so it obeys the same contract as every other chip. */
 export function AgentChip({
     agents,
@@ -138,15 +124,7 @@ export function AgentChip({
             className="inline-flex items-center gap-1.5 whitespace-nowrap align-[-0.12em] font-semibold not-italic"
             style={{ color: resolveAgentBriefColor(dark, agent) }}
         >
-            <span aria-hidden="true" className="inline-flex size-7 items-center">
-                <AgentFace
-                    animate={false}
-                    dark={dark}
-                    head={agent.effectiveCharacter}
-                    ink={resolveAgentInk(dark, agent.effectivePrimaryColor)}
-                    size={30}
-                />
-            </span>
+            <EntityAvatar name={agent.name} size={22} src={agent.avatarUrl} />
             {agent.name}
         </span>
     );

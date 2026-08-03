@@ -7,15 +7,12 @@ import { getCommandSearchText } from '../../commands/types.ts';
 import { useAppCommands } from '../../commands/use-app-commands.ts';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { TavernLogo } from '../../components/tavern-logo.tsx';
-import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import {
-    type AgentFaceAppearance,
-    useAgentAppearanceLookup,
-} from '../../hooks/agents/use-agent-appearance.ts';
-import { resolveAgentInk } from '../agents/agent-color-presets.ts';
-import { AgentFace } from '../chats/agent-face.tsx';
+import { useAgentAppearanceLookup } from '../../hooks/agents/use-agent-appearance.ts';
 import { getChannelColorStyle } from './channel-color-options.ts';
+
+export type AgentAvatarLookup = (agentId: string | null | undefined) => string | null;
 
 /**
  * Global command menu (Cmd+K / Ctrl+K). The menu renders modular command
@@ -25,20 +22,28 @@ import { getChannelColorStyle } from './channel-color-options.ts';
 export function CommandMenu() {
     const commandGroups = useAppCommands();
     const lookupAppearance = useAgentAppearanceLookup();
+    const lookupAgentAvatarUrl = useMemo<AgentAvatarLookup>(
+        () => (agentId) => lookupAppearance(agentId).avatarUrl,
+        [lookupAppearance]
+    );
 
-    return <CommandMenuShell commandGroups={commandGroups} lookupAppearance={lookupAppearance} />;
+    return (
+        <CommandMenuShell
+            commandGroups={commandGroups}
+            lookupAgentAvatarUrl={lookupAgentAvatarUrl}
+        />
+    );
 }
 
 export function CommandMenuShell({
     commandGroups,
-    lookupAppearance,
+    lookupAgentAvatarUrl,
 }: {
     commandGroups: AppCommandGroup[];
-    lookupAppearance: (agentId: string | null | undefined) => AgentFaceAppearance;
+    lookupAgentAvatarUrl: AgentAvatarLookup;
 }) {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
-    const dark = useResolvedThemeOptional() === 'dark';
     const commandsById = useMemo(() => {
         const lookup = new Map<string, AppCommand>();
 
@@ -114,8 +119,7 @@ export function CommandMenuShell({
                                         >
                                             <CommandMenuIcon
                                                 command={command}
-                                                dark={dark}
-                                                lookupAppearance={lookupAppearance}
+                                                lookupAgentAvatarUrl={lookupAgentAvatarUrl}
                                             />
                                             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                                                 <span className="truncate font-medium">
@@ -156,21 +160,12 @@ export function CommandMenuShell({
     );
 }
 
-const commandAgentFaceStyle = {
-    flexShrink: 0,
-    height: 24,
-    overflow: 'visible',
-    width: 24,
-} as const;
-
 function CommandMenuIcon({
     command,
-    dark,
-    lookupAppearance,
+    lookupAgentAvatarUrl,
 }: {
     command: AppCommand;
-    dark: boolean;
-    lookupAppearance: (agentId: string | null | undefined) => AgentFaceAppearance;
+    lookupAgentAvatarUrl: AgentAvatarLookup;
 }) {
     if (command.icon === 'tavern') {
         return <TavernLogo aria-hidden="true" />;
@@ -183,33 +178,12 @@ function CommandMenuIcon({
             );
         }
 
-        const appearance = lookupAppearance(command.icon.agentId);
-
-        if (appearance.character !== 'none') {
-            return (
-                <span
-                    aria-hidden="true"
-                    className="flex size-5 shrink-0 items-center justify-center"
-                >
-                    <AgentFace
-                        animate={false}
-                        dark={dark}
-                        head={appearance.character}
-                        ink={resolveAgentInk(dark, appearance.primaryColor)}
-                        size={24}
-                        style={commandAgentFaceStyle}
-                    />
-                </span>
-            );
-        }
-
         return (
-            <span
-                aria-hidden="true"
-                className="flex size-5 shrink-0 items-center justify-center rounded-md bg-surface-secondary font-medium text-muted text-xs"
-            >
-                {(command.icon.fallbackLabel.trim()[0] ?? '?').toUpperCase()}
-            </span>
+            <EntityAvatar
+                name={command.icon.fallbackLabel}
+                size={20}
+                src={lookupAgentAvatarUrl(command.icon.agentId)}
+            />
         );
     }
 

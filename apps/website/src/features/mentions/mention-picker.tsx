@@ -55,7 +55,7 @@ export function MentionPicker({
     return (
         <div
             className={cn(
-                'absolute right-0 bottom-[calc(100%+0.4rem)] left-0 z-20 flex max-h-64 w-full flex-col overflow-hidden rounded-lg border border-border-subtle bg-popover p-1 text-meta shadow-surface-5',
+                'absolute right-0 bottom-[calc(100%+0.4rem)] left-0 z-20 flex max-h-64 w-full flex-col overflow-hidden rounded-lg border border-border-subtle bg-popover p-1 text-meta shadow-overlay',
                 className
             )}
             role="listbox"
@@ -94,10 +94,10 @@ export function MentionPicker({
                                     <button
                                         aria-selected={index === activeIndex}
                                         className={cn(
-                                            'h-8 w-full shrink-0 cursor-pointer overflow-hidden rounded-lg px-2.5 text-left text-foreground outline-hidden focus:bg-legacy-muted',
+                                            'h-8 w-full shrink-0 cursor-pointer overflow-hidden rounded-lg px-2.5 text-left text-foreground outline-hidden focus:bg-default',
                                             index === activeIndex
-                                                ? 'bg-legacy-muted'
-                                                : 'hover:bg-legacy-muted'
+                                                ? 'bg-default'
+                                                : 'hover:bg-default'
                                         )}
                                         key={`${option.kind}:${option.id}:${option.label}`}
                                         onMouseDown={(event) => {
@@ -117,8 +117,13 @@ export function MentionPicker({
                                     >
                                         <span className="flex w-full min-w-0 items-center gap-1 leading-normal">
                                             <MentionAppearanceIcon
-                                                agentFace={appearance.agentFace}
-                                                className="size-[15px] shrink-0 rounded-sm object-contain text-foreground"
+                                                agentAvatar={appearance.agentAvatar}
+                                                className={cn(
+                                                    'shrink-0 text-foreground',
+                                                    appearance.agentAvatar
+                                                        ? undefined
+                                                        : 'size-[15px] rounded-sm object-contain'
+                                                )}
                                                 icon={appearance.icon}
                                                 iconDataUrl={appearance.iconDataUrl}
                                             />

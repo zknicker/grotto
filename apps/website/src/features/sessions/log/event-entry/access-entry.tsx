@@ -20,7 +20,7 @@ export function AccessEventLogEntry({ entry }: { entry: SessionHistoryAccessEven
                     : null}
             </p>
             {entry.accessEvent.errorMessage ? (
-                <p className="mt-0.5 line-clamp-2 whitespace-pre-wrap break-words text-legacy-warning-foreground text-meta">
+                <p className="mt-0.5 line-clamp-2 whitespace-pre-wrap break-words text-meta text-warning">
                     {entry.accessEvent.errorMessage}
                 </p>
             ) : null}

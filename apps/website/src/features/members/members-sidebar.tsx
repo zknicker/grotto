@@ -4,14 +4,15 @@ import { Plus } from '@hugeicons/core-free-icons';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
+import { humanDisplayName } from '../servers/human-identity.ts';
 import { serverMembersRoute } from '../servers/server-routes.ts';
 import { ShellSidebar } from '../shell/shell-sidebar.tsx';
 import { CreateHostedAgentDialog } from './create-hosted-agent-dialog.tsx';
-import { HostedAgentStatusFace } from './hosted-agent-face.tsx';
-import { MemberInitialsAvatar } from './member-initials-avatar.tsx';
+import { HostedAgentRailAvatar } from './hosted-agent-avatar.tsx';
 
 /** Members section sidebar: the Agent and Human rosters as navigation. */
 export function MembersSidebar({
@@ -29,7 +30,9 @@ export function MembersSidebar({
     const [creatingAgent, setCreatingAgent] = React.useState(false);
     const membersRoute = serverMembersRoute(server.slug);
     const humansRoute = `${membersRoute}/humans`;
-    const humansSelected = location.pathname.endsWith('/humans');
+    const selectedHumanId = location.pathname.startsWith(`${humansRoute}/`)
+        ? location.pathname.slice(`${humansRoute}/`.length)
+        : null;
     const selectedAgentId = resolveSelectedAgentId(location.pathname, membersRoute);
     const canOperate = server.role === 'owner' || server.role === 'admin';
     const humans = directory.data?.members ?? [];
@@ -77,7 +80,7 @@ export function MembersSidebar({
                                 textValue={agent.displayName}
                             >
                                 <Sidebar.MenuIcon>
-                                    <HostedAgentStatusFace agent={agent} />
+                                    <HostedAgentRailAvatar agent={agent} />
                                 </Sidebar.MenuIcon>
                                 <Sidebar.MenuItemContent>
                                     <Sidebar.MenuLabel>{agent.displayName}</Sidebar.MenuLabel>
@@ -94,33 +97,25 @@ export function MembersSidebar({
                 <Sidebar.Menu aria-label="Humans">
                     {humans.map((member) => (
                         <Sidebar.MenuItem
-                            href={humansRoute}
+                            href={`${humansRoute}/${member.userId}`}
                             id={member.userId}
-                            isCurrent={humansSelected}
+                            isCurrent={selectedHumanId === member.userId}
                             key={member.userId}
-                            textValue={member.userId}
+                            textValue={humanDisplayName(member)}
                         >
                             <Sidebar.MenuIcon>
-                                <MemberInitialsAvatar
-                                    label={member.userId.slice(0, 2).toUpperCase()}
+                                <EntityAvatar
+                                    name={humanDisplayName(member)}
+                                    size={20}
+                                    src={member.avatarUrl}
                                 />
                             </Sidebar.MenuIcon>
                             <Sidebar.MenuItemContent>
-                                <Sidebar.MenuLabel>{member.userId}</Sidebar.MenuLabel>
+                                <Sidebar.MenuLabel>{humanDisplayName(member)}</Sidebar.MenuLabel>
                                 <Sidebar.MenuChip>{member.role}</Sidebar.MenuChip>
                             </Sidebar.MenuItemContent>
                         </Sidebar.MenuItem>
                     ))}
-                    <Sidebar.MenuItem
-                        href={humansRoute}
-                        id="manage-humans"
-                        isCurrent={false}
-                        textValue="Manage Humans"
-                    >
-                        <Sidebar.MenuItemContent>
-                            <Sidebar.MenuLabel>Manage Humans…</Sidebar.MenuLabel>
-                        </Sidebar.MenuItemContent>
-                    </Sidebar.MenuItem>
                 </Sidebar.Menu>
             </Sidebar.Group>
             <CreateHostedAgentDialog

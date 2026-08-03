@@ -1,6 +1,7 @@
-import { Avatar, Button, Description, Dropdown, Label } from '@heroui/react';
+import { Button, Description, Dropdown, Label } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { ComputerIcon, Setting07Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
@@ -147,7 +148,6 @@ function ServerSwitcher({
     onSwitchServer: (slug: string) => void;
     servers: ServerSummary[];
 }) {
-    const initial = (currentServer.displayName || currentServer.slug).slice(0, 1).toUpperCase();
     return (
         <Dropdown>
             <Button
@@ -155,11 +155,8 @@ function ServerSwitcher({
                 isIconOnly
                 variant="ghost"
             >
-                {/* Stock sm Avatar: 32px with squared-off rounding — the
-                    server monogram reads as an avatar, not a circle. */}
-                <Avatar size="sm">
-                    <Avatar.Fallback>{initial}</Avatar.Fallback>
-                </Avatar>
+                {/* The Server wears the same mark as its Agents and people. */}
+                <EntityAvatar name={currentServer.displayName || currentServer.slug} size="sm" />
             </Button>
             <Dropdown.Popover placement="right top">
                 <Dropdown.Menu

@@ -23,7 +23,7 @@ export function SessionLinkButton({
                     ? 'border-[color:var(--warning-border)] bg-[var(--warning-bg)]'
                     : tone === 'sky'
                       ? 'border-[color:var(--info-border)] bg-[var(--info-bg)]'
-                      : 'border-border-subtle bg-legacy-muted',
+                      : 'border-border-subtle bg-default',
                 className
             )}
         >
@@ -47,7 +47,7 @@ export function SessionLinkButton({
                     className={cn(
                         'min-w-0 truncate text-caption',
                         tone === 'amber'
-                            ? 'text-legacy-warning-foreground'
+                            ? 'text-warning'
                             : tone === 'sky'
                               ? 'text-info-foreground'
                               : 'text-muted-foreground'

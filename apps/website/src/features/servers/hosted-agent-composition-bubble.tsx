@@ -1,11 +1,6 @@
+import { ChatMessage } from '@heroui-pro/react';
 import type { HostedAgent, HostedAgentLifecycleEvent } from '@tavern/api';
-import {
-    Message,
-    MessageAvatar,
-    MessageContent,
-    MessageHeader,
-} from '../../components/chats/message.tsx';
-import { HostedAgentFace } from '../members/hosted-agent-face.tsx';
+import { getEntityInitials } from '../../components/ui/entity-avatar.tsx';
 
 type SendingLifecycle = Extract<HostedAgentLifecycleEvent, { phase: 'sending' }>;
 
@@ -28,22 +23,27 @@ export function HostedAgentCompositionBubbles({
 
     return sending.map((event) => {
         const agent = agentsById.get(event.agentId);
+        const displayName = agent?.displayName ?? 'Agent';
         return (
-            <Message
+            <ChatMessage.Assistant
                 aria-live="polite"
                 className="opacity-60"
                 key={`${event.agentId}:${event.compositionId}`}
             >
-                {agent ? (
-                    <MessageAvatar>
-                        <HostedAgentFace agent={agent} animate={false} size={32} />
-                    </MessageAvatar>
-                ) : null}
-                <MessageContent>
-                    <MessageHeader>{agent?.displayName ?? 'Agent'}</MessageHeader>
-                    <p className="whitespace-pre-wrap text-foreground text-sm">{event.text}</p>
-                </MessageContent>
-            </Message>
+                <ChatMessage.Avatar
+                    alt={`${displayName} avatar`}
+                    fallback={getEntityInitials(displayName)}
+                    src={agent?.avatarUrl ?? undefined}
+                />
+                <ChatMessage.Body>
+                    <span className="font-semibold text-foreground text-sm leading-5">
+                        {displayName}
+                    </span>
+                    <ChatMessage.Content>
+                        <p className="whitespace-pre-wrap">{event.text}</p>
+                    </ChatMessage.Content>
+                </ChatMessage.Body>
+            </ChatMessage.Assistant>
         );
     });
 }

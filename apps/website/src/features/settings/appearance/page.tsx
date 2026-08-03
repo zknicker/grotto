@@ -5,7 +5,6 @@ import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useNavigate } from 'react-router-dom';
 import { type ThemePreference, useTheme } from '../../../components/theme-provider.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { appRoutes } from '../../../lib/app-routes.ts';
 import { cn } from '../../../lib/utils.ts';
 import {
     SettingsGroup,
@@ -98,9 +97,9 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                 </div>
             </SettingsSection>
 
-            <SettingsSection title="Design Lab">
-                <SettingsGroup>
-                    {briefVariationsHref ? (
+            {briefVariationsHref ? (
+                <SettingsSection title="Design Lab">
+                    <SettingsGroup>
                         <SettingsRow
                             description="Iterate on the home brief's chips, wordmark, and sentence patterns."
                             title="Brief variations"
@@ -115,23 +114,9 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                                 </Button>
                             </div>
                         </SettingsRow>
-                    ) : null}
-                    <SettingsRow
-                        description="Every agent character across the full set of facial expressions."
-                        title="Agent faces"
-                    >
-                        <div className="flex justify-start md:justify-end">
-                            <Button
-                                onPress={() => navigate(appRoutes.designFaces)}
-                                size="sm"
-                                variant="secondary"
-                            >
-                                Open
-                            </Button>
-                        </div>
-                    </SettingsRow>
-                </SettingsGroup>
-            </SettingsSection>
+                    </SettingsGroup>
+                </SettingsSection>
+            ) : null}
         </SettingsPage>
     );
 }

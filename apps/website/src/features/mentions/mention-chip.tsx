@@ -31,7 +31,7 @@ export function MentionChip({
                 // context (transcript, composer, drafts) instead of tracking
                 // the surrounding line-height.
                 'inline-flex max-w-full -translate-y-[0.05em] items-center gap-[0.22em] whitespace-nowrap rounded-md py-[0.06em] align-middle font-medium leading-[1.5]',
-                appearance.agentFace ? 'pr-[0.5em] pl-[0.3em]' : 'px-[0.45em]',
+                appearance.agentAvatar ? 'pr-[0.5em] pl-[0.3em]' : 'px-[0.45em]',
                 kind === 'skill'
                     ? [
                           'bg-[color-mix(in_srgb,var(--mention-chip-color)_15%,transparent)] dark:bg-[color-mix(in_srgb,var(--mention-chip-color)_26%,transparent)]',
@@ -52,10 +52,10 @@ export function MentionChip({
             title={displayLabel}
         >
             <MentionAppearanceIcon
-                agentFace={appearance.agentFace}
+                agentAvatar={appearance.agentAvatar}
                 className={cn(
                     'shrink-0 object-contain',
-                    appearance.agentFace ? 'size-[1.15em]' : 'size-[1.02em] opacity-90'
+                    appearance.agentAvatar ? undefined : 'size-[1.02em] opacity-90'
                 )}
                 icon={appearance.icon}
                 iconDataUrl={appearance.iconDataUrl}

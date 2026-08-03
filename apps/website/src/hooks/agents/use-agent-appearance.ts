@@ -1,35 +1,30 @@
 import { useMemo } from 'react';
-import type { HeadName } from '../../features/chats/agent-face.tsx';
 import { useAgentList } from './use-agent-list.ts';
 
-export interface AgentFaceAppearance {
-    character: HeadName;
+export interface AgentAppearance {
+    avatarUrl: string | null;
     primaryColor: string | null;
 }
 
-const noneAppearance: AgentFaceAppearance = { character: 'none', primaryColor: null };
+const unknownAppearance: AgentAppearance = { avatarUrl: null, primaryColor: null };
 
-// Resolve an agent id to its face appearance (character + configured color).
-// Non-agents (and unknown ids) resolve to 'none' so callers can fall back to
-// their normal avatar.
+// Resolve an agent id to its uploaded avatar and accent color. Non-agents (and
+// unknown ids) resolve to an empty appearance so callers fall back to initials.
 export function useAgentAppearanceLookup(): (
     agentId: string | null | undefined
-) => AgentFaceAppearance {
+) => AgentAppearance {
     const agentsQuery = useAgentList();
     const agents = agentsQuery.data?.agents;
 
     return useMemo(() => {
-        const appearanceById = new Map<string, AgentFaceAppearance>(
+        const appearanceById = new Map<string, AgentAppearance>(
             agents?.map((agent) => [
                 agent.id,
-                {
-                    character: agent.effectiveCharacter,
-                    primaryColor: agent.effectivePrimaryColor,
-                },
+                { avatarUrl: agent.avatarUrl, primaryColor: agent.effectivePrimaryColor },
             ])
         );
 
-        return (agentId: string | null | undefined): AgentFaceAppearance =>
-            (agentId ? appearanceById.get(agentId) : null) ?? noneAppearance;
+        return (agentId: string | null | undefined): AgentAppearance =>
+            (agentId ? appearanceById.get(agentId) : null) ?? unknownAppearance;
     }, [agents]);
 }

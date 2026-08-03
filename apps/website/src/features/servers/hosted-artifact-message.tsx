@@ -1,5 +1,5 @@
 import { type WidgetArtifactProps, widgetArtifactPropsSchema } from '@tavern/api/widgets/artifact';
-import { WidgetArtifactCard } from '../../widgets/artifact-card.tsx';
+import { WidgetArtifactCard } from '../../features/chats/artifact-card.tsx';
 import { ArtifactPanelOpenProvider } from '../chats/artifact-panel-context.tsx';
 import { ChatMarkdownText } from '../chats/chat-markdown-text.tsx';
 import type { TavernResourceTarget } from '../chats/tavern-resource-link.ts';

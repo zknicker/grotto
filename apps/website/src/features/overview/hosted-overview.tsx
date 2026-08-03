@@ -52,10 +52,10 @@ export function HostedOverview({
 
 export function toOverviewAgent(agent: HostedAgent): OverviewAgent {
     return {
-        effectiveCharacter: agent.character,
-        effectivePrimaryColor: null,
+        avatarUrl: agent.avatarUrl,
         id: agent.id,
         name: agent.displayName,
+        primaryColor: null,
     };
 }
 

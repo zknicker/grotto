@@ -113,8 +113,7 @@ export function useHostedMentionComposer({
     const mentionAgents = React.useMemo<MentionAgent[]>(
         () =>
             agents.map((agent) => ({
-                effectiveCharacter: agent.character,
-                effectivePrimaryColor: null,
+                avatarUrl: agent.avatarUrl,
                 id: agent.id,
                 name: agent.displayName,
             })),

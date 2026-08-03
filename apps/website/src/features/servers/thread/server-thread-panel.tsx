@@ -7,18 +7,19 @@ import type {
     HostedThreadSummary,
 } from '@tavern/api';
 import * as React from 'react';
+import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useMarkServerChatReadOnView } from '../../../hooks/servers/use-mark-server-chat-read.ts';
 import { useServerThreadMessages } from '../../../hooks/servers/use-server-thread-messages.ts';
 import { useSetServerThreadFollow } from '../../../hooks/servers/use-set-server-thread-follow.ts';
-import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import { ChatSidePaneShell } from '../../chats/chat-side-pane-shell.tsx';
+import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
+import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-context.tsx';
+import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
 import type { TavernResourceTarget } from '../../chats/tavern-resource-link.ts';
 import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
-import { HostedAgentFace } from '../../members/hosted-agent-face.tsx';
 import { HostedAgentCompositionBubbles } from '../hosted-agent-composition-bubble.tsx';
-import { HostedArtifactMessage } from '../hosted-artifact-message.tsx';
 import { ServerChatComposer } from '../server-chat-composer.tsx';
-import { serverThreadAuthor } from './server-thread-author.ts';
+import { useHostedTranscript } from '../server-chat-transcript.tsx';
 import { serverThreadTitles } from './server-thread-target.ts';
 
 export function ServerThreadPanel({
@@ -56,10 +57,25 @@ export function ServerThreadPanel({
     const lastSequence = replies.at(-1)?.sequence ?? 0;
     const replyCount = Math.max(summary?.replyCount ?? 0, replies.length);
     const follow = useSetServerThreadFollow(chat.id);
-    const titles = serverThreadTitles(chat, anchor.id);
-    const agentsById = React.useMemo(
-        () => new Map(agents.map((agent) => [agent.id, agent])),
-        [agents]
+    const humans = useHumanDirectory(chat.serverId);
+    const titles = serverThreadTitles(chat, anchor.id, humans);
+    // The thread renders through the same hosted transcript wiring as the
+    // main chat, so anchor and replies look and feel like channel rows.
+    const threadMessages = React.useMemo(() => [anchor, ...replies], [anchor, replies]);
+    const { renderContext, rows } = useHostedTranscript({
+        agents,
+        chatId: threadChatId ?? chat.id,
+        messages: threadMessages,
+        onOpenArtifact,
+        serverId: chat.serverId,
+    });
+    const anchorEntries = React.useMemo(
+        () => buildTranscriptEntries({ rows: rows.slice(0, 1) }),
+        [rows]
+    );
+    const replyEntries = React.useMemo(
+        () => buildTranscriptEntries({ rows: rows.slice(1) }),
+        [rows]
     );
 
     useMarkServerChatReadOnView({
@@ -96,43 +112,50 @@ export function ServerThreadPanel({
                         target={titles.target}
                         threadExists={threadChatId !== undefined}
                     />
-                    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-                        <ThreadMessage
-                            agentsById={agentsById}
-                            message={anchor}
-                            onOpenArtifact={onOpenArtifact}
-                        />
-                        <ReplyDivider replyCount={replyCount} />
-                        {messages.hasOlderHistory ? (
-                            <div className="mb-5 flex justify-center">
-                                <Button
-                                    isDisabled={messages.isFetchingOlderHistory}
-                                    onPress={() => void messages.fetchOlderHistory()}
-                                    size="sm"
-                                    variant="ghost"
-                                >
-                                    {messages.isFetchingOlderHistory
-                                        ? 'Loading older replies…'
-                                        : 'Load older replies'}
-                                </Button>
-                            </div>
-                        ) : null}
-                        <div className="flex flex-col gap-5">
-                            {replies.map((reply) => (
-                                <ThreadMessage
-                                    agentsById={agentsById}
-                                    key={reply.id}
-                                    message={reply}
-                                    onOpenArtifact={onOpenArtifact}
+                    <TranscriptRenderProvider value={renderContext}>
+                        {/* px-5 matches the main chat viewport gutter so the
+                            rows' full-width hover bleed stays contained. */}
+                        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                            {anchorEntries.map((entry) => (
+                                <TranscriptEntryView
+                                    activeReply={null}
+                                    conversationLayout={renderContext.conversationLayout}
+                                    entry={entry}
+                                    key={entry.id}
                                 />
                             ))}
-                            <HostedAgentCompositionBubbles
-                                agents={agents}
-                                chatId={threadChatId}
-                                lifecycles={agentLifecycles}
-                            />
+                            <ReplyDivider replyCount={replyCount} />
+                            {messages.hasOlderHistory ? (
+                                <div className="mb-5 flex justify-center">
+                                    <Button
+                                        isDisabled={messages.isFetchingOlderHistory}
+                                        onPress={() => void messages.fetchOlderHistory()}
+                                        size="sm"
+                                        variant="ghost"
+                                    >
+                                        {messages.isFetchingOlderHistory
+                                            ? 'Loading older replies…'
+                                            : 'Load older replies'}
+                                    </Button>
+                                </div>
+                            ) : null}
+                            <div className="flex min-w-0 flex-col">
+                                {replyEntries.map((entry) => (
+                                    <TranscriptEntryView
+                                        activeReply={null}
+                                        conversationLayout={renderContext.conversationLayout}
+                                        entry={entry}
+                                        key={entry.id}
+                                    />
+                                ))}
+                                <HostedAgentCompositionBubbles
+                                    agents={agents}
+                                    chatId={threadChatId}
+                                    lifecycles={agentLifecycles}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    </TranscriptRenderProvider>
                     {readOnly ? (
                         <p className="shrink-0 border-separator border-t px-4 py-3 text-muted text-xs">
                             This conversation is read-only because the Agent has been retired.
@@ -154,47 +177,6 @@ export function ServerThreadPanel({
                 </div>
             )}
         </ChatSidePaneShell>
-    );
-}
-
-function ThreadMessage({
-    agentsById,
-    message,
-    onOpenArtifact,
-}: {
-    agentsById: ReadonlyMap<string, HostedAgent>;
-    message: HostedChatMessage;
-    onOpenArtifact: (target: TavernResourceTarget) => void;
-}) {
-    const author = serverThreadAuthor(message, agentsById);
-    return (
-        <article className="flex min-w-0 flex-col gap-1">
-            <div className="flex items-baseline gap-2">
-                {author.kind === 'agent' ? (
-                    <HostedAgentFace agent={author.agent} animate={false} size={20} />
-                ) : null}
-                <span className="font-medium text-sm">
-                    {author.kind === 'agent' ? author.agent.displayName : author.label}
-                </span>
-                <time className="text-muted text-xs" dateTime={message.createdAt}>
-                    {new Date(message.createdAt).toLocaleTimeString([], {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                    })}
-                </time>
-            </div>
-            <div className="text-foreground text-sm">
-                {message.author.kind === 'agent' ? (
-                    <HostedArtifactMessage
-                        agentId={message.author.agentId}
-                        content={message.content}
-                        onOpenArtifact={onOpenArtifact}
-                    />
-                ) : (
-                    <ChatMarkdownText content={message.content} />
-                )}
-            </div>
-        </article>
     );
 }
 

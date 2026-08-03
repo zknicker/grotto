@@ -6,7 +6,7 @@ import type { HostedAgent, HostedChat } from '@tavern/api';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
-import { HostedAgentStatusFace } from '../members/hosted-agent-face.tsx';
+import { HostedAgentRailAvatar } from '../members/hosted-agent-avatar.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
 import { ShellSidebar } from './shell-sidebar.tsx';
 import { SidebarAccount } from './sidebar-account.tsx';
@@ -136,5 +136,5 @@ function ChatIcon({ agent }: { agent: HostedAgent | null }) {
         return <ChannelIconBox size="sidebar" />;
     }
 
-    return <HostedAgentStatusFace agent={agent} />;
+    return <HostedAgentRailAvatar agent={agent} />;
 }

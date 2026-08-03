@@ -2,6 +2,7 @@ import type { HostedAgent, HostedChatMessage, HostedThreadSummary } from '@taver
 import * as React from 'react';
 import type { ActorProfile } from '../../hooks/actors/use-actor.ts';
 import { useDownloadServerAttachment } from '../../hooks/servers/use-download-server-attachment.ts';
+import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import type { ChatLogOutput } from '../../lib/trpc.tsx';
 import { ChatMarkdownText } from '../chats/chat-markdown-text.tsx';
 import { ChatTranscriptPresentation } from '../chats/chat-transcript.tsx';
@@ -14,40 +15,91 @@ import type {
 import type { TavernResourceTarget } from '../chats/tavern-resource-link.ts';
 import { HostedArtifactMessage } from './hosted-artifact-message.tsx';
 import { HostedMessageAttachments } from './hosted-message-attachments.tsx';
+import type { HumanDirectory } from './human-identity.ts';
 
 const hostedConversationLayout = {
     showAgentIdentity: true,
     showHumanIdentity: true,
 } as const;
 
+interface HostedTranscriptInput {
+    activeThreadAnchorId?: string;
+    agents: HostedAgent[];
+    chatId: string;
+    messages: HostedChatMessage[] | undefined;
+    onOpenArtifact: (target: TavernResourceTarget) => void;
+    onOpenThread?: (message: HostedChatMessage, summary: HostedThreadSummary | null) => void;
+    onStartDm?: (userId: string) => void;
+    serverId: string;
+    threads?: HostedThreadSummary[];
+}
+
 export function ServerChatTranscript({
+    composition,
+    scrollContentRef,
+    ...input
+}: HostedTranscriptInput & {
+    composition?: React.ReactNode;
+    scrollContentRef?: React.RefObject<HTMLDivElement | null>;
+}) {
+    const { downloadError, renderContext, rows } = useHostedTranscript(input);
+
+    if (!input.messages) {
+        return null;
+    }
+
+    return (
+        <ChatTranscriptPresentation
+            composition={composition}
+            leadingContent={
+                downloadError ? (
+                    <p className="px-2 text-destructive text-xs">{downloadError}</p>
+                ) : undefined
+            }
+            renderContext={renderContext}
+            rows={rows}
+            scrollContentRef={scrollContentRef}
+        />
+    );
+}
+
+/**
+ * Shared hosted-chat transcript wiring: projects hosted messages into
+ * transcript rows and builds the render context the shared turn
+ * presentation needs. The thread panel reuses this so replies render with
+ * exactly the same rows as the main chat.
+ */
+export function useHostedTranscript({
     activeThreadAnchorId,
     agents,
     chatId,
-    composition,
     messages,
     onOpenArtifact,
     onOpenThread,
     onStartDm,
-    scrollContentRef,
+    serverId,
     threads = [],
-}: {
-    activeThreadAnchorId?: string;
-    agents: HostedAgent[];
-    chatId: string;
-    composition?: React.ReactNode;
-    messages: HostedChatMessage[] | undefined;
-    onOpenArtifact: (target: TavernResourceTarget) => void;
-    onOpenThread?: (message: HostedChatMessage, summary: HostedThreadSummary | null) => void;
-    onStartDm: (userId: string) => void;
-    scrollContentRef?: React.RefObject<HTMLDivElement | null>;
-    threads?: HostedThreadSummary[];
-}) {
+}: HostedTranscriptInput) {
     const download = useDownloadServerAttachment();
-    const rows = React.useMemo(
-        () => projectHostedChatMessages(messages ?? [], threads, agents),
-        [agents, messages, threads]
+    const humans = useHumanDirectory(serverId);
+    // App-local reactions until the hosted reaction API lands: toggling only
+    // updates this in-memory map, so the reaction UI is fully exercisable
+    // today and swaps to the server mutation later without UI changes.
+    const [localReactions, setLocalReactions] = React.useState<LocalReactionsByMessage>({});
+    const onToggleReaction = React.useCallback(
+        (input: { emoji: string; messageId: string; remove: boolean }) =>
+            setLocalReactions((previous) => toggleLocalReaction(previous, input)),
+        []
     );
+    const rows = React.useMemo(() => {
+        const projected = projectHostedChatMessages(messages ?? [], threads, agents, humans);
+
+        return projected.map((row) =>
+            row.kind === 'message' && localReactions[row.id]?.length
+                ? { ...row, message: { ...row.message, reactions: localReactions[row.id] } }
+                : row
+        );
+    }, [agents, humans, localReactions, messages, threads]);
     const messagesById = React.useMemo(
         () => new Map(messages?.map((message) => [message.id, message]) ?? []),
         [messages]
@@ -65,29 +117,26 @@ export function ServerChatTranscript({
                 const agent = agentsById.get(actor.id);
                 return agent
                     ? {
-                          avatarUrl: null,
+                          avatarUrl: agent.avatarUrl,
                           bio: agent.description,
-                          character: agent.character,
                           id: agent.id,
                           isSelf: false,
                           kind: 'agent',
                           name: agent.displayName,
-                          primaryColor: null,
                       }
                     : null;
             }
+            const member = humans.member(actor.id);
             return {
-                avatarUrl: null,
-                bio: null,
-                character: null,
+                avatarUrl: humans.avatarUrl(actor.id),
+                bio: member?.description ?? null,
                 id: actor.id,
-                isSelf: true,
+                isSelf: humans.isSelf(actor.id),
                 kind: actor.kind,
-                name: 'You',
-                primaryColor: '#64748b',
+                name: humans.name(actor.id),
             };
         },
-        [agentsById]
+        [agentsById, humans]
     );
     const renderMessageAttachments = React.useCallback(
         (message: TranscriptMessage) => {
@@ -131,12 +180,15 @@ export function ServerChatTranscript({
                 disableAgentHoverCard: true,
                 flashMessageId: null,
                 hiddenCount: 0,
-                onActorClick: (actor) => {
-                    if (actor?.kind === 'participant') {
-                        onStartDm(actor.id);
-                    }
-                },
+                onActorClick: onStartDm
+                    ? (actor) => {
+                          if (actor?.kind === 'participant') {
+                              onStartDm(actor.id);
+                          }
+                      }
+                    : undefined,
                 onOpenThread: handleOpenThread,
+                onToggleReaction,
                 onUnfollowThread: () => undefined,
                 profilePaneChatId: chatId,
                 renderMessageAttachments,
@@ -163,34 +215,57 @@ export function ServerChatTranscript({
             onOpenThread,
             onOpenArtifact,
             onStartDm,
+            onToggleReaction,
             renderMessageAttachments,
             resolveActorProfile,
         ]
     );
 
-    if (!messages) {
-        return null;
-    }
+    return { downloadError: download.error?.message ?? null, renderContext, rows };
+}
 
-    return (
-        <ChatTranscriptPresentation
-            composition={composition}
-            leadingContent={
-                download.error ? (
-                    <p className="px-2 text-destructive text-xs">{download.error.message}</p>
-                ) : undefined
-            }
-            renderContext={renderContext}
-            rows={rows}
-            scrollContentRef={scrollContentRef}
-        />
-    );
+type LocalReactionsByMessage = Record<
+    string,
+    { actors: { handle: null | string; id: string }[]; emoji: string }[]
+>;
+
+const localReactionViewer = { handle: 'you', id: 'usr_tavern' } as const;
+
+function toggleLocalReaction(
+    previous: LocalReactionsByMessage,
+    input: { emoji: string; messageId: string; remove: boolean }
+): LocalReactionsByMessage {
+    const current = previous[input.messageId] ?? [];
+    const next = input.remove
+        ? current
+              .map((reaction) =>
+                  reaction.emoji === input.emoji
+                      ? {
+                            ...reaction,
+                            actors: reaction.actors.filter(
+                                ({ id }) => id !== localReactionViewer.id
+                            ),
+                        }
+                      : reaction
+              )
+              .filter((reaction) => reaction.actors.length > 0)
+        : current.some((reaction) => reaction.emoji === input.emoji)
+          ? current.map((reaction) =>
+                reaction.emoji === input.emoji &&
+                !reaction.actors.some(({ id }) => id === localReactionViewer.id)
+                    ? { ...reaction, actors: [...reaction.actors, localReactionViewer] }
+                    : reaction
+            )
+          : [...current, { actors: [localReactionViewer], emoji: input.emoji }];
+
+    return { ...previous, [input.messageId]: next };
 }
 
 export function projectHostedChatMessages(
     messages: readonly HostedChatMessage[],
     threads: readonly HostedThreadSummary[],
-    agents: readonly HostedAgent[] = []
+    agents: readonly HostedAgent[] = [],
+    humans?: HumanDirectory
 ): NonNullable<ChatLogOutput>['rows'] {
     const threadsByAnchor = new Map(threads.map((thread) => [thread.anchorMessageId, thread]));
     const handleByAgentId = new Map(agents.map((agent) => [agent.id, agent.handle]));
@@ -233,7 +308,7 @@ export function projectHostedChatMessages(
                 sourceSessionId: null,
                 sourceSessionKey: `hosted:${agentId ?? message.author.kind}`,
                 tavernAgentId: agentId,
-                task: hostedMessageTask(message.task, handleByAgentId),
+                task: hostedMessageTask(message.task, handleByAgentId, humans),
                 timestamp: message.createdAt,
             },
             responseId: agentId ? message.id : undefined,
@@ -245,13 +320,14 @@ export function projectHostedChatMessages(
 
 function hostedMessageTask(
     task: HostedChatMessage['task'],
-    handleByAgentId: ReadonlyMap<string, string>
+    handleByAgentId: ReadonlyMap<string, string>,
+    humans?: HumanDirectory
 ): TranscriptMessage['task'] {
     if (!task) {
         return null;
     }
     return {
-        assignee: hostedTaskAssignee(task, handleByAgentId),
+        assignee: hostedTaskAssignee(task, handleByAgentId, humans),
         claimed_at: task.claimedAt,
         created_at: task.createdAt,
         labels: task.labels,
@@ -265,7 +341,8 @@ function hostedMessageTask(
 
 function hostedTaskAssignee(
     task: NonNullable<HostedChatMessage['task']>,
-    handleByAgentId: ReadonlyMap<string, string>
+    handleByAgentId: ReadonlyMap<string, string>,
+    humans?: HumanDirectory
 ): { handle: string | null; id: string; kind: 'agent' | 'human' } | null {
     if (task.assigneeAgentId) {
         return {
@@ -275,7 +352,11 @@ function hostedTaskAssignee(
         };
     }
     if (task.assigneeUserId) {
-        return { handle: null, id: task.assigneeUserId, kind: 'human' };
+        return {
+            handle: humans?.member(task.assigneeUserId)?.handle ?? null,
+            id: task.assigneeUserId,
+            kind: 'human',
+        };
     }
     return null;
 }

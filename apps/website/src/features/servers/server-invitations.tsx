@@ -1,4 +1,4 @@
-import { Button, Chip, Input, Label, TextField } from '@heroui/react';
+import { Button, Chip, Input, Label, Separator, TextField } from '@heroui/react';
 import type { ServerInvitation } from '@tavern/api/hosted-membership';
 import * as React from 'react';
 import { CopyButton } from '../../components/copy-button.tsx';
@@ -79,38 +79,44 @@ export function ServerInvitationList({
     const { revoke } = useServerInvitationCommands();
 
     if (invitations.length === 0) {
-        return <p className="text-muted text-sm">No invitations yet.</p>;
+        return <p className="px-5 py-3.5 text-muted text-sm">No invitations yet.</p>;
     }
 
     return (
-        <ul className="flex flex-col gap-1">
-            {invitations.map((invitation) => (
-                <li
-                    className="flex items-center justify-between gap-4 rounded-lg px-3 py-2"
-                    data-invitation-id={invitation.id}
-                    key={invitation.id}
-                >
-                    <div className="flex min-w-0 items-baseline gap-2">
-                        <span className="truncate text-foreground text-sm">{invitation.email}</span>
-                        <Chip
-                            size="sm"
-                            variant={invitation.status === 'pending' ? 'secondary' : 'soft'}
-                        >
-                            {invitation.status}
-                        </Chip>
+        <>
+            {invitations.map((invitation, index) => (
+                <React.Fragment key={invitation.id}>
+                    {index > 0 ? <Separator /> : null}
+                    <div
+                        className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
+                        data-invitation-id={invitation.id}
+                    >
+                        <div className="flex min-w-0 items-baseline gap-2">
+                            <span className="truncate text-foreground text-sm">
+                                {invitation.email}
+                            </span>
+                            <Chip
+                                size="sm"
+                                variant={invitation.status === 'pending' ? 'secondary' : 'soft'}
+                            >
+                                <Chip.Label className="capitalize">{invitation.status}</Chip.Label>
+                            </Chip>
+                        </div>
+                        {invitation.status === 'pending' ? (
+                            <Button
+                                isDisabled={revoke.isPending}
+                                onPress={() =>
+                                    revoke.mutate({ invitationId: invitation.id, serverId })
+                                }
+                                size="sm"
+                                variant="danger-soft"
+                            >
+                                Revoke
+                            </Button>
+                        ) : null}
                     </div>
-                    {invitation.status === 'pending' ? (
-                        <Button
-                            isDisabled={revoke.isPending}
-                            onPress={() => revoke.mutate({ invitationId: invitation.id, serverId })}
-                            size="sm"
-                            variant="danger-soft"
-                        >
-                            Revoke
-                        </Button>
-                    ) : null}
-                </li>
+                </React.Fragment>
             ))}
-        </ul>
+        </>
     );
 }

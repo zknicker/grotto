@@ -10,10 +10,9 @@ import {
     PlugIcon,
     UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { cn } from '../../lib/utils.ts';
-import { agentColorPresets, resolveAgentInk } from '../agents/agent-color-presets.ts';
-import { AgentFace, HEAD_KINDS, type HeadName } from '../chats/agent-face.tsx';
+import { agentColorPresets } from '../agents/agent-color-presets.ts';
 import type { MentionOptionKind } from './mention-types.ts';
 
 const mentionIconKeys = [
@@ -32,7 +31,7 @@ const mentionIconKeys = [
 export type MentionIconKey = (typeof mentionIconKeys)[number];
 
 export interface MentionAppearance {
-    agentFace?: { character: HeadName; color: string | null };
+    agentAvatar?: { name: string; src: string | null };
     brandColor?: string;
     icon: MentionIconKey;
     iconDataUrl?: string;
@@ -74,17 +73,17 @@ const capabilityAppearanceOverrides = {
         label: 'Computer Use',
     },
     'computer-use/google-chrome': {
-        brandColor: 'var(--legacy-success-foreground)',
+        brandColor: 'var(--success)',
         icon: 'chrome',
         label: 'Chrome',
     },
     'chrome@openai-bundled': {
-        brandColor: 'var(--legacy-success-foreground)',
+        brandColor: 'var(--success)',
         icon: 'chrome',
         label: 'Chrome',
     },
     chrome: {
-        brandColor: 'var(--legacy-success-foreground)',
+        brandColor: 'var(--success)',
         icon: 'chrome',
         label: 'Chrome',
     },
@@ -114,36 +113,24 @@ export function getMentionAppearance(input: MentionAppearanceInput): MentionAppe
 }
 
 export function MentionAppearanceIcon({
-    agentFace,
+    agentAvatar,
     className,
     iconDataUrl,
     icon,
 }: {
-    agentFace?: MentionAppearance['agentFace'];
+    agentAvatar?: MentionAppearance['agentAvatar'];
     className?: string;
     iconDataUrl?: string;
     icon: MentionIconKey;
 }) {
-    if (agentFace) {
-        // Chips can mount outside app providers (composer editor roots), so
-        // theme comes from the document class instead of the theme context.
-        const dark = isDocumentDark();
-
+    if (agentAvatar) {
         return (
-            <span
-                aria-hidden="true"
-                // -3% optical lift: the face reads centered against the label
-                // cap height (picked from a magnified variant comparison).
-                className={cn('flex -translate-y-[3%] items-center justify-center', className)}
-            >
-                <AgentFace
-                    animate={false}
-                    dark={dark}
-                    head={agentFace.character}
-                    ink={resolveAgentInk(dark, agentFace.color)}
-                    style={agentFaceIconStyle}
-                />
-            </span>
+            <EntityAvatar
+                className={className}
+                name={agentAvatar.name}
+                size={16}
+                src={agentAvatar.src}
+            />
         );
     }
 
@@ -170,8 +157,8 @@ export function getMentionDisplayLabel(input: MentionAppearanceInput) {
 // The accent driving a mention chip's tinted badge: the agent's configured
 // color, a brand override, or the shared mention accent.
 export function getMentionChipColor(appearance: MentionAppearance) {
-    if (appearance.agentFace) {
-        return appearance.agentFace.color ?? agentColorPresets[0].color;
+    if (appearance.agentAvatar) {
+        return appearance.brandColor ?? agentColorPresets[0].color;
     }
 
     return appearance.brandColor ?? 'var(--info-foreground)';
@@ -181,7 +168,7 @@ function getMentionAppearanceOverride(input: MentionAppearanceInput) {
     const metadataIconDataUrl = readString(input.metadata?.iconDataUrl);
 
     if (input.kind === 'agent') {
-        return getAgentFaceOverride(input);
+        return getAgentAvatarOverride(input);
     }
 
     if (input.kind === 'app' && metadataIconDataUrl) {
@@ -201,37 +188,18 @@ function getMentionAppearanceOverride(input: MentionAppearanceInput) {
     return undefined;
 }
 
-// Agent chips render the agent's character face tinted with its configured
-// color. Appearance rides in mention metadata: composer options embed it at
-// pick time (composer chips mount outside app providers) and transcript
-// surfaces resolve it live from the agent record before rendering.
-function getAgentFaceOverride(input: MentionAppearanceInput) {
-    const character = readString(input.metadata?.agentCharacter);
+// Agent chips carry the agent's avatar (initials when it has no image) tinted
+// with its configured color. Appearance rides in mention metadata: composer
+// options embed it at pick time (composer chips mount outside app providers)
+// and transcript surfaces resolve it live from the agent record before
+// rendering.
+function getAgentAvatarOverride(input: MentionAppearanceInput) {
     const color = readString(input.metadata?.agentColor);
 
-    if (!(character && isHeadName(character)) || character === 'none') {
-        // No face art, but keep the agent's configured color driving the tint.
-        return color ? ({ brandColor: color } satisfies MentionAppearanceOverride) : undefined;
-    }
-
     return {
-        agentFace: { character, color },
+        agentAvatar: { name: input.label, src: readString(input.metadata?.agentAvatarUrl) },
+        ...(color ? { brandColor: color } : {}),
     } satisfies MentionAppearanceOverride;
-}
-
-function isHeadName(value: string): value is HeadName {
-    return (HEAD_KINDS as readonly string[]).includes(value);
-}
-
-const agentFaceIconStyle = {
-    display: 'block',
-    height: '100%',
-    overflow: 'visible',
-    width: '100%',
-} as const;
-
-function isDocumentDark() {
-    return typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 }
 
 function getKeyedOverride(

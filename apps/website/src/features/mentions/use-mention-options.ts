@@ -100,6 +100,8 @@ export function buildAgentMentionOption({
 }): MentionOption {
     const agent = agents.find((entry) => entry.id === agentId);
     const label = agent?.name ?? agentId;
+    const avatarUrl = agent?.avatarUrl ?? null;
+    const primaryColor = agent?.effectivePrimaryColor ?? null;
 
     return {
         description: 'Agent in this chat',
@@ -108,21 +110,19 @@ export function buildAgentMentionOption({
         kind: 'agent',
         label,
         // Appearance rides in metadata so mention chips can render the
-        // agent's face without a live agent-list lookup (the composer
+        // agent's avatar without a live agent-list lookup (the composer
         // chip mounts in its own React root, outside app providers).
-        metadata: agent?.effectiveCharacter
-            ? {
-                  agentCharacter: agent.effectiveCharacter,
-                  agentColor: agent.effectivePrimaryColor ?? null,
-              }
-            : undefined,
+        metadata:
+            avatarUrl || primaryColor
+                ? { agentAvatarUrl: avatarUrl, agentColor: primaryColor }
+                : undefined,
         projection: 'agent-reference',
         sourceLabel: 'Agents',
     };
 }
 
 export interface MentionAgent {
-    effectiveCharacter?: string | null;
+    avatarUrl?: string | null;
     effectivePrimaryColor?: string | null;
     id: string;
     name: string;

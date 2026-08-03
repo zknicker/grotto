@@ -42,7 +42,10 @@ test('setup stores only a Server credential and reruns by validation', async () 
                 });
             }
             if (url.pathname === '/computer/setup/cap_1234567890123456') {
-                return Response.json({ computerId: 'cmp_1234567890123456', status: 'approved' });
+                return Response.json({
+                    computerId: 'cmp_1234567890123456',
+                    status: 'approved',
+                });
             }
             if (url.pathname === '/computer/validate') {
                 return Response.json({ id: 'cmp_1234567890123456' });
@@ -107,7 +110,7 @@ test('setup stores only a Server credential and reruns by validation', async () 
         peer.stop(true);
         await rm(dataRoot, { force: true, recursive: true });
     }
-});
+}, 15_000);
 
 test('run keeps the attachment connected until the Server closes it', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));

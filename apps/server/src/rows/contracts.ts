@@ -27,10 +27,21 @@ export const messageRowMessageSchema = sessionMessageSchema.extend({
     sourceSessionKey: z.string(),
 });
 
+export const threadReplyPreviewRowSchema = z.object({
+    authorAgentId: z.string().nullable(),
+    authorUserId: z.string().nullable(),
+    content: z.string(),
+    createdAt: z.string(),
+    id: z.string(),
+});
+
 export const threadSummaryRowSchema = z.object({
     anchorMessageId: z.string(),
     followed: z.boolean(),
     latestReplyAt: z.string().nullable(),
+    // The newest replies, oldest first. Absent on surfaces that only know a
+    // Thread's shape, so the preview falls back to its header alone.
+    recentReplies: z.array(threadReplyPreviewRowSchema).optional(),
     replyCount: z.number().int().nonnegative(),
     threadChatId: z.string(),
     unreadCount: z.number().int().nonnegative(),

@@ -9,6 +9,9 @@ import {
 } from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 
+/** How many replies the anchor's preview block shows before "N replies ›". */
+const threadPreviewReplyCount = 3;
+
 export async function listHostedThreadSummaries(
     db: GrottoDatabase,
     member: GrottoUser | null,
@@ -41,9 +44,12 @@ export async function listHostedThreadSummaries(
     const [messages, reads, follows] = await Promise.all([
         db
             .select({
+                authorAgentId: chatMessagesTable.authorAgentId,
                 authorUserId: chatMessagesTable.authorUserId,
                 chatId: chatMessagesTable.chatId,
+                content: chatMessagesTable.content,
                 createdAt: chatMessagesTable.createdAt,
+                id: chatMessagesTable.id,
                 sequence: chatMessagesTable.sequence,
             })
             .from(chatMessagesTable)
@@ -81,7 +87,9 @@ export async function listHostedThreadSummaries(
     const followByThread = new Map(follows.map((follow) => [follow.threadChatId, follow.followed]));
 
     return threads.map((thread) => {
-        const replies = messages.filter((message) => message.chatId === thread.id);
+        const replies = messages
+            .filter((message) => message.chatId === thread.id)
+            .sort((left, right) => left.sequence - right.sequence);
         const readSequence = readByThread.get(thread.id) ?? 0;
         const latestReply = replies.reduce<Date | null>(
             (latest, reply) => (!latest || reply.createdAt > latest ? reply.createdAt : latest),
@@ -92,6 +100,13 @@ export async function listHostedThreadSummaries(
             anchorMessageId: thread.anchorMessageId as string,
             followed: followByThread.get(thread.id) ?? false,
             latestReplyAt: latestReply?.toISOString() ?? null,
+            recentReplies: replies.slice(-threadPreviewReplyCount).map((reply) => ({
+                authorAgentId: reply.authorAgentId,
+                authorUserId: reply.authorUserId,
+                content: reply.content,
+                createdAt: reply.createdAt.toISOString(),
+                id: reply.id,
+            })),
             replyCount: replies.length,
             threadChatId: thread.id,
             unreadCount: replies.filter(

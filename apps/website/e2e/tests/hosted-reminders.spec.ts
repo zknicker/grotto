@@ -102,9 +102,9 @@ function seedReminderState(input: {
         input.databaseUrl,
         `begin;
          insert into agents (
-           id, server_id, handle, display_name, character, home_timezone, role
+           id, server_id, handle, display_name, home_timezone, role
          ) values (
-           'agt_e2e_reminder', '${input.serverId}', 'Cove', 'Cove', 'blob',
+           'agt_e2e_reminder', '${input.serverId}', 'Cove', 'Cove',
            'America/New_York', 'member'
          );
          insert into channel_agent_participants (server_id, chat_id, agent_id)

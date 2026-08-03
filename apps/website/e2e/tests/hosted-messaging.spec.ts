@@ -291,10 +291,10 @@ function seedHostedArtifactThread(input: {
         input.databaseUrl,
         `begin;
          insert into agents (
-           id, server_id, handle, display_name, character, home_timezone, role
+           id, server_id, handle, display_name, home_timezone, role
          ) values (
            'agt_e2e_artifact', '${input.serverId}', 'artifact-auditor',
-           'Artifact Auditor', 'owl', 'America/New_York', 'member'
+           'Artifact Auditor', 'America/New_York', 'member'
          );
          insert into channel_agent_participants (server_id, chat_id, agent_id)
          values ('${input.serverId}', '${input.chatId}', 'agt_e2e_artifact');

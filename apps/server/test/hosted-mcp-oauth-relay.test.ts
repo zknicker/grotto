@@ -1,143 +1,139 @@
-import { expect, test } from 'bun:test';
-import { ComputerConnections } from '../src/computers/connections.ts';
+import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { HostedMcpOAuthRelay } from '../src/hosted-mcp/oauth-relay.ts';
+import { emptySecret, HostedMcpRuntime } from '../src/hosted-mcp/runtime.ts';
+import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
+import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { startControlledOAuthMcpProvider } from './controlled-oauth-mcp.ts';
+import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
-const computerId = 'cmp_aaaaaaaaaaaaaaaa';
-const otherComputerId = 'cmp_bbbbbbbbbbbbbbbb';
-const connectionId = 'mcp_aaaaaaaaaaaaaaaa';
+const connectionId = 'mcp_oauthrelaytest01';
 const redirectUrl = 'http://127.0.0.1:8091/mcp/oauth/callback';
+const serverId = 'srv_oauthrelaytest01';
 
-test('relays one callback only to the attachment that started it', async () => {
-    const frames: Record<string, unknown>[] = [];
-    const connections = new ComputerConnections();
-    connections.register(computerId, {
-        ordinary: true,
-        send: (frame) => frames.push(asFrame(frame)),
-        serverId: 's',
-        updatePhase: 'idle',
-    });
-    connections.register(otherComputerId, {
-        ordinary: true,
-        send: () => undefined,
-        serverId: 's',
-        updatePhase: 'idle',
-    });
-    const relay = new HostedMcpOAuthRelay(connections);
+let cluster: PostgresCluster;
+let connection: GrottoConnection;
+let provider: Awaited<ReturnType<typeof startControlledOAuthMcpProvider>>;
+let runtime: HostedMcpRuntime;
 
-    const started = relay.start({
+beforeAll(async () => {
+    cluster = await startPostgresCluster();
+    await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
+    connection = await connectGrottoDatabase(cluster.databaseUrl);
+    provider = await startControlledOAuthMcpProvider();
+    runtime = new HostedMcpRuntime(connection.db);
+    await connection.db.execute(
+        `insert into servers (id, display_name, slug)
+         values ('${serverId}', 'OAuth Relay', 'oauth-relay')`
+    );
+    await connection.db.execute(
+        `insert into mcp_connections
+            (id, server_id, name, url, auth, connected, header_names, tools)
+         values
+            ('${connectionId}', '${serverId}', 'Controlled', '${provider.origin}/mcp',
+             'oauth', false, ARRAY[]::text[], ARRAY[]::text[])`
+    );
+    await runtime.writeSecret(connectionId, emptySecret());
+});
+
+afterAll(async () => {
+    await runtime.close();
+    provider.stop();
+    await connection.close();
+    await cluster.stop();
+});
+
+test('completes OAuth on Server and persists discovered identity and tools', async () => {
+    const relay = new HostedMcpOAuthRelay(connection.db, runtime);
+    const trust = await relay.start({
         allowAuthorizationServerOrigin: false,
-        computerId,
         connectionId,
         redirectUrl,
     });
-    await Promise.resolve();
-    const startFrame = frames[0] ?? {};
-    expect(
-        connections.acceptMcpResponse(computerId, {
-            requestId: String(startFrame.requestId),
-            result: {
-                authorizationUrl: `http://127.0.0.1/authorize?state=${startFrame.routingState}`,
-                status: 'ready',
-            },
-            type: 'mcp-oauth-started',
-        })
-    ).toBe(true);
-    await expect(started).resolves.toMatchObject({ status: 'ready' });
-
-    const completed = relay.complete(String(startFrame.routingState), 'one-time-code');
-    await Promise.resolve();
-    const completeFrame = frames[1] ?? {};
-    expect(completeFrame).toMatchObject({
-        code: 'one-time-code',
-        connectionId,
-        state: startFrame.routingState,
-        type: 'mcp-oauth-complete',
+    expect(trust).toEqual({
+        authorizationServerOrigin: provider.origin,
+        status: 'trust-required',
     });
-    expect(
-        connections.acceptMcpResponse(otherComputerId, {
-            requestId: String(completeFrame.requestId),
-            type: 'mcp-oauth-completed',
-        })
-    ).toBe(false);
-    expect(
-        connections.acceptMcpResponse(computerId, {
-            requestId: String(completeFrame.requestId),
-            type: 'mcp-oauth-completed',
-        })
-    ).toBe(true);
-    await expect(completed).resolves.toEqual({ status: 'complete' });
-    await expect(relay.complete(String(startFrame.routingState), 'replay')).resolves.toEqual({
+
+    const started = await relay.start({
+        allowAuthorizationServerOrigin: true,
+        connectionId,
+        redirectUrl,
+    });
+    expect(started.status).toBe('ready');
+    if (started.status !== 'ready') {
+        throw new Error('Expected a ready OAuth attempt.');
+    }
+    const authorization = new URL(started.authorizationUrl);
+    const callback = await approve(authorization);
+    const state = callback.searchParams.get('state');
+    const code = callback.searchParams.get('code');
+    expect(state).toBeTruthy();
+    expect(code).toBeTruthy();
+
+    await expect(relay.complete(String(state), String(code))).resolves.toEqual({
+        status: 'complete',
+    });
+    await expect(relay.complete(String(state), String(code))).resolves.toEqual({
         status: 'expired',
+    });
+
+    const [stored] = await connection.db.execute<{
+        account_label: string;
+        connected: boolean;
+        tools: string[];
+    }>(
+        `select account_label, connected, tools
+         from mcp_connections where id = '${connectionId}'`
+    );
+    expect(stored).toEqual({
+        account_label: 'controlled@example.test',
+        connected: true,
+        tools: ['echo'],
+    });
+    expect(provider.registrations()).toBe(1);
+    expect(await runtime.readSecret(connectionId)).toMatchObject({
+        approvedAuthorizationServerOrigins: [provider.origin],
+        tokens: {
+            access_token: 'controlled-access',
+            refresh_token: 'controlled-refresh',
+            token_type: 'Bearer',
+        },
     });
 });
 
-test('expires routing state without forwarding a callback code', async () => {
+test('expires routing state before exchanging the callback code', async () => {
     let now = 1000;
-    const frames: Record<string, unknown>[] = [];
-    const connections = new ComputerConnections();
-    connections.register(computerId, {
-        ordinary: true,
-        send: (frame) => frames.push(asFrame(frame)),
-        serverId: 's',
-        updatePhase: 'idle',
-    });
-    const relay = new HostedMcpOAuthRelay(connections, () => now, 50);
-    const started = relay.start({
+    const relay = new HostedMcpOAuthRelay(connection.db, runtime, () => now, 50);
+    const started = await relay.start({
         allowAuthorizationServerOrigin: false,
-        computerId,
         connectionId,
         redirectUrl,
     });
-    await Promise.resolve();
-    const startFrame = frames[0] ?? {};
-    connections.acceptMcpResponse(computerId, {
-        requestId: String(startFrame.requestId),
-        result: { authorizationUrl: 'http://127.0.0.1/authorize', status: 'ready' },
-        type: 'mcp-oauth-started',
-    });
-    await started;
+    expect(started.status).toBe('ready');
+    if (started.status !== 'ready') {
+        throw new Error('Expected a ready OAuth attempt.');
+    }
+    const authorization = new URL(started.authorizationUrl);
     now += 51;
 
-    await expect(relay.complete(String(startFrame.routingState), 'secret-code')).resolves.toEqual({
-        status: 'expired',
-    });
-    expect(frames).toHaveLength(1);
+    await expect(
+        relay.complete(String(authorization.searchParams.get('state')), 'unused-code')
+    ).resolves.toEqual({ status: 'expired' });
 });
 
-test('an offline attachment consumes the attempt and teaches retry', async () => {
-    const frames: Record<string, unknown>[] = [];
-    const connections = new ComputerConnections();
-    connections.register(computerId, {
-        ordinary: true,
-        send: (frame) => frames.push(asFrame(frame)),
-        serverId: 's',
-        updatePhase: 'idle',
+async function approve(authorization: URL): Promise<URL> {
+    const response = await fetch(`${authorization.origin}/approve`, {
+        body: new URLSearchParams({
+            code_challenge: authorization.searchParams.get('code_challenge') ?? '',
+            redirect_uri: authorization.searchParams.get('redirect_uri') ?? '',
+            state: authorization.searchParams.get('state') ?? '',
+        }),
+        method: 'POST',
+        redirect: 'manual',
     });
-    const relay = new HostedMcpOAuthRelay(connections);
-    const started = relay.start({
-        allowAuthorizationServerOrigin: false,
-        computerId,
-        connectionId,
-        redirectUrl,
-    });
-    await Promise.resolve();
-    const startFrame = frames[0] ?? {};
-    connections.acceptMcpResponse(computerId, {
-        requestId: String(startFrame.requestId),
-        result: { authorizationUrl: 'http://127.0.0.1/authorize', status: 'ready' },
-        type: 'mcp-oauth-started',
-    });
-    await started;
-    connections.unregister(computerId);
-
-    await expect(relay.complete(String(startFrame.routingState), 'secret-code')).resolves.toEqual({
-        status: 'offline',
-    });
-    await expect(relay.complete(String(startFrame.routingState), 'replay')).resolves.toEqual({
-        status: 'expired',
-    });
-});
-
-function asFrame(value: unknown): Record<string, unknown> {
-    return value as Record<string, unknown>;
+    const location = response.headers.get('location');
+    if (!location) {
+        throw new Error('The controlled OAuth provider did not return a callback.');
+    }
+    return new URL(location);
 }

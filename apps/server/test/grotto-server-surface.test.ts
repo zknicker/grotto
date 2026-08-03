@@ -39,20 +39,21 @@ test('exposes no legacy local-owner procedure', async () => {
     }
 });
 
-test('exposes the localhost-only dev sign-in bootstrap', async () => {
+test('exposes the dev sign-in bootstrap only on localhost', async () => {
     const response = await fetch(new URL('/trpc/dev.createClerkSignInToken', harness.url), {
         body: '{}',
         headers: {
             [appProtocolHeaders.productVersion]: 'test',
             [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
             'content-type': 'application/json',
+            host: 'grotto.example',
         },
         method: 'POST',
     });
     const body = await response.text();
 
-    expect(response.status).toBe(404);
-    expect(body).toContain('Dev Clerk sign-in requires');
+    expect(response.status).toBe(403);
+    expect(body).toContain('available only from localhost');
     expect(body).not.toContain('No procedure found');
 });
 

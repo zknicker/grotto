@@ -7,8 +7,8 @@ import { useServerMembers } from './use-server-members.ts';
  * directory the Server already returns, so a transcript author, a task
  * assignee, and the members page never disagree about who someone is.
  */
-export function useHumanDirectory(serverId: string | undefined) {
-    const directory = useServerMembers(serverId);
+export function useHumanDirectory(serverId: string | undefined, options?: { enabled?: boolean }) {
+    const directory = useServerMembers(serverId, options);
     const members = directory.data?.members;
     const viewerUserId = directory.data?.viewerUserId;
 

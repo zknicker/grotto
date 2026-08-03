@@ -6,7 +6,7 @@ import {
     settingsNavItems,
     settingsNavSections,
 } from '../settings/layout/navigation.ts';
-import { ShellSidebar } from './shell-sidebar.tsx';
+import { ShellSidebarPageContent } from './shell-sidebar.tsx';
 
 const hostedHiddenSettings: ReadonlySet<string> = new Set(['agent-runtime']);
 
@@ -20,7 +20,7 @@ export function SettingsSidebar({
 }) {
     const itemById = new Map(settingsNavItems.map((item) => [item.id, item]));
     return (
-        <ShellSidebar ariaLabel="Settings">
+        <ShellSidebarPageContent>
             {settingsNavSections.map((section) => {
                 const items = section.itemIds
                     .filter((id) => !hostedHiddenSettings.has(id))
@@ -53,6 +53,6 @@ export function SettingsSidebar({
                     </Sidebar.Group>
                 );
             })}
-        </ShellSidebar>
+        </ShellSidebarPageContent>
     );
 }

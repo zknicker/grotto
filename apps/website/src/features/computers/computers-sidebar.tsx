@@ -7,14 +7,22 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { serverComputersRoute } from '../servers/server-routes.ts';
-import { ShellSidebar } from '../shell/shell-sidebar.tsx';
+import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
 import { computerHealthLabel, computerHealthStatus } from './computer-detail.tsx';
 import { computerLabel } from './presentation.ts';
 
 /** Computers section sidebar: the attached-Computer roster as navigation. */
-export function ComputersSidebar({ serverId, slug }: { serverId: string; slug: string }) {
-    const computers = grottoTrpc.computer.list.useQuery({ serverId }, { enabled: true });
+export function ComputersSidebar({
+    isActive,
+    serverId,
+    slug,
+}: {
+    isActive: boolean;
+    serverId: string;
+    slug: string;
+}) {
+    const computers = grottoTrpc.computer.list.useQuery({ serverId }, { enabled: isActive });
     const [searchParams] = useSearchParams();
     const [adding, setAdding] = React.useState(false);
     const items = computers.data ?? [];
@@ -22,8 +30,7 @@ export function ComputersSidebar({ serverId, slug }: { serverId: string; slug: s
     const route = serverComputersRoute(slug);
 
     return (
-        <ShellSidebar
-            ariaLabel="Computers"
+        <ShellSidebarPageContent
             band={
                 <div className="flex w-full items-center justify-between pe-1">
                     <Sidebar.GroupLabel>
@@ -84,6 +91,6 @@ export function ComputersSidebar({ serverId, slug }: { serverId: string; slug: s
                 )}
             </Sidebar.Group>
             <AddComputerDialog onOpenChange={setAdding} open={adding} serverSlug={slug} />
-        </ShellSidebar>
+        </ShellSidebarPageContent>
     );
 }

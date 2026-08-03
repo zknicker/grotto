@@ -2,6 +2,7 @@ import { createBrowserRouter, createHashRouter, Navigate } from 'react-router-do
 import { AppFrame } from './components/app-frame.tsx';
 import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
+import { serverRouteModules } from './routes/app/server-route-modules.ts';
 
 function lazyRoute<TModule extends Record<string, unknown>>(
     load: () => Promise<TModule>,
@@ -51,92 +52,82 @@ export function createAppRouter() {
                                 {
                                     index: true,
                                     lazy: lazyRoute(
-                                        () => import('./routes/app/server-default-page.tsx'),
+                                        serverRouteModules.default,
                                         'ServerDefaultPage'
                                     ),
                                 },
                                 {
                                     path: 'activity',
                                     lazy: lazyRoute(
-                                        () => import('./routes/app/server-activity-page.tsx'),
+                                        serverRouteModules.activity,
                                         'ServerActivityPage'
                                     ),
                                 },
                                 {
                                     path: 'search',
-                                    lazy: lazyRoute(
-                                        () => import('./routes/app/server-search-page.tsx'),
-                                        'ServerSearchPage'
-                                    ),
+                                    lazy: lazyRoute(serverRouteModules.search, 'ServerSearchPage'),
                                 },
                                 {
                                     path: 'design/brief',
                                     lazy: lazyRoute(
-                                        () =>
-                                            import('./routes/app/server-brief-variations-page.tsx'),
+                                        serverRouteModules.brief,
                                         'ServerBriefVariationsPage'
                                     ),
                                 },
                                 {
                                     path: 'chats/:chatId',
-                                    lazy: lazyRoute(
-                                        () => import('./routes/app/server-chat-page.tsx'),
-                                        'ServerChatPage'
-                                    ),
+                                    lazy: lazyRoute(serverRouteModules.chat, 'ServerChatPage'),
                                 },
                                 {
                                     path: 'tasks',
-                                    lazy: lazyRoute(
-                                        () => import('./routes/app/server-tasks-page.tsx'),
-                                        'ServerTasksPage'
-                                    ),
+                                    lazy: lazyRoute(serverRouteModules.tasks, 'ServerTasksPage'),
                                 },
                                 {
                                     path: 'reminders',
                                     lazy: lazyRoute(
-                                        () => import('./routes/app/server-reminders-page.tsx'),
+                                        serverRouteModules.reminders,
                                         'ServerRemindersPage'
                                     ),
                                 },
                                 {
                                     path: 'members',
                                     lazy: lazyRoute(
-                                        () => import('./routes/app/server-members-page.tsx'),
+                                        serverRouteModules.members,
                                         'ServerMembersPage'
                                     ),
                                 },
                                 {
                                     path: 'members/agents/:agentId',
                                     lazy: lazyRoute(
-                                        () => import('./routes/app/server-members-page.tsx'),
+                                        serverRouteModules.members,
                                         'ServerMembersPage'
                                     ),
                                 },
                                 {
                                     path: 'members/humans',
                                     lazy: lazyRoute(
-                                        () => import('./routes/app/server-members-page.tsx'),
+                                        serverRouteModules.members,
                                         'ServerMembersPage'
                                     ),
                                 },
                                 {
                                     path: 'members/humans/:userId',
                                     lazy: lazyRoute(
-                                        () => import('./routes/app/server-members-page.tsx'),
+                                        serverRouteModules.members,
                                         'ServerMembersPage'
                                     ),
                                 },
                                 {
                                     path: 'computers',
                                     lazy: lazyRoute(
-                                        () => import('./routes/app/server-computers-page.tsx'),
+                                        serverRouteModules.computers,
                                         'ServerComputersPage'
                                     ),
                                 },
                                 {
                                     path: 'settings',
                                     lazy: lazyRoute(
-                                        () => import('./routes/app/server-settings-page.tsx'),
+                                        serverRouteModules.settings,
                                         'ServerSettingsPage'
                                     ),
                                     children: [
@@ -147,10 +138,7 @@ export function createAppRouter() {
                                         {
                                             path: ':section',
                                             lazy: lazyRoute(
-                                                () =>
-                                                    import(
-                                                        './routes/app/server-settings-section-page.tsx'
-                                                    ),
+                                                serverRouteModules.settingsSection,
                                                 'ServerSettingsSectionPage'
                                             ),
                                         },

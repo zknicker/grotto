@@ -26,6 +26,7 @@ export function AppRail({
     canOperate,
     currentServer,
     onManageServers,
+    onPreload,
     onSelect,
     onSwitchServer,
     servers,
@@ -34,6 +35,7 @@ export function AppRail({
     canOperate: boolean;
     currentServer: ServerSummary;
     onManageServers: () => void;
+    onPreload: (section: AppRailSection) => void;
     onSelect: (section: AppRailSection) => void;
     onSwitchServer: (slug: string) => void;
     servers: ServerSummary[];
@@ -77,6 +79,7 @@ export function AppRail({
                                 id={item.id}
                                 isCurrent={active === item.id}
                                 key={item.id}
+                                onHoverStart={() => onPreload(item.id)}
                                 textValue={item.label}
                                 tooltip={item.label}
                             >
@@ -92,6 +95,7 @@ export function AppRail({
                             <Sidebar.MenuItem
                                 id="computers"
                                 isCurrent={active === 'computers'}
+                                onHoverStart={() => onPreload('computers')}
                                 textValue="Computers"
                                 tooltip="Computers"
                             >
@@ -115,6 +119,7 @@ export function AppRail({
                         <Sidebar.MenuItem
                             id="settings"
                             isCurrent={active === 'settings'}
+                            onHoverStart={() => onPreload('settings')}
                             textValue="Settings"
                             tooltip="Settings"
                         >

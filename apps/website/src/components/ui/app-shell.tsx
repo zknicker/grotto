@@ -44,7 +44,7 @@ export function AppShell({
         // biome-ignore lint/a11y/noStaticElementInteractions: native window-drag plumbing, not an interactive control
         <div
             className={cn(
-                'app-shell group/app-shell relative flex min-h-screen flex-col overflow-hidden text-foreground md:h-dvh md:min-h-0 md:overscroll-none',
+                'app-shell group/app-shell relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground md:h-dvh md:min-h-0 md:overscroll-none',
                 className
             )}
             data-slot="app-shell"

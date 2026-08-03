@@ -8,7 +8,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { HostedAgentRailAvatar } from '../members/hosted-agent-avatar.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
-import { ShellSidebar } from './shell-sidebar.tsx';
+import { ShellSidebarPageContent } from './shell-sidebar.tsx';
 import { SidebarAccount } from './sidebar-account.tsx';
 
 /** Contextual sidebar for the server: channels and DMs. */
@@ -31,8 +31,7 @@ export function AppSidebar({
     const directMessages = chats.filter((chat) => chat.kind === 'dm');
 
     return (
-        <ShellSidebar
-            ariaLabel="Server"
+        <ShellSidebarPageContent
             band={
                 <div className="flex w-full items-center justify-between pe-1">
                     <Sidebar.GroupLabel>Channels</Sidebar.GroupLabel>
@@ -74,7 +73,7 @@ export function AppSidebar({
                     </Sidebar.MenuItemContent>
                 </Sidebar.MenuItem>
             </Sidebar.Menu>
-        </ShellSidebar>
+        </ShellSidebarPageContent>
     );
 }
 

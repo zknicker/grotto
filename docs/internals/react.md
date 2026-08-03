@@ -33,6 +33,9 @@ a product owner exists. Prefer short names scoped by folders.
 * Keep route files thin.
 * Let route/page boundaries own `Suspense`, skeletons, and error boundaries.
 * Keep primary page content mounted during background refreshes.
+* Keep primary Server destinations code-split, but share their cached module
+  loaders between router navigation and preloading. The persistent shell warms
+  them while idle; rail hover warms the destination before selection.
 * Treat empty synced database results as valid rendered states.
 * Keep hosted Server routes structurally separate from local Runtime providers;
   do not suppress local requests after those providers have mounted.
@@ -42,8 +45,14 @@ a product owner exists. Prefer short names scoped by folders.
 
 ## Shell
 
-* `ServerLayout` owns the stable `AppLayout` scaffold. Sections provide their
-  sidebar through `ShellSidebar`; route or URL state owns selection.
+* `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
+  `ShellSidebar`. Sections compose `ShellSidebarPage` slots; route state
+  controls HeroUI `Sidebar.Pages` so contextual navigation transitions without
+  replacing the sidebar root.
+* `ShellSidebar` must translate those slots into direct `Sidebar.Page` children.
+  HeroUI derives slide position from direct child order; wrapping pages in
+  feature components collapses that order and degrades the transition to a
+  fade.
 * The shell renders one `ShellTopbar`. Pages compose its content through
   `PageTopbar` and `SectionHeader`. Embedded surfaces use `SectionBar`.
 * Shell chrome, traffic-light clearance, topbar height, and panel seams belong

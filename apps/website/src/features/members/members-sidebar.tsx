@@ -10,7 +10,7 @@ import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { humanDisplayName } from '../servers/human-identity.ts';
 import { serverMembersRoute } from '../servers/server-routes.ts';
-import { ShellSidebar } from '../shell/shell-sidebar.tsx';
+import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
 import { CreateHostedAgentDialog } from './create-hosted-agent-dialog.tsx';
 import { HostedAgentRailAvatar } from './hosted-agent-avatar.tsx';
 
@@ -18,15 +18,17 @@ import { HostedAgentRailAvatar } from './hosted-agent-avatar.tsx';
 export function MembersSidebar({
     agentListStatus,
     agents,
+    isActive,
     server,
 }: {
     agentListStatus: 'error' | 'loading' | 'ready';
     agents: HostedAgent[];
+    isActive: boolean;
     server: ServerSummary;
 }) {
     const location = useLocation();
     const navigate = useNavigate();
-    const directory = useServerMembers(server.id);
+    const directory = useServerMembers(server.id, { enabled: isActive });
     const [creatingAgent, setCreatingAgent] = React.useState(false);
     const membersRoute = serverMembersRoute(server.slug);
     const humansRoute = `${membersRoute}/humans`;
@@ -38,8 +40,7 @@ export function MembersSidebar({
     const humans = directory.data?.members ?? [];
 
     return (
-        <ShellSidebar
-            ariaLabel="Members"
+        <ShellSidebarPageContent
             band={
                 <div className="flex w-full items-center justify-between pe-1">
                     <Sidebar.GroupLabel>
@@ -128,7 +129,7 @@ export function MembersSidebar({
                 open={creatingAgent}
                 serverId={server.id}
             />
-        </ShellSidebar>
+        </ShellSidebarPageContent>
     );
 }
 

@@ -7,7 +7,7 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useServerTaskLabels } from '../../../hooks/servers/use-server-task-labels.ts';
 import { useServerTasks } from '../../../hooks/servers/use-server-tasks.ts';
-import { ShellSidebar } from '../../shell/shell-sidebar.tsx';
+import { ShellSidebarPageContent } from '../../shell/shell-sidebar.tsx';
 import { LabelDot } from '../../tasks/label-chip.tsx';
 import { serverTasksRoute } from '../server-routes.ts';
 import { ServerTaskLabelsDialog } from './server-task-labels-dialog.tsx';
@@ -32,18 +32,20 @@ const views: Array<{ label: string; value: ServerTaskView }> = [
  */
 export function ServerTasksSidebar({
     canManage,
+    isActive,
     serverId,
     slug,
 }: {
     canManage: boolean;
+    isActive: boolean;
     serverId: string;
     slug: string;
 }) {
     const [searchParams, setSearchParams] = useSearchParams();
     const [labelsOpen, setLabelsOpen] = React.useState(false);
-    const tasksQuery = useServerTasks(serverId);
-    const labelsQuery = useServerTaskLabels(serverId);
-    const humans = useHumanDirectory(serverId);
+    const tasksQuery = useServerTasks(serverId, undefined, { enabled: isActive });
+    const labelsQuery = useServerTaskLabels(serverId, { enabled: isActive });
+    const humans = useHumanDirectory(serverId, { enabled: isActive });
     const tasks = React.useMemo(
         () => tasksQuery.data?.map((item) => toServerTask(item, humans)) ?? [],
         [humans, tasksQuery.data]
@@ -57,8 +59,7 @@ export function ServerTasksSidebar({
     const labelHref = (labelId?: string) => taskFilterHref(route, activeView, labelId);
 
     return (
-        <ShellSidebar
-            ariaLabel="Tasks"
+        <ShellSidebarPageContent
             band={
                 <SearchField
                     aria-label="Search tasks"
@@ -166,7 +167,7 @@ export function ServerTasksSidebar({
                 open={labelsOpen}
                 serverId={serverId}
             />
-        </ShellSidebar>
+        </ShellSidebarPageContent>
     );
 }
 

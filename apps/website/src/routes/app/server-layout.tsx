@@ -25,6 +25,7 @@ import { AppRail, type AppRailSection } from '../../features/shell/app-rail.tsx'
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
+import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
@@ -34,6 +35,7 @@ import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.
 import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
 import { grottoTrpc, useGrottoServerConnectionState } from '../../lib/grotto-server.tsx';
+import { preloadServerRoutes, preloadServerSection } from './server-route-modules.ts';
 
 export function ServerLayout() {
     const { slug = '' } = useParams();
@@ -58,6 +60,18 @@ export function ServerLayout() {
         if (currentServerSlug) {
             rememberLastServerSlug(currentServerSlug);
         }
+    }, [currentServerSlug]);
+    React.useEffect(() => {
+        if (!currentServerSlug) {
+            return;
+        }
+        if (typeof window.requestIdleCallback === 'function') {
+            const idleId = window.requestIdleCallback(preloadServerRoutes, { timeout: 1500 });
+            return () => window.cancelIdleCallback(idleId);
+        }
+
+        const timeoutId = window.setTimeout(preloadServerRoutes, 250);
+        return () => window.clearTimeout(timeoutId);
     }, [currentServerSlug]);
 
     if (server.error && !server.data) {
@@ -86,6 +100,7 @@ export function ServerLayout() {
     }));
     const canOperate = server.data.role === 'owner' || server.data.role === 'admin';
     const showSidebar = active !== 'computers' || canOperate;
+    const activeSidebarPage = resolveSidebarPage(active, canOperate);
     const openChat = (chatId: string) => navigate(serverChatRoute(slug, chatId));
     const selectSection = (section: AppRailSection) => {
         const route = {
@@ -123,6 +138,7 @@ export function ServerLayout() {
                         canOperate={canOperate}
                         currentServer={server.data}
                         onManageServers={() => setManagingServers(true)}
+                        onPreload={preloadServerSection}
                         onSelect={selectSection}
                         onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
                         servers={serverChoices}
@@ -132,34 +148,48 @@ export function ServerLayout() {
                         navigate={navigate}
                         scrollMode="content"
                         sidebar={
-                            active === 'settings' ? (
-                                <SettingsSidebar currentSection={settingsSection} slug={slug} />
-                            ) : active === 'tasks' ? (
-                                <ServerTasksSidebar
-                                    canManage={canOperate}
-                                    serverId={server.data.id}
-                                    slug={slug}
-                                />
-                            ) : active === 'members' ? (
-                                <MembersSidebar
-                                    agentListStatus={agentListStatus}
-                                    agents={agents.data ?? []}
-                                    server={server.data}
-                                />
-                            ) : active === 'computers' && canOperate ? (
-                                <ComputersSidebar serverId={server.data.id} slug={slug} />
-                            ) : (
-                                <AppSidebar
-                                    agents={agents.data ?? []}
-                                    chats={chats.data ?? []}
-                                    currentServer={server.data}
-                                    onCreateChannel={() => {
-                                        createChannel.reset();
-                                        setCreatingChannel(true);
-                                    }}
-                                    selectedChatId={selectedChatId}
-                                />
-                            )
+                            <ShellSidebar activePage={activeSidebarPage}>
+                                <ShellSidebarPage ariaLabel="Server" value="server">
+                                    <AppSidebar
+                                        agents={agents.data ?? []}
+                                        chats={chats.data ?? []}
+                                        currentServer={server.data}
+                                        onCreateChannel={() => {
+                                            createChannel.reset();
+                                            setCreatingChannel(true);
+                                        }}
+                                        selectedChatId={selectedChatId}
+                                    />
+                                </ShellSidebarPage>
+                                <ShellSidebarPage ariaLabel="Tasks" value="tasks">
+                                    <ServerTasksSidebar
+                                        canManage={canOperate}
+                                        isActive={activeSidebarPage === 'tasks'}
+                                        serverId={server.data.id}
+                                        slug={slug}
+                                    />
+                                </ShellSidebarPage>
+                                <ShellSidebarPage ariaLabel="Members" value="members">
+                                    <MembersSidebar
+                                        agentListStatus={agentListStatus}
+                                        agents={agents.data ?? []}
+                                        isActive={activeSidebarPage === 'members'}
+                                        server={server.data}
+                                    />
+                                </ShellSidebarPage>
+                                {canOperate ? (
+                                    <ShellSidebarPage ariaLabel="Computers" value="computers">
+                                        <ComputersSidebar
+                                            isActive={activeSidebarPage === 'computers'}
+                                            serverId={server.data.id}
+                                            slug={slug}
+                                        />
+                                    </ShellSidebarPage>
+                                ) : null}
+                                <ShellSidebarPage ariaLabel="Settings" value="settings">
+                                    <SettingsSidebar currentSection={settingsSection} slug={slug} />
+                                </ShellSidebarPage>
+                            </ShellSidebar>
                         }
                         sidebarCollapsible="offcanvas"
                         sidebarOpen={showSidebar}
@@ -236,6 +266,16 @@ export function ServerLayout() {
             </AppShell>
         </TopbarProvider>
     );
+}
+
+function resolveSidebarPage(active: AppRailSection, canOperate: boolean) {
+    if (active === 'settings' || active === 'tasks' || active === 'members') {
+        return active;
+    }
+    if (active === 'computers' && canOperate) {
+        return active;
+    }
+    return 'server';
 }
 
 function resolveActiveSection(pathname: string, slug: string): AppRailSection {

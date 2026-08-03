@@ -1,13 +1,19 @@
 import { expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
+import { computerProtocolVersion as apiComputerProtocolVersion } from '../../packages/tavern-api/src/hosted-computer-update.ts';
 import {
     assertComputerReleaseKey,
     assertNewerComputerVersion,
+    computerProtocolVersion,
     computerReleaseSigningPayload,
     createSignedComputerRelease,
     publishComputerInOrder,
     verifySignedComputerRelease,
 } from './computer-release-contract.mjs';
+
+test('Computer publisher uses the canonical ordinary protocol version', () => {
+    expect(computerProtocolVersion).toBe(apiComputerProtocolVersion);
+});
 
 const release = {
     artifactUrl: 'https://releases.grotto.sh/computer/1.1.0/grotto-computer-aarch64-apple-darwin',

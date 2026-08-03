@@ -24,7 +24,7 @@ test('App/Server publishing refuses a production Computer below its protocol flo
                 `http://127.0.0.1:${server.port}/latest.json`,
                 keys.publicKey
             )
-        ).rejects.toThrow('below required protocol 4');
+        ).rejects.toThrow('below required protocol 5');
     } finally {
         server.stop(true);
     }

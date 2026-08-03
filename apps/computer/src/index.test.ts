@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ServerWebSocket } from 'bun';
+import { computerVersion } from './build-identity.ts';
 import { launchdPlist, recoverInterruptedUpdate } from './index.ts';
 import { progress, readUpdateProgress, writeUpdateProgress } from './update.ts';
 
@@ -84,7 +85,7 @@ test('setup stores only a Server credential and reruns by validation', async () 
         expect((await stat(attachmentPath)).mode & 0o777).toBe(0o600);
         expect(socketFrames[0]).toMatchObject({
             bootstrapProtocolVersion: 1,
-            productVersion: '1.1.5',
+            productVersion: computerVersion,
             protocolVersion: 5,
             type: 'bootstrap',
             update: { phase: 'idle' },

@@ -12,12 +12,17 @@ import {
     chatMessagesTable,
     chatsTable,
     computersTable,
+    mcpConnectionsTable,
+    messageTasksTable,
     serverMembershipsTable,
     serversTable,
+    threadFollowsTable,
+    usersTable,
 } from '../postgres/schema.ts';
 import { listAccessibleServers } from '../servers/accessible-servers.ts';
 import type { ServerSummary } from '../servers/contracts.ts';
 import { ensureUserByClerkId } from '../users/grotto-user.ts';
+import { insertSeedAvatars } from './seed-demo-avatars.ts';
 
 const demoInventory = {
     name: 'Development Mac',
@@ -54,12 +59,20 @@ export async function seedHostedDevelopmentServer(
         const membershipId = createOpaqueId('mem');
         const channelId = createOpaqueId('cht');
         const demoChannelId = createOpaqueId('cht');
-        const ottoDmId = createOpaqueId('cht');
-        const wrenDmId = createOpaqueId('cht');
+        const blippyDmId = createOpaqueId('cht');
+        const tinyDmId = createOpaqueId('cht');
         const computerId = createOpaqueId('cmp');
-        const ottoId = createOpaqueId('agt');
-        const wrenId = createOpaqueId('agt');
+        const blippyId = createOpaqueId('agt');
+        const tinyId = createOpaqueId('agt');
+        const mcpId = createOpaqueId('mcp');
         const now = new Date();
+        // Messages that later rows point at (a thread anchor, task carriers)
+        // need stable ids, so those are minted up front.
+        const planMessageId = createOpaqueId('msg');
+        const shipTaskMessageId = createOpaqueId('msg');
+        const auditTaskMessageId = createOpaqueId('msg');
+        const threadChatId = demoThreadId(planMessageId);
+        const avatarIds = await insertSeedAvatars(tx);
 
         await tx.insert(serversTable).values({
             displayName: 'Dev Server',
@@ -72,12 +85,16 @@ export async function seedHostedDevelopmentServer(
             serverId,
             userId: user.id,
         });
+        await tx
+            .update(usersTable)
+            .set({ avatarId: avatarIds.owner })
+            .where(eq(usersTable.id, user.id));
         await tx.insert(chatsTable).values({
             id: channelId,
             isAll: true,
             kind: 'channel',
             lastActivityAt: now,
-            lastMessageSequence: 3,
+            lastMessageSequence: 6,
             name: 'all',
             serverId,
         });
@@ -111,23 +128,43 @@ export async function seedHostedDevelopmentServer(
             reportedInventory: demoInventory,
             serverId,
         });
-        await tx
-            .insert(agentsTable)
-            .values([
-                demoAgent(ottoId, computerId, serverId, 'Otto', 'otto', 'gpt-5.6-sol', now),
-                demoAgent(wrenId, computerId, serverId, 'Wren', 'wren', 'gpt-5.6-terra', now),
-            ]);
+        await tx.insert(agentsTable).values([
+            demoAgent({
+                avatarId: avatarIds.blippy,
+                computerId,
+                createdByUserId: user.id,
+                description: 'Keeps the plan tight and surfaces decisions early.',
+                displayName: 'Blippy',
+                handle: 'blippy',
+                id: blippyId,
+                modelId: 'gpt-5.6-sol',
+                reportedAt: now,
+                serverId,
+            }),
+            demoAgent({
+                avatarId: avatarIds.tiny,
+                computerId,
+                createdByUserId: user.id,
+                description: 'Pressure-tests the details and keeps the work grounded.',
+                displayName: 'Tiny',
+                handle: 'tiny',
+                id: tinyId,
+                modelId: 'gpt-5.6-terra',
+                reportedAt: now,
+                serverId,
+            }),
+        ]);
         await tx
             .insert(chatsTable)
             .values([
-                demoAgentDm(ottoDmId, ottoId, serverId, user.id, now, 1),
-                demoAgentDm(wrenDmId, wrenId, serverId, user.id, now, 1),
+                demoAgentDm(blippyDmId, blippyId, serverId, user.id, now, 1),
+                demoAgentDm(tinyDmId, tinyId, serverId, user.id, now, 1),
             ]);
         await tx.insert(channelAgentParticipantsTable).values([
-            { agentId: ottoId, chatId: channelId, serverId },
-            { agentId: wrenId, chatId: channelId, serverId },
-            { agentId: ottoId, chatId: demoChannelId, serverId },
-            { agentId: wrenId, chatId: demoChannelId, serverId },
+            { agentId: blippyId, chatId: channelId, serverId },
+            { agentId: tinyId, chatId: channelId, serverId },
+            { agentId: blippyId, chatId: demoChannelId, serverId },
+            { agentId: tinyId, chatId: demoChannelId, serverId },
         ]);
         await tx.insert(chatMessagesTable).values([
             demoMessage(serverId, channelId, 1, {
@@ -135,30 +172,130 @@ export async function seedHostedDevelopmentServer(
                 content: 'Morning team — what should we focus on today?',
             }),
             demoMessage(serverId, channelId, 2, {
-                authorAgentId: ottoId,
+                authorAgentId: blippyId,
                 content: 'I’ll keep the plan tight and surface decisions early.',
             }),
             demoMessage(serverId, channelId, 3, {
-                authorAgentId: wrenId,
+                authorAgentId: tinyId,
                 content: 'I’ll pressure-test the details and keep the work grounded.',
             }),
+            demoMessage(
+                serverId,
+                channelId,
+                4,
+                {
+                    authorUserId: user.id,
+                    content: 'Here’s the plan for the week — shout if anything looks wrong.',
+                },
+                planMessageId
+            ),
+            demoMessage(
+                serverId,
+                channelId,
+                5,
+                {
+                    authorUserId: user.id,
+                    content: 'Ship the avatar upload flow end to end.',
+                },
+                shipTaskMessageId
+            ),
+            demoMessage(
+                serverId,
+                channelId,
+                6,
+                {
+                    authorAgentId: tinyId,
+                    content: 'Audit the member directory for stale copy.',
+                },
+                auditTaskMessageId
+            ),
             demoMessage(serverId, demoChannelId, 1, {
                 authorUserId: user.id,
                 content: 'What should we polish next?',
             }),
             demoMessage(serverId, demoChannelId, 2, {
-                authorAgentId: ottoId,
+                authorAgentId: blippyId,
                 content: 'The core flow first. Everything else earns its way in.',
             }),
-            demoMessage(serverId, ottoDmId, 1, {
-                authorAgentId: ottoId,
-                content: 'Otto online. What are we building?',
+            demoMessage(serverId, blippyDmId, 1, {
+                authorAgentId: blippyId,
+                content: 'Blippy online. What are we building?',
             }),
-            demoMessage(serverId, wrenDmId, 1, {
-                authorAgentId: wrenId,
-                content: 'Wren here. Send me the sharp edges.',
+            demoMessage(serverId, tinyDmId, 1, {
+                authorAgentId: tinyId,
+                content: 'Tiny here. Send me the sharp edges.',
             }),
         ]);
+
+        // Every task carries its deterministic Thread, and the plan message has
+        // a discussion thread the author follows.
+        await tx
+            .insert(chatsTable)
+            .values([
+                demoThread(serverId, channelId, planMessageId, now, 3),
+                demoThread(serverId, channelId, shipTaskMessageId, now, 0),
+                demoThread(serverId, channelId, auditTaskMessageId, now, 0),
+            ]);
+        await tx.insert(threadFollowsTable).values({
+            followed: true,
+            serverId,
+            threadChatId,
+            userId: user.id,
+        });
+
+        await tx.insert(chatMessagesTable).values([
+            demoMessage(serverId, threadChatId, 1, {
+                authorAgentId: blippyId,
+                content: 'Reading it now — the sequencing looks right to me.',
+            }),
+            demoMessage(serverId, threadChatId, 2, {
+                authorAgentId: tinyId,
+                content: 'One risk: the upload path needs a size cap before we ship it.',
+            }),
+            demoMessage(serverId, threadChatId, 3, {
+                authorUserId: user.id,
+                content: 'Good catch — folding that in.',
+            }),
+        ]);
+
+        // Two tasks in different states, one per assignee kind.
+        await tx.insert(messageTasksTable).values([
+            {
+                assigneeAgentId: blippyId,
+                chatId: channelId,
+                createdByUserId: user.id,
+                messageId: shipTaskMessageId,
+                number: 1,
+                origin: 'composed',
+                priority: 'high',
+                serverId,
+                status: 'in_progress',
+            },
+            {
+                assigneeUserId: user.id,
+                chatId: channelId,
+                createdByAgentId: tinyId,
+                messageId: auditTaskMessageId,
+                number: 2,
+                origin: 'converted',
+                priority: 'medium',
+                serverId,
+                status: 'todo',
+            },
+        ]);
+
+        // One Server-managed MCP connection so the Agent Connections surface
+        // has something to grant.
+        await tx.insert(mcpConnectionsTable).values({
+            auth: 'none',
+            connected: true,
+            headerNames: [],
+            id: mcpId,
+            name: 'Demo Tools',
+            serverId,
+            tools: ['search_docs', 'fetch_page'],
+            url: 'https://example.invalid/mcp',
+        });
 
         return { displayName: 'Dev Server', id: serverId, role: 'owner' as const, slug: 'dev' };
     });
@@ -223,6 +360,33 @@ function hash(value: string) {
     return createHash('sha256').update(value).digest('hex');
 }
 
+/**
+ * A Thread's id is derived from the message it hangs off, so a task and its
+ * Thread agree without a lookup. Mirrors `ensureHostedThread`.
+ */
+function demoThreadId(anchorMessageId: string) {
+    return `cht_thr_${anchorMessageId.replace(/^msg_/u, '')}`;
+}
+
+function demoThread(
+    serverId: string,
+    parentChatId: string,
+    anchorMessageId: string,
+    lastActivityAt: Date,
+    lastMessageSequence: number
+) {
+    return {
+        anchorMessageId,
+        id: demoThreadId(anchorMessageId),
+        kind: 'thread' as const,
+        lastActivityAt,
+        lastMessageSequence,
+        parentChatId,
+        parentChatKind: 'channel' as const,
+        serverId,
+    };
+}
+
 function demoAgentDm(
     id: string,
     agentId: string,
@@ -243,30 +407,35 @@ function demoAgentDm(
     };
 }
 
-function demoAgent(
-    id: string,
-    computerId: string,
-    serverId: string,
-    displayName: string,
-    handle: string,
-    modelId: string,
-    reportedAt: Date
-) {
+function demoAgent(agent: {
+    avatarId: string;
+    computerId: string;
+    createdByUserId: string;
+    description: string;
+    displayName: string;
+    handle: string;
+    id: string;
+    modelId: string;
+    reportedAt: Date;
+    serverId: string;
+}) {
     return {
-        character: displayName === 'Otto' ? ('robot' as const) : ('bird' as const),
-        computerId,
-        desiredModelId: modelId,
+        avatarId: agent.avatarId,
+        computerId: agent.computerId,
+        createdByUserId: agent.createdByUserId,
+        desiredModelId: agent.modelId,
         desiredRuntimeId: 'codex',
-        displayName,
+        description: agent.description,
+        displayName: agent.displayName,
         effectiveMissing: [],
-        effectiveModelId: modelId,
-        effectiveReportedAt: reportedAt,
+        effectiveModelId: agent.modelId,
+        effectiveReportedAt: agent.reportedAt,
         effectiveRuntimeId: 'codex',
-        handle,
+        handle: agent.handle,
         homeTimezone: 'America/New_York',
-        id,
+        id: agent.id,
         role: 'member' as const,
-        serverId,
+        serverId: agent.serverId,
     };
 }
 
@@ -274,12 +443,13 @@ function demoMessage(
     serverId: string,
     chatId: string,
     sequence: number,
-    author: { authorAgentId: string; content: string } | { authorUserId: string; content: string }
+    author: { authorAgentId: string; content: string } | { authorUserId: string; content: string },
+    id = createOpaqueId('msg')
 ) {
     return {
         ...author,
         chatId,
-        id: createOpaqueId('msg'),
+        id,
         nonce: `dev-${chatId}-${sequence}`,
         sequence,
         serverId,

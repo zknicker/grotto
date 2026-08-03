@@ -8,9 +8,7 @@ test('renders redacted hosted state and only scheduled cancellation actions', ()
             actionErrorMessage={null}
             activeCancelId={null}
             agentId={null}
-            agents={[
-                { character: 'owl' as const, id: 'agt_cove', name: 'Cove', primaryColor: null },
-            ]}
+            agents={[{ avatarUrl: null, id: 'agt_cove', name: 'Cove' }]}
             connectionState="connected"
             isPending={false}
             onAgentChange={() => undefined}

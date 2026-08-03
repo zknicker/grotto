@@ -7,7 +7,7 @@ import {
 } from './hosted-agent-composition-bubble.tsx';
 
 const agent = {
-    character: 'owl',
+    avatarUrl: null,
     displayName: 'Cove',
     id: 'agt_cove',
 } as HostedAgent;

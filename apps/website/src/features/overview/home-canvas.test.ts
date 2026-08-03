@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { agentFaceAliases, buildFaceSpriteCss, parseCanvasHeight } from './home-canvas.tsx';
+import { agentAvatarAliases, buildAvatarSpriteCss, parseCanvasHeight } from './home-canvas.tsx';
 
 describe('parseCanvasHeight', () => {
     test('reads the height meta tag', () => {
@@ -19,10 +19,10 @@ describe('parseCanvasHeight', () => {
     });
 });
 
-describe('agentFaceAliases', () => {
+describe('agentAvatarAliases', () => {
     test('covers exact, slug, and collapsed forms', () => {
-        expect(agentFaceAliases('Otto')).toEqual(['otto']);
-        expect(agentFaceAliases("  Wren's  Twin ")).toEqual([
+        expect(agentAvatarAliases('Otto')).toEqual(['otto']);
+        expect(agentAvatarAliases("  Wren's  Twin ")).toEqual([
             "wren's twin",
             'wren-s-twin',
             'wrenstwin',
@@ -30,28 +30,33 @@ describe('agentFaceAliases', () => {
     });
 });
 
-describe('buildFaceSpriteCss', () => {
+describe('buildAvatarSpriteCss', () => {
     test('emits a case-insensitive, fully-styled rule per alias', () => {
-        const css = buildFaceSpriteCss([
+        const css = buildAvatarSpriteCss([
             {
-                aliases: agentFaceAliases("Wren's Twin"),
-                svg: '<svg viewBox="0 0 8 8"><path d="M0 0h8"/></svg>',
+                aliases: agentAvatarAliases("Wren's Twin"),
+                url: '/api/avatars/avt_0123456789abcdef',
             },
         ]);
 
-        expect(css).toContain('.tavern-face[data-agent="wren\'s twin" i]');
-        expect(css).toContain('.tavern-face[data-agent="wren-s-twin" i]');
-        expect(css).toContain('.tavern-face[data-agent="wrenstwin" i]');
+        expect(css).toContain('.tavern-avatar[data-agent="wren\'s twin" i]');
+        expect(css).toContain('.tavern-avatar[data-agent="wren-s-twin" i]');
+        expect(css).toContain('.tavern-avatar[data-agent="wrenstwin" i]');
         // Every rule carries its own sizing, so unknown agents collapse to
         // nothing instead of an empty gap.
-        expect(css).not.toContain('.tavern-face{');
+        expect(css).not.toContain('.tavern-avatar{');
         expect(css).toContain('display:inline-block;width:1.15em');
-        expect(css).toContain('url("data:image/svg+xml,');
-        // The markup is URI-encoded so quotes and hashes stay CSS-safe.
-        expect(css).not.toContain('viewBox="0');
+        expect(css).toContain('url("/api/avatars/avt_0123456789abcdef")');
+    });
+
+    test('escapes quotes so a hostile name cannot break out of the rule', () => {
+        const css = buildAvatarSpriteCss([{ aliases: ['a"b'], url: 'https://x/a"b.png' }]);
+
+        expect(css).toContain('[data-agent="a\\"b" i]');
+        expect(css).toContain('url("https://x/a\\"b.png")');
     });
 
     test('returns nothing without sprites', () => {
-        expect(buildFaceSpriteCss([])).toBe('');
+        expect(buildAvatarSpriteCss([])).toBe('');
     });
 });

@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpLink } from '@trpc/client';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatMessage } from '../../components/chats/chat-message.tsx';
 import { trpc } from '../../lib/trpc.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import {
@@ -12,6 +11,7 @@ import {
     renderTranscriptMessageAttachments,
     type TranscriptMessage,
 } from './chat-transcript-message.tsx';
+import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 
 const appointmentText =
     'Your next dentist appointment is Dental Cleaning on Monday, September 28, 2026 at 10:00 AM EDT, at Meridian Dental, NYC. 🫡';
@@ -91,12 +91,12 @@ test('streaming word lift changes paint position without changing line layout', 
 
 test('active and durable assistant reply wrappers keep the same text geometry', async () => {
     const liveMarkup = renderChatMarkup(
-        <ChatMessage animateEnter={false} from="assistant">
+        <TranscriptMessageBlock animateEnter={false} from="assistant">
             <ChatMarkdownText content={appointmentText} />
-        </ChatMessage>
+        </TranscriptMessageBlock>
     );
     const durableMarkup = renderChatMarkup(
-        <ChatMessage
+        <TranscriptMessageBlock
             animateEnter={false}
             attachments={renderTranscriptMessageAttachments(
                 assistantMessage(appointmentText).attachments
@@ -104,7 +104,7 @@ test('active and durable assistant reply wrappers keep the same text geometry', 
             from="assistant"
         >
             <ChatTranscriptMessageContent message={assistantMessage(appointmentText)} />
-        </ChatMessage>
+        </TranscriptMessageBlock>
     );
     const page = await newGeometryPage(`
         <style>
@@ -117,7 +117,7 @@ test('active and durable assistant reply wrappers keep the same text geometry', 
     const metrics = await page.evaluate(() => {
         const readMetrics = (id: string) => {
             const root = document.getElementById(id);
-            const body = root?.querySelector('[data-slot="bubble-content"]');
+            const body = root?.querySelector('[data-slot="chat-message-content"]');
             const textRoot = body?.querySelector('[data-selectable-text]') ?? body;
 
             if (
@@ -346,6 +346,12 @@ const chatMessageCss = `
     }
 
     .text-sm {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    /* Mirrors the stock chat-message__content type scale. */
+    .chat-message__content {
         font-size: 14px;
         line-height: 1.5;
     }

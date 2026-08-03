@@ -1,17 +1,17 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatMessage } from '../../components/chats/chat-message.tsx';
+import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 
 test('chat message entrance animation can be disabled for handoffs', () => {
     const animated = renderToStaticMarkup(
-        <ChatMessage animateEnter from="user">
+        <TranscriptMessageBlock animateEnter from="user">
             Hello
-        </ChatMessage>
+        </TranscriptMessageBlock>
     );
     const still = renderToStaticMarkup(
-        <ChatMessage animateEnter={false} from="user">
+        <TranscriptMessageBlock animateEnter={false} from="user">
             Hello
-        </ChatMessage>
+        </TranscriptMessageBlock>
     );
 
     expect(animated).toContain('opacity:0;transform');
@@ -19,36 +19,34 @@ test('chat message entrance animation can be disabled for handoffs', () => {
 });
 
 test('chat message prose renders as plain roster text, not a balloon', () => {
-    const assistant = renderToStaticMarkup(<ChatMessage from="assistant">Done</ChatMessage>);
-    const user = renderToStaticMarkup(<ChatMessage from="user">Done</ChatMessage>);
+    const assistant = renderToStaticMarkup(
+        <TranscriptMessageBlock from="assistant">Done</TranscriptMessageBlock>
+    );
+    const user = renderToStaticMarkup(
+        <TranscriptMessageBlock from="user">Done</TranscriptMessageBlock>
+    );
 
+    // Every message — the owner's included — renders through the stock
+    // ChatMessage content slot as left-aligned roster text; only data-from
+    // tells the senders apart. No user balloon chrome anywhere.
     for (const markup of [assistant, user]) {
-        expect(markup).toContain('data-slot="bubble-content"');
-        expect(markup).toContain('text-sm');
-        expect(markup).toContain('leading-relaxed');
-    }
-
-    // Every message — the owner's included — reads as left-aligned ghost text
-    // in one Slack-style roster; only data-from tells the senders apart. Ghost
-    // carries no balloon chrome: no rounding, no fill, no padding.
-    for (const markup of [assistant, user]) {
-        expect(markup).toContain('data-variant="ghost"');
-        expect(markup).not.toContain('rounded-xl');
-        expect(markup).not.toContain('px-3');
+        expect(markup).toContain('data-slot="chat-message-content"');
+        expect(markup).toContain('chat-message__content');
+        expect(markup).not.toContain('chat-message__bubble');
     }
     expect(assistant).toContain('data-from="assistant"');
     expect(user).toContain('data-from="user"');
 });
 
-test('chat message wraps long pasted tokens inside the bubble', () => {
+test('chat message keeps a shrinkable column so long tokens can wrap', () => {
     const longToken = `{"client_secret":"${'x'.repeat(256)}"}`;
 
     for (const from of ['user', 'assistant'] as const) {
-        const markup = renderToStaticMarkup(<ChatMessage from={from}>{longToken}</ChatMessage>);
+        const markup = renderToStaticMarkup(
+            <TranscriptMessageBlock from={from}>{longToken}</TranscriptMessageBlock>
+        );
 
-        expect(markup).toContain('data-slot="bubble"');
         expect(markup).toContain('min-w-0');
-        expect(markup).toContain('max-w-full');
-        expect(markup).toContain('wrap-break-word');
+        expect(markup).toContain('data-slot="chat-message-content"');
     }
 });

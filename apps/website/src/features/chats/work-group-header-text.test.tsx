@@ -16,7 +16,7 @@ test('WorkGroupHeaderText primes active slot text without hiding the fallback la
     assert.match(markup, />Running tests</);
     assert.match(markup, /aria-hidden="true"/);
     assert.match(markup, /aria-label="Running tests"/);
-    assert.doesNotMatch(markup, /thinking-indicator-text/);
+    assert.doesNotMatch(markup, /text-shimmer/);
 });
 
 test('WorkGroupHeaderText keeps slot text class through the ready handoff', () => {
@@ -32,7 +32,7 @@ test('WorkGroupHeaderText keeps slot text class through the ready handoff', () =
     assert.match(markup, /class="sr-only">Searched code, ran a command</);
     assert.match(markup, /class="slot-text inline-flex"/);
     assert.match(markup, /aria-label="Searched code, ran a command"/);
-    assert.doesNotMatch(markup, /thinking-indicator-text/);
+    assert.doesNotMatch(markup, /text-shimmer/);
 });
 
 test('WorkGroupHeaderText renders inactive labels without slot text', () => {
@@ -47,7 +47,7 @@ test('WorkGroupHeaderText keeps long active labels on shimmer fallback', () => {
         'Running a deliberately long command that stays out of slot text because it would be too wide';
     const markup = renderToStaticMarkup(<WorkGroupHeaderText isActive={true} label={label} />);
 
-    assert.match(markup, /thinking-indicator-text/);
+    assert.match(markup, /text-shimmer/);
     assert.match(markup, /Running a deliberately long command/);
     assert.doesNotMatch(markup, /aria-hidden="true"/);
 });

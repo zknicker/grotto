@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { HeadName } from '../chats/agent-face.tsx';
+import type { AgentMentionAppearance } from './mention-metadata.ts';
 import { applyAgentMentionAppearance, readMentionsFromMarkdown } from './mention-metadata.ts';
 
 describe('readMentionsFromMarkdown', () => {
@@ -71,32 +71,32 @@ describe('readMentionsFromMarkdown', () => {
 });
 
 describe('applyAgentMentionAppearance', () => {
-    const appearances: Record<string, { character: HeadName; primaryColor: string | null }> = {
-        agt_blippy: { character: 'bird', primaryColor: '#2563eb' },
-        agt_plain: { character: 'none', primaryColor: '#f97316' },
+    const appearances: Record<string, AgentMentionAppearance> = {
+        agt_blippy: { avatarUrl: '/api/avatars/avt_0123456789abcdef', primaryColor: '#2563eb' },
+        agt_plain: { avatarUrl: null, primaryColor: '#f97316' },
     };
-    const lookup = (agentId: string | null | undefined) =>
-        (agentId ? appearances[agentId] : undefined) ?? {
-            character: 'none' as HeadName,
-            primaryColor: null,
-        };
+    const lookup = (agentId: string | null | undefined): AgentMentionAppearance =>
+        (agentId ? appearances[agentId] : undefined) ?? { avatarUrl: null, primaryColor: null };
 
-    it('adds live agent face and color metadata to agent mentions', () => {
+    it('adds live agent avatar and color metadata to agent mentions', () => {
         const mentions = readMentionsFromMarkdown('Ask [@Blippy](agent://agt_blippy)');
 
         expect(applyAgentMentionAppearance(mentions, lookup)).toEqual([
             {
                 ...mentions[0],
-                metadata: { agentCharacter: 'bird', agentColor: '#2563eb' },
+                metadata: {
+                    agentAvatarUrl: '/api/avatars/avt_0123456789abcdef',
+                    agentColor: '#2563eb',
+                },
             },
         ]);
     });
 
-    it('keeps configured color for agents without a face character', () => {
+    it('keeps configured color for agents without an uploaded avatar', () => {
         const mentions = readMentionsFromMarkdown('Ask [@Plain](agent://agt_plain)');
 
         expect(applyAgentMentionAppearance(mentions, lookup)[0]?.metadata).toEqual({
-            agentCharacter: 'none',
+            agentAvatarUrl: null,
             agentColor: '#f97316',
         });
     });

@@ -55,6 +55,7 @@ function taskItem(): HostedTaskListItem {
             anchorMessageId: 'message_one',
             followed: false,
             latestReplyAt: null,
+            recentReplies: [],
             replyCount: 0,
             threadChatId: 'thread_one',
             unreadCount: 0,

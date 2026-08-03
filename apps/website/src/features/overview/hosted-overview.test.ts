@@ -5,9 +5,10 @@ import { buildHostedOverviewActivity, toOverviewAgent } from './hosted-overview.
 const hostedAgent = {
     archetype: null,
     availability: 'idle',
-    character: 'robot',
+    avatarUrl: '/api/avatars/avt_0123456789abcdef',
     computerId: 'computer-1',
     createdAt: '2026-07-28T12:00:00-04:00',
+    createdByUserId: null,
     description: null,
     desiredModelId: 'gpt-5.6-sol',
     desiredRuntimeId: 'codex',
@@ -26,10 +27,10 @@ const hostedAgent = {
 
 test('hosted agents map into the preserved Overview presentation model', () => {
     expect(toOverviewAgent(hostedAgent)).toMatchObject({
-        effectiveCharacter: 'robot',
-        effectivePrimaryColor: null,
+        avatarUrl: '/api/avatars/avt_0123456789abcdef',
         id: 'agent-1',
         name: 'Otto',
+        primaryColor: null,
     });
 });
 

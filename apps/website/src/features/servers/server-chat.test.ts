@@ -32,6 +32,7 @@ test('projects hosted messages into the preserved transcript contract', () => {
                 anchorMessageId: human.id,
                 followed: true,
                 latestReplyAt: agent.createdAt,
+                recentReplies: [],
                 replyCount: 1,
                 threadChatId: 'thread_one',
                 unreadCount: 0,

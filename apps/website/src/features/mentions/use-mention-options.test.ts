@@ -89,7 +89,7 @@ describe('selectMentionOptionsForQuery', () => {
         const options = selectMentionOptionsForQuery({
             agents: [
                 {
-                    effectiveCharacter: 'owl',
+                    avatarUrl: '/api/avatars/avt_0123456789abcdef',
                     effectivePrimaryColor: '#2563eb',
                     id: 'agent:planner',
                     name: 'Planner',
@@ -102,7 +102,7 @@ describe('selectMentionOptionsForQuery', () => {
         });
 
         expect(options[0]?.metadata).toEqual({
-            agentCharacter: 'owl',
+            agentAvatarUrl: '/api/avatars/avt_0123456789abcdef',
             agentColor: '#2563eb',
         });
     });

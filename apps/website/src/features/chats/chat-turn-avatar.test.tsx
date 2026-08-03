@@ -1,40 +1,17 @@
 import { describe, expect, test } from 'bun:test';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { getEntityInitials } from '../../components/ui/entity-avatar.tsx';
 import { parseUserProfile } from '../../hooks/shell/use-user-profile-preference.ts';
-import { AgentFace } from './agent-face.tsx';
-import { resolveTurnAvatarVariant } from './chat-transcript-turn.tsx';
 
-describe('turn avatar variant', () => {
-    test('agents always render the Tavern character face', () => {
-        expect(resolveTurnAvatarVariant('agent', null)).toBe('eyes');
-        expect(resolveTurnAvatarVariant('agent', 'data:image/png;base64,AAAA')).toBe('eyes');
+describe('turn avatar initials', () => {
+    test('agents and people share one initials rule', () => {
+        expect(getEntityInitials('Scout')).toBe('SC');
+        expect(getEntityInitials('Zach Knickerbocker')).toBe('ZK');
+        expect(getEntityInitials('  ada  byron  lovelace ')).toBe('AL');
     });
 
-    test('people use an uploaded image when present, else initials', () => {
-        expect(resolveTurnAvatarVariant('profile', 'data:image/png;base64,AAAA')).toBe('image');
-        expect(resolveTurnAvatarVariant('profile', null)).toBe('initials');
-        expect(resolveTurnAvatarVariant('participant', undefined)).toBe('initials');
-    });
-});
-
-describe('static agent face', () => {
-    test('renders a character head with authored color layers', () => {
-        const markup = renderToStaticMarkup(<AgentFace animate={false} head="knight" size={20} />);
-        const paths = markup.match(/<path /g) ?? [];
-
-        // Two eyes plus the head silhouette layers.
-        expect(paths.length).toBeGreaterThanOrEqual(3);
-        expect(markup).toContain('fill="rgb(');
-        expect(markup).toContain('color:#1b1b1b');
-    });
-
-    test('preserves the ink prop on the face SVG', () => {
-        const markup = renderToStaticMarkup(
-            <AgentFace animate={false} dark head="knight" ink="#194154" size={20} />
-        );
-
-        expect(markup).toContain('color:#194154');
-        expect(markup).not.toContain('color:#1b1b1b');
+    test('an unnamed actor still renders a mark', () => {
+        expect(getEntityInitials('')).toBe('?');
+        expect(getEntityInitials('   ')).toBe('?');
     });
 });
 

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import {
     selectAddableHostedSkills,
     selectOutstandingSkillImports,
-} from './hosted-agent-profile-tab.tsx';
+} from './hosted-agent-overview-tab.tsx';
 
 test('Agent skill picker excludes same-name skills already in the Agent library', () => {
     const addable = selectAddableHostedSkills(

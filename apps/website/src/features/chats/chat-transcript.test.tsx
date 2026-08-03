@@ -59,7 +59,7 @@ test('ChatTranscript renders hover time and copy action without session or usage
     assert.doesNotMatch(markup, /total 29k/);
     assert.match(markup, /data-slot="message-scroller"/);
     assert.match(markup, /data-slot="message-scroller-item"/);
-    assert.match(markup, /data-slot="bubble-content"/);
+    assert.match(markup, /data-slot="chat-message-content"/);
     assert.doesNotMatch(markup, /opacity:0;transform/);
     assert.match(markup, /aria-label="Copy message"/);
     assert.doesNotMatch(markup, /aria-label="View session"/);
@@ -113,7 +113,7 @@ test('ChatTranscript animates only local optimistic user messages', () => {
     const markup = renderTranscript(localTimeline?.rows ?? []);
 
     assert.match(markup, /Can you check this\?/);
-    assert.match(markup, /data-slot="message"/);
+    assert.match(markup, /data-slot="chat-message-assistant"/);
     // Every message shares the left roster; the optimistic row still animates.
     assert.match(markup, /style="transform-origin:bottom left;opacity:0;transform/);
 });
@@ -222,8 +222,8 @@ test('ChatTranscript renders loaded multiline assistant replies as one message b
     assert.match(markup, /First line\./);
     assert.match(markup, /Second line\./);
     assert.match(markup, /Third line\./);
-    assert.match(markup, /data-slot="message"/);
-    assert.match(markup, /data-slot="bubble"/);
+    assert.match(markup, /data-slot="chat-message-assistant"/);
+    assert.match(markup, /data-slot="chat-message-content"/);
     assert.doesNotMatch(markup, /chat-streaming-text-unit/);
 });
 
@@ -286,8 +286,8 @@ test('ChatTranscript keeps tool calls out of the pane and in the turn body', () 
     const turnBody = renderTurnBody(rows);
 
     assert.match(turnBody, /command -v gog/);
-    // The drawer opens work groups by default.
-    assert.match(turnBody, /aria-expanded="true"/);
+    // The drawer renders tool calls as stock ChatTool cards.
+    assert.match(turnBody, /data-slot="chat-tool"/);
 });
 
 test('ChatTranscript labels recovered tool failures without making the final reply look failed', () => {
@@ -359,7 +359,8 @@ test('ChatTranscript labels recovered tool failures without making the final rep
 
     const turnBody = renderTurnBody(rows);
 
-    assert.match(turnBody, /Recovered after failed file read: bad-upload\.png/);
+    assert.match(turnBody, /chat-tool--error/);
+    assert.match(turnBody, /bad-upload\.png/);
 });
 
 test('ChatTranscript replays retired catalog widgets as the fallback card', () => {
@@ -661,12 +662,11 @@ test('ChatTranscript keeps thinking rows alongside tool work in the turn body', 
     ]);
 
     assert.match(markup, /I should inspect the workspace\./);
-    // A lone short command can surface in the group header; the row still
-    // owns the inspectable command details.
-    assert.match(markup, /Ran command -v node/);
+    // Thinking renders as a ChainOfThought timeline; the tool keeps its
+    // inspectable ChatTool card alongside it.
+    assert.match(markup, /chain-of-thought/);
     assert.match(markup, /command -v node/);
-    assert.match(markup, />Used</);
-    assert.doesNotMatch(markup, /Used a tool/);
+    assert.match(markup, /data-slot="chat-tool"/);
 });
 
 test('ToolStep renders bash failures through the shell tool renderer', () => {
@@ -1437,10 +1437,9 @@ test('ChatTranscript shows active progress through the same thinking steps surfa
 
     assert.match(markup, /I&#x27;ll inspect the workspace before making changes\./);
     assert.doesNotMatch(markup, /Assistant reply\n/);
-    assert.match(markup, /Using[\s\S]*Listing files/);
+    assert.match(markup, /data-state="input-available"[\s\S]*Listing files/);
     assert.match(markup, /I found the files\. Next I will inspect the renderer\./);
     assert.doesNotMatch(markup, /Agent is working/);
-    assert.match(markup, /chat-step-enter/);
     assert.doesNotMatch(markup, />Running</);
     assert.doesNotMatch(markup, /chat-turn-work-panel/);
 });
@@ -1485,8 +1484,8 @@ test('ChatTranscript renders active tool progress as one-line status rows', () =
         ]
     );
 
-    assert.match(markup, /Using[\s\S]*bash/);
-    assert.match(markup, /<button aria-label="Inspect /);
+    assert.match(markup, /data-state="input-available"[\s\S]*bash/);
+    assert.match(markup, /data-slot="chat-tool-trigger"/);
     assert.doesNotMatch(markup, /Agent is working/);
     assert.doesNotMatch(markup, />Running</);
     assert.doesNotMatch(markup, />start</);
@@ -1603,8 +1602,9 @@ test('ChatTranscript wires active progress tool ids to the tool drawer trigger',
         ]
     );
 
-    assert.match(markup, /Using[\s\S]*computer use\.list apps/);
-    assert.match(markup, /<button aria-label="Inspect /);
+    assert.match(markup, /computer use\.list apps/);
+    assert.match(markup, /data-slot="chat-tool-trigger"/);
+    assert.match(markup, /data-expandable="true"/);
 });
 
 test('ChatTranscript keeps active work headers stable between fast completed tools', () => {
@@ -1661,7 +1661,8 @@ test('ChatTranscript keeps active work headers stable between fast completed too
         ]
     );
 
-    assert.match(markup, />Searched code</);
+    assert.match(markup, /query one/);
+    assert.match(markup, /query two/);
     assert.doesNotMatch(markup, /Searched code 2 times/);
 });
 

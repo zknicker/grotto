@@ -62,7 +62,7 @@ describe('mention appearance', () => {
                 label: 'Chrome',
             })
         ).toEqual({
-            brandColor: 'var(--legacy-success-foreground)',
+            brandColor: 'var(--success)',
             icon: 'chrome',
             label: 'Chrome',
         });
@@ -91,29 +91,30 @@ describe('mention appearance', () => {
         });
     });
 
-    it('renders agent mentions with face metadata as the agent face', () => {
+    it('renders agent mentions with avatar metadata as the agent avatar', () => {
         expect(
             getMentionAppearance({
                 id: 'agent://agt_blippy',
                 kind: 'agent',
                 label: 'Blippy',
-                metadata: { agentCharacter: 'bird', agentColor: '#2563eb' },
+                metadata: { agentAvatarUrl: '/api/avatars/avt_0123456789abcdef' },
             })
         ).toEqual({
-            agentFace: { character: 'bird', color: '#2563eb' },
+            agentAvatar: { name: 'Blippy', src: '/api/avatars/avt_0123456789abcdef' },
             icon: 'agent',
         });
     });
 
-    it('keeps the agent color as the chip tint when the agent has no face', () => {
+    it('falls back to initials and keeps the agent color as the chip tint', () => {
         expect(
             getMentionAppearance({
                 id: 'agent://agt_plain',
                 kind: 'agent',
                 label: 'Plain',
-                metadata: { agentCharacter: 'none', agentColor: '#f97316' },
+                metadata: { agentColor: '#f97316' },
             })
         ).toEqual({
+            agentAvatar: { name: 'Plain', src: null },
             brandColor: '#f97316',
             icon: 'agent',
         });

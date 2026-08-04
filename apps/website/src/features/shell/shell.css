@@ -85,7 +85,46 @@
     }
 
     html.macos-electron .app-shell {
-        /* One shell-level inset clears the macOS traffic lights. */
-        padding-top: 2.25rem;
+        --app-shell-titlebar-inset: 3rem;
+    }
+
+    /*
+     * Keep HeroUI's sidebar panels full-height, then reserve a native titlebar
+     * band inside them. Its hairline aligns with the shell topbar while its
+     * background masks any panel edge behind the macOS traffic lights.
+     */
+    html.macos-electron .app-shell [data-slot='sidebar'] {
+        padding-block-start: var(--app-shell-titlebar-inset);
+    }
+
+    html.macos-electron .app-shell [data-slot='sidebar']::before {
+        position: absolute;
+        z-index: 1;
+        inset-block-start: 0;
+        inset-inline: 0;
+        height: var(--app-shell-titlebar-inset);
+        border-block-end: 1px solid var(--separator);
+        background: var(--background);
+        content: '';
+        pointer-events: none;
+    }
+
+    html.macos-electron
+        .app-shell
+        [data-slot='sidebar'].sidebar--default::before {
+        inset-inline-end: 1px;
+    }
+
+    html.macos-electron .app-shell .app-rail::after {
+        position: absolute;
+        z-index: 2;
+        inset-block-start: 0;
+        inset-inline-end: -1px;
+        width: 2px;
+        height: var(--app-shell-titlebar-inset);
+        border-block-end: 1px solid var(--separator);
+        background: var(--background);
+        content: '';
+        pointer-events: none;
     }
 }

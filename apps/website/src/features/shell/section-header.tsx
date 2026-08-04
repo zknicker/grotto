@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
  * The band height every top-of-column zone shares: the shell topbar, local
  * SectionBars, and the sidebar frame's header zone. One value, one place.
  */
-export const bandHeightClassName = 'h-14';
+export const bandHeightClassName = 'h-12';
 
 /**
  * The one topbar band chrome: fixed height, bottom hairline, gutter. The

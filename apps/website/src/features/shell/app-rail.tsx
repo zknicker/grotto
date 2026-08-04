@@ -7,7 +7,6 @@ import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 
 export type AppRailSection =
-    | 'activity'
     | 'chat'
     | 'computers'
     | 'members'
@@ -43,7 +42,6 @@ export function AppRail({
     const items: { id: Exclude<AppRailSection, 'settings' | 'computers'>; label: string }[] = [
         { id: 'search', label: 'Search' },
         { id: 'chat', label: 'Chat' },
-        { id: 'activity', label: 'Activity' },
         { id: 'tasks', label: 'Tasks' },
     ];
     if (canOperate) {
@@ -53,14 +51,15 @@ export function AppRail({
 
     return (
         <Sidebar.Provider
-            className="h-full min-h-0 w-auto shrink-0"
+            className="app-rail relative h-full min-h-0 w-auto shrink-0"
             collapsible="icon"
             open={false}
             toggleShortcut={false}
+            variant="inset"
         >
             <Sidebar aria-label="App sections">
                 <Sidebar.Header>
-                    <div className="-mt-2 flex min-h-10 items-center justify-center">
+                    <div className="-mt-2 flex min-h-8 items-center justify-center">
                         <ServerSwitcher
                             currentServer={currentServer}
                             onManageServers={onManageServers}

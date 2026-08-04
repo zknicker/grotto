@@ -62,7 +62,7 @@ export function ShellSidebarPage({ children }: ShellSidebarPageProps) {
  * visually inline with the shell topbar. Section pages supply content only;
  * sidebar chrome decisions live here.
  * (Sidebar.Header does not forward className; the inner wrapper shapes a
- * 40px row whose midline matches the shell topbar's.)
+ * 32px row whose midline matches the shell topbar's.)
  */
 export function ShellSidebarPageContent({
     band,
@@ -76,7 +76,7 @@ export function ShellSidebarPageContent({
     return (
         <>
             <Sidebar.Header>
-                <div className="-mt-2 flex min-h-10 w-full items-center">{band}</div>
+                <div className="-mt-2 flex min-h-8 w-full items-center">{band}</div>
             </Sidebar.Header>
             <Sidebar.Content>{children}</Sidebar.Content>
             {footer ? <Sidebar.Footer>{footer}</Sidebar.Footer> : null}

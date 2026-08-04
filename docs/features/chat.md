@@ -48,7 +48,9 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Channels and DMs.** Channels and direct messages are durable chat rooms in
   the sidebar. Each Tavern channel and DM has Chat and Files tabs; Files
   lists attachments from its messages. Channels render with a hash icon and
-  optional channel color.
+  optional channel color. Opening a Server restores that Server's last visited
+  Chat when it still exists, then falls back to `#all` or the first available
+  Chat.
   Opening a chat shows a room topbar with the chat name and a participant
   count. On channels the name is a dropdown with channel actions, the optional
   channel description sits beside it (both open the Edit channel dialog, which

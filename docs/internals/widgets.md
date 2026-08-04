@@ -10,15 +10,14 @@ read_when:
 # Agent-authored HTML
 
 Agents write HTML. Tavern hands that HTML one set of CSS variables, and it
-renders in one of three places.
+renders in one of two places.
 
 | surface | what it is | where it renders | renderer |
 | --- | --- | --- | --- |
 | Visual | a ```` ```visual ```` fence inside a message | inline in the transcript | `features/chats/visual-card.tsx` |
 | Artifact | a durable `.html` file in the workspace | card in chat → artifact side pane | `features/chats/artifact-card.tsx` → `chat-artifact-workspace-preview.tsx` |
-| Home canvas | `workbench/home.html` (or the starter) | top of the activity page | `features/overview/home-canvas.tsx` |
 
-All three share `src/agent-html/`: `tokens.ts` is the single published token
+Both share `src/agent-html/`: `tokens.ts` is the single published token
 list plus the snapshot/injection helpers, and `sandbox.ts` is the single
 `sandbox=` capability list. Never add `allow-same-origin` — the opaque origin
 is what stops agent HTML reaching app cookies, storage, or DOM.

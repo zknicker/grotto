@@ -1,10 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
-import {
-    serverBriefVariationsRoute,
-    serverComputersRoute,
-} from '../../features/servers/server-routes.ts';
+import { serverComputersRoute } from '../../features/servers/server-routes.ts';
 import { AppearanceSettings } from '../../features/settings/appearance/page.tsx';
 import { HostedBrowserSettingsPage } from '../../features/settings/browser/hosted-page.tsx';
 import {
@@ -39,9 +36,7 @@ const computerBackedSections = new Set(['browser', 'models', 'skills']);
 
 /** Section registry: one renderer per settings section, no dispatch chain. */
 const sections: Record<string, (context: SectionContext) => ReactNode> = {
-    appearance: ({ server }) => (
-        <AppearanceSettings briefVariationsHref={serverBriefVariationsRoute(server.slug)} />
-    ),
+    appearance: () => <AppearanceSettings />,
     browser: ({ computers, server }) => {
         const computer = computers.find((item) => item.health === 'healthy');
         return computer ? (

@@ -1,6 +1,8 @@
+import type { HostedChat } from '@tavern/api';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 
 export const lastServerSlugStorageKey = 'grotto.last-server-slug';
+const lastChatIdStorageKeyPrefix = 'grotto.last-chat-id.';
 
 export function resolveEntryServer(
     servers: ServerSummary[],
@@ -24,6 +26,33 @@ export function rememberLastServerSlug(
     storage.setItem(lastServerSlugStorageKey, slug);
 }
 
+export function resolveEntryChat(
+    chats: HostedChat[],
+    lastChatId: string | null
+): HostedChat | null {
+    return (
+        chats.find((chat) => chat.id === lastChatId) ??
+        chats.find((chat) => chat.isAll) ??
+        chats[0] ??
+        null
+    );
+}
+
+export function readLastChatId(
+    serverSlug: string,
+    storage: Pick<Storage, 'getItem'> = window.localStorage
+) {
+    return storage.getItem(lastChatIdStorageKey(serverSlug));
+}
+
+export function rememberLastChatId(
+    serverSlug: string,
+    chatId: string,
+    storage: Pick<Storage, 'setItem'> = window.localStorage
+) {
+    storage.setItem(lastChatIdStorageKey(serverSlug), chatId);
+}
+
 export function parseInvitationToken(value: string): string | null {
     const trimmed = value.trim();
     if (!trimmed) {
@@ -41,4 +70,8 @@ export function parseInvitationToken(value: string): string | null {
 function tokenFromPath(value: string) {
     const match = value.match(/(?:^|\/)invite\/([^/?#]+)/u);
     return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function lastChatIdStorageKey(serverSlug: string) {
+    return `${lastChatIdStorageKeyPrefix}${serverSlug}`;
 }

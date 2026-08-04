@@ -8,11 +8,11 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
 import {
-    serverActivityRoute,
     serverChatRoute,
     serverComputersRoute,
     serverMembersRoute,
     serverRemindersRoute,
+    serverRoute,
     serverSearchRoute,
     serverSettingsSectionRoute,
     serverTasksRoute,
@@ -61,8 +61,6 @@ function buildHostedNavigationGroup(
     context: HostedCommandContext,
     currentChat: HostedChat | null
 ): AppCommandGroup {
-    const chatTarget =
-        currentChat ?? context.chats.find((chat) => chat.isAll) ?? context.chats[0] ?? null;
     const routes = [
         {
             icon: getRouteTabIcon('search'),
@@ -73,14 +71,10 @@ function buildHostedNavigationGroup(
         {
             icon: getRouteTabIcon('chat'),
             id: 'chat',
-            route: chatTarget ? serverChatRoute(context.serverSlug, chatTarget.id) : null,
+            route: currentChat
+                ? serverChatRoute(context.serverSlug, currentChat.id)
+                : serverRoute(context.serverSlug),
             title: 'Chat',
-        },
-        {
-            icon: getRouteTabIcon('activity'),
-            id: 'activity',
-            route: serverActivityRoute(context.serverSlug),
-            title: 'Activity',
         },
         {
             icon: getRouteTabIcon('tasks'),

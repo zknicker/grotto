@@ -6,10 +6,12 @@ import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx'
 import { type ChannelAgentOption, ChannelDialog } from '../../features/chats/channel-dialog.tsx';
 import { ComputersSidebar } from '../../features/computers/computers-sidebar.tsx';
 import { MembersSidebar } from '../../features/members/members-sidebar.tsx';
-import { rememberLastServerSlug } from '../../features/servers/server-choice.ts';
+import {
+    rememberLastChatId,
+    rememberLastServerSlug,
+} from '../../features/servers/server-choice.ts';
 import { ServerChoicePanel } from '../../features/servers/server-choice-panel.tsx';
 import {
-    serverActivityRoute,
     serverChatRoute,
     serverComputersRoute,
     serverMembersRoute,
@@ -20,7 +22,6 @@ import {
     serverTasksRoute,
 } from '../../features/servers/server-routes.ts';
 import { ServerTasksSidebar } from '../../features/servers/tasks/server-tasks-sidebar.tsx';
-import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
 import { AppRail, type AppRailSection } from '../../features/shell/app-rail.tsx';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx';
@@ -36,6 +37,12 @@ import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
 import { grottoTrpc, useGrottoServerConnectionState } from '../../lib/grotto-server.tsx';
 import { preloadServerRoutes, preloadServerSection } from './server-route-modules.ts';
+import {
+    resolveActiveSection,
+    resolveSelectedChatId,
+    resolveSettingsSection,
+    resolveSidebarPage,
+} from './server-route-state.ts';
 
 export function ServerLayout() {
     const { slug = '' } = useParams();
@@ -51,6 +58,7 @@ export function ServerLayout() {
     );
     const connectionState = useGrottoServerConnectionState();
     const currentServerSlug = server.data?.slug;
+    const selectedChatId = resolveSelectedChatId(location.pathname, slug);
     const [creatingChannel, setCreatingChannel] = React.useState(false);
     const [managingServers, setManagingServers] = React.useState(false);
     const agentLifecycles = useServerAgentLifecycle(server.data?.id);
@@ -61,6 +69,15 @@ export function ServerLayout() {
             rememberLastServerSlug(currentServerSlug);
         }
     }, [currentServerSlug]);
+    React.useEffect(() => {
+        if (
+            currentServerSlug &&
+            selectedChatId &&
+            chats.data?.some((chat) => chat.id === selectedChatId)
+        ) {
+            rememberLastChatId(currentServerSlug, selectedChatId);
+        }
+    }, [chats.data, currentServerSlug, selectedChatId]);
     React.useEffect(() => {
         if (!currentServerSlug) {
             return;
@@ -88,7 +105,6 @@ export function ServerLayout() {
     }
 
     const active = resolveActiveSection(location.pathname, slug);
-    const selectedChatId = resolveSelectedChatId(location.pathname, slug);
     const settingsSection = resolveSettingsSection(location.pathname, slug);
     const agentListStatus = agents.data ? 'ready' : agents.isPending ? 'loading' : 'error';
     const chatListStatus = chats.data ? 'ready' : chats.isPending ? 'loading' : 'error';
@@ -104,13 +120,7 @@ export function ServerLayout() {
     const openChat = (chatId: string) => navigate(serverChatRoute(slug, chatId));
     const selectSection = (section: AppRailSection) => {
         const route = {
-            activity: serverActivityRoute(slug),
-            chat: selectedChatId
-                ? serverChatRoute(slug, selectedChatId)
-                : serverChatRoute(
-                      slug,
-                      chats.data?.find((chat) => chat.isAll)?.id ?? chats.data?.[0]?.id ?? ''
-                  ),
+            chat: selectedChatId ? serverChatRoute(slug, selectedChatId) : serverRoute(slug),
             computers: serverComputersRoute(slug),
             members: serverMembersRoute(slug),
             reminders: serverRemindersRoute(slug),
@@ -266,59 +276,4 @@ export function ServerLayout() {
             </AppShell>
         </TopbarProvider>
     );
-}
-
-function resolveSidebarPage(active: AppRailSection, canOperate: boolean) {
-    if (active === 'settings' || active === 'tasks' || active === 'members') {
-        return active;
-    }
-    if (active === 'computers' && canOperate) {
-        return active;
-    }
-    return 'server';
-}
-
-function resolveActiveSection(pathname: string, slug: string): AppRailSection {
-    const suffix = pathname.slice(serverRoute(slug).length);
-    if (suffix.startsWith('/design/brief')) {
-        return 'settings';
-    }
-    if (suffix.startsWith('/activity')) {
-        return 'activity';
-    }
-    if (suffix.startsWith('/members')) {
-        return 'members';
-    }
-    if (suffix.startsWith('/computers')) {
-        return 'computers';
-    }
-    if (suffix.startsWith('/reminders')) {
-        return 'reminders';
-    }
-    if (suffix.startsWith('/settings')) {
-        return 'settings';
-    }
-    if (suffix.startsWith('/tasks')) {
-        return 'tasks';
-    }
-    if (suffix.startsWith('/search')) {
-        return 'search';
-    }
-    return 'chat';
-}
-
-function resolveSelectedChatId(pathname: string, slug: string) {
-    const prefix = `${serverRoute(slug)}/chats/`;
-    return pathname.startsWith(prefix)
-        ? decodeURIComponent(pathname.slice(prefix.length))
-        : undefined;
-}
-
-function resolveSettingsSection(pathname: string, slug: string): SettingsRouteTab | undefined {
-    const prefix = `${serverSettingsRoute(slug)}/`;
-    if (!pathname.startsWith(prefix)) {
-        return undefined;
-    }
-    const section = decodeURIComponent(pathname.slice(prefix.length)).split('/')[0];
-    return section ? (section as SettingsRouteTab) : undefined;
 }

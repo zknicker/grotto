@@ -13,8 +13,6 @@ export function cachedRouteModule<TModule>(load: () => Promise<TModule>) {
 }
 
 export const serverRouteModules = {
-    activity: cachedRouteModule(() => import('./server-activity-page.tsx')),
-    brief: cachedRouteModule(() => import('./server-brief-variations-page.tsx')),
     chat: cachedRouteModule(() => import('./server-chat-page.tsx')),
     computers: cachedRouteModule(() => import('./server-computers-page.tsx')),
     default: cachedRouteModule(() => import('./server-default-page.tsx')),
@@ -30,7 +28,6 @@ const routeModulesBySection: Record<
     AppRailSection,
     ReadonlyArray<() => Promise<Record<string, unknown>>>
 > = {
-    activity: [serverRouteModules.activity],
     chat: [serverRouteModules.chat],
     computers: [serverRouteModules.computers],
     members: [serverRouteModules.members],

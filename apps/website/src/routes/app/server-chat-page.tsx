@@ -1,7 +1,7 @@
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
 import { ServerChat } from '../../features/servers/server-chat.tsx';
-import { serverActivityRoute, serverChatRoute } from '../../features/servers/server-routes.ts';
+import { serverChatRoute, serverRoute } from '../../features/servers/server-routes.ts';
 import { useServerTasks } from '../../hooks/servers/use-server-tasks.ts';
 
 export function ServerChatPage() {
@@ -19,7 +19,7 @@ export function ServerChatPage() {
     }
 
     if (!chat) {
-        return <Navigate replace to={serverActivityRoute(server.slug)} />;
+        return <Navigate replace to={serverRoute(server.slug)} />;
     }
 
     return (

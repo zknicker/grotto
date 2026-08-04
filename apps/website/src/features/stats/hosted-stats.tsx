@@ -1,7 +1,6 @@
 import type { HostedComputerUsage } from '@tavern/api';
 import { useHostedUsage } from '../../hooks/servers/use-hosted-usage.ts';
 import { formatTimestamp } from '../../lib/format.ts';
-import { UsageModulesSkeleton, UsageModulesView } from '../overview/usage-modules.tsx';
 import {
     SettingsGroup,
     SettingsPage,
@@ -10,6 +9,7 @@ import {
     SettingsSection,
     SettingsValue,
 } from '../settings/layout/settings-page.tsx';
+import { UsageModulesSkeleton, UsageModulesView } from './usage-modules.tsx';
 
 export function HostedStatsSettings({ serverId }: { serverId: string }) {
     const usage = useHostedUsage(serverId);

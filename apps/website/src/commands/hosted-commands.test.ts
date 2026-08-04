@@ -61,22 +61,30 @@ describe('hosted command groups', () => {
 
     test('recognizes hosted chat routes and omits operator commands for members', () => {
         expect(getCurrentHostedChatId('/s/dev/chats/cht_cove', 'dev')).toBe('cht_cove');
-        expect(getCurrentHostedChatId('/s/dev/activity', 'dev')).toBeNull();
+        expect(getCurrentHostedChatId('/s/dev/tasks', 'dev')).toBeNull();
 
+        const navigated: string[] = [];
         const groups = buildHostedCommandGroups({
             agents: [agent],
             chats,
             devMode: false,
-            navigate: () => undefined,
-            pathname: '/s/dev/activity',
+            navigate: (path) => navigated.push(path),
+            pathname: '/s/dev/tasks',
             role: 'member',
             serverSlug: 'dev',
             setDevMode: () => undefined,
         });
         const titles = groups.flatMap((group) => group.commands.map((command) => command.title));
 
+        expect(titles).not.toContain('Activity');
         expect(titles).not.toContain('Computers');
         expect(titles).not.toContain('Reminders');
+
+        groups
+            .find((group) => group.id === 'navigation')
+            ?.commands.find((command) => command.title === 'Chat')
+            ?.run();
+        expect(navigated).toEqual(['/s/dev']);
     });
 
     test('keeps a retired Agent DM searchable by name without send commands', () => {

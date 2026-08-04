@@ -1,6 +1,7 @@
-import { createBrowserRouter, createHashRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, createHashRouter, Navigate, useParams } from 'react-router-dom';
 import { AppFrame } from './components/app-frame.tsx';
 import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
+import { serverRoute } from './features/servers/server-routes.ts';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
 import { serverRouteModules } from './routes/app/server-route-modules.ts';
 
@@ -57,22 +58,8 @@ export function createAppRouter() {
                                     ),
                                 },
                                 {
-                                    path: 'activity',
-                                    lazy: lazyRoute(
-                                        serverRouteModules.activity,
-                                        'ServerActivityPage'
-                                    ),
-                                },
-                                {
                                     path: 'search',
                                     lazy: lazyRoute(serverRouteModules.search, 'ServerSearchPage'),
-                                },
-                                {
-                                    path: 'design/brief',
-                                    lazy: lazyRoute(
-                                        serverRouteModules.brief,
-                                        'ServerBriefVariationsPage'
-                                    ),
                                 },
                                 {
                                     path: 'chats/:chatId',
@@ -144,6 +131,10 @@ export function createAppRouter() {
                                         },
                                     ],
                                 },
+                                {
+                                    path: '*',
+                                    element: <ServerUnknownPage />,
+                                },
                             ],
                         },
                         {
@@ -172,4 +163,9 @@ export function createAppRouter() {
             ],
         },
     ]);
+}
+
+function ServerUnknownPage() {
+    const { slug = '' } = useParams();
+    return <Navigate replace to={serverRoute(slug)} />;
 }

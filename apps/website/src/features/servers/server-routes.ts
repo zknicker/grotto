@@ -5,10 +5,6 @@ export function serverRoute(slug: string) {
     return `${serversRoute}/${slug}`;
 }
 
-export function serverActivityRoute(slug: string) {
-    return `${serverRoute(slug)}/activity`;
-}
-
 export function serverSearchRoute(slug: string) {
     return `${serverRoute(slug)}/search`;
 }
@@ -48,10 +44,6 @@ export function serverSettingsRoute(slug: string) {
 
 export function serverSettingsSectionRoute(slug: string, section: string) {
     return `${serverSettingsRoute(slug)}/${section}`;
-}
-
-export function serverBriefVariationsRoute(slug: string) {
-    return `${serverRoute(slug)}/design/brief`;
 }
 
 export function isServerRemindersPath(pathname: string, slug: string) {

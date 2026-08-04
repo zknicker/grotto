@@ -1,18 +1,10 @@
-import { Button } from '@heroui/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import { ComputerIcon, Moon02Icon, Sun01Icon } from '@hugeicons-pro/core-duotone-rounded';
 import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { useNavigate } from 'react-router-dom';
 import { type ThemePreference, useTheme } from '../../../components/theme-provider.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
-import {
-    SettingsGroup,
-    SettingsPage,
-    SettingsPageHeader,
-    SettingsRow,
-    SettingsSection,
-} from '../layout/settings-page.tsx';
+import { SettingsPage, SettingsPageHeader, SettingsSection } from '../layout/settings-page.tsx';
 
 const themeOptions: Array<{
     description: string;
@@ -25,9 +17,8 @@ const themeOptions: Array<{
     { id: 'system', label: 'System', description: 'Match your OS preference', icon: ComputerIcon },
 ];
 
-export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHref?: string } = {}) {
+export function AppearanceSettings() {
     const { setTheme, theme } = useTheme();
-    const navigate = useNavigate();
 
     return (
         <SettingsPage>
@@ -96,27 +87,6 @@ export function AppearanceSettings({ briefVariationsHref }: { briefVariationsHre
                     })}
                 </div>
             </SettingsSection>
-
-            {briefVariationsHref ? (
-                <SettingsSection title="Design Lab">
-                    <SettingsGroup>
-                        <SettingsRow
-                            description="Iterate on the home brief's chips, wordmark, and sentence patterns."
-                            title="Brief variations"
-                        >
-                            <div className="flex justify-start md:justify-end">
-                                <Button
-                                    onPress={() => navigate(briefVariationsHref)}
-                                    size="sm"
-                                    variant="secondary"
-                                >
-                                    Open
-                                </Button>
-                            </div>
-                        </SettingsRow>
-                    </SettingsGroup>
-                </SettingsSection>
-            ) : null}
         </SettingsPage>
     );
 }

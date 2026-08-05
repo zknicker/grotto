@@ -103,6 +103,9 @@ test('provisions Cove through hosted Agent creation with its ordinary DM', async
     expect(agents.map((agent) => agent.handle)).toEqual(['cove']);
     expect(agents[0]).toMatchObject({ archetype: 'guide', avatarUrl: null });
     expect(agents[0]?.dmChatId).toBe(created.chat.id);
+    expect(await owner.trpc.agent.get.query({ agentId: created.agent.id, serverId })).toEqual(
+        agents[0]
+    );
 });
 
 test('fails closed on a runtime or model the assigned Computer never reported', async () => {

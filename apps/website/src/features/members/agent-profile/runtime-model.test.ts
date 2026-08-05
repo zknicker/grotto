@@ -3,7 +3,7 @@ import {
     isRuntimeConfigDraftAvailable,
     resolveRuntimeConfig,
     runtimeConfigStatusLabel,
-} from './runtime-config-model.ts';
+} from './runtime-model.ts';
 
 const runtimes = [
     {

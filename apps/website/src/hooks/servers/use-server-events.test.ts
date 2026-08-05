@@ -8,6 +8,7 @@ test('computer events refresh hosted workspace reads without polling', () => {
     };
     const utils = {
         agent: {
+            get: { invalidate: invalidate('agent.get') },
             list: { invalidate: invalidate('agent.list') },
             skillFile: { invalidate: invalidate('agent.skillFile') },
             workspaceFile: { invalidate: invalidate('agent.workspaceFile') },
@@ -17,7 +18,10 @@ test('computer events refresh hosted workspace reads without polling', () => {
         computer: { list: { invalidate: invalidate('computer.list') } },
         invitation: { list: { invalidate: invalidate('invitation.list') } },
         mcp: { list: { invalidate: invalidate('mcp.list') } },
-        member: { list: { invalidate: invalidate('member.list') } },
+        member: {
+            get: { invalidate: invalidate('member.get') },
+            list: { invalidate: invalidate('member.list') },
+        },
         server: {
             bySlug: { invalidate: invalidate('server.bySlug') },
             list: { invalidate: invalidate('server.list') },
@@ -32,6 +36,7 @@ test('computer events refresh hosted workspace reads without polling', () => {
 
     expect(invalidated).toEqual([
         'computer.list',
+        'agent.get',
         'agent.list',
         'agent.skillFile',
         'agent.workspaceFile',
@@ -46,7 +51,10 @@ test('Agent events refresh the active directory and durable Chat list', () => {
         invalidated.push(name);
     };
     const utils = {
-        agent: { list: { invalidate: invalidate('agent.list') } },
+        agent: {
+            get: { invalidate: invalidate('agent.get') },
+            list: { invalidate: invalidate('agent.list') },
+        },
         chat: { list: { invalidate: invalidate('chat.list') } },
     };
 
@@ -55,5 +63,5 @@ test('Agent events refresh the active directory and durable Chat list', () => {
         'server-one'
     )({ scope: 'agent' });
 
-    expect(invalidated).toEqual(['agent.list', 'chat.list']);
+    expect(invalidated).toEqual(['agent.get', 'agent.list', 'chat.list']);
 });

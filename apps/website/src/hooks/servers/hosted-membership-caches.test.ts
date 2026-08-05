@@ -12,9 +12,10 @@ function hostedCaches() {
     const cache = () => ({ reset: () => undefined });
 
     return {
+        agent: { get: cache(), list: cache() },
         chat: { list: cache(), messages: cache(), search: cache() },
         invitation: { list: cache() },
-        member: { list: cache() },
+        member: { get: cache(), list: cache() },
         server: { bySlug: cache(), list: cache() },
         stats: { live: cache() },
         task: { assignees: cache(), list: cache() },
@@ -27,8 +28,11 @@ test('losing membership clears every hosted cache that names the Server', () => 
     const cleared = new Set(cachesClearedOnMembershipLoss(utils));
 
     for (const cache of [
+        utils.agent.get,
+        utils.agent.list,
         utils.server.bySlug,
         utils.server.list,
+        utils.member.get,
         utils.member.list,
         utils.invitation.list,
         utils.chat.list,
@@ -42,7 +46,7 @@ test('losing membership clears every hosted cache that names the Server', () => 
         assert.ok(cleared.has(cache));
     }
 
-    assert.equal(cleared.size, 11);
+    assert.equal(cleared.size, 14);
 });
 
 test('the Server list is cleared, not merely refreshed', () => {

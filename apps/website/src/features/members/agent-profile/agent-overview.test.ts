@@ -1,11 +1,8 @@
 import { expect, test } from 'bun:test';
-import {
-    selectAddableHostedSkills,
-    selectOutstandingSkillImports,
-} from './hosted-agent-overview-tab.tsx';
+import { selectAddableSkills, selectOutstandingImports } from './agent-skills.tsx';
 
 test('Agent skill picker excludes same-name skills already in the Agent library', () => {
-    const addable = selectAddableHostedSkills(
+    const addable = selectAddableSkills(
         [
             {
                 description: 'Already owned',
@@ -41,7 +38,7 @@ test('Agent profile shows only the latest unresolved import per source', () => {
         updatedAt: '2026-07-28T20:00:00.000Z',
     };
     expect(
-        selectOutstandingSkillImports(
+        selectOutstandingImports(
             [
                 {
                     ...base,

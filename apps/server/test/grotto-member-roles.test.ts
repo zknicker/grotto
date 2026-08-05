@@ -76,6 +76,20 @@ test('the member directory names every human, their role, and the viewer', async
     await expect(outsider.trpc.member.list.query({ serverId })).rejects.toThrow(/not a member/i);
 });
 
+test('a member reads one current human without loading the directory', async () => {
+    await expect(
+        plainMember.trpc.member.get.query({ serverId, userId: ownerUserId })
+    ).resolves.toMatchObject({ role: 'owner', userId: ownerUserId });
+
+    await expect(
+        plainMember.trpc.member.get.query({ serverId, userId: 'usr_missing' })
+    ).rejects.toThrow(/not a current member/i);
+
+    await expect(outsider.trpc.member.get.query({ serverId, userId: ownerUserId })).rejects.toThrow(
+        /not a member/i
+    );
+});
+
 test('an Admin promotes a Member but cannot touch a peer Admin', async () => {
     const promoted = await signIn('user_role_promoted', ['role-promoted@grotto.test']);
     await join(promoted, 'role-promoted@grotto.test');

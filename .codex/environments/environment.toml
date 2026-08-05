@@ -5,10 +5,14 @@ name = "tavern"
 [setup]
 script = '''
 cp ~/Programming/tavern/.env .env
-bun install
-'''
+bun install'''
 
 [[actions]]
 name = "dev"
 icon = "run"
 command = "bun run dev"
+
+[[actions]]
+name = "dev app"
+icon = "debug"
+command = "bun run dev-app"

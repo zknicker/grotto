@@ -113,6 +113,11 @@ The API covers:
   visibility (pending targets, mutes, followed threads)
 * stop an agent's running turn
 
+For hosted Servers, `agent.list` owns the active roster and `agent.get` owns one
+profile record. Clients keep list membership separate from profile detail so a
+detail surface can refresh one Agent without rebuilding unrelated profile
+state.
+
 ## Runtime Boundary
 
 Tavern Runtime owns native execution, tool invocation, model calls, files, and

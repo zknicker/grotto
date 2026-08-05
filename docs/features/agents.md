@@ -40,8 +40,11 @@ starting point the Agent grows, not a permanent archetype constraint. See
 
 ## Product surfaces
 
-- Members lists Agents and Humans. Selecting an Agent opens its Profile,
-  Activity, Chat, Reminders, Workspace, Apps, and MCP surfaces.
+- Members lists Agents and Humans. Selecting an Agent opens Overview,
+  Activity with Chat memberships, Reminders, Tools for MCP access and Skills,
+  and Workspace.
+- Member lists stay lightweight; Agent and human profile routes load one focused
+  detail record so profile refreshes do not rebuild the directory.
 - Clicking an Agent avatar in Chat opens the same Agent profile context.
 - Profile edits identity and desired model/runtime configuration.
 - Skills are independent Agent-owned copies. An Owner or Admin imports a host

@@ -1,5 +1,10 @@
 import * as z from 'zod';
 import {
+    agentHistoryResponseSchema,
+    agentMessageCheckResponseSchema,
+    agentSendResponseSchema,
+} from './agent-cli/agent-api-schemas.ts';
+import {
     createLocalAgentSkill,
     deleteLocalAgentSkill,
     listLocalAgentSkills,
@@ -7,6 +12,11 @@ import {
     viewLocalAgentSkill,
     writeLocalAgentSkillFile,
 } from './agent-skills.ts';
+import {
+    type AgentInboxLocation,
+    consumeVisibleMessages,
+    type VisibleMessageIdentity,
+} from './inbox-store.ts';
 
 const skillCreateSchema = z.object({
     content: z.string().min(1),
@@ -105,6 +115,23 @@ export function startLoopbackProxy(input: {
             if (upstream.ok && isMessageSend && isCommittedSend(responseBody)) {
                 sends += 1;
             }
+            const location = agentInboxLocation(input);
+            const visibleMessageIds = upstream.ok
+                ? extractVisibleMessageIds(url.pathname, responseBody)
+                : [];
+            if (location && visibleMessageIds.length > 0) {
+                try {
+                    await consumeVisibleMessages(location, visibleMessageIds);
+                } catch {
+                    return Response.json(
+                        {
+                            code: 'LOCAL_INBOX_UNAVAILABLE',
+                            message: 'The Agent inbox could not record visible messages.',
+                        },
+                        { status: 500 }
+                    );
+                }
+            }
             return new Response(responseBody, {
                 headers: { 'content-type': 'application/json' },
                 status: upstream.status,
@@ -127,6 +154,57 @@ export function startLoopbackProxy(input: {
         },
         url: `http://127.0.0.1:${server.port}`,
     };
+}
+
+function agentInboxLocation(input: {
+    agentId?: string;
+    dataRoot?: string;
+    serverId?: string;
+}): AgentInboxLocation | null {
+    return input.agentId && input.dataRoot && input.serverId
+        ? { agentId: input.agentId, dataRoot: input.dataRoot, serverId: input.serverId }
+        : null;
+}
+
+function extractVisibleMessageIds(
+    pathname: string,
+    responseBody: string
+): VisibleMessageIdentity[] {
+    let body: unknown;
+    try {
+        body = JSON.parse(responseBody);
+    } catch {
+        return [];
+    }
+    if (!(body && typeof body === 'object')) {
+        return [];
+    }
+    if (pathname === '/api/agent/events') {
+        const parsed = agentMessageCheckResponseSchema.safeParse(body);
+        return parsed.success ? parsed.data.messages.map((row) => identity(row.message)) : [];
+    }
+    if (pathname === '/api/agent/history') {
+        const parsed = agentHistoryResponseSchema.safeParse(body);
+        return parsed.success ? parsed.data.messages.map(identity) : [];
+    }
+    if (pathname === '/api/agent/messages/send') {
+        const parsed = agentSendResponseSchema.safeParse(body);
+        if (!parsed.success) {
+            return [];
+        }
+        return parsed.data.state === 'held'
+            ? parsed.data.shownMessages.map(identity)
+            : parsed.data.recentUnread.map((row) => identity(row.message));
+    }
+    return [];
+}
+
+function identity(message: {
+    chat_id: string;
+    id: string;
+    sequence: number;
+}): VisibleMessageIdentity {
+    return { chatId: message.chat_id, id: message.id, sequence: message.sequence };
 }
 
 async function handleSkillRequest(

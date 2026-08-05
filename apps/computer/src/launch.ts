@@ -444,6 +444,8 @@ export async function resetAgentState(input: {
     await Promise.all([
         rm(join(agentRoot, 'session.json'), { force: true }),
         rm(join(agentRoot, '.agent-runs'), { force: true, recursive: true }),
+        rm(join(agentRoot, 'runtime', 'inbox'), { force: true, recursive: true }),
+        rm(join(agentRoot, 'runtime', 'pending-notice.json'), { force: true }),
     ]);
 }
 

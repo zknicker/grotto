@@ -27,7 +27,6 @@ import {
     readRunMarker,
     releaseAgentRun,
     reserveAgentRun,
-    writePendingNotice,
     writeRunMarker,
 } from './delivery.ts';
 import {
@@ -50,8 +49,7 @@ import {
     listImportableSkills,
     parseAgentSkillImportCommand,
 } from './host-skills.ts';
-import { composeInboxNotice } from './inbox-format.ts';
-import { acceptRunInbox, readPendingInbox, replacePendingInbox } from './inbox-store.ts';
+import { acceptRunInbox, replacePendingInbox } from './inbox-store.ts';
 import { detectInventory } from './inventory.ts';
 import {
     type Attachment,
@@ -1062,28 +1060,19 @@ async function connect(attachment: Attachment) {
                     serverId: attachment.serverId,
                 };
                 void trackWriter(
-                    replacePendingInbox(location, notice.inbox)
-                        .then(async () => {
-                            const projected = composeInboxNotice(
-                                await readPendingInbox(location),
-                                notice.totalPending
-                            );
-                            if (!projected) {
-                                return;
-                            }
-                            await writePendingNotice(dataRoot, {
-                                agentId: notice.agentId,
-                                notice: projected,
-                                serverId: attachment.serverId,
-                            });
+                    replacePendingInbox(
+                        location,
+                        notice.inbox,
+                        notice.totalPending,
+                        async (projected) => {
                             const sink = noticeSinks.get(notice.agentId);
                             if (sink?.runId === notice.runId) {
                                 await sink.deliver(projected);
                             }
-                        })
-                        .catch((error) => {
-                            console.error(error instanceof Error ? error.message : error);
-                        })
+                        }
+                    ).catch((error) => {
+                        console.error(error instanceof Error ? error.message : error);
+                    })
                 );
                 return;
             }

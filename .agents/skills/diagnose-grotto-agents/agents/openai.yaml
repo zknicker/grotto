@@ -1,0 +1,4 @@
+interface:
+  display_name: "Diagnose Grotto Agents"
+  short_description: "Debug Grotto Agent delivery and context bugs"
+  default_prompt: "Use $diagnose-grotto-agents to investigate this Grotto Agent behavior and validate it against Raft."

@@ -66,6 +66,16 @@ Computer durably receives full new envelopes but injects only the content-free
 target/count/id/sender notice. Message bodies enter the model only through a
 drain or explicit `grotto message check`.
 
+Computer reconciles every model-visible message through one exact-identity
+consume point. Accepted run inboxes and successful Agent API responses
+(`events`, `history`, and freshness-hold context) remove their identities from
+the local pending projection. Snapshot replacement and live notice injection
+use the same serialized write boundary. Consumed identities remain attached for
+the session generation because each notice carries only a bounded pending
+window, preventing omitted or older in-flight rows from resurrecting a stale
+notice. A session reset clears this projection. This local state never replaces
+Server `served` or `seen` authority.
+
 Task messages use the same inbox path as ordinary messages and carry their
 canonical task number, state, priority, and assignee metadata. A mention may
 pierce a Channel mute or explicit Thread unfollow exactly once. That pierce is
@@ -152,6 +162,8 @@ presentation plumbing.
 | Session reset preserves workspace; full reset restores only the starter kit | `apps/computer/src/launch.test.ts` |
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
 | Exact structured drain and content-free busy notice | `apps/computer/src/inbox-format.test.ts` |
+| Every model-visible identity consumes one local notice contribution | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/proxy.test.ts` |
+| Live notice injection cannot race accepted-run consumption | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | Pipe and redirected-file input reach the managed Agent CLI | `apps/computer/src/agent-cli/stdin.test.ts` |
 | Durable accepted inbox; accepted crash replays | `apps/computer/src/delivery.test.ts`, `apps/computer/src/inbox-store.test.ts` |
 | One concurrent turn per Agent | `apps/computer/src/delivery.test.ts` |

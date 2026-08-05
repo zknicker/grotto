@@ -71,6 +71,17 @@ deduped by fingerprint and repeat only when a target's pending state
 changes. Injection rides the harness input boundary; a notice advances no
 cursor.
 
+Computer owns one local visibility coordinator for the busy-notice
+projection. Every path that makes a message visible to the model — an accepted
+run inbox, a message pull, a history result, or freshness-hold context —
+consumes those exact message identities there. Notice replacement, live
+injection, and identity consumption share one serialized boundary, so a stale
+notice cannot reintroduce work that the current run or a tool result already
+showed. The Computer retains those identities for the session generation
+because a notice is only a bounded pending window; session reset clears them.
+This is runner-local projection state; Server cursors remain the canonical
+delivery and seen ledger.
+
 ## Pulls
 
 `grotto message check` serves pending envelopes (advancing `served`,

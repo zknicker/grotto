@@ -3,6 +3,7 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promise
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
+import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
 import {
     AgentSessionResumeRejectedError,
     type HarnessTurnInput,
@@ -283,4 +284,55 @@ test('delivers a pending busy notice into the live harness turn', async () => {
     expect(sentUserMessages).toEqual([notice]);
     expect(unregistered).toBe(true);
     await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
+});
+
+test('a resumed DM greeting is not followed by its stale notice from prior task context', async () => {
+    const dataRoot = agentRoot;
+    const serverId = 'srv_executor_test';
+    const resumedRoot = join(dataRoot, 'servers', serverId, 'agents', 'agt_test');
+    await mkdir(resumedRoot, { recursive: true });
+    const scopedTurn = (inbox: HarnessTurnInput['inbox']) =>
+        turnInput({
+            agentRoot: resumedRoot,
+            homeDir: join(resumedRoot, 'home'),
+            inbox,
+            skillsDir: join(resumedRoot, 'skills'),
+            workspaceDir: join(resumedRoot, 'workspace'),
+        });
+    await runHarnessTurn(
+        scopedTurn([
+            {
+                chatId: 'cht_product',
+                content: 'Upload the new avatar when the app path arrives.',
+                createdAt: '2026-08-03T20:00:00.000Z',
+                id: 'msg_avatar_task',
+                senderHandle: 'operator',
+                senderType: 'human',
+                sequence: 1,
+                target: '#product',
+            },
+        ])
+    );
+    const greeting = {
+        chatId: 'cht_dm',
+        content: 'Hey Blippy!',
+        createdAt: '2026-08-03T20:01:00.000Z',
+        id: 'msg_dm_greeting',
+        senderHandle: 'operator',
+        senderType: 'human' as const,
+        sequence: 1,
+        target: 'dm:@operator',
+    };
+    const location = { agentId: 'agt_test', dataRoot, serverId };
+    await replacePendingInbox(location, [greeting]);
+    await acceptRunInbox(location, 'run_greeting', [greeting]);
+
+    await runHarnessTurn(scopedTurn([greeting]));
+
+    expect(createSessionCalls.at(-1)?.resumeFrom).toMatchObject({ type: 'resume-session' });
+    expect(streamedPrompts.at(-1)).toContain(
+        '[target=dm:@operator msg=dm_greet time=2026-08-03 20:01:00 type=human] @operator: Hey Blippy!'
+    );
+    expect(streamedPrompts.at(-1)).not.toContain('avatar');
+    expect(sentUserMessages).toEqual([]);
 });

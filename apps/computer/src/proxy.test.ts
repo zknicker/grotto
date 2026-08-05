@@ -1,7 +1,12 @@
 import { afterEach, expect, test } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import { createServer, type Server as NetServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { Server } from 'bun';
+import { readPendingInbox, replacePendingInbox } from './inbox-store.ts';
+import type { HostedAgentInboxItem } from './launch.ts';
 import { startLoopbackProxy } from './proxy.ts';
 
 const servers: Server<unknown>[] = [];
@@ -66,6 +71,79 @@ test('the loopback proxy preserves Agent API query parameters', async () => {
         expect(new URL(upstreamUrl).search).toBe('?target=%23general&limit=25');
     } finally {
         proxy.close();
+    }
+});
+
+test('consumes only messages made visible by Agent API responses', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-inbox-'));
+    const location = { agentId: 'agt_proxy', dataRoot, serverId: 'srv_proxy' };
+    const greeting = inboxItem('msg_greeting', 1);
+    const productTask = inboxItem('msg_product', 2);
+    const heldContext = inboxItem('msg_held', 3);
+    await replacePendingInbox(location, [greeting, productTask, heldContext]);
+    const upstream = Bun.serve({
+        fetch(request) {
+            const pathname = new URL(request.url).pathname;
+            if (pathname === '/api/agent/events') {
+                return Response.json({
+                    messages: [{ message: agentMessage(greeting), target: greeting.target }],
+                    more: false,
+                });
+            }
+            if (pathname === '/api/agent/history') {
+                return Response.json({
+                    has_more: false,
+                    has_newer: false,
+                    has_older: false,
+                    last_read: { after: 0, unread_after: -1 },
+                    messages: [agentMessage(productTask)],
+                    target: productTask.target,
+                });
+            }
+            return Response.json({
+                continueAnywaySuggested: false,
+                formalMentionCount: 0,
+                newMessageCount: 1,
+                omittedMessageCount: 0,
+                reholdCount: 1,
+                shownMessages: [agentMessage(heldContext)],
+                state: 'held',
+            });
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    servers.push(upstream);
+    const proxy = startLoopbackProxy({
+        ...location,
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        serverOrigin: `http://127.0.0.1:${upstream.port}`,
+    });
+    try {
+        const response = await fetch(`${proxy.url}/api/agent/events`, {
+            headers: { authorization: 'Bearer local-token' },
+        });
+        expect(response.status).toBe(200);
+        expect(await readPendingInbox(location)).toEqual([productTask, heldContext]);
+
+        await fetch(`${proxy.url}/api/agent/history?target=%23product`, {
+            headers: { authorization: 'Bearer local-token' },
+        });
+        expect(await readPendingInbox(location)).toEqual([heldContext]);
+
+        await fetch(`${proxy.url}/api/agent/messages/send`, {
+            body: '{}',
+            headers: {
+                authorization: 'Bearer local-token',
+                'content-type': 'application/json',
+            },
+            method: 'POST',
+        });
+        expect(await readPendingInbox(location)).toEqual([]);
+    } finally {
+        proxy.close();
+        await rm(dataRoot, { force: true, recursive: true });
     }
 });
 
@@ -193,4 +271,35 @@ function sendThrough(proxyUrl: string) {
         },
         method: 'POST',
     });
+}
+
+function inboxItem(id: string, sequence: number): HostedAgentInboxItem {
+    return {
+        chatId: 'cht_proxy',
+        content: id,
+        createdAt: new Date(Date.UTC(2026, 7, 4, 0, 0, sequence)).toISOString(),
+        id,
+        senderHandle: 'operator',
+        senderType: 'human',
+        sequence,
+        target: sequence === 1 ? 'dm:@operator' : '#product',
+    };
+}
+
+function agentMessage(item: HostedAgentInboxItem) {
+    return {
+        attachments: [],
+        author: { id: 'usr_operator', kind: 'user', label: 'Operator', metadata: {} },
+        chat_id: item.chatId,
+        content: item.content,
+        created_at: item.createdAt,
+        deleted_at: null,
+        delivery_id: null,
+        id: item.id,
+        metadata: {},
+        nonce: null,
+        role: 'user',
+        sender: { description: null, handle: item.senderHandle, type: item.senderType },
+        sequence: item.sequence,
+    };
 }

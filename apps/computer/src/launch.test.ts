@@ -335,6 +335,8 @@ test('session reset rotates harness context while preserving Agent-owned state',
 
     await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
     await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
+    await expect(stat(join(agentRoot, 'runtime', 'inbox'))).rejects.toThrow();
+    await expect(stat(join(agentRoot, 'runtime', 'pending-notice.json'))).rejects.toThrow();
     expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toBe(
         '# Durable memory\n\nBluebird remains active.\n'
     );
@@ -407,9 +409,15 @@ async function seedResetFixture() {
     });
     const configurationJson = await readFile(join(agentRoot, 'configuration.json'), 'utf8');
     await Promise.all(
-        ['home', 'skills', 'skills/custom-skill', 'workspace', 'runtime', '.agent-runs'].map(
-            (dir) => mkdir(join(agentRoot, dir), { recursive: true })
-        )
+        [
+            'home',
+            'skills',
+            'skills/custom-skill',
+            'workspace',
+            'runtime',
+            'runtime/inbox',
+            '.agent-runs',
+        ].map((dir) => mkdir(join(agentRoot, dir), { recursive: true }))
     );
     await Promise.all([
         writeFile(
@@ -426,6 +434,8 @@ async function seedResetFixture() {
             })
         ),
         writeFile(join(agentRoot, '.agent-runs', 'old-run'), 'state'),
+        writeFile(join(agentRoot, 'runtime', 'inbox', 'pending.json'), '[]'),
+        writeFile(join(agentRoot, 'runtime', 'pending-notice.json'), '{"notice":"pending"}'),
         writeFile(
             join(agentRoot, 'workspace', 'MEMORY.md'),
             '# Durable memory\n\nBluebird remains active.\n'

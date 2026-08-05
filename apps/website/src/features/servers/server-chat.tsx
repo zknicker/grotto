@@ -19,11 +19,11 @@ import { ChatViewSwitcher, type ChatViewTab } from '../chats/chat-view-tabs.tsx'
 import type { TavernResourceTarget } from '../chats/tavern-resource-link.ts';
 import { SectionBar, SectionHeader } from '../shell/section-header.tsx';
 import { PageTopbar } from '../shell/shell-topbar.tsx';
+import { AgentProfilePanel } from './agent-profile-panel.tsx';
 import {
     HostedAgentCompositionBubbles,
     hasHostedAgentComposition,
 } from './hosted-agent-composition-bubble.tsx';
-import { HostedAgentProfilePanel } from './hosted-agent-profile-panel.tsx';
 import { HostedChatFiles } from './hosted-chat-files.tsx';
 import { useHostedServerContext } from './hosted-server-context.ts';
 import { ServerChatComposer } from './server-chat-composer.tsx';
@@ -285,7 +285,7 @@ export function ServerChat({
                             serverId={chat.serverId}
                             state={artifactState}
                         />
-                        <HostedAgentProfilePanel agents={agents} chatId={chat.id} server={server} />
+                        <AgentProfilePanel chatId={chat.id} server={server} />
                         {threadTakeover ? null : (
                             <div className={activeSidePane === 'thread' ? 'contents' : 'hidden'}>
                                 {threadPanel}

@@ -2,7 +2,7 @@ import { Button, Tooltip } from '@heroui/react';
 import { Camera01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { avatarMediaTypes } from '@tavern/api/avatar';
 import * as React from 'react';
-import type { EntityAvatarSize } from '../../components/ui/entity-avatar.tsx';
+import type { EntityAvatarProps } from '../../components/ui/entity-avatar.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { AvatarImage } from './resize-avatar-image.ts';
@@ -15,7 +15,7 @@ export interface AvatarPickerProps {
     name: string;
     onError?: (message: string | null) => void;
     onSelect: (image: AvatarImage) => Promise<void> | void;
-    size?: EntityAvatarSize;
+    size?: EntityAvatarProps['size'];
     src: string | null;
 }
 
@@ -67,6 +67,9 @@ export function AvatarPicker({
             <Tooltip delay={0}>
                 <Button
                     aria-label={action}
+                    className={
+                        typeof size === 'number' && size > 48 ? 'h-auto w-auto p-1' : undefined
+                    }
                     isDisabled={isDisabled}
                     isIconOnly
                     onPress={() => inputRef.current?.click()}

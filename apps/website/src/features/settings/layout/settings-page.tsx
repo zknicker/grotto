@@ -70,6 +70,7 @@ export function SettingsGroup({ children, className, ...props }: React.Component
 }
 
 export function SettingsRow({
+    align = 'center',
     children,
     className,
     density = 'default',
@@ -78,6 +79,7 @@ export function SettingsRow({
     title,
     trailingWidth = 'control',
 }: {
+    align?: 'center' | 'start';
     children: React.ReactNode;
     className?: string;
     density?: 'default' | 'compact';
@@ -89,7 +91,8 @@ export function SettingsRow({
     return (
         <div
             className={cn(
-                'grid gap-3 py-3.5 md:items-center md:gap-6',
+                'grid gap-3 py-3.5 md:gap-6',
+                align === 'center' ? 'md:items-center' : 'md:items-start',
                 rowTrailingWidthClass[trailingWidth],
                 density === 'default' ? 'ps-5 pe-4' : 'px-4',
                 className

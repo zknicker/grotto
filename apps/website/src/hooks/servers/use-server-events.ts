@@ -45,12 +45,14 @@ type ServerEventUtils = ReturnType<typeof grottoTrpc.useUtils>;
 export function createServerUpdateHandler(utils: ServerEventUtils, serverId: string | undefined) {
     return (event: { scope: string }) => {
         if (event.scope === 'agent') {
+            void utils.agent.get.invalidate(undefined, { exact: false });
             void utils.agent.list.invalidate({ serverId });
             void utils.chat.list.invalidate({ serverId });
             return;
         }
         if (event.scope === 'computer') {
             void utils.computer.list.invalidate({ serverId });
+            void utils.agent.get.invalidate(undefined, { exact: false });
             void utils.agent.list.invalidate({ serverId });
             void utils.agent.skillFile.invalidate();
             void utils.agent.workspaceFile.invalidate();
@@ -65,6 +67,7 @@ export function createServerUpdateHandler(utils: ServerEventUtils, serverId: str
 
         void utils.server.bySlug.invalidate();
         void utils.server.list.invalidate();
+        void utils.member.get.invalidate(undefined, { exact: false });
         void utils.member.list.invalidate({ serverId });
         void utils.invitation.list.invalidate({ serverId });
     };

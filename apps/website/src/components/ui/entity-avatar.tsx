@@ -30,21 +30,32 @@ export function EntityAvatar({
     // HeroUI sizes the avatar in CSS, so an exact box has to come through
     // inline style — the one place the design system reaches past the variant.
     const exact = typeof size === 'number';
+    const preset = exact ? exactSizePreset(size) : size;
 
     return (
         <Avatar
             className={cn(exact && 'shrink-0', className)}
-            size={exact ? 'sm' : size}
+            size={preset}
             style={
                 exact
                     ? { fontSize: Math.max(8, Math.round(size * 0.42)), height: size, width: size }
                     : undefined
             }
         >
-            {src ? <Avatar.Image alt={`${name} avatar`} src={src} /> : null}
+            {src ? <Avatar.Image alt={`${name} avatar`} key={src} src={src} /> : null}
             <Avatar.Fallback>{getEntityInitials(name)}</Avatar.Fallback>
         </Avatar>
     );
+}
+
+function exactSizePreset(size: number): EntityAvatarSize {
+    if (size >= 48) {
+        return 'lg';
+    }
+    if (size > 32) {
+        return 'md';
+    }
+    return 'sm';
 }
 
 /** One initial for a single-word name is too thin to read; two letters is the floor. */

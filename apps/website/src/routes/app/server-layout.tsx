@@ -28,6 +28,7 @@ import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx'
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
+import { useAgents } from '../../hooks/members/use-agents.ts';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
@@ -35,7 +36,7 @@ import { useServerAgentLifecycle } from '../../hooks/servers/use-server-agent-li
 import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
 import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
-import { grottoTrpc, useGrottoServerConnectionState } from '../../lib/grotto-server.tsx';
+import { useGrottoServerConnectionState } from '../../lib/grotto-server.tsx';
 import { preloadServerRoutes, preloadServerSection } from './server-route-modules.ts';
 import {
     resolveActiveSection,
@@ -52,10 +53,7 @@ export function ServerLayout() {
     const servers = useServerList();
     const chats = useServerChats(server.data?.id);
     const createChannel = useCreateServerChannel();
-    const agents = grottoTrpc.agent.list.useQuery(
-        { serverId: server.data?.id ?? '' },
-        { enabled: Boolean(server.data) }
-    );
+    const agents = useAgents(server.data?.id);
     const connectionState = useGrottoServerConnectionState();
     const currentServerSlug = server.data?.slug;
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);

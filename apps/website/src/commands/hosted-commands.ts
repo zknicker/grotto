@@ -8,6 +8,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
 import {
+    serverAgentRoute,
     serverChatRoute,
     serverComputersRoute,
     serverMembersRoute,
@@ -203,9 +204,7 @@ function buildHostedCurrentChatGroup(
                           id: 'current-chat.open-agent-profile',
                           keywords: ['chat', 'agent', 'profile', 'assistant'],
                           run: () =>
-                              context.navigate(
-                                  `${serverMembersRoute(context.serverSlug)}/agents/${agent.id}`
-                              ),
+                              context.navigate(serverAgentRoute(context.serverSlug, agent.id)),
                           title: 'Agent Profile',
                       } satisfies AppCommand,
                   ]

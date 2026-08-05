@@ -3,16 +3,16 @@ import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useMatch, useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { humanDisplayName } from '../servers/human-identity.ts';
-import { serverMembersRoute } from '../servers/server-routes.ts';
+import { serverAgentRoute, serverHumanRoute } from '../servers/server-routes.ts';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
-import { CreateHostedAgentDialog } from './create-hosted-agent-dialog.tsx';
-import { HostedAgentRailAvatar } from './hosted-agent-avatar.tsx';
+import { AgentAvatar } from './agent-avatar.tsx';
+import { CreateAgentDialog } from './create-agent-dialog.tsx';
 
 /** Members section sidebar: the Agent and Human rosters as navigation. */
 export function MembersSidebar({
@@ -26,16 +26,13 @@ export function MembersSidebar({
     isActive: boolean;
     server: ServerSummary;
 }) {
-    const location = useLocation();
     const navigate = useNavigate();
+    const agentMatch = useMatch('/s/:slug/members/agents/:agentId/:tab');
+    const humanMatch = useMatch('/s/:slug/members/humans/:userId');
     const directory = useServerMembers(server.id, { enabled: isActive });
     const [creatingAgent, setCreatingAgent] = React.useState(false);
-    const membersRoute = serverMembersRoute(server.slug);
-    const humansRoute = `${membersRoute}/humans`;
-    const selectedHumanId = location.pathname.startsWith(`${humansRoute}/`)
-        ? location.pathname.slice(`${humansRoute}/`.length)
-        : null;
-    const selectedAgentId = resolveSelectedAgentId(location.pathname, membersRoute);
+    const selectedAgentId = agentMatch?.params.agentId;
+    const selectedHumanId = humanMatch?.params.userId;
     const canOperate = server.role === 'owner' || server.role === 'admin';
     const humans = directory.data?.members ?? [];
 
@@ -74,14 +71,14 @@ export function MembersSidebar({
                     <Sidebar.Menu aria-label="Agents">
                         {agents.map((agent) => (
                             <Sidebar.MenuItem
-                                href={`${membersRoute}/agents/${agent.id}`}
+                                href={serverAgentRoute(server.slug, agent.id)}
                                 id={agent.id}
                                 isCurrent={agent.id === selectedAgentId}
                                 key={agent.id}
                                 textValue={agent.displayName}
                             >
                                 <Sidebar.MenuIcon>
-                                    <HostedAgentRailAvatar agent={agent} />
+                                    <AgentAvatar agent={agent} />
                                 </Sidebar.MenuIcon>
                                 <Sidebar.MenuItemContent>
                                     <Sidebar.MenuLabel>{agent.displayName}</Sidebar.MenuLabel>
@@ -98,7 +95,7 @@ export function MembersSidebar({
                 <Sidebar.Menu aria-label="Humans">
                     {humans.map((member) => (
                         <Sidebar.MenuItem
-                            href={`${humansRoute}/${member.userId}`}
+                            href={serverHumanRoute(server.slug, member.userId)}
                             id={member.userId}
                             isCurrent={selectedHumanId === member.userId}
                             key={member.userId}
@@ -119,11 +116,11 @@ export function MembersSidebar({
                     ))}
                 </Sidebar.Menu>
             </Sidebar.Group>
-            <CreateHostedAgentDialog
+            <CreateAgentDialog
                 agents={agents}
                 onCreated={(createdAgentId) => {
                     setCreatingAgent(false);
-                    navigate(`${membersRoute}/agents/${createdAgentId}`);
+                    navigate(serverAgentRoute(server.slug, createdAgentId));
                 }}
                 onOpenChange={setCreatingAgent}
                 open={creatingAgent}
@@ -131,11 +128,4 @@ export function MembersSidebar({
             />
         </ShellSidebarPageContent>
     );
-}
-
-function resolveSelectedAgentId(pathname: string, membersRoute: string) {
-    const prefix = `${membersRoute}/agents/`;
-    return pathname.startsWith(prefix)
-        ? decodeURIComponent(pathname.slice(prefix.length)).split('/')[0]
-        : undefined;
 }

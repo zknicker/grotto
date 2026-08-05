@@ -74,6 +74,10 @@ export type ServerMemberDirectory = z.infer<typeof serverMemberDirectorySchema>;
 
 export const listServerMembersInputSchema = z.object({ serverId: hostedIdSchema }).strict();
 
+export const getServerMemberInputSchema = z
+    .object({ serverId: hostedIdSchema, userId: hostedIdSchema })
+    .strict();
+
 export const changeServerMemberRoleInputSchema = z
     .object({
         confirmation: z.string().optional(),

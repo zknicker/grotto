@@ -7,7 +7,7 @@ import {
     SettingsRow,
     SettingsSection,
 } from '../../features/settings/layout/settings-page.tsx';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { useAgentGrant } from '../../hooks/members/use-agent-grant.ts';
 
 export function HostedAgentTools({
     agent,
@@ -18,10 +18,7 @@ export function HostedAgentTools({
     connections: HostedMcpConnection[];
     serverId: string;
 }) {
-    const utils = grottoTrpc.useUtils();
-    const setGrant = grottoTrpc.mcp.setGrant.useMutation({
-        onSuccess: () => utils.mcp.list.invalidate({ serverId }),
-    });
+    const grant = useAgentGrant(serverId, agent.id);
     const available = connections.filter(
         (connection) => connection.connected && connection.tools.length > 0
     );
@@ -70,15 +67,10 @@ export function HostedAgentTools({
                                 >
                                     <Switch
                                         aria-label={`Enable ${connection.name} for ${agent.displayName}`}
-                                        isDisabled={setGrant.isPending}
+                                        isDisabled={grant.isPending}
                                         isSelected={checked}
                                         onChange={(enabled) =>
-                                            setGrant.mutate({
-                                                agentId: agent.id,
-                                                connectionId: connection.id,
-                                                enabled,
-                                                serverId,
-                                            })
+                                            grant.setGrant(connection.id, enabled)
                                         }
                                     >
                                         <Switch.Content>

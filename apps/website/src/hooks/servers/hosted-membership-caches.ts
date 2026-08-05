@@ -4,9 +4,10 @@ export interface ClearableCache {
 }
 
 export interface HostedServerCaches {
+    agent: { get: ClearableCache; list: ClearableCache };
     chat: { list: ClearableCache; messages: ClearableCache; search: ClearableCache };
     invitation: { list: ClearableCache };
-    member: { list: ClearableCache };
+    member: { get: ClearableCache; list: ClearableCache };
     server: { bySlug: ClearableCache; list: ClearableCache };
     stats: { live: ClearableCache };
     task: { assignees: ClearableCache; list: ClearableCache };
@@ -27,8 +28,11 @@ export interface HostedServerCaches {
  */
 export function cachesClearedOnMembershipLoss(utils: HostedServerCaches): ClearableCache[] {
     return [
+        utils.agent.get,
+        utils.agent.list,
         utils.server.bySlug,
         utils.server.list,
+        utils.member.get,
         utils.member.list,
         utils.invitation.list,
         utils.chat.list,

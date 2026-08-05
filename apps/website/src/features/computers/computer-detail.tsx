@@ -9,7 +9,7 @@ import { StatusDot } from '../../components/ui/status-dot.tsx';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
 import { getModelProviderConfig } from '../../lib/model-provider-config.ts';
 import { ComputerUpdateControls } from '../servers/computer-update-controls.tsx';
-import { serverMembersRoute } from '../servers/server-routes.ts';
+import { serverAgentRoute } from '../servers/server-routes.ts';
 import {
     agentExecutionLabels,
     availabilityLabel,
@@ -201,7 +201,7 @@ function AgentRow({
     return (
         <Link
             className="flex min-w-0 items-center gap-3 border-separator border-b py-3 outline-none last:border-b-0 hover:bg-surface-secondary focus-visible:bg-surface-secondary"
-            to={`${serverMembersRoute(serverSlug)}/agents/${agent.id}`}
+            to={serverAgentRoute(serverSlug, agent.id)}
         >
             <EntityAvatar name={agent.displayName} size="sm" src={agent.avatarUrl} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">

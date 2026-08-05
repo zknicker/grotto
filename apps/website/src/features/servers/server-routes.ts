@@ -26,6 +26,14 @@ export function serverMembersRoute(slug: string) {
     return `${serverRoute(slug)}/members`;
 }
 
+export function serverAgentRoute(slug: string, agentId: string, tab = 'overview') {
+    return `${serverMembersRoute(slug)}/agents/${encodeURIComponent(agentId)}/${tab}`;
+}
+
+export function serverHumanRoute(slug: string, userId: string) {
+    return `${serverMembersRoute(slug)}/humans/${encodeURIComponent(userId)}`;
+}
+
 export function serverComputersRoute(slug: string) {
     return `${serverRoute(slug)}/computers`;
 }

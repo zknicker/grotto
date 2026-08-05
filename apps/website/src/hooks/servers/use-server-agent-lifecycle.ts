@@ -68,6 +68,10 @@ export function useServerAgentLifecycle(serverId: string | undefined): HostedAge
                 utils.agent.list.setData({ serverId: event.serverId }, (agents) =>
                     agents ? projectHostedAgentAvailability(agents, event) : agents
                 );
+                utils.agent.get.setData(
+                    { agentId: event.agentId, serverId: event.serverId },
+                    (agent) => (agent ? projectHostedAgentAvailability([agent], event)[0] : agent)
+                );
                 if (event.phase === 'settled') {
                     void Promise.all([
                         utils.agent.activity.invalidate({
@@ -79,13 +83,20 @@ export function useServerAgentLifecycle(serverId: string | undefined): HostedAge
                             agentId: event.agentId,
                             serverId: event.serverId,
                         }),
+                        utils.agent.get.invalidate({
+                            agentId: event.agentId,
+                            serverId: event.serverId,
+                        }),
                         utils.agent.list.invalidate({ serverId: event.serverId }),
                     ]);
                 }
             },
             onStarted: () => {
                 if (serverId) {
-                    void utils.agent.list.invalidate({ serverId });
+                    void Promise.all([
+                        utils.agent.get.invalidate(undefined, { exact: false }),
+                        utils.agent.list.invalidate({ serverId }),
+                    ]);
                 }
             },
         }

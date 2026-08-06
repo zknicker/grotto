@@ -46,8 +46,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     await peerPage.goto(invitePath);
     await peerPage.getByRole('button', { name: 'Accept invitation' }).click();
 
-    await expect(peerPage).toHaveURL(new RegExp(`/s/${slug}/activity$`, 'u'));
-    await openHostedChannel(peerPage, 'all');
+    await expect(peerPage).toHaveURL(new RegExp(`/s/${slug}/chats/[^/]+$`, 'u'));
     await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
 
     // A single-use token cannot be replayed.

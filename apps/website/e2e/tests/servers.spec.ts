@@ -17,19 +17,15 @@ test('a Clerk-authenticated human creates and reopens a Server', async ({ page }
     await page.getByLabel('Address').fill('grotto-hq');
     await page.getByRole('button', { name: 'Create Server' }).click();
 
-    await expect(page).toHaveURL(/\/s\/grotto-hq\/activity$/u);
-    await expect(page.getByRole('heading', { level: 1, name: 'Activity' })).toBeVisible();
+    await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\/[^/]+$/u);
+    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     await expect(
         page.getByRole('button', { name: 'Switch Server (current: grotto-hq)' })
     ).toBeVisible();
 
-    await page.getByRole('row', { name: 'all' }).click();
+    await page.goto('/s');
     await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\/[^/]+$/u);
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
-
-    await page.goto('/s');
-    await expect(page).toHaveURL(/\/s\/grotto-hq\/activity$/u);
-    await expect(page.getByRole('heading', { level: 1, name: 'Activity' })).toBeVisible();
 });
 
 test('a human without membership cannot open the Server', async ({ page }) => {

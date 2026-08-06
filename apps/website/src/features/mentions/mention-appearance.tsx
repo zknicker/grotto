@@ -10,10 +10,12 @@ import {
     PlugIcon,
     UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
+import { Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { cn } from '../../lib/utils.ts';
 import { agentColorPresets } from '../agents/agent-color-presets.ts';
-import type { MentionOptionKind } from './mention-types.ts';
+import type { ReferenceKind } from './mention-types.ts';
 
 const mentionIconKeys = [
     'agent',
@@ -26,6 +28,7 @@ const mentionIconKeys = [
     'skill',
     'unknown',
     'user',
+    'website',
 ] as const;
 
 export type MentionIconKey = (typeof mentionIconKeys)[number];
@@ -40,7 +43,7 @@ export interface MentionAppearance {
 
 interface MentionAppearanceInput {
     id: string;
-    kind: MentionOptionKind;
+    kind: ReferenceKind;
     label: string;
     metadata?: Record<string, unknown>;
 }
@@ -56,7 +59,8 @@ const defaultMentionAppearance = {
     plugin: { icon: 'plugin' },
     skill: { brandColor: 'var(--accent)', icon: 'skill' },
     user: { icon: 'user' },
-} satisfies Record<MentionOptionKind, MentionAppearance>;
+    website: { icon: 'website' },
+} satisfies Record<ReferenceKind, MentionAppearance>;
 
 const skillAppearanceOverrides = {
     'gh-issues': {
@@ -100,6 +104,7 @@ const mentionIconMap = {
     skill: CubeIcon,
     unknown: MagicWand01Icon,
     user: UserIcon,
+    website: Globe02Icon,
 } satisfies Record<MentionIconKey, IconSvgElement>;
 
 export function getMentionAppearance(input: MentionAppearanceInput): MentionAppearance {
@@ -136,14 +141,14 @@ export function MentionAppearanceIcon({
 
     if (iconDataUrl) {
         return (
-            <img
-                alt=""
-                className={className}
-                draggable={false}
-                height={16}
-                src={iconDataUrl}
-                width={16}
-            />
+            <span className={cn('relative inline-grid', className)}>
+                <Icon className="size-full" icon={mentionIconMap[icon]} />
+                <span
+                    aria-hidden="true"
+                    className="absolute inset-0 size-full bg-center bg-contain bg-no-repeat"
+                    style={{ backgroundImage: `url("${iconDataUrl.replaceAll('"', '\\"')}")` }}
+                />
+            </span>
         );
     }
 
@@ -171,7 +176,7 @@ function getMentionAppearanceOverride(input: MentionAppearanceInput) {
         return getAgentAvatarOverride(input);
     }
 
-    if (input.kind === 'app' && metadataIconDataUrl) {
+    if ((input.kind === 'app' || input.kind === 'website') && metadataIconDataUrl) {
         return {
             iconDataUrl: metadataIconDataUrl,
         } satisfies MentionAppearanceOverride;

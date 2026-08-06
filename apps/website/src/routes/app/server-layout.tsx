@@ -3,40 +3,38 @@ import { AppLayout } from '@heroui-pro/react';
 import * as React from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
-import { type ChannelAgentOption, ChannelDialog } from '../../features/chats/channel-dialog.tsx';
 import { ComputersSidebar } from '../../features/computers/computers-sidebar.tsx';
 import { MembersSidebar } from '../../features/members/members-sidebar.tsx';
+import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
+import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
 import {
     rememberLastChatId,
     rememberLastServerSlug,
 } from '../../features/servers/server-choice.ts';
 import { ServerChoicePanel } from '../../features/servers/server-choice-panel.tsx';
 import {
+    membersRoute,
     serverChatRoute,
     serverComputersRoute,
-    serverMembersRoute,
     serverRemindersRoute,
     serverRoute,
     serverSearchRoute,
     serverSettingsRoute,
-    serverTasksRoute,
+    tasksRoute,
 } from '../../features/servers/server-routes.ts';
-import { ServerTasksSidebar } from '../../features/servers/tasks/server-tasks-sidebar.tsx';
+import { TaskSidebar } from '../../features/servers/tasks/task-sidebar.tsx';
 import { AppRail, type AppRailSection } from '../../features/shell/app-rail.tsx';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
+import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
-import { useAgents } from '../../hooks/members/use-agents.ts';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
-import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
+import { useChatEvents } from '../../hooks/servers/use-chat-events.ts';
+import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
-import { useServerAgentLifecycle } from '../../hooks/servers/use-server-agent-lifecycle.ts';
-import { useServerChatEvents } from '../../hooks/servers/use-server-chat-events.ts';
-import { useServerChats } from '../../hooks/servers/use-server-chats.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
-import { useGrottoServerConnectionState } from '../../lib/grotto-server.tsx';
 import { preloadServerRoutes, preloadServerSection } from './server-route-modules.ts';
 import {
     resolveActiveSection,
@@ -51,17 +49,12 @@ export function ServerLayout() {
     const navigate = useNavigate();
     const server = useServer(slug);
     const servers = useServerList();
-    const chats = useServerChats(server.data?.id);
-    const createChannel = useCreateServerChannel();
-    const agents = useAgents(server.data?.id);
-    const connectionState = useGrottoServerConnectionState();
+    const chats = useChats(server.data?.id);
     const currentServerSlug = server.data?.slug;
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
-    const [creatingChannel, setCreatingChannel] = React.useState(false);
     const [managingServers, setManagingServers] = React.useState(false);
-    const agentLifecycles = useServerAgentLifecycle(server.data?.id);
 
-    useServerChatEvents(server.data?.id);
+    useChatEvents(server.data?.id);
     React.useEffect(() => {
         if (currentServerSlug) {
             rememberLastServerSlug(currentServerSlug);
@@ -104,174 +97,123 @@ export function ServerLayout() {
 
     const active = resolveActiveSection(location.pathname, slug);
     const settingsSection = resolveSettingsSection(location.pathname, slug);
-    const agentListStatus = agents.data ? 'ready' : agents.isPending ? 'loading' : 'error';
-    const chatListStatus = chats.data ? 'ready' : chats.isPending ? 'loading' : 'error';
     const serverChoices = servers.data ?? [server.data];
-    const channelAgents: ChannelAgentOption[] = (agents.data ?? []).map((agent) => ({
-        avatarUrl: agent.avatarUrl,
-        id: agent.id,
-        name: agent.displayName,
-    }));
     const canOperate = server.data.role === 'owner' || server.data.role === 'admin';
     const showSidebar = active !== 'computers' || canOperate;
     const activeSidebarPage = resolveSidebarPage(active, canOperate);
-    const openChat = (chatId: string) => navigate(serverChatRoute(slug, chatId));
     const selectSection = (section: AppRailSection) => {
         const route = {
             chat: selectedChatId ? serverChatRoute(slug, selectedChatId) : serverRoute(slug),
             computers: serverComputersRoute(slug),
-            members: serverMembersRoute(slug),
+            members: membersRoute(slug),
             reminders: serverRemindersRoute(slug),
             search: serverSearchRoute(slug),
             settings: serverSettingsRoute(slug),
-            tasks: serverTasksRoute(slug),
+            tasks: tasksRoute(slug),
         }[section];
         navigate(route);
     };
 
     return (
-        <TopbarProvider>
-            <AppShell className="w-full">
-                <SyncHumanIdentity serverId={server.data.id} />
-                <AppShellDragRegion />
-                <HostedCommandMenu
-                    agents={agents.data ?? []}
-                    chats={chats.data ?? []}
-                    role={server.data.role}
-                    serverSlug={slug}
-                />
-                <div className="flex min-h-0 flex-1">
-                    <AppRail
-                        active={active}
-                        canOperate={canOperate}
-                        currentServer={server.data}
-                        onManageServers={() => setManagingServers(true)}
-                        onPreload={preloadServerSection}
-                        onSelect={selectSection}
-                        onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
-                        servers={serverChoices}
-                    />
-                    <AppLayout
-                        className="h-full min-h-0 min-w-0 flex-1"
-                        navigate={navigate}
-                        scrollMode="content"
-                        sidebar={
-                            <ShellSidebar activePage={activeSidebarPage}>
-                                <ShellSidebarPage ariaLabel="Server" value="server">
-                                    <AppSidebar
-                                        agents={agents.data ?? []}
-                                        chats={chats.data ?? []}
-                                        currentServer={server.data}
-                                        onCreateChannel={() => {
-                                            createChannel.reset();
-                                            setCreatingChannel(true);
-                                        }}
-                                        selectedChatId={selectedChatId}
-                                    />
-                                </ShellSidebarPage>
-                                <ShellSidebarPage ariaLabel="Tasks" value="tasks">
-                                    <ServerTasksSidebar
-                                        canManage={canOperate}
-                                        isActive={activeSidebarPage === 'tasks'}
-                                        serverId={server.data.id}
-                                        slug={slug}
-                                    />
-                                </ShellSidebarPage>
-                                <ShellSidebarPage ariaLabel="Members" value="members">
-                                    <MembersSidebar
-                                        agentListStatus={agentListStatus}
-                                        agents={agents.data ?? []}
-                                        isActive={activeSidebarPage === 'members'}
-                                        server={server.data}
-                                    />
-                                </ShellSidebarPage>
-                                {canOperate ? (
-                                    <ShellSidebarPage ariaLabel="Computers" value="computers">
-                                        <ComputersSidebar
-                                            isActive={activeSidebarPage === 'computers'}
+        <SidePaneProvider>
+            <TopbarProvider>
+                <AppShell className="w-full">
+                    <SyncHumanIdentity serverId={server.data.id} />
+                    <AppShellDragRegion />
+                    <HostedCommandMenu server={server.data} />
+                    <div className="flex min-h-0 flex-1">
+                        <AppRail
+                            active={active}
+                            canOperate={canOperate}
+                            currentServer={server.data}
+                            onManageServers={() => setManagingServers(true)}
+                            onPreload={preloadServerSection}
+                            onSelect={selectSection}
+                            onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
+                            servers={serverChoices}
+                        />
+                        <AppLayout
+                            className="h-full min-h-0 min-w-0 flex-1"
+                            navigate={navigate}
+                            scrollMode="content"
+                            sidebar={
+                                <ShellSidebar activePage={activeSidebarPage}>
+                                    <ShellSidebarPage ariaLabel="Server" value="server">
+                                        <AppSidebar
+                                            currentServer={server.data}
+                                            selectedChatId={selectedChatId}
+                                        />
+                                    </ShellSidebarPage>
+                                    <ShellSidebarPage ariaLabel="Tasks" value="tasks">
+                                        <TaskSidebar
+                                            canManage={canOperate}
+                                            isActive={activeSidebarPage === 'tasks'}
                                             serverId={server.data.id}
                                             slug={slug}
                                         />
                                     </ShellSidebarPage>
-                                ) : null}
-                                <ShellSidebarPage ariaLabel="Settings" value="settings">
-                                    <SettingsSidebar currentSection={settingsSection} slug={slug} />
-                                </ShellSidebarPage>
-                            </ShellSidebar>
-                        }
-                        sidebarCollapsible="offcanvas"
-                        sidebarOpen={showSidebar}
-                        toggleShortcut={false}
-                    >
-                        <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-                            <ShellTopbar />
-                            {server.error || agents.error || connectionState !== 'connected' ? (
-                                <div className="absolute top-2 right-3 z-20 rounded-lg bg-surface-secondary px-2 py-1 text-muted text-xs shadow-surface">
-                                    {agents.error && !agents.data
-                                        ? 'Agent directory unavailable'
-                                        : 'Server reconnecting · showing the latest data'}
-                                </div>
-                            ) : null}
-                            <Outlet
-                                context={{
-                                    agentListStatus,
-                                    agentLifecycles,
-                                    agents: agents.data ?? [],
-                                    chatListStatus,
-                                    chats: chats.data ?? [],
-                                    server: server.data,
-                                    servers: servers.data ?? [],
-                                }}
-                            />
-                        </div>
-                    </AppLayout>
-                </div>
-                <ChannelDialog
-                    agents={channelAgents}
-                    agentsPending={agents.isPending}
-                    errorMessage={createChannel.error?.message ?? null}
-                    initialAgentIds={[]}
-                    initialDisplayName=""
-                    isPending={createChannel.isPending}
-                    onClose={() => {
-                        createChannel.reset();
-                        setCreatingChannel(false);
-                    }}
-                    onSubmit={async ({ agentIds, displayName }) => {
-                        const channel = await createChannel.mutateAsync({
-                            agentIds,
-                            name: displayName,
-                            serverId: server.data.id,
-                        });
-                        setCreatingChannel(false);
-                        openChat(channel.id);
-                    }}
-                    open={creatingChannel}
-                    submitLabel="Create"
-                    title="New channel"
-                />
-                <Modal isOpen={managingServers} onOpenChange={setManagingServers}>
-                    <Modal.Backdrop>
-                        <Modal.Container scroll="outside" size="lg">
-                            <Modal.Dialog>
-                                <Modal.Header>
-                                    <Modal.Heading>Servers</Modal.Heading>
-                                    <p className="mt-1 text-muted text-sm">
-                                        Switch to a joined Server, create one, or accept an
-                                        invitation.
-                                    </p>
-                                </Modal.Header>
-                                <Modal.Body>
-                                    <ServerChoicePanel
-                                        onServerSelect={() => setManagingServers(false)}
-                                        servers={serverChoices}
-                                    />
-                                </Modal.Body>
-                            </Modal.Dialog>
-                        </Modal.Container>
-                    </Modal.Backdrop>
-                </Modal>
-            </AppShell>
-        </TopbarProvider>
+                                    <ShellSidebarPage ariaLabel="Members" value="members">
+                                        <MembersSidebar
+                                            isActive={activeSidebarPage === 'members'}
+                                            server={server.data}
+                                        />
+                                    </ShellSidebarPage>
+                                    {canOperate ? (
+                                        <ShellSidebarPage ariaLabel="Computers" value="computers">
+                                            <ComputersSidebar
+                                                isActive={activeSidebarPage === 'computers'}
+                                                serverId={server.data.id}
+                                                slug={slug}
+                                            />
+                                        </ShellSidebarPage>
+                                    ) : null}
+                                    <ShellSidebarPage ariaLabel="Settings" value="settings">
+                                        <SettingsSidebar
+                                            currentSection={settingsSection}
+                                            slug={slug}
+                                        />
+                                    </ShellSidebarPage>
+                                </ShellSidebar>
+                            }
+                            sidebarCollapsible="offcanvas"
+                            sidebarOpen={showSidebar}
+                            toggleShortcut={false}
+                        >
+                            <ShellFrame>
+                                <ShellTopbar />
+                                <ConnectionNotice
+                                    serverError={Boolean(server.error)}
+                                    serverId={server.data.id}
+                                />
+                                <AgentLifecycleProvider serverId={server.data.id}>
+                                    <Outlet context={{ server: server.data }} />
+                                </AgentLifecycleProvider>
+                            </ShellFrame>
+                        </AppLayout>
+                    </div>
+                    <Modal isOpen={managingServers} onOpenChange={setManagingServers}>
+                        <Modal.Backdrop>
+                            <Modal.Container scroll="outside" size="lg">
+                                <Modal.Dialog>
+                                    <Modal.Header>
+                                        <Modal.Heading>Servers</Modal.Heading>
+                                        <p className="mt-1 text-muted text-sm">
+                                            Switch to a joined Server, create one, or accept an
+                                            invitation.
+                                        </p>
+                                    </Modal.Header>
+                                    <Modal.Body>
+                                        <ServerChoicePanel
+                                            onServerSelect={() => setManagingServers(false)}
+                                            servers={serverChoices}
+                                        />
+                                    </Modal.Body>
+                                </Modal.Dialog>
+                            </Modal.Container>
+                        </Modal.Backdrop>
+                    </Modal>
+                </AppShell>
+            </TopbarProvider>
+        </SidePaneProvider>
     );
 }

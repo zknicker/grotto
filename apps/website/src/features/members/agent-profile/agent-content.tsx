@@ -68,7 +68,7 @@ export function AgentWorkspace({ agent, server }: { agent: HostedAgent; server: 
     if (server.role === 'member') {
         return (
             <TabEmptyState
-                description="Only Server Owners and Admins can inspect raw Agent workspace files."
+                description="Only workspace owners and admins can inspect raw Agent workspace files."
                 icon={Folder01Icon}
                 title="Workspace Unavailable"
             />

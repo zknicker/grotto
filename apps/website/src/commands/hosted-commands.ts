@@ -8,15 +8,15 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
 import {
-    serverAgentRoute,
+    agentRoute,
+    membersRoute,
     serverChatRoute,
     serverComputersRoute,
-    serverMembersRoute,
     serverRemindersRoute,
     serverRoute,
     serverSearchRoute,
     serverSettingsSectionRoute,
-    serverTasksRoute,
+    tasksRoute,
 } from '../features/servers/server-routes.ts';
 import { staticSettingsNavItems } from '../features/settings/layout/navigation.ts';
 import { getRouteTabIcon } from '../features/shell/route-tab-presentation.tsx';
@@ -80,7 +80,7 @@ function buildHostedNavigationGroup(
         {
             icon: getRouteTabIcon('tasks'),
             id: 'tasks',
-            route: serverTasksRoute(context.serverSlug),
+            route: tasksRoute(context.serverSlug),
             title: 'Tasks',
         },
         ...(context.role === 'member'
@@ -96,7 +96,7 @@ function buildHostedNavigationGroup(
         {
             icon: getRouteTabIcon('members'),
             id: 'members',
-            route: serverMembersRoute(context.serverSlug),
+            route: membersRoute(context.serverSlug),
             title: 'Members',
         },
     ];
@@ -203,8 +203,7 @@ function buildHostedCurrentChatGroup(
                           icon: UserCircleIcon,
                           id: 'current-chat.open-agent-profile',
                           keywords: ['chat', 'agent', 'profile', 'assistant'],
-                          run: () =>
-                              context.navigate(serverAgentRoute(context.serverSlug, agent.id)),
+                          run: () => context.navigate(agentRoute(context.serverSlug, agent.id)),
                           title: 'Agent Profile',
                       } satisfies AppCommand,
                   ]

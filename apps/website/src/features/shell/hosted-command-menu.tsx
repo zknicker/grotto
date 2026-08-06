@@ -1,24 +1,20 @@
-import type { HostedAgent, HostedChat } from '@tavern/api';
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { buildHostedCommandGroups } from '../../commands/hosted-commands.ts';
 import { useDevMode } from '../../components/dev-mode-provider.tsx';
+import { useAgents } from '../../hooks/members/use-agents.ts';
+import { useChats } from '../../hooks/servers/use-chats.ts';
+import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { type AgentAvatarLookup, CommandMenuShell } from './command-menu.tsx';
 
-export function HostedCommandMenu({
-    agents,
-    chats,
-    role,
-    serverSlug,
-}: {
-    agents: HostedAgent[];
-    chats: HostedChat[];
-    role: 'admin' | 'member' | 'owner';
-    serverSlug: string;
-}) {
+export function HostedCommandMenu({ server }: { server: ServerSummary }) {
     const { pathname } = useLocation();
     const navigateRoute = useNavigate();
     const { devMode, setDevMode } = useDevMode();
+    const agents = useAgents(server.id);
+    const chats = useChats(server.id);
+    const agentItems = React.useMemo(() => agents.data ?? [], [agents.data]);
+    const chatItems = React.useMemo(() => chats.data ?? [], [chats.data]);
     const navigate = React.useCallback(
         (path: string) => {
             void navigateRoute(path);
@@ -28,22 +24,22 @@ export function HostedCommandMenu({
     const commandGroups = React.useMemo(
         () =>
             buildHostedCommandGroups({
-                agents,
-                chats,
+                agents: agentItems,
+                chats: chatItems,
                 devMode,
                 navigate,
                 pathname,
-                role,
-                serverSlug,
+                role: server.role,
+                serverSlug: server.slug,
                 setDevMode,
             }),
-        [agents, chats, devMode, navigate, pathname, role, serverSlug, setDevMode]
+        [agentItems, chatItems, devMode, navigate, pathname, server, setDevMode]
     );
     const lookupAgentAvatarUrl = React.useMemo<AgentAvatarLookup>(() => {
-        const avatarById = new Map(agents.map((agent) => [agent.id, agent.avatarUrl]));
+        const avatarById = new Map(agentItems.map((agent) => [agent.id, agent.avatarUrl]));
 
         return (agentId) => (agentId ? (avatarById.get(agentId) ?? null) : null);
-    }, [agents]);
+    }, [agentItems]);
 
     return (
         <CommandMenuShell

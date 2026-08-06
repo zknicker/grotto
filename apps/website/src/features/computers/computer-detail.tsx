@@ -1,38 +1,37 @@
-import { Button, Disclosure } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Link } from 'react-router-dom';
 import { ModelProviderBadge } from '../../components/badges/model-provider-badge.tsx';
-import { CodeSnippet } from '../../components/code-snippet.tsx';
-import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
-import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
+import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { getModelProviderConfig } from '../../lib/model-provider-config.ts';
-import { ComputerUpdateControls } from '../servers/computer-update-controls.tsx';
-import { serverAgentRoute } from '../servers/server-routes.ts';
+import { ComputerActions } from './computer-actions.tsx';
+import { ComputerAgents } from './computer-agents.tsx';
 import {
-    agentExecutionLabels,
-    availabilityLabel,
+    computerHealthLabel,
+    computerHealthStatus,
     computerLabel,
     computerRuntimePresentations,
     computerSystemLabel,
 } from './presentation.ts';
 
-type Computer = GrottoOutputs['computer']['list'][number];
-
 export function ComputerDetail({
-    agents,
-    computer,
+    computerId,
     onRemove,
     serverId,
     serverSlug,
 }: {
-    agents: GrottoOutputs['agent']['list'];
-    computer: Computer;
+    computerId: string;
     onRemove: () => void;
     serverId: string;
     serverSlug: string;
 }) {
+    const computers = useComputers(serverId);
+    const computer = computers.data?.find((candidate) => candidate.id === computerId);
+
+    if (!computer) {
+        return null;
+    }
+
     const runtimes = computerRuntimePresentations(computer.reportedInventory);
 
     return (
@@ -81,72 +80,17 @@ export function ComputerDetail({
                     </div>
                 </section>
 
-                <section className="grid gap-4 py-5">
-                    <h2 className="font-medium text-muted text-sm">
-                        Agents on This Computer
-                        <span className="ms-2 tabular-nums">{agents.length}</span>
-                    </h2>
-                    {agents.length > 0 ? (
-                        <div className="grid">
-                            {agents.map((agent) => (
-                                <AgentRow
-                                    agent={agent}
-                                    inventory={computer.reportedInventory}
-                                    key={agent.id}
-                                    serverSlug={serverSlug}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-muted text-sm">No Agents on this Computer.</p>
-                    )}
-                </section>
-
-                <section className="grid gap-4 py-5">
-                    <h2 className="font-medium text-muted text-sm">Actions</h2>
-                    <div className="grid gap-5">
-                        <ComputerUpdateControls computer={computer} serverId={serverId} />
-                        <Disclosure>
-                            <Disclosure.Heading>
-                                <Button slot="trigger" variant="ghost">
-                                    Recovery Commands
-                                    <Disclosure.Indicator />
-                                </Button>
-                            </Disclosure.Heading>
-                            <Disclosure.Content>
-                                <Disclosure.Body>
-                                    <div className="grid gap-3">
-                                        <p className="text-muted text-sm">
-                                            If the App and this Computer disagree, check the machine
-                                            directly.
-                                        </p>
-                                        <CodeSnippet
-                                            lines={[
-                                                'grotto-computer status',
-                                                'grotto-computer doctor',
-                                                `grotto-computer restart /${serverSlug}`,
-                                                'grotto-computer upgrade --rollback',
-                                            ]}
-                                        />
-                                    </div>
-                                </Disclosure.Body>
-                            </Disclosure.Content>
-                        </Disclosure>
-                        <div className="flex flex-col gap-3 border-separator border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <h3 className="font-medium text-foreground text-sm">
-                                    Remove Computer
-                                </h3>
-                                <p className="text-muted text-sm">
-                                    Delete every Agent on this Computer first.
-                                </p>
-                            </div>
-                            <Button onPress={onRemove} size="sm" variant="danger-soft">
-                                Remove Computer
-                            </Button>
-                        </div>
-                    </div>
-                </section>
+                <ComputerAgents
+                    computerId={computerId}
+                    serverId={serverId}
+                    serverSlug={serverSlug}
+                />
+                <ComputerActions
+                    computerId={computerId}
+                    onRemove={onRemove}
+                    serverId={serverId}
+                    serverSlug={serverSlug}
+                />
             </div>
         </div>
     );
@@ -185,68 +129,6 @@ function Fact({ label, value }: { label: string; value: string }) {
             <dd className="font-medium text-foreground text-sm">{value}</dd>
         </div>
     );
-}
-
-function AgentRow({
-    agent,
-    inventory,
-    serverSlug,
-}: {
-    agent: GrottoOutputs['agent']['list'][number];
-    inventory: Computer['reportedInventory'];
-    serverSlug: string;
-}) {
-    const execution = agentExecutionLabels(agent, inventory);
-
-    return (
-        <Link
-            className="flex min-w-0 items-center gap-3 border-separator border-b py-3 outline-none last:border-b-0 hover:bg-surface-secondary focus-visible:bg-surface-secondary"
-            to={serverAgentRoute(serverSlug, agent.id)}
-        >
-            <EntityAvatar name={agent.displayName} size="sm" src={agent.avatarUrl} />
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
-                <p className="truncate font-medium text-foreground text-sm">{agent.displayName}</p>
-                <p className="truncate text-muted text-xs">
-                    {execution.runtime} · {execution.model}
-                </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5 text-muted text-xs">
-                <StatusDot status={availabilityStatus(agent.availability)} />
-                {availabilityLabel(agent.availability)}
-            </div>
-        </Link>
-    );
-}
-
-function availabilityStatus(value: GrottoOutputs['agent']['list'][number]['availability']) {
-    if (value === 'idle') {
-        return 'success' as const;
-    }
-    if (value === 'working') {
-        return 'warning' as const;
-    }
-    return value === 'error' ? ('error' as const) : ('muted' as const);
-}
-
-export function computerHealthLabel(health: Computer['health']) {
-    switch (health) {
-        case 'healthy':
-            return 'Online';
-        case 'offline':
-            return 'Offline';
-        case 'update-required':
-            return 'Update required';
-        case 'degraded':
-            return 'Needs attention';
-    }
-}
-
-export function computerHealthStatus(health: Computer['health']) {
-    return health === 'healthy'
-        ? ('success' as const)
-        : health === 'offline'
-          ? ('muted' as const)
-          : ('warning' as const);
 }
 
 function formatTimestamp(value: Date | string) {

@@ -8,7 +8,9 @@ read_when:
 # Rich References
 
 Tavern messages can include explicit rich references. A rich reference is a
-normal markdown link whose target tells Tavern what the link points at.
+normal markdown link whose target tells Tavern what the link points at. Settled
+chat messages render through HeroUI Markdown; the stored markdown remains the
+portable fallback.
 
 Examples:
 
@@ -48,6 +50,11 @@ plain text unless the user selects or types explicit link syntax.
   still decides per addressed Agent whether the referenced skill is assigned.
 - Capability references never install, enable, connect, or authorize a tool by
   themselves.
+- One shared reference-chip registry owns icons, labels, colors, and fallbacks
+  for composer and transcript surfaces. Adding a new chip kind extends that
+  registry instead of adding message-renderer conditionals.
+- Ordinary web links use the same chip shell with the site's favicon and a
+  globe fallback. Activating one opens the original URL.
 
 See [Rich References](../../specs/mentions.md) for the normative implementation
 contract.

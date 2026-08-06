@@ -1,39 +1,31 @@
 import { Button, Tooltip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
-import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import { useMatch, useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { useServerMembers } from '../../hooks/servers/use-server-members.ts';
+import { useAgents } from '../../hooks/members/use-agents.ts';
+import { useMembers } from '../../hooks/servers/use-members.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { humanDisplayName } from '../servers/human-identity.ts';
-import { serverAgentRoute, serverHumanRoute } from '../servers/server-routes.ts';
+import { agentRoute, humanRoute } from '../servers/server-routes.ts';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
 import { AgentAvatar } from './agent-avatar.tsx';
 import { CreateAgentDialog } from './create-agent-dialog.tsx';
 
 /** Members section sidebar: the Agent and Human rosters as navigation. */
-export function MembersSidebar({
-    agentListStatus,
-    agents,
-    isActive,
-    server,
-}: {
-    agentListStatus: 'error' | 'loading' | 'ready';
-    agents: HostedAgent[];
-    isActive: boolean;
-    server: ServerSummary;
-}) {
+export function MembersSidebar({ isActive, server }: { isActive: boolean; server: ServerSummary }) {
     const navigate = useNavigate();
     const agentMatch = useMatch('/s/:slug/members/agents/:agentId/:tab');
     const humanMatch = useMatch('/s/:slug/members/humans/:userId');
-    const directory = useServerMembers(server.id, { enabled: isActive });
+    const agents = useAgents(isActive ? server.id : undefined);
+    const directory = useMembers(server.id, { enabled: isActive });
     const [creatingAgent, setCreatingAgent] = React.useState(false);
     const selectedAgentId = agentMatch?.params.agentId;
     const selectedHumanId = humanMatch?.params.userId;
     const canOperate = server.role === 'owner' || server.role === 'admin';
+    const agentItems = agents.data ?? [];
     const humans = directory.data?.members ?? [];
 
     return (
@@ -41,7 +33,7 @@ export function MembersSidebar({
             band={
                 <div className="flex w-full items-center justify-between pe-1">
                     <Sidebar.GroupLabel>
-                        Agents{agentListStatus === 'ready' ? ` · ${agents.length}` : ''}
+                        Agents{agents.data ? ` · ${agentItems.length}` : ''}
                     </Sidebar.GroupLabel>
                     {canOperate ? (
                         <Tooltip delay={0}>
@@ -61,17 +53,17 @@ export function MembersSidebar({
             }
         >
             <Sidebar.Group>
-                {agentListStatus === 'loading' ? (
+                {agents.isPending ? (
                     <p className="px-2 py-1 text-muted text-sm">Loading Agents…</p>
-                ) : agentListStatus === 'error' ? (
+                ) : agents.error ? (
                     <p className="px-2 py-1 text-muted text-sm" role="alert">
                         Couldn’t load Agents
                     </p>
                 ) : (
                     <Sidebar.Menu aria-label="Agents">
-                        {agents.map((agent) => (
+                        {agentItems.map((agent) => (
                             <Sidebar.MenuItem
-                                href={serverAgentRoute(server.slug, agent.id)}
+                                href={agentRoute(server.slug, agent.id)}
                                 id={agent.id}
                                 isCurrent={agent.id === selectedAgentId}
                                 key={agent.id}
@@ -95,7 +87,7 @@ export function MembersSidebar({
                 <Sidebar.Menu aria-label="Humans">
                     {humans.map((member) => (
                         <Sidebar.MenuItem
-                            href={serverHumanRoute(server.slug, member.userId)}
+                            href={humanRoute(server.slug, member.userId)}
                             id={member.userId}
                             isCurrent={selectedHumanId === member.userId}
                             key={member.userId}
@@ -117,10 +109,10 @@ export function MembersSidebar({
                 </Sidebar.Menu>
             </Sidebar.Group>
             <CreateAgentDialog
-                agents={agents}
+                agents={agentItems}
                 onCreated={(createdAgentId) => {
                     setCreatingAgent(false);
-                    navigate(serverAgentRoute(server.slug, createdAgentId));
+                    navigate(agentRoute(server.slug, createdAgentId));
                 }}
                 onOpenChange={setCreatingAgent}
                 open={creatingAgent}

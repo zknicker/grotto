@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { MentionChip } from './mention-chip.tsx';
 import { normalizeMentions } from './mention-text.ts';
 import type { Mention } from './mention-types.ts';
+import { ReferenceChip } from './reference-chip.tsx';
 
 export function renderMentionText({
     content,
@@ -14,7 +14,7 @@ export function renderMentionText({
 }) {
     return splitMentionText(content, mentions).map((fragment) =>
         fragment.type === 'mention' ? (
-            <MentionChip
+            <ReferenceChip
                 className={mentionClassName}
                 id={fragment.mention.id}
                 key={`${fragment.mention.start}:${fragment.mention.end}`}

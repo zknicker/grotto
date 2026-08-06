@@ -15,7 +15,7 @@ import {
 import type { HostedAgent, HostedComputerInventory } from '@tavern/api';
 import * as React from 'react';
 import { useAgentCreate } from '../../hooks/members/use-agent-create.ts';
-import { useComputers } from '../../hooks/members/use-computers.ts';
+import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { computerLabel } from '../computers/presentation.ts';
 import { createAgentHandle } from './agent-handle.ts';
 

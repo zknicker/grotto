@@ -3,8 +3,7 @@ import { Sidebar } from '@heroui-pro/react';
 import type { HostedChat } from '@tavern/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import type { ServerSummary } from '../../lib/grotto-server.tsx';
-import { AppSidebar } from './app-sidebar.tsx';
+import { ChatNavigation } from './chat-navigation.tsx';
 import { ShellSidebar, ShellSidebarPage } from './shell-sidebar.tsx';
 
 test('keeps a retired Agent DM listed with its name and a Retired label', () => {
@@ -13,12 +12,12 @@ test('keeps a retired Agent DM listed with its name and a Retired label', () => 
             <Sidebar.Provider>
                 <ShellSidebar activePage="server">
                     <ShellSidebarPage ariaLabel="Server" value="server">
-                        <AppSidebar
+                        <ChatNavigation
                             agents={[]}
                             chats={[retiredDm()]}
-                            currentServer={server()}
                             onCreateChannel={() => undefined}
                             selectedChatId={undefined}
+                            slug="tavern"
                         />
                     </ShellSidebarPage>
                 </ShellSidebar>
@@ -29,15 +28,6 @@ test('keeps a retired Agent DM listed with its name and a Retired label', () => 
     expect(markup).toContain('Fen');
     expect(markup).toContain('Retired');
 });
-
-function server(): ServerSummary {
-    return {
-        displayName: 'Tavern',
-        id: 'server_one',
-        role: 'owner',
-        slug: 'tavern',
-    } as ServerSummary;
-}
 
 function retiredDm(): HostedChat {
     return {

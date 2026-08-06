@@ -8,7 +8,6 @@ import {
 } from '../../components/chats/message-scroller.tsx';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import type { ChatLogOutput } from '../../lib/trpc.tsx';
-import { cn } from '../../lib/utils.ts';
 import { ChatScrollPositionMemory } from './chat-scroll-position-memory.tsx';
 import { ChatTimeline } from './chat-timeline.tsx';
 import { ChatTranscriptLoadingIndicator } from './chat-transcript-loading-indicator.tsx';
@@ -23,9 +22,6 @@ export function ChatDetailFrame({
     emptyLabel,
     error,
     body,
-    sidePanel,
-    takeoverPanel,
-    takeoverPanelActive = Boolean(takeoverPanel),
     fetchOlderHistory,
     footer,
     hasOlderHistory = false,
@@ -46,9 +42,6 @@ export function ChatDetailFrame({
     emptyLabel: string;
     error?: unknown;
     body?: React.ReactNode;
-    sidePanel?: React.ReactNode;
-    takeoverPanel?: React.ReactNode;
-    takeoverPanelActive?: boolean;
     fetchOlderHistory?: () => void;
     footer: React.ReactNode;
     hasOlderHistory?: boolean;
@@ -83,12 +76,7 @@ export function ChatDetailFrame({
     return (
         <MessageScrollerProvider autoScroll={hasTimelineContent} defaultScrollPosition="end">
             <div className="flex min-h-0 flex-1 overflow-hidden">
-                <div
-                    className={cn(
-                        'relative min-w-0 flex-1 flex-col',
-                        takeoverPanelActive ? 'hidden' : 'flex'
-                    )}
-                >
+                <div className="relative flex min-w-0 flex-1 flex-col">
                     {header}
                     {body === undefined ? (
                         <div className="relative min-h-0 flex-1">
@@ -158,12 +146,6 @@ export function ChatDetailFrame({
 
                     {footer}
                 </div>
-                {takeoverPanel ? (
-                    <div className={takeoverPanelActive ? 'contents' : 'hidden'}>
-                        {takeoverPanel}
-                    </div>
-                ) : null}
-                {takeoverPanelActive ? null : sidePanel}
             </div>
         </MessageScrollerProvider>
     );

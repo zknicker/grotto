@@ -13,33 +13,29 @@ export function serverChatRoute(slug: string, chatId: string) {
     return `${serverRoute(slug)}/chats/${encodeURIComponent(chatId)}`;
 }
 
-export function serverTaskThreadRoute(slug: string, chatId: string, messageId: string) {
+export function taskThreadRoute(slug: string, chatId: string, messageId: string) {
     const route = serverChatRoute(slug, chatId);
     return `${route}?task=${encodeURIComponent(messageId)}`;
 }
 
-export function serverTasksRoute(slug: string) {
+export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }
 
-export function serverMembersRoute(slug: string) {
+export function membersRoute(slug: string) {
     return `${serverRoute(slug)}/members`;
 }
 
-export function serverAgentRoute(slug: string, agentId: string, tab = 'overview') {
-    return `${serverMembersRoute(slug)}/agents/${encodeURIComponent(agentId)}/${tab}`;
+export function agentRoute(slug: string, agentId: string, tab = 'overview') {
+    return `${membersRoute(slug)}/agents/${encodeURIComponent(agentId)}/${tab}`;
 }
 
-export function serverHumanRoute(slug: string, userId: string) {
-    return `${serverMembersRoute(slug)}/humans/${encodeURIComponent(userId)}`;
+export function humanRoute(slug: string, userId: string) {
+    return `${membersRoute(slug)}/humans/${encodeURIComponent(userId)}`;
 }
 
 export function serverComputersRoute(slug: string) {
     return `${serverRoute(slug)}/computers`;
-}
-
-export function serverConnectionsRoute(slug: string) {
-    return `${serverRoute(slug)}/connections`;
 }
 
 export function serverRemindersRoute(slug: string) {

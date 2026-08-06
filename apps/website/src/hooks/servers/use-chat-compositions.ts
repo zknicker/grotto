@@ -1,0 +1,42 @@
+import type { HostedCompositionEvent } from '@tavern/api';
+import * as React from 'react';
+import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { useMembers } from './use-members.ts';
+import { visibleCompositions } from './visible-compositions.ts';
+
+export function useChatCompositions(serverId: string | undefined, chatId: string | undefined) {
+    const scope = `${serverId ?? ''}:${chatId ?? ''}`;
+    const [compositionState, setCompositionState] = React.useState<{
+        events: HostedCompositionEvent[];
+        scope: string;
+    }>({ events: [], scope });
+    const directory = useMembers(serverId);
+    const live = compositionState.scope === scope ? compositionState.events : [];
+    // Volatile composition stays component-local; the durable member directory
+    // decides who is still allowed to appear in it.
+    const compositions = visibleCompositions(
+        live,
+        directory.data?.members.map((member) => member.userId)
+    );
+
+    grottoTrpc.chat.onComposition.useSubscription(
+        { chatId: chatId ?? '', serverId: serverId ?? '' },
+        {
+            enabled: serverId !== undefined && chatId !== undefined,
+            onData: (event) => {
+                setCompositionState((current) => {
+                    const currentEvents = current.scope === scope ? current.events : [];
+                    const withoutActor = currentEvents.filter(
+                        (composition) => composition.actorUserId !== event.actorUserId
+                    );
+                    return {
+                        events: event.text === null ? withoutActor : [...withoutActor, event],
+                        scope,
+                    };
+                });
+            },
+        }
+    );
+
+    return compositions;
+}

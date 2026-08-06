@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
-import { serverAgentRoute } from '../../servers/server-routes.ts';
+import { agentRoute } from '../../servers/server-routes.ts';
 import { SettingsGroup, SettingsSection } from '../../settings/layout/settings-page.tsx';
 import { hostedAvailabilityStatus } from '../agent-avatar.tsx';
 
@@ -55,7 +55,7 @@ function CreatedAgentRow({ agent, slug }: { agent: HostedAgent; slug: string }) 
     return (
         <button
             className="flex w-full cursor-[var(--cursor-interactive)] items-center gap-3 px-5 py-3.5 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus"
-            onClick={() => navigate(serverAgentRoute(slug, agent.id))}
+            onClick={() => navigate(agentRoute(slug, agent.id))}
             type="button"
         >
             <EntityAvatar name={agent.displayName} size="sm" src={agent.avatarUrl} />

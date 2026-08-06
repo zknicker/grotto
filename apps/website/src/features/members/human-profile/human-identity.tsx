@@ -15,7 +15,7 @@ import {
 } from '../member-profile-header.tsx';
 import { ProfileEdit } from '../profile-edit.tsx';
 
-/** Human-owned identity, edits, and durable Server facts. */
+/** Human-owned identity, edits, and durable workspace facts. */
 export function HumanIdentity({
     isSelf,
     member,

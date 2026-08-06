@@ -2,8 +2,8 @@ import { Separator } from '@heroui/react';
 import type { ServerMember, ServerMemberDirectory } from '@tavern/api/hosted-membership';
 import { canManageServerInvitations } from '@tavern/api/hosted-membership';
 import * as React from 'react';
+import { useMembershipActions } from '../../hooks/servers/use-membership-actions.ts';
 import { useServerInvitations } from '../../hooks/servers/use-server-invitations.ts';
-import { useServerMembershipCommands } from '../../hooks/servers/use-server-membership-commands.ts';
 import {
     SettingsGroup,
     SettingsItem,
@@ -29,7 +29,7 @@ export function HostedHumanDirectory({
 }) {
     const canInvite = directory ? canManageServerInvitations(directory.viewerRole) : false;
     const invitations = useServerInvitations(serverId, canInvite);
-    const commands = useServerMembershipCommands(serverId);
+    const commands = useMembershipActions(serverId);
     const [pending, setPending] = React.useState<PendingMemberChange | null>(null);
 
     if (!directory) {
@@ -92,7 +92,7 @@ function buildPendingChange(
     member: ServerMember,
     action: ServerMemberRowAction,
     slug: string,
-    commands: ReturnType<typeof useServerMembershipCommands>,
+    commands: ReturnType<typeof useMembershipActions>,
     done: () => void
 ): PendingMemberChange {
     const serverId = commands.serverId ?? '';

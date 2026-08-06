@@ -83,6 +83,31 @@ export function availabilityLabel(value: HostedAgent['availability']) {
     }
 }
 
+export function computerHealthLabel(
+    health: 'degraded' | 'healthy' | 'offline' | 'update-required'
+) {
+    switch (health) {
+        case 'healthy':
+            return 'Online';
+        case 'offline':
+            return 'Offline';
+        case 'update-required':
+            return 'Update required';
+        case 'degraded':
+            return 'Needs attention';
+    }
+}
+
+export function computerHealthStatus(
+    health: 'degraded' | 'healthy' | 'offline' | 'update-required'
+) {
+    return health === 'healthy'
+        ? ('success' as const)
+        : health === 'offline'
+          ? ('muted' as const)
+          : ('warning' as const);
+}
+
 function operatingSystemLabel(value: string | null) {
     switch (value?.toLowerCase()) {
         case 'darwin':

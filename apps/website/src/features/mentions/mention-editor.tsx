@@ -8,9 +8,9 @@ import * as React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { isSelectAllShortcut } from '../../lib/select-all.ts';
 import { cn } from '../../lib/utils.ts';
-import { MentionChip } from './mention-chip.tsx';
 import { getActiveMentionQuery } from './mention-text.ts';
 import type { ActiveMentionQuery, Mention, MentionKind, MentionOption } from './mention-types.ts';
+import { ReferenceChip } from './reference-chip.tsx';
 
 export interface MentionEditorHandle {
     focus: () => void;
@@ -298,7 +298,7 @@ class MentionNodeView implements NodeView {
 
     #render(node: ProseMirrorNode) {
         this.#root.render(
-            <MentionChip
+            <ReferenceChip
                 id={node.attrs.id}
                 kind={node.attrs.kind as MentionKind}
                 label={node.attrs.label}

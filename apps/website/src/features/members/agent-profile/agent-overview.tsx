@@ -4,10 +4,13 @@ import type { HostedAgent } from '@tavern/api';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { StatusDot } from '../../../components/ui/status-dot.tsx';
-import { useComputers } from '../../../hooks/members/use-computers.ts';
+import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import { computerHealthLabel, computerHealthStatus } from '../../computers/computer-detail.tsx';
-import { computerLabel } from '../../computers/presentation.ts';
+import {
+    computerHealthLabel,
+    computerHealthStatus,
+    computerLabel,
+} from '../../computers/presentation.ts';
 import { serverComputersRoute } from '../../servers/server-routes.ts';
 import { SettingsPage } from '../../settings/layout/settings-page.tsx';
 import { hostedAvailabilityStatus } from '../agent-avatar.tsx';

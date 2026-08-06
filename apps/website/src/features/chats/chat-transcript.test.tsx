@@ -141,18 +141,17 @@ test('ChatTranscript renders chat markdown headings and inline markup in message
         },
     ]);
 
-    assert.match(markup, /<h1 class="[^"]*">Test<\/h1>/);
-    assert.match(markup, /<h2 class="[^"]*">Test 2<\/h2>/);
-    assert.match(markup, /<h3 class="[^"]*">Test 3<\/h3>/);
-    assert.match(markup, /<strong class="font-semibold">gpt-5\.4-mini<\/strong>/);
-    assert.match(markup, /<em class="italic">carefully<\/em>/);
-    assert.match(
-        markup,
-        /<code class="[^"]*\[overflow-wrap:anywhere\][^"]*">OPENAI_API_KEY<\/code>/
-    );
+    assert.match(markup, /<h1>Test<\/h1>/);
+    assert.match(markup, /<h2>Test 2<\/h2>/);
+    assert.match(markup, /<h3>Test 3<\/h3>/);
+    assert.match(markup, /<strong>gpt-5\.4-mini<\/strong>/);
+    assert.match(markup, /<em>carefully<\/em>/);
+    assert.match(markup, /<code class="markdown__inline-code"[^>]*>OPENAI_API_KEY<\/code>/);
     assert.match(markup, /href="https:\/\/openai\.com\/"/);
-    assert.match(markup, /href="https:\/\/www\.example\.com\/"/);
-    assert.match(markup, />www\.example\.com<\/a>/);
+    assert.match(markup, /href="http:\/\/www\.example\.com\/"/);
+    assert.match(markup, /title="OpenAI"/);
+    assert.match(markup, /title="www\.example\.com"/);
+    assert.match(markup, /favicon\.ico/);
     assert.match(markup, /&lt;u&gt;raw&lt;\/u&gt;/);
     assert.doesNotMatch(markup, /# Test/);
     assert.doesNotMatch(markup, /href="javascript:/);

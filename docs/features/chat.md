@@ -77,9 +77,10 @@ and [Agent Inbox](../../specs/inbox.md).
   steer agent attention by asking in chat, not by muting on the agent's
   behalf — see [Agent Inbox](../../specs/inbox.md).
 * **Agent profile pane.** Clicking an agent's transcript avatar opens the
-  Agent profile in the resizable right pane. Artifact, Agent profile, and
-  thread panes share one visible slot and width per chat; the latest opener
-  wins without clearing another pane's state. Clicking the transcript name
+  Agent profile in the resizable right pane. The pane is a full-height app
+  column with its own topbar beside the chat topbar. Artifact, Agent profile,
+  and thread panes share one visible slot and width per chat; the latest
+  opener wins without clearing another pane's state. Clicking the transcript name
   inserts an Agent mention, while the DM topbar name remains inert. Session
   resets stay agent-wide in Agent settings (specs/sessions.md); their durable
   new-session notice attaches to the agent's next turn as a header-action

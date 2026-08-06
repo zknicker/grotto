@@ -9,7 +9,7 @@ read_when:
 # React
 
 For substantial React route, hook, query, realtime, optimistic UI, or state
-architecture work, use the `react-best-practices` skill alongside this doc.
+architecture work, use the `architect-react-features` skill alongside this doc.
 
 ## Ownership
 
@@ -55,6 +55,13 @@ a product owner exists. Prefer short names scoped by folders.
   fade.
 * The shell renders one `ShellTopbar`. Pages compose its content through
   `PageTopbar` and `SectionHeader`. Embedded surfaces use `SectionBar`.
+* Chat side panes portal into the shell-level side-pane slot so their header
+  sits beside the chat topbar and their body spans the full app content height.
+  Pane state and content remain owned by the active chat. Every pane kind uses
+  `ChatSidePaneShell` for width and motion; panes with local drafts stay mounted,
+  inert, and accessibility-hidden while another pane temporarily owns the slot.
+  Keep the pane shell's identity stable when its selected target changes; key
+  target-specific content below the shell instead.
 * Shell chrome, traffic-light clearance, topbar height, and panel seams belong
   to the shell components, not feature pages.
 * Global command definitions live under `src/commands`; the shell only renders
@@ -71,14 +78,14 @@ a product owner exists. Prefer short names scoped by folders.
 * For chat and other streaming surfaces, patch exact volatile state from live
   events. Do not refetch durable list or log queries for every progress token.
 * Effects are for external synchronization, not derived state.
-* Hosted Chat hooks keep messages, lists, reads, and search in React Query.
+* Chat hooks keep messages, lists, reads, and search in React Query.
   Durable reconnect events trigger cursor catch-up plus exact invalidation;
   composition events stay component-local and are discarded on unmount.
   Selected attachment `File` objects stay composer-local; durable messages
-  retain only hosted metadata, and authenticated byte transfer stays in
-  focused Server attachment hooks.
-* Hosted attachment hooks reserve metadata over tRPC and transfer bytes
-  directly against the hosted origin with a fresh Clerk token. Do not convert
+  retain only attachment metadata, and authenticated byte transfer stays in
+  focused attachment hooks.
+* Attachment hooks reserve metadata over tRPC and transfer bytes directly
+  against the app origin with a fresh Clerk token. Do not convert
   attachment bytes into message-query data.
 
 ## Queries
@@ -96,9 +103,15 @@ a product owner exists. Prefer short names scoped by folders.
 * Split large views by responsibility before adding more branching.
 * Share reusable rows, badges, grouping helpers, formatting, and view helpers;
   avoid wrapper-only component chains.
-* Prefer nested compositional pieces with clear ownership. A route should choose
-  ids and states; hooks should coordinate data; components should render view
-  models and emit commands.
+* Prefer nested compositional pieces with clear ownership. Routes pass stable
+  identity into a feature page. Data-aware leaves call the focused query or
+  mutation hooks they need; React Query shares cached reads across those leaves.
+  Keep state at a feature root only when multiple sibling regions must coordinate
+  it, such as Chat view selection, the active Thread, or one shared realtime
+  lifecycle stream.
+* Do not fetch a feature's full data graph in a route, place it in context, or
+  forward it through controller props. Context is for a stable cross-cutting
+  capability, not a substitute for leaf-owned hooks.
 * Compose HeroUI compound parts directly. Chat composers use Pro
   `PromptInput.Shell`, `PromptInput.Content`, and `PromptInput.Toolbar`; do not
   recreate a monolithic app-level PromptInput primitive.

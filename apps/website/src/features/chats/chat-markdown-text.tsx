@@ -1,5 +1,6 @@
-import { MentionChip } from '../mentions/mention-chip.tsx';
 import type { Mention } from '../mentions/mention-types.ts';
+import { ReferenceChip } from '../mentions/reference-chip.tsx';
+import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
 import { splitMentionText } from '../mentions/render-mention-text.tsx';
 import { renderInlineMarkdown } from './chat-inline-markdown-renderer.tsx';
 import type { ChatTextAnimationRange } from './chat-inline-text-animation.tsx';
@@ -14,6 +15,10 @@ export function ChatMarkdownText({
     content: string;
     mentions?: readonly Mention[];
 }) {
+    if (animatedRanges.length === 0) {
+        return <ReferenceMarkdown content={content} mentions={mentions} />;
+    }
+
     const blocks = parseChatMarkdownBlocks(content);
 
     return blocks.map((block) => {
@@ -72,7 +77,7 @@ function renderMarkdownInline({
     return splitMentionText(content, mentions).flatMap((fragment, index) => {
         if (fragment.type === 'mention') {
             return (
-                <MentionChip
+                <ReferenceChip
                     id={fragment.mention.id}
                     key={`mention:${fragment.mention.start}:${fragment.mention.end}`}
                     kind={fragment.mention.kind}

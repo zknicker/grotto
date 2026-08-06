@@ -173,7 +173,37 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     await openMessageThread(anchorArticle);
 
     const panel = page.getByRole('complementary', { name: 'Thread' });
+    const openingWidth = await panel.evaluate((element) => element.getBoundingClientRect().width);
+    await expect
+        .poll(async () => (await panel.boundingBox())?.width ?? 0)
+        .toBeGreaterThan(openingWidth + 20);
     await expect(panel).toBeVisible();
+    await expect
+        .poll(async () => {
+            const [chatBox, panelBox] = await Promise.all([
+                page.locator('[data-slot="chat-surface"]').boundingBox(),
+                panel.boundingBox(),
+            ]);
+
+            return chatBox && panelBox ? Math.round(chatBox.y - panelBox.y) : null;
+        })
+        .toBe(48);
+    const initialPane = await panel.elementHandle();
+    if (!initialPane) {
+        throw new Error('The hosted Thread test did not resolve the open pane.');
+    }
+    const artifactAnchor = page
+        .getByText('Agent artifact fixture', { exact: true })
+        .locator('xpath=ancestor::div[@data-message-id][1]');
+    await openMessageThread(artifactAnchor);
+    expect(
+        await panel.evaluate(
+            (currentPane, previousPane) => currentPane === previousPane,
+            initialPane
+        )
+    ).toBe(true);
+    await expect(panel.getByText('Agent artifact fixture', { exact: true })).toBeVisible();
+    await openMessageThread(anchorArticle);
     await panel.getByRole('textbox', { name: /Message Thread/u }).fill('First hosted Thread reply');
     await panel.getByRole('button', { name: 'Send' }).click();
     await expect(panel.getByText('First hosted Thread reply', { exact: true })).toBeVisible();
@@ -210,7 +240,38 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     });
     await expect(panel.getByText('Live peer Thread reply', { exact: true })).toBeVisible();
 
+    await page.evaluate(() => {
+        const pane = document.querySelector('[aria-label="Thread"]');
+        if (!pane) {
+            throw new Error('Thread pane missing before close.');
+        }
+        const startedAt = performance.now();
+        const removal = new Promise<number>((resolve) => {
+            const observer = new MutationObserver(() => {
+                if (!pane.isConnected) {
+                    observer.disconnect();
+                    resolve(performance.now() - startedAt);
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        });
+        (
+            window as Window & {
+                __threadCloseDuration?: Promise<number>;
+            }
+        ).__threadCloseDuration = removal;
+    });
     await panel.getByRole('button', { name: 'Close thread' }).click();
+    const closeDuration = await page.evaluate(
+        () =>
+            (
+                window as Window & {
+                    __threadCloseDuration?: Promise<number>;
+                }
+            ).__threadCloseDuration
+    );
+    expect(closeDuration).toBeGreaterThan(200);
+    await expect(panel).toHaveCount(0);
     await peer.chat.send.mutate({
         chatId: parentChatId,
         content: 'Reply sent while the Thread was closed',
@@ -244,8 +305,10 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     await page.getByRole('button', { name: /4 replies/u }).click();
     await expect(page.getByRole('button', { name: 'Back to chat' })).toBeVisible();
     await page.getByRole('button', { name: 'View in channel' }).click();
-    await expect(page.getByText(anchorText, { exact: true })).toBeVisible();
     await expect(panel).toHaveCount(0);
+    await expect(
+        page.getByLabel('Messages', { exact: true }).getByText(anchorText, { exact: true })
+    ).toBeVisible();
 });
 
 test('an Agent reply reaches an already-open Thread live and after reconnect', async ({ page }) => {

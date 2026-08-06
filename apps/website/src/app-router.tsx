@@ -70,22 +70,16 @@ export function createAppRouter() {
                                             path: 'search',
                                             lazy: lazyRoute(
                                                 serverRouteModules.search,
-                                                'ServerSearchPage'
+                                                'SearchRoute'
                                             ),
                                         },
                                         {
                                             path: 'chats/:chatId',
-                                            lazy: lazyRoute(
-                                                serverRouteModules.chat,
-                                                'ServerChatPage'
-                                            ),
+                                            lazy: lazyRoute(serverRouteModules.chat, 'ChatRoute'),
                                         },
                                         {
                                             path: 'tasks',
-                                            lazy: lazyRoute(
-                                                serverRouteModules.tasks,
-                                                'ServerTasksPage'
-                                            ),
+                                            lazy: lazyRoute(serverRouteModules.tasks, 'TasksPage'),
                                         },
                                         {
                                             path: 'reminders',
@@ -98,14 +92,14 @@ export function createAppRouter() {
                                             path: 'members',
                                             lazy: lazyRoute(
                                                 serverRouteModules.members,
-                                                'ServerMembersPage'
+                                                'MembersPage'
                                             ),
                                             children: [
                                                 {
                                                     index: true,
                                                     lazy: lazyRoute(
                                                         serverRouteModules.members,
-                                                        'ServerMembersEmptyPage'
+                                                        'MembersEmptyPage'
                                                     ),
                                                 },
                                                 {
@@ -116,21 +110,21 @@ export function createAppRouter() {
                                                     path: 'agents/:agentId/:tab',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.members,
-                                                        'ServerAgentPage'
+                                                        'AgentPage'
                                                     ),
                                                 },
                                                 {
                                                     path: 'humans',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.members,
-                                                        'ServerHumanDirectoryPage'
+                                                        'HumanDirectoryPage'
                                                     ),
                                                 },
                                                 {
                                                     path: 'humans/:userId',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.members,
-                                                        'ServerHumanPage'
+                                                        'HumanPage'
                                                     ),
                                                 },
                                             ],
@@ -140,6 +134,12 @@ export function createAppRouter() {
                                             lazy: lazyRoute(
                                                 serverRouteModules.computers,
                                                 'ServerComputersPage'
+                                            ),
+                                        },
+                                        {
+                                            path: 'connections',
+                                            element: (
+                                                <Navigate replace to="../settings/connections" />
                                             ),
                                         },
                                         {
@@ -157,7 +157,7 @@ export function createAppRouter() {
                                                     path: ':section',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.settingsSection,
-                                                        'ServerSettingsSectionPage'
+                                                        'SettingsSectionRoute'
                                                     ),
                                                 },
                                             ],
@@ -169,13 +169,6 @@ export function createAppRouter() {
                                     ],
                                 },
                             ],
-                        },
-                        {
-                            path: 's/:slug/connections',
-                            lazy: lazyRoute(
-                                () => import('./routes/app/server-connections-page.tsx'),
-                                'ServerConnectionsPage'
-                            ),
                         },
                         {
                             path: 'computer/approve',

@@ -13,15 +13,15 @@ export function cachedRouteModule<TModule>(load: () => Promise<TModule>) {
 }
 
 export const serverRouteModules = {
-    chat: cachedRouteModule(() => import('./server-chat-page.tsx')),
+    chat: cachedRouteModule(() => import('./chat-route.tsx')),
     computers: cachedRouteModule(() => import('./server-computers-page.tsx')),
     default: cachedRouteModule(() => import('./server-default-page.tsx')),
-    members: cachedRouteModule(() => import('./server-members-page.tsx')),
+    members: cachedRouteModule(() => import('./members-page.tsx')),
     reminders: cachedRouteModule(() => import('./server-reminders-page.tsx')),
-    search: cachedRouteModule(() => import('./server-search-page.tsx')),
+    search: cachedRouteModule(() => import('./search-route.tsx')),
     settings: cachedRouteModule(() => import('./server-settings-page.tsx')),
-    settingsSection: cachedRouteModule(() => import('./server-settings-section-page.tsx')),
-    tasks: cachedRouteModule(() => import('./server-tasks-page.tsx')),
+    settingsSection: cachedRouteModule(() => import('./settings-route.tsx')),
+    tasks: cachedRouteModule(() => import('./tasks-page.tsx')),
 };
 
 const routeModulesBySection: Record<

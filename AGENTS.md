@@ -86,7 +86,7 @@ so `docs:list` routes future agents correctly.
 ## Tavern App UI
 
 - For React route, hook, query, realtime, optimistic UI, or state architecture work, use the
-  `react-best-practices` skill and read `docs/internals/react.md`.
+  `architect-react-features` skill and read `docs/internals/react.md`.
 - The app is sync-first. Render the best synced data we have even when Runtime is offline or
   reconnecting.
 - Runtime connection state belongs in a focused hook or small UI surface such as a badge. Avoid

@@ -64,7 +64,7 @@ test('creates Cove after inventory is reported and fails closed on unreported co
     await expect(resetConfirmation).toContainText('kept');
     await resetConfirmation.getByRole('button', { name: 'Cancel' }).click();
 
-    await page.getByRole('button', { name: 'Edit' }).click();
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     const runtimeDialog = page.getByRole('dialog', { name: 'Runtime Config' });
     await runtimeDialog.getByLabel('Model').click();
     await page.getByRole('option', { name: 'GPT-5.6 Terra' }).click();

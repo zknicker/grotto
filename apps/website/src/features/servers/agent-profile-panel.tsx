@@ -9,7 +9,15 @@ import type { ServerDetail } from '../../lib/grotto-server.tsx';
 import { ChatSidePaneShell } from '../chats/chat-side-pane-shell.tsx';
 import { AgentProfilePane } from '../members/agent-profile/agent-profile.tsx';
 
-export function AgentProfilePanel({ chatId, server }: { chatId: string; server: ServerDetail }) {
+export function AgentProfilePanel({
+    chatId,
+    server,
+    takeover = false,
+}: {
+    chatId: string;
+    server: ServerDetail;
+    takeover?: boolean;
+}) {
     const agentId = useAgentProfilePane(chatId);
     const activeSidePane = useChatSidePane(chatId);
     const agent = useAgent(server.id, agentId ?? undefined);
@@ -19,6 +27,7 @@ export function AgentProfilePanel({ chatId, server }: { chatId: string; server: 
         <ChatSidePaneShell
             label="Agent profile"
             open={activeSidePane === 'profile' && agentId !== null}
+            takeover={takeover}
         >
             {(width) =>
                 unavailable ? (
@@ -42,7 +51,7 @@ export function AgentProfilePanel({ chatId, server }: { chatId: string; server: 
                     </div>
                 ) : agent.data ? (
                     <div
-                        className="flex h-full min-h-0 flex-col"
+                        className="flex h-full min-h-0 min-w-0 flex-1 flex-col"
                         style={{ width: width ?? undefined }}
                     >
                         <AgentProfilePane

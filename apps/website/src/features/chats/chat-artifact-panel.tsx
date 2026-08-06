@@ -16,14 +16,16 @@ export function ChatArtifactPanel({
     open = true,
     serverId,
     state,
+    takeover = false,
 }: {
     agentId: string;
     open?: boolean;
     serverId?: string;
     state: ChatArtifactPanelState;
+    takeover?: boolean;
 }) {
     return (
-        <ChatSidePaneShell label="Artifacts" open={open && state.visible}>
+        <ChatSidePaneShell label="Artifacts" open={open && state.visible} takeover={takeover}>
             {(width) => (
                 <ArtifactPanelBody
                     agentId={agentId}
@@ -56,9 +58,12 @@ function ArtifactPanelBody({
         activeTarget && 'agentId' in activeTarget ? (activeTarget.agentId ?? agentId) : agentId;
 
     return (
-        <div className="flex h-full min-h-0 flex-col" style={width ? { width } : undefined}>
+        <div
+            className="flex h-full min-h-0 min-w-0 flex-1 flex-col"
+            style={width ? { width } : undefined}
+        >
             <header
-                className="relative z-40 flex h-10 shrink-0 items-center border-separator border-b bg-background"
+                className="relative z-40 flex h-12 shrink-0 items-center border-separator border-b bg-background"
                 data-window-drag-region=""
             >
                 <ArtifactPanelChrome

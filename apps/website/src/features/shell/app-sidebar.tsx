@@ -1,139 +1,71 @@
-import { Button } from '@heroui/react';
-import { Sidebar } from '@heroui-pro/react';
-import { Plus } from '@hugeicons/core-free-icons';
-import { ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent, HostedChat } from '@tavern/api';
-import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
-import { Icon } from '../../components/ui/icon.tsx';
+import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAgents } from '../../hooks/members/use-agents.ts';
+import { useChats } from '../../hooks/servers/use-chats.ts';
+import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
-import { AgentAvatar } from '../members/agent-avatar.tsx';
+import { type ChannelAgentOption, ChannelDialog } from '../chats/channel-dialog.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
-import { ShellSidebarPageContent } from './shell-sidebar.tsx';
-import { SidebarAccount } from './sidebar-account.tsx';
+import { ChatNavigation } from './chat-navigation.tsx';
 
 /** Contextual sidebar for the server: channels and DMs. */
 export function AppSidebar({
-    agents,
-    chats,
     currentServer,
-    onCreateChannel,
     selectedChatId,
 }: {
-    agents: HostedAgent[];
-    chats: HostedChat[];
     currentServer: ServerSummary;
-    onCreateChannel: () => void;
     selectedChatId: string | undefined;
 }) {
+    const navigate = useNavigate();
+    const agents = useAgents(currentServer.id);
+    const chats = useChats(currentServer.id);
+    const createChannel = useCreateServerChannel();
+    const [creatingChannel, setCreatingChannel] = React.useState(false);
     const slug = currentServer.slug;
-    const agentById = new Map(agents.map((agent) => [agent.id, agent]));
-    const channels = chats.filter((chat) => chat.kind === 'channel');
-    const directMessages = chats.filter((chat) => chat.kind === 'dm');
+    const agentItems = agents.data ?? [];
+    const chatItems = chats.data ?? [];
+    const channelAgents: ChannelAgentOption[] = agentItems.map((agent) => ({
+        avatarUrl: agent.avatarUrl,
+        id: agent.id,
+        name: agent.displayName,
+    }));
 
     return (
-        <ShellSidebarPageContent
-            band={
-                <div className="flex w-full items-center justify-between pe-1">
-                    <Sidebar.GroupLabel>Channels</Sidebar.GroupLabel>
-                    <Button
-                        aria-label="New channel"
-                        isIconOnly
-                        onPress={onCreateChannel}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        <Icon aria-hidden="true" icon={Plus} size={16} />
-                    </Button>
-                </div>
-            }
-            footer={<SidebarAccount />}
-        >
-            <ChatGroup
-                agents={agentById}
-                chats={channels}
-                label="Channels"
-                selectedChatId={selectedChatId}
-                showLabel={false}
-                slug={slug}
-            />
-            <ChatGroup
-                agents={agentById}
-                chats={directMessages}
-                label="Direct messages"
+        <>
+            <ChatNavigation
+                agents={agentItems}
+                chats={chatItems}
+                onCreateChannel={() => {
+                    createChannel.reset();
+                    setCreatingChannel(true);
+                }}
                 selectedChatId={selectedChatId}
                 slug={slug}
             />
-            <Sidebar.Menu aria-label="Archive">
-                <Sidebar.MenuItem id="archived" textValue="Archived">
-                    <Sidebar.MenuIcon>
-                        <Icon aria-hidden="true" icon={ArchiveIcon} />
-                    </Sidebar.MenuIcon>
-                    <Sidebar.MenuItemContent>
-                        <Sidebar.MenuLabel>Archived</Sidebar.MenuLabel>
-                    </Sidebar.MenuItemContent>
-                </Sidebar.MenuItem>
-            </Sidebar.Menu>
-        </ShellSidebarPageContent>
+            <ChannelDialog
+                agents={channelAgents}
+                agentsPending={agents.isPending}
+                errorMessage={createChannel.error?.message ?? null}
+                initialAgentIds={[]}
+                initialDisplayName=""
+                isPending={createChannel.isPending}
+                onClose={() => {
+                    createChannel.reset();
+                    setCreatingChannel(false);
+                }}
+                onSubmit={async ({ agentIds, displayName }) => {
+                    const channel = await createChannel.mutateAsync({
+                        agentIds,
+                        name: displayName,
+                        serverId: currentServer.id,
+                    });
+                    setCreatingChannel(false);
+                    navigate(serverChatRoute(slug, channel.id));
+                }}
+                open={creatingChannel}
+                submitLabel="Create"
+                title="New channel"
+            />
+        </>
     );
-}
-
-function ChatGroup({
-    agents,
-    chats,
-    label,
-    selectedChatId,
-    showLabel = true,
-    slug,
-}: {
-    agents: Map<string, HostedAgent>;
-    chats: HostedChat[];
-    label: string;
-    selectedChatId: string | undefined;
-    showLabel?: boolean;
-    slug: string;
-}) {
-    return (
-        <Sidebar.Group>
-            {showLabel ? <Sidebar.GroupLabel>{label}</Sidebar.GroupLabel> : null}
-            <Sidebar.Menu aria-label={label}>
-                {chats.map((chat) => {
-                    const agent = chat.peerAgentId ? (agents.get(chat.peerAgentId) ?? null) : null;
-                    const name =
-                        chat.kind === 'channel'
-                            ? (chat.name ?? 'channel')
-                            : (agent?.displayName ?? chat.peerAgentDisplayName ?? 'Direct message');
-                    return (
-                        <Sidebar.MenuItem
-                            href={serverChatRoute(slug, chat.id)}
-                            id={chat.id}
-                            isCurrent={chat.id === selectedChatId}
-                            key={chat.id}
-                            textValue={name}
-                        >
-                            <Sidebar.MenuIcon>
-                                <ChatIcon agent={agent} />
-                            </Sidebar.MenuIcon>
-                            <Sidebar.MenuItemContent>
-                                <Sidebar.MenuLabel>{name}</Sidebar.MenuLabel>
-                                {chat.peerAgentRetired ? (
-                                    <Sidebar.MenuChip>Retired</Sidebar.MenuChip>
-                                ) : null}
-                                {chat.unreadCount > 0 ? (
-                                    <Sidebar.MenuChip>{chat.unreadCount}</Sidebar.MenuChip>
-                                ) : null}
-                            </Sidebar.MenuItemContent>
-                        </Sidebar.MenuItem>
-                    );
-                })}
-            </Sidebar.Menu>
-        </Sidebar.Group>
-    );
-}
-
-function ChatIcon({ agent }: { agent: HostedAgent | null }) {
-    if (!agent) {
-        return <ChannelIconBox size="sidebar" />;
-    }
-
-    return <AgentAvatar agent={agent} />;
 }

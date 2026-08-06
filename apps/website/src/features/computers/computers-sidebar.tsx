@@ -5,12 +5,11 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { StatusDot } from '../../components/ui/status-dot.tsx';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { serverComputersRoute } from '../servers/server-routes.ts';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
-import { computerHealthLabel, computerHealthStatus } from './computer-detail.tsx';
-import { computerLabel } from './presentation.ts';
+import { computerHealthLabel, computerHealthStatus, computerLabel } from './presentation.ts';
 
 /** Computers section sidebar: the attached-Computer roster as navigation. */
 export function ComputersSidebar({
@@ -22,7 +21,7 @@ export function ComputersSidebar({
     serverId: string;
     slug: string;
 }) {
-    const computers = grottoTrpc.computer.list.useQuery({ serverId }, { enabled: isActive });
+    const computers = useComputers(serverId, { enabled: isActive });
     const [searchParams] = useSearchParams();
     const [adding, setAdding] = React.useState(false);
     const items = computers.data ?? [];

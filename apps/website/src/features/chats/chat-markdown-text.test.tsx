@@ -52,6 +52,32 @@ test('ChatMarkdownText renders compact heading blocks', () => {
     expect(markup).not.toContain('# Test');
 });
 
+test('ChatMarkdownText renders settled chat with HeroUI Markdown', () => {
+    const markup = renderToStaticMarkup(
+        <ChatMarkdownText content={'A list:\n\n- one\n- two\n\n> useful context'} />
+    );
+
+    expect(markup).toContain('data-slot="markdown"');
+    expect(markup).toContain('<ul>');
+    expect(markup).toContain('<blockquote>');
+});
+
+test('ChatMarkdownText renders rich references as shared chips', () => {
+    const markup = renderToStaticMarkup(
+        <ChatMarkdownText
+            content={
+                'Ask [@Blippy](agent://agt_blippy) with [$design](skill://design) about https://example.com'
+            }
+        />
+    );
+
+    expect(markup).not.toContain('agent://agt_blippy');
+    expect(markup).not.toContain('skill://design');
+    expect(markup).toContain('Blippy');
+    expect(markup).toContain('design');
+    expect(markup).toContain('example.com/favicon.ico');
+});
+
 test('ChatMarkdownText renders Tavern resource links', () => {
     const markup = renderToStaticMarkup(
         <ArtifactPanelOpenProvider onOpen={() => undefined}>

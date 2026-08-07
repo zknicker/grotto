@@ -69,10 +69,6 @@ describe('Runtime agent and agent engine reads', () => {
             enabledSkillIds: ['tavern-agent', 'visuals'],
             id: 'agt_otto_00000001',
             isAdmin: true,
-            modelName: {
-                model: 'gpt-4.1-mini',
-                provider: 'openai',
-            },
             name: 'Otto',
         });
     });

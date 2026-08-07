@@ -446,7 +446,7 @@ compaction safety (now our entire memory story per D3); `## Capabilities`;
 | `### Third-party integrations` (Agent Login) | Plugins are Runtime-owned; revisit post-WS6. |
 | `### Third-party app message safety` | No inbound third-party app events yet; adopt verbatim the day they exist. |
 | Action cards | Predicated on Member-role agents + multi-human roles; deferred to WS6 era, not rejected. |
-| `## Manual` | Deferred (tier 3); seeded notes + skills cover it. |
+| `## Manual` | The initial authenticated, read-only tracer landed in PRD-187; PRD-191 owns the full corpus. |
 | PowerShell variant, `slock` aliasing, `## Runtime Profile Control` | N/A. |
 
 ### Grotto sections added on top

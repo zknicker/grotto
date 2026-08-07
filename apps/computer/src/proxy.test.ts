@@ -23,9 +23,11 @@ afterEach(() => {
 
 test('the loopback proxy forwards inbox reads to the canonical Server ledger', async () => {
     const requested: string[] = [];
+    const forwardedAuth: string[] = [];
     const upstream = Bun.serve({
         fetch(request) {
             requested.push(new URL(request.url).pathname);
+            forwardedAuth.push(request.headers.get('authorization') ?? '');
             return Response.json({ messages: [], more: false });
         },
         hostname: '127.0.0.1',
@@ -41,7 +43,24 @@ test('the loopback proxy forwards inbox reads to the canonical Server ledger', a
         const headers = { authorization: 'Bearer local-token' };
         expect((await fetch(`${proxy.url}/api/agent/inbox`, { headers })).status).toBe(200);
         expect((await fetch(`${proxy.url}/api/agent/events`, { headers })).status).toBe(200);
-        expect(requested).toEqual(['/api/agent/inbox', '/api/agent/events']);
+        expect(
+            (
+                await fetch(
+                    `${proxy.url}/api/agent/manual/get?topic=index&intent=read%20the%20guide&reason=choose%20the%20next%20step`,
+                    { headers }
+                )
+            ).status
+        ).toBe(200);
+        expect(requested).toEqual([
+            '/api/agent/inbox',
+            '/api/agent/events',
+            '/api/agent/manual/get',
+        ]);
+        expect(forwardedAuth).toEqual([
+            'Bearer runner-token',
+            'Bearer runner-token',
+            'Bearer runner-token',
+        ]);
     } finally {
         proxy.close();
     }

@@ -379,6 +379,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/manual/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one complete authenticated Manual topic. */
+        get: operations["getAgentManualTopic"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/manual/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search bounded authenticated Manual topic metadata. */
+        get: operations["searchAgentManual"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/messages/search": {
         parameters: {
             query?: never;
@@ -937,6 +971,31 @@ export interface components {
                 after: number;
                 unread_after: number;
             };
+        };
+        AgentManualTopic: {
+            body: string;
+            id: string;
+            /** @enum {string} */
+            kind: "index" | "overview" | "recipe-index" | "recipe";
+            related: string[];
+            summary: string;
+            title: string;
+        };
+        AgentManualTopicResponse: {
+            topic: components["schemas"]["AgentManualTopic"];
+        };
+        AgentManualSearchResult: {
+            id: string;
+            /** @enum {string} */
+            kind: "index" | "overview" | "recipe-index" | "recipe";
+            summary: string;
+            title: string;
+        };
+        AgentManualSearchResponse: {
+            query: string;
+            results: components["schemas"]["AgentManualSearchResult"][];
+            /** @enum {string} */
+            scope: "all" | "recipes";
         };
         AgentDirectoryPerson: {
             handle: string;
@@ -2273,6 +2332,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentHistoryResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    getAgentManualTopic: {
+        parameters: {
+            query: {
+                topic: string;
+                intent: string;
+                reason: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete Manual topic. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentManualTopicResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    searchAgentManual: {
+        parameters: {
+            query: {
+                q: string;
+                intent: string;
+                reason: string;
+                scope?: "all" | "recipes";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded Manual search results. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentManualSearchResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

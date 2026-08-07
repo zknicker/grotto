@@ -42,6 +42,8 @@ describe('Tavern OpenAPI contract', () => {
             '/api/turns/{run_id}/file-changes',
             '/api/agent/messages/send',
             '/api/agent/history',
+            '/api/agent/manual/get',
+            '/api/agent/manual/search',
             '/api/agent/messages/search',
             '/api/agent/messages/{id}',
             '/api/agent/server',
@@ -84,6 +86,8 @@ describe('Tavern OpenAPI contract', () => {
         expect(document.components?.schemas).toHaveProperty('ThreadSummary');
         expect(document.components?.schemas).toHaveProperty('AgentSendResponse');
         expect(document.components?.schemas).toHaveProperty('AgentHistoryResponse');
+        expect(document.components?.schemas).toHaveProperty('AgentManualTopic');
+        expect(document.components?.schemas).toHaveProperty('AgentManualSearchResponse');
         expect(document.components?.schemas).toHaveProperty('AgentTaskRow');
         expect(document.components?.schemas).toHaveProperty('AgentReminder');
         expect(document.components?.schemas).toHaveProperty('AgentAttachment');

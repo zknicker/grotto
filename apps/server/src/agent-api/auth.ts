@@ -15,9 +15,10 @@ export function sendAgentApiError(
     reply: FastifyReply,
     status: number,
     code: string,
-    message: string
+    message: string,
+    options: { nextAction?: string } = {}
 ) {
-    return reply.code(status).send({ code, message });
+    return reply.code(status).send({ code, message, ...options });
 }
 
 export function sendAgentReadError(reply: FastifyReply, cause: unknown) {

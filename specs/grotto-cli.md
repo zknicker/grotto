@@ -306,10 +306,11 @@ per family:
 | profile | `show update` | WS5 (landed) | `show [@handle]`, `update --description` (≤500 chars); no display-name flag (D2) |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; message anchors only |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
+| manual | `get <topic>`, `search <keywords>` | PRD-187 (landed) | Authenticated, read-only Server-hosted topics; `--intent`/`--reason`; optional `--scope recipes` |
 
 Stubs are real registered commands with real `--help`; they fail honestly with
 a stable code and never fake data. Not copied from Raft: `agent login/bridge`,
-`mention *`, `manual`, `integration`, `action` (see program contract).
+`mention *`, `integration`, `action` (see program contract).
 
 ## 8. Server API (`/api/agent/*`)
 
@@ -326,6 +327,8 @@ POST /api/agent/messages/send      { target, content, attachmentIds?, sendDraft?
                                        omittedMessageCount, formalMentionCount,
                                        reholdCount }
 GET  /api/agent/history            ?target=&before=&after=&around=&limit=
+GET  /api/agent/manual/get         ?topic=&intent=&reason=
+GET  /api/agent/manual/search      ?q=&intent=&reason=&scope=&limit=
 GET  /api/agent/messages/search    ?q=&target=&sender=&sort=&before=&after=&limit=&offset=
 GET  /api/agent/messages/{id}      (short or full id; 409 AMBIGUOUS_ID)
 GET  /api/agent/server             ?channels=&agents=&humans=&joined=&query=&limit=&offset=

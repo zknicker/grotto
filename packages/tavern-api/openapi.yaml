@@ -580,6 +580,66 @@ paths:
                 $ref: '#/components/schemas/AgentHistoryResponse'
         default:
           $ref: '#/components/responses/AgentError'
+  /api/agent/manual/get:
+    get:
+      operationId: getAgentManualTopic
+      tags: [Agent CLI]
+      summary: Read one complete authenticated Manual topic.
+      parameters:
+        - name: topic
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9_/-]{0,127}$' }
+        - name: intent
+          in: query
+          required: true
+          schema: { type: string, minLength: 12, maxLength: 500 }
+        - name: reason
+          in: query
+          required: true
+          schema: { type: string, minLength: 12, maxLength: 500 }
+      responses:
+        '200':
+          description: Complete Manual topic.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentManualTopicResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/manual/search:
+    get:
+      operationId: searchAgentManual
+      tags: [Agent CLI]
+      summary: Search bounded authenticated Manual topic metadata.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 500 }
+        - name: intent
+          in: query
+          required: true
+          schema: { type: string, minLength: 12, maxLength: 500 }
+        - name: reason
+          in: query
+          required: true
+          schema: { type: string, minLength: 12, maxLength: 500 }
+        - name: scope
+          in: query
+          schema: { type: string, enum: [all, recipes], default: all }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 20, default: 20 }
+      responses:
+        '200':
+          description: Bounded Manual search results.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentManualSearchResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
   /api/agent/messages/search:
     get:
       operationId: searchAgentMessages
@@ -1361,6 +1421,47 @@ components:
           properties:
             after: { type: integer, minimum: 0 }
             unread_after: { type: integer, minimum: 0 }
+    AgentManualTopic:
+      type: object
+      additionalProperties: false
+      required: [body, id, kind, related, summary, title]
+      properties:
+        body: { type: string, minLength: 1 }
+        id: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9_/-]{0,127}$' }
+        kind: { type: string, enum: [index, overview, recipe-index, recipe] }
+        related:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9_/-]{0,127}$' }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+    AgentManualTopicResponse:
+      type: object
+      additionalProperties: false
+      required: [topic]
+      properties:
+        topic:
+          $ref: '#/components/schemas/AgentManualTopic'
+    AgentManualSearchResult:
+      type: object
+      additionalProperties: false
+      required: [id, kind, summary, title]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9_/-]{0,127}$' }
+        kind: { type: string, enum: [index, overview, recipe-index, recipe] }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+    AgentManualSearchResponse:
+      type: object
+      additionalProperties: false
+      required: [query, results, scope]
+      properties:
+        query: { type: string, minLength: 1, maxLength: 500 }
+        results:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/AgentManualSearchResult'
+        scope: { type: string, enum: [all, recipes] }
     AgentDirectoryPerson:
       type: object
       additionalProperties: false

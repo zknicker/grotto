@@ -425,6 +425,7 @@ const schemaStatements = [
         agent_id text NOT NULL,
         chat_id text NOT NULL,
         run_id text NOT NULL,
+        capabilities text[] NOT NULL DEFAULT ARRAY['manual']::text[],
         token_hash text NOT NULL UNIQUE
             CONSTRAINT agent_runner_credentials_token_hash_shape CHECK (token_hash ~ '^[a-f0-9]{64}$'),
         created_at timestamptz NOT NULL DEFAULT now(),
@@ -442,6 +443,32 @@ const schemaStatements = [
     );`,
     `CREATE INDEX agent_runner_credentials_agent_idx
         ON agent_runner_credentials (server_id, agent_id, created_at DESC);`,
+    `CREATE TABLE manual_lookup_audit (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT manual_lookup_audit_id_shape CHECK (id ~ '^aml_[A-Za-z0-9_-]{16}$'),
+        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        agent_id text NOT NULL,
+        runner_id text NOT NULL,
+        operation text NOT NULL
+            CONSTRAINT manual_lookup_audit_operation CHECK (operation IN ('get', 'search')),
+        topic_id text,
+        query text,
+        intent text NOT NULL
+            CONSTRAINT manual_lookup_audit_intent_length CHECK (char_length(intent) BETWEEN 12 AND 500),
+        reason text NOT NULL
+            CONSTRAINT manual_lookup_audit_reason_length CHECK (char_length(reason) BETWEEN 12 AND 500),
+        run_id text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT manual_lookup_audit_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT manual_lookup_audit_target_shape CHECK (
+            (operation = 'get' AND topic_id IS NOT NULL AND query IS NULL)
+            OR (operation = 'search' AND topic_id IS NULL AND query IS NOT NULL)
+        )
+    );`,
+    `CREATE INDEX manual_lookup_audit_server_time_idx
+        ON manual_lookup_audit (server_id, created_at DESC);`,
     // Compact turn activity. Durable collaboration and this summary live
     // Server-side; the raw transcript, logs, and workspace stay Computer-local
     // behind the authorized live relay and never land here.

@@ -135,6 +135,12 @@ const REQUIREMENTS: PromptRequirement[] = [
         prompt: 'full',
     },
     {
+        capability: 'Manual command family and overview pointer',
+        expected:
+            '**Manual** — `grotto manual get <topic>`, `grotto manual search <keywords>`; start with `grotto manual get grotto-cli-overview`.',
+        prompt: 'full',
+    },
+    {
         capability: 'help discoverability',
         expected: 'Run any subcommand with `--help` for syntax.',
         prompt: 'full',

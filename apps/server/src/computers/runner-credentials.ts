@@ -1,5 +1,9 @@
 import { randomBytes } from 'node:crypto';
-import type { HostedRunnerMintRequest, HostedRunnerRevokeRequest } from '@tavern/api';
+import {
+    type HostedRunnerMintRequest,
+    type HostedRunnerRevokeRequest,
+    manualRunnerCapability,
+} from '@tavern/api';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -13,6 +17,7 @@ import { ComputerSetupDeniedError, hashComputerSecret } from './service.ts';
 
 export interface ResolvedRunner {
     agentId: string;
+    capabilities: string[];
     chatId: string;
     computerId: string;
     runId: string;
@@ -60,6 +65,7 @@ export async function mintRunnerCredential(db: GrottoDatabase, input: HostedRunn
     await db.insert(agentRunnerCredentialsTable).values({
         agentId: input.agentId,
         chatId: input.chatId,
+        capabilities: [manualRunnerCapability],
         computerId: computer.id,
         expiresAt: new Date(Date.now() + runnerLifetimeMs),
         id: runnerId,
@@ -118,6 +124,7 @@ export async function resolveRunnerCredential(
         .select({
             agentId: agentRunnerCredentialsTable.agentId,
             chatId: agentRunnerCredentialsTable.chatId,
+            capabilities: agentRunnerCredentialsTable.capabilities,
             computerId: agentRunnerCredentialsTable.computerId,
             runId: agentRunnerCredentialsTable.runId,
             runnerId: agentRunnerCredentialsTable.id,

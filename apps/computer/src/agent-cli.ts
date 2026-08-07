@@ -2,6 +2,7 @@ import { AgentCliError, renderAgentCliError } from './agent-cli/agent-error.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
 import { INBOX_SUBCOMMANDS } from './agent-cli/commands/agent-inbox.ts';
+import { MANUAL_SUBCOMMANDS } from './agent-cli/commands/agent-manual.ts';
 import { MESSAGE_SUBCOMMANDS } from './agent-cli/commands/agent-message.ts';
 import { PROFILE_SUBCOMMANDS } from './agent-cli/commands/agent-profile.ts';
 import { REMINDER_SUBCOMMANDS } from './agent-cli/commands/agent-reminder.ts';
@@ -16,6 +17,7 @@ const commandGroups = {
     attachment: ATTACHMENT_SUBCOMMANDS,
     channel: CHANNEL_SUBCOMMANDS,
     inbox: INBOX_SUBCOMMANDS,
+    manual: MANUAL_SUBCOMMANDS,
     message: MESSAGE_SUBCOMMANDS,
     profile: PROFILE_SUBCOMMANDS,
     reminder: REMINDER_SUBCOMMANDS,

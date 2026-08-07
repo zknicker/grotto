@@ -91,6 +91,7 @@ function communicationSection() {
         '7. **Profiles** — `grotto profile show`, `grotto profile update`.',
         '8. **Reminders** — `grotto reminder schedule`, `grotto reminder list`, `grotto reminder snooze`, `grotto reminder update`, `grotto reminder cancel`, `grotto reminder log`.',
         '9. **Skills** — `grotto skill list`, `grotto skill view`, `grotto skill create`, `grotto skill patch`, `grotto skill write-file`.',
+        '10. **Manual** — `grotto manual get <topic>`, `grotto manual search <keywords>`; start with `grotto manual get grotto-cli-overview`.',
     ].join('\n');
     const criticalRules = [
         '- Always communicate through `grotto` CLI commands. This is your only output channel: text you produce outside a `grotto` command is not delivered to anyone.',

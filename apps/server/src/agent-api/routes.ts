@@ -17,6 +17,7 @@ import {
     readAgentServerDirectory,
 } from './directory.ts';
 import { registerAgentInboxRoutes } from './inbox-routes.ts';
+import { registerAgentManualRoutes } from './manual.ts';
 import { registerAgentMcpRoutes } from './mcp-routes.ts';
 import { readAgentHistory, resolveAgentMessage, searchAgentMessages } from './message-read.ts';
 import { readAgentProfile, updateAgentProfile } from './profile.ts';
@@ -71,6 +72,7 @@ export function registerAgentApiRoutes(
 ) {
     registerAgentAttachmentRoutes(app, { db: options.db, root: options.attachmentRoot });
     registerAgentInboxRoutes(app, options.db);
+    registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });
     registerAgentReactionRoutes(app, options.db);
     registerAgentReminderRoutes(app, options.db);

@@ -17,14 +17,29 @@ export const hostedAgentManualTopicKindSchema = z.enum([
     'recipe',
 ]);
 
+export const hostedAgentManualRecipeClassSchema = z.enum([
+    'archetype',
+    'decision',
+    'pattern',
+    'playbook',
+    'technique',
+]);
+export const hostedAgentManualDeliveryTierSchema = z.enum(['seeded', 'query']);
+
 export const hostedAgentManualTopicSchema = z
     .object({
         body: z.string().min(1),
+        class: hostedAgentManualRecipeClassSchema.optional(),
+        evidence: z.literal('verified').optional(),
         id: hostedAgentManualTopicIdSchema,
+        industries: z.array(z.string().min(1)).optional(),
         kind: hostedAgentManualTopicKindSchema,
+        prereqs: z.array(z.string().min(1)).optional(),
         related: z.array(hostedAgentManualTopicIdSchema),
         summary: z.string().min(1).max(500),
+        tier: hostedAgentManualDeliveryTierSchema.optional(),
         title: z.string().min(1).max(300),
+        triggers: z.array(z.string().min(1)).optional(),
     })
     .strict();
 

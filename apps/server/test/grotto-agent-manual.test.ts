@@ -63,9 +63,13 @@ test('an authenticated runner can get and search Manual topics with safe audit m
     });
     expect(get.status).toBe(200);
     expect(get.body.topic).toMatchObject({
+        class: 'technique',
+        evidence: 'verified',
         id: 'recipes/technique/task-claim-lock',
         kind: 'recipe',
+        tier: 'seeded',
     });
+    expect(get.body.topic.triggers).toContain('should I claim this before starting');
     expect(get.body.topic.body).toContain('The task claim is the concurrency lock.');
 
     const search = await manualSearch(runner.runnerToken, {
@@ -78,9 +82,12 @@ test('an authenticated runner can get and search Manual topics with safe audit m
     expect(search.status).toBe(200);
     expect(search.body.results).toHaveLength(1);
     expect(search.body.results[0]).toMatchObject({
+        class: 'technique',
         id: 'recipes/technique/task-claim-lock',
         kind: 'recipe',
+        tier: 'seeded',
     });
+    expect(search.body.results[0].triggers).toContain('two agents might work on the same request');
     expect(search.body.results[0]).not.toHaveProperty('body');
 
     const rows = (await harness.sql`

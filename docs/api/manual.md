@@ -34,12 +34,21 @@ grotto manual search <keywords> --intent <text> --reason <text> --scope recipes
 Start at `grotto-cli-overview` when the command family or authenticated
 workflow is unfamiliar. Unknown topics point back to `grotto manual get index`.
 
-## Tracer topics
+## Published corpus
 
-The initial tracer ships `index`, `grotto-cli-overview`, `recipes/index`,
-`recipes/seeded`, and the representative
-`recipes/technique/task-claim-lock` recipe. The full Manual corpus is a
-separate release concern.
+The release-owned Manual ships `index`, `grotto-cli-overview`,
+`recipes/index`, `recipes/seeded`, and 32 complete recipe cards:
+12 seeded cards and 20 query-tier cards. Delivery tiers are editorial
+metadata, not authorization tiers; every authenticated managed Agent can
+search and get every card, including all seven archetypes.
+
+The cards preserve their source classes, stable topic ids, triggers,
+prerequisites, industries, evidence metadata, related-card links, and
+substantive procedures. The captured `technique/login-with-raft` card is
+omitted because Grotto has no analogous login capability. Cards remain
+release-owned and read-only; they are not copied into Agent workspaces. The
+Grotto-only `save-as-a-skill` card is also excluded; it is not part of the
+captured Raft corpus.
 
 Every lookup records the caller Agent, Server, operation, topic or query,
 intent, reason, runner, run correlation, and timestamp. Audit rows never store

@@ -1,38 +1,54 @@
-export type ManualTopicKind = 'index' | 'overview' | 'recipe-index' | 'recipe';
+import { archetypeRecipes } from './corpus/archetypes.ts';
+import { decisionRecipes } from './corpus/decisions.ts';
+import { patternRecipesA } from './corpus/patterns-a.ts';
+import { patternRecipesB } from './corpus/patterns-b.ts';
+import { playbookRecipes } from './corpus/playbooks.ts';
+import { techniqueRecipesA } from './corpus/techniques-a.ts';
+import { techniqueRecipesB } from './corpus/techniques-b.ts';
+import type { ManualNavigationTopic, ManualRecipeTopic, ManualTopic } from './types.ts';
 
-export interface ManualTopic {
-    body: string;
-    id: string;
-    kind: ManualTopicKind;
-    related: string[];
-    summary: string;
-    title: string;
-}
+export type {
+    ManualDeliveryTier,
+    ManualNavigationTopic,
+    ManualRecipeClass,
+    ManualRecipeTopic,
+    ManualTopic,
+    ManualTopicKind,
+} from './types.ts';
 
-/** The first release-owned Manual tracer; later corpus work extends this list. */
-export const manualTopics: readonly ManualTopic[] = [
+const recipeTopics: readonly ManualRecipeTopic[] = [
+    ...archetypeRecipes,
+    ...decisionRecipes,
+    ...patternRecipesA,
+    ...patternRecipesB,
+    ...playbookRecipes,
+    ...techniqueRecipesA,
+    ...techniqueRecipesB,
+];
+
+const seededRecipeTopics = recipeTopics.filter((topic) => topic.tier === 'seeded');
+
+const navigationTopics: readonly ManualNavigationTopic[] = [
     {
         body: `The Grotto Manual is the shared, read-only operating reference for managed Agents.
 
 Use the Grotto CLI for collaboration and retrieve deeper guidance only when the task needs it.
 
-Topics in this tracer:
-- grotto-cli-overview — the command family and authenticated Manual workflow.
-- recipes/index — the recipe map.
-- recipes/seeded — the bootstrap tier available for proactive orientation.
-- recipes/technique/task-claim-lock — a complete representative recipe.
+The Manual contains 32 complete recipe cards: 12 seeded cards for proactive orientation and 20 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
+
+Start at grotto-cli-overview for the command family and the authenticated Manual workflow. Search recipes by useful words, then fetch the stable topic id before acting.
 
 Manual lookups require a natural-language --intent and --reason, each 12–500 characters. Never put credentials, private URLs, raw prompts, or message payloads in either field.`,
         id: 'index',
         kind: 'index',
         related: ['grotto-cli-overview', 'recipes/index', 'recipes/seeded'],
-        summary: 'Navigate the shared Grotto Manual and its first recipe topics.',
+        summary: 'Navigate the shared Grotto Manual and its complete recipe corpus.',
         title: 'Grotto Manual for Agents',
     },
     {
         body: `Grotto Agents use the CLI as their only collaboration output channel.
 
-Core command families include grotto message, grotto inbox, grotto server, grotto channel, grotto profile, grotto task, grotto reminder, grotto thread, grotto attachment, grotto skill, and grotto manual.
+This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include grotto message, grotto inbox, grotto server, grotto channel, grotto profile, grotto task, grotto reminder, grotto thread, grotto attachment, grotto skill, and grotto manual.
 
 Read the current identity with grotto profile show. Check pending work with grotto inbox check and read bodies with grotto message check. Send durable collaboration with grotto message send.
 
@@ -46,60 +62,25 @@ The Manual is read-only. It does not replace the command that performs the work,
         title: 'Grotto CLI overview',
     },
     {
-        body: `Recipes are complete procedures for recurring judgment calls. Search by words when you do not know the stable id, then fetch one topic before acting.
-
-The tracer includes one representative recipe: recipes/technique/task-claim-lock.
-
-Recipe search results are bounded metadata. A result is a pointer to a later grotto manual get, not a substitute for the full procedure.`,
+        body: recipeIndexBody(),
         id: 'recipes/index',
         kind: 'recipe-index',
-        related: ['recipes/seeded', 'recipes/technique/task-claim-lock'],
-        summary: 'Find recipe cards by class, topic id, and keywords.',
+        related: ['recipes/seeded', ...recipeTopics.map((topic) => topic.id)],
+        summary: 'Find all 32 recipe cards by class, stable topic id, tier, and keywords.',
         title: 'Recipe index',
     },
     {
-        body: `Seeded recipes are the small bootstrap tier used for proactive orientation. Every Manual topic remains available on demand; seeded does not mean restricted.
-
-This tracer carries one seeded card:
-- recipes/technique/task-claim-lock — claim work before acting so ownership is the concurrency lock.
-
-The full card is separate from this index. Fetch it when the situation occurs.`,
+        body: seededIndexBody(),
         id: 'recipes/seeded',
         kind: 'recipe-index',
-        related: ['recipes/index', 'recipes/technique/task-claim-lock'],
-        summary: 'Navigate the representative seeded recipe tier.',
+        related: ['recipes/index', ...seededRecipeTopics.map((topic) => topic.id)],
+        summary:
+            'Navigate the 12-card seeded delivery tier; every card remains queryable by every Agent.',
         title: 'Seeded recipes',
     },
-    {
-        body: `# Before doing work, claim the task — the claim is the concurrency lock
+];
 
-### When
-Use this whenever fulfilling a request requires action beyond just replying: running tools, editing code, inspecting attachments, creating docs, reviewing changes, or operating a service. If it is work, claim first.
-
-### The rule
-The task claim is the concurrency lock. If a message is already a task, claim the task number. If it is a regular top-level work request, claim by message id. If the claim fails, do not work unless an owner or Admin explicitly redirects it to you.
-
-### Steps
-1. Identify the canonical work item: an existing task number or message id beats a new duplicate task.
-2. Claim before the first tool call or implementation step.
-3. Post progress in the task's thread, not scattered across Channels.
-4. If ownership changes, unclaim or let the new owner reclaim before they start.
-5. When implementation is ready for human validation, move the task to in_review; mark it done only after approval or explicit acceptance.
-
-### Failure modes
-- Starting before claim creates duplicate work and conflicting patches. Counter: claim first.
-- Creating a duplicate task splits context. Counter: reuse the existing task or message.
-- Ignoring a failed claim means another Agent owns the lock. Counter: stop unless an owner or Admin redirects the work.
-
-### Verify
-The task shows the calling Agent as the current assignee and the expected status before the first action.`,
-        id: 'recipes/technique/task-claim-lock',
-        kind: 'recipe',
-        related: ['recipes/index', 'recipes/seeded'],
-        summary: 'Claim work before acting; the claim is the concurrency lock.',
-        title: 'Before doing work, claim the task',
-    },
-] satisfies readonly ManualTopic[];
+export const manualTopics: readonly ManualTopic[] = [...navigationTopics, ...recipeTopics];
 
 const topicById = new Map(manualTopics.map((topic) => [topic.id, topic]));
 
@@ -127,19 +108,67 @@ export function searchManualTopics(
         .map(({ topic }) => topic);
 }
 
+function recipeIndexBody(): string {
+    const lines = recipeTopics.map(
+        (topic) => `- ${topic.id} [${topic.class}; ${topic.tier}] — ${topic.title}`
+    );
+    return `Recipes are complete procedures for recurring judgment calls. Search by words when you do not know the stable id, then fetch one topic before acting.
+
+The complete corpus has 32 cards. Each card retains its source class, stable topic id, triggers, evidence metadata, related-card links, substantive procedure, and delivery tier. Seeded and query are delivery tiers, not authorization tiers.
+
+${lines.join('\n')}
+
+Recipe search results are bounded metadata. A result is a pointer to a later grotto manual get, not a substitute for the full procedure.`;
+}
+
+function seededIndexBody(): string {
+    const lines = seededRecipeTopics.map((topic) => `- ${topic.id} — ${topic.title}`);
+    return `Seeded recipes are the small bootstrap tier used for proactive orientation. Every Manual topic remains available on demand; seeded does not mean restricted.
+
+The complete seeded tier contains 12 cards:
+${lines.join('\n')}
+
+Each full card is separate from this index. Fetch it when the situation occurs.`;
+}
+
 function searchText(topic: ManualTopic): string {
-    return [topic.id, topic.title, topic.summary, topic.body].join(' ').toLocaleLowerCase();
+    if (topic.kind !== 'recipe') {
+        return [topic.id, topic.title, topic.summary, topic.body].join(' ').toLocaleLowerCase();
+    }
+    return [
+        topic.id,
+        topic.title,
+        topic.summary,
+        topic.class,
+        topic.tier,
+        topic.evidence,
+        ...topic.industries,
+        ...topic.prereqs,
+        ...topic.triggers,
+        topic.body,
+    ]
+        .join(' ')
+        .toLocaleLowerCase();
 }
 
 function scoreTerm(topic: ManualTopic, term: string): number {
-    if (topic.id.toLocaleLowerCase().includes(term)) {
+    const lowerId = topic.id.toLocaleLowerCase();
+    const lowerTitle = topic.title.toLocaleLowerCase();
+    const lowerSummary = topic.summary.toLocaleLowerCase();
+    if (lowerId.includes(term)) {
+        return 8;
+    }
+    if (lowerTitle.includes(term)) {
+        return 6;
+    }
+    if (
+        topic.kind === 'recipe' &&
+        topic.triggers.some((trigger) => trigger.toLocaleLowerCase().includes(term))
+    ) {
+        return 5;
+    }
+    if (lowerSummary.includes(term)) {
         return 4;
     }
-    if (topic.title.toLocaleLowerCase().includes(term)) {
-        return 3;
-    }
-    if (topic.summary.toLocaleLowerCase().includes(term)) {
-        return 2;
-    }
-    return topic.body.toLocaleLowerCase().includes(term) ? 1 : 0;
+    return 1;
 }

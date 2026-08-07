@@ -974,22 +974,40 @@ export interface components {
         };
         AgentManualTopic: {
             body: string;
+            /** @enum {string} */
+            class?: "archetype" | "decision" | "pattern" | "playbook" | "technique";
+            /** @enum {string} */
+            evidence?: "verified";
             id: string;
+            industries?: string[];
             /** @enum {string} */
             kind: "index" | "overview" | "recipe-index" | "recipe";
+            prereqs?: string[];
             related: string[];
             summary: string;
+            /** @enum {string} */
+            tier?: "seeded" | "query";
             title: string;
+            triggers?: string[];
         };
         AgentManualTopicResponse: {
             topic: components["schemas"]["AgentManualTopic"];
         };
         AgentManualSearchResult: {
+            /** @enum {string} */
+            class?: "archetype" | "decision" | "pattern" | "playbook" | "technique";
+            /** @enum {string} */
+            evidence?: "verified";
             id: string;
+            industries?: string[];
             /** @enum {string} */
             kind: "index" | "overview" | "recipe-index" | "recipe";
+            prereqs?: string[];
             summary: string;
+            /** @enum {string} */
+            tier?: "seeded" | "query";
             title: string;
+            triggers?: string[];
         };
         AgentManualSearchResponse: {
             query: string;

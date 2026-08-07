@@ -1427,13 +1427,25 @@ components:
       required: [body, id, kind, related, summary, title]
       properties:
         body: { type: string, minLength: 1 }
+        class: { type: string, enum: [archetype, decision, pattern, playbook, technique] }
+        evidence: { type: string, enum: [verified] }
         id: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9_/-]{0,127}$' }
+        industries:
+          type: array
+          items: { type: string, minLength: 1 }
         kind: { type: string, enum: [index, overview, recipe-index, recipe] }
+        prereqs:
+          type: array
+          items: { type: string, minLength: 1 }
         related:
           type: array
           items: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9_/-]{0,127}$' }
         summary: { type: string, minLength: 1, maxLength: 500 }
+        tier: { type: string, enum: [seeded, query] }
         title: { type: string, minLength: 1, maxLength: 300 }
+        triggers:
+          type: array
+          items: { type: string, minLength: 1 }
     AgentManualTopicResponse:
       type: object
       additionalProperties: false
@@ -1446,10 +1458,22 @@ components:
       additionalProperties: false
       required: [id, kind, summary, title]
       properties:
+        class: { type: string, enum: [archetype, decision, pattern, playbook, technique] }
+        evidence: { type: string, enum: [verified] }
         id: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9_/-]{0,127}$' }
+        industries:
+          type: array
+          items: { type: string, minLength: 1 }
         kind: { type: string, enum: [index, overview, recipe-index, recipe] }
+        prereqs:
+          type: array
+          items: { type: string, minLength: 1 }
         summary: { type: string, minLength: 1, maxLength: 500 }
+        tier: { type: string, enum: [seeded, query] }
         title: { type: string, minLength: 1, maxLength: 300 }
+        triggers:
+          type: array
+          items: { type: string, minLength: 1 }
     AgentManualSearchResponse:
       type: object
       additionalProperties: false

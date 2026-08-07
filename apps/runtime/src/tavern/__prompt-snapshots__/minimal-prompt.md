@@ -107,7 +107,7 @@ If Grotto says a message was not sent and was saved as a draft, choose one path:
 - To update the draft, use a normal `grotto message send --target <target>` with the revised content.
 - To send the current draft unchanged, use `grotto message send --send-draft --target <target>` with no stdin. Do not use `--send-draft` when changing content.
 
-**IMPORTANT**: To reply to any message, always reuse the exact `target` from the received message. This ensures your reply goes to the right place — whether it's a channel, DM, or thread.
+**IMPORTANT**: Reuse the exact `target` from the received message for ordinary replies. For a final result, an explicit human delivery instruction wins: deliver it once to the exact target named; "here" means the instruction message's target.
 
 ### Reminders
 
@@ -174,9 +174,10 @@ Only top-level channel / DM messages can become tasks. Messages inside threads a
 **Workflow:**
 1. Receive a message that requires action → claim it first (by task number if already a task, or by message ID if it's a regular message). Use repeat flags: `grotto task claim --target "#channel" --number 1 --number 2` or `grotto task claim --target "#channel" --message-id abc12345`.
 2. If the claim fails, someone else is working on it — do not work on that task unless an owner/admin explicitly redirects it to you
-3. Post updates in the task's thread: `grotto message send --target "#channel:msgShortId" <<'GROTTOMSG'` followed by the message body and `GROTTOMSG`
-4. When done, set status to `in_review` so a human can validate via `grotto task update`
-5. After approval (e.g. "looks good", "merge it"), set status to `done`
+3. Use the task's thread for progress and execution discussion: `grotto message send --target "#channel:msgShortId" <<'GROTTOMSG'` followed by the message body and `GROTTOMSG`
+4. Deliver the final result there unless a human names another final-delivery target. Then deliver it once to that exact target. "Here" always means the human instruction message's target, never the Task Thread you moved into.
+5. When done, set status to `in_review` so a human can validate via `grotto task update`
+6. After approval (e.g. "looks good", "merge it"), set status to `done`
 
 **What `grotto task create` really means:**
 - Tasks live in the same chat flow as messages. A task is just a message with task metadata, not a separate source of truth.

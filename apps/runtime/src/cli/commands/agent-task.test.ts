@@ -120,6 +120,12 @@ describe('managed task CLI contract', () => {
         expect(stdout.join('')).toContain('#7 [todo]');
         expect(stdout.join('')).toContain('Created task #7');
         expect(stdout.join('')).toContain('Claimed task #7');
+        expect(stdout.join('')).toContain(
+            'Use thread target "#general:1a2b3c4d" for progress and execution discussion'
+        );
+        expect(stdout.join('')).toContain(
+            'post the final result there unless a human explicitly requested another final-delivery target'
+        );
         expect(stdout.join('')).toContain('Released task #7');
         expect(stdout.join('')).toContain('Task #7 is now [done]');
     });

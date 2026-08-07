@@ -234,7 +234,13 @@ const REQUIREMENTS: PromptRequirement[] = [
     },
     {
         capability: 'exact target reuse on reply',
-        expected: 'always reuse the exact `target` from the received message',
+        expected: 'Reuse the exact `target` from the received message for ordinary replies',
+        prompt: 'full',
+    },
+    {
+        capability: 'explicit final delivery overrides ordinary reply routing',
+        expected:
+            'For a final result, an explicit human delivery instruction wins: deliver it once to the exact target named; "here" means the instruction message\'s target.',
         prompt: 'full',
     },
     // Reminders (D4, landed with WS5).
@@ -367,6 +373,12 @@ const REQUIREMENTS: PromptRequirement[] = [
     {
         capability: 'in_review before done',
         expected: 'set status to `in_review` so a human can validate',
+        prompt: 'full',
+    },
+    {
+        capability: 'task final here stays on the human instruction target',
+        expected:
+            '"Here" always means the human instruction message\'s target, never the Task Thread you moved into.',
         prompt: 'full',
     },
     {

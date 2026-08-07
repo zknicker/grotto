@@ -133,7 +133,7 @@ export async function runTaskClaim(args: ParsedArgs, deps: TaskDeps): Promise<nu
     );
     const lines = response.claimed.map(
         (task) =>
-            `Claimed task #${task.number} [${task.status}]. Work it in thread target "${task.target ?? target}:${shortMessageId(task.message.id)}".`
+            `Claimed task #${task.number} [${task.status}]. Use thread target "${task.target ?? target}:${shortMessageId(task.message.id)}" for progress and execution discussion; post the final result there unless a human explicitly requested another final-delivery target.`
     );
     deps.write(
         `${lines.join('\n')}\nWhen ready for validation: grotto task update --status in_review.\n`

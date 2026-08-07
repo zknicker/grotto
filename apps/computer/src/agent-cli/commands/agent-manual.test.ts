@@ -5,6 +5,15 @@ import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { runManualGet, runManualSearch } from './agent-manual.ts';
 
+const taskClaimRecipeMetadata = {
+    class: 'technique' as const,
+    evidence: 'verified' as const,
+    industries: ['universal'],
+    prereqs: ['task board or message id'],
+    tier: 'seeded' as const,
+    triggers: ['should I claim this before starting'],
+};
+
 test('manual get sends intent and reason and renders the complete topic body', async () => {
     const requests: AgentApiRequest[] = [];
     const client = requester((route, input) => {
@@ -13,6 +22,7 @@ test('manual get sends intent and reason and renders the complete topic body', a
         return {
             topic: {
                 body: 'Claim the task before doing work.',
+                ...taskClaimRecipeMetadata,
                 id: 'recipes/technique/task-claim-lock',
                 kind: 'recipe',
                 related: ['recipes/index'],
@@ -54,6 +64,7 @@ test('manual search joins keyword positionals and scopes recipe results for a la
             query: 'claim task',
             results: [
                 {
+                    ...taskClaimRecipeMetadata,
                     id: 'recipes/technique/task-claim-lock',
                     kind: 'recipe',
                     summary: 'Use the task claim as the concurrency lock.',

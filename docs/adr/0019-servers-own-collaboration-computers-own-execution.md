@@ -11,7 +11,10 @@ read_when:
 
 ## Status
 
-Accepted 2026-07-25 for WS6 of the Raft-alignment program.
+Accepted 2026-07-25 for WS6 of the Raft-alignment program. ADR 0021 supersedes
+only this ADR's statements that first-Agent setup is optional and that Cove
+uses a normal Owner-to-Cove DM; the Server/Computer ownership boundary remains
+accepted.
 
 ## Decision
 

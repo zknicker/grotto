@@ -1,5 +1,5 @@
 ---
-summary: Decision to seed every new agent workspace with a starter MEMORY.md and practice notes, drive creation with archetype proposals, and ship onboarding as an agent rather than a wizard.
+summary: Superseded decision to seed every Agent with practice notes, use archetype-driven creation, and make Cove optional.
 read_when:
   - changing the workspace starter kit, seeded practice notes, or archetype lane notes
   - changing the agent-creation flow, its proposals, or default skill grants
@@ -10,11 +10,10 @@ read_when:
 
 ## Status
 
-Accepted (2026-07-24, WS8 of the Raft-alignment program; decision D7 in
-`specs/raft-alignment/README.md`). Builds on the memory model (D3) and the
-SOUL retirement (ruling W2): identity accumulates in the description +
-MEMORY.md, so what a new agent needs at birth is a starting point it grows,
-not a fixed profile.
+Superseded by ADR 0021. The universal starter kit, archetype-driven creation,
+optional Cove flow, and deferred Manual were mistakes. ADR 0021 retains
+Agent-owned memory while replacing those decisions with Cove-only onboarding
+knowledge and a shared Agent Manual.
 
 ## Decision
 

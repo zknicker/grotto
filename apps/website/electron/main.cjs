@@ -13,6 +13,7 @@ const {
 } = require('electron');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
+const { existsSync } = require('node:fs');
 const electronUpdater = require('electron-updater');
 const { registerClerkAuth } = require('./clerk-auth.cjs');
 const { resolveClerkAuthOrigins } = require('./clerk-auth-origins.cjs');
@@ -137,6 +138,18 @@ function createWindow({ route, openerBounds } = {}) {
 
     return window;
 }
+
+function installDevelopmentDockIcon() {
+    if (process.platform !== 'darwin' || app.isPackaged || !app.dock) {
+        return;
+    }
+
+    const iconPath = path.join(__dirname, 'icons', 'AppIcon.png');
+    if (existsSync(iconPath)) {
+        app.dock.setIcon(iconPath);
+    }
+}
+
 async function loadWindow(window, route) {
     await window.loadURL(buildWindowUrl(appUrl, route));
 }
@@ -388,6 +401,7 @@ function getErrorMessage(error) {
 }
 
 app.whenReady().then(() => {
+    installDevelopmentDockIcon();
     registerNativeClerkRequestHeaders(
         session.defaultSession.webRequest,
         clerkAuthOrigins.clerkOrigin,

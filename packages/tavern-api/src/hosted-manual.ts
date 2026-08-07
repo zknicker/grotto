@@ -26,22 +26,42 @@ export const hostedAgentManualRecipeClassSchema = z.enum([
 ]);
 export const hostedAgentManualDeliveryTierSchema = z.enum(['seeded', 'query']);
 
-export const hostedAgentManualTopicSchema = z
+const manualTopicCommonFields = {
+    body: z.string().min(1),
+    id: hostedAgentManualTopicIdSchema,
+    related: z.array(hostedAgentManualTopicIdSchema),
+    summary: z.string().min(1).max(500),
+    title: z.string().min(1).max(300),
+};
+
+const hostedAgentManualIndexTopicSchema = z
+    .object({ ...manualTopicCommonFields, kind: z.literal('index') })
+    .strict();
+const hostedAgentManualOverviewTopicSchema = z
+    .object({ ...manualTopicCommonFields, kind: z.literal('overview') })
+    .strict();
+const hostedAgentManualRecipeIndexTopicSchema = z
+    .object({ ...manualTopicCommonFields, kind: z.literal('recipe-index') })
+    .strict();
+const hostedAgentManualRecipeTopicSchema = z
     .object({
-        body: z.string().min(1),
-        class: hostedAgentManualRecipeClassSchema.optional(),
-        evidence: z.literal('verified').optional(),
-        id: hostedAgentManualTopicIdSchema,
-        industries: z.array(z.string().min(1)).optional(),
-        kind: hostedAgentManualTopicKindSchema,
-        prereqs: z.array(z.string().min(1)).optional(),
-        related: z.array(hostedAgentManualTopicIdSchema),
-        summary: z.string().min(1).max(500),
-        tier: hostedAgentManualDeliveryTierSchema.optional(),
-        title: z.string().min(1).max(300),
-        triggers: z.array(z.string().min(1)).optional(),
+        ...manualTopicCommonFields,
+        class: hostedAgentManualRecipeClassSchema,
+        evidence: z.literal('verified'),
+        industries: z.array(z.string().min(1)),
+        kind: z.literal('recipe'),
+        prereqs: z.array(z.string().min(1)),
+        tier: hostedAgentManualDeliveryTierSchema,
+        triggers: z.array(z.string().min(1)),
     })
     .strict();
+
+export const hostedAgentManualTopicSchema = z.discriminatedUnion('kind', [
+    hostedAgentManualIndexTopicSchema,
+    hostedAgentManualOverviewTopicSchema,
+    hostedAgentManualRecipeIndexTopicSchema,
+    hostedAgentManualRecipeTopicSchema,
+]);
 
 export const hostedAgentManualGetResponseSchema = z
     .object({ topic: hostedAgentManualTopicSchema })
@@ -49,9 +69,25 @@ export const hostedAgentManualGetResponseSchema = z
 
 export const hostedAgentManualSearchScopeSchema = z.enum(['all', 'recipes']);
 
-export const hostedAgentManualSearchResultSchema = hostedAgentManualTopicSchema
+const hostedAgentManualIndexSearchResultSchema = hostedAgentManualIndexTopicSchema
     .omit({ body: true, related: true })
     .strict();
+const hostedAgentManualOverviewSearchResultSchema = hostedAgentManualOverviewTopicSchema
+    .omit({ body: true, related: true })
+    .strict();
+const hostedAgentManualRecipeIndexSearchResultSchema = hostedAgentManualRecipeIndexTopicSchema
+    .omit({ body: true, related: true })
+    .strict();
+const hostedAgentManualRecipeSearchResultSchema = hostedAgentManualRecipeTopicSchema
+    .omit({ body: true, related: true })
+    .strict();
+
+export const hostedAgentManualSearchResultSchema = z.discriminatedUnion('kind', [
+    hostedAgentManualIndexSearchResultSchema,
+    hostedAgentManualOverviewSearchResultSchema,
+    hostedAgentManualRecipeIndexSearchResultSchema,
+    hostedAgentManualRecipeSearchResultSchema,
+]);
 
 export const hostedAgentManualSearchResponseSchema = z
     .object({

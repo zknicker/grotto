@@ -1421,10 +1421,23 @@ components:
           properties:
             after: { type: integer, minimum: 0 }
             unread_after: { type: integer, minimum: 0 }
-    AgentManualTopic:
+    AgentManualNavigationTopic:
       type: object
       additionalProperties: false
       required: [body, id, kind, related, summary, title]
+      properties:
+        body: { type: string, minLength: 1 }
+        id: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9_/-]{0,127}$' }
+        kind: { type: string, enum: [index, overview, recipe-index] }
+        related:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9_/-]{0,127}$' }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+    AgentManualRecipeTopic:
+      type: object
+      additionalProperties: false
+      required: [body, class, evidence, id, industries, kind, prereqs, related, summary, tier, title, triggers]
       properties:
         body: { type: string, minLength: 1 }
         class: { type: string, enum: [archetype, decision, pattern, playbook, technique] }
@@ -1433,7 +1446,7 @@ components:
         industries:
           type: array
           items: { type: string, minLength: 1 }
-        kind: { type: string, enum: [index, overview, recipe-index, recipe] }
+        kind: { type: string, enum: [recipe] }
         prereqs:
           type: array
           items: { type: string, minLength: 1 }
@@ -1446,6 +1459,17 @@ components:
         triggers:
           type: array
           items: { type: string, minLength: 1 }
+    AgentManualTopic:
+      oneOf:
+        - $ref: '#/components/schemas/AgentManualNavigationTopic'
+        - $ref: '#/components/schemas/AgentManualRecipeTopic'
+      discriminator:
+        propertyName: kind
+        mapping:
+          index: '#/components/schemas/AgentManualNavigationTopic'
+          overview: '#/components/schemas/AgentManualNavigationTopic'
+          recipe-index: '#/components/schemas/AgentManualNavigationTopic'
+          recipe: '#/components/schemas/AgentManualRecipeTopic'
     AgentManualTopicResponse:
       type: object
       additionalProperties: false
@@ -1453,10 +1477,19 @@ components:
       properties:
         topic:
           $ref: '#/components/schemas/AgentManualTopic'
-    AgentManualSearchResult:
+    AgentManualNavigationSearchResult:
       type: object
       additionalProperties: false
       required: [id, kind, summary, title]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9_/-]{0,127}$' }
+        kind: { type: string, enum: [index, overview, recipe-index] }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+    AgentManualRecipeSearchResult:
+      type: object
+      additionalProperties: false
+      required: [class, evidence, id, industries, kind, prereqs, summary, tier, title, triggers]
       properties:
         class: { type: string, enum: [archetype, decision, pattern, playbook, technique] }
         evidence: { type: string, enum: [verified] }
@@ -1464,7 +1497,7 @@ components:
         industries:
           type: array
           items: { type: string, minLength: 1 }
-        kind: { type: string, enum: [index, overview, recipe-index, recipe] }
+        kind: { type: string, enum: [recipe] }
         prereqs:
           type: array
           items: { type: string, minLength: 1 }
@@ -1474,6 +1507,17 @@ components:
         triggers:
           type: array
           items: { type: string, minLength: 1 }
+    AgentManualSearchResult:
+      oneOf:
+        - $ref: '#/components/schemas/AgentManualNavigationSearchResult'
+        - $ref: '#/components/schemas/AgentManualRecipeSearchResult'
+      discriminator:
+        propertyName: kind
+        mapping:
+          index: '#/components/schemas/AgentManualNavigationSearchResult'
+          overview: '#/components/schemas/AgentManualNavigationSearchResult'
+          recipe-index: '#/components/schemas/AgentManualNavigationSearchResult'
+          recipe: '#/components/schemas/AgentManualRecipeSearchResult'
     AgentManualSearchResponse:
       type: object
       additionalProperties: false

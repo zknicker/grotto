@@ -75,6 +75,60 @@ describe('Tavern OpenAPI contract', () => {
         ]);
     });
 
+    it('keeps Manual topic variants discriminated and metadata-complete', () => {
+        const ajv = new Ajv2020({
+            allowUnionTypes: true,
+            strictSchema: false,
+        });
+        const validate = (schema: string, payload: unknown) =>
+            ajv.compile({
+                $ref: `#/components/schemas/${schema}`,
+                components: document.components,
+            })(payload);
+        const navigation = {
+            body: 'The shared Manual index.',
+            id: 'index',
+            kind: 'index',
+            related: ['grotto-cli-overview'],
+            summary: 'Navigate the Manual.',
+            title: 'Grotto Manual',
+        };
+        const recipe = {
+            body: '# Claim the task\n',
+            class: 'technique',
+            evidence: 'verified',
+            id: 'recipes/technique/task-claim-lock',
+            industries: ['universal'],
+            kind: 'recipe',
+            prereqs: ['task board or message id'],
+            related: ['recipes/index'],
+            summary: 'Claim canonical work before acting.',
+            tier: 'seeded',
+            title: 'Claim the task before work',
+            triggers: ['should I claim this before starting'],
+        };
+        const {
+            body: _navigationBody,
+            related: _navigationRelated,
+            ...navigationResult
+        } = navigation;
+        const { body: _recipeBody, related: _recipeRelated, ...recipeResult } = recipe;
+        const { triggers: _recipeTriggers, ...recipeWithoutTriggers } = recipe;
+
+        expect(validate('AgentManualTopic', navigation)).toBe(true);
+        expect(validate('AgentManualTopic', recipe)).toBe(true);
+        expect(validate('AgentManualTopic', { ...navigation, class: 'technique' })).toBe(false);
+        expect(validate('AgentManualTopic', recipeWithoutTriggers)).toBe(false);
+        expect(validate('AgentManualSearchResult', navigationResult)).toBe(true);
+        expect(
+            validate('AgentManualSearchResult', { ...navigationResult, class: 'technique' })
+        ).toBe(false);
+        expect(validate('AgentManualSearchResult', recipeResult)).toBe(true);
+        expect(validate('AgentManualSearchResult', { ...recipeResult, class: undefined })).toBe(
+            false
+        );
+    });
+
     it('defines durable chat identity schemas', () => {
         expect(document.components?.schemas).toHaveProperty('Chat');
         expect(document.components?.schemas).toHaveProperty('ChatMessage');

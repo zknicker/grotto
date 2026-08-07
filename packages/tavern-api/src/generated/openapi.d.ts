@@ -972,43 +972,73 @@ export interface components {
                 unread_after: number;
             };
         };
-        AgentManualTopic: {
+        AgentManualNavigationTopic: {
+            body: string;
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "index" | "overview" | "recipe-index";
+            related: string[];
+            summary: string;
+            title: string;
+        };
+        AgentManualRecipeTopic: {
             body: string;
             /** @enum {string} */
-            class?: "archetype" | "decision" | "pattern" | "playbook" | "technique";
+            class: "archetype" | "decision" | "pattern" | "playbook" | "technique";
             /** @enum {string} */
-            evidence?: "verified";
+            evidence: "verified";
             id: string;
-            industries?: string[];
-            /** @enum {string} */
-            kind: "index" | "overview" | "recipe-index" | "recipe";
-            prereqs?: string[];
+            industries: string[];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "recipe";
+            prereqs: string[];
             related: string[];
             summary: string;
             /** @enum {string} */
-            tier?: "seeded" | "query";
+            tier: "seeded" | "query";
             title: string;
-            triggers?: string[];
+            triggers: string[];
         };
+        AgentManualTopic: components["schemas"]["AgentManualNavigationTopic"] | components["schemas"]["AgentManualRecipeTopic"];
         AgentManualTopicResponse: {
             topic: components["schemas"]["AgentManualTopic"];
         };
-        AgentManualSearchResult: {
-            /** @enum {string} */
-            class?: "archetype" | "decision" | "pattern" | "playbook" | "technique";
-            /** @enum {string} */
-            evidence?: "verified";
+        AgentManualNavigationSearchResult: {
             id: string;
-            industries?: string[];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "index" | "overview" | "recipe-index";
+            summary: string;
+            title: string;
+        };
+        AgentManualRecipeSearchResult: {
             /** @enum {string} */
-            kind: "index" | "overview" | "recipe-index" | "recipe";
-            prereqs?: string[];
+            class: "archetype" | "decision" | "pattern" | "playbook" | "technique";
+            /** @enum {string} */
+            evidence: "verified";
+            id: string;
+            industries: string[];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "recipe";
+            prereqs: string[];
             summary: string;
             /** @enum {string} */
-            tier?: "seeded" | "query";
+            tier: "seeded" | "query";
             title: string;
-            triggers?: string[];
+            triggers: string[];
         };
+        AgentManualSearchResult: components["schemas"]["AgentManualNavigationSearchResult"] | components["schemas"]["AgentManualRecipeSearchResult"];
         AgentManualSearchResponse: {
             query: string;
             results: components["schemas"]["AgentManualSearchResult"][];

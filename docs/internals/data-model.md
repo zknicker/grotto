@@ -135,12 +135,10 @@ write `task.created`, `task.updated`, or `task.label.updated` events in the
 same transaction; task and label reads remain the recovery source.
 
 Hosted Agent rows own identity, the uploaded avatar they wear (`avatar_id`),
-creation archetype, role, home timezone, retirement, immutable Computer
-assignment, Server-desired runtime/model configuration, the Computer-reported
-effective snapshot, and Channel participation. The creation archetype is
-retained so durable Computer configuration replay produces the same initial
-workspace seed. Computer credentials, execution transport, and turn evidence
-remain separate records.
+role, home timezone, retirement, immutable Computer assignment, Server-desired
+runtime/model configuration, the Computer-reported effective snapshot, and
+Channel participation. Computer credentials, execution transport, and turn
+evidence remain separate records.
 
 `avatars` holds the bytes of one uploaded square image, keyed by an opaque
 `avt_` id. Agents and Users point at it through a nullable `avatar_id`;

@@ -18,7 +18,7 @@ const inventory = {
     ],
 };
 
-test('creates Cove after inventory is reported and fails closed on unreported config', async ({
+test('creates an ordinary Agent after inventory is reported and fails closed on unreported config', async ({
     page,
 }) => {
     const { client: owner } = await createHostedTestServer(page, {
@@ -41,11 +41,10 @@ test('creates Cove after inventory is reported and fails closed on unreported co
     const createDialog = page.getByRole('dialog', { name: 'Create Agent' });
     await expect(createDialog.getByLabel('Runtime')).toContainText('Codex');
     await expect(createDialog.getByLabel('Model')).toContainText('GPT-5.6 Sol');
-    // Guided creation offers Cove as the default first Agent.
-    await expect(createDialog.getByRole('textbox', { name: 'Name' })).toHaveValue('Cove');
+    await createDialog.getByRole('textbox', { name: 'Name' }).fill('Scout');
     await createDialog.getByRole('button', { name: 'Create Agent' }).click();
 
-    await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Scout' })).toBeVisible();
     await expect(page.getByText('Applies when Computer reconnects')).toBeVisible();
 
     // The current hosted profile owns the same lifecycle and configuration
@@ -80,18 +79,18 @@ test('creates Cove after inventory is reported and fails closed on unreported co
     const confirmation = page.getByRole('alertdialog');
     await expect(confirmation).toContainText('permanently destroys');
     const deleteButton = confirmation.getByRole('button', { name: 'Delete Agent' });
-    const nameField = confirmation.getByLabel(/Type Cove to confirm/iu);
+    const nameField = confirmation.getByLabel(/Type Scout to confirm/iu);
     await expect(deleteButton).toBeDisabled();
     await nameField.fill('cove');
     await expect(deleteButton).toBeDisabled();
-    await nameField.fill('Cove');
+    await nameField.fill('Scout');
     await expect(deleteButton).toBeEnabled();
     await confirmation.getByRole('button', { name: 'Cancel' }).click();
     await expect(confirmation).toBeHidden();
 
     // The DM appears as an ordinary Agent DM, not a special onboarding Channel.
     await page.goto('/s/agent-hq');
-    await expect(page.getByRole('row', { name: 'Cove' })).toBeVisible();
+    await expect(page.getByRole('row', { name: 'Scout' })).toBeVisible();
 
     // Cross-Computer / unreported references fail closed at the contract.
     const [computer] = await owner.computer.list.query({ serverId: setup.serverId });

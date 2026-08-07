@@ -23,7 +23,7 @@ export function tryReadSkillSummarySource(skillId: string): SkillSummarySource |
     }
 }
 
-export function tryResolveSkillSource(input: { seededSkillId: string; skillId: string }) {
+export function tryResolveSkillSource(input: { seededSkillId: string | null; skillId: string }) {
     return (
         tryReadSkillSummarySource(input.skillId)?.source ??
         tryResolveFallbackSkillSource(input.skillId, input.seededSkillId)
@@ -32,8 +32,8 @@ export function tryResolveSkillSource(input: { seededSkillId: string; skillId: s
 
 export function managedSkillSummaryState(input: {
     content: string;
-    defaultSeededContent: string;
-    seededSkillId: string;
+    defaultSeededContent: string | null;
+    seededSkillId: string | null;
     skillId: string;
     skillSource: SkillSummarySource | null;
 }) {
@@ -62,7 +62,7 @@ export function managedSkillSummaryState(input: {
     };
 }
 
-function tryResolveFallbackSkillSource(skillId: string, seededSkillId: string) {
+function tryResolveFallbackSkillSource(skillId: string, seededSkillId: string | null) {
     try {
         return resolveSkillSource(skillId);
     } catch (error) {
@@ -74,11 +74,14 @@ function tryResolveFallbackSkillSource(skillId: string, seededSkillId: string) {
 }
 
 function managedSkillSource(input: {
-    seededSkillId: string;
+    seededSkillId: string | null;
     skillId: string;
     source: SkillSource;
 }) {
-    if (input.source === 'seeded' || input.skillId === input.seededSkillId) {
+    if (
+        input.seededSkillId !== null &&
+        (input.source === 'seeded' || input.skillId === input.seededSkillId)
+    ) {
         return 'seeded';
     }
     if (input.source === 'hub') {
@@ -88,7 +91,7 @@ function managedSkillSource(input: {
 }
 
 function pristineManagedSkillContent(input: {
-    defaultSeededContent: string;
+    defaultSeededContent: string | null;
     managedSource: ReturnType<typeof managedSkillSource>;
     skillId: string;
 }) {

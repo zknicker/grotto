@@ -47,7 +47,6 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
         timeout: 60_000,
     });
     await page.getByRole('radio', { name: 'Tools' }).click();
-    await expect(page.getByRole('button', { name: 'tavern-agent' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'visuals' })).toBeVisible();
 
     if (!agent.dmChatId) {
@@ -76,7 +75,7 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
     await page.goto(`/s/${server.slug}/members/agents/${agent.id}`);
     await page.getByRole('radio', { name: 'Workspace' }).click();
     await expect(page.getByRole('treeitem', { name: 'MEMORY.md' })).toBeVisible();
-    await expect(page.getByRole('treeitem', { name: 'notes' })).toBeVisible();
+    await expect(page.getByRole('treeitem', { name: 'notes' })).toHaveCount(0);
     await expect(page.getByRole('treeitem', { name: 'bluebird-brief.md' })).toBeVisible();
 
     await page.getByRole('radio', { name: 'Overview' }).click();

@@ -61,7 +61,7 @@ test('installSkillHubSkill returns conflicts without refreshing inventory', asyn
 test('resetSkill refreshes inventory and emits skill invalidation', async () => {
     spyOn(agentRuntimeSkills, 'resetAgentRuntimeSkill').mockResolvedValue({
         hash: 'hash_123',
-        skillId: 'tavern-agent',
+        skillId: 'visuals',
     });
     const refreshSpy = spyOn(inventorySync, 'refreshRuntimeSkillInventory').mockResolvedValue({
         changed: true,
@@ -71,11 +71,11 @@ test('resetSkill refreshes inventory and emits skill invalidation', async () => 
         () => undefined
     );
 
-    const result = await skillService.resetSkill({ skillId: 'tavern-agent' });
+    const result = await skillService.resetSkill({ skillId: 'visuals' });
 
     assert.deepEqual(result, {
         hash: 'hash_123',
-        skillId: 'tavern-agent',
+        skillId: 'visuals',
     });
     assert.equal(refreshSpy.mock.calls.length, 1);
     assert.equal(emitSpy.mock.calls.length, 1);

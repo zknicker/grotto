@@ -347,7 +347,7 @@ test('session reset rotates harness context while preserving Agent-owned state',
     expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
 });
 
-test('full reset independently clears harness context and restores the starter kit', async () => {
+test('full reset independently clears harness context and restores the ordinary factory state', async () => {
     const { agentRoot, configuration, configurationJson } = await seedResetFixture();
 
     await resetAgentState({
@@ -363,14 +363,12 @@ test('full reset independently clears harness context and restores the starter k
     await expect(stat(join(agentRoot, 'skills', 'custom-skill'))).rejects.toThrow();
     expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
     expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toContain(
-        'notes/onboarding-playbook.md'
+        'Onboarding guide'
     );
-    await expect(
-        readFile(join(agentRoot, 'workspace', 'notes', 'onboarding-objectives.md'), 'utf8')
-    ).resolves.toContain("# What I'm here to help the owner do");
+    await expect(stat(join(agentRoot, 'workspace', 'notes'))).rejects.toThrow();
     await expect(
         readFile(join(agentRoot, 'skills', 'tavern-agent', 'SKILL.md'), 'utf8')
-    ).resolves.toContain('# Grotto Agent');
+    ).rejects.toThrow();
     await expect(
         readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
     ).resolves.toContain('name: visuals');
@@ -382,8 +380,7 @@ async function seedResetFixture() {
     const configuration = parseAgentConfigureCommand({
         agentDescription: 'Onboarding guide',
         agentId,
-        agentName: 'Cove',
-        archetype: 'guide',
+        agentName: 'Scout',
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
         sessionGeneration: 1,

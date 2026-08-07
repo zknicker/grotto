@@ -45,12 +45,12 @@ Runtime executes turns through the agent-engine path described in
   bootstrap, not a model provider route.
 - Sandbox mode `none` uses `.tavern/agents/<agent-id>/workspace` as a trusted
   working directory.
-- Fresh agent workspaces are seeded with the starter kit
-  (`packages/agent-workspace/src/starter-kit.ts`): starter `MEMORY.md`,
-  practice notes, and
-  any archetype lane notes. Seeding skips workspaces that already have a
-  `MEMORY.md`; a full session reset re-seeds
-  ([ADR 0018](../adr/0018-agents-are-born-with-seeded-knowledge.md)).
+- Fresh ordinary Agent workspaces are seeded by
+  `packages/agent-workspace/src/starter-kit.ts` with only a minimal
+  `MEMORY.md` containing identity, description-derived role, empty knowledge,
+  and initial active context. Seeding skips workspaces that already have a
+  `MEMORY.md`; a full reset recreates that file and the factory-managed
+  `visuals` skill.
 - Tool calls are auto-approved. There is no interactive approval prompt.
 
 ## Persistence

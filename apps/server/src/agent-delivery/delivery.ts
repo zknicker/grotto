@@ -1,5 +1,4 @@
 import type {
-    AgentArchetypeId,
     HostedAgent,
     HostedAgentCommand,
     HostedAgentInboxItem,
@@ -536,7 +535,6 @@ export class AgentDelivery {
                     agentDescription: agent.agentDescription,
                     agentId: agent.agentId,
                     agentName: agent.agentName,
-                    archetype: agent.archetype,
                     modelId: agent.desiredModelId,
                     runtimeId: agent.desiredRuntimeId,
                     sessionGeneration: agent.sessionGeneration,
@@ -592,7 +590,6 @@ export class AgentDelivery {
             agentDescription: agent.description,
             agentId: agent.id,
             agentName: agent.displayName,
-            archetype: agent.archetype,
             computerId: agent.computerId,
             modelId: agent.desiredModelId,
             runtimeId: agent.desiredRuntimeId,
@@ -607,7 +604,6 @@ export class AgentDelivery {
         agentDescription: string | null;
         agentId: string;
         agentName: string;
-        archetype: AgentArchetypeId | null;
         computerId: string;
         modelId: string;
         runtimeId: string;
@@ -620,7 +616,6 @@ export class AgentDelivery {
             agentDescription: input.agentDescription,
             agentId: input.agentId,
             agentName: input.agentName,
-            archetype: input.archetype,
             modelId: input.modelId,
             runtimeId: input.runtimeId,
             sessionGeneration: config.sessionGeneration,
@@ -797,7 +792,6 @@ interface ConfiguredAgent {
     agentDescription: string | null;
     agentDisplayName: string;
     agentName: string;
-    archetype: AgentArchetypeId | null;
     computerId: string;
     desiredModelId: string;
     desiredRuntimeId: string;
@@ -815,7 +809,6 @@ function configureFrame(agentId: string, config: ConfiguredAgent): HostedAgentCo
         agentDescription: config.agentDescription,
         agentId,
         agentName: config.agentDisplayName,
-        archetype: config.archetype,
         modelId: config.desiredModelId,
         runtimeId: config.desiredRuntimeId,
         sessionGeneration: config.sessionGeneration,

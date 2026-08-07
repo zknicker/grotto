@@ -12,11 +12,10 @@ import { recordSessionRotationReceipt } from './session-receipts.ts';
 // Manual reset contract (specs/sessions.md): human-initiated, agent-scoped.
 // "Session reset" starts a fresh global session; workspace, MEMORY.md, and
 // skills persist. "Full reset" also recreates the workspace and the agent's
-// canonical skill library from the factory starter kit — the same seed a
-// newborn agent gets (the creation-time archetype is not stored, so its lane
-// note is not re-seeded). Both rotate the session generation and agent token
-// and land a receipt. Restart is a separate lifecycle action that does none
-// of this (agent-turn-runner.ts): it resumes the current session unchanged.
+// canonical skill library from the ordinary factory state: minimal MEMORY.md
+// plus visuals. Both rotate the session generation and agent token and land a
+// receipt. Restart is a separate lifecycle action that does none of this
+// (agent-turn-runner.ts): it resumes the current session unchanged.
 
 export type AgentResetKind = 'full' | 'session';
 
@@ -40,7 +39,7 @@ export async function resetAgentSession(input: {
         text:
             input.noticeText ??
             (kind === 'full'
-                ? 'Started completely fresh: new session, a factory-fresh workspace, and default skills. Earlier files and MEMORY.md are gone.'
+                ? 'Started completely fresh: new session, a minimal workspace, and factory-managed skills. Earlier files and MEMORY.md are gone.'
                 : 'Started a fresh session. New messages start with fresh context; your workspace and MEMORY.md are intact.'),
     });
     return { session };
@@ -66,7 +65,7 @@ async function wipeAgentWorkspace(agentId: string) {
 }
 
 // Full reset recreates the agent's canonical skill library too (ADR 0011):
-// authored or edited skills are discarded back to the seeded managed set.
+// authored or edited skills are discarded back to the visuals managed set.
 // Server identity, model configuration, and MCP grants are untouched.
 async function resetAgentSkillLibrary(agentId: string) {
     const skillsDir = agentSkillsDir(agentId);

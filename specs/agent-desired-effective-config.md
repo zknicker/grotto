@@ -37,9 +37,10 @@ reports **effective** state. The two are never conflated.
     nothing missing.
   - `degraded` — the Computer reports one or more required local resources
     missing (`missingResources`). The list is shown; nothing is substituted.
-- **Cove.** When a Server has no Agents yet and a Computer has reported
-  inventory, guided creation offers `Cove` as the default first Agent. It is an
-  ordinary Agent in an ordinary DM.
+- **Ordinary creation.** Once a Computer has reported inventory, guided
+  creation lets the Owner choose the Agent's name and description. Every Agent
+  is created through the same ordinary Owner↔Agent DM flow; there is no
+  first-Agent proposal or special onboarding path in this contract.
 - **Fail closed across Computers.** Configuration may only reference inventory
   reported by the Agent's own Computer. Referencing another Server's Computer,
   another Computer's runtime/model, or an unreported runtime/model is rejected

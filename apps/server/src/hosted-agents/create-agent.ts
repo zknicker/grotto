@@ -59,7 +59,6 @@ export async function createHostedAgent(
 
         try {
             await tx.insert(agentsTable).values({
-                archetype: input.archetype ?? null,
                 computerId: input.computerId,
                 createdByUserId: member?.id ?? null,
                 description: input.description ?? null,
@@ -94,7 +93,6 @@ export async function createHostedAgent(
 
         const agentRow = {
             activeRunId: null,
-            archetype: input.archetype ?? null,
             avatarId: null,
             computerId: input.computerId,
             computerHealth,

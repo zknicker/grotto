@@ -37,7 +37,7 @@ describe('Runtime agent and agent engine reads', () => {
     });
 
     it('lists no agents on a fresh runtime — nothing is lazily bootstrapped', async () => {
-        // ADR 0018: agents exist only when created through the create path
+        // Agents exist only when created through the create path
         // (app, demo seeding, or the server's shipped-default bootstrap).
         const response = await handleTavernRuntimeRequest(
             new Request('http://runtime.test/agents')
@@ -64,9 +64,7 @@ describe('Runtime agent and agent engine reads', () => {
         expect(createResponse.status).toBe(200);
         await expect(createResponse.json()).resolves.toMatchObject({
             webAccessEnabled: false,
-            // The pre-flip `tasks` skill left the seeded defaults (WS8): its
-            // content teaches the retired tasks_* tool surface.
-            enabledSkillIds: ['tavern-agent', 'visuals'],
+            enabledSkillIds: ['visuals'],
             id: 'agt_otto_00000001',
             isAdmin: true,
             name: 'Otto',
@@ -124,14 +122,13 @@ describe('Runtime agent and agent engine reads', () => {
         });
     });
 
-    it('seeds the workspace starter kit when creating an agent', async () => {
+    it('seeds the ordinary minimal workspace when creating an agent', async () => {
         const workspaceFolder = await fs.mkdtemp(path.join(os.tmpdir(), 'tavern-create-seed-'));
 
         try {
             const createResponse = await handleTavernRuntimeRequest(
                 new Request('http://runtime.test/agents', {
                     body: JSON.stringify({
-                        archetype: 'analyst',
                         bio: 'Data analyst — decision-shaped reads',
                         id: 'agt_analyst',
                         name: 'analyst',
@@ -146,16 +143,8 @@ describe('Runtime agent and agent engine reads', () => {
             const memory = await fs.readFile(path.join(workspaceFolder, 'MEMORY.md'), 'utf8');
             expect(memory).toMatch(/^# analyst\n/u);
             expect(memory).toContain('Data analyst — decision-shaped reads');
-            expect(memory).toContain('notes/lane.md — ');
-            await expect(
-                fs.readFile(path.join(workspaceFolder, 'notes', 'lane.md'), 'utf8')
-            ).resolves.toContain('# Your lane: data reads for decisions');
-            await expect(
-                fs.readFile(
-                    path.join(workspaceFolder, 'notes', 'practices', 'task-claim-lock.md'),
-                    'utf8'
-                )
-            ).resolves.toContain('the claim is the concurrency lock');
+            expect(memory).toContain('No accumulated knowledge yet.');
+            expect(await fs.readdir(workspaceFolder)).toEqual(['MEMORY.md']);
         } finally {
             await fs.rm(workspaceFolder, { force: true, recursive: true });
         }
@@ -478,14 +467,10 @@ describe('Runtime agent and agent engine reads', () => {
         const unknown = (await unknownResponse.json()) as { skills: Array<{ id: string }> };
 
         expect(primary.skills).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({ eligible: true, id: 'tavern-agent' }),
-            ])
+            expect.arrayContaining([expect.objectContaining({ eligible: true, id: 'visuals' })])
         );
         expect(unskilled.skills).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({ eligible: false, id: 'tavern-agent' }),
-            ])
+            expect.arrayContaining([expect.objectContaining({ eligible: false, id: 'visuals' })])
         );
         expect(unknown.skills).toEqual([]);
     });
@@ -612,17 +597,17 @@ describe('Runtime agent and agent engine reads', () => {
             new Request('http://runtime.test/skills')
         );
         const detailResponse = await handleTavernRuntimeRequest(
-            new Request('http://runtime.test/skills/tavern-agent')
+            new Request('http://runtime.test/skills/visuals')
         );
 
         expect(listResponse.status).toBe(200);
         await expect(listResponse.json()).resolves.toMatchObject({
-            skills: expect.arrayContaining([expect.objectContaining({ id: 'tavern-agent' })]),
+            skills: expect.arrayContaining([expect.objectContaining({ id: 'visuals' })]),
         });
         expect(detailResponse.status).toBe(200);
         await expect(detailResponse.json()).resolves.toMatchObject({
-            contentMarkdown: expect.stringContaining('# Grotto Agent'),
-            id: 'tavern-agent',
+            contentMarkdown: expect.stringContaining('```visual'),
+            id: 'visuals',
         });
     });
 

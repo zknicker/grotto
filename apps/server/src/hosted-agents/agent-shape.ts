@@ -1,14 +1,8 @@
-import type {
-    AgentArchetypeId,
-    HostedAgent,
-    HostedAgentAvailability,
-    HostedAgentStatus,
-} from '@tavern/api';
+import type { HostedAgent, HostedAgentAvailability, HostedAgentStatus } from '@tavern/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 export interface ConfiguredAgentRow {
     activeRunId: string | null;
-    archetype: AgentArchetypeId | null;
     avatarId: string | null;
     computerHealth: 'degraded' | 'healthy' | 'offline' | 'update-required';
     computerId: string | null;
@@ -75,7 +69,6 @@ export function toHostedAgent(row: ConfiguredAgentRow): HostedAgent {
     }
 
     return {
-        archetype: row.archetype,
         availability: deriveAgentAvailability(row),
         avatarUrl: avatarUrlFor(row.avatarId),
         computerId: row.computerId,

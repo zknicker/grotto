@@ -57,7 +57,7 @@ Status values:
 | D7 | One Agent retains conversational context across different Chats. | Agent E2E | passing |
 | D8 | Restart resumes the same session and preserves context. | Deterministic session contract | passing |
 | D9 | Start fresh session starts a new harness session while preserving canonical Chats, workspace, memory, and skills. | Deterministic reset contract | passing |
-| D10 | Full reset clears context and restores the Agent workspace to the starter kit. | Deterministic reset contract | passing |
+| D10 | Full reset clears context and restores an ordinary Agent workspace to minimal `MEMORY.md` plus factory-managed skills. | Deterministic reset contract | passing |
 | D11 | Changing runtime/model applies exactly to the next delivery. | Deterministic configuration | passing |
 | D12 | Stop holds new work and Start drains it without changing the session generation. | Deterministic delivery | passing |
 
@@ -90,7 +90,7 @@ Status values:
 | --- | --- | --- | --- |
 | P1 | A new Server is Agent-free until an Owner explicitly provisions one. | Deterministic | passing |
 | P2 | An Owner creates an Agent from reported Computer/runtime/model choices and can message it. | Agent E2E + Browser E2E | passing |
-| P3 | A new general-purpose Agent starts with its workspace, memory, managed skills, and onboarding guidance ready. | Agent E2E + deterministic starter-kit contract | passing |
+| P3 | A new general-purpose Agent starts with its workspace, minimal memory, and factory-managed skills ready. | Agent E2E + deterministic workspace contract | passing |
 | P4 | Invalid or unavailable runtime/model choices fail closed while offline desired configuration remains visible. | Deterministic configuration | passing |
 | P5 | Deleting an Agent retires execution state and releases work while preserving collaboration history. | Agent E2E + deterministic cleanup | passing |
 

@@ -14,7 +14,6 @@ export const createAgentProcedure = memberProcedure
                 agentDescription: created.agent.description,
                 agentId: created.agent.id,
                 agentName: created.agent.displayName,
-                archetype: created.agent.archetype,
                 computerId: created.agent.computerId,
                 modelId: created.agent.desiredModelId,
                 runtimeId: created.agent.desiredRuntimeId,

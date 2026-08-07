@@ -432,7 +432,6 @@ export async function resetAgentState(input: {
             await Promise.all([
                 seedAgentWorkspace({
                     agentName: seed.agentName,
-                    archetype: seed.archetype,
                     bio: seed.agentDescription,
                     workspaceDir: join(agentRoot, 'workspace'),
                 }),

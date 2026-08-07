@@ -30,8 +30,9 @@ model session. Per-turn message delivery is an inbox concern; see
 - Restart recreates the Agent runner and resumes the same native conversation.
   Its next delivery applies the latest composed instructions once without
   rotating the session generation or replaying `Start.`.
-- Session reset preserves workspace, memory notes, skills, identity, and
-  Server history. Full reset restores the factory starter kit.
+- Session reset preserves workspace, memory, skills, identity, and Server
+  history. Full reset restores an ordinary Agent's minimal `MEMORY.md` and
+  factory-managed skills.
 
 Durable Agent knowledge lives in the Agent-owned workspace (`MEMORY.md` and
 notes), not an injected memory system. Agents read older canonical Chat history

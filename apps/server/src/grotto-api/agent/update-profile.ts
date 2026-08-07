@@ -14,7 +14,6 @@ export const updateAgentProfileProcedure = memberProcedure
                 agentDescription: agent.description,
                 agentId: agent.id,
                 agentName: agent.displayName,
-                archetype: agent.archetype,
                 computerId: agent.computerId,
                 modelId: agent.desiredModelId,
                 runtimeId: agent.desiredRuntimeId,

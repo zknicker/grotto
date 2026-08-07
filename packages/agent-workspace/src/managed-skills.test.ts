@@ -2,11 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-    defaultTavernAgentSkill,
-    defaultVisualsSkill,
-    seedFactoryManagedSkills,
-} from './managed-skills.ts';
+import { defaultVisualsSkill, seedFactoryManagedSkills } from './managed-skills.ts';
 
 let skillsDir = '';
 
@@ -18,7 +14,7 @@ afterEach(async () => {
     await rm(skillsDir, { force: true, recursive: true });
 });
 
-test('restores factory managed skills without removing Agent-authored skills', async () => {
+test('restores visuals without removing authored or stale factory skills', async () => {
     await mkdir(join(skillsDir, 'authored'), { recursive: true });
     await writeFile(join(skillsDir, 'authored', 'SKILL.md'), '# Authored\n');
     await mkdir(join(skillsDir, 'tavern-agent'), { recursive: true });
@@ -30,7 +26,7 @@ test('restores factory managed skills without removing Agent-authored skills', a
         '# Authored\n'
     );
     await expect(readFile(join(skillsDir, 'tavern-agent', 'SKILL.md'), 'utf8')).resolves.toBe(
-        defaultTavernAgentSkill
+        '# stale\n'
     );
     await expect(readFile(join(skillsDir, 'visuals', 'SKILL.md'), 'utf8')).resolves.toBe(
         defaultVisualsSkill

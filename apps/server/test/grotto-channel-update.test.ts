@@ -44,7 +44,6 @@ beforeAll(async () => {
     `;
 
     const first = await owner.trpc.agent.create.mutate({
-        archetype: 'guide',
         computerId,
         description: 'First agent',
         displayName: 'Fen',
@@ -56,7 +55,6 @@ beforeAll(async () => {
     });
     firstAgentId = first.agent.id;
     const second = await owner.trpc.agent.create.mutate({
-        archetype: 'operator',
         computerId,
         description: 'Second agent',
         displayName: 'Juno',

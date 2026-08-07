@@ -21,22 +21,23 @@ An Agent remains assigned to one Computer for its lifetime. The App changes
 desired configuration through Server APIs; it never chooses workspace paths or
 writes Computer-local files.
 
-## First Agent and creation
+## Agent creation
 
-A new Server starts with no Agents. Once an attached Computer reports its
-runtime and model inventory, the Members Agents page offers Cove as the guided
-first-Agent proposal. The Owner explicitly chooses the Computer, runtime, and
-model and submits the ordinary hosted Agent creation flow.
+A new Server starts with no ordinary Agents. Once an attached Computer reports
+its runtime and model inventory, the Members Agents page lets an Owner or Admin
+choose the Computer, runtime, and model, then create an Agent with a name and
+optional description.
 
-Cove is not created at Server startup, recreated after deletion, or routed
-through a special channel. Creation opens the same ordinary Owner-to-Agent DM
-used by every Agent.
+Creation opens the same ordinary Owner-to-Agent DM used by every Agent. There
+is no archetype field, picker, automatic lane-note seed, or special creation
+path in this contract. Fresh-Server Cove onboarding is a separate setup flow;
+see [ADR 0021](../adr/0021-cove-onboards-and-agents-share-a-manual.md).
 
-The create menu also offers a blank Agent and role proposals. Computer seeds
-the selected starter kit into the new Agent's local workspace: `MEMORY.md`,
-practice notes, optional role notes, and Cove's guide material. The seed is a
-starting point the Agent grows, not a permanent archetype constraint. See
-[ADR 0018](../adr/0018-agents-are-born-with-seeded-knowledge.md).
+Computer seeds an ordinary Agent's fresh workspace with only a minimal
+`MEMORY.md`: identity, description-derived role, empty knowledge, and initial
+active context. Practice files, recipe summaries, onboarding notes, and
+archetype notes come from neither creation nor reset. Shared guidance belongs
+in the Grotto Manual, while the Agent's own work may add files later.
 
 ## Product surfaces
 
@@ -65,7 +66,8 @@ other Agents in shared Chat rosters.
 
 Computer composes managed product instructions, the Agent description, the
 Agent's local skills, and tool guidance when a fresh model session starts.
-Durable learned knowledge lives in the Agent's own `MEMORY.md` and notes.
+Durable learned knowledge lives in the Agent's own `MEMORY.md` and any files it
+creates.
 Grotto does not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer
 inside the workspace.
 
@@ -74,7 +76,8 @@ inside the workspace.
 One resident Computer execution host serves each assigned Agent. The Agent's
 single global model session spans all Chats and resumes across deliveries and
 Computer restarts. Session reset creates fresh model context while preserving
-the workspace. Full reset restores the factory starter kit.
+the workspace. Full reset restores a minimal `MEMORY.md` and the
+factory-managed skills.
 
 See [Context management](context-management.md) and
 [Agent daemon and delivery](../internals/agent-daemon-delivery.md).

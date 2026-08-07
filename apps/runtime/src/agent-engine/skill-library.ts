@@ -1,6 +1,5 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { defaultTavernAgentSkill } from '@tavern/agent-workspace';
 import {
     type AgentRuntimeAgent,
     type AgentRuntimeSkill,
@@ -30,7 +29,6 @@ import { defaultVisualsSkill, visualsSkillFiles, visualsSkillId } from './visual
 export { visualsSkillId };
 
 export const agentEngineSkillsDir = path.join(AGENT_HOME, 'skills');
-export const tavernAgentSkillId = 'tavern-agent';
 
 /**
  * One canonical, writable skill library per Agent. Every Agent-scoped read,
@@ -46,10 +44,7 @@ function resolveAgentSkillsDir(agentId: string | undefined): string {
     return agentId ? agentSkillsDir(agentId) : agentEngineSkillsDir;
 }
 
-export const defaultTavernSkill = defaultTavernAgentSkill;
-
 const seededSkillDefaults: Record<string, string> = {
-    [tavernAgentSkillId]: defaultTavernSkill,
     [visualsSkillId]: defaultVisualsSkill,
 };
 
@@ -355,8 +350,8 @@ function skillSummaryFromMarkdown(input: {
     const seeded = isSeededSkillId(input.skillId);
     const managedState = managedSkillSummaryState({
         content: input.content,
-        defaultSeededContent: seededSkillDefaults[input.skillId] ?? defaultTavernSkill,
-        seededSkillId: seeded ? input.skillId : tavernAgentSkillId,
+        defaultSeededContent: seeded ? (seededSkillDefaults[input.skillId] ?? null) : null,
+        seededSkillId: seeded ? input.skillId : null,
         skillId: input.skillId,
         skillSource: input.skillSource,
     });

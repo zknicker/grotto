@@ -18,15 +18,14 @@ security boundary.
 
 ## Durable knowledge
 
-The Agent controls the structure of its workspace. The starter kit provides:
+The Agent controls the structure of its workspace. The ordinary factory seed provides:
 
-- `MEMORY.md`, a concise recovery index;
-- `notes/`, for durable detail and operating knowledge;
-- optional archetype notes and, for Cove, guide objectives and playbooks.
+- `MEMORY.md`, a concise recovery index containing identity, role, empty
+  knowledge, and initial active context.
 
-The seed establishes a useful starting point and never overwrites an existing
-workspace. The Agent may add, rename, organize, and remove task-specific files
-as its work requires.
+The seed establishes only that minimal starting point and never overwrites an
+existing workspace. The Agent may add, rename, organize, and remove
+task-specific files as its work requires.
 
 There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section,
 automatic extraction or dreaming pipeline, or separate Wiki primitive.
@@ -49,7 +48,8 @@ bytes; edits and deletes are guarded by the Computer-reported bundle hash.
 
 The local root survives ordinary idle periods, Computer restarts, model or
 runtime changes, and session reset. Session reset creates fresh model context
-without erasing the workspace. Full reset restores the factory starter kit.
+without erasing the workspace. Full reset restores minimal `MEMORY.md` and the
+factory-managed skills.
 Retirement removes the local execution host after Server retirement has
 completed.
 

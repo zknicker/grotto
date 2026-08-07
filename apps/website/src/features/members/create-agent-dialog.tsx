@@ -33,8 +33,6 @@ interface ReportedComputer {
     label: string;
 }
 
-const coveDescription = 'Onboarding guide — helps you shape your team and start real work';
-
 export function CreateAgentDialog({
     agents,
     onCreated,
@@ -75,7 +73,6 @@ export function CreateAgentDialog({
                         ) : (
                             <CreateHostedAgentForm
                                 agents={agents}
-                                firstAgent={agents.length === 0}
                                 onCreated={onCreated}
                                 reported={reported}
                                 serverId={serverId}
@@ -90,13 +87,11 @@ export function CreateAgentDialog({
 
 function CreateHostedAgentForm({
     agents,
-    firstAgent,
     onCreated,
     reported,
     serverId,
 }: {
     agents: HostedAgent[];
-    firstAgent: boolean;
     onCreated: (agentId: string) => void;
     reported: ReportedComputer[];
     serverId: string;
@@ -110,10 +105,9 @@ function CreateHostedAgentForm({
     const models = runtime?.models ?? [];
     const [modelId, setModelId] = React.useState(models[0]?.id ?? '');
     const model = models.find((entry) => entry.id === modelId) ?? models[0];
-    const [displayName, setDisplayName] = React.useState(firstAgent ? 'Cove' : '');
-    const [description, setDescription] = React.useState(firstAgent ? coveDescription : '');
+    const [displayName, setDisplayName] = React.useState('');
+    const [description, setDescription] = React.useState('');
     const name = displayName.trim();
-    const isCove = firstAgent && name.toLowerCase() === 'cove';
     const canSubmit = Boolean(name && computer && runtime && model && !create.isPending);
 
     const handleSubmit = React.useEffectEvent(async (event: React.FormEvent<HTMLFormElement>) => {
@@ -123,7 +117,6 @@ function CreateHostedAgentForm({
         }
 
         const result = await create.createAgent({
-            archetype: isCove ? 'guide' : undefined,
             computerId: computer.id,
             description: description.trim() || null,
             displayName: name,
@@ -152,21 +145,7 @@ function CreateHostedAgentForm({
                         options={reported}
                         value={computer?.id ?? ''}
                     />
-                    <TextField
-                        fullWidth
-                        onChange={(nextName) => {
-                            if (
-                                firstAgent &&
-                                displayName === 'Cove' &&
-                                description === coveDescription &&
-                                nextName.trim().toLowerCase() !== 'cove'
-                            ) {
-                                setDescription('');
-                            }
-                            setDisplayName(nextName);
-                        }}
-                        value={displayName}
-                    >
+                    <TextField fullWidth onChange={setDisplayName} value={displayName}>
                         <Label>Name</Label>
                         <Input autoFocus maxLength={80} placeholder="e.g. Alice" />
                     </TextField>

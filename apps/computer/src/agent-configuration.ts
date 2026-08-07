@@ -2,7 +2,6 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { seedAgentWorkspace, seedFactoryManagedSkills } from '@tavern/agent-workspace';
 import {
-    type AgentArchetypeId,
     type HostedAgentConfigureCommand,
     type HostedComputerInventory,
     hostedAgentConfigureCommandSchema,
@@ -17,7 +16,6 @@ export interface AppliedAgentConfiguration {
 export interface AgentSeedConfiguration {
     agentDescription: string | null;
     agentName: string;
-    archetype: AgentArchetypeId | null;
 }
 
 export function parseAgentConfigureCommand(frame: unknown): HostedAgentConfigureCommand | null {
@@ -47,7 +45,6 @@ export async function applyAgentConfiguration(input: {
     );
     await seedAgentWorkspace({
         agentName: input.command.agentName,
-        archetype: input.command.archetype,
         bio: input.command.agentDescription,
         workspaceDir: join(agentRoot, 'workspace'),
     });
@@ -61,7 +58,6 @@ export async function applyAgentConfiguration(input: {
             seed: {
                 agentDescription: input.command.agentDescription,
                 agentName: input.command.agentName,
-                archetype: input.command.archetype,
             },
         })}\n`,
         { mode: 0o600 }
@@ -147,18 +143,7 @@ function isAgentSeedConfiguration(value: unknown): value is AgentSeedConfigurati
         (value.agentDescription === null ||
             (typeof value.agentDescription === 'string' &&
                 value.agentDescription.length > 0 &&
-                value.agentDescription.length <= 500)) &&
-        (value.archetype === null ||
-            [
-                'operator',
-                'analyst',
-                'designer',
-                'writer',
-                'coordinator',
-                'patrol',
-                'gate',
-                'guide',
-            ].includes(value.archetype as string))
+                value.agentDescription.length <= 500))
     );
 }
 

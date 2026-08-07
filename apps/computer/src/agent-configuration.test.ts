@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
@@ -17,10 +17,9 @@ afterEach(async () => {
 
 test('applies desired runtime and model without waiting for the first turn', async () => {
     const command = parseAgentConfigureCommand({
-        agentDescription: 'Onboarding guide',
+        agentDescription: 'Reviews launch copy and records concrete risks.',
         agentId: 'agt_configurationxxx',
-        agentName: 'Cove',
-        archetype: 'guide',
+        agentName: 'Scout',
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
         sessionGeneration: 1,
@@ -79,11 +78,10 @@ test('applies desired runtime and model without waiting for the first turn', asy
         'workspace'
     );
     expect(await readFile(join(workspace, 'MEMORY.md'), 'utf8')).toContain(
-        'notes/onboarding-playbook.md'
+        'Reviews launch copy and records concrete risks.'
     );
-    expect(await readFile(join(workspace, 'notes', 'onboarding-objectives.md'), 'utf8')).toContain(
-        "# What I'm here to help the owner do"
-    );
+    await expect(stat(join(workspace, 'notes'))).rejects.toThrow();
+    expect(await readdir(workspace)).toEqual(['MEMORY.md']);
     const skills = join(
         dataRoot,
         'servers',
@@ -92,9 +90,7 @@ test('applies desired runtime and model without waiting for the first turn', asy
         command.agentId,
         'skills'
     );
-    await expect(readFile(join(skills, 'tavern-agent', 'SKILL.md'), 'utf8')).resolves.toContain(
-        '# Grotto Agent'
-    );
+    await expect(readFile(join(skills, 'tavern-agent', 'SKILL.md'), 'utf8')).rejects.toThrow();
     await expect(readFile(join(skills, 'visuals', 'SKILL.md'), 'utf8')).resolves.toContain(
         'name: visuals'
     );
@@ -105,7 +101,6 @@ test('reports a missing desired model instead of substituting one', async () => 
         agentDescription: null,
         agentId: 'agt_missingmodelxxxx',
         agentName: 'Missing',
-        archetype: null,
         modelId: 'missing-model',
         runtimeId: 'codex',
         sessionGeneration: 1,

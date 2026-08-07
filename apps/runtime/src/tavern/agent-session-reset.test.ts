@@ -73,21 +73,20 @@ describe('agent session reset', () => {
         ).resolves.toBe('# authored');
     });
 
-    it('full reset wipes the workspace back to the factory starter kit', async () => {
+    it('full reset wipes the workspace back to the ordinary factory state', async () => {
         ensureCurrentAgentSession({ agentId: 'agt_otto' });
 
         const { session } = await resetAgentSession({ agentId: 'agt_otto', kind: 'full' });
 
         expect(readCurrentAgentSession({ agentId: 'agt_otto' })?.id).toBe(session.id);
         const entries = await fs.readdir(workspaceDir);
-        expect(entries).not.toContain('NOTES.md');
-        // The wiped workspace is re-seeded like a newborn agent's (WS8).
+        expect(entries).toEqual(['MEMORY.md']);
         const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
         expect(memory).toMatch(/^# Otto\n/u);
-        expect(memory).toContain('notes/practices/task-claim-lock.md');
+        expect(memory).toContain('No accumulated knowledge yet.');
     });
 
-    it('full reset recreates the skill library from factory defaults', async () => {
+    it('full reset recreates only the visuals factory skill', async () => {
         ensureCurrentAgentSession({ agentId: 'agt_otto' });
         const skillsDir = agentSkillsDir('agt_otto');
         await fs.mkdir(path.join(skillsDir, 'authored'), { recursive: true });
@@ -95,13 +94,16 @@ describe('agent session reset', () => {
 
         await resetAgentSession({ agentId: 'agt_otto', kind: 'full' });
 
-        // The authored skill is gone; the seeded managed library is restored.
+        // The authored skill is gone; the visuals managed library is restored.
         await expect(
             fs.readFile(path.join(skillsDir, 'authored', 'SKILL.md'), 'utf8')
         ).rejects.toThrow();
         await expect(
+            fs.readFile(path.join(skillsDir, 'visuals', 'SKILL.md'), 'utf8')
+        ).resolves.toContain('```visual');
+        await expect(
             fs.readFile(path.join(skillsDir, 'tavern-agent', 'SKILL.md'), 'utf8')
-        ).resolves.toContain('# Grotto Agent');
+        ).rejects.toThrow();
     });
 
     it('records the rotation reason on the receipt', async () => {

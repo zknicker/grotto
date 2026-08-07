@@ -1,6 +1,6 @@
 /**
  * The one runtime path that brings an agent into existence: store the record,
- * create the workspace, seed the starter kit (WS8/ADR 0018), and register the
+ * create the workspace, seed the ordinary factory state, and register the
  * workspace for instruction rendering. The server's create route, dev demo
  * seeding, and the e2e harness all create agents through here — there is no
  * separate bootstrap path and no hardcoded seeded ids.
@@ -10,11 +10,9 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { seedAgentWorkspace } from '@tavern/agent-workspace';
-import type { AgentArchetypeId } from '@tavern/api';
 import {
     agentSkillsDir,
     seedManagedSkills,
-    tavernAgentSkillId,
     visualsSkillId,
 } from '../agent-engine/skill-library.ts';
 import { AGENT_HOME } from '../config.ts';
@@ -25,10 +23,9 @@ import { upsertStoredAgent } from './agents-store.ts';
 
 // Seeded skills every new agent starts with. The pre-flip `tasks` skill is
 // deliberately absent: its content teaches the retired tasks_* tool surface.
-export const defaultSeededSkillIds = [tavernAgentSkillId, visualsSkillId];
+export const defaultSeededSkillIds = [visualsSkillId];
 
 export interface CreateRuntimeAgentInput {
-    archetype?: AgentArchetypeId | null;
     avatarUrl?: string | null;
     bio?: string | null;
     db?: Database;
@@ -65,7 +62,6 @@ export async function createRuntimeAgent(input: CreateRuntimeAgentInput) {
     await seedManagedSkills({ skillsDir: agentSkillsDir(agent.id) });
     await seedAgentWorkspace({
         agentName: agent.name,
-        archetype: input.archetype ?? null,
         bio: agent.bio ?? null,
         workspaceDir: agent.workspaceFolder,
     });

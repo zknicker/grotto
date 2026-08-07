@@ -20,7 +20,7 @@ export function AgentSession({ agent, server }: { agent: HostedAgent; server: Se
     const [fullResetOpen, setFullResetOpen] = React.useState(false);
 
     // Ordered by how much they disturb the Agent: halt the current run, restart
-    // the process, drop its context, then rebuild it from the starter kit.
+    // the process, drop its context, then rebuild it from the ordinary factory state.
     return (
         <SettingsSection title="Session">
             <SettingsGroup>
@@ -73,7 +73,7 @@ export function AgentSession({ agent, server }: { agent: HostedAgent; server: Se
                 </SettingsRow>
                 <Separator />
                 <SettingsRow
-                    description="Start fresh and restore the Agent's workspace, memory, and skills to the factory starter kit."
+                    description="Start fresh and restore a minimal MEMORY.md and factory-managed skills."
                     title="Full Reset"
                     trailingWidth="intrinsic"
                 >

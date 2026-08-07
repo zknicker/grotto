@@ -102,8 +102,9 @@ recovers durable context from its unchanged `MEMORY.md`, notes, and canonical
 Server history.
 
 Session reset preserves workspace, skills, identity, and Server history. Full
-reset restores the Agent's factory starter kit. Retirement is the only normal
-lifecycle operation that removes the Agent execution host.
+reset restores an ordinary Agent's minimal `MEMORY.md` and factory-managed
+skills. Retirement is the only normal lifecycle operation that removes the
+Agent execution host.
 
 Human Restart is distinct from session reset. Server requires the assigned
 Computer to be online, stops any active run, and sends an `agent-restart`
@@ -159,7 +160,7 @@ presentation plumbing.
 | Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
 | Tool names become bounded safe Activity evidence | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
-| Session reset preserves workspace; full reset restores only the starter kit | `apps/computer/src/launch.test.ts` |
+| Session reset preserves workspace; full reset restores only minimal memory and factory-managed skills | `apps/computer/src/launch.test.ts` |
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
 | Exact structured drain and content-free busy notice | `apps/computer/src/inbox-format.test.ts` |
 | Every model-visible identity consumes one local notice contribution | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/proxy.test.ts` |

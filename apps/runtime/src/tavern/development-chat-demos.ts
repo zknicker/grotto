@@ -40,7 +40,7 @@ export async function seedDevelopmentChatDemos({
     }
 
     // Demo agents go through the normal creation path — generated ids,
-    // seeded starter kit — and are resolved by name on reseed (ADR 0018).
+    // ordinary factory state — and are resolved by name on reseed.
     const agentIds: DemoAgentIds = {
         otto: (await ensureDemoAgent(db, demoAgentNames.otto, { isAdmin: true })).id,
         wren: (await ensureDemoAgent(db, demoAgentNames.wren)).id,

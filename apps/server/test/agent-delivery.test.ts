@@ -302,7 +302,6 @@ test('ignores a duplicate delivery of the same message', async () => {
             agentDescription: null,
             agentId: seed.agentId,
             agentName: 'Ada',
-            archetype: null,
             modelId: 'fake-model',
             runtimeId: 'fake',
             sessionGeneration: 1,

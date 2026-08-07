@@ -68,13 +68,12 @@ test('keeps a new Server Agent-free until an Owner explicitly provisions one', a
     expect(agents).toEqual([]);
 });
 
-test('provisions Cove through hosted Agent creation with its ordinary DM', async () => {
+test('provisions an ordinary Agent with its real execution settings and Owner DM', async () => {
     const created = await owner.trpc.agent.create.mutate({
-        archetype: 'guide',
         computerId: computerA,
-        description: 'Onboarding guide — helps you shape your team and start real work',
-        displayName: 'Cove',
-        handle: 'cove',
+        description: 'Reviews launch copy and records concrete risks.',
+        displayName: 'Scout',
+        handle: 'scout',
         modelId: 'gpt-5.6-sol',
         role: 'member',
         runtimeId: 'codex',
@@ -82,14 +81,16 @@ test('provisions Cove through hosted Agent creation with its ordinary DM', async
     });
 
     expect(created.agent).toMatchObject({
-        archetype: 'guide',
         avatarUrl: null,
         computerId: computerA,
+        description: 'Reviews launch copy and records concrete risks.',
         desiredModelId: 'gpt-5.6-sol',
         desiredRuntimeId: 'codex',
-        handle: 'cove',
+        displayName: 'Scout',
+        handle: 'scout',
         status: 'pending',
     });
+    expect(created.agent).not.toHaveProperty('archetype');
     expect(created.chat).toMatchObject({
         kind: 'dm',
         peerAgentId: created.agent.id,
@@ -100,8 +101,9 @@ test('provisions Cove through hosted Agent creation with its ordinary DM', async
     expect(chats.find((chat) => chat.id === created.chat.id)?.peerAgentId).toBe(created.agent.id);
 
     const agents = await owner.trpc.agent.list.query({ serverId });
-    expect(agents.map((agent) => agent.handle)).toEqual(['cove']);
-    expect(agents[0]).toMatchObject({ archetype: 'guide', avatarUrl: null });
+    expect(agents.map((agent) => agent.handle)).toEqual(['scout']);
+    expect(agents[0]).toMatchObject({ avatarUrl: null, handle: 'scout' });
+    expect(agents[0]).not.toHaveProperty('archetype');
     expect(agents[0]?.dmChatId).toBe(created.chat.id);
     expect(await owner.trpc.agent.get.query({ agentId: created.agent.id, serverId })).toEqual(
         agents[0]

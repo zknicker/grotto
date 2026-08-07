@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import type {
-    AgentArchetypeId,
     AgentRuntimeSaveDiscordBinding,
     AgentRuntimeThinkingLevel,
     AgentRuntimeUpdateAgentWebSettings,
@@ -18,7 +17,6 @@ import { syncAgentsForRuntime } from '../storage/agents.ts';
 import { syncAgentWorkspaceInstructions } from '../sync/agent-runtime-sync.ts';
 
 export async function createAgent(input: {
-    archetype?: AgentArchetypeId;
     bio?: string;
     name: string;
     primaryColor?: null | string;
@@ -35,7 +33,6 @@ export async function createAgent(input: {
     try {
         // enabledSkillIds stays unset so the runtime seeds its defaults.
         const created = await client.upsertAgent({
-            archetype: input.archetype,
             bio: input.bio,
             id,
             isAdmin: false,

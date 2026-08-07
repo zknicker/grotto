@@ -2,7 +2,6 @@ import * as z from 'zod';
 import { hostedIdSchema } from './hosted-chat.ts';
 import { hostedMessageTaskSchema } from './hosted-task-shared.ts';
 import {
-    agentArchetypeIdSchema,
     agentRuntimeBrowserActionResultSchema,
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
@@ -109,7 +108,6 @@ export const hostedAgentConfigureCommandSchema = z
         agentDescription: z.string().trim().min(1).max(500).nullable(),
         agentId: hostedIdSchema,
         agentName: z.string().trim().min(1).max(80),
-        archetype: agentArchetypeIdSchema.nullable(),
         modelId: z.string().trim().min(1).max(128),
         runtimeId: z.string().trim().min(1).max(64),
         sessionGeneration: z.number().int().positive(),

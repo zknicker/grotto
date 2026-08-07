@@ -1,4 +1,3 @@
-import type { AgentArchetypeId } from '@tavern/api';
 import { and, eq, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -34,7 +33,6 @@ export interface AgentDispatchConfig {
     agentDescription: string | null;
     agentDisplayName: string;
     agentName: string;
-    archetype: AgentArchetypeId | null;
     computerId: string | null;
     desiredModelId: string | null;
     desiredRuntimeId: string | null;
@@ -50,7 +48,6 @@ export async function readAgentDispatchConfig(
 ): Promise<AgentDispatchConfig | null> {
     const [row] = await db
         .select({
-            archetype: agentsTable.archetype,
             agentDescription: agentsTable.description,
             agentDisplayName: agentsTable.displayName,
             agentName: agentsTable.handle,
@@ -447,7 +444,6 @@ export async function listComputerAgents(
         agentDescription: string | null;
         agentId: string;
         agentName: string;
-        archetype: AgentArchetypeId | null;
         desiredModelId: string | null;
         desiredRuntimeId: string | null;
         retiredAt: Date | null;
@@ -461,7 +457,6 @@ export async function listComputerAgents(
             agentDescription: agentsTable.description,
             agentId: agentsTable.id,
             agentName: agentsTable.displayName,
-            archetype: agentsTable.archetype,
             desiredModelId: agentsTable.desiredModelId,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
             retiredAt: agentsTable.retiredAt,

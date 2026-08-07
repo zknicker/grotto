@@ -337,21 +337,6 @@ export const agentRuntimeThinkingLevelSchema = z.enum([
 
 const agentRuntimeJsonRecordSchema = z.record(z.string(), z.unknown());
 
-/**
- * Creation-time archetype proposals (Raft recipe archetypes + the onboarding
- * guide). The archetype only shapes the seeded workspace starter kit; it is
- * not stored on the agent — identity accumulates in memory (ruling W2).
- */
-export const agentArchetypeIdSchema = z.enum([
-    'analyst',
-    'coordinator',
-    'designer',
-    'gate',
-    'guide',
-    'operator',
-    'patrol',
-    'writer',
-]);
 export const agentRuntimeBrowserStateSchema = z.enum([
     'stopped',
     'starting',
@@ -597,18 +582,19 @@ export const agentRuntimeArchiveAgentSchema = z.object({
     id: z.string().trim().min(1),
 });
 
-export const agentRuntimeCreateAgentSchema = z.object({
-    webAccessEnabled: z.boolean().optional(),
-    archetype: agentArchetypeIdSchema.optional(),
-    avatarUrl: agentRuntimeAvatarUrlSchema.optional(),
-    bio: z.string().trim().min(1).nullable().optional(),
-    enabledSkillIds: z.array(z.string().trim().min(1)).optional(),
-    id: z.string().trim().min(1),
-    isAdmin: z.boolean().optional(),
-    name: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u),
-    primaryColor: z.string().trim().min(1).nullable().optional(),
-    workspaceFolder: z.string().trim().min(1).optional(),
-});
+export const agentRuntimeCreateAgentSchema = z
+    .object({
+        webAccessEnabled: z.boolean().optional(),
+        avatarUrl: agentRuntimeAvatarUrlSchema.optional(),
+        bio: z.string().trim().min(1).nullable().optional(),
+        enabledSkillIds: z.array(z.string().trim().min(1)).optional(),
+        id: z.string().trim().min(1),
+        isAdmin: z.boolean().optional(),
+        name: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u),
+        primaryColor: z.string().trim().min(1).nullable().optional(),
+        workspaceFolder: z.string().trim().min(1).optional(),
+    })
+    .strict();
 
 export const agentRuntimeUpdateAgentSchema = z.object({
     webAccessEnabled: z.boolean().optional(),
@@ -1814,7 +1800,6 @@ export const agentRuntimeErrorSchema = z.object({
 });
 
 export type ChatTarget = z.infer<typeof chatTargetSchema>;
-export type AgentArchetypeId = z.infer<typeof agentArchetypeIdSchema>;
 export type AgentRuntimeAgent = z.infer<typeof agentRuntimeAgentSchema>;
 export type AgentRuntimeAgentBinding = z.infer<typeof agentRuntimeAgentBindingSchema>;
 export type AgentRuntimeAgentList = z.infer<typeof agentRuntimeAgentListSchema>;

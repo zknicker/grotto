@@ -7,13 +7,7 @@ import iconsMd from './visuals-skill/icons.md' with { type: 'text' };
 import { visualsSkillIconFiles, visualsSkillIconManifest } from './visuals-skill/icons.ts';
 import visualsSkillMd from './visuals-skill/SKILL.md' with { type: 'text' };
 
-export const tavernAgentSkillId = 'tavern-agent';
 export const visualsSkillId = 'visuals';
-
-export const defaultTavernAgentSkill = `# Grotto Agent
-
-Use Grotto chat context, memory, files, and local tools. Keep replies direct and action-oriented.
-`;
 
 export const defaultVisualsSkill: string = visualsSkillMd;
 
@@ -27,7 +21,6 @@ export const visualsSkillFiles: Record<string, string> = {
 };
 
 const factoryManagedSkillFiles: Record<string, Record<string, string>> = {
-    [tavernAgentSkillId]: { 'SKILL.md': defaultTavernAgentSkill },
     [visualsSkillId]: { 'SKILL.md': defaultVisualsSkill, ...visualsSkillFiles },
 };
 

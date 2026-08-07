@@ -4,7 +4,6 @@ import { deriveAgentAvailability } from '../src/hosted-agents/agent-shape.ts';
 
 const base: ConfiguredAgentRow = {
     activeRunId: null,
-    archetype: 'guide',
     avatarId: null,
     computerHealth: 'healthy',
     computerId: 'cmp_1234567890123456',

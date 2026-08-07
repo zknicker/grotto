@@ -23,7 +23,6 @@ export async function queryHostedAgents(
     const rows = await db
         .select({
             activeRunId: agentDeliveryTable.activeRunId,
-            archetype: agentsTable.archetype,
             avatarId: agentsTable.avatarId,
             computerId: agentsTable.computerId,
             createdByUserId: agentsTable.createdByUserId,

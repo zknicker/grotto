@@ -1,0 +1,45 @@
+diff --git a/dist/index.js b/dist/index.js
+index 81c6982b181fe72f59d4bb7ea03c58f5606c9451..ab76e1510c1dec308c65739097c01e685fcab0c9 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -484,6 +484,7 @@ function createClaudeCode(settings = {}) {
+       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
+       const isResume = lifecycleState != null;
+       const isContinue = startOpts.continueFrom != null;
++      const refreshInstructions = lifecycleState?.data?.refreshInstructions === true;
+       const coords = isResume ? lifecycleState?.data?.bridge : void 0;
+       const workDir = startOpts.sessionWorkDir;
+       const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+@@ -528,6 +529,7 @@ function createClaudeCode(settings = {}) {
+             maxTurns: settings.maxTurns,
+             thinking,
+             isResume: true,
++            refreshInstructions,
+             continueOnFirstPrompt: false,
+             rerunContinue: false,
+             bridgePort: coords.port,
+@@ -657,6 +659,7 @@ function createClaudeCode(settings = {}) {
+         maxTurns: settings.maxTurns,
+         thinking,
+         isResume: respawnStrategy !== void 0,
++        refreshInstructions,
+         continueOnFirstPrompt: respawnStrategy !== void 0,
+         rerunContinue: respawnStrategy === "rerun",
+         bridgePort: boundPort,
+@@ -844,6 +847,7 @@ function createSession({
+   maxTurns,
+   thinking,
+   isResume,
++  refreshInstructions,
+   continueOnFirstPrompt,
+   rerunContinue,
+   bridgePort,
+@@ -857,7 +861,7 @@ function createSession({
+   let stopped = false;
+   let stopPromise;
+   let pendingResumeFlag = continueOnFirstPrompt;
+-  let instructionsApplied = isResume;
++  let instructionsApplied = isResume && !refreshInstructions;
+   const wireTurn = (turnOpts) => {
+     let pendingResolve;
+     let pendingReject;

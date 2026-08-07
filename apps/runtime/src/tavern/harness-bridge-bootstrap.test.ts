@@ -19,7 +19,6 @@ describe('harness bridge bootstrap', () => {
         await writeFile(path.join(bridgeDir, 'package.json'), '{"type":"module"}');
         await writeFile(path.join(bridgeDir, 'pnpm-lock.yaml'), 'lockfileVersion: 9');
         await writeFile(path.join(bridgeDir, 'index.mjs'), 'console.log("bridge")');
-        await writeFile(path.join(bridgeDir, 'host-tool-mcp.mjs'), 'console.log("mcp")');
         process.env.TAVERN_RUNTIME_ASSETS_DIR = assetsDir;
 
         const bootstrap = await withRuntimeBridgeBootstrap(fakeHarness(), 'codex').getBootstrap!();
@@ -33,21 +32,17 @@ describe('harness bridge bootstrap', () => {
             content: 'console.log("bridge")',
             path: '/tmp/harness/codex/bridge.mjs',
         });
-        expect(bootstrap.files).toContainEqual({
-            content: 'console.log("mcp")',
-            path: '/tmp/harness/codex/host-tool-mcp.mjs',
-        });
     });
 
     it('prefers Tavern source assets over package bridge metadata', async () => {
         const bootstrap = await withRuntimeBridgeBootstrap(fakeHarness(), 'codex').getBootstrap!();
 
         expect(bootstrap.files).toContainEqual({
-            content: expect.stringContaining('"@openai/codex-sdk": "0.142.5"'),
+            content: expect.stringContaining('"@openai/codex-sdk": "0.144.5"'),
             path: '/tmp/harness/codex/package.json',
         });
         expect(bootstrap.files).toContainEqual({
-            content: expect.stringContaining('@openai/codex@0.142.5'),
+            content: expect.stringContaining('@openai/codex@0.144.5'),
             path: '/tmp/harness/codex/pnpm-lock.yaml',
         });
         expect(bootstrap.files).toContainEqual({
@@ -62,7 +57,6 @@ describe('harness bridge bootstrap', () => {
         expect(bootstrap.commands).toContainEqual({
             command:
                 'CI=true pnpm install --frozen-lockfile --store-dir /tmp/harness/codex/.pnpm-store',
-            workingDirectory: '/tmp/harness/codex',
         });
     });
 });

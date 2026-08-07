@@ -23,7 +23,7 @@ export async function sendFromComposer(page: Page, content: string) {
     await composer.fill(content);
 
     await send(page);
-    await expect(messageTimeline(page).getByText(content, { exact: true }).last()).toBeVisible();
+    await expect(messageByContent(messageTimeline(page), content, 'user')).toBeVisible();
 }
 
 export async function sendTaskFromComposer(page: Page, content: string) {
@@ -31,7 +31,7 @@ export async function sendTaskFromComposer(page: Page, content: string) {
     await composer.fill(content);
     await setTaskMode(page, true);
     await send(page);
-    await expect(messageTimeline(page).getByText(content, { exact: true }).last()).toBeVisible();
+    await expect(messageByContent(messageTimeline(page), content, 'user')).toBeVisible();
 }
 
 export async function setTaskMode(page: Page, enabled: boolean) {
@@ -45,9 +45,20 @@ export async function setTaskMode(page: Page, enabled: boolean) {
 }
 
 export async function expectVisibleReply(page: Page, content: string) {
-    await expect(messageTimeline(page).getByText(content, { exact: true }).last()).toBeVisible({
+    await expect(messageByContent(messageTimeline(page), content, 'assistant')).toBeVisible({
         timeout: 240_000,
     });
+}
+
+export function messageByContent(
+    root: Locator | Page,
+    content: string,
+    sender: 'assistant' | 'user' = 'user'
+) {
+    return root
+        .locator(`[data-from="${sender}"] [data-slot="chat-message-content"]`)
+        .filter({ hasText: messageAnchor(content) })
+        .last();
 }
 
 export function messageSurface(message: Locator) {
@@ -76,4 +87,17 @@ async function send(page: Page) {
 
 function escapeRegExp(value: string) {
     return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+function messageAnchor(content: string) {
+    const firstLine = content
+        .split(/\r?\n/u)
+        .map((line) => line.trim())
+        .find(Boolean);
+
+    if (!firstLine) {
+        throw new Error('A message locator needs non-empty content.');
+    }
+
+    return firstLine.replace(/^(?:#{1,6}|[-*+]|>)\s+/u, '');
 }

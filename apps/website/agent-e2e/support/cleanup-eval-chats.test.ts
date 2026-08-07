@@ -1,5 +1,9 @@
 import { expect, test } from 'bun:test';
-import { type EvalCleanupTask, expandEvalCleanupChatIds } from './cleanup-eval-chats.ts';
+import {
+    cleanupEvalChats,
+    type EvalCleanupTask,
+    expandEvalCleanupChatIds,
+} from './cleanup-eval-chats.ts';
 
 const task: EvalCleanupTask = {
     task: {
@@ -35,4 +39,31 @@ test('does not expand an unrelated task from a permanent Chat', () => {
             ]
         )
     ).toEqual(['chat_probe']);
+});
+
+test('deletes ordinary message Threads with their requested parent Chat', async () => {
+    const calls: Array<{ input: Record<string, unknown>; path: string }> = [];
+    const harness = {
+        serverId: 'server_1',
+        trpc: async (path: string, input: Record<string, unknown>) => {
+            calls.push({ input, path });
+            if (path === 'task.list') {
+                return [];
+            }
+            if (path === 'chat.messages') {
+                return { threads: [{ threadChatId: 'cht_thr_message' }] };
+            }
+            return { count: 2 };
+        },
+    };
+
+    await cleanupEvalChats(harness, ['chat_parent']);
+
+    expect(calls.at(-1)).toEqual({
+        input: {
+            chatIds: ['chat_parent', 'cht_thr_message'],
+            serverId: 'server_1',
+        },
+        path: 'dev.cleanupEvalChats',
+    });
 });

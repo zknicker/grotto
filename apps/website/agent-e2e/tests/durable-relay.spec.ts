@@ -1,6 +1,11 @@
 import { expect, type Page, test } from '@playwright/test';
 import { resolveThreadChatId, setupDurableRelaySuite } from '../support/durable-relay.ts';
-import { openChat, openMessageThread, sendFromComposer } from '../support/live-agent-app.ts';
+import {
+    messageByContent,
+    openChat,
+    openMessageThread,
+    sendFromComposer,
+} from '../support/live-agent-app.ts';
 
 /**
  * User story: a fresh Agent can continue another Agent's sourced work from the durable
@@ -161,7 +166,7 @@ test('a fresh Agent continues a sourced artifact handoff from its durable Thread
 });
 
 async function openThread(page: Page, content: string) {
-    await openMessageThread(page.getByText(content, { exact: true }));
+    await openMessageThread(messageByContent(page, content));
     await expect(page.getByRole('complementary', { name: 'Thread' })).toBeVisible();
 }
 
@@ -170,7 +175,7 @@ async function sendFromThread(page: Page, content: string) {
     const composer = thread.getByRole('textbox', { name: /Message Thread/u });
     await composer.fill(content);
     await thread.getByRole('button', { name: 'Send', exact: true }).click();
-    await expect(thread.getByText(content, { exact: true })).toBeVisible();
+    await expect(messageByContent(thread, content)).toBeVisible();
 }
 
 async function closeArtifacts(page: Page) {

@@ -1,13 +1,15 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
-import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
+import { createAgentFixture } from '../support/agent-fixture.ts';
 import {
+    messageByContent,
     messageTimeline,
     openChat,
     openMessageThread,
     sendFromComposer,
 } from '../support/live-agent-app.ts';
+import { pollAgentReply } from '../support/task-replies.ts';
 
 /**
  * User story: an Owner can equip an Agent with a skill, rely on Agent-owned files across
@@ -19,23 +21,19 @@ test.describe.configure({ mode: 'serial' });
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 const skillName = 'decision-helper';
 let suite: Awaited<ReturnType<typeof setupSuite>>;
-let teardown: {
-    agentId: string;
-    harness: Awaited<ReturnType<typeof createEvalHarness>>;
-    name: string;
-} | null = null;
 
 test.beforeAll(async () => {
     suite = await setupSuite();
 });
 
 test.afterAll(async () => {
-    await cleanupSuite();
+    await suite?.cleanup();
 });
 
 test('an imported skill shapes the Agent next turn', async ({ page }) => {
     const { agent, harness, server } = suite;
     await page.goto(`/s/${server.slug}/members/agents/${agent.id}`);
+    await page.getByRole('radio', { name: 'Tools' }).click();
     await page.getByRole('button', { name: 'Add skills' }).click();
     await page.getByRole('button', { name: 'Add Decision Helper' }).click();
     await expect(page.getByRole('button', { name: skillName, exact: true })).toBeVisible({
@@ -104,7 +102,7 @@ test('a new session recovers the exact Agent-owned workspace file', async ({ pag
 test('an Agent-authored HTML artifact opens with the exact workspace bytes', async ({ page }) => {
     const { agent, harness } = suite;
     const prompt = `Create a self-contained HTML status page at ${suite.artifactPath}. Its visible heading must be exactly "${suite.artifactMarker}". Share it here as a clickable artifact titled "${suite.artifactTitle}", not only as a text link.`;
-    const { reply } = await runTask(
+    const { reply, threadChatId } = await runTask(
         page,
         suite,
         prompt,
@@ -123,8 +121,10 @@ test('an Agent-authored HTML artifact opens with the exact workspace bytes', asy
     expect(file.path).toBe(suite.artifactPath);
     expect(file.content).toContain(suite.artifactMarker);
 
-    const thread = page.getByRole('complementary', { name: 'Thread' });
-    await thread.getByRole('button', { name: new RegExp(suite.artifactTitle, 'u') }).click();
+    const replySurface = threadChatId
+        ? page.getByRole('complementary', { name: 'Thread' })
+        : messageTimeline(page);
+    await replySurface.getByRole('button', { name: new RegExp(suite.artifactTitle, 'u') }).click();
     const artifacts = page.getByRole('complementary', { name: 'Artifacts' });
     await expect(artifacts).toBeVisible();
     const preview = artifacts.locator(`iframe[title="${suite.artifactPath}"]`);
@@ -135,84 +135,41 @@ test('an Agent-authored HTML artifact opens with the exact workspace bytes', asy
 });
 
 async function setupSuite() {
-    const harness = await createEvalHarness({ evalName: 'agentskillsworkspace', repositoryRoot });
-    const templates = (await harness.trpc('agent.list', {
-        serverId: harness.serverId,
-    })) as AgentItem[];
-    const template = templates.find(
-        (candidate) =>
-            candidate.availability !== 'offline' &&
-            candidate.desiredModelId.toLowerCase().includes('terra') &&
-            candidate.status === 'applied'
-    );
-    if (!template) {
-        await harness.cleanup();
-        throw new Error('Agent E2E needs an applied online Terra Agent configuration.');
-    }
-    const servers = await harness.trpc('server.list');
-    const server = servers.find((candidate: { id: string }) => candidate.id === harness.serverId);
-    if (!server) {
-        await harness.cleanup();
-        throw new Error(`Agent E2E could not resolve Server ${harness.serverId}`);
-    }
-
-    const name = `Sable ${harness.stamp.slice(-6)}`;
-    const created = (await harness.trpc('agent.create', {
-        computerId: template.computerId,
-        description: 'Disposable skills and workspace audit Agent.',
-        displayName: name,
-        handle: `sable-${harness.stamp.slice(-8).toLowerCase()}`,
-        modelId: template.desiredModelId,
-        role: 'member',
-        runtimeId: template.desiredRuntimeId,
-        serverId: harness.serverId,
-    })) as { agent: AgentItem; chat: { id: string } };
-    teardown = { agentId: created.agent.id, harness, name };
-    const agent = await pollAgent(harness, created.agent.id);
-    return {
-        agent,
-        artifactMarker: `ARTIFACT-${harness.stamp}`,
-        artifactPath: `audits/agent-e2e-${harness.stamp}.html`,
-        artifactTitle: `Workspace audit ${harness.stamp}`,
-        dm: created.chat.id,
-        harness,
-        server,
-        workspacePath: `audits/agent-e2e-${harness.stamp}.md`,
-    };
-}
-
-async function cleanupSuite() {
-    const current = teardown;
-    teardown = null;
-    if (!current) {
-        return;
-    }
-
-    let failure: unknown;
+    const fixture = await createAgentFixture({
+        evalName: 'agentskillsworkspace',
+        profiles: [
+            {
+                description: 'Audits imported skills, workspace continuity, and artifacts.',
+                name: 'Workspace Auditor',
+            },
+        ],
+        repositoryRoot,
+    });
     try {
-        await Promise.race([
-            current.harness.trpc('agent.delete', {
-                agentId: current.agentId,
-                confirmation: current.name,
-                serverId: current.harness.serverId,
-            }),
-            new Promise((_, reject) => {
-                setTimeout(
-                    () => reject(new Error('temporary Agent deletion timed out after 30s')),
-                    30_000
-                );
-            }),
-        ]);
-        await pollAgentAbsent(current.harness, current.agentId);
-    } catch (error) {
-        failure = error;
-    } finally {
-        await current.harness.cleanup();
-    }
-    if (failure) {
-        throw new Error(
-            `Failed to remove temporary Agent ${current.name} (${current.agentId}): ${String(failure)}`
+        const [agent] = fixture.agents;
+        if (!agent?.dmChatId) {
+            throw new Error('Skills and workspace needs one disposable Agent with an Owner DM.');
+        }
+        const servers = await fixture.harness.trpc('server.list');
+        const server = servers.find(
+            (candidate: { id: string }) => candidate.id === fixture.harness.serverId
         );
+        if (!server) {
+            throw new Error(`Agent E2E could not resolve Server ${fixture.harness.serverId}`);
+        }
+        return {
+            ...fixture,
+            agent,
+            artifactMarker: `ARTIFACT-${fixture.harness.stamp}`,
+            artifactPath: `audits/agent-e2e-${fixture.harness.stamp}.html`,
+            artifactTitle: `Workspace audit ${fixture.harness.stamp}`,
+            dm: agent.dmChatId,
+            server,
+            workspacePath: `audits/agent-e2e-${fixture.harness.stamp}.md`,
+        };
+    } catch (error) {
+        await fixture.cleanup();
+        throw error;
     }
 }
 
@@ -224,103 +181,20 @@ async function runTask(
 ) {
     await openChat(page, current.server.slug, current.dm, current.agent.name);
     await sendFromComposer(page, prompt);
-    const { messages, threadChatId } = await pollReplyLocation(
+    const result = await pollAgentReply(
         current.harness,
         current.dm,
         current.agent.id,
         prompt,
         complete
     );
-    const reply =
-        current.harness.authoredBy(messages, current.agent.id).find(complete) ??
-        current.harness.authoredBy(messages, current.agent.id).at(-1) ??
-        '';
 
-    if (threadChatId) {
+    if (result.threadChatId) {
         await openThread(page, prompt);
     }
-    return { reply, threadChatId };
-}
-
-async function pollAgent(harness: Awaited<ReturnType<typeof createEvalHarness>>, agentId: string) {
-    const deadline = Date.now() + 60_000;
-    while (Date.now() < deadline) {
-        const agents = (await harness.trpc('agent.list', {
-            serverId: harness.serverId,
-        })) as AgentItem[];
-        const agent = agents.find((candidate) => candidate.id === agentId);
-        if (agent?.status === 'applied' && agent.availability !== 'offline') {
-            return { ...agent, name: agent.displayName };
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-    throw new Error(`Timed out waiting for Agent ${agentId} to become ready.`);
-}
-
-async function pollAgentAbsent(
-    harness: Awaited<ReturnType<typeof createEvalHarness>>,
-    agentId: string
-) {
-    const deadline = Date.now() + 60_000;
-    while (Date.now() < deadline) {
-        const agents = (await harness.trpc('agent.list', {
-            serverId: harness.serverId,
-        })) as AgentItem[];
-        if (!agents.some((candidate) => candidate.id === agentId)) {
-            return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-    throw new Error(`Timed out waiting for temporary Agent ${agentId} to disappear.`);
-}
-
-async function pollReplyLocation(
-    harness: Awaited<ReturnType<typeof createEvalHarness>>,
-    dmChatId: string,
-    agentId: string,
-    content: string,
-    complete: (content: string) => boolean
-) {
-    const deadline = Date.now() + 300_000;
-    while (Date.now() < deadline) {
-        const [tasks, directMessages] = await Promise.all([
-            harness.trpc('task.list', { serverId: harness.serverId }) as Promise<TaskItem[]>,
-            harness.readMessages(dmChatId),
-        ]);
-        const task = tasks.find((item) => item.message.content === content);
-        if (harness.authoredBy(directMessages, agentId).some(complete)) {
-            return { messages: directMessages, threadChatId: undefined };
-        }
-        if (task) {
-            const threadMessages = await harness.readMessages(task.task.threadChatId);
-            if (harness.authoredBy(threadMessages, agentId).some(complete)) {
-                return { messages: threadMessages, threadChatId: task.task.threadChatId };
-            }
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-    throw new Error('Timed out waiting for the skill/workspace Agent reply.');
+    return { reply: result.reply.content, threadChatId: result.threadChatId };
 }
 
 async function openThread(page: Page, content: string) {
-    await openMessageThread(page.getByText(content, { exact: true }));
-}
-
-interface TaskItem {
-    message: {
-        content: string;
-    };
-    task: {
-        threadChatId: string;
-    };
-}
-
-interface AgentItem {
-    availability: 'error' | 'idle' | 'offline' | 'stopped' | 'working';
-    computerId: string;
-    desiredModelId: string;
-    desiredRuntimeId: string;
-    displayName: string;
-    id: string;
-    status: 'applied' | 'degraded' | 'pending';
+    await openMessageThread(messageByContent(page, content));
 }

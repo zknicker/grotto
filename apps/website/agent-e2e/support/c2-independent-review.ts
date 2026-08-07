@@ -1,66 +1,66 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
-import { cleanupEvalChats as deleteCreatedChats } from './cleanup-eval-chats.ts';
+import type { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
+import { createAgentFixture } from './agent-fixture.ts';
 
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 
 export async function setupC2IndependentReviewSuite() {
-    const harness = await createEvalHarness({ evalName: 'c2independentreview', repositoryRoot });
-    const templates = await harness.requireAgents(2);
-    const template = templates.find((candidate) =>
-        candidate.desiredModelId.toLowerCase().includes('terra')
-    );
-    if (!template) {
-        await harness.cleanup();
-        throw new Error('C2 needs one applied online Terra Agent as a configuration template.');
-    }
-
-    const temporaryAgents: AgentItem[] = [];
-    let channel: { id: string } | null = null;
+    const fixture = await createAgentFixture({
+        evalName: 'c2independentreview',
+        profiles: [
+            {
+                description:
+                    'Coordinates reviewed Bluebird launch announcements through distinct author and verifier lanes.',
+                name: 'C2 Coordinator',
+            },
+            {
+                description:
+                    'Wait for an explicitly assigned author task before acting on ordinary Channel messages.',
+                name: 'C2 Author',
+            },
+            {
+                description:
+                    'Wait for an explicitly assigned verifier task before acting on ordinary Channel messages.',
+                name: 'C2 Verifier',
+            },
+        ],
+        repositoryRoot,
+    });
     try {
-        const coordinator = await createTemporaryAgent(harness, template, 'Coordinator');
-        temporaryAgents.push(coordinator);
-        const author = await createTemporaryAgent(harness, template, 'Author');
-        temporaryAgents.push(author);
-        const verifier = await createTemporaryAgent(harness, template, 'Verifier');
-        temporaryAgents.push(verifier);
-        const channelName = `c2-${harness.stamp.slice(-8)}`;
-        channel = (await harness.trpc('chat.createChannel', {
+        const [coordinator, author, verifier] = fixture.agents;
+        if (!(coordinator && author && verifier)) {
+            throw new Error('C2 needs three disposable Agents.');
+        }
+        const channelName = `c2-${fixture.harness.stamp.slice(-8)}`;
+        const channel = (await fixture.harness.trpc('chat.createChannel', {
             agentIds: [coordinator.id, author.id, verifier.id],
             name: channelName,
-            serverId: harness.serverId,
+            serverId: fixture.harness.serverId,
         })) as { id: string };
-        const servers = (await harness.trpc('server.list')) as ServerItem[];
-        const server = servers.find((candidate) => candidate.id === harness.serverId);
+        fixture.trackChat(channel.id);
+        const servers = (await fixture.harness.trpc('server.list')) as ServerItem[];
+        const server = servers.find((candidate) => candidate.id === fixture.harness.serverId);
         if (!server) {
-            throw new Error(`Agent E2E could not resolve Server ${harness.serverId}`);
+            throw new Error(`Agent E2E could not resolve Server ${fixture.harness.serverId}`);
         }
 
         return {
             author,
             channel: channel.id,
             channelName,
-            cleanup: async () => {
-                await cleanupC2Resources(harness, temporaryAgents, [
-                    channel?.id,
-                    coordinator.dmChatId,
-                    author.dmChatId,
-                    verifier.dmChatId,
-                ]);
-            },
+            cleanup: fixture.cleanup,
             coordinator,
-            harness,
+            harness: fixture.harness,
             server,
             verifier,
         };
     } catch (error) {
-        await cleanupC2Resources(
-            harness,
-            temporaryAgents,
-            [channel?.id, ...temporaryAgents.map((agent) => agent.dmChatId)],
-            error
-        );
+        try {
+            await fixture.cleanup();
+        } catch (cleanupError) {
+            throw new AggregateError([error, cleanupError], 'C2 setup and cleanup failed.');
+        }
         throw error;
     }
 }
@@ -93,124 +93,6 @@ export function extractMarkedSection(content: string, start: string, end: string
         return null;
     }
     return content.slice(startIndex + start.length, endIndex).trim();
-}
-
-async function createTemporaryAgent(
-    harness: Awaited<ReturnType<typeof createEvalHarness>>,
-    template: AgentItem,
-    lane: string
-) {
-    const displayName = `C2 ${lane} ${harness.stamp.slice(-6)}`;
-    const description =
-        lane === 'Coordinator'
-            ? 'Coordinates reviewed Bluebird launch announcements through distinct author and verifier lanes.'
-            : `Temporary C2 ${lane.toLowerCase()} collaborator. Wait for an explicitly assigned task before acting on ordinary Channel messages.`;
-    const created = (await harness.trpc('agent.create', {
-        computerId: template.computerId,
-        description,
-        displayName,
-        handle: `c2-${lane.toLowerCase()}-${harness.stamp.slice(-8).toLowerCase()}`,
-        modelId: template.desiredModelId,
-        role: 'member',
-        runtimeId: template.desiredRuntimeId,
-        serverId: harness.serverId,
-    })) as { agent: AgentItem };
-    return await pollAgent(harness, created.agent.id);
-}
-
-async function deleteTemporaryAgents(
-    harness: Awaited<ReturnType<typeof createEvalHarness>>,
-    agents: AgentItem[]
-) {
-    const failures: Error[] = [];
-    for (const agent of [...agents].reverse()) {
-        try {
-            await harness.trpc('agent.delete', {
-                agentId: agent.id,
-                confirmation: agent.displayName,
-                serverId: harness.serverId,
-            });
-            await pollAgentAbsent(harness, agent.id);
-        } catch (error) {
-            failures.push(
-                new Error(`Could not delete temporary C2 Agent ${agent.id}.`, { cause: error })
-            );
-        }
-    }
-    if (failures.length > 0) {
-        throw new AggregateError(failures, 'C2 Agent cleanup failed.');
-    }
-}
-
-async function cleanupC2Resources(
-    harness: Awaited<ReturnType<typeof createEvalHarness>>,
-    agents: AgentItem[],
-    chatIds: Array<string | null | undefined>,
-    originalError?: unknown
-) {
-    const failures: unknown[] = [];
-    for (const cleanup of [
-        () => deleteCreatedChats(harness, chatIds),
-        () => deleteTemporaryAgents(harness, agents),
-        () => harness.cleanup(),
-    ]) {
-        try {
-            await cleanup();
-        } catch (error) {
-            failures.push(error);
-        }
-    }
-    if (failures.length === 0) {
-        return;
-    }
-    throw new AggregateError(
-        originalError === undefined ? failures : [originalError, ...failures],
-        'C2 resource cleanup failed.'
-    );
-}
-
-async function pollAgent(harness: Awaited<ReturnType<typeof createEvalHarness>>, agentId: string) {
-    const deadline = Date.now() + 90_000;
-    while (Date.now() < deadline) {
-        const agents = (await harness.trpc('agent.list', {
-            serverId: harness.serverId,
-        })) as AgentItem[];
-        const agent = agents.find((candidate) => candidate.id === agentId);
-        if (agent && agent.availability !== 'offline') {
-            return agent;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-    throw new Error(`Timed out waiting for temporary Agent ${agentId} to become ready.`);
-}
-
-async function pollAgentAbsent(
-    harness: Awaited<ReturnType<typeof createEvalHarness>>,
-    agentId: string
-) {
-    const deadline = Date.now() + 60_000;
-    while (Date.now() < deadline) {
-        const agents = (await harness.trpc('agent.list', {
-            serverId: harness.serverId,
-        })) as AgentItem[];
-        if (!agents.some((candidate) => candidate.id === agentId)) {
-            return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-    throw new Error(`Timed out waiting for temporary Agent ${agentId} to disappear.`);
-}
-
-interface AgentItem {
-    availability: string;
-    computerId: string;
-    desiredModelId: string;
-    desiredRuntimeId: string;
-    displayName: string;
-    dmChatId: string | null;
-    handle: string;
-    id: string;
-    status: string;
 }
 
 interface ServerItem {

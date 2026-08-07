@@ -2,7 +2,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, type Locator, test } from '@playwright/test';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
-import { openChat, openMessageThread, sendFromComposer } from '../support/live-agent-app.ts';
+import {
+    messageByContent,
+    openChat,
+    openMessageThread,
+    sendFromComposer,
+} from '../support/live-agent-app.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -41,6 +46,7 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
     await expect(page.getByText(/^idle$/iu)).toBeVisible({
         timeout: 60_000,
     });
+    await page.getByRole('radio', { name: 'Tools' }).click();
     await expect(page.getByRole('button', { name: 'tavern-agent' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'visuals' })).toBeVisible();
 
@@ -62,7 +68,7 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
     );
     const result = harness.authoredBy(messages, agent.id).at(-1)?.trim() ?? '';
 
-    await openMessageThread(page.getByText(prompt, { exact: true }));
+    await openMessageThread(messageByContent(page, prompt));
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expectResultVisible(thread);
     expect(result.toLowerCase()).toContain('bluebird-brief.md');
@@ -93,11 +99,11 @@ test("a retired Agent's Owner DM stays readable and clearly labeled Retired", as
 
     await page.goto(`/s/${suite.server.slug}/chats/${suite.dmChatId}`);
     await expect(page).toHaveURL(new RegExp(`/chats/${suite.dmChatId}$`, 'u'));
-    await expect(page.getByText(suite.prompt, { exact: true })).toBeVisible();
+    await expect(messageByContent(page, suite.prompt)).toBeVisible();
     await expect(page.getByText(/has been retired/u)).toBeVisible();
     await expect(page.getByRole('textbox', { name: /^Message /u })).toHaveCount(0);
 
-    await openMessageThread(page.getByText(suite.prompt, { exact: true }));
+    await openMessageThread(messageByContent(page, suite.prompt));
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expect(thread.getByText(/read-only.*retired/u)).toBeVisible();
     await expect(thread.getByRole('textbox', { name: /^Message /u })).toHaveCount(0);

@@ -1,8 +1,10 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
+import type { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
+import { createAgentChannelFixture } from '../support/agent-channel-fixture.ts';
 import {
+    messageByContent,
     messageSurface,
     openChat,
     openMessageThread,
@@ -24,20 +26,20 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-    await suite?.harness.cleanup();
+    await suite?.cleanup();
 });
 
 test('a claimed task waits for Thread clarification, uses it, and moves to review', async ({
     page,
 }) => {
-    const { agent, channel, channelName, harness, server } = suite;
+    const { agent, channel, channelName, harness, server, stamp } = suite;
     const prompt = `@${agent.handle} Draft a two-sentence Bluebird launch blurb. Before drafting, ask me in this task Thread which audience to target; wait for my answer, then draft for that audience and move the task to review.`;
 
     await openChat(page, server.slug, channel, channelName);
     await sendTaskFromComposer(page, prompt);
 
     const task = await pollTask(harness, (item) => item.message.content === prompt);
-    await openMessageThread(page.getByText(prompt, { exact: true }));
+    await openMessageThread(messageByContent(page, prompt));
 
     const panel = page.getByRole('complementary', { name: 'Thread' });
     const claimed = await pollTask(
@@ -64,8 +66,8 @@ test('a claimed task waits for Thread clarification, uses it, and moves to revie
 
     expect((await currentTask(harness, task.message.id)).task.status).toBe('in_progress');
 
-    const answer =
-        'Target independent bookstore owners; emphasize calm setup and reliable daily use.';
+    const audienceMarker = `BOOKSTORE-AUDIENCE-${stamp}`;
+    const answer = `Target independent bookstore owners. Include the exact marker ${audienceMarker} in the final blurb. Emphasize calm setup and dependable daily use.`;
     await panel.getByRole('textbox', { name: /Message Thread/u }).fill(answer);
     await panel.getByRole('button', { name: 'Send' }).click();
     await expect(panel.getByText(answer, { exact: true })).toBeVisible();
@@ -76,11 +78,8 @@ test('a claimed task waits for Thread clarification, uses it, and moves to revie
         240_000
     );
     const final = harness.authoredBy(completedMessages, agent.id).at(-1) ?? '';
-    const normalized = final.toLowerCase();
 
-    expect(normalized).toContain('bookstore');
-    expect(normalized).toContain('calm');
-    expect(normalized).toMatch(/reliab/u);
+    expect(final).toContain(audienceMarker);
     await expect(panel.getByText(final, { exact: true })).toBeVisible();
 
     const reviewed = await pollTask(
@@ -97,40 +96,32 @@ test('a task message visibly projects its task state in the Chat', async ({ page
     await openChat(page, server.slug, channel, channelName);
     await sendTaskFromComposer(page, prompt);
 
-    const anchor = messageSurface(page.getByText(prompt, { exact: true }));
+    const anchor = messageSurface(messageByContent(page, prompt));
     await expect(anchor.getByTestId('message-task-badge')).toBeVisible();
 });
 
 async function setupSuite() {
-    const harness = await createEvalHarness({ evalName: 'tasklifecycle', repositoryRoot });
-    const agents = await harness.requireAgents(2);
-    const terra =
-        agents.find((candidate) => candidate.desiredModelId?.includes('terra')) ?? agents[0];
-
-    if (!terra) {
-        throw new Error('Task lifecycle needs one online Agent.');
-    }
-
-    const channelName = `tasks-${harness.stamp.slice(-8)}`;
-    const channel = await harness.trpc('chat.createChannel', {
-        agentIds: [terra.id],
-        name: channelName,
-        serverId: harness.serverId,
+    const fixture = await createAgentChannelFixture({
+        channelPrefix: 'tasks',
+        evalName: 'tasklifecycle',
+        profiles: [
+            {
+                description: 'Claims one task and completes it through its exact Thread.',
+                name: 'Task Worker',
+            },
+        ],
+        repositoryRoot,
     });
-    const servers = await harness.trpc('server.list');
-    const server = servers.find((candidate: { id: string }) => candidate.id === harness.serverId);
-
-    if (!server) {
-        throw new Error(`Agent E2E could not resolve Server ${harness.serverId}`);
+    const [agent] = fixture.agents;
+    if (!agent) {
+        await fixture.cleanup();
+        throw new Error('Task lifecycle needs one disposable Agent.');
     }
 
     return {
-        agent: terra,
-        channel: channel.id,
-        channelName,
-        harness,
-        server,
-        stamp: harness.stamp,
+        ...fixture,
+        agent,
+        stamp: fixture.harness.stamp,
     };
 }
 

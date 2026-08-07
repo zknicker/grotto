@@ -73,17 +73,17 @@ function assertDevClerkSignInAllowed(
         });
     }
 
-    if (!(dependencies.clerkSecretKey && dependencies.devClerkSignInUserId)) {
-        throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Dev Clerk sign-in requires CLERK_SECRET_KEY and DEV_CLERK_SIGN_IN_USER_ID.',
-        });
-    }
-
     if (!(requestHost && localhostHostPattern.test(requestHost.toLowerCase()))) {
         throw new TRPCError({
             code: 'FORBIDDEN',
             message: 'Dev Clerk sign-in is available only from localhost.',
+        });
+    }
+
+    if (!(dependencies.clerkSecretKey && dependencies.devClerkSignInUserId)) {
+        throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Dev Clerk sign-in requires CLERK_SECRET_KEY and DEV_CLERK_SIGN_IN_USER_ID.',
         });
     }
 }

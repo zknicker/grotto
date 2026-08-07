@@ -371,7 +371,7 @@ async function createDevClerkAuthSession(serverUrl, publishableKey) {
     assert(ticket, 'Dev Clerk sign-in did not return a ticket');
 
     const websiteRequire = createRequire(new URL('../apps/website/package.json', import.meta.url));
-    const { Clerk } = websiteRequire('@clerk/clerk-js/headless');
+    const { Clerk } = loadHeadlessClerk(websiteRequire);
     const clerk = new Clerk(publishableKey);
     let nativeAuthorization = '';
 
@@ -414,6 +414,25 @@ async function createDevClerkAuthSession(serverUrl, publishableKey) {
             return token;
         },
     };
+}
+
+export function loadHeadlessClerk(websiteRequire) {
+    const NativeBroadcastChannel = globalThis.BroadcastChannel;
+    if (!NativeBroadcastChannel?.prototype?.unref) {
+        return websiteRequire('@clerk/clerk-js/headless');
+    }
+
+    globalThis.BroadcastChannel = class extends NativeBroadcastChannel {
+        constructor(name) {
+            super(name);
+            this.unref();
+        }
+    };
+    try {
+        return websiteRequire('@clerk/clerk-js/headless');
+    } finally {
+        globalThis.BroadcastChannel = NativeBroadcastChannel;
+    }
 }
 
 function protocolHeaders() {

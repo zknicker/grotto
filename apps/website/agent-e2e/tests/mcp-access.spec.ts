@@ -1,9 +1,16 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
+import { createAgentFixture } from '../support/agent-fixture.ts';
 import { startControlledMcp } from '../support/controlled-mcp.ts';
-import { messageTimeline, openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import {
+    messageByContent,
+    messageTimeline,
+    openChat,
+    openMessageThread,
+    sendFromComposer,
+} from '../support/live-agent-app.ts';
+import { pollAgentReply } from '../support/task-replies.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -26,17 +33,23 @@ test('an Agent uses an assigned Server-owned MCP connection', async ({ page }) =
     await openChat(page, server.slug, dm, agent.name);
     const head = await harness.readHead(dm);
     await sendFromComposer(page, prompt);
-    const messages = await harness.pollMessages(
+    const result = await pollAgentReply(
+        harness,
         dm,
-        (items) =>
-            harness
-                .authoredBy(items, agent.id, head)
-                .some((content) => content.includes(first.title) && content.includes(first.owner)),
-        240_000
+        agent.id,
+        prompt,
+        (content) => content.includes(first.title) && content.includes(first.owner),
+        head
     );
-    const reply = harness.authoredBy(messages, agent.id, head).join('\n');
+    const reply = result.reply.content;
 
-    await expect(messageTimeline(page).getByText(new RegExp(first.title, 'u'))).toBeVisible();
+    if (result.threadChatId) {
+        await openMessageThread(messageByContent(page, prompt));
+    }
+    const replySurface = result.threadChatId
+        ? page.getByRole('complementary', { name: 'Thread' })
+        : messageTimeline(page);
+    await expect(replySurface.getByText(new RegExp(first.title, 'u'))).toBeVisible();
     expect(reply).toContain(first.owner);
     expect(mcp.calls.filter((call) => call.key === first.key)).toHaveLength(1);
 });
@@ -51,12 +64,8 @@ test('revoking the connection prevents a later lookup from returning private fac
     await openChat(page, server.slug, dm, agent.name);
     const head = await harness.readHead(dm);
     await sendFromComposer(page, prompt);
-    const messages = await harness.pollMessages(
-        dm,
-        (items) => harness.authoredBy(items, agent.id, head).length > 0,
-        240_000
-    );
-    const reply = harness.authoredBy(messages, agent.id, head).join('\n');
+    const result = await pollAgentReply(harness, dm, agent.id, prompt, () => true, head);
+    const reply = result.reply.content;
 
     expect(mcp.calls.filter((call) => call.key === second.key)).toHaveLength(0);
     expect(reply).not.toContain(second.title);
@@ -64,58 +73,103 @@ test('revoking the connection prevents a later lookup from returning private fac
 });
 
 async function setupSuite() {
-    const harness = await createEvalHarness({ evalName: 'agentmcp', repositoryRoot });
-    const [agent] = await harness.requireAgents(1);
-    const dm = harness.requireDm(agent);
-    const servers = await harness.trpc('server.list');
-    const server = servers.find((candidate: { id: string }) => candidate.id === harness.serverId);
-    if (!server) {
-        throw new Error(`Agent E2E could not resolve Server ${harness.serverId}`);
-    }
-
-    const mcp = await startControlledMcp();
-    const connectionName = `Audit Ledger ${harness.stamp}`;
-    const connection = await harness.trpc('mcp.add', {
-        auth: 'none',
-        headers: {},
-        name: connectionName,
-        oauthScopes: [],
-        serverId: harness.serverId,
-        url: mcp.url,
+    const fixture = await createAgentFixture({
+        evalName: 'agentmcp',
+        profiles: [
+            {
+                description: 'Uses only explicitly granted MCP connections.',
+                name: 'MCP Auditor',
+            },
+        ],
+        repositoryRoot,
     });
-    const first = {
-        key: `BLUE-${harness.stamp}`,
-        owner: `Owner-${harness.stamp}`,
-        title: `Bluebird ${harness.stamp}`,
-    };
-    const second = {
-        key: `EMBER-${harness.stamp}`,
-        owner: `Private-${harness.stamp}`,
-        title: `Ember ${harness.stamp}`,
-    };
-    mcp.define(first.key, first);
-    mcp.define(second.key, second);
+    let mcp: Awaited<ReturnType<typeof startControlledMcp>> | undefined;
+    let connectionId: string | undefined;
+    try {
+        const [agent] = fixture.agents;
+        if (!agent?.dmChatId) {
+            throw new Error('MCP access needs one disposable Agent with an Owner DM.');
+        }
+        const servers = await fixture.harness.trpc('server.list');
+        const server = servers.find(
+            (candidate: { id: string }) => candidate.id === fixture.harness.serverId
+        );
+        if (!server) {
+            throw new Error(`Agent E2E could not resolve Server ${fixture.harness.serverId}`);
+        }
 
-    return {
-        agent,
-        cleanup: async () => {
-            await harness
-                .trpc('mcp.delete', {
-                    connectionId: connection.id,
-                    serverId: harness.serverId,
-                })
-                .catch(() => undefined);
-            await mcp.close();
-            await harness.cleanup();
+        mcp = await startControlledMcp();
+        const connectionName = `Audit Ledger ${fixture.harness.stamp}`;
+        const connection = await fixture.harness.trpc('mcp.add', {
+            auth: 'none',
+            headers: {},
+            name: connectionName,
+            oauthScopes: [],
+            serverId: fixture.harness.serverId,
+            url: mcp.url,
+        });
+        connectionId = connection.id;
+        const first = {
+            key: `BLUE-${fixture.harness.stamp}`,
+            owner: `Owner-${fixture.harness.stamp}`,
+            title: `Bluebird ${fixture.harness.stamp}`,
+        };
+        const second = {
+            key: `EMBER-${fixture.harness.stamp}`,
+            owner: `Private-${fixture.harness.stamp}`,
+            title: `Ember ${fixture.harness.stamp}`,
+        };
+        mcp.define(first.key, first);
+        mcp.define(second.key, second);
+
+        return {
+            agent,
+            cleanup: () => cleanupSuite(fixture, mcp, connectionId),
+            connectionName,
+            dm: agent.dmChatId,
+            first,
+            harness: fixture.harness,
+            mcp,
+            second,
+            server,
+        };
+    } catch (error) {
+        try {
+            await cleanupSuite(fixture, mcp, connectionId);
+        } catch (cleanupError) {
+            throw new AggregateError([error, cleanupError], 'MCP setup and cleanup failed.');
+        }
+        throw error;
+    }
+}
+
+async function cleanupSuite(
+    fixture: Awaited<ReturnType<typeof createAgentFixture>>,
+    mcp?: Awaited<ReturnType<typeof startControlledMcp>>,
+    connectionId?: string
+) {
+    const failures: unknown[] = [];
+    for (const cleanup of [
+        async () => {
+            if (connectionId) {
+                await fixture.harness.trpc('mcp.delete', {
+                    connectionId,
+                    serverId: fixture.harness.serverId,
+                });
+            }
         },
-        connectionName,
-        dm,
-        first,
-        harness,
-        mcp,
-        second,
-        server,
-    };
+        async () => mcp?.close(),
+        fixture.cleanup,
+    ]) {
+        try {
+            await cleanup();
+        } catch (error) {
+            failures.push(error);
+        }
+    }
+    if (failures.length > 0) {
+        throw new AggregateError(failures, 'MCP Agent E2E cleanup failed.');
+    }
 }
 
 async function setGrant(
@@ -127,7 +181,7 @@ async function setGrant(
     enabled: boolean
 ) {
     await page.goto(`/s/${serverSlug}/members/agents/${agentId}`);
-    await page.getByRole('radio', { name: 'Overview' }).click();
+    await page.getByRole('radio', { name: 'Tools' }).click();
     await expect(page.getByRole('heading', { name: 'Agent MCP Access' })).toBeVisible();
     const grant = page.getByRole('switch', {
         name: `Enable ${connectionName} for ${agentName}`,

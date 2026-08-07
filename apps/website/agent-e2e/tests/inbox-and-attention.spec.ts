@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
+import { createAgentChannelFixture } from '../support/agent-channel-fixture.ts';
 import { expectVisibleReply, openChat, sendFromComposer } from '../support/live-agent-app.ts';
 
 test.describe.configure({ mode: 'serial' });
@@ -9,12 +9,12 @@ test.describe.configure({ mode: 'serial' });
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../../', import.meta.url)));
 let suite: Awaited<ReturnType<typeof setupSuite>>;
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
     suite = await setupSuite();
 });
 
-test.afterAll(async () => {
-    await suite?.harness.cleanup();
+test.afterEach(async () => {
+    await suite?.cleanup();
 });
 
 test('a direct mention wakes only the addressed Agent', async ({ page }) => {
@@ -22,7 +22,7 @@ test('a direct mention wakes only the addressed Agent', async ({ page }) => {
     const head = await harness.readHead(all);
     const token = `HANDOFF-${stamp}`;
 
-    await openChat(page, server.slug, all, 'all');
+    await openChat(page, server.slug, all, suite.allName);
     await sendFromComposer(page, `@${alpha.handle} reply with exactly ${token}.`);
     await expectVisibleReply(page, token);
     await harness.waitForAgentQuiet(beta.id, 15_000, 300_000);
@@ -39,7 +39,7 @@ for (const kind of ['Channel', 'DM'] as const) {
         const mention = kind === 'Channel' ? `@${alpha.handle} ` : '';
         const head = await harness.readHead(chatId);
 
-        await openChat(page, server.slug, chatId, kind === 'Channel' ? 'all' : alpha.name);
+        await openChat(page, server.slug, chatId, kind === 'Channel' ? suite.allName : alpha.name);
         await sendFromComposer(
             page,
             `${mention}FYI only, no response needed: deploy ${stamp} finished cleanly.`
@@ -69,53 +69,88 @@ test('an ordinary DM receives one concise answer', async ({ page }) => {
 });
 
 test('one Agent drains work from two Chats into the correct targets', async ({ page }) => {
-    const { all, alpha, harness, product, server, stamp } = suite;
+    const { all, allName, alpha, harness, product, productName, server, stamp } = suite;
     const allHead = await harness.readHead(all);
     const productHead = await harness.readHead(product);
     const allToken = `ALL-${stamp}`;
     const productToken = `PRODUCT-${stamp}`;
 
-    await openChat(page, server.slug, all, 'all');
+    await openChat(page, server.slug, all, allName);
     await sendFromComposer(page, `@${alpha.handle} reply here with exactly ${allToken}.`);
-    await openChat(page, server.slug, product, 'product');
+    await openChat(page, server.slug, product, productName);
     await sendFromComposer(page, `@${alpha.handle} reply here with exactly ${productToken}.`);
     await expectVisibleReply(page, productToken);
-    await openChat(page, server.slug, all, 'all');
+    const productMessages = await harness.pollMessages(
+        product,
+        (messages) =>
+            cleanReplies(harness.authoredBy(messages, alpha.id, productHead)).some((reply) =>
+                reply.includes(productToken)
+            ),
+        240_000
+    );
+    await openChat(page, server.slug, all, allName);
     await expectVisibleReply(page, allToken);
+    const allMessages = await harness.pollMessages(
+        all,
+        (messages) =>
+            cleanReplies(harness.authoredBy(messages, alpha.id, allHead)).some((reply) =>
+                reply.includes(allToken)
+            ),
+        240_000
+    );
 
+    expect(cleanReplies(harness.authoredBy(allMessages, alpha.id, allHead)).join('\n')).toContain(
+        allToken
+    );
     expect(
-        cleanReplies(harness.authoredBy(await harness.readMessages(all), alpha.id, allHead))
-    ).toContain(allToken);
-    expect(
-        cleanReplies(harness.authoredBy(await harness.readMessages(product), alpha.id, productHead))
+        cleanReplies(harness.authoredBy(productMessages, alpha.id, productHead)).join('\n')
     ).toContain(productToken);
 });
 
 async function setupSuite() {
-    const harness = await createEvalHarness({ evalName: 'agente2e', repositoryRoot });
-    const agents = await harness.requireAgents(2);
-    const alpha = agents.find((agent) => agent.desiredModelId?.includes('terra')) ?? agents[0];
-    const beta = agents.find((agent) => agent.id !== alpha.id) ?? agents[1];
-    const all = await harness.requireChannel('all');
-    const product = await harness.requireChannel('product');
-    const dm = harness.requireDm(alpha);
-    const servers = await harness.trpc('server.list');
-    const server = servers.find((candidate) => candidate.id === harness.serverId);
+    const fixture = await createAgentChannelFixture({
+        channelPrefix: 'inbox-all',
+        evalName: 'agente2e',
+        profiles: [
+            {
+                description: 'Tests direct attention and exact Chat delivery.',
+                name: 'Inbox Alpha',
+            },
+            {
+                description: 'Remains silent unless directly addressed.',
+                name: 'Inbox Beta',
+            },
+        ],
+        repositoryRoot,
+    });
+    try {
+        const [alpha, beta] = fixture.agents;
+        if (!(alpha?.dmChatId && beta)) {
+            throw new Error('Inbox and attention needs two disposable Agents and an Owner DM.');
+        }
+        const productName = `inbox-product-${fixture.harness.stamp.slice(-8)}`;
+        const product = await fixture.harness.trpc('chat.createChannel', {
+            agentIds: [alpha.id, beta.id],
+            name: productName,
+            serverId: fixture.harness.serverId,
+        });
+        fixture.trackChat(product.id);
 
-    if (!server) {
-        throw new Error(`Agent E2E could not resolve Server ${harness.serverId}`);
+        return {
+            ...fixture,
+            all: fixture.channel,
+            allName: fixture.channelName,
+            alpha,
+            beta,
+            dm: alpha.dmChatId,
+            product: product.id,
+            productName,
+            stamp: fixture.harness.stamp,
+        };
+    } catch (error) {
+        await fixture.cleanup();
+        throw error;
     }
-
-    return {
-        all,
-        alpha,
-        beta,
-        dm,
-        harness,
-        product,
-        server,
-        stamp: harness.stamp,
-    };
 }
 
 function cleanReplies(replies: string[]) {

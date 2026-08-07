@@ -1,8 +1,14 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
-import { openChat, openMessageThread, sendFromComposer } from '../support/live-agent-app.ts';
+import type { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
+import { createAgentChannelFixture } from '../support/agent-channel-fixture.ts';
+import {
+    messageByContent,
+    openChat,
+    openMessageThread,
+    sendFromComposer,
+} from '../support/live-agent-app.ts';
 
 /**
  * User story: a human can ask an Agent to check something later without keeping a turn
@@ -29,7 +35,7 @@ test.afterAll(async () => {
             })
             .catch(() => undefined);
     }
-    await suite?.harness.cleanup();
+    await suite?.cleanup();
 });
 
 test('an Agent schedules and performs a one-shot business follow-up in its source Thread', async ({
@@ -42,12 +48,12 @@ test('an Agent schedules and performs a one-shot business follow-up in its sourc
 
     await openChat(page, server.slug, channel, channelName);
     await sendFromComposer(page, anchor);
-    await openMessageThread(page.getByText(anchor, { exact: true }));
+    await openMessageThread(messageByContent(page, anchor));
 
     const panel = page.getByRole('complementary', { name: 'Thread' });
     await panel.getByRole('textbox', { name: /Message Thread/u }).fill(prompt);
     await panel.getByRole('button', { name: 'Send' }).click();
-    await expect(panel.getByText(prompt, { exact: true })).toBeVisible();
+    await expect(messageByContent(panel, prompt)).toBeVisible();
 
     const threadChatId = await pollThreadChatId(harness, channel, anchor);
     const scheduled = await pollScheduledReminder(harness, agent.id, threadChatId);
@@ -88,41 +94,27 @@ test('an Agent schedules and performs a one-shot business follow-up in its sourc
 });
 
 async function setupSuite() {
-    const harness = await createEvalHarness({ evalName: 'agentreminderfollowup', repositoryRoot });
-    const agents = (await harness.trpc('agent.list', {
-        serverId: harness.serverId,
-    })) as AgentItem[];
-    const agent = agents.find(
-        (candidate) =>
-            candidate.availability !== 'offline' &&
-            candidate.desiredModelId.toLowerCase().includes('terra') &&
-            candidate.status === 'applied'
-    );
-    if (!agent) {
-        await harness.cleanup();
-        throw new Error('Agent E2E needs an applied online Terra Agent.');
-    }
-
-    const channelName = `reminder-${harness.stamp.slice(-8)}`;
-    const channel = await harness.trpc('chat.createChannel', {
-        agentIds: [agent.id],
-        name: channelName,
-        serverId: harness.serverId,
+    const fixture = await createAgentChannelFixture({
+        channelPrefix: 'reminder',
+        evalName: 'agentreminderfollowup',
+        profiles: [
+            {
+                description: 'Schedules one follow-up and reports in its source Thread.',
+                name: 'Reminder Worker',
+            },
+        ],
+        repositoryRoot,
     });
-    const servers = await harness.trpc('server.list');
-    const server = servers.find((candidate: { id: string }) => candidate.id === harness.serverId);
-    if (!server) {
-        await harness.cleanup();
-        throw new Error(`Agent E2E could not resolve Server ${harness.serverId}`);
+    const [agent] = fixture.agents;
+    if (!agent) {
+        await fixture.cleanup();
+        throw new Error('Reminder follow-up needs one disposable Agent.');
     }
 
     return {
-        agent: { ...agent, name: agent.displayName },
-        channel: channel.id as string,
-        channelName,
-        harness,
+        ...fixture,
+        agent,
         reminder: null as ReminderItem | null,
-        server,
     };
 }
 
@@ -168,15 +160,6 @@ async function pollScheduledReminder(
         await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     throw new Error('Timed out waiting for the Agent to schedule its follow-up.');
-}
-
-interface AgentItem {
-    availability: 'error' | 'idle' | 'offline' | 'stopped' | 'working';
-    desiredModelId: string;
-    displayName: string;
-    handle: string;
-    id: string;
-    status: 'applied' | 'degraded' | 'pending';
 }
 
 interface ChatPage {

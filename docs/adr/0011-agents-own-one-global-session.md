@@ -28,11 +28,11 @@ Raft ships the alternative at production quality and we verified its
 mechanics against the installed runtime: one persistent harness session per
 agent across every channel, DM, thread, and task; a per-target model-seen
 ledger between canonical history and model context; no scheduler beyond the
-inbox itself; no scheduled rotation; human-only resets. Tavern already
+inbox itself; no scheduled rotation; human-only resets. Grotto already
 landed the delivery groundwork (busy delivery, freshness gate,
 default-evaluate addressing).
 
-Tavern is a single-operator product today with small trusted teams as the
+Grotto is a single-operator product today with small trusted teams as the
 likely multi-human future.
 
 ## Decision

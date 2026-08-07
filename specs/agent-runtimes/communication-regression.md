@@ -1,12 +1,12 @@
 # Communication Regression
 
-Tavern verifies runtime communication with deterministic scenarios that exercise chat sends,
+Grotto verifies runtime communication with deterministic scenarios that exercise chat sends,
 session history sync, runtime events, reconnects, timeouts, and cron run pagination. These tests
-protect Tavern's sync-first model from duplicate messages, lost messages, stale overwrites, and
+protect Grotto's sync-first model from duplicate messages, lost messages, stale overwrites, and
 event-loop regressions.
 
 The regression suite uses a contract-shaped mock agent runtime. It does not
-require real model providers and does not add mock-only product APIs to Tavern.
+require real model providers and does not add mock-only product APIs to Grotto.
 
 ## Goals
 
@@ -26,17 +26,17 @@ require real model providers and does not add mock-only product APIs to Tavern.
 
 ## Test Boundary
 
-The website e2e harness runs the real Tavern website and server with a deterministic mock agent
+The website e2e harness runs the real Grotto website and server with a deterministic mock agent
 runtime.
 
 Allowed flow:
 
 ```txt
 Website UI or tRPC client
-  -> Tavern server
-  -> Tavern API client
+  -> Grotto server
+  -> Grotto API client
   -> mock agent runtime
-  -> Tavern sync paths and event handlers
+  -> Grotto sync paths and event handlers
   -> local records
 ```
 
@@ -69,7 +69,7 @@ loss, duplicate durable message, order violation, or cron pagination gap is a fa
 ### Happy-Path Chat
 
 A user sends a message. The runtime accepts it, emits turn/session events, exposes user and
-assistant messages through history, and Tavern renders each durable row once.
+assistant messages through history, and Grotto renders each durable row once.
 
 Expected:
 
@@ -85,7 +85,7 @@ multiple times.
 
 Expected:
 
-- Tavern may debounce or repeat sync
+- Grotto may debounce or repeat sync
 - durable history contains each runtime message once
 - duplicate events do not create duplicate rows or permanent active status
 
@@ -139,7 +139,7 @@ later exposes the completed session through history.
 
 Expected:
 
-- Tavern reports the timeout without creating fake durable messages
+- Grotto reports the timeout without creating fake durable messages
 - later event or sync discovers the completed history
 - user and assistant messages appear once after recovery
 

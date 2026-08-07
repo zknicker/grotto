@@ -6,12 +6,12 @@ read_when:
 
 # Artifact Kinds Stay Small
 
-Tavern chat artifacts use a small product enum: `document`, `image`, and
+Grotto chat artifacts use a small product enum: `document`, `image`, and
 `custom`.
 
 We are not keeping separate artifact kinds for code, diffs, files, charts, or
-plain text because those are not distinct Tavern product surfaces today:
-charts belong to Widgets, diffs are not a Tavern review surface, code
+plain text because those are not distinct Grotto product surfaces today:
+charts belong to Widgets, diffs are not a Grotto review surface, code
 and text can be document content, and generic files should become a supported
 document/image type or fall back to `custom`.
 

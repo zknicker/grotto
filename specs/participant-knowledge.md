@@ -1,9 +1,9 @@
 # Participant Knowledge
 
-Participant knowledge is Tavern's structured knowledge about people and between people.
+Participant knowledge is Grotto's structured knowledge about people and between people.
 
 It connects the participant model to memory. Instead of treating people as names embedded in text,
-Tavern should store durable person knowledge in forms that answer three questions clearly:
+Grotto should store durable person knowledge in forms that answer three questions clearly:
 
 - who is this about
 - whose view is this
@@ -68,7 +68,7 @@ Observation scope defines whose view a piece of participant knowledge belongs to
 - Some participant observations may be shared at a workspace or project level when that scope is
   intentional and appropriate.
 
-Tavern should not flatten all participant knowledge into one omniscient global pile.
+Grotto should not flatten all participant knowledge into one omniscient global pile.
 
 The same subject participant may therefore have:
 
@@ -93,7 +93,7 @@ Every participant-knowledge record should therefore preserve:
 - the owning agent or shared Wiki space
 - the observer participant when the scope kind is `participant`
 
-Observer-scoped knowledge lets Tavern represent "A thinks B prefers email" separately from "the
+Observer-scoped knowledge lets Grotto represent "A thinks B prefers email" separately from "the
 agent knows B prefers email."
 
 ## Participant Relationships
@@ -110,7 +110,7 @@ Relationships are not just profile facts. They describe how people connect to on
   `participant` model as participant observations when point of view matters.
 - A participant relationship should preserve provenance and recency like any other Memory fact.
 
-Tavern should support durable relationship types such as:
+Grotto should support durable relationship types such as:
 
 - organizational relationships such as `manages` and `reports_to`
 - collaboration relationships such as `works_with` and `partners_with`
@@ -132,12 +132,12 @@ Participant knowledge should be captured against observed participants.
   directly.
 - When a message or action clearly refers to another identified participant, the observation should
   attach to that participant rather than to a name string.
-- When a message clearly expresses a relationship between two identified participants, Tavern should
+- When a message clearly expresses a relationship between two identified participants, Grotto should
   capture that as a participant relationship.
-- When the referent is ambiguous, Tavern should not silently create participant-specific knowledge
+- When the referent is ambiguous, Grotto should not silently create participant-specific knowledge
   under one guessed participant.
 
-Tavern should prefer unresolved participant knowledge over incorrect participant knowledge.
+Grotto should prefer unresolved participant knowledge over incorrect participant knowledge.
 
 For auditability, the captured knowledge should still preserve which source identity, message, or
 platform event it came from.
@@ -159,7 +159,7 @@ with enough disambiguation that the agent can keep them apart.
 
 ## Product Surfaces
 
-Tavern should expose participant knowledge as something inspectable and understandable.
+Grotto should expose participant knowledge as something inspectable and understandable.
 
 - A participant surface should make it possible to inspect that participant's durable observations.
 - A participant surface should make current and historical relationships understandable.
@@ -173,5 +173,5 @@ Tavern should expose participant knowledge as something inspectable and understa
 - Participant knowledge must not silently merge same-name participants.
 - Observer-scoped knowledge must not leak into unrelated participant contexts.
 - Relationship capture must not mistake simple co-presence for a durable relationship.
-- Participant knowledge must preserve enough provenance that operators can understand what Tavern
+- Participant knowledge must preserve enough provenance that operators can understand what Grotto
   knows, whose view it belongs to, and why.

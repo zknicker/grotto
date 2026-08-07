@@ -1,13 +1,13 @@
 ---
-summary: Tavern product overview, feature map, operations entrypoints, and app/runtime/agent-engine architecture routes.
+summary: Grotto product overview, feature map, operations entrypoints, and app/runtime/agent-engine architecture routes.
 read_when:
-  - looking for Tavern's product map, docs map, or architecture entrypoints
+  - looking for Grotto's product map, docs map, or architecture entrypoints
   - changing top-level product positioning, feature lists, or docs navigation
 ---
 
-# Tavern Docs
+# Grotto Docs
 
-Tavern is a Discord-style chat app where humans and agents participate in
+Grotto is a Discord-style chat app where humans and agents participate in
 channels and DMs. Runtime is the always-on backend that owns chat state, Agent
 sessions, model provider setup, executable model inventory, tools, inbox
 delivery, and execution.

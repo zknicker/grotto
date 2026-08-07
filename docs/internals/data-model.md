@@ -10,11 +10,11 @@ read_when:
 
 # Data Model
 
-Tavern Runtime is the always-on chat server.
+Grotto Runtime is the always-on chat server.
 
-Agents participate in Tavern chats as Runtime-owned chat participants. An agent
+Agents participate in Grotto chats as Runtime-owned chat participants. An agent
 participant is an Agent seat, and the seat points at its current Agent session.
-The engine owns model calls, tools, files, and native execution details. Tavern
+The engine owns model calls, tools, files, and native execution details. Grotto
 Runtime owns chats, participants, Agent sessions, Agent turns, messages,
 artifacts, sequence, events, reads, soft deletes, automations, inbox
 delivery, and the product timeline.
@@ -33,22 +33,22 @@ delivery, and the product timeline.
 | App schema               | `apps/server/src/db/bootstrap.ts`                   | App SQLite fresh setup                                                                      |
 | App Drizzle schema       | `apps/server/src/db/schema/`                        | Typed app cache and synced runtime tables                                                   |
 | Hosted schema            | `apps/server/src/postgres/schema/`                  | PostgreSQL collaboration, reminder, and durable-attention tables                            |
-| Tavern API package       | `packages/tavern-api/src/`                          | OpenAPI-generated and Zod-backed API contracts                                              |
+| Grotto API package       | `packages/tavern-api/src/`                          | OpenAPI-generated and Zod-backed API contracts                                              |
 | Agent execution evidence | Runtime SQLite                                      | Native execution and transcripts                                                            |
 
 ## Store Boundaries
 
 | Store                    | Owner                                      | Contents                                                                                                                          |
 | ------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime SQLite           | Tavern Runtime                             | Canonical chat model, automation delivery, agent seats, Agent sessions, inbox delivery cursors, cursor-backed events, read markers, runtime metadata |
-| App SQLite               | Tavern App                                 | Client cache, app-shell preferences, and presentation state                                                                       |
-| Agent execution evidence | Tavern Runtime                             | Sessions, turns, tools, model calls, transcripts, and files                                                                       |
+| Runtime SQLite           | Grotto Runtime                             | Canonical chat model, automation delivery, agent seats, Agent sessions, inbox delivery cursors, cursor-backed events, read markers, runtime metadata |
+| App SQLite               | Grotto App                                 | Client cache, app-shell preferences, and presentation state                                                                       |
+| Agent execution evidence | Grotto Runtime                             | Sessions, turns, tools, model calls, transcripts, and files                                                                       |
 | Hosted PostgreSQL        | Grotto Server                              | Users, Servers, memberships, Channels, DMs, Threads, messages, chat-first tasks, reminder schedules/fires/attention, reads, search, and durable collaboration events |
 
 Runtime SQLite is the product source of truth for chat. App SQLite can cache for
 fast UI, but reconnect and hard reload recover from Runtime history and cursors.
-Agent transcripts are execution evidence linked to Tavern messages and stored
-through Tavern Runtime.
+Agent transcripts are execution evidence linked to Grotto messages and stored
+through Grotto Runtime.
 
 ## Hosted PostgreSQL Chat Tables
 
@@ -180,7 +180,7 @@ duplicate message history, or invent chat metadata.
 
 ## IDs
 
-Use wiki prefixes at the Tavern API boundary.
+Use wiki prefixes at the Grotto API boundary.
 
 | Prefix | Entity             |
 | ------ | ------------------ |
@@ -199,7 +199,7 @@ Use wiki prefixes at the Tavern API boundary.
 
 Read markers are scoped records, not standalone product ids.
 Engine ids and runtime agent ids remain source ids. Store them in runtime
-metadata or source fields, not as Tavern product ids unless Tavern minted them.
+metadata or source fields, not as Grotto product ids unless Grotto minted them.
 
 ## Runtime Chat Tables
 
@@ -321,7 +321,7 @@ Rules:
   sessions.
 - `agent_sessions.effective_model_json` is the model actually used by that
   session.
-- The app changes the model for the current Tavern Agent seat by writing the
+- The app changes the model for the current Grotto Agent seat by writing the
   current Agent session model, not by mutating app-local settings.
 
 ## `chats`
@@ -335,7 +335,7 @@ chats
   title                 TEXT
   parent_chat_id        TEXT                 -- non-null for threads
   anchor_message_id     TEXT                 -- non-null for threads
-  pinned                INTEGER NOT NULL DEFAULT 0  -- legacy Runtime field; Tavern App ignores it
+  pinned                INTEGER NOT NULL DEFAULT 0  -- legacy Runtime field; Grotto App ignores it
   metadata_json         TEXT NOT NULL DEFAULT '{}'
   created_at            TEXT NOT NULL
   updated_at            TEXT NOT NULL
@@ -925,15 +925,15 @@ are derived state, not the source of truth.
 - Hosted Threads are hidden child Chats with parent-derived authorization and
   parent unread rollup.
 - Hosted composition events are volatile and never persisted or replayed.
-- Tavern Runtime chat history is canonical product state.
-- Channels and DMs are durable chat rooms; Tavern App does not model pinned
+- Grotto Runtime chat history is canonical product state.
+- Channels and DMs are durable chat rooms; Grotto App does not model pinned
   chats.
 - The agent Chat participant is the stable Agent seat for an agent in a Chat.
 - Agent sessions are agent-global; a reset or model switch starts a new
   session without changing any Agent seat.
 - Agent transcript history is runtime-owned execution evidence.
 - Runtime adapters preserve source ids and metadata without authoring final
-  Tavern presentation.
+  Grotto presentation.
 - Reconciliation uses ids, nonces, sequences, delivery ids, Agent session ids,
   and run ids.
 - Reconciliation never uses content/timestamp duplicate detection.
@@ -945,7 +945,7 @@ are derived state, not the source of truth.
 - [API overview](../api/overview.md)
 - [Chat API](../api/chat.md)
 - [Realtime](../api/realtime.md)
-- [Tavern Runtime](runtime.md)
+- [Grotto Runtime](runtime.md)
 - [Architecture overview](architecture-overview.md)
-- [Tavern Runtime Chat Server](../../specs/runtime-chat-server.md)
+- [Grotto Runtime Chat Server](../../specs/runtime-chat-server.md)
 - [Agent Inbox](../../specs/inbox.md)

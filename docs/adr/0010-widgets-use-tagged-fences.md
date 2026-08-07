@@ -14,7 +14,7 @@ read_when:
 > `artifact`; stored catalog widgets replay as fallback cards. See
 > [widgets.md](../internals/widgets.md) and ADR 0012.
 
-Tavern renders assistant UI as Widgets: the assistant writes one fenced code
+Grotto renders assistant UI as Widgets: the assistant writes one fenced code
 block per widget whose language is `widget:<name>`, containing exactly one flat
 JSON object validated by that widget's Zod props schema. Widgets store as
 first-class `widget` response activity and render through a hand-wired
@@ -25,7 +25,7 @@ retained as a compatibility layer.
 
 **Context**
 
-Tavern's product direction is curated, purpose-built widgets — the model
+Grotto's product direction is curated, purpose-built widgets — the model
 supplies data, the app owns presentation and interactivity — not free-form
 generative UI composed from layout primitives. The json-render integration
 optimized for the latter: its always-on catalog prompt cost ~3.9k tokens per

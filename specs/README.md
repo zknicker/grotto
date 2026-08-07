@@ -1,23 +1,23 @@
 # Specs
 
-This tree is the normative product model for Tavern. Specs describe the product contract, not
+This tree is the normative product model for Grotto. Specs describe the product contract, not
 bug history or stale plans.
 
-Tavern is an always-on agent chat system backed by Tavern Runtime. Tavern Runtime owns canonical
+Grotto is an always-on agent chat system backed by Grotto Runtime. Grotto Runtime owns canonical
 chats, messages, responses, activity, artifacts, participants, event cursors, automations,
 deliveries, Memory, generated instruction policy, executable agent settings, native agent
 execution, sessions, turns, transcripts, files, tools, model routing, provider state, platform
-bindings, prompt-time context, and jobs. Tavern App owns the first-party Mac client, cache,
+bindings, prompt-time context, and jobs. Grotto App owns the first-party Mac client, cache,
 presentation metadata, and app-shell preferences.
 
-Tavern currently supports one local agent engine implementation inside Runtime.
+Grotto currently supports one local agent engine implementation inside Runtime.
 `packages/tavern-api` is the cross-boundary contract so product APIs stay stable and do not mirror
 agent-engine implementation choices directly.
 
 ## Rules
 
 - Write specs in present tense.
-- Use Tavern product nouns: `agent`, `chat`, `message`, `response`, `activity`, `artifact`,
+- Use Grotto product nouns: `agent`, `chat`, `message`, `response`, `activity`, `artifact`,
   `session`, `cron`, `participant`, `job`, `task`.
 - Keep obsolete migration history and research notes out of `specs/`. Durable architecture specs
   can include migration phases and open questions while a design is in flight.
@@ -26,12 +26,12 @@ agent-engine implementation choices directly.
 
 ## Core Specs
 
-- `tavern.md`: product relationship between Tavern App, Tavern Runtime, and the local agent engine.
+- `tavern.md`: product relationship between Grotto App, Grotto Runtime, and the local agent engine.
 - `runtime-chat-server.md`: always-on runtime-owned chat server design.
 - `runtime-boundary.md`: ownership boundaries and runtime expectations.
 - `sync-model.md`: runtime mapping, freshness, deletion, edit, event, and job behavior.
 - `agents.md`, `chats.md`, `sessions.md`, `messages.md`, `cron.md`: core runtime-owned
-  primitives as Tavern presents them.
+  primitives as Grotto presents them.
 - `chat-timeline.md`: the chat timeline vs agent turn evidence boundary — conversation units,
   live turn presentation, and turn-scoped evidence queries.
 - `identity.md`: authenticated users, Clerk mapping, runtime ownership, and
@@ -49,7 +49,7 @@ agent-engine implementation choices directly.
 - `workspace.md`: the rendered system prompt and its editable sources
   (`NOTES.md`, `SOUL.md`).
 - `tavern-skill.md`: the agent's product knowledge of and operational access
-  to Tavern.
+  to Grotto.
 
 ## Memory Specs
 
@@ -66,7 +66,7 @@ agent-engine implementation choices directly.
 
 ## Runtime Specs
 
-- `../docs/internals/runtime.md`: Tavern Runtime ownership and sync flow.
+- `../docs/internals/runtime.md`: Grotto Runtime ownership and sync flow.
 - `agent-runtimes/README.md`: agent runtime spec index.
 - `agent-runtimes/agent-runtimes.md`: local agent runtime model.
 - `agent-runtimes/agents.md`, `agent-runtimes/chats.md`, `agent-runtimes/sessions.md`,

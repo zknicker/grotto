@@ -8,7 +8,7 @@ read_when:
 
 # Runtime Doctor
 
-Runtime Doctor is Tavern Runtime's modular maintenance runner. It checks local
+Runtime Doctor is Grotto Runtime's modular maintenance runner. It checks local
 state, repairs derived Runtime-owned records, and publishes capability health.
 It keeps setup and repair work out of turn execution.
 
@@ -17,7 +17,7 @@ startup, after a related mutation, on a manual check, or on a scheduled check.
 
 ## Contract
 
-- **Runtime owns Doctor.** Tavern App may request a check and render results,
+- **Runtime owns Doctor.** Grotto App may request a check and render results,
   but Runtime performs checks and repairs.
 - **Modules are invocable.** Each Doctor module has a stable id, run reason,
   scope, and result.
@@ -71,7 +71,7 @@ DM with the local human operator, then applies the model defaulting policy:
 3. No saved default: set the highest-ranked executable model.
 4. No executable models: leave the Agent unresolved and report a setup blocker.
 
-The repair policy treats Agent default models as recoverable preferences. Tavern
+The repair policy treats Agent default models as recoverable preferences. Grotto
 does not silently preserve a broken preference when another executable model can
 run the Agent.
 
@@ -84,7 +84,7 @@ run the Agent.
   scope when repair is needed.
 - **Manual check.** Run the requested module or baseline chain and return a
   structured result to the caller.
-- **Scheduled check.** Refresh external state that can drift outside Tavern,
+- **Scheduled check.** Refresh external state that can drift outside Grotto,
   such as CLI OAuth files or provider credentials.
 
 ## Result Shape

@@ -17,7 +17,7 @@ use Grotto names and `~/.grotto` state paths.
 ```text
 Grotto App
   -> @tavern/sdk
-  -> Tavern API
+  -> Grotto API
   -> Grotto Runtime
   -> Agent engine
 ```
@@ -32,8 +32,8 @@ shape instead of a second protocol package.
 
 ## Repo Layout
 
-* `packages/tavern-api`: OpenAPI and shared Tavern API contracts.
-* `packages/tavern-sdk`: TypeScript client wrapper for Tavern API.
+* `packages/tavern-api`: OpenAPI and shared Grotto API contracts.
+* `packages/tavern-sdk`: TypeScript client wrapper for Grotto API.
 * `apps/runtime`: always-on Grotto Runtime and local agent engine.
 * `apps/server`: local app backend, tRPC facade, app cache, and product logic.
 * `apps/website`: Electron/React app client.
@@ -56,7 +56,7 @@ bun run dev
 `bun run dev` starts the local app backend, PostgreSQL, Grotto Server, Grotto
 Computer, and the website dev server; `bun run dev-app` adds the desktop shell.
 
-Dev state is isolated under the worktree-specific Tavern dev root.
+Dev state is isolated under the worktree-specific Grotto dev root.
 
 Local dev ports are derived from the worktree path so multiple worktrees can run
 at once. Override them with:

@@ -9,7 +9,7 @@ read_when:
 
 # Agent-authored HTML
 
-Agents write HTML. Tavern hands that HTML one set of CSS variables, and it
+Agents write HTML. Grotto hands that HTML one set of CSS variables, and it
 renders in one of two places.
 
 | surface | what it is | where it renders | renderer |
@@ -82,7 +82,7 @@ registration), with optional info-string text as the title:
   radii, fonts) from computed styles and injects them as `:root` variables,
   re-snapshotting on theme change (`apps/website/src/agent-html/tokens.ts`).
   Generated visuals reference only those variables — never hardcoded surface
-  or text colors — which is what makes them wear Tavern's brand in both
+  or text colors — which is what makes them wear Grotto's brand in both
   schemes.
 - **Native tables.** The sandbox base stylesheet styles bare `<table>`
   markup to match the app's `ui/table.tsx` look (hairline row dividers,

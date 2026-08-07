@@ -22,18 +22,18 @@ delivery is allowed to drop; clients recover through durable reads.
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
 | Hosted Agent lifecycle hub | Grotto Server | Volatile working/reading/sending/settled projection for presence and send composition |
-| `chat_events` | Tavern Runtime | Durable cursor-backed event log |
-| `chat_responses` / `chat_response_activity` | Tavern Runtime | Durable response/activity rows (real agent turns no longer populate them — see [Chat API](chat.md)) |
-| `chat_artifacts` | Tavern Runtime | Durable renderable outputs |
-| Event list | Tavern Runtime | Inspectable recent events derived from `chat_events` |
-| App websocket | Tavern App | UI invalidation and client notifications (`agent.updated`, `chat.updated`, `chat.log.updated`, `model.updated`, `server.updated`, `session.updated`, `skill.updated`, `pane.updated`, `agent-runtime.updated`, `agent-runtime-capability.updated`, `engine-restart.updated`, and similar) |
+| `chat_events` | Grotto Runtime | Durable cursor-backed event log |
+| `chat_responses` / `chat_response_activity` | Grotto Runtime | Durable response/activity rows (real agent turns no longer populate them — see [Chat API](chat.md)) |
+| `chat_artifacts` | Grotto Runtime | Durable renderable outputs |
+| Event list | Grotto Runtime | Inspectable recent events derived from `chat_events` |
+| App websocket | Grotto App | UI invalidation and client notifications (`agent.updated`, `chat.updated`, `chat.log.updated`, `model.updated`, `server.updated`, `session.updated`, `skill.updated`, `pane.updated`, `agent-runtime.updated`, `agent-runtime-capability.updated`, `engine-restart.updated`, and similar) |
 
 `server.updated` is Server-scoped: `server.onUpdate` takes a Server id, checks
 membership before the subscription starts, and delivers only that Server's
 events. See [Grotto Server](../internals/grotto-server.md).
 
 App websocket events are not the durable event source. They can mirror Runtime
-events, but missed app notifications recover through Tavern API reads.
+events, but missed app notifications recover through Grotto API reads.
 
 The event list does not own a second event log. App notifications are derived
 from durable `chat_events`.
@@ -222,7 +222,7 @@ resource.
 
 ## App Stream Boundary
 
-Tavern App can expose its own websocket or tRPC subscriptions for UI
+Grotto App can expose its own websocket or tRPC subscriptions for UI
 invalidation. Those subscriptions are app notifications.
 
 Product state still comes from:

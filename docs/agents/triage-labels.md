@@ -2,7 +2,7 @@
 summary: Default triage label vocabulary for agent-skill work in Linear.
 read_when:
   - using the triage skill in this repo
-  - configuring Linear labels for Tavern agent-skill workflows
+  - configuring Linear labels for Grotto agent-skill workflows
 ---
 
 # Triage labels

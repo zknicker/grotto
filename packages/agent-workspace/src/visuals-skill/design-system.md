@@ -1,10 +1,10 @@
-# Tavern visuals — design system
+# Grotto visuals — design system
 
 The full visual style for everything you render: visual rules, typography,
 component patterns, the runtime token map, and the application checklist.
 Read this before writing visual or page code unless the user already fixed
 the visual decisions for you. Sections 1–3 and the checklist are the core
-style; sections 4–6 carry Tavern-specific construction guidance for charts,
+style; sections 4–6 carry Grotto-specific construction guidance for charts,
 diagrams, and artifact pages.
 
 ---
@@ -25,7 +25,7 @@ Interaction emphasis is dark, not blue: focus rings, hover states, selected
 items, active tabs, and primary buttons use `--foreground` and gray tints.
 `--brand` is reserved for true semantic emphasis — one deliberate moment at
 most — never for generic "this is interactive" styling. Training data
-associates blue with interactive; Tavern does not.
+associates blue with interactive; Grotto does not.
 
 Do not set a page, body, canvas, card, or panel base background color in an
 inline visual. Preserve the existing background, or use `transparent` /
@@ -436,7 +436,7 @@ plus:
 
 ## 7. Runtime token mapping
 
-The frame has Tavern's theme pre-loaded. Map the style onto these runtime
+The frame has Grotto's theme pre-loaded. Map the style onto these runtime
 variables; prefer runtime variables over hardcoded values.
 
 - Text: `--foreground`, `--muted-foreground`, `--foreground-tertiary`,

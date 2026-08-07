@@ -7,35 +7,35 @@ read_when:
 
 # TypeScript SDK
 
-The TypeScript SDK is how TypeScript code talks to the Tavern API.
+The TypeScript SDK is how TypeScript code talks to the Grotto API.
 
-Tavern App uses it. Bots use it. Webhooks use it. Local tools use it.
+Grotto App uses it. Bots use it. Webhooks use it. Local tools use it.
 Tests use it. The SDK does not care whether the current implementation passes
 through React, tRPC, SQLite, or local Node code.
 
 The package split is deliberate:
 
-* **`@tavern/api`.** Tavern API contracts, including OpenAPI-generated chat and
+* **`@tavern/api`.** Grotto API contracts, including OpenAPI-generated chat and
   realtime types plus typed admin schemas.
 * **`@tavern/sdk`.** Fetch and WebSocket client wrapper.
-* **Tavern Runtime.** Durable chat server that implements the contract.
-* **Tavern App.** First-party client and presentation layer.
+* **Grotto Runtime.** Durable chat server that implements the contract.
+* **Grotto App.** First-party client and presentation layer.
 
 ## Shape
 
 Think of the app boundary like this:
 
 ```text
-Tavern App, bot, webhook, runtime, or local tool
+Grotto App, bot, webhook, runtime, or local tool
   -> TypeScript SDK
-  -> Tavern API
-  -> Tavern Runtime
+  -> Grotto API
+  -> Grotto Runtime
 ```
 
 For agent execution:
 
 ```text
-AI SDK executor -> Tavern Runtime stores -> Tavern API reads
+AI SDK executor -> Grotto Runtime stores -> Grotto API reads
 ```
 
 ## Packages
@@ -98,4 +98,4 @@ Ownership:
 * **Events notify.** Recover reloads and missed websockets from durable reads.
 * **Activity is durable.** Store response work in activity rows, not transcript
   rows.
-* **Tavern nouns lead.** Keep runtime words in metadata.
+* **Grotto nouns lead.** Keep runtime words in metadata.

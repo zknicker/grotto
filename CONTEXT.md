@@ -1,6 +1,6 @@
-# Tavern
+# Grotto
 
-Tavern is a local agent workspace that renders durable chat, agent execution, and app-owned UI
+Grotto is a local agent workspace that renders durable chat, agent execution, and app-owned UI
 from typed runtime contracts.
 
 This file defines stable product language. It is not a docs index; run `bun run docs:list` to pick
@@ -210,12 +210,12 @@ and short failure category, excluding prompts, tool details, transcripts, and fi
 _Avoid_: Execution trace, Chat message, model-context compaction
 
 **Chat**:
-A durable Tavern conversation container, shaped like a channel or DM, where humans, agents, system
+A durable Grotto conversation container, shaped like a channel or DM, where humans, agents, system
 actors, and external actors can participate.
 _Avoid_: Agent session, thread, executor channel, transcript
 
 **Channel**:
-A named multi-participant Chat in a Tavern workspace.
+A named multi-participant Chat in a Grotto workspace.
 _Avoid_: Room, group chat
 
 **DM**:
@@ -223,7 +223,7 @@ A one-to-one Chat between two participants.
 _Avoid_: Private channel, direct channel
 
 **Chat participant**:
-One actor with membership in a Chat, such as a human user, Tavern agent, system actor, or external
+One actor with membership in a Chat, such as a human user, Grotto agent, system actor, or external
 identity.
 _Avoid_: Worker, sender, runtime identity
 
@@ -268,7 +268,7 @@ messages and activity are complete.
 _Avoid_: Chat history, UIMessage array, browser request
 
 **Agent executor**:
-A small Runtime implementation boundary that turns an Agent turn request into Tavern turn events.
+A small Runtime implementation boundary that turns an Agent turn request into Grotto turn events.
 _Avoid_: Agent engine, provider adapter, harness wrapper
 
 **Agent addressing**:
@@ -281,7 +281,7 @@ its access setup.
 _Avoid_: Model family, provider option, model row
 
 **Provider catalog**:
-The maintained list of Model providers Tavern can add to a Runtime.
+The maintained list of Model providers Grotto can add to a Runtime.
 _Avoid_: Executable model list, enabled providers, provider credentials
 
 **Enabled model provider**:
@@ -327,13 +327,13 @@ _Avoid_: Skill, MCP server, channel, Plugin
 
 **Harness-native tool**:
 A Tool supplied by the selected Agent executor's harness, such as local file, shell, search, or
-provider-native subagent actions. Tavern may display these as provider facts, but does not own their
+provider-native subagent actions. Grotto may display these as provider facts, but does not own their
 individual lifecycle.
-_Avoid_: Tavern tool, Plugin action, MCP server
+_Avoid_: Grotto tool, Plugin action, MCP server
 
-**Tavern host tool**:
-A Tool implemented by Tavern Runtime and passed to the Agent executor, such as `web_fetch`,
-browser control, Memory reads, chat sends, or other Tavern-owned product actions.
+**Grotto host tool**:
+A Tool implemented by Grotto Runtime and passed to the Agent executor, such as `web_fetch`,
+browser control, Memory reads, chat sends, or other Grotto-owned product actions.
 _Avoid_: Harness-native tool, raw Runtime route, MCP connection setting
 
 **MCP connection**:
@@ -354,12 +354,12 @@ The execution environment for an agent's tools and harness processes: none, Dock
 _Avoid_: Approval mode, runtime prompt
 
 **Local workspace sandbox**:
-A Sandbox mode of none where Tavern gives an agent a host filesystem workspace under the Tavern data
+A Sandbox mode of none where Grotto gives an agent a host filesystem workspace under the Grotto data
 root and runs child processes directly from that workspace.
 _Avoid_: Secure sandbox, container, VM
 
 **Assignable primitive**:
-A Tavern capability that can be attached to an agent definition, such as an MCP tool grant,
+A Grotto capability that can be attached to an agent definition, such as an MCP tool grant,
 host-tool grant, Memory namespace, or Channel membership. Skills are local Agent files, not
 assignable primitives.
 _Avoid_: Runtime plugin, harness setting, bundled feature
@@ -400,7 +400,7 @@ _Avoid_: Rich Response, UI block, AG-UI component, ChatKit widget
 
 **Visual**:
 One bespoke model-authored HTML/SVG graphic rendered from a `visual` fence in a sandboxed inline
-frame styled with Tavern theme tokens.
+frame styled with Grotto theme tokens.
 _Avoid_: Rich Response, custom widget, raw HTML block
 
 **Visuals skill**:
@@ -417,7 +417,7 @@ The app-owned side surface where users open and inspect Artifact Panel targets b
 _Avoid_: Workbench, browser shell, output pane, Artifact Space
 
 **Artifact Panel target**:
-A Tavern-owned openable target such as a chat Artifact, Wiki page, workspace file, image, or
+A Grotto-owned openable target such as a chat Artifact, Wiki page, workspace file, image, or
 generated asset.
 _Avoid_: Local path, browser URL, tool result blob
 
@@ -427,13 +427,13 @@ _Avoid_: Tab content, preview card, drawer
 
 **Artifact open action**:
 A user action that opens an Artifact pane from a chat row, activity row, or linked inspectable
-output. Tavern does not auto-open the Artifact Panel when targets are created.
+output. Grotto does not auto-open the Artifact Panel when targets are created.
 _Avoid_: Canvas trigger, automatic artifact presentation, artifact launch
 
 **Inspectable output**:
 A workspace file, Wiki page, Markdown or HTML doc, image, or generated asset an agent created or
 updated for the user to inspect.
-_Avoid_: Tavern resource, tool result, attachment
+_Avoid_: Grotto resource, tool result, attachment
 
 **Host adapter**:
 A small adapter file in Runtime, Server, or Website that connects a Widget contract to that
@@ -441,12 +441,12 @@ layer's existing event, projection, or rendering pipeline.
 _Avoid_: Widget implementation, plugin loader
 
 **Surface component**:
-A normal Tavern App React component used to render validated Widget props with the app's shared
+A normal Grotto App React component used to render validated Widget props with the app's shared
 visual system.
 _Avoid_: Model component, widget primitive
 
 **Memory**:
-Tavern's per-agent durable context system: briefing files, episodic observations, and background
+Grotto's per-agent durable context system: briefing files, episodic observations, and background
 workers that keep those files useful.
 _Avoid_: Wiki, vault, knowledgebase, prompt-time memory
 
@@ -479,7 +479,7 @@ the Wiki, and refreshes Agent briefing files.
 _Avoid_: Extraction, summarization, compaction
 
 **Wiki surface**:
-The Tavern Runtime-owned access surface for the Wiki root: path resolution, safe reads, writes,
+The Grotto Runtime-owned access surface for the Wiki root: path resolution, safe reads, writes,
 moves, deletes, backlinks, freshness, and status.
 _Avoid_: Vault API, Memory browser, ingestion system, maintenance job
 

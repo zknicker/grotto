@@ -1,6 +1,6 @@
 # Tool Access
 
-Tavern does not expose interactive tool approval prompts.
+Grotto does not expose interactive tool approval prompts.
 
 Tool access is governed by tool source, sandbox mode, and approval policy:
 

@@ -23,15 +23,15 @@ Runtime sessions preserve ongoing execution context across turns.
 - A new conversation starts a new session when no suitable session exists.
 - A continuing conversation reuses the correct session when possible.
 - A user should experience continuity within an ongoing conversation.
-- Tavern should be able to inspect whether work reused an existing session or created a new one
+- Grotto should be able to inspect whether work reused an existing session or created a new one
   when the runtime reports that information.
-- Tavern can inspect sessions through stable session snapshots and ordered session message
+- Grotto can inspect sessions through stable session snapshots and ordered session message
   snapshots.
 - Session snapshots distinguish `sessionKey`, the stable routing/reference key, from `sessionId`,
-  the runtime transcript identity. Runtime-backed Tavern sessions expose that transcript identity
+  the runtime transcript identity. Runtime-backed Grotto sessions expose that transcript identity
   as `session.id`.
 - Session message snapshots may include execution metadata such as model, provider, and token usage.
-- Tavern can observe live session and message updates through the runtime WebSocket event stream.
+- Grotto can observe live session and message updates through the runtime WebSocket event stream.
 
 ## Constraints
 

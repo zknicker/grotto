@@ -1,6 +1,6 @@
-# Tavern Runtime Chat Server
+# Grotto Runtime Chat Server
 
-Tavern Runtime is the always-on chat server.
+Grotto Runtime is the always-on chat server.
 
 The Mac app can close. Agents, automations, deliveries, and event history keep
 running. When the app reconnects, it reads runtime chat history and event
@@ -8,18 +8,18 @@ cursors instead of reconstructing the product timeline from agent transcripts.
 
 ## Problem
 
-Tavern cannot be only a local app wrapper over an agent engine. That shape is
+Grotto cannot be only a local app wrapper over an agent engine. That shape is
 not enough for always-on agent work:
 
 * Automations need to create messages while the app is closed.
 * Agents need to post replies into chats while the app is closed.
-* Reconnect recovers from Tavern chat history, not from fuzzy agent
+* Reconnect recovers from Grotto chat history, not from fuzzy agent
   transcript mapping.
 * Websocket delivery can drop, but missed state must remain recoverable.
 
 ## Decision
 
-Tavern Runtime owns canonical chat state:
+Grotto Runtime owns canonical chat state:
 
 * chats
 * participants
@@ -32,12 +32,12 @@ Tavern Runtime owns canonical chat state:
 * deliveries
 * automations and automation runs
 
-Tavern App is the first-party client. It may cache data and keep presentation
+Grotto App is the first-party client. It may cache data and keep presentation
 state, but it is not the durable chat server.
 
 Runtime owns the local execution engine contract: sessions, turns, tools, model
 calls, files, and native transcripts. Those records are execution evidence
-linked to Tavern messages, not the product timeline.
+linked to Grotto messages, not the product timeline.
 
 ## Tables
 
@@ -87,18 +87,18 @@ App tables are cache, presentation, or runtime evidence:
 * Durable events are inserted in the same transaction as the mutation.
 * Duplicate `message.id` or `(chat_id, nonce)` returns the existing message.
 * External frontend delivery is queued after the durable message exists.
-* Assistant replies are Tavern messages authored by agent participants.
+* Assistant replies are Grotto messages authored by agent participants.
 * Agent work is a durable response with ordered response activity.
 * Tool progress and results update the same durable activity rows by identity.
 * Code, images, files, diffs, documents, and charts are artifacts.
-* Agent transcript rows link to Tavern messages and never replace them.
+* Agent transcript rows link to Grotto messages and never replace them.
 * Soft deletes preserve sequence slots.
 * Reconnect recovers by runtime history and event cursor.
 * Content/timestamp duplicate detection is not allowed.
 
 ## API Shape
 
-The Tavern API is OpenAPI-defined and runtime-hosted.
+The Grotto API is OpenAPI-defined and runtime-hosted.
 
 Chat operations:
 
@@ -141,4 +141,4 @@ tools, and tests.
 * [Architecture overview](../docs/internals/architecture-overview.md)
 * [Chat API](../docs/api/chat.md)
 * [Realtime](../docs/api/realtime.md)
-* [Tavern Runtime](../docs/internals/runtime.md)
+* [Grotto Runtime](../docs/internals/runtime.md)

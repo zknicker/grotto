@@ -7,19 +7,19 @@ read_when:
 
 # Agents API
 
-The Agents API is for the workers users configure and talk to in Tavern.
+The Agents API is for the workers users configure and talk to in Grotto.
 
 Agents are client-facing records. Runtime sessions and execution details
-can be attached as metadata, but the API exposes agents as named Tavern workers
+can be attached as metadata, but the API exposes agents as named Grotto workers
 with instruction settings, model, execution, skill assignment, and tool grant
 policy.
 
 ## Contract
 
-* Agent ids are durable Tavern ids hosted by Tavern Runtime.
+* Agent ids are durable Grotto ids hosted by Grotto Runtime.
 * Runtime bootstraps `agt_primary`, and clients can create, list, configure,
   and address additional agents.
-* Each Runtime-managed agent owns one built-in Tavern DM with the local human
+* Each Runtime-managed agent owns one built-in Grotto DM with the local human
   operator. Clients reuse that DM instead of creating additional direct chats
   for the same agent.
 * Agent list and detail reads use synced Runtime records. Mounting an app screen
@@ -43,13 +43,13 @@ policy.
   the agent instruction text.
 * Model availability comes from model options exposed through Runtime.
   Clients read the stored snapshot and capability state instead of maintaining a
-  Tavern-maintained list.
+  Grotto-maintained list.
 * Model records include the Runtime execution kind. All supported agent model
   rows execute through the harness route; OpenAI API-key rows use the Pi
   harness adapter.
 * Skill assignments and exact MCP and host-tool grants are inspectable before
   a run starts. Harness-native tools are executor facts governed by sandbox
-  and approval policy, not Tavern grants.
+  and approval policy, not Grotto grants.
 * Assignment requires global availability. Skill saves reject newly assigned
   skills that are globally disabled or missing setup. Globally disabling a
   skill removes its current agent assignments after user confirmation.
@@ -59,7 +59,7 @@ policy.
 * Browser and `web_fetch` are host tools with explicit grants. New agents get
   `web_fetch` by default; Browser remains ungranted until selected.
 * Instruction settings use markdown source files. Runtime composes the system
-  prompt from Tavern-managed instruction text plus the agent's description
+  prompt from Grotto-managed instruction text plus the agent's description
   (the personality surface); it does not materialize a generated `AGENTS.md`
   file in the workspace. There is no separate identity file — durable
   per-agent notes are the agent's own workspace files (`MEMORY.md` and
@@ -83,7 +83,7 @@ policy.
   `instructionsFresh` so clients can flag a live session running on earlier
   instructions; settings surfaces say "Takes effect on each agent's next
   session" on save.
-* Persisted agent settings mean user intent. Runtime startup can apply Tavern
+* Persisted agent settings mean user intent. Runtime startup can apply Grotto
   defaults to the managed engine, but it must not write those defaults into the
   saved agent settings store.
 * Agent environment variables are Runtime-stored secrets exposed to the local
@@ -99,7 +99,7 @@ The API covers:
 
 * list agents
 * get an agent
-* list an agent's Tavern and external runtime chat references
+* list an agent's Grotto and external runtime chat references
 * create agents
 * delete agents
 * update agent settings
@@ -120,9 +120,9 @@ state.
 
 ## Runtime Boundary
 
-Tavern Runtime owns native execution, tool invocation, model calls, files, and
+Grotto Runtime owns native execution, tool invocation, model calls, files, and
 sessions. Runtime also owns the first-class agent records, user-editable
-agent controls, and the chat state where agents participate. Tavern App reads
+agent controls, and the chat state where agents participate. Grotto App reads
 those records through tRPC/React Query and may keep app-owned presentation
 overlays, but the app database is not the source of truth for agent existence.
 When a client creates an agent without a workspace folder, Runtime assigns the
@@ -132,12 +132,12 @@ Runtime words such as `session`, `turn`, and `run` appear only where the API is
 returning execution metadata for a specific agent activity.
 
 `agent.chats.list` is the agent-scoped chat inventory for agent pages. It
-combines Tavern chats bound to the agent with Runtime-owned external chat
+combines Grotto chats bound to the agent with Runtime-owned external chat
 references such as Discord channels. External chat references are read-only
-evidence surfaces; they do not appear in the global Tavern sidebar chat list.
+evidence surfaces; they do not appear in the global Grotto sidebar chat list.
 
 ## Related Docs
 
 * [Agents feature](../features/agents.md)
 * [API overview](overview.md)
-* [Tavern Runtime](../internals/runtime.md)
+* [Grotto Runtime](../internals/runtime.md)

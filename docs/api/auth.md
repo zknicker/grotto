@@ -2,7 +2,7 @@
 summary: Local-owner trust model for Grotto App, Runtime credentials, model-provider credentials, external clients, and secret storage.
 read_when:
   - changing local app auth, runtime trust, secrets, or operator identity
-  - exposing Tavern API access to external clients
+  - exposing Grotto API access to external clients
 ---
 
 # Auth
@@ -22,8 +22,8 @@ describes the local-owner surfaces that still exist.
 | Electron shell and local Node app | One Grotto App product boundary |
 | Grotto App to Grotto Runtime | Paired local transport with runtime credentials |
 | Runtime to model providers | Provider-specific local OAuth or API-key credentials |
-| External client to Tavern API | Explicit Tavern-issued credentials when exposed |
-| Agent/tool access to Tavern data | Narrow tool/API capability, not raw database access |
+| External client to Grotto API | Explicit Grotto-issued credentials when exposed |
+| Agent/tool access to Grotto data | Narrow tool/API capability, not raw database access |
 
 ## Secrets
 
@@ -59,7 +59,7 @@ source settings, not as an inference credential.
 
 ## Runtime Access
 
-The Runtime HTTP and event websocket APIs accept either the configured Tavern
+The Runtime HTTP and event websocket APIs accept either the configured Grotto
 Runtime token or a verified Clerk session. The Runtime generates its token on
 first start and keeps it in its host config file (`<runtime-root>/grotto.json`,
 `token` key, mode `0600`). Override with `TAVERN_RUNTIME_TOKEN`. The health route
@@ -82,14 +82,14 @@ session transport while signed in; reconnecting HTTP clients and event sockets
 use the newest session.
 
 Runtime-token and owner sessions have full Runtime access. Member sessions may
-use the Tavern `/api/*` chat surface and read app-facing identity, capabilities,
+use the Grotto `/api/*` chat surface and read app-facing identity, capabilities,
 events, agents, models, and Mac app inventory. Runtime administration remains
 owner-only, including model access, agent environment, MCP connections,
 Browser settings, updates, development routes, and timezone settings.
 Verified non-members remain limited
 to identity introspection and invite redemption.
 
-Clients use Tavern API or TypeScript SDK surfaces instead of reading local
+Clients use Grotto API or TypeScript SDK surfaces instead of reading local
 SQLite files, runtime stores, or executor state directly.
 
 ## Identity And Sign-In

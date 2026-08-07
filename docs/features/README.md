@@ -1,13 +1,13 @@
 ---
-summary: Feature docs index for Tavern product capabilities.
+summary: Feature docs index for Grotto product capabilities.
 read_when:
-  - looking for Tavern's user-facing product capabilities
+  - looking for Grotto's user-facing product capabilities
   - adding, renaming, or reorganizing feature docs
 ---
 
 # Features
 
-Feature docs describe what Tavern exposes as a product. Architecture,
+Feature docs describe what Grotto exposes as a product. Architecture,
 implementation ownership, and runtime details live under
 [internals](../internals/).
 

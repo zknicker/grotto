@@ -1,5 +1,5 @@
 ---
-summary: Development chat demos for exercising Tavern chat UI through seeded Runtime chat messages.
+summary: Development chat demos for exercising Grotto chat UI through seeded Runtime chat messages.
 read_when:
   - changing dev-only chat demos
   - changing seeded Runtime chat examples
@@ -8,7 +8,7 @@ read_when:
 
 # Chat Demos
 
-Chat demos are dev-only Tavern chats seeded into Runtime SQLite
+Chat demos are dev-only Grotto chats seeded into Runtime SQLite
 (`apps/runtime/src/tavern/development-chat-demos.ts`, chat content in
 `development-chat-demo-*-definitions.ts`). They let the app exercise the
 normal chat list, chat detail, and timeline code paths without asking an
@@ -29,7 +29,7 @@ projection to maintain.
   reads, events, and any legacy `chat_responses` / `chat_response_activity` /
   `chat_deliveries` / `chat_artifacts` rows they still carry, so local
   workspaces converge without stale stable-id conflicts.
-* Each demo chat is a normal Tavern chat. It appears in the sidebar channel
+* Each demo chat is a normal Grotto chat. It appears in the sidebar channel
   list with its seeded color and opens through `/chats/:id`. Do not add a
   separate Demos tab, lab route, or preview-only page for them.
 * Do not add route-local transcript fixtures for demo coverage. If a demo

@@ -1,13 +1,13 @@
 ---
-summary: Domain-document layout for engineering skills in Tavern.
+summary: Domain-document layout for engineering skills in Grotto.
 read_when:
   - using architecture, diagnosis, domain-modeling, or TDD skills in this repo
-  - changing where Tavern domain context or ADRs live
+  - changing where Grotto domain context or ADRs live
 ---
 
 # Domain docs
 
-Tavern uses a single-context domain-doc layout.
+Grotto uses a single-context domain-doc layout.
 
 ## Before exploring, read these
 

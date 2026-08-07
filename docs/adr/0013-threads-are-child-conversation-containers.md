@@ -15,7 +15,7 @@ decisions T1/T2/T3/U5). Normative contract: `specs/threads.md`.
 
 ## Context
 
-Tavern had two vestigial reply mechanisms: a `parent_message_id` inline-reply
+Grotto had two vestigial reply mechanisms: a `parent_message_id` inline-reply
 pointer whose only effect was a `Reply context:` section in the per-turn agent
 prompt, and an unused `thread_root_id` column anticipating Slack-style
 in-chat threading. Neither was exposed to the web client, and agents never

@@ -1,14 +1,14 @@
 # Models
 
-Models are Tavern's product surface for choosing how agents execute. Runtime owns the provider
+Models are Grotto's product surface for choosing how agents execute. Runtime owns the provider
 catalog, enabled model providers, provider access, model records, agent default models, and Agent
 session effective models.
 
 ## Product Expectations
 
-- Tavern presents model setup in product language, not as raw provider dumps.
+- Grotto presents model setup in product language, not as raw provider dumps.
 - Users choose which providers are enabled for their Runtime.
-- Tavern does not pollute agent model pickers with every provider Tavern knows how to support.
+- Grotto does not pollute agent model pickers with every provider Grotto knows how to support.
 - Settings exposes recovery paths for missing credentials, missing CLI OAuth state, and invalid
   model selections.
 - Users do not edit Runtime config files to inspect, add, or select supported model settings.
@@ -17,7 +17,7 @@ session effective models.
 
 | Term | Contract |
 | --- | --- |
-| Provider catalog | Maintained Runtime list of model providers Tavern can add. |
+| Provider catalog | Maintained Runtime list of model providers Grotto can add. |
 | Enabled model provider | Provider the user has added to this Runtime. |
 | Provider access | Credential and host setup state for an enabled provider. |
 | Executable provider | Enabled provider whose access is ready on the Runtime host. |
@@ -30,9 +30,9 @@ session effective models.
 
 - **Runtime owns provider state.** Runtime stores enabled providers, provider access state, provider
   credentials, model records, agent default models, and Agent session effective models.
-- **App renders and edits Runtime state.** Tavern App does not keep a competing provider registry,
+- **App renders and edits Runtime state.** Grotto App does not keep a competing provider registry,
   selected-model store, or provider-specific execution config.
-- **Server proxies Runtime contracts.** Tavern Server may cache Runtime reads for presentation, but
+- **Server proxies Runtime contracts.** Grotto Server may cache Runtime reads for presentation, but
   Runtime remains canonical for execution.
 - **Provider credentials stay Runtime-owned.** API keys are saved in Runtime secret storage.
   OAuth-backed CLI providers use Runtime-host credentials or Runtime-stored tokens when supported.
@@ -78,11 +78,11 @@ provider".
 
 ## Catalogs And Inventories
 
-Tavern separates three model lists:
+Grotto separates three model lists:
 
 | List | Contents | Used by |
 | --- | --- | --- |
-| Provider catalog | Every provider Tavern can add. | Add provider dropdown. |
+| Provider catalog | Every provider Grotto can add. | Add provider dropdown. |
 | Enabled provider inventory | Providers this Runtime has enabled, with access state. | Settings -> Models provider rows. |
 | Executable model inventory | Model records under executable providers. | Agent model pickers and defaulting. |
 
@@ -105,7 +105,7 @@ provider/access changes; turn execution only guards against stale or racy state.
 4. If the Agent has no saved default model, set it to the highest-ranked executable model.
 
 "Highest-ranked executable model" is a Runtime-maintained policy, not an app heuristic. The first
-ranked provider for the local Tavern product is Codex, followed by Claude Code, then OpenAI API.
+ranked provider for the local Grotto product is Codex, followed by Claude Code, then OpenAI API.
 Runtime may adjust ranking as the provider catalog evolves.
 
 Agent default models are recoverable preferences. If a saved default cannot execute and another

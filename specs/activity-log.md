@@ -1,8 +1,8 @@
 # Activity Log
 
-The activity log is Tavern's append-only, structured event log for runtime activity.
+The activity log is Grotto's append-only, structured event log for runtime activity.
 
-It is both an audit surface and a Memory source. It exists separately from Memory so Tavern can
+It is both an audit surface and a Memory source. It exists separately from Memory so Grotto can
 preserve a queryable record of what happened across the system without forcing every event to
 become durable brain state.
 
@@ -44,7 +44,7 @@ later context should appear as new events.
 
 ## Event Categories
 
-Tavern should record at least these categories of events:
+Grotto should record at least these categories of events:
 
 - `session`: session starts, session resumes, important session conclusions
 - `worker`: worker or long-running task spawn, completion, cancellation, or failure
@@ -82,12 +82,12 @@ Most activity events should be recorded programmatically at the point they happe
 - Model or provider changes should emit events directly.
 - Error paths should emit events directly.
 
-Tavern should record these events as fire-and-forget side effects so live interaction paths do not
+Grotto should record these events as fire-and-forget side effects so live interaction paths do not
 block on audit logging.
 
 ### Decisions
 
-Tavern should capture decisions through three paths:
+Grotto should capture decisions through three paths:
 
 - programmatic decisions that are already explicit in runtime state, such as model changes,
   permission-mode changes, or task-state changes

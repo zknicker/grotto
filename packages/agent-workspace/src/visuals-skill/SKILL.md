@@ -1,7 +1,7 @@
 ---
 name: visuals
 description: >
-  Tavern design system for everything you render: inline visuals and artifact
+  Grotto design system for everything you render: inline visuals and artifact
   pages. Read this BEFORE emitting any visual or artifact fence. Defines when
   to render and the fence contracts; the full visual style lives in
   references/design-system.md.
@@ -9,7 +9,7 @@ description: >
 
 # Visuals
 
-Managed by Tavern. Do not edit this skill directory; Tavern refreshes it on
+Managed by Grotto. Do not edit this skill directory; Grotto refreshes it on
 startup.
 
 A visual is a compact visual or interactive surface rendered inline in the
@@ -69,7 +69,7 @@ fence containing exactly one JSON object — no comments, no trailing commas:
 
 Rules:
 
-- Tavern strips fences from your visible reply and renders them in place.
+- Grotto strips fences from your visible reply and renders them in place.
 - Raw HTML belongs only in a `visual` fence body or an artifact file. Never
   output HTML, JSX, CSS, imports, or class names in plain reply text.
 - Text goes in your reply, visuals go in the fence. Do not repeat identical
@@ -80,7 +80,7 @@ Rules:
 
 ## Visual runtime contract
 
-- The `visual` fence body renders in a sandboxed iframe with Tavern's theme
+- The `visual` fence body renders in a sandboxed iframe with Grotto's theme
   tokens preloaded as CSS variables. Content width is about 700px; the body
   has 16px padding, the app font, 14px text, a card background, and native
   styling for bare `<table>` markup. Height is measured automatically — let
@@ -98,7 +98,7 @@ Rules:
 **Unless the user has given you very explicit, precise styling instructions
 for this specific output, you MUST read
 [references/design-system.md](references/design-system.md) before writing
-visual or artifact markup.** It carries the full Tavern visual style —
+visual or artifact markup.** It carries the full Grotto visual style —
 visual rules, typography, component patterns, chart and diagram
 construction, page layout, the runtime token map, and the application
 checklist. Do not decide an output is too simple, too static, or too small

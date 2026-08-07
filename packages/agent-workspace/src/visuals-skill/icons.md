@@ -1,8 +1,8 @@
-# Tavern visuals — icon system
+# Grotto visuals — icon system
 
 Read this when an output uses icons — buttons with icons, toolbars, status
 markers, or any icon-bearing element. The skill ships a curated set of
-Tavern's app icons as inline-ready SVG (solid rounded style, the same family
+Grotto's app icons as inline-ready SVG (solid rounded style, the same family
 the app itself uses).
 
 ## Where icons live

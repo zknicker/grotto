@@ -6,7 +6,7 @@ Small Node-first adapter for Codex plan usage.
 
 - Load OAuth credentials from `~/.codex/auth.json`
 - Fetch live quota state from `https://chatgpt.com/backend-api/wham/usage`
-- Normalize the response into a stable TypeScript interface owned by Tavern
+- Normalize the response into a stable TypeScript interface owned by Grotto
 
 ## Notes
 

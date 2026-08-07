@@ -3,7 +3,7 @@ summary: Hosted collaboration and reminder receipts plus the local Runtime chat 
 read_when:
   - changing chat messages, artifacts, receipts, history, or timeline recovery
   - changing hosted reminder receipts, operator procedures, or attention snapshots
-  - changing how agent runtimes, bots, webhooks, or local tools send chat work into Tavern
+  - changing how agent runtimes, bots, webhooks, or local tools send chat work into Grotto
   - changing the agent-token CLI surface, inbox delivery, or agent-scoped stop
 ---
 
@@ -15,7 +15,7 @@ human and Server-authored system messages, reads, search, and durable events. It
 a Computer.
 
 Agent runtimes have sessions and turns. Chat apps have messages and responses.
-Tavern Runtime exposes agent responses, response activity,
+Grotto Runtime exposes agent responses, response activity,
 artifacts, receipts, history, and events. Execution identity rides along as
 metadata.
 
@@ -196,7 +196,7 @@ raw traces.
 
 ## Local Runtime Contract (pre-cutover)
 
-Tavern Runtime is the durable source for chat objects.
+Grotto Runtime is the durable source for chat objects.
 
 | Object | Durability | Store |
 | --- | --- | --- |
@@ -209,11 +209,11 @@ Tavern Runtime is the durable source for chat objects.
 | `event` | Recoverable notification | Runtime SQLite |
 
 App SQLite is a cache and presentation store. Agent execution traces are
-execution evidence linked to Tavern messages.
+execution evidence linked to Grotto messages.
 
 ## Chats And Participants
 
-A `chat` is a Runtime-owned conversation container. Tavern-owned chats use
+A `chat` is a Runtime-owned conversation container. Grotto-owned chats use
 `kind: "channel"` for shared room-style conversations, `kind: "dm"` for
 one-to-one direct messages, and `kind: "thread"` for message-anchored child
 conversations. Thread access comes from the parent chat; threads have no
@@ -234,8 +234,8 @@ expose chat deletion controls for them.
 Development mode additionally seeds the `demo` channel.
 
 `chat.participants` is the membership contract for the chat shell. Participant
-rows use Tavern product ids such as `usr_...`, `agt_...`, and `sys_...`, plus
-observed `external` participants for non-Tavern frontends. Agent session
+rows use Grotto product ids such as `usr_...`, `agt_...`, and `sys_...`, plus
+observed `external` participants for non-Grotto frontends. Agent session
 state attaches to agent participants. The app must not infer routing from a
 route id or display name.
 
@@ -332,25 +332,25 @@ The transport can be local HTTP, tRPC wrapping, or a TypeScript SDK method. The
 contract stays the same.
 
 Chat list and detail reads accept an optional `reader_id`. Their `unread_count`
-is scoped to that Tavern user and excludes messages authored by that user.
+is scoped to that Grotto user and excludes messages authored by that user.
 Keyless clients may omit it to use the synthetic `usr_tavern` operator.
 
-## Tavern App Reads
+## Grotto App Reads
 
-The Tavern app keeps list and detail reads separate:
+The Grotto app keeps list and detail reads separate:
 
-* `chat.list` returns ordered Tavern chat ids plus lightweight list items. It is
+* `chat.list` returns ordered Grotto chat ids plus lightweight list items. It is
   the sidebar and overview contract, not a full chat detail payload. List items
   include `activeTurnParticipantIds` so compact views can show in-progress
   agent work without reading the full chat log. Channels and DMs are durable rooms in the
   app sidebar. External execution references belong to `agent.chats.list`, not
-  the global Tavern chat list. Tavern chat list recency comes from
+  the global Grotto chat list. Grotto chat list recency comes from
   `last_activity_at`; metadata-only edits must not make a chat look newly active.
 * `chat.get` returns one full chat record by `chatId`.
 * `chat.updateTabAppearance` changes the durable channel color metadata for a
-  Tavern chat.
+  Grotto chat.
 * `chat.updateSystemPrompt` changes trusted chat-specific agent instructions
-  for a Tavern chat. Empty text clears the prompt.
+  for a Grotto chat. Empty text clears the prompt.
 * `chat.log.list` returns durable conversation rows for one chat: participant
   messages, widgets, artifacts, system notices (new session, compaction), and
   the changed-files summary row (`workspace_changes`) rendered as a chip
@@ -407,7 +407,7 @@ updates belongs to `response` and `activity` records, not message body fields.
 Harness-native tools come from the selected executor. Runtime adds only the
 host tools and MCP tools granted to that agent; MCP grants are rechecked at
 call time. Exposed tools are auto-approved unless Runtime adds a narrower
-approval policy. Tavern does not expose an approval response endpoint.
+approval policy. Grotto does not expose an approval response endpoint.
 
 Request:
 
@@ -505,12 +505,12 @@ Rules:
 * `total_messages` counts the chat's durable messages.
 
 Runtime sessions can have their own sequence domains. Preserve runtime sequence
-in metadata or source fields; never use it as the Tavern timeline cursor.
+in metadata or source fields; never use it as the Grotto timeline cursor.
 
 ## Chat Instructions
 
-Tavern chats can carry trusted chat-specific instructions in
-`metadata.tavern.groupSystemPrompt`. Tavern passes that value through the
+Grotto chats can carry trusted chat-specific instructions in
+`metadata.tavern.groupSystemPrompt`. Grotto passes that value through the
 agent turn adapter for the chat. Generated temporary chat titles do not become
 durable execution labels; explicitly renamed chats may use their display name
 as the conversation label.
@@ -575,7 +575,7 @@ instead of creating a second row.
 Activity is durable work performed as part of a response.
 
 A response is one participant's attempt to answer or act on a chat message. Most
-responses are authored by agents, but the Tavern noun stays chat-first: agent
+responses are authored by agents, but the Grotto noun stays chat-first: agent
 turns, runs, and transcript ids are runtime metadata on the response, not the
 product identity.
 
@@ -613,7 +613,7 @@ Clients open activity detail surfaces by stable activity id:
 durable activity used by timeline rendering, including runtime tool metadata and
 artifact links.
 
-Activity ids are global Tavern ids. Updating an activity id that belongs to a
+Activity ids are global Grotto ids. Updating an activity id that belongs to a
 different chat or response is a contract error. Runtime adapters must include
 turn identity when their source item ids can repeat across turns.
 
@@ -737,17 +737,17 @@ runtime.toolCallId
 runtime.toolName
 ```
 
-Agent transcript sync upserts by stable Tavern ids when they are present.
-Transcript rows without Tavern identity remain execution evidence. Tavern links
+Agent transcript sync upserts by stable Grotto ids when they are present.
+Transcript rows without Grotto identity remain execution evidence. Grotto links
 them through response and activity metadata when possible; they are not matched
-to existing Tavern messages by content or timestamp.
+to existing Grotto messages by content or timestamp.
 
 ## What Is Intentionally Missing
 
 * Per-message edit or delete.
 * Content/timestamp duplicate detection.
 * Hidden chain-of-thought as message content or activity.
-* Runtime session sequence as the Tavern timeline cursor.
+* Runtime session sequence as the Grotto timeline cursor.
 * Agent transcript rows as canonical chat history.
 
 ## Related Docs
@@ -755,5 +755,5 @@ to existing Tavern messages by content or timestamp.
 * [Realtime](realtime.md)
 * [Data model](../internals/data-model.md)
 * [Chat feature](../features/chat.md)
-* [Tavern Runtime Chat Server](../../specs/runtime-chat-server.md)
+* [Grotto Runtime Chat Server](../../specs/runtime-chat-server.md)
 * [Agent Engine Runtime](../internals/agent-engine-runtime.md)

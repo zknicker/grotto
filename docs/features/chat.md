@@ -8,7 +8,7 @@ read_when:
 
 # Chat
 
-Chat is Tavern's primary workspace. Users talk to one or more agents and keep
+Chat is Grotto's primary workspace. Users talk to one or more agents and keep
 the durable timeline as context. Agents speak only by sending messages
 (`grotto message send`); see [ADR 0014](../adr/0014-cli-is-the-agents-only-output-channel.md)
 and [Agent Inbox](../../specs/inbox.md).
@@ -46,7 +46,7 @@ and [Agent Inbox](../../specs/inbox.md).
   turns — delivery to agents is planner-owned (see
   [Agent Inbox](../../specs/inbox.md)).
 * **Channels and DMs.** Channels and direct messages are durable chat rooms in
-  the sidebar. Each Tavern channel and DM has Chat and Files tabs; Files
+  the sidebar. Each Grotto channel and DM has Chat and Files tabs; Files
   lists attachments from its messages. Channels render with a hash icon and
   optional channel color. Opening a Server restores that Server's last visited
   Chat when it still exists, then falls back to `#all` or the first available
@@ -68,9 +68,9 @@ and [Agent Inbox](../../specs/inbox.md).
   built-in DM with the local human operator. Agent DMs are not user-deleteable;
   retiring the agent keeps its built-in DM in the sidebar as labeled, read-only
   history. There is no separate pinned-chat state.
-* **Chat appearance and instructions.** Tavern chats can carry durable channel
+* **Chat appearance and instructions.** Grotto chats can carry durable channel
   color and trusted chat-specific agent instructions.
-* **Offline catch-up.** Tavern Runtime keeps chat history while the app is
+* **Offline catch-up.** Grotto Runtime keeps chat history while the app is
   closed; the app reloads from durable rows and refetches on reconnect.
 * **Attention.** Agents join channels, follow threads, and mute channels
   themselves; a personal @mention pierces a mute as a single delivery. Humans
@@ -90,7 +90,7 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Stop.** Stop is agent-scoped, not chat-scoped: it interrupts the agent's
   current turn and clears its queued backlog wherever it is running.
 * **Dismissal.** Failed-turn banners can be dismissed with a hover X. The
-  dismissal soft-deletes the durable row in Tavern Runtime — sequence slots
+  dismissal soft-deletes the durable row in Grotto Runtime — sequence slots
   and history records are retained, and the result syncs to every client.
 
 ## Timeline inputs
@@ -99,8 +99,8 @@ The timeline combines three inputs:
 
 | Input | Owner | Role |
 | --- | --- | --- |
-| Durable messages | Tavern Runtime | Canonical timeline rows |
-| Artifacts | Tavern Runtime | Rich renderable outputs |
+| Durable messages | Grotto Runtime | Canonical timeline rows |
+| Artifacts | Grotto Runtime | Rich renderable outputs |
 | Composition bubbles | App UI (ephemeral) | In-flight agent send preview |
 | Optimistic local rows | App UI | One-frame accepted-message handoff |
 
@@ -115,8 +115,8 @@ Rendering rules:
 ## App Data Flow
 
 The app reads chat list and detail data separately. `chat.list` is the
-lightweight ordered list contract for Tavern sidebars, overviews, and chat
-pickers. Agent pages use `agent.chats.list` when they need the combined Tavern
+lightweight ordered list contract for Grotto sidebars, overviews, and chat
+pickers. Agent pages use `agent.chats.list` when they need the combined Grotto
 and external runtime chat inventory.
 `chat.get` is the focused detail read for a single chat. Timeline rows come
 from `chat.log.list` — durable messages and artifacts, paged by message
@@ -124,10 +124,10 @@ sequence.
 
 ## Chat Appearance
 
-Channel color is durable Tavern chat metadata. It colors the channel hash icon
+Channel color is durable Grotto chat metadata. It colors the channel hash icon
 and supporting room chrome only; it does not change chat membership, message
-ordering, or archive behavior. Tavern chats can also carry trusted system
-prompt text that Tavern passes through Runtime prompt composition for that
+ordering, or archive behavior. Grotto chats can also carry trusted system
+prompt text that Grotto passes through Runtime prompt composition for that
 chat.
 
 ## Contract

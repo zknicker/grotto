@@ -1,7 +1,7 @@
 ---
-summary: Tavern Runtime's agent-engine contract for chats, Agent sessions, AI SDK HarnessAgent execution, model provider setup, executable model inventory, tools, and deterministic tests.
+summary: Grotto Runtime's agent-engine contract for chats, Agent sessions, AI SDK HarnessAgent execution, model provider setup, executable model inventory, tools, and deterministic tests.
 read_when:
-  - changing Tavern Runtime agent execution
+  - changing Grotto Runtime agent execution
   - changing AI SDK HarnessAgent execution
   - changing agent instructions, runtime skills, tools, inbox delivery, or turn evidence
   - changing model provider setup, model defaults, or Agent session model selection
@@ -10,16 +10,16 @@ read_when:
 
 # Agent Engine Runtime
 
-Tavern Runtime is the agent engine boundary. It owns canonical chats, chat
+Grotto Runtime is the agent engine boundary. It owns canonical chats, chat
 participants, Agent seats, Agent sessions, Agent turns, model provider setup,
 executable model inventory, Runtime profiles, instruction composition, tool
 exposure, inbox delivery, and turn routing.
 
-Tavern App and Tavern Server are clients. They may proxy Runtime data and shape
+Grotto App and Grotto Server are clients. They may proxy Runtime data and shape
 it for the UI, but they must not own executable agent state. A direct Runtime
 API client should be able to list executable models, update an Agent default
 model, send a chat message, inspect activity, start a new Agent session, and
-stop a turn without the Tavern App process.
+stop a turn without the Grotto App process.
 
 Runtime does not depend on Vercel managed infrastructure for local execution.
 
@@ -49,7 +49,7 @@ AgentSession
   lastTurnAt
 ```
 
-The Agent seat is stable Tavern product state. The Agent session is
+The Agent seat is stable Grotto product state. The Agent session is
 agent-global (ADR 0011, `specs/sessions.md`): one ongoing session per agent
 backs every chat that agent sits in. Turns float on the session rather than
 anchoring to a chat (ADR 0014); a two-cursor inbox ledger per (session,
@@ -100,7 +100,7 @@ Each turn prompt is time-anchored with the current time, and every included
 message carries its send time — weekday-prefixed home-timezone wall clock,
 e.g. `Sun 2026-07-05T13:22:42-04:00` (`apps/runtime/src/tavern/harness-prompt.ts`,
 timezone from `resolveHomeTimezone()`). Static per-session guidance — the home
-timezone, the staleness policy, and Tavern CLI guidance — lives in the
+timezone, the staleness policy, and Grotto CLI guidance — lives in the
 composed agent instructions, not the per-turn prompt, so long sessions carry
 one copy instead of one per turn.
 The composed instructions are agent-global — no chat-specific content — and
@@ -119,7 +119,7 @@ a `workspace_changes` tool activity, served at
 `GET /api/turns/{run_id}/file-changes` (see
 [data model](data-model.md#agent_turn_file_changes)).
 
-Tool calls are auto-approved. Tavern does not expose an interactive tool
+Tool calls are auto-approved. Grotto does not expose an interactive tool
 approval prompt. Harness-native tools come from the selected executor. Runtime
 adds only host tools and exact upstream MCP tools granted to the agent, and
 rechecks MCP grants immediately before each call. Safety is controlled through
@@ -144,7 +144,7 @@ reliable on desktop Macs, not on headless hosts (see
 `TAVERN_AGENT_CLAUDE_CODE_AUTH_TOKEN` (`claude setup-token`) remains an
 operator env escape hatch and loses to stored credentials.
 
-Executor failures settle the Agent turn and linked response as failed Tavern
+Executor failures settle the Agent turn and linked response as failed Grotto
 state. They must not crash the Runtime process.
 Agent turns also have a Runtime watchdog (`TAVERN_AGENT_TURN_TIMEOUT_MS`,
 default 5 minutes) so a hung provider settles as failed instead of keeping the
@@ -171,7 +171,7 @@ behavior lives in `apps/runtime/src/models/provider-sources/`.
 
 Model records include Runtime execution facts needed by headless clients:
 stable `id`, display `label`, `provider`, `route`, `executionKind`,
-`availability`, `sourceKind`, and auth/source metadata. Tavern App may choose
+`availability`, `sourceKind`, and auth/source metadata. Grotto App may choose
 icons, colors, and layout. It must not reconstruct model routes or provider
 availability from display strings.
 
@@ -205,7 +205,7 @@ Sessions are never mutated to a different model in place.
 
 ## Instructions And Tools
 
-Runtime composes the bootstrapped Agent's instructions from Tavern-owned
+Runtime composes the bootstrapped Agent's instructions from Grotto-owned
 managed instruction text and the agent's description (the personality
 surface) — there is no separate identity file. Durable per-agent notes are
 the agent's own workspace files (`MEMORY.md` and notes/), which it maintains
@@ -254,7 +254,7 @@ tool grant and is granted to new agents by default. It fetches one URL and
 returns readable, size-capped markdown. Native page-fetch tools stay disabled
 so page reads share one size cap and injection posture.
 
-Runtime writes product facts through Tavern stores. The agent itself writes
+Runtime writes product facts through Grotto stores. The agent itself writes
 `chat_messages` (via `grotto message send`); Runtime writes `agent_turns` and
 `agent_turn_file_changes` as the durable execution record.
 `chat_responses` / `chat_response_activity` / `chat_deliveries` remain

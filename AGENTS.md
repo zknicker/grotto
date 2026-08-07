@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Always-on Tavern guidance for AI coding assistants.
+Always-on Grotto guidance for AI coding assistants.
 
 ## Start Here
 
@@ -12,15 +12,15 @@ Always-on Tavern guidance for AI coding assistants.
 
 ## Architecture Map
 
-Tavern has three first-party layers plus an internal agent engine. Tavern is the product.
-Tavern Runtime manages the engine dependency — users install only Tavern and experience
+Grotto has three first-party layers plus an internal agent engine. Grotto is the product.
+Grotto Runtime manages the engine dependency — users install only Grotto and experience
 the engine's abilities as the assistant's abilities, never its plumbing.
 
 | Layer | Owns |
 | --- | --- |
-| Tavern Runtime | Canonical chats, messages, participants, events, reads, automations, deliveries, runtime activity, Memory reads, agent execution, and Tavern tools. |
-| Tavern App | The Electron/React product surface, local presentation, app cache, app settings, optimistic UI, and tRPC client behavior. |
-| Tavern API / SDK | Stable contracts for chats, realtime, admin/runtime control, automations, Memory, skills, stats, and external clients. |
+| Grotto Runtime | Canonical chats, messages, participants, events, reads, automations, deliveries, runtime activity, Memory reads, agent execution, and Grotto tools. |
+| Grotto App | The Electron/React product surface, local presentation, app cache, app settings, optimistic UI, and tRPC client behavior. |
+| Grotto API / SDK | Stable contracts for chats, realtime, admin/runtime control, automations, Memory, skills, stats, and external clients. |
 | Agent engine | Agent execution: instructions, turns, tools, model calls, and projected activity. |
 
 Use product nouns directly:
@@ -29,9 +29,9 @@ Use product nouns directly:
 - A `session` is one agent's single ongoing global execution context spanning
   every chat it participates in (specs/sessions.md).
 - A `turn` is one execution inside a session.
-- Tavern chat history is canonical Tavern Runtime state.
+- Grotto chat history is canonical Grotto Runtime state.
 - Agent execution traces are execution evidence, not the product timeline.
-- Memory is Tavern's durable knowledge surface.
+- Memory is Grotto's durable knowledge surface.
 
 ## Docs Routing
 
@@ -59,16 +59,15 @@ so `docs:list` routes future agents correctly.
 8. Avoid unnecessary barrel files. Use them only for clear package or domain entrypoints.
 9. Prefer immutable patterns and explicit validation at boundaries.
 10. Handle edge cases and external failures explicitly; do not swallow errors.
-11. Keep comments, docs, and user-facing text short and in plain product language.
-    User-facing copy must not name internal engine dependencies; frame engine abilities as the
-    agent's or assistant's abilities ("agent engine" for technical surfaces). Internal identifiers,
-    env vars, API fields, and file names should use Tavern or agent-engine naming.
+11. Use Grotto in product prose. Preserve literal internal `tavern` identifiers such as package
+    names, env vars, API fields, paths, and wire names until an explicit contract migration renames
+    them. Frame internal engine abilities as the agent's or assistant's abilities; use
+    "agent engine" only on technical surfaces.
 12. Use concise product names. Avoid vague names such as `provider`, `manager`, `helper`, or `data`
     when a domain term exists.
 13. Use kebab-case file names.
-14. Add or update focused tests when behavior changes. Use
-    [Testing](docs/operations/testing.md#lane-selection) to choose the smallest
-    verification lane that proves the change.
+14. Behavior changes include focused tests when fitting. Route final verification through
+    [Testing](docs/operations/testing.md#change-routing).
 
 ## API And Events
 
@@ -83,10 +82,13 @@ so `docs:list` routes future agents correctly.
 - App event hooks should own their tRPC subscription and the exact React Query invalidation or cache
   update.
 
-## Tavern App UI
+## Grotto App UI
 
-- For React route, hook, query, realtime, optimistic UI, or state architecture work, use the
-  `architect-react-features` skill and read `docs/internals/react.md`.
+- React structure, behavior, data flow, or state: before editing, use
+  `architect-react-features` and read `docs/internals/react.md`. Also use
+  `vercel-composition-patterns` when changing component APIs, props, providers, context, shared
+  state, or reusable UI. Before verification, apply the relevant skill audits again to the
+  completed diff.
 - The app is sync-first. Render the best synced data we have even when Runtime is offline or
   reconnecting.
 - Runtime connection state belongs in a focused hook or small UI surface such as a badge. Avoid
@@ -125,14 +127,14 @@ so `docs:list` routes future agents correctly.
 - Runtime owns canonical chat records, durable events, activity state, Memory reads, agent
   execution, and runtime tools.
 - App storage is cache, settings, local presentation state, and runtime evidence views.
-- Runtime adapters project Tavern primitives plus source facts. They must not author final Tavern
+- Runtime adapters project Grotto primitives plus source facts. They must not author final Grotto
   presentation such as display names or fake chat workspace folders.
 - Preserve participant source labels as observed labels. Do not merge participants by display name
   or reintroduce observed-identity linking without a current product spec.
 - Message sends to agents must resolve a Runtime-owned agent presence for the selected
   frontend conversation and agent, then use that presence's current session binding.
   Do not let apps or external frontends invent routing ids from Discord channels, DMs,
-  Tavern chat ids, or opaque engine session ids.
+  Grotto chat ids, or opaque engine session ids.
 - If a runtime record is missing a required stable id, timestamp, schedule, file content, or actor,
   fail the mapping or mark the capability degraded instead of inventing a value.
 - Treat `apps/server/src/db/bootstrap.ts` as fresh-schema setup only. For local SQLite migrations,
@@ -140,17 +142,10 @@ so `docs:list` routes future agents correctly.
 
 ## Testing And Smoke
 
-- Prefer unit/service tests or the deterministic app e2e mock runtime over manual smoke
-  chats in a real local runtime.
-- Runtime tests should use real temp SQLite databases and temp directories when testing storage,
-  idempotency, ordering, recovery, or projection behavior.
-- Mock only true external boundaries: model calls, process/container execution, network transports,
-  time, and randomness.
-- Do not write tests whose main assertion is that a spy was called.
-- If manual validation must create real Tavern chats, use a temporary first message such as
-  `Codex smoke <timestamp>: <purpose>`, record the chat ids, and delete only those chats.
-- If cleanup fails, report the exact chat ids or titles left behind. Do not delete pre-existing
-  chats or broad groups of rows unless explicitly asked.
+- Verification follows completed behavior and cleanup. Use an in-progress focused check only for
+  reproduction, TDD, or a risk checkpoint during long autonomous work. Then use
+  [Change Routing](docs/operations/testing.md#change-routing) for the smallest proof, combine lanes
+  across boundaries, and report proof or gaps.
 
 ## Change Scope And Maintenance
 
@@ -170,16 +165,16 @@ so `docs:list` routes future agents correctly.
 
 ## Agent Engine Work
 
-- Tavern Runtime owns model config, capability checks, instruction composition, tool exposure,
-  and the Tavern chat-to-agent turn runner. The engine dependency is internal and not a
+- Grotto Runtime owns model config, capability checks, instruction composition, tool exposure,
+  and the Grotto chat-to-agent turn runner. The engine dependency is internal and not a
   user-facing product surface; see Coding Rule 11 for the product-language boundary.
 - The current implementation lives under `apps/runtime/src/agent-engine/`. That module may use
   AI SDK, ACP, or other implementation dependencies internally, but public ids, env vars, docs,
-  app copy, API metadata, and inspectable runtime records must use Tavern or agent-engine naming.
+  app copy, API metadata, and inspectable runtime records must use Grotto or agent-engine naming.
 - Runtime executes turns with local AI SDK `LanguageModel` instances. It does not run Vercel
   Gateway infrastructure or a managed external engine process.
-- For agent-engine changes, run the normal runtime dev stack or
-  `bun run --filter @tavern/runtime build` to verify Runtime startup and adapter code.
+- After a coherent agent-engine change, select deterministic and live verification from
+  [Change Routing](docs/operations/testing.md#change-routing).
 
 ## Agent System Prompt Changes
 

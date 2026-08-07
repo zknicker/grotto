@@ -13,11 +13,11 @@ Accepted.
 
 ## Context
 
-Tavern separates the maintained provider catalog from the Runtime's enabled providers and executable
-models. The provider catalog lists what Tavern can add; enabled providers are the user's Runtime
+Grotto separates the maintained provider catalog from the Runtime's enabled providers and executable
+models. The provider catalog lists what Grotto can add; enabled providers are the user's Runtime
 choices; executable models are the model records available for agent turns after provider access is
 ready. This keeps Settings -> Models useful for setup without polluting agent model pickers with
-every provider Tavern may support.
+every provider Grotto may support.
 
 ## Decision
 

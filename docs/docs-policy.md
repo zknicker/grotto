@@ -7,7 +7,7 @@ read_when:
 
 # Docs Policy
 
-Tavern docs describe Tavern product contracts first. Implementation details are
+Grotto docs describe Grotto product contracts first. Implementation details are
 allowed when they explain ownership or operational behavior, but they should not
 become product nouns.
 
@@ -56,9 +56,9 @@ When behavior changes:
 
 ## Boundaries
 
-Tavern Runtime owns values that affect execution: model provider setup,
+Grotto Runtime owns values that affect execution: model provider setup,
 executable model inventory, Agent default model, current Agent sessions, tool
-inventory, sandbox mode, turns, and activity. Tavern App and Server are clients
+inventory, sandbox mode, turns, and activity. Grotto App and Server are clients
 and presentation layers.
 
 Docs should keep that ownership clear.

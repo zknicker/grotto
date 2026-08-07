@@ -115,5 +115,5 @@ The clarification row (`tool-steps/clarification-tool-step.tsx`, registered as
    `metadata.clarification` and projects it as a `tool` step named `clarify`.
 2. The renderer composes `ToolTimelineStep` with a question label and any
    historical settled state.
-3. Tavern does not expose a per-question response route; users answer through
+3. Grotto does not expose a per-question response route; users answer through
    normal chat messages when needed.

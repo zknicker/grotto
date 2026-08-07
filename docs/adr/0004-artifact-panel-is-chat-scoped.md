@@ -6,7 +6,7 @@ read_when:
 
 # Artifact Panel Is Chat-Scoped
 
-The Artifact Panel opens beside Tavern chat and shows panes for the active
+The Artifact Panel opens beside Grotto chat and shows panes for the active
 chat's Artifact Panel targets. Targets include chat Artifacts and linked
 inspectable outputs such as Wiki pages or workspace files. The panel can also
 open chat-scoped source browsers for Memory and the agent workspace without

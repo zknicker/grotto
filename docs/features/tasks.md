@@ -10,7 +10,7 @@ read_when:
 
 A task is a canonical hosted Chat message promoted with task metadata. The message body is the
 task title verbatim, its existing child Thread is the work surface, and board/list views are
-lenses over the same message. Tavern does not keep a second task conversation or content store.
+lenses over the same message. Grotto does not keep a second task conversation or content store.
 
 ## Lifecycle
 
@@ -43,6 +43,11 @@ records.
 Promotion creates or resolves the deterministic hosted child Thread anchored to the canonical
 message. Opening a task opens that Thread. The Thread has no independent membership: Server
 membership and parent-Chat participation remain the sole access authority.
+
+Agents use the Task Thread for progress and execution discussion. They deliver the final result
+there unless a human names another final-delivery target. That exception applies only to the final
+result, which is delivered once to the exact requested target. `Here` always means the human
+instruction message's target, never the Task Thread the Agent moved into.
 
 Task lists, eligible assignees, messages with task projections, task events, and Thread reads all
 apply the same hosted Server and parent-Chat authorization. Revoked members and humans who lose

@@ -1,21 +1,21 @@
 ---
-summary: Tavern architecture layers for App, API, SDK, Runtime, SQLite state, AI SDK agent execution, and event recovery.
+summary: Grotto architecture layers for App, API, SDK, Runtime, SQLite state, AI SDK agent execution, and event recovery.
 read_when:
-  - changing the boundary between Tavern App and Tavern Runtime
+  - changing the boundary between Grotto App and Grotto Runtime
   - changing realtime recovery, Runtime data flow, or managed runtime ownership
 ---
 
 # Architecture Overview
 
-Tavern is a chat app for humans and agents. Runtime is the product backend.
+Grotto is a chat app for humans and agents. Runtime is the product backend.
 Agent executors are implementation details behind Runtime.
 
 ```mermaid
 flowchart LR
-    app["Tavern App<br/>Electron + React"]
-    server["Tavern Server<br/>tRPC and app cache"]
+    app["Grotto App<br/>Electron + React"]
+    server["Grotto Server<br/>tRPC and app cache"]
     sdk["@tavern/api + SDK<br/>typed contracts"]
-    runtime["Tavern Runtime<br/>canonical chat + agent state"]
+    runtime["Grotto Runtime<br/>canonical chat + agent state"]
     db["Runtime SQLite"]
     engine["Agent engine<br/>AI SDK HarnessAgent"]
 
@@ -30,10 +30,10 @@ flowchart LR
 
 | Layer | Owns |
 | --- | --- |
-| Tavern App | Electron shell, React routes, local presentation, optimistic UI, and app-local cache. |
-| Tavern Server | Thin tRPC facade, app cache, connection setup, and UI-friendly projections. |
-| Tavern API / SDK | Stable contracts for chats, realtime, agents, models, tools, jobs, and Runtime admin. |
-| Tavern Runtime | Canonical Chats, messages, participants, Agent sessions, Agent turns, model provider setup, executable model inventory, tools, inbox delivery, and execution. |
+| Grotto App | Electron shell, React routes, local presentation, optimistic UI, and app-local cache. |
+| Grotto Server | Thin tRPC facade, app cache, connection setup, and UI-friendly projections. |
+| Grotto API / SDK | Stable contracts for chats, realtime, agents, models, tools, jobs, and Runtime admin. |
+| Grotto Runtime | Canonical Chats, messages, participants, Agent sessions, Agent turns, model provider setup, executable model inventory, tools, inbox delivery, and execution. |
 | Agent engine | Runtime-internal execution through AI SDK HarnessAgent adapters. |
 
 ## Product Model
@@ -63,7 +63,7 @@ Runtime is the source of truth for values that affect execution:
 - turn queue and turn status
 - inbox delivery cursors and assistant messages
 
-Tavern App and Server must not reconstruct those values from UI state or a
+Grotto App and Server must not reconstruct those values from UI state or a
 random chatroom. Settings that change execution call Runtime. Headless clients
 can perform the same actions through Runtime API.
 
@@ -83,7 +83,7 @@ profile, not as chat activity. Provider-specific details remain metadata.
 
 Realtime streams are delivery paths, not storage. If a browser reconnects, it
 refetches durable Runtime chat state and subscribes to active turn events.
-Runtime must settle failed, cancelled, and interrupted turns as durable Tavern
+Runtime must settle failed, cancelled, and interrupted turns as durable Grotto
 state.
 
 ## References

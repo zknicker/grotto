@@ -7,19 +7,19 @@ read_when:
 
 # Rich References
 
-Tavern messages can include explicit rich references. A rich reference is a
-normal markdown link whose target tells Tavern what the link points at. Settled
+Grotto messages can include explicit rich references. A rich reference is a
+normal markdown link whose target tells Grotto what the link points at. Settled
 chat messages render through HeroUI Markdown; the stored markdown remains the
 portable fallback.
 
 Examples:
 
-- `[@Tavern](agent://agt_primary)` addresses an Agent in a channel.
+- `[@Grotto](agent://agt_primary)` addresses an Agent in a channel.
 - `[$ui](skill://ui)` references a skill for the turn.
 - `[@Chrome](app://computer-use/com.google.Chrome)` references a Mac app.
 - `[README.md](/repo/README.md)` references a file.
 
-Bare text is not a rich reference. `@Tavern`, `$ui`, and ASIN-looking text stay
+Bare text is not a rich reference. `@Grotto`, `$ui`, and ASIN-looking text stay
 plain text unless the user selects or types explicit link syntax.
 
 ## Product Rules

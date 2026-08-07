@@ -8,7 +8,7 @@ Small Node-first adapter for Claude Code plan usage.
 - Fall back to the `Claude Code-credentials` Keychain item when the file is unavailable
 - Fall back to `CLAUDE_CODE_OAUTH_TOKEN` only when neither full-scope source is available
 - Fetch live quota state from `https://api.anthropic.com/api/oauth/usage`
-- Normalize the response into a stable TypeScript interface owned by Tavern
+- Normalize the response into a stable TypeScript interface owned by Grotto
 
 ## Notes
 

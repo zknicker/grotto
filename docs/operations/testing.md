@@ -7,16 +7,20 @@ read_when:
 
 # Testing
 
-Use the smallest test lane that can fail for the bug or behavior you changed.
-Prefer tests at the owner of the rule: domain logic, store, service, hook, or
-e2e flow.
+Verify at the owner of the changed rule with the smallest lane that can fail.
 
 ## Development Cycle
 
-The full suite is huge. Never run it as a default gate — scope every run to
-what the change can actually break.
+Complete the requested behavior and cleanup, then select proof from the final
+diff.
 
-While iterating, run the single test file:
+Run a focused test during implementation only when it is part of reproduction
+or TDD, when the next design decision depends on its result, or when long,
+sweeping, or risky autonomous work would benefit from a checkpoint. At roughly
+ten minutes of uninterrupted implementation, consider a checkpoint when it
+can prevent compounding risk.
+
+When an iteration check is warranted, run one test file:
 
 ```sh
 # runtime (vitest; add -t for one case)
@@ -27,7 +31,9 @@ cd apps/server && bun test test/agent-runtime-client.test.ts
 cd apps/website && bun test src/features/shell/sidebar-chat-list.test.ts
 ```
 
-Before handoff, gate with the touched packages only:
+After development is complete, use [Change Routing](#change-routing) and gate
+the affected behavior. Nontrivial code changes normally use the touched
+package gates:
 
 ```sh
 bun run lint
@@ -35,22 +41,26 @@ bun run --filter @tavern/<touched-package> typecheck
 bun run --filter @tavern/<touched-package> test
 ```
 
-Pick lanes by touched path:
+Each package gate includes its tests and typecheck:
 
 | Touched path | Gate |
 | --- | --- |
 | `apps/runtime` | `@tavern/runtime test` + `typecheck`. The runtime build bundles without tsc, so nothing else typechecks runtime code. |
 | `apps/server` | `@tavern/server test` + `typecheck`. Hosted Server tests provision a throwaway cluster from locally installed PostgreSQL binaries; install PostgreSQL 16 or point `GROTTO_POSTGRES_BIN` at its bin directory. |
+| `apps/computer` | `@tavern/computer test` + `typecheck` |
 | `apps/website` | `@tavern/website test` + `typecheck` |
 | `packages/tavern-api` | `@tavern/api check`, plus typecheck of the consuming apps you touched |
-| `packages/tavern-sdk` | `@tavern/sdk test` |
+| `packages/tavern-sdk` | `@tavern/sdk test` + `typecheck` |
 | Browser-level contracts (navigation, reload, websocket, chat flows, layout) | `bun run test:e2e`, scoped to the affected spec file when possible |
 | Harness executor, harness adapters, provider auth wiring, `@ai-sdk/harness-*` bumps | `bun run --filter @tavern/runtime test:smoke` (opt-in, real provider calls) |
 
 Rules that keep runs cheap and honest:
 
-* Lint is always part of the handoff gate. Use `bun run lint` / `bun run lint:fix`
-  only — raw `bunx biome check` applies the wrong ruleset.
+* Every code change runs `bun run lint` at handoff. Use `bun run lint:fix` for
+  fixes; the raw Biome command applies the wrong ruleset.
+* Documentation-only changes use `bun run docs:list` plus direct link and
+  rendering inspection. Copy-, token-, and CSS-only changes use lint, adding a
+  suite only for an encoded browser contract.
 * Run runtime tests through the package script (they require Bun; node-run
   vitest fails on `bun:sqlite`).
 * If a suite fails in code you did not touch, verify against an untouched
@@ -60,6 +70,25 @@ Rules that keep runs cheap and honest:
   prep, not development.
 
 Before handoff, report the commands you ran and anything you did not verify.
+
+## Change Routing
+
+Choose proof after the implementation and cleanup are complete. For a change
+that matches multiple rows, run the union of their required proof.
+
+| Completed change | Required proof | Escalate when |
+| --- | --- | --- |
+| Documentation only | `bun run docs:list`; inspect changed links and rendered Markdown | Run code gates only when documented generated output or executable examples changed. |
+| App copy, tokens, or CSS only | `bun run lint`; typecheck when TS or TSX changed | Run a scoped App e2e only when an existing browser contract covers the changed behavior. |
+| React presentation, view model, or local interaction | Focused behavior test; website typecheck | Use the website gate for shared primitives or several features. |
+| React query, mutation, cache, realtime, optimistic UI, or shared state | Focused regression plus website gate | Add scoped App e2e for reload, reconnect, navigation, or a complete user flow. |
+| Route tree, persistent shell, navigation, side pane, or layout-critical behavior | Website gate plus scoped App e2e | Use the full App e2e suite for broad shell or cross-flow changes. |
+| Hosted Server API, authorization, PostgreSQL state, or realtime | Focused regression plus server gate | Add App e2e when the public browser flow or reconnect behavior changed. |
+| Computer execution, delivery, or local capability behavior | Focused regression plus computer gate | Add scoped Live Agent E2E when deterministic proof cannot cover the observable model-driven behavior. |
+| Runtime store, execution mapping, delivery semantics, or agent-engine behavior | Focused regression plus runtime gate | Add provider smoke for executor/provider-boundary changes listed below. |
+| API or SDK contract | API or SDK gate plus affected consumer typechecks | Add Server, Runtime, or App coverage when behavior changed behind the contract. |
+| Agent prompt or managed instructions | Prompt contract and snapshot review plus owning package gate | Run `eval:prompt` after meaningful prompt-text changes, as required by AGENTS.md. |
+| Live Agent behavior, fixture, or eval harness | Run the affected `eval:agents` spec after deterministic support tests | Run the full Live Agent E2E suite only when shared behavior can affect several specs or for release confidence. |
 
 ## Test Lanes
 
@@ -75,26 +104,12 @@ Before handoff, report the commands you ran and anything you did not verify.
 | Runtime executor tests | AI SDK executor mapping, event projection, delivery semantics, local sandbox behavior, or capability degradation. | Verify with Runtime fixtures, deterministic fake executors, or opt-in harness smoke tests. |
 | Live/manual smoke | Real provider behavior, local environment diagnosis, or release confidence that deterministic lanes cannot cover. | Keep opt-in. Record temporary chat ids/titles and clean up only those records. |
 
-## Lane Selection
-
-Choose the smallest lane that proves the changed behavior.
-
-* **Domain behavior or invariant:** test the owner: domain, store, service, hook,
-  or view model.
-* **Contract shape:** run the owning contract/typecheck gate. Add tests only
-  when the contract carries validation, compatibility, or generated-client risk.
-* **Thin route or tRPC procedure:** do not add route tests just because a route
-  exists. Test the called domain behavior unless the route owns auth, coercion,
-  error mapping, streaming, or transport semantics.
-* **Frontend state or rendering rule:** prefer hook/model/component tests. Use
-  e2e for browser-level contracts and real user flows.
-* **Executor semantics:** use Runtime fixtures, deterministic fake executors, or
-  opt-in harness smoke tests for the exact behavior Tavern depends on.
-
 ## Writing Tests
 
 * Prefer Vitest for package-local tests unless the package already uses Bun
   tests.
+* Test the domain owner behind a thin route. Test the route itself when it owns
+  auth, coercion, error mapping, streaming, or transport behavior.
 * Prefer real temp SQLite databases, temp directories, and schema validation
   over module mocks.
 * Mock only true external boundaries: model calls, process/container execution,
@@ -150,14 +165,14 @@ When changing executor routes, event projection, chat behavior, or delivery
 semantics, verify against deterministic service fixtures, hosted Browser E2E,
 or an opt-in live harness smoke when a concrete ambiguity remains.
 
-Add raw-frame or fixture-backed tests for behavior Tavern depends on.
+Add raw-frame or fixture-backed tests for behavior Grotto depends on.
 
 ## Manual Smoke Hygiene
 
 Manual real-runtime chats are rare. Prefer deterministic e2e or unit/service
 tests.
 
-If manual validation creates real Tavern chats, use an obvious temporary first
+If manual validation creates real Grotto chats, use an obvious temporary first
 message such as `Codex smoke <timestamp>: <purpose>`, record the created chat
 ids, and delete only those chats before finishing. If cleanup fails, report the
 exact chat ids or titles left behind.
@@ -165,6 +180,32 @@ exact chat ids or titles left behind.
 Live Agent E2E teardown uses the localhost-only `dev.cleanupEvalChats`
 procedure to delete exact test-created Chat ids. This is an authenticated,
 non-production test seam, not a product Chat archive or deletion contract.
+
+## Live Agent E2E
+
+`bun run eval:agents` drives the real App, hosted Server, Computer, and model.
+Use it for Agent behavior that deterministic lanes cannot prove, then scope
+iteration to one Playwright spec:
+
+```sh
+bun run eval:agents -- task-lifecycle.spec.ts
+```
+
+Each behavioral test gets disposable Agents from `agent-fixture.ts` and exact
+test-owned Chats. Share an Agent across cases only when the story explicitly
+proves session, workspace, or skill continuity. Wait for the fixture's applied,
+idle configuration before sending work; do not duplicate weaker readiness
+polls in a spec.
+
+An Agent may answer an ordinary request in its Chat or promote that request to
+a Task Thread. Use the shared reply helper when either location satisfies the
+product contract. Assertions about a specific delivery location remain in the
+spec when location is the behavior under test.
+
+Fixture cleanup deletes ordinary Threads, Task Threads, parent Chats, and
+Agents by exact id. Never sweep by display name, prefix, age, or broad query.
+After an interrupted run, inspect intermediate Agent, Task, and Chat state
+before rerunning; remove only the exact temporary resources left by that run.
 
 ## Live Provider Smoke
 

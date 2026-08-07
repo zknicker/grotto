@@ -1,7 +1,7 @@
 ---
 summary: Operations index for local development, test lanes, desktop releases, Runtime deployment, and runtime upgrades.
 read_when:
-  - running, testing, releasing, or upgrading Tavern
+  - running, testing, releasing, or upgrading Grotto
   - looking for operational recipes and verification gates
 ---
 

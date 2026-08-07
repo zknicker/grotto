@@ -1,16 +1,16 @@
 ---
 summary: Runtime admin and control routes for health, capabilities, events, agent execution, presence, activity, inbox, sessions, skills, models, bindings, and files.
 read_when:
-  - changing Tavern Runtime health, capabilities, admin, or control routes
+  - changing Grotto Runtime health, capabilities, admin, or control routes
   - changing agent execution, presence, activity, inbox, skills, sessions, or model runtime APIs
   - changing packages/tavern-api/src/runtime contracts
 ---
 
 # Admin API
 
-The Admin API is part of the Tavern API.
+The Admin API is part of the Grotto API.
 
-Tavern App, automations, local tools, and tests use it to inspect runtime
+Grotto App, automations, local tools, and tests use it to inspect runtime
 health, manage runtime-owned records, and control local runtime capabilities.
 It is not a second product API.
 
@@ -73,15 +73,15 @@ does not expose model fallback chains, web page summarizer models, context
 compression, or subagent defaults until the local agent engine supports those
 features.
 
-`/agent-env` (GET/PUT) owns Tavern-stored environment variables for the managed
-agent process. Values live in Tavern-managed secret storage; reads return saved
+`/agent-env` (GET/PUT) owns Grotto-stored environment variables for the managed
+agent process. Values live in Grotto-managed secret storage; reads return saved
 values for the local settings UI.
 
 `/workspace/agents/{id}/files` and `/workspace/agents/{id}/files/{path}` expose
 read-only browsing for the registered agent workspace. Paths are relative to
 that workspace, traversal is rejected, hidden and generated dependency folders
 are omitted from listings, and sensitive files such as `.env` and key material
-are blocked. Tavern App uses these routes to preview linked workspace artifacts.
+are blocked. Grotto App uses these routes to preview linked workspace artifacts.
 
 `/mcp/connections` owns Runtime-stored MCP connection records. Public
 configuration is inspectable; credentials and secret headers stay in the
@@ -123,12 +123,12 @@ Stats, live with the feature that reads that telemetry.
 | `packages/tavern-api/src/runtime/model-identity.ts` | Model provider and identity shapes     |
 | `packages/tavern-api/src/runtime/skills.ts`         | Runtime skill file path helpers        |
 | `apps/runtime/src/tavern/`                          | Runtime handlers                       |
-| `@tavern/sdk`                                       | Typed client calls over the Tavern API |
+| `@tavern/sdk`                                       | Typed client calls over the Grotto API |
 
 ## Rules
 
 - **Runtime owns operations.** Health, capabilities, agent execution, sessions,
-  and skill state come from Tavern Runtime.
+  and skill state come from Grotto Runtime.
 - **Runtime owns capabilities.** Runtime stores capability health and exposes
   the capability API. Jobs and app surfaces can use capability health to decide
   whether dependent functionality is available. The app may cache and render
@@ -136,7 +136,7 @@ Stats, live with the feature that reads that telemetry.
 - **Runtime update is staged.** `/update` installs the new Runtime package
   without restarting the service. `/update/status` reports the stage state.
   `/update/restart` is the explicit cutover request and restarts the Homebrew
-  service only after Tavern is ready to finish the whole app/Runtime update.
+  service only after Grotto is ready to finish the whole app/Runtime update.
 - **Read routes are Runtime-backed.** Agent, chat, model, skill, and session
   reads return the latest Runtime state. Runtime refreshes
   execution-owned records from specific engine events. Session update events
@@ -151,5 +151,5 @@ Stats, live with the feature that reads that telemetry.
   durable Chat API timeline.
 - **Session facts stay execution-owned.** Session messages, graphs, prompts, and
   resync are runtime evidence for an agent execution.
-- **The app is a client.** Tavern App may proxy, cache, and present this data,
+- **The app is a client.** Grotto App may proxy, cache, and present this data,
   but the cross-boundary contract lives in `@tavern/api`.

@@ -1,20 +1,20 @@
 ---
-summary: Tavern Runtime internals for chat storage, Agent seats, Agent sessions, AI SDK execution, persistence, inbox delivery, and tool boundaries.
+summary: Grotto Runtime internals for chat storage, Agent seats, Agent sessions, AI SDK execution, persistence, inbox delivery, and tool boundaries.
 read_when:
   - changing the always-on chat server
   - changing agent execution or Runtime ownership
-  - changing inbox delivery, execution evidence, managed workspace instructions, or agent-facing Tavern tools
+  - changing inbox delivery, execution evidence, managed workspace instructions, or agent-facing Grotto tools
 ---
 
 # Runtime
 
-Tavern Runtime is the always-on local service behind Tavern. It owns canonical
+Grotto Runtime is the always-on local service behind Grotto. It owns canonical
 Chat records, participants, reads, inbox delivery, Agent sessions, Agent
 turns, tool inventory, model provider setup, executable model inventory, and
 agent execution.
 
-Tavern App is one frontend. Discord, Telegram, webhooks, SDK clients, and
-future surfaces are also frontends. They all talk to Runtime through Tavern Chat
+Grotto App is one frontend. Discord, Telegram, webhooks, SDK clients, and
+future surfaces are also frontends. They all talk to Runtime through Grotto Chat
 and Agent-session contracts.
 
 ## Ownership
@@ -79,7 +79,7 @@ state and active turn state rather than trusting the browser stream as history.
 
 ## Ingestion
 
-All frontends create Tavern Chat messages. Agents never write chat replies
+All frontends create Grotto Chat messages. Agents never write chat replies
 directly — Runtime's delivery planner is the only path from a durable message
 to agent execution:
 
@@ -95,7 +95,7 @@ to agent execution:
 
 ## Boundaries
 
-Runtime records source facts and execution evidence. Tavern App owns final UI
+Runtime records source facts and execution evidence. Grotto App owns final UI
 presentation. Runtime adapters must not author display-only workspace folders,
 fake participants, or provider labels that are not source facts.
 

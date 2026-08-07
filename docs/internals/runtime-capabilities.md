@@ -1,11 +1,11 @@
 ---
-summary: Runtime-owned capability health; the singular feature-gating contract between Tavern App and Tavern Runtime.
+summary: Runtime-owned capability health; the singular feature-gating contract between Grotto App and Grotto Runtime.
 read_when:
   - changing Runtime capability checks, capability storage, or capability APIs
   - changing job enablement that depends on Runtime readiness
-  - gating Tavern App features on Runtime or agent-engine readiness
+  - gating Grotto App features on Runtime or agent-engine readiness
   - changing chat send, runtime sync, skills, models, mentions, jobs, or agent-backed app behavior
-  - changing the Tavern Runtime settings capability table
+  - changing the Grotto Runtime settings capability table
 ---
 
 # Runtime Capabilities
@@ -177,7 +177,7 @@ modules before the app relies on capability gates.
 
 ## App Startup
 
-The app shell and dashboard mount as soon as the Tavern App backend is ready.
+The app shell and dashboard mount as soon as the Grotto App backend is ready.
 Runtime connection checks run in the background. Synced records render from the
 best local data available, and empty synced results are valid first-boot states.
 
@@ -224,7 +224,7 @@ and external dependencies.
 | `webAccess` | Runtime supports per-agent web access (always healthy on Runtimes that ship it; the id gates the app surface on older Runtimes). |
 | `browser` | Runtime can find and supervise the configured local Browser service. |
 
-Plain Tavern CRUD, timeline, mentions, and logging surfaces are not
+Plain Grotto CRUD, timeline, mentions, and logging surfaces are not
 capabilities by themselves. Add a capability only when a user-facing action
 depends on a distinct Runtime-owned service or agent-engine probe.
 

@@ -14,8 +14,8 @@ Runtime chats are conversation surfaces known to a connected runtime.
 ## Chat State
 
 - A chat has a stable runtime identity.
-- A runtime chat does not carry a final Tavern display name. Runtime adapters return stable
-  primitive identity, participants, agent bindings, execution references, and typed platform metadata; Tavern
+- A runtime chat does not carry a final Grotto display name. Runtime adapters return stable
+  primitive identity, participants, agent bindings, execution references, and typed platform metadata; Grotto
   derives presentation from those facts.
 - A chat may have durable conversation history and runtime activity history.
 - A chat may have participation rules, such as whether a trigger is required.
@@ -27,7 +27,7 @@ Runtime chats are conversation surfaces known to a connected runtime.
 - A chat may bind one or more agents intentionally.
 - Runtime calls should not rely on a hidden default responder when the runtime supports explicit
   agent targeting.
-- Tavern product flows may resolve the primary agent before calling the runtime.
+- Grotto product flows may resolve the primary agent before calling the runtime.
 - A chat may expose multiple participating agents when that improves the conversation.
 
 ## Trigger And Participation Rules
@@ -35,5 +35,5 @@ Runtime chats are conversation surfaces known to a connected runtime.
 - A chat may require an explicit trigger before the runtime responds.
 - A chat may allow inbound messages to be processed automatically.
 - A chat may restrict who is allowed to trigger runtime work.
-- Tavern should make it understandable why the runtime responded or ignored a message when the
+- Grotto should make it understandable why the runtime responded or ignored a message when the
   runtime reports that information.

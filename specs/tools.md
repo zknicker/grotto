@@ -1,6 +1,6 @@
 # Tools
 
-Tools are Tavern's inline execution interactions.
+Tools are Grotto's inline execution interactions.
 
 ## Product Expectations
 

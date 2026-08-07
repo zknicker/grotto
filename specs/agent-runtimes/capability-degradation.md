@@ -1,11 +1,11 @@
 # Capability Degradation
 
-Tavern treats runtime connectivity and runtime capability health as separate facts. A runtime can
+Grotto treats runtime connectivity and runtime capability health as separate facts. A runtime can
 be reachable while one capability is degraded, unavailable, unauthorized, or returning invalid data.
-Tavern keeps synced records visible and attributes failures to the narrowest affected
+Grotto keeps synced records visible and attributes failures to the narrowest affected
 capability.
 
-This spec models capability failures through Tavern Runtime.
+This spec models capability failures through Grotto Runtime.
 
 ## Workstream
 
@@ -30,7 +30,7 @@ build one-off status handling for each page.
 The full implementation has three parts:
 
 - a common capability status contract
-- Runtime checks that record status for every capability Tavern depends on
+- Runtime checks that record status for every capability Grotto depends on
 - diagnostics and product reads that reference the stored status without blocking synced data
 
 The first slice should still be small enough to land safely, but it should use the same Runtime
@@ -46,7 +46,7 @@ because those surfaces prove the important agent-engine cases:
 - model inventory through `/api/model/options`
 - skill inventory through `/api/skills`
 
-Tavern CRUD, synced chat records, cron records, mentions, and logs are not capability ids unless
+Grotto CRUD, synced chat records, cron records, mentions, and logs are not capability ids unless
 they depend on a distinct Runtime-owned service or agent-engine probe.
 
 ## Deferred Scope
@@ -61,23 +61,23 @@ These items are intentionally not part of the first slice:
 
 ## Non-Goals
 
-- Tavern App does not bundle, start, repair, or shell out to the local agent engine.
-- Tavern App does not read agent-engine runtime state, logs, or config files directly.
-- Tavern does not require every runtime to support every agent-engine capability.
-- Tavern does not hide malformed runtime responses behind compatibility fallbacks.
+- Grotto App does not bundle, start, repair, or shell out to the local agent engine.
+- Grotto App does not read agent-engine runtime state, logs, or config files directly.
+- Grotto does not require every runtime to support every agent-engine capability.
+- Grotto does not hide malformed runtime responses behind compatibility fallbacks.
 
 ## Capability States
 
 Capability state is reported per managed runtime namespace and per capability.
 
-- `unknown`: Tavern has not checked this capability yet.
+- `unknown`: Grotto has not checked this capability yet.
 - `healthy`: the capability recently completed successfully.
 - `degraded`: the capability is reachable but returned partial, malformed, slow, or inconsistent
   results.
 - `unavailable`: the runtime does not expose this capability or the method is unsupported.
 - `unauthorized`: credentials, pairing, or permissions are insufficient for this capability.
 
-Tavern Runtime itself can be `reachable` while individual capabilities are not `healthy`.
+Grotto Runtime itself can be `reachable` while individual capabilities are not `healthy`.
 
 ## Capability Records
 
@@ -85,7 +85,7 @@ Each capability record includes:
 
 - `capability`: stable capability id.
 - `state`: one capability state.
-- `checkedAt`: when Tavern last checked or observed this capability.
+- `checkedAt`: when Grotto last checked or observed this capability.
 - `lastHealthyAt`: when the capability last completed successfully, or `null`.
 - `reason`: short user-safe reason.
 - `method`: runtime method or event stream that produced the state, when known.
@@ -98,16 +98,16 @@ The app may show `reason`. Diagnostic copy/export may include `technicalMessage`
 
 Runtime reports capability state for these surfaces:
 
-| Capability | Runtime surface | Primary Tavern impact |
+| Capability | Runtime surface | Primary Grotto impact |
 | --- | --- | --- |
 | `dashboardServer` | status route | agent process visibility |
 | `apiServer` | session routes | authenticated Runtime calls and sync |
-| `gateway` | event stream | Tavern chat sends and live agent events |
+| `gateway` | event stream | Grotto chat sends and live agent events |
 | `models` | `GET /api/model/options` | model inventory |
 | `skills` | `GET /api/skills` | skill inventory |
 
 Future `channels` capabilities may be added when Runtime exposes stable
-surfaces that Tavern can consume without local filesystem access.
+surfaces that Grotto can consume without local filesystem access.
 
 The Runtime also reports Memory and model-access capabilities that are
 independent of agent-engine process reachability: `codexOAuth` and
@@ -121,12 +121,12 @@ Runtime owns raw runtime error classification.
 - Auth, pairing, token, or permission failures map to `unauthorized`.
 - Timeouts, malformed payloads, pagination defects, missing required ids, and invalid timestamps map
   to `degraded`.
-- Transport-level failure that prevents even status checks updates Tavern Runtime health and
+- Transport-level failure that prevents even status checks updates Grotto Runtime health and
   may mark checked capabilities `unknown` until retried.
 - Mapper failures include the affected capability and method.
-- Mapper failures do not return fabricated Tavern records.
+- Mapper failures do not return fabricated Grotto records.
 
-Adapter methods should return normal Tavern data on success. Capability state is exposed through a
+Adapter methods should return normal Grotto data on success. Capability state is exposed through a
 dedicated status/diagnostic path rather than mixed into every list response.
 
 The adapter should classify failures close to the gateway request or mapper that sees the failure.
@@ -135,7 +135,7 @@ for the server to update capability status.
 
 ## Runtime And Server Behavior
 
-Tavern Runtime stores capability state alongside Runtime health and primitive sync state.
+Grotto Runtime stores capability state alongside Runtime health and primitive sync state.
 The app backend reads this state through Runtime `/capabilities`; it does not run checks or store
 Runtime capability health locally.
 
@@ -148,12 +148,12 @@ Runtime capability health locally.
 
 ## Runtime Storage
 
-Tavern Runtime stores current capability status in a dedicated table instead of overloading
+Grotto Runtime stores current capability status in a dedicated table instead of overloading
 runtime-backed tables or `sync_state`.
 
 Current related tables:
 
-- `agent_runtime_connections` stores the Tavern Runtime endpoint plus coarse health fields such as
+- `agent_runtime_connections` stores the Grotto Runtime endpoint plus coarse health fields such as
   `last_checked_at`, `last_error`, and `last_synced_at`.
 - `sync_state` stores primitive sync freshness keyed by `kind` and `id`. It answers questions such
   as "did agent sync for this runtime succeed?" not "is model execution ready?"
@@ -247,7 +247,7 @@ Server tests cover:
 Website or e2e tests cover:
 
 - synced data remains visible when one capability degrades
-- Tavern Runtime can be reachable while a capability warning is visible
+- Grotto Runtime can be reachable while a capability warning is visible
 - diagnostics copy includes capability state without exposing secrets
 
 The first-slice test set is smaller:
@@ -261,8 +261,8 @@ The first-slice test set is smaller:
 
 ## Acceptance Criteria
 
-- Tavern can represent "agent engine reachable, skills unavailable."
-- Tavern can represent "agent engine reachable, API unavailable, event stream unavailable."
+- Grotto can represent "agent engine reachable, skills unavailable."
+- Grotto can represent "agent engine reachable, API unavailable, event stream unavailable."
 - Malformed agent-engine payloads fail narrowly and do not create fake records.
 - Runtime connection status, primitive sync state, and capability state are distinct.
 - The diagnostics surface has enough structured data to explain which capability failed and why.

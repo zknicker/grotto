@@ -223,7 +223,7 @@ separate, explicit operator action.
 Resolve and record every exact path, identity, database, Tunnel id, DNS route,
 secret source, and rollback release before changing the host.
 
-1. Initialize or fetch the Tavern repository in place at
+1. Initialize or fetch the Grotto repository in place at
    `/Users/zknicker/srv/grotto`. Add every host-only root named above to
    `.git/info/exclude`; preserve existing files and never use `git clean`.
 2. Confirm the self-hosted runner can read this repository and invoke the

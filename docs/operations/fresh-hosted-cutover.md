@@ -2,7 +2,7 @@
 summary: Fresh-install and destructive-cutover procedure for the hosted Grotto Server and attached Grotto Computers.
 read_when:
   - preparing the first hosted Grotto release
-  - cutting over from a pre-hosted Tavern installation
+  - cutting over from a pre-hosted Grotto installation
 ---
 
 # Fresh Hosted Cutover

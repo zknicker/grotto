@@ -1,20 +1,20 @@
 # Runtime Data Flow
 
-Tavern Runtime owns the product data model that the Tavern App reads. The local agent engine is a
+Grotto Runtime owns the product data model that the Grotto App reads. The local agent engine is a
 Runtime implementation detail: Runtime runs agents, tools, sessions, and turns, then exposes
-app-facing facts through Runtime APIs and events when Tavern needs to render or inspect them later.
+app-facing facts through Runtime APIs and events when Grotto needs to render or inspect them later.
 
 ## Model
 
-- Tavern Runtime owns chats, messages, participants, events, reads, automations, deliveries,
+- Grotto Runtime owns chats, messages, participants, events, reads, automations, deliveries,
   runtime activity, memory, generated agent instruction inputs, executable settings, and
   operational jobs.
-- Tavern App owns React Query cache, presentation state, optimistic UI, and app-shell preferences.
-- Tavern API / SDK exposes stable chat, realtime, automation, admin, Runtime control, memory, skill,
+- Grotto App owns React Query cache, presentation state, optimistic UI, and app-shell preferences.
+- Grotto API / SDK exposes stable chat, realtime, automation, admin, Runtime control, memory, skill,
   MCP connection, stats, and tool-grant contracts.
-- Tavern Runtime owns native agent execution, sessions, turns, transcripts, logs, agent files, tool
+- Grotto Runtime owns native agent execution, sessions, turns, transcripts, logs, agent files, tool
   calls, model calls, context management, and applied native config.
-- Runtime persists any agent-produced data Tavern may render, inspect, recover, or navigate later.
+- Runtime persists any agent-produced data Grotto may render, inspect, recover, or navigate later.
 - Product screens read through focused Runtime-backed APIs such as `chat.list`, `chat.get`,
   `chat.log.list`, `session.list`, `cron.list`, `agent.list`, and participant APIs.
 - React Query is the app cache. It is refreshed by write responses, exact cache updates, focused
@@ -32,7 +32,7 @@ app-facing facts through Runtime APIs and events when Tavern needs to render or 
 | `participant` | Runtime-ingested source identities and observed labels | participant APIs | chat and runtime sync events |
 | `session` | Runtime session, history, and execution evidence | `session.*` APIs | `session.onUpdate`, turn events |
 | `cron` | Runtime automation configuration and run history | `cron.*` APIs | `cron.onUpdate` |
-| `config` | Tavern-owned settings applied by Runtime | focused settings/config APIs | config, model, skill, and runtime events |
+| `config` | Grotto-owned settings applied by Runtime | focused settings/config APIs | config, model, skill, and runtime events |
 | `usage` | External provider imports | usage APIs and job history | provider usage jobs and `usage.onLiveUpdate` |
 
 ## Runtime Records
@@ -43,22 +43,22 @@ app-facing facts through Runtime APIs and events when Tavern needs to render or 
   agent engine.
 - Runtime adapters normalize source-specific chat, participant, session, and tool facts before data
   reaches product records.
-- Tavern chat history is Runtime state. Agent transcripts are execution evidence, not the product
+- Grotto chat history is Runtime state. Agent transcripts are execution evidence, not the product
   timeline.
-- Agent turns attach to Runtime-owned Tavern chats through agent participants and current
+- Agent turns attach to Runtime-owned Grotto chats through agent participants and current
   agent session ids.
-- Tavern stores enough runtime evidence to keep the app useful across reloads and Runtime restarts.
+- Grotto stores enough runtime evidence to keep the app useful across reloads and Runtime restarts.
 - Runtime connectivity is health/capability state, not a separate app-side data source.
 - Product screens compose Runtime records from focused APIs. If Runtime is offline, screens render
   the best cached React Query data they already have and show focused freshness or error affordances.
 
 ## Managed Config
 
-- Tavern Runtime generates agent instructions and executable settings from Runtime-owned state.
+- Grotto Runtime generates agent instructions and executable settings from Runtime-owned state.
 - If Runtime recreates agent-engine state, it reapplies generated config before accepting work that
   depends on that config.
-- Tavern preserves Tavern-owned overlays such as agent color separately from runtime-native records.
-- Tavern does not treat generated agent-engine files as canonical product settings.
+- Grotto preserves Grotto-owned overlays such as agent color separately from runtime-native records.
+- Grotto does not treat generated agent-engine files as canonical product settings.
 - Runtime-owned config saves call Runtime, persist the returned product state, and emit focused
   invalidation events for affected screens.
 
@@ -75,12 +75,12 @@ app-facing facts through Runtime APIs and events when Tavern needs to render or 
 
 ## Writes
 
-- Tavern-originated writes call the focused Runtime API for the product action.
+- Grotto-originated writes call the focused Runtime API for the product action.
 - A successful write response may update React Query cache directly when the returned shape is exact.
 - Write handlers emit focused events for other mounted clients and nearby screens.
 - Runtime-originated edits or observations write Runtime storage first, then emit focused events.
-- Event echoes are not required for Tavern-originated writes to be considered successful.
-- If a write fails, Tavern reports the failure and leaves the previous durable record intact unless
+- Event echoes are not required for Grotto-originated writes to be considered successful.
+- If a write fails, Grotto reports the failure and leaves the previous durable record intact unless
   the user explicitly retries or deletes it.
 
 ## Events
@@ -110,4 +110,4 @@ app-facing facts through Runtime APIs and events when Tavern needs to render or 
 - Runtime connectivity problems do not blank the app when cached records already exist.
 - Runtime/API errors are visible and attributable to the affected capability.
 - Failed reads or writes do not delete previously observed history.
-- Failed Runtime ingestion does not mutate Tavern-owned overlays.
+- Failed Runtime ingestion does not mutate Grotto-owned overlays.

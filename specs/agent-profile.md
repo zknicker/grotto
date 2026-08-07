@@ -44,7 +44,7 @@ There is no separate per-agent settings surface.
   modes.
 - **Apps.** Accounts the Agent uses through browser-based app access.
 - **MCP.** Server-managed MCP connections granted at connection level.
-  Tavern does not expose per-tool grants or local/stdin MCP configuration.
+  Grotto does not expose per-tool grants or local/stdin MCP configuration.
 
 ## Ownership
 

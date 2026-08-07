@@ -1,25 +1,25 @@
 ---
-summary: Tavern API map for the @tavern/api contract, Runtime host, SDK wrapper, and capability docs.
+summary: Grotto API map for the @tavern/api contract, Runtime host, SDK wrapper, and capability docs.
 read_when:
-  - looking for Tavern API capability contracts
+  - looking for Grotto API capability contracts
   - changing client-facing API docs
 ---
 
-# Tavern API
+# Grotto API
 
-The Tavern API is `@tavern/api`-defined, Runtime-hosted, and SDK-wrapped.
+The Grotto API is `@tavern/api`-defined, Runtime-hosted, and SDK-wrapped.
 
-Tavern App, bots, webhooks, automations, local tools, and tests use this
+Grotto App, bots, webhooks, automations, local tools, and tests use this
 surface instead of reading app caches, runtime tables, or executor state.
 
-Tavern's shape is clear:
+Grotto's shape is clear:
 
 * **`@tavern/api` defines the contract.** OpenAPI owns chat and realtime wire
   shapes; typed runtime contracts own admin and control routes.
-* **Runtime serves the contract.** Tavern Runtime owns durable chat state,
+* **Runtime serves the contract.** Grotto Runtime owns durable chat state,
   responses, activity, artifacts, event cursors, and automation delivery.
 * **The SDK wraps the contract.** `@tavern/sdk` gives TypeScript clients a small
-  typed API over Tavern API types.
+  typed API over Grotto API types.
 * **Docs explain behavior.** Markdown covers ownership, ordering, durability,
   recovery, and intentional omissions.
 

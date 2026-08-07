@@ -8,8 +8,34 @@ read_when:
 
 # React
 
-For substantial React route, hook, query, realtime, optimistic UI, or state
-architecture work, use the `architect-react-features` skill alongside this doc.
+Before changing React structure, behavior, data flow, or state, use the
+`architect-react-features` skill alongside this doc.
+
+## Change Workflow
+
+1. **Trace ownership before editing.** Use `architect-react-features` to locate
+   the route boundary, data reads, mutations, subscriptions, local state,
+   effects, props, optimistic state, and cache owner affected by the request.
+2. **Select composition rules when the component contract changes.** Use
+   `vercel-composition-patterns` when changing component APIs, props,
+   providers, context, shared state, reusable UI, or render variation. Read
+   every matching rule from that skill before choosing the new shape.
+3. **Complete the product change.** Delete the replaced path; finish the
+   requested behavior and cleanup.
+4. **Audit the completed diff before verification.** Reapply the relevant skill
+   audits. Confirm that data-aware leaves use focused hooks, props describe
+   identity or genuine render variation, context owns shared UI behavior,
+   effects synchronize external systems, variants are explicit, and cache
+   updates have one owner.
+5. **Verify after the architecture is settled.** Use
+   [Change Routing](../operations/testing.md#change-routing) to select the
+   smallest proof from the completed diff.
+
+Lift state or introduce a provider only when sibling regions genuinely share
+UI behavior or one external lifecycle. Composition guidance does not override
+Grotto's data ownership: durable server state stays in React Query, data-aware
+leaves call focused hooks, and context does not distribute a fetched data
+graph.
 
 ## Ownership
 

@@ -1,5 +1,5 @@
 ---
-summary: Tavern API architecture for typed chat/realtime contracts, Runtime admin contracts, SDK wrappers, and contract rules.
+summary: Grotto API architecture for typed chat/realtime contracts, Runtime admin contracts, SDK wrappers, and contract rules.
 read_when:
   - changing tRPC routers, runtime HTTP routes, websocket behavior, or SDK methods
   - adding MCP connections, bots, webhooks, automations, or external clients
@@ -7,17 +7,17 @@ read_when:
 
 # API Overview
 
-The Tavern API is the stable contract between Tavern App, Tavern Server,
+The Grotto API is the stable contract between Grotto App, Grotto Server,
 Runtime, SDK clients, bots, webhooks, automations, and local tools.
 
 ```text
-Tavern App, bot, webhook, automation, or local tool
+Grotto App, bot, webhook, automation, or local tool
   -> TypeScript SDK or app backend proxy
-  -> Tavern API
-  -> Tavern Runtime
+  -> Grotto API
+  -> Grotto Runtime
 ```
 
-Tavern's shape is:
+Grotto's shape is:
 
 - **OpenAPI for chat and realtime.** `packages/tavern-api/openapi.yaml` defines
   durable Chat messages, responses, activity, artifacts, receipts, events, and
@@ -25,7 +25,7 @@ Tavern's shape is:
 - **Typed Runtime admin contracts.** `packages/tavern-api/src/runtime/*` owns
   health, status, agents, presence, activity, inbox, sessions, skills, models,
   files, and bindings.
-- **Runtime handlers.** Tavern Runtime returns Tavern API-shaped payloads.
+- **Runtime handlers.** Grotto Runtime returns Grotto API-shaped payloads.
 - **SDK wrapper.** TypeScript clients should import the SDK instead of reading
   app caches or Runtime tables directly.
 
@@ -49,10 +49,10 @@ Tavern's shape is:
 | Runtime routes | `packages/tavern-api/src/runtime/routes.ts` | Runtime control route names |
 | Runtime schemas | `packages/tavern-api/src/runtime/contracts.ts` | Runtime-owned request and response schemas |
 | TypeScript SDK | `packages/tavern-sdk` | Client wrapper for App, bots, webhooks, automations, and tests |
-| Server app routers | `apps/server/src/api/` | First-party app wrapper/proxy for Tavern API |
+| Server app routers | `apps/server/src/api/` | First-party app wrapper/proxy for Grotto API |
 | Runtime handlers | `apps/runtime/src/` | Runtime-owned storage, execution, and projections |
 
-Implementation files can move. API contracts stay organized around Tavern
+Implementation files can move. API contracts stay organized around Grotto
 capabilities.
 
 ## Realtime

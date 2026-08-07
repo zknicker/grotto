@@ -42,12 +42,12 @@ authorization and returns the user code + verification URL, the user
 approves at kimi.com in any browser, and the runtime polls the token
 endpoint until approval. Device-code fits remote Runtimes the same way
 Claude's code-paste does. Uses the account's Kimi Code subscription; the
-metered Moonshot platform API is deliberately not a Tavern provider.
+metered Moonshot platform API is deliberately not a Grotto provider.
 
 Turns execute through the pi harness: the runtime refreshes the access
 token within five minutes of expiry (rotated refresh tokens written back),
 then registers pi's `kimi-coding` provider per turn with the token as the
-bearer plus Tavern-owned model definitions
+bearer plus Grotto-owned model definitions
 (`models/provider-sources/kimi.ts`, mirrored from pi's upstream registry —
 our pinned pi predates K3; the definitions ride a patched
 `KIMI_CODING_MODELS_JSON` custom-env extension). The curated catalog is
@@ -58,7 +58,7 @@ Settings → Connections → Model access."
 Thinking on K3 is binary — upstream pi exposes only its `max` level
 (earendil-works/pi#6737), delivered as Anthropic adaptive thinking with
 `effort: max` and no token budgets. The executor clamps accordingly: any
-requested thinking level engages max (Tavern `max`/`xhigh` → pi `xhigh` →
+requested thinking level engages max (Grotto `max`/`xhigh` → pi `xhigh` →
 K3 `max`; intermediates clamp up rather than leaking unsupported efforts),
 and `off` stays off. Other Kimi models keep pi's generic effort ladder.
 

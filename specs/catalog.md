@@ -1,44 +1,44 @@
 # Catalog
 
-Tavern exposes a stable catalog of resources without requiring users to understand raw Runtime
+Grotto exposes a stable catalog of resources without requiring users to understand raw Runtime
 records.
 
 ## Agents
 
-Agents are Runtime-backed workers surfaced as first-class Tavern resources.
+Agents are Runtime-backed workers surfaced as first-class Grotto resources.
 
 Runtime agent IDs are the canonical identities used for execution.
 
-Tavern may keep local agent rows and presentation overlays so known agents stay readable when
+Grotto may keep local agent rows and presentation overlays so known agents stay readable when
 Runtime is offline. Those records do not replace Runtime-native config.
 
 ## Chats
 
-Chats are shared conversation surfaces that Tavern can display, read, and reuse.
+Chats are shared conversation surfaces that Grotto can display, read, and reuse.
 
-Tavern may know about a chat from Runtime-owned configuration or observed agent
+Grotto may know about a chat from Runtime-owned configuration or observed agent
 participation. The UI should present one coherent chat list whenever possible.
 
-Chat labels are Tavern presentation derived from local records. For platform-backed chats,
+Chat labels are Grotto presentation derived from local records. For platform-backed chats,
 the source facts live in typed chat platform metadata, such as Discord channel, thread, DM user,
 guild, account, observed-label, and source-record facts.
 
 ## Agent Reachability
 
-Tavern should show which chats an agent participates in when that relationship is known.
+Grotto should show which chats an agent participates in when that relationship is known.
 
-That view may be informed by runtime bindings, Tavern-owned overlays, and observed session
+That view may be informed by runtime bindings, Grotto-owned overlays, and observed session
 participation, but it should read as one coherent relationship.
 
 ## Models
 
 Runtime owns the canonical model routing config used for execution.
 
-Tavern shows Runtime executable model inventory without storing a parallel
+Grotto shows Runtime executable model inventory without storing a parallel
 editable model list.
 
 ## Runtime Observation
 
 The inventory should render from Runtime executable models. Add-provider UI
-renders from the Runtime provider catalog and provider access state. Tavern
-should still present those resources in Tavern product language.
+renders from the Runtime provider catalog and provider access state. Grotto
+should still present those resources in Grotto product language.

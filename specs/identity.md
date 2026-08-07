@@ -1,7 +1,7 @@
 # Identity And Membership
 
-Tavern users are real authenticated humans. Clerk is the identity provider;
-Tavern mints its own user ids and keys everything on those. One Runtime is
+Grotto users are real authenticated humans. Clerk is the identity provider;
+Grotto mints its own user ids and keys everything on those. One Runtime is
 owned by one user and serves that owner plus invited members. This is
 greenfield: no adoption or migration flows exist — a runtime without an owner
 is simply unclaimed.
@@ -35,7 +35,7 @@ never under a member's credentials.
 
 ## Authentication
 
-- Tavern App requires sign-in. With no locally cached identity the app shows
+- Grotto App requires sign-in. With no locally cached identity the app shows
   only the sign-in gate.
 - The App attaches the Clerk session token to every server and Runtime
   request. Runtime verifies tokens against Clerk's JWKS (cached), resolves

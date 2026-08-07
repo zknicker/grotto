@@ -127,7 +127,7 @@ Copied byte-for-byte from shipped Raft formatting (audited), renamed:
 **History line** (`message read`):
 
 ```
-[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] @Tavern — resident generalist: done
+[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] @Grotto — resident generalist: done
 ```
 
 Rules:

@@ -7,11 +7,11 @@ read_when:
 
 # Clarifications
 
-Clarification rows are historical agent-question activity. Tavern no longer
+Clarification rows are historical agent-question activity. Grotto no longer
 pauses a turn for an in-chat answer form; agent execution should continue using
 normal model/tool behavior.
 
-When a Runtime activity includes clarification metadata, Tavern renders the row
+When a Runtime activity includes clarification metadata, Grotto renders the row
 as a question instead of a generic tool invocation. Existing settled rows can
 still show answered, skipped, or timed-out state from historical data.
 

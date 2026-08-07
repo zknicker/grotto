@@ -71,7 +71,7 @@ function readRuntimeArtifactSha256(artifactName) {
 function renderFormula(input) {
     return `class GrottoRuntime < Formula
   desc "Always-on Grotto Runtime server"
-  homepage "https://github.com/zknicker/tavern"
+  homepage "https://github.com/zknicker/grotto"
   url "${releaseBaseUrl}/${input.artifactName}"
   sha256 "${input.sha256}"
   version "${input.version}"

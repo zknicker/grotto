@@ -1,5 +1,5 @@
 {
-  "name": "the-tavern",
+  "name": "grotto",
   "private": true,
   "packageManager": "bun@1.3.5",
   "workspaces": [

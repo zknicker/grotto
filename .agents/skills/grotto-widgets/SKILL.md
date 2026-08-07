@@ -1,11 +1,11 @@
 ---
-name: tavern-widgets
-description: Use when adding or changing Tavern Widgets, widget fence parsing, widget render contracts, generated agent Widget guidance, or seeded Widget chat demos. Covers the end-to-end checklist across @tavern/api, Runtime, Server, Website, docs, and tests.
+name: grotto-widgets
+description: Use when adding or changing Grotto Widgets, widget fence parsing, widget render contracts, generated agent Widget guidance, or seeded Widget chat demos. Covers the end-to-end checklist across @tavern/api, Runtime, Server, Website, docs, and tests.
 ---
 
-# Tavern Widgets
+# Grotto Widgets
 
-Use this skill to add or change a Tavern Widget end to end. Keep this file lean:
+Use this skill to add or change a Grotto Widget end to end. Keep this file lean:
 the canonical contract lives in repo docs and code.
 
 ## Start
@@ -59,7 +59,7 @@ For each new Widget:
    `docs/internals/widgets.md` before adding a non-visual widget.
 5. Add the Website renderer:
    - a thin `Widget*` wrapper in `apps/website/src/widgets/` mapping fence
-     props onto Tavern component kit components from `apps/website/src/kit/`
+     props onto Grotto component kit components from `apps/website/src/kit/`
      (`Card` for framing; see `docs/internals/kit.md`),
    - a case in the `widgetElement` switch in
      `apps/website/src/widgets/render-widget.tsx`.

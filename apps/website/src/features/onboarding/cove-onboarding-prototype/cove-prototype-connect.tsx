@@ -2,9 +2,8 @@ import { Button, Tabs } from '@heroui/react';
 import { CodeSnippet } from '../../../components/code-snippet.tsx';
 import {
     type CovePrototypeState,
-    covePrototypeInstallCommand,
+    covePrototypeComputerCommand,
     covePrototypePlatforms,
-    covePrototypeSetupCommand,
     getConnectStatusLines,
 } from './cove-prototype-model.ts';
 import { StatusLineList, StepSection, SwitchServerButton } from './cove-prototype-shell.tsx';
@@ -56,16 +55,12 @@ export function ConnectComputerStep({
                     </Tabs.ListContainer>
                     <Tabs.Panel className="grid min-w-0 gap-4 pt-4" id="macos">
                         <p className="text-base text-muted sm:text-sm">
-                            Run these two commands on the Mac you want to connect. Nothing reaches
-                            this Server until you do.
+                            Run this command on the Mac you want to connect. Nothing reaches this
+                            Server until you do.
                         </p>
                         <CommandStep
-                            command={covePrototypeInstallCommand}
-                            label="1. Install Grotto Computer"
-                        />
-                        <CommandStep
-                            command={covePrototypeSetupCommand}
-                            label="2. Connect it to this Server"
+                            command={covePrototypeComputerCommand}
+                            label="Install and connect Grotto Computer"
                         />
                     </Tabs.Panel>
                 </Tabs>
@@ -77,7 +72,7 @@ export function ConnectComputerStep({
                         size="sm"
                         variant="outline"
                     >
-                        Run setup again
+                        Run command again
                     </Button>
                 ) : null}
             </div>
@@ -86,8 +81,8 @@ export function ConnectComputerStep({
 }
 
 /**
- * One numbered command the owner runs themselves. `CodeSnippet` is the same row
- * the production Add Computer dialog uses for these two commands.
+ * The one command the owner runs themselves. `CodeSnippet` is the same row the
+ * production Add Computer dialog uses.
  */
 function CommandStep({ command, label }: { command: string; label: string }) {
     return (

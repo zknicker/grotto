@@ -2,6 +2,7 @@ import { Button, Card, Chip, Modal } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { buildComputerInstallCommand } from './computer-install-command.ts';
 
 export function AddComputerDialog({
     onOpenChange,
@@ -12,6 +13,7 @@ export function AddComputerDialog({
     open: boolean;
     serverSlug: string;
 }) {
+    const installCommand = buildComputerInstallCommand(serverSlug);
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
             <Modal.Backdrop>
@@ -41,17 +43,9 @@ export function AddComputerDialog({
                                         <div className="grid gap-4">
                                             <div className="grid gap-2">
                                                 <p className="font-medium text-foreground text-sm">
-                                                    1. Install
+                                                    Install and connect
                                                 </p>
-                                                <CodeSnippet lines="curl -fsSL https://releases.grotto.sh/computer/install.sh | sh" />
-                                            </div>
-                                            <div className="grid gap-2">
-                                                <p className="font-medium text-foreground text-sm">
-                                                    2. Set up
-                                                </p>
-                                                <CodeSnippet
-                                                    lines={`grotto-computer setup /${serverSlug}`}
-                                                />
+                                                <CodeSnippet lines={installCommand} />
                                             </div>
                                         </div>
                                     </Card.Content>

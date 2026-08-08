@@ -25,7 +25,11 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
 
     await expect(page).toHaveURL(/\/s\/grotto-hq$/u);
     await expect(page.getByRole('heading', { level: 1, name: 'Connect a Computer' })).toBeVisible();
-    await expect(page.getByText('grotto-computer setup /grotto-hq')).toBeVisible();
+    await expect(
+        page.getByText(
+            'curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /grotto-hq'
+        )
+    ).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
 
     // Even a direct destination stays behind the route-level gate.

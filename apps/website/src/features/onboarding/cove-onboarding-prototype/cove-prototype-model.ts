@@ -1,3 +1,5 @@
+import { buildComputerInstallCommand } from '../../computers/computer-install-command.ts';
+
 /**
  * Static content for the Cove onboarding prototype (PRD-190). Nothing here
  * talks to a Server or Computer — every command, status line, and runtime is
@@ -103,10 +105,8 @@ export function slugifyServerName(name: string): string {
         .replace(/-+$/gu, '');
 }
 
-/** Canonical Grotto Computer commands (see specs/raft-alignment/computer-release-and-update.md). */
-export const covePrototypeInstallCommand =
-    'curl -fsSL https://releases.grotto.sh/computer/install.sh | sh';
-export const covePrototypeSetupCommand = `grotto-computer setup /${covePrototypeServerSlug}`;
+/** Canonical Grotto Computer command (see specs/raft-alignment/computer-release-and-update.md). */
+export const covePrototypeComputerCommand = buildComputerInstallCommand(covePrototypeServerSlug);
 
 /** Grotto Computer ships Apple Silicon macOS only; Windows stays visible but unselectable. */
 export const covePrototypePlatforms = [

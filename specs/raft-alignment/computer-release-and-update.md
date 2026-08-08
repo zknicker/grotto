@@ -99,6 +99,10 @@ marks App/Server and Desktop unchanged.
 Computer setup presents one copyable install-and-setup command for the selected Server. The
 installer:
 
+```sh
+curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /<server-slug>
+```
+
 1. Fetches the production descriptor and artifact over HTTPS.
 2. Verifies the artifact's exact Apple Developer ID and Team ID before execution; the publisher
    has already verified Apple's notarization result.

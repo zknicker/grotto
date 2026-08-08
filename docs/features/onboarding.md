@@ -11,8 +11,8 @@ the existing first Owner and `#all` guarantees while adding durable onboarding
 progress and private `#onboarding-owner`, initially containing only that Owner.
 No Computer, Agent, or execution configuration is created automatically.
 
-The first step gives the Owner the Grotto Computer install and Server-specific
-setup commands. A Computer connection records live progress but does not
+The first step gives the Owner one Server-specific Grotto Computer
+install-and-setup command. A Computer connection records live progress but does not
 advance setup. The Server advances from `awaiting-computer` to
 `awaiting-cove` only after that Computer reports at least one runtime with at
 least one model. Empty or invalid inventory, protocol incompatibility, and

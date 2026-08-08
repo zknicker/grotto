@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
-    covePrototypeInstallCommand,
+    covePrototypeComputerCommand,
     covePrototypeRuntimes,
-    covePrototypeSetupCommand,
     covePrototypeStateOptions,
     getConnectStatusLines,
     getCoveConfigErrors,
@@ -29,11 +28,10 @@ describe('Cove onboarding prototype model', () => {
         ]);
     });
 
-    test('uses the canonical Grotto Computer commands', () => {
-        expect(covePrototypeInstallCommand).toBe(
-            'curl -fsSL https://releases.grotto.sh/computer/install.sh | sh'
+    test('uses the canonical Grotto Computer command', () => {
+        expect(covePrototypeComputerCommand).toBe(
+            'curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /grotto'
         );
-        expect(covePrototypeSetupCommand).toBe('grotto-computer setup /grotto');
     });
 
     test('derives a valid URL slug from a Server name', () => {

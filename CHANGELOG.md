@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.1 - 2026-08-08
+
+- Fixed Cove onboarding and Add Computer to show the standalone Computer's one
+  install-and-setup command, passing the selected Server slug through the POSIX
+  pipe invocation instead of presenting an installer call that exited before
+  installation and a redundant second setup command.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.1
+- Desktop: Publish v1.8.1
+- Computer: Unchanged
+- Runtime: Publish v1.8.1
+
 ## v1.8.0 - 2026-08-08
 
 - Fresh Servers now require the durable Cove onboarding journey: Owners connect

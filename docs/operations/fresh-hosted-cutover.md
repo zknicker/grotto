@@ -18,8 +18,8 @@ state, Agent workspaces, credentials, or old desktop-sidecar configuration.
    root following [Grotto Server deploy](grotto-server-deploy.md).
 4. Install the current App. It connects directly to the hosted Server; it does
    not start a local backend or create a canonical local database.
-5. Create the Server and first Owner in the App, then install and attach
-   `grotto-computer` with `grotto-computer setup /<server-slug>`.
+5. Create the Server and first Owner in the App, then run its one install-and-setup command:
+   `curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /<server-slug>`.
 6. Create Agents against that attached Computer, configure their local model
    credentials, and import only skills intentionally wanted in the new Agent
    libraries.

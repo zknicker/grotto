@@ -196,6 +196,9 @@ async function ingestReport(
         const changedServerId = await recordCoveApplyResult(db, computerId, coveApply.data);
         if (changedServerId) {
             emitServerUpdated({ scope: 'agent', serverId: changedServerId });
+            if (coveApply.data.status === 'applied') {
+                await delivery.dispatchAgent(coveApply.data.agentId, changedServerId);
+            }
         }
         return;
     }

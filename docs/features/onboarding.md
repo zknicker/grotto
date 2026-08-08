@@ -50,8 +50,14 @@ ready…” state—never creation, configuration, workspace, factory, command, 
 acknowledgement substeps. Failures become one plain retry or Computer-repair
 sentence; raw codes and diagnostics remain internal. Completion invalidates
 Server state and replaces the setup route with retained
-`#onboarding-owner`. This slice sends no greeting and waits for no model
-response; Cove's first Agent-authored turn is a separate feature.
+`#onboarding-owner`. The same Server transaction creates one durable system
+attention item for Cove in that Channel. The App unlocks immediately; the
+attention item runs through ordinary Agent delivery and Cove authors the first
+canonical message with Cove's identity. It is not a Server-authored greeting.
+Restart and reconnect may replay the same run until settlement, but application
+acknowledgement replay cannot create another attention item after onboarding is
+complete. A failed turn leaves onboarding complete and uses the normal Agent
+failure, Start, and repair controls.
 
 Cove's product-owned identity and avatar cannot be edited through ordinary
 Agent controls. Once onboarding is complete, Cove otherwise follows the normal

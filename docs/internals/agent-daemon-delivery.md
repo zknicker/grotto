@@ -76,6 +76,12 @@ window, preventing omitted or older in-flight rows from resurrecting a stale
 notice. A session reset clears this projection. This local state never replaces
 Server `served` or `seen` authority.
 
+System attention that is not itself a Chat message, including Cove's one-shot
+first-greeting request, uses the same structured run inbox and exact-identity
+Computer replay. It is intentionally absent from Chat cursor accounting. Its
+owning Server record prevents recreation after settlement; the Computer still
+replays the same run id until its durable marker is settled.
+
 Task messages use the same inbox path as ordinary messages and carry their
 canonical task number, state, priority, and assignee metadata. A mention may
 pierce a Channel mute or explicit Thread unfollow exactly once. That pierce is

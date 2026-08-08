@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { cn } from '../../lib/utils.ts';
 import { serverRoute } from './server-routes.ts';
@@ -25,8 +26,13 @@ export function ServerSwitcher({
                     onClick={onSelect}
                     to={serverRoute(server.slug)}
                 >
-                    <span className="block">{server.displayName}</span>
-                    <span className="block text-muted text-xs">/{server.slug}</span>
+                    <div className="flex items-center gap-3">
+                        <EntityAvatar name={server.displayName || server.slug} size="sm" />
+                        <span className="min-w-0">
+                            <span className="block truncate">{server.displayName}</span>
+                            <span className="block text-muted text-xs">/{server.slug}</span>
+                        </span>
+                    </div>
                 </NavLink>
             ))}
         </nav>

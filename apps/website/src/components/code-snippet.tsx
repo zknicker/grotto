@@ -24,7 +24,7 @@ export function CodeSnippet({ className, copyValue, lines, ...props }: CodeSnipp
         >
             <code
                 className={cn(
-                    'min-w-0 flex-1 overflow-x-auto',
+                    'scrollbar-none min-w-0 flex-1 overflow-x-auto',
                     isMultiLine ? 'whitespace-pre-wrap break-all' : 'whitespace-nowrap'
                 )}
             >

@@ -178,8 +178,11 @@ function ServerSwitcher({
                             key={server.id}
                             textValue={server.displayName}
                         >
-                            <Label>{server.displayName}</Label>
-                            <Description>/{server.slug}</Description>
+                            <EntityAvatar name={server.displayName || server.slug} size={24} />
+                            <span className="grid min-w-0">
+                                <Label>{server.displayName}</Label>
+                                <Description>/{server.slug}</Description>
+                            </span>
                         </Dropdown.Item>
                     ))}
                     <Dropdown.Item id="manage-servers" textValue="Switch or create Server">

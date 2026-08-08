@@ -121,16 +121,66 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     });
     await expect(page.getByText('Getting Cove ready…')).toHaveCount(0);
 
+    // Onboarding is complete before Cove speaks. A failed first turn stays in
+    // the unlocked App and recovers through the ordinary Agent controls.
+    reconnected.send(
+        JSON.stringify({
+            agentId: command.agentId,
+            endedAt: new Date().toISOString(),
+            messageCount: 0,
+            outputProduced: false,
+            runId: greetingStart.runId,
+            startedAt: new Date().toISOString(),
+            status: 'failed',
+            summary: 'provider unavailable',
+            type: 'turn',
+        })
+    );
+    await page.goto('/s/grotto-hq/members');
+    await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toHaveCount(0);
+    const coveRow = page.getByRole('row', { name: 'Cove' });
+    await expect(coveRow).toBeVisible();
+    await coveRow.click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
+    await expect(page.getByText('@cove', { exact: true })).toBeVisible();
+    await expect(page.getByText('Onboarding Assistant', { exact: true })).toBeVisible();
+    await expect(page.getByText('admin', { exact: true })).toBeVisible();
+
+    const restartFramePromise = socketMessage(reconnected, 'agent-restart');
+    const retryStartPromise = socketMessage(reconnected, 'start');
+    await page.getByRole('button', { name: 'Restart', exact: true }).click();
+    expect(await restartFramePromise).toMatchObject({
+        agentId: command.agentId,
+        type: 'agent-restart',
+    });
+    const retryStart = await retryStartPromise;
+    expect(retryStart).toMatchObject({
+        agentId: command.agentId,
+        inbox: greetingStart.inbox,
+        type: 'start',
+    });
+
     const runnerToken = await mintRunner({
         agentId: String(command.agentId),
-        chatId: String(greetingStart.chatId),
-        runId: String(greetingStart.runId),
+        chatId: String(retryStart.chatId),
+        runId: String(retryStart.runId),
     });
     const greeting = 'Hi, I’m Cove. Let’s turn your first idea into real work.';
     await sendAgentGreeting(runnerToken, greeting, String(command.applicationId));
+    await page.goto('/s/grotto-hq');
     const messages = page.getByLabel('Messages', { exact: true });
     await expect(messages.getByText(greeting, { exact: true })).toBeVisible();
-    await expect(messages.getByRole('img', { name: 'Cove' })).toBeVisible();
+    const coveAvatar = messages.getByRole('img', { name: 'Cove' });
+    await expect(coveAvatar).toBeVisible();
+    const avatarUrl = await coveAvatar.getAttribute('src');
+    expect(avatarUrl).toMatch(/\/api\/avatars\/avt_[a-z0-9]{16}$/u);
+    const avatarResponse = await page.request.get(String(avatarUrl));
+    expect(avatarResponse.ok()).toBe(true);
+    expect(
+        createHash('sha256')
+            .update(await avatarResponse.body())
+            .digest('hex')
+    ).toBe('c4940cf58f438175d5c781e513471f70865eaa803301013f7526e557ada29391');
 
     reconnected.send(
         JSON.stringify({
@@ -138,7 +188,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             endedAt: new Date().toISOString(),
             messageCount: 1,
             outputProduced: true,
-            runId: greetingStart.runId,
+            runId: retryStart.runId,
             startedAt: new Date().toISOString(),
             status: 'completed',
             summary: 'greeted',

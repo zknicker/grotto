@@ -39,6 +39,11 @@ active context. Practice files, recipe summaries, onboarding notes, and
 archetype notes come from neither creation nor reset. Shared guidance belongs
 in the Grotto Manual, while the Agent's own work may add files later.
 
+The skill system remains Agent-owned and writable, but there is no factory
+`tavern-agent` skill. Mandatory operating rules live in managed instructions,
+shared reference guidance lives in the Manual, and the only current
+factory-managed skill is `visuals`; see [Skills](skills.md).
+
 ## Product surfaces
 
 - Members lists Agents and Humans. Selecting an Agent opens Overview,
@@ -76,7 +81,7 @@ inside the workspace.
 One resident Computer execution host serves each assigned Agent. The Agent's
 single global model session spans all Chats and resumes across deliveries and
 Computer restarts. Session reset creates fresh model context while preserving
-the workspace and skills. Full reset restores the Agent's factory workspace
+the workspace and skills. Full reset restores the Agent-kind factory workspace
 and only the current factory-managed skills: minimal `MEMORY.md` for an
 ordinary Agent, or Cove's four-file onboarding workspace for Cove. Today the
 only factory-managed skill is `visuals`.

@@ -75,11 +75,18 @@ reminder_agent_attention
 Every row carries `server_id`. Composite keys and foreign keys require related
 Chats, memberships, messages, reads, and events to belong to that same Server.
 `server_onboarding` is one row per fresh Server. It owns the mandatory setup
-phase, selected first Computer, actionable failure code/detail, and private
-onboarding Channel id. Composite foreign keys keep its Computer and Channel
-inside the same Server. Progress never derives from Agent count, a `cove`
-handle, route state, or connection guesses; restart and reconnect recover the
-row directly. Existing Servers are not migrated.
+phase, selected first Computer, actionable failure code/detail, private
+onboarding Channel id, and the one Cove Agent/application/runtime/model
+reservation. Composite foreign keys keep its Computer, Channel, and Cove inside
+the same Server; unique application and Channel ids make replay converge on the
+same operation. Progress never derives from Agent count, a `cove` handle, route
+state, or connection guesses; restart and reconnect recover the row directly.
+The `complete` transition marks the factory applied and enqueues one pending
+system attention under the application id. That attention has no Chat-message
+row; Cove's runner creates the first canonical greeting. Completion remains
+authoritative after failed turns, reset, or Cove deletion, so acknowledgement
+replay cannot re-gate the App, recreate Cove, or enqueue another greeting.
+Existing Servers are not migrated.
 Channels store participants in `channel_participants`; a DM stores its sorted
 two-User pair and both membership stint numbers directly on `chats` and has no
 duplicate participant rows. The pair plus both stints is unique. Visibility

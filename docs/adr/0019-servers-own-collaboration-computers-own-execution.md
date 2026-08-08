@@ -77,10 +77,12 @@ and an editable display name. Human-facing App routes and Computer setup use
 the slug; stored relationships and protocol authorization use the id.
 
 Creating a Server creates its first Owner and `#all`, but no Computer or
-Agent. After a Computer reports installed Agent runtimes, the guided setup
-offers explicit creation of Cove or another first Agent with a
-human-selected runtime and model. Cove onboarding uses the normal Owner-to-Cove
-DM rather than a special onboarding Channel.
+Agent.
+
+> **Historical WS6 onboarding detail, superseded by ADR 0021:** the original
+> decision made first-Agent creation optional and used an Owner-to-Cove DM.
+> Fresh Servers now require Cove and retain private `#onboarding-owner`; this
+> correction does not change the Server/Computer ownership boundary below.
 
 Grotto Computer is the local execution service. One installation may maintain
 isolated Computer attachments to multiple Grotto servers. Each attachment

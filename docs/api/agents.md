@@ -9,6 +9,36 @@ read_when:
 
 The Agents API is for the workers users configure and talk to in Grotto.
 
+## Hosted Server contract
+
+Hosted Servers expose ordinary Agent creation through `agent.create` and the
+mandatory first-Agent path through `server.createCove`. `server.bySlug` returns
+the durable onboarding record (`awaiting-computer`, `awaiting-cove`, `applying`,
+or `complete`) together with the selected Computer, reserved Cove application,
+and actionable failure when present. The App treats that record as its only
+setup gate; nested routes cannot bypass it.
+
+`server.createCove` is Owner/Admin-only and accepts the Server, pinned Computer,
+runtime, and model ids. Its first successful call atomically reserves Cove's
+fixed `Cove` / `@cove` / `Onboarding Assistant` / Admin identity, product avatar,
+private onboarding Channel membership, and one application id. An identical
+retry returns the same reservation; conflicting configuration fails. The Cove
+row is not runnable until its assigned Computer acknowledges the matching
+replayable `cove-apply` operation.
+
+Only the matching Computer, Agent, and application acknowledgement advances
+onboarding to `complete`. That transition enqueues one Server-authored system
+attention item, not a Chat message. Cove's scoped runner credential then uses
+the ordinary Agent message API to author the first canonical
+`#onboarding-owner` greeting. A failed turn leaves setup complete and normal
+Agent restart/repair applies. Deleting Cove later preserves completed
+onboarding and the Channel history and never authorizes recreation. See
+[Fresh-Server onboarding](../features/onboarding.md), [Manual](manual.md), and
+[ADR 0021](../adr/0021-cove-onboards-and-agents-share-a-manual.md).
+
+The remaining sections describe the local Runtime API surface that coexists
+with the hosted Server contract.
+
 Agents are client-facing records. Runtime sessions and execution details
 can be attached as metadata, but the API exposes agents as named Grotto workers
 with instruction settings, model, execution, skill assignment, and tool grant

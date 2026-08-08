@@ -159,6 +159,25 @@ fixtures or public runner contracts; no model runs. The membership spec still
 drives the real invitation round trip across two Clerk identities. Actual
 App-to-Computer-to-model behavior belongs to the live Agent E2E lane below.
 
+### Fresh-Server onboarding proof
+
+`apps/website/e2e/tests/servers.spec.ts` is the one browser tracer for a fresh
+Server. It drives the real App, hosted Server, throwaway PostgreSQL and Clerk
+fixtures, deterministic Computer protocol, and public Agent runner contract.
+It proves the route gate, actionable inventory/application repair, reload and
+Computer reconnect, replay convergence, immediate unlock before the delayed
+greeting, ordinary failed-turn repair, exact hosted Cove identity/avatar, one
+canonical Agent-authored greeting, and permanent post-onboarding Cove deletion.
+It makes no provider calls.
+
+The browser cannot observe Computer-local files and must not pretend to.
+Pair that tracer with `packages/agent-workspace/src/starter-kit.test.ts` and
+`cove-starter-kit.test.ts` for the minimal ordinary workspace and exact Cove
+four-file/12-summary seed, `apps/computer/src/agent-configuration.test.ts` and
+`launch.test.ts` for durable application plus Agent-kind reset, and
+`apps/server/test/grotto-agent-manual.test.ts` for authenticated Manual overview,
+full-card access, and audit metadata.
+
 ## Runtime Adapter Contracts
 
 When changing executor routes, event projection, chat behavior, or delivery

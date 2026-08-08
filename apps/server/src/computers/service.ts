@@ -4,13 +4,14 @@ import {
     computerProtocolVersion,
     type HostedComputerInventory,
 } from '@tavern/api';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, ne, or } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
     computerSetupApprovalsTable,
     computersTable,
+    serverOnboardingTable,
     serversTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -168,25 +169,45 @@ export async function reportComputerHandshake(
         throw new ComputerSetupDeniedError('Computer credential was rejected.');
     }
     const { update, ...facts } = handshake;
-    await db
-        .update(computersTable)
-        .set({
-            ...facts,
-            health:
-                handshake.protocolVersion === computerProtocolVersion
-                    ? handshake.health
-                    : 'update-required',
-            lastConnectedAt: new Date(),
-            updateDetail: update.detail,
-            updateDownloadedBytes: update.downloadedBytes,
-            updateFailedPhase: update.failedPhase,
-            updatePhase: update.phase,
-            updateActiveAgentCount: update.activeAgentCount,
-            updateTargetVersion: update.targetVersion,
-            updateTotalBytes: update.totalBytes,
-            updateUpdatedAt: new Date(update.updatedAt),
-        })
-        .where(eq(computersTable.id, computer.id));
+    const compatible = handshake.protocolVersion === computerProtocolVersion;
+    await db.transaction(async (tx) => {
+        await tx
+            .update(computersTable)
+            .set({
+                ...facts,
+                health: compatible ? handshake.health : 'update-required',
+                lastConnectedAt: new Date(),
+                updateDetail: update.detail,
+                updateDownloadedBytes: update.downloadedBytes,
+                updateFailedPhase: update.failedPhase,
+                updatePhase: update.phase,
+                updateActiveAgentCount: update.activeAgentCount,
+                updateTargetVersion: update.targetVersion,
+                updateTotalBytes: update.totalBytes,
+                updateUpdatedAt: new Date(update.updatedAt),
+            })
+            .where(eq(computersTable.id, computer.id));
+        await tx
+            .update(serverOnboardingTable)
+            .set({
+                computerId: computer.id,
+                failureCode: compatible ? null : 'computer-incompatible',
+                failureDetail: compatible
+                    ? null
+                    : 'Update Grotto Computer before continuing setup.',
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(serverOnboardingTable.serverId, computer.serverId),
+                    ne(serverOnboardingTable.phase, 'complete'),
+                    or(
+                        eq(serverOnboardingTable.phase, 'awaiting-computer'),
+                        eq(serverOnboardingTable.computerId, computer.id)
+                    )
+                )
+            );
+    });
     return computer;
 }
 
@@ -223,22 +244,118 @@ export async function recordComputerInventory(
     computerId: string,
     inventory: HostedComputerInventory
 ) {
-    await db
-        .update(computersTable)
-        .set({ reportedInventory: inventory })
-        .where(eq(computersTable.id, computerId));
+    await db.transaction(async (tx) => {
+        const [computer] = await tx
+            .select({ serverId: computersTable.serverId })
+            .from(computersTable)
+            .where(eq(computersTable.id, computerId))
+            .limit(1);
+        if (!computer) {
+            return;
+        }
+        await tx
+            .update(computersTable)
+            .set({ reportedInventory: inventory })
+            .where(eq(computersTable.id, computerId));
+        const usable = inventory.runtimes.some((runtime) => runtime.models.length > 0);
+        await tx
+            .update(serverOnboardingTable)
+            .set({
+                computerId,
+                failureCode: usable ? null : 'inventory-empty',
+                failureDetail: usable
+                    ? null
+                    : 'This Computer did not report a usable runtime and model.',
+                ...(usable ? { phase: 'awaiting-cove' as const } : {}),
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(serverOnboardingTable.serverId, computer.serverId),
+                    ne(serverOnboardingTable.phase, 'complete'),
+                    or(
+                        eq(serverOnboardingTable.phase, 'awaiting-computer'),
+                        eq(serverOnboardingTable.computerId, computerId)
+                    )
+                )
+            );
+    });
 }
 
 export async function markComputerOffline(db: GrottoDatabase, computerId: string) {
+    await db.transaction(async (tx) => {
+        const [computer] = await tx
+            .select({ serverId: computersTable.serverId })
+            .from(computersTable)
+            .where(eq(computersTable.id, computerId))
+            .limit(1);
+        if (!computer) {
+            return;
+        }
+        await tx
+            .update(computersTable)
+            .set({ health: 'offline' })
+            .where(eq(computersTable.id, computerId));
+        await tx
+            .update(serverOnboardingTable)
+            .set({
+                failureCode: 'computer-disconnected',
+                failureDetail: 'The Computer disconnected. Run setup again on that Computer.',
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(serverOnboardingTable.serverId, computer.serverId),
+                    eq(serverOnboardingTable.computerId, computerId),
+                    ne(serverOnboardingTable.phase, 'complete')
+                )
+            );
+    });
+}
+
+export async function recordInvalidComputerInventory(
+    db: GrottoDatabase,
+    computerId: string,
+    serverId: string
+) {
     await db
-        .update(computersTable)
-        .set({ health: 'offline' })
-        .where(eq(computersTable.id, computerId));
+        .update(serverOnboardingTable)
+        .set({
+            computerId,
+            failureCode: 'inventory-invalid',
+            failureDetail: 'The Computer reported invalid inventory. Update it and reconnect.',
+            updatedAt: new Date(),
+        })
+        .where(
+            and(
+                eq(serverOnboardingTable.serverId, serverId),
+                ne(serverOnboardingTable.phase, 'complete'),
+                or(
+                    eq(serverOnboardingTable.phase, 'awaiting-computer'),
+                    eq(serverOnboardingTable.computerId, computerId)
+                )
+            )
+        );
 }
 
 /** Process startup has no live attachment registry, so persisted online state is stale. */
 export async function markAllComputersOffline(db: GrottoDatabase) {
-    await db.update(computersTable).set({ health: 'offline' });
+    await db.transaction(async (tx) => {
+        await tx.update(computersTable).set({ health: 'offline' });
+        await tx
+            .update(serverOnboardingTable)
+            .set({
+                failureCode: 'computer-disconnected',
+                failureDetail: 'The Computer disconnected. Run setup again on that Computer.',
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    isNotNull(serverOnboardingTable.computerId),
+                    ne(serverOnboardingTable.phase, 'complete')
+                )
+            );
+    });
 }
 
 export async function listServerComputers(

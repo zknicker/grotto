@@ -89,7 +89,7 @@ PostgreSQL owns the hosted collaboration tables
 | --- | --- |
 | `users` | Grotto Users keyed by a unique `clerk_user_id`, plus the avatar they wear (`avatar_id`) |
 | `avatars` | Uploaded square avatar bytes, media type, size, and digest, served publicly at `/api/avatars/:avatarId` |
-| `servers` | Opaque id, address/display fields, and the commit-serialized Chat event cursor |
+| `servers` / `server_onboarding` | Opaque id, address/display fields, commit-serialized Chat event cursor, and durable fresh-Server setup progress |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
 | `computers` / `computer_setup_approvals` | Server-scoped Computer credentials (hash only), one-use expiring browser approvals, last authenticated handshake facts, and attachment-visible update progress |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
@@ -170,11 +170,11 @@ Computer runtime discovery uses a deterministic service search path that
 includes inherited entries plus common Homebrew, local-user, and system binary
 directories. Each CLI is resolved to an absolute path and must pass a bounded
 version probe; Agent launch receives that same resolved environment, so
-advertised and runnable runtimes do not diverge. Creating
-an Agent (`agent.create`, Owner/Admin) binds it to exactly one attached
+advertised and runnable runtimes do not diverge. Creating an ordinary Agent
+(`agent.create`, Owner/Admin) binds it to exactly one attached
 Computer plus a runtime and model that exist in that Computer's last-reported
-inventory, then opens the ordinary Owner↔Agent DM; there is no onboarding
-Channel. The Server owns that **desired** configuration; the Computer reports
+inventory, then opens the ordinary Owner↔Agent DM; it does not use the private
+fresh-Server onboarding Channel. The Server owns that **desired** configuration; the Computer reports
 **effective** state. `agent.configure` changes desired runtime/model on the
 same Computer — the assignment is immutable and absent from the input — and
 validates only against that Computer's inventory, so desired edits saved while
@@ -384,10 +384,19 @@ invitation copies nothing onto the membership.
 ## Creation
 
 `server.create` commits one transaction: the creator's Grotto User, the opaque
-Server id, its slug and display name, the first human Owner membership, and the
-`#all` Channel with that Owner participating. It creates no Computer, Agent, or
-execution configuration. A taken slug is refused as `CONFLICT`, and the whole
-transaction rolls back — including a first-time creator's User.
+Server id, its slug and display name, the first human Owner membership, `#all`,
+durable `server_onboarding` progress, and private `#onboarding-owner`; the Owner
+participates in both Channels. It creates no Computer, Agent, or execution
+configuration. A taken slug is refused as `CONFLICT`, and the whole transaction
+rolls back — including a first-time creator's User and onboarding rows.
+
+Onboarding starts at `awaiting-computer`. A compatible Computer handshake records
+the candidate Computer without advancing. Empty or invalid inventory and
+incompatible or disconnected Computers retain the owning phase plus actionable
+failure detail. Only a report containing at least one runtime with at least one
+model advances durably to `awaiting-cove`; reconnect clears transient failure
+without reconstructing progress from Agent presence. The App reads this record
+before mounting the general Server shell.
 
 ## Authorization
 

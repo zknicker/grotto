@@ -4,6 +4,7 @@ import { clerkSessionFile, signInAsClerkHuman } from '../support/clerk-session.t
 import { createHostedAgentThreadSender } from '../support/hosted-agent-thread.ts';
 import {
     assertOpaqueId,
+    completeHostedOnboarding,
     createHostedClient,
     openHostedChannel,
     openHostedSection,
@@ -39,6 +40,7 @@ test.beforeAll(async () => {
     assertOpaqueId(serverId);
     assertOpaqueId(allChatId);
     assertOpaqueId(peerUserId);
+    completeHostedOnboarding(databaseUrl, serverId);
     runHostedPsql(
         databaseUrl,
         `insert into server_memberships (id, server_id, user_id, role)

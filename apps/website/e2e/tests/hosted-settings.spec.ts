@@ -1,5 +1,10 @@
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
-import { assertOpaqueId, createHostedClient, runHostedPsql } from '../support/hosted-server.ts';
+import {
+    assertOpaqueId,
+    completeHostedOnboarding,
+    createHostedClient,
+    runHostedPsql,
+} from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
 const slug = 'settings-hq';
@@ -9,6 +14,7 @@ test.beforeAll(async () => {
     const owner = createHostedClient(token);
     await owner.server.create.mutate({ displayName: 'Settings HQ', slug });
     const server = await owner.server.bySlug.query({ slug });
+    completeHostedOnboarding(databaseUrl, server.id);
     const ownerUserId = runHostedPsql(
         databaseUrl,
         "select id from users where clerk_user_id = 'user_e2e_human'"

@@ -65,6 +65,7 @@ message_tasks
 task_labels
 message_task_labels
 server_invitations
+server_onboarding
 reminders
 reminder_commands
 reminder_fires
@@ -73,6 +74,12 @@ reminder_agent_attention
 
 Every row carries `server_id`. Composite keys and foreign keys require related
 Chats, memberships, messages, reads, and events to belong to that same Server.
+`server_onboarding` is one row per fresh Server. It owns the mandatory setup
+phase, selected first Computer, actionable failure code/detail, and private
+onboarding Channel id. Composite foreign keys keep its Computer and Channel
+inside the same Server. Progress never derives from Agent count, a `cove`
+handle, route state, or connection guesses; restart and reconnect recover the
+row directly. Existing Servers are not migrated.
 Channels store participants in `channel_participants`; a DM stores its sorted
 two-User pair and both membership stint numbers directly on `chats` and has no
 duplicate participant rows. The pair plus both stints is unique. Visibility

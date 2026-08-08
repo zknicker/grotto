@@ -1,7 +1,7 @@
 import type { HostedChat } from '@tavern/api';
 import { and, eq, ne, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { agentsTable, chatsTable } from '../postgres/schema.ts';
+import { agentsTable, chatsTable, serverOnboardingTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { readHostedThreadAttentionCounts } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -112,9 +112,11 @@ export async function listHostedChats(
                 eq(agentsTable.id, chatsTable.dmAgentId)
             )
         )
+        .innerJoin(serverOnboardingTable, eq(serverOnboardingTable.serverId, chatsTable.serverId))
         .where(
             and(
                 eq(chatsTable.serverId, serverId),
+                ne(chatsTable.id, serverOnboardingTable.channelId),
                 ne(chatsTable.kind, 'thread'),
                 visibleHostedChats(member.id)
             )

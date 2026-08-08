@@ -14,11 +14,21 @@ export async function createHostedTestServer(
     await signInAsClerkHuman(page);
     const session = readClerkSessionFixture();
     const client = createHostedClient(session.token);
-    await client.server.create.mutate(input);
+    const created = await client.server.create.mutate(input);
+    completeHostedOnboarding(session.databaseUrl, created.id);
     const server = await client.server.bySlug.query({ slug: input.slug });
     await page.goto(`/s/${input.slug}`);
 
     return { client, server, session };
+}
+
+/** Unrelated browser specs start after the mandatory first-run journey. */
+export function completeHostedOnboarding(databaseUrl: string, serverId: string) {
+    runHostedPsql(
+        databaseUrl,
+        `update server_onboarding set phase = 'complete', failure_code = null, failure_detail = null
+         where server_id = '${serverId}'`
+    );
 }
 
 export async function openHostedChannel(page: Page, name: string) {

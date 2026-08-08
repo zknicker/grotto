@@ -62,119 +62,140 @@ export function createAppRouter() {
                         {
                             path: 's/:slug',
                             lazy: lazyRoute(
-                                () => import('./routes/app/server-layout.tsx'),
-                                'ServerLayout'
+                                () => import('./features/onboarding/cove-onboarding-route.tsx'),
+                                'CoveOnboardingRoute'
                             ),
                             children: [
                                 {
-                                    errorElement: <ServerErrorBoundary />,
+                                    lazy: lazyRoute(
+                                        () => import('./routes/app/server-layout.tsx'),
+                                        'ServerLayout'
+                                    ),
                                     children: [
                                         {
-                                            index: true,
-                                            lazy: lazyRoute(
-                                                serverRouteModules.default,
-                                                'ServerDefaultPage'
-                                            ),
-                                        },
-                                        {
-                                            path: 'search',
-                                            lazy: lazyRoute(
-                                                serverRouteModules.search,
-                                                'SearchRoute'
-                                            ),
-                                        },
-                                        {
-                                            path: 'chats/:chatId',
-                                            lazy: lazyRoute(serverRouteModules.chat, 'ChatRoute'),
-                                        },
-                                        {
-                                            path: 'tasks',
-                                            lazy: lazyRoute(serverRouteModules.tasks, 'TasksPage'),
-                                        },
-                                        {
-                                            path: 'reminders',
-                                            lazy: lazyRoute(
-                                                serverRouteModules.reminders,
-                                                'ServerRemindersPage'
-                                            ),
-                                        },
-                                        {
-                                            path: 'members',
-                                            lazy: lazyRoute(
-                                                serverRouteModules.members,
-                                                'MembersPage'
-                                            ),
+                                            errorElement: <ServerErrorBoundary />,
                                             children: [
                                                 {
                                                     index: true,
                                                     lazy: lazyRoute(
-                                                        serverRouteModules.members,
-                                                        'MembersEmptyPage'
+                                                        serverRouteModules.default,
+                                                        'ServerDefaultPage'
                                                     ),
                                                 },
                                                 {
-                                                    path: 'agents/:agentId',
-                                                    element: <Navigate replace to="overview" />,
+                                                    path: 'search',
+                                                    lazy: lazyRoute(
+                                                        serverRouteModules.search,
+                                                        'SearchRoute'
+                                                    ),
                                                 },
                                                 {
-                                                    path: 'agents/:agentId/:tab',
+                                                    path: 'chats/:chatId',
+                                                    lazy: lazyRoute(
+                                                        serverRouteModules.chat,
+                                                        'ChatRoute'
+                                                    ),
+                                                },
+                                                {
+                                                    path: 'tasks',
+                                                    lazy: lazyRoute(
+                                                        serverRouteModules.tasks,
+                                                        'TasksPage'
+                                                    ),
+                                                },
+                                                {
+                                                    path: 'reminders',
+                                                    lazy: lazyRoute(
+                                                        serverRouteModules.reminders,
+                                                        'ServerRemindersPage'
+                                                    ),
+                                                },
+                                                {
+                                                    path: 'members',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.members,
-                                                        'AgentPage'
+                                                        'MembersPage'
+                                                    ),
+                                                    children: [
+                                                        {
+                                                            index: true,
+                                                            lazy: lazyRoute(
+                                                                serverRouteModules.members,
+                                                                'MembersEmptyPage'
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: 'agents/:agentId',
+                                                            element: (
+                                                                <Navigate replace to="overview" />
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: 'agents/:agentId/:tab',
+                                                            lazy: lazyRoute(
+                                                                serverRouteModules.members,
+                                                                'AgentPage'
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: 'humans',
+                                                            lazy: lazyRoute(
+                                                                serverRouteModules.members,
+                                                                'HumanDirectoryPage'
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: 'humans/:userId',
+                                                            lazy: lazyRoute(
+                                                                serverRouteModules.members,
+                                                                'HumanPage'
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                                {
+                                                    path: 'computers',
+                                                    lazy: lazyRoute(
+                                                        serverRouteModules.computers,
+                                                        'ServerComputersPage'
                                                     ),
                                                 },
                                                 {
-                                                    path: 'humans',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.members,
-                                                        'HumanDirectoryPage'
+                                                    path: 'connections',
+                                                    element: (
+                                                        <Navigate
+                                                            replace
+                                                            to="../settings/connections"
+                                                        />
                                                     ),
                                                 },
                                                 {
-                                                    path: 'humans/:userId',
+                                                    path: 'settings',
                                                     lazy: lazyRoute(
-                                                        serverRouteModules.members,
-                                                        'HumanPage'
+                                                        serverRouteModules.settings,
+                                                        'ServerSettingsPage'
                                                     ),
+                                                    children: [
+                                                        {
+                                                            index: true,
+                                                            element: (
+                                                                <Navigate replace to="appearance" />
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: ':section',
+                                                            lazy: lazyRoute(
+                                                                serverRouteModules.settingsSection,
+                                                                'SettingsSectionRoute'
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                                {
+                                                    path: '*',
+                                                    element: <ServerUnknownPage />,
                                                 },
                                             ],
-                                        },
-                                        {
-                                            path: 'computers',
-                                            lazy: lazyRoute(
-                                                serverRouteModules.computers,
-                                                'ServerComputersPage'
-                                            ),
-                                        },
-                                        {
-                                            path: 'connections',
-                                            element: (
-                                                <Navigate replace to="../settings/connections" />
-                                            ),
-                                        },
-                                        {
-                                            path: 'settings',
-                                            lazy: lazyRoute(
-                                                serverRouteModules.settings,
-                                                'ServerSettingsPage'
-                                            ),
-                                            children: [
-                                                {
-                                                    index: true,
-                                                    element: <Navigate replace to="appearance" />,
-                                                },
-                                                {
-                                                    path: ':section',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.settingsSection,
-                                                        'SettingsSectionRoute'
-                                                    ),
-                                                },
-                                            ],
-                                        },
-                                        {
-                                            path: '*',
-                                            element: <ServerUnknownPage />,
                                         },
                                     ],
                                 },

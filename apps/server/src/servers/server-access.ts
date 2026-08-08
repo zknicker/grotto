@@ -1,6 +1,11 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { chatsTable, serverMembershipsTable, serversTable } from '../postgres/schema.ts';
+import {
+    chatsTable,
+    serverMembershipsTable,
+    serverOnboardingTable,
+    serversTable,
+} from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import type { ServerDetail, ServerRole, ServerSummary } from './contracts.ts';
 
@@ -75,6 +80,14 @@ export async function openServerBySlug(
     }
 
     const server = await requireServerMembership(db, member, found.id);
+    const [onboarding] = await db
+        .select()
+        .from(serverOnboardingTable)
+        .where(eq(serverOnboardingTable.serverId, server.id))
+        .limit(1);
+    if (!onboarding) {
+        throw new Error('A fresh Server must own onboarding progress.');
+    }
     const channels = await db
         .select({ id: chatsTable.id, name: chatsTable.name })
         .from(chatsTable)
@@ -83,10 +96,21 @@ export async function openServerBySlug(
 
     return {
         ...server,
-        channels: channels.map((channel) => ({
-            id: channel.id,
-            name: requireChannelName(channel.name),
-        })),
+        channels: channels
+            .filter((channel) => channel.id !== onboarding.channelId)
+            .map((channel) => ({
+                id: channel.id,
+                name: requireChannelName(channel.name),
+            })),
+        onboarding: {
+            channelId: onboarding.channelId,
+            computerId: onboarding.computerId,
+            failure:
+                onboarding.failureCode && onboarding.failureDetail
+                    ? { code: onboarding.failureCode, detail: onboarding.failureDetail }
+                    : null,
+            phase: onboarding.phase,
+        },
         viewerUserId: member?.id ?? '',
     };
 }

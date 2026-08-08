@@ -1,5 +1,9 @@
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
-import { createHostedClient, openHostedChannel } from '../support/hosted-server.ts';
+import {
+    completeHostedOnboarding,
+    createHostedClient,
+    openHostedChannel,
+} from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
 /**
@@ -11,11 +15,12 @@ import { expect, test } from '../support/test.ts';
 const slug = 'membership-hq';
 
 test.beforeAll(async () => {
-    const { token } = readClerkSessionFixture();
-    await createHostedClient(token).server.create.mutate({
+    const { databaseUrl, token } = readClerkSessionFixture();
+    const created = await createHostedClient(token).server.create.mutate({
         displayName: 'Membership HQ',
         slug,
     });
+    completeHostedOnboarding(databaseUrl, created.id);
 });
 
 test('an Owner invites, promotes, and removes a human', async ({ browser, page }) => {

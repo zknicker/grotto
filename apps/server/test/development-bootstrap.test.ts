@@ -13,6 +13,7 @@ import {
     computersTable,
     mcpConnectionsTable,
     messageTasksTable,
+    serverOnboardingTable,
     serversTable,
     threadFollowsTable,
     usersTable,
@@ -43,8 +44,11 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(await connection.db.select().from(serversTable)).toHaveLength(1);
     expect(await connection.db.select().from(computersTable)).toHaveLength(1);
     expect(await connection.db.select().from(agentsTable)).toHaveLength(2);
-    // 2 channels + 2 Agent DMs + 3 threads (a discussion plus one per task)
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(7);
+    // 3 channels + 2 Agent DMs + 3 threads (a discussion plus one per task)
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(8);
+    expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
+        { phase: 'complete', serverId: first.id },
+    ]);
     expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(13);
     const [computer] = await connection.db.select().from(computersTable);
     const attachment = JSON.parse(

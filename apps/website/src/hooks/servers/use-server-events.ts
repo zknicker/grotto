@@ -51,6 +51,7 @@ export function createServerUpdateHandler(utils: ServerEventUtils, serverId: str
             return;
         }
         if (event.scope === 'computer') {
+            void utils.server.bySlug.invalidate();
             void utils.computer.list.invalidate({ serverId });
             void utils.agent.get.invalidate(undefined, { exact: false });
             void utils.agent.list.invalidate({ serverId });

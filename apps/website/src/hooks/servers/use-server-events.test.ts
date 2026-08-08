@@ -35,6 +35,7 @@ test('computer events refresh hosted workspace reads without polling', () => {
     )({ scope: 'computer' });
 
     expect(invalidated).toEqual([
+        'server.bySlug',
         'computer.list',
         'agent.get',
         'agent.list',

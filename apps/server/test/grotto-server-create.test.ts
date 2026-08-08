@@ -17,7 +17,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('creates a Server with an opaque id, its first Owner, and #all', async () => {
+test('atomically creates a Server, its first Owner, #all, and private onboarding', async () => {
     const client = await signIn('user_clerk_owner');
 
     const created = await client.trpc.server.create.mutate({
@@ -31,6 +31,29 @@ test('creates a Server with an opaque id, its first Owner, and #all', async () =
     expect(created.id).not.toBe(created.slug);
     expect(created.id).toMatch(/^srv_[A-Za-z0-9_-]{16,}$/);
     expect(created.channels).toEqual([{ id: expect.any(String), name: 'all' }]);
+    expect(created.onboarding).toEqual({
+        channelId: expect.any(String),
+        computerId: null,
+        failure: null,
+        phase: 'awaiting-computer',
+    });
+
+    const rows = (await harness.sql`
+        select chats.name, channel_participants.user_id
+        from chats
+        join channel_participants
+          on channel_participants.server_id = chats.server_id
+         and channel_participants.chat_id = chats.id
+        where chats.server_id = ${created.id}
+        order by chats.name
+    `) as { name: string; user_id: string }[];
+    expect(rows).toEqual([
+        { name: 'all', user_id: created.viewerUserId },
+        { name: 'onboarding-owner', user_id: created.viewerUserId },
+    ]);
+    await expect(client.trpc.chat.list.query({ serverId: created.id })).resolves.toMatchObject([
+        { id: created.channels[0]?.id, name: 'all' },
+    ]);
 
     await expect(client.trpc.server.list.query()).resolves.toEqual([
         { displayName: 'Grotto HQ', id: created.id, role: 'owner', slug: 'grotto-hq' },
@@ -78,12 +101,26 @@ test('creates no Computer or Agent alongside the Server', async () => {
     expect(created.channels).toHaveLength(1);
     const [counts] = (await harness.sql`
         select
+            (select count(*)::integer from server_onboarding where server_id = ${created.id})
+                as onboarding_count,
+            (select count(*)::integer from chats where server_id = ${created.id})
+                as channel_count,
             (select count(*)::integer from computers where server_id = ${created.id})
                 as computer_count,
             (select count(*)::integer from agents where server_id = ${created.id})
                 as agent_count
-    `) as { agent_count: number; computer_count: number }[];
-    expect(counts).toEqual({ agent_count: 0, computer_count: 0 });
+    `) as {
+        agent_count: number;
+        channel_count: number;
+        computer_count: number;
+        onboarding_count: number;
+    }[];
+    expect(counts).toEqual({
+        agent_count: 0,
+        channel_count: 2,
+        computer_count: 0,
+        onboarding_count: 1,
+    });
 });
 
 test('PostgreSQL refuses a Server role outside owner, admin, and member', async () => {

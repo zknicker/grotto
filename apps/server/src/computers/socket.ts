@@ -27,6 +27,7 @@ import {
     hashComputerSecret,
     markComputerOffline,
     recordComputerInventory,
+    recordInvalidComputerInventory,
     reportComputerHandshake,
     reportComputerUpdateProgress,
 } from './service.ts';
@@ -236,6 +237,16 @@ async function ingestReport(
 
     const report = reportSchema.safeParse(frame);
     if (!report.success) {
+        if (
+            typeof frame === 'object' &&
+            frame !== null &&
+            'type' in frame &&
+            frame.type === 'report' &&
+            'inventory' in frame
+        ) {
+            await recordInvalidComputerInventory(db, computerId, serverId);
+            emitServerUpdated({ scope: 'computer', serverId });
+        }
         return;
     }
     if (report.data.inventory) {

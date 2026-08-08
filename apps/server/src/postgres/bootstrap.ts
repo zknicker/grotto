@@ -357,6 +357,34 @@ const schemaStatements = [
     );`,
     `CREATE INDEX channel_participants_user_idx
         ON channel_participants (server_id, user_id);`,
+    `CREATE TABLE server_onboarding (
+        server_id text PRIMARY KEY NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+        phase text NOT NULL
+            CONSTRAINT server_onboarding_phase
+            CHECK (phase IN ('awaiting-computer', 'awaiting-cove', 'complete')),
+        channel_id text NOT NULL UNIQUE,
+        channel_kind text NOT NULL DEFAULT 'channel'
+            CONSTRAINT server_onboarding_channel_kind CHECK (channel_kind = 'channel'),
+        computer_id text,
+        failure_code text
+            CONSTRAINT server_onboarding_failure_code CHECK (
+                failure_code IS NULL OR failure_code IN (
+                    'computer-disconnected', 'computer-incompatible',
+                    'inventory-empty', 'inventory-invalid'
+                )
+            ),
+        failure_detail text,
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT server_onboarding_failure_shape CHECK (
+            (failure_code IS NULL) = (failure_detail IS NULL)
+        ),
+        CONSTRAINT server_onboarding_channel_fk
+            FOREIGN KEY (server_id, channel_id, channel_kind)
+            REFERENCES chats (server_id, id, kind),
+        CONSTRAINT server_onboarding_computer_fk
+            FOREIGN KEY (server_id, computer_id)
+            REFERENCES computers (server_id, id)
+    );`,
     `CREATE TABLE channel_agent_participants (
         server_id text NOT NULL,
         chat_id text NOT NULL,

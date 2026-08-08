@@ -33,10 +33,26 @@ export interface ServerChannel {
     name: string;
 }
 
+export interface ServerOnboarding {
+    channelId: string;
+    computerId: string | null;
+    failure: null | {
+        code:
+            | 'computer-disconnected'
+            | 'computer-incompatible'
+            | 'inventory-empty'
+            | 'inventory-invalid';
+        detail: string;
+    };
+    phase: 'awaiting-computer' | 'awaiting-cove' | 'complete';
+}
+
 export interface ServerDetail extends ServerSummary {
     channels: ServerChannel[];
+    onboarding: ServerOnboarding;
     viewerUserId: string;
 }
 
 /** The Channel every Grotto server creates for its whole membership. */
 export const allChannelName = 'all';
+export const onboardingOwnerChannelName = 'onboarding-owner';

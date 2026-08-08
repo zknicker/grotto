@@ -5,10 +5,11 @@ import {
     channelParticipantsTable,
     chatsTable,
     serverMembershipsTable,
+    serverOnboardingTable,
     serversTable,
 } from '../postgres/schema.ts';
 import { ensureUserByClerkId } from '../users/grotto-user.ts';
-import { allChannelName, type ServerDetail } from './contracts.ts';
+import { allChannelName, onboardingOwnerChannelName, type ServerDetail } from './contracts.ts';
 
 export interface CreateServerInput {
     clerkUserId: string;
@@ -42,6 +43,13 @@ export async function createServer(
         name: allChannelName,
         serverId: server.id,
     };
+    const onboardingChannel = {
+        id: createOpaqueId('cht'),
+        isAll: false,
+        kind: 'channel' as const,
+        name: onboardingOwnerChannelName,
+        serverId: server.id,
+    };
 
     try {
         await db.transaction(async (tx) => {
@@ -56,9 +64,16 @@ export async function createServer(
                 userId: owner.id,
             });
             await tx.insert(chatsTable).values(channel);
-            await tx
-                .insert(channelParticipantsTable)
-                .values({ chatId: channel.id, serverId: server.id, userId: owner.id });
+            await tx.insert(chatsTable).values(onboardingChannel);
+            await tx.insert(channelParticipantsTable).values([
+                { chatId: channel.id, serverId: server.id, userId: owner.id },
+                { chatId: onboardingChannel.id, serverId: server.id, userId: owner.id },
+            ]);
+            await tx.insert(serverOnboardingTable).values({
+                channelId: onboardingChannel.id,
+                phase: 'awaiting-computer',
+                serverId: server.id,
+            });
         });
     } catch (cause) {
         if (violatesConstraint(cause, 'servers_slug_key')) {
@@ -72,6 +87,12 @@ export async function createServer(
         channels: [{ id: channel.id, name: channel.name }],
         displayName: server.displayName,
         id: server.id,
+        onboarding: {
+            channelId: onboardingChannel.id,
+            computerId: null,
+            failure: null,
+            phase: 'awaiting-computer',
+        },
         role: 'owner',
         slug: server.slug,
         viewerUserId,

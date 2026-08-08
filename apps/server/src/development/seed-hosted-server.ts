@@ -15,6 +15,7 @@ import {
     mcpConnectionsTable,
     messageTasksTable,
     serverMembershipsTable,
+    serverOnboardingTable,
     serversTable,
     threadFollowsTable,
     usersTable,
@@ -59,6 +60,7 @@ export async function seedHostedDevelopmentServer(
         const membershipId = createOpaqueId('mem');
         const channelId = createOpaqueId('cht');
         const demoChannelId = createOpaqueId('cht');
+        const onboardingChannelId = createOpaqueId('cht');
         const blippyDmId = createOpaqueId('cht');
         const tinyDmId = createOpaqueId('cht');
         const computerId = createOpaqueId('cmp');
@@ -99,6 +101,12 @@ export async function seedHostedDevelopmentServer(
             serverId,
         });
         await tx.insert(chatsTable).values({
+            id: onboardingChannelId,
+            kind: 'channel',
+            name: 'onboarding-owner',
+            serverId,
+        });
+        await tx.insert(chatsTable).values({
             id: demoChannelId,
             kind: 'channel',
             lastActivityAt: now,
@@ -116,6 +124,11 @@ export async function seedHostedDevelopmentServer(
             serverId,
             userId: user.id,
         });
+        await tx.insert(channelParticipantsTable).values({
+            chatId: onboardingChannelId,
+            serverId,
+            userId: user.id,
+        });
         await tx.insert(computersTable).values({
             architecture: process.arch,
             attachedByUserId: user.id,
@@ -126,6 +139,12 @@ export async function seedHostedDevelopmentServer(
             productVersion: 'dev',
             protocolVersion: computerProtocolVersion,
             reportedInventory: demoInventory,
+            serverId,
+        });
+        await tx.insert(serverOnboardingTable).values({
+            channelId: onboardingChannelId,
+            computerId,
+            phase: 'complete',
             serverId,
         });
         await tx.insert(agentsTable).values([

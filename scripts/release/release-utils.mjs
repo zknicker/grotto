@@ -91,6 +91,22 @@ export const compareVersions = (left, right) => {
     return 0;
 };
 
+export const isRuntimeVersionAcceptedByApp = ({ appVersion, minimumVersion, runtimeVersion }) => {
+    if (runtimeVersion === appVersion) {
+        return true;
+    }
+
+    const runtime = parseVersion(runtimeVersion);
+    const minimum = parseVersion(minimumVersion);
+    return (
+        runtime !== null &&
+        minimum !== null &&
+        runtime.major === minimum.major &&
+        runtime.minor === minimum.minor &&
+        compareVersions(runtimeVersion, minimumVersion) >= 0
+    );
+};
+
 export const todayDateString = () => new Date().toISOString().slice(0, 10);
 
 export const runGit = async (args) => {

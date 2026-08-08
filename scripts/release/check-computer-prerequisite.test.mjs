@@ -1,7 +1,10 @@
 import { expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
 import { checkComputerReleasePrerequisite } from './check-computer-prerequisite.mjs';
-import { createSignedComputerRelease } from './computer-release-contract.mjs';
+import {
+    computerProtocolVersion,
+    createSignedComputerRelease,
+} from './computer-release-contract.mjs';
 
 test('App/Server publishing refuses a production Computer below its protocol floor', async () => {
     const keys = generateKeyPairSync('ed25519');
@@ -24,7 +27,7 @@ test('App/Server publishing refuses a production Computer below its protocol flo
                 `http://127.0.0.1:${server.port}/latest.json`,
                 keys.publicKey
             )
-        ).rejects.toThrow('below required protocol 5');
+        ).rejects.toThrow(`below required protocol ${computerProtocolVersion}`);
     } finally {
         server.stop(true);
     }

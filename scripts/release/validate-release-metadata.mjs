@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertReleaseSurfaceDecision, formatReleaseSurfaceDecision } from './release-surfaces.mjs';
+import { isRuntimeVersionAcceptedByApp } from './release-utils.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -134,7 +135,13 @@ function assertRuntimeCompatibilityMetadata(input) {
         fail('required Runtime version cannot be newer than the app release version', input);
     }
 
-    if (!isCompatibleRuntimeVersion(input.runtimeVersion, input.requiredRuntimeVersion)) {
+    if (
+        !isRuntimeVersionAcceptedByApp({
+            appVersion: input.appVersion,
+            minimumVersion: input.requiredRuntimeVersion,
+            runtimeVersion: input.runtimeVersion,
+        })
+    ) {
         fail('runtime package version must satisfy the app Runtime compatibility floor', input);
     }
 }
@@ -189,17 +196,6 @@ async function assertElectronMainRequiresPackaged(input) {
 
 function isSemver(value) {
     return /^\d+\.\d+\.\d+$/.test(value);
-}
-
-function isCompatibleRuntimeVersion(runtimeVersion, requiredRuntimeVersion) {
-    const runtime = parseVersion(runtimeVersion);
-    const required = parseVersion(requiredRuntimeVersion);
-
-    return (
-        runtime.major === required.major &&
-        runtime.minor === required.minor &&
-        compareVersions(runtimeVersion, requiredRuntimeVersion) >= 0
-    );
 }
 
 function compareVersions(left, right) {

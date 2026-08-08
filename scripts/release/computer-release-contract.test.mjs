@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
-import { computerProtocolVersion as apiComputerProtocolVersion } from '../../packages/tavern-api/src/hosted-computer-update.ts';
+import computerProtocol from '../../packages/tavern-api/computer-protocol.json' with {
+    type: 'json',
+};
 import {
     assertComputerReleaseKey,
     assertNewerComputerVersion,
@@ -12,7 +14,8 @@ import {
 } from './computer-release-contract.mjs';
 
 test('Computer publisher uses the canonical ordinary protocol version', () => {
-    expect(computerProtocolVersion).toBe(apiComputerProtocolVersion);
+    expect(computerProtocolVersion).toBe(computerProtocol.version);
+    expect(computerProtocolVersion).toBe(6);
 });
 
 const release = {

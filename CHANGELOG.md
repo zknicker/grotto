@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.0 - 2026-08-08
+
+- Fresh Servers now require the durable Cove onboarding journey: Owners connect
+  a Computer, choose Cove's runtime and model, and enter Grotto only after Cove
+  is configured, seeded, and startable. Setup resumes safely across retries,
+  reconnects, and reloads without duplicating Cove or the onboarding Chat.
+- Cove now produces the first greeting through a genuine Agent turn with normal
+  lifecycle, failure, and retry behavior. After onboarding, Cove is an ordinary
+  Agent who can be reset or permanently deleted.
+- Every Agent can query the shared, authenticated Grotto Manual and its adapted
+  recipe corpus. Cove alone receives onboarding knowledge; manually created and
+  ordinary Agents begin with a clean identity-focused `MEMORY.md`.
+- Grotto Computer 1.3.0 ships ordinary protocol 6, the Cove configuration and
+  workspace lifecycle, the managed Manual CLI, visible inbox consumption, and
+  exact result-destination handling required by this App/Server release.
+- App/Server 1.8.0 makes Chat the Server entry surface, sharpens the persistent
+  shell and member profiles, and completes desktop development OAuth. Desktop
+  1.8.0 also carries normalized native icon assets and the Grotto development
+  icon.
+- Computer and Runtime adopt the current AI SDK and harness releases. Runtime
+  ships as a compatible 1.8.0 artifact; the App still supports the existing
+  minimum Runtime 1.6.2 because no new Runtime behavior is required.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.0
+- Desktop: Publish v1.8.0
+- Computer: Publish v1.3.0
+- Runtime: Publish v1.8.0
+
 ## v1.7.0 - 2026-08-03
 
 - Rebuilt the hosted App on HeroUI across the shell, chat, Agent profiles,

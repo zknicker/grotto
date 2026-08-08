@@ -1,7 +1,10 @@
 import { createHash, createPublicKey, sign, timingSafeEqual, verify } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import computerProtocol from '../../packages/tavern-api/computer-protocol.json' with {
+    type: 'json',
+};
 
-export const computerProtocolVersion = 5;
+export const computerProtocolVersion = computerProtocol.version;
 export const computerArtifactName = 'grotto-computer-aarch64-apple-darwin';
 
 export function computerReleaseSigningPayload(release) {

@@ -24,6 +24,7 @@ export interface AppliedAgentConfiguration {
 export interface AgentSeedConfiguration {
     agentDescription: string | null;
     agentName: string;
+    factoryKind: 'cove' | 'ordinary';
 }
 export function parseAgentConfigureCommand(frame: unknown): HostedAgentConfigureCommand | null {
     const parsed = hostedAgentConfigureCommandSchema.safeParse(frame);
@@ -68,6 +69,7 @@ export async function applyAgentConfiguration(input: {
             seed: {
                 agentDescription: input.command.agentDescription,
                 agentName: input.command.agentName,
+                factoryKind: input.command.factoryKind,
             },
         })}\n`,
         { mode: 0o600 }
@@ -175,7 +177,13 @@ export async function readAgentSeedConfiguration(
         const value = JSON.parse(
             await readFile(join(agentRoot, 'configuration.json'), 'utf8')
         ) as unknown;
-        return isRecord(value) && isAgentSeedConfiguration(value.seed) ? value.seed : null;
+        return isRecord(value) && isAgentSeedConfiguration(value.seed)
+            ? {
+                  agentDescription: value.seed.agentDescription,
+                  agentName: value.seed.agentName,
+                  factoryKind: value.seed.factoryKind === 'cove' ? 'cove' : 'ordinary',
+              }
+            : null;
     } catch {
         return null;
     }
@@ -286,6 +294,9 @@ function isAgentSeedConfiguration(value: unknown): value is AgentSeedConfigurati
         typeof value.agentName === 'string' &&
         value.agentName.length > 0 &&
         value.agentName.length <= 80 &&
+        (value.factoryKind === undefined ||
+            value.factoryKind === 'cove' ||
+            value.factoryKind === 'ordinary') &&
         (value.agentDescription === null ||
             (typeof value.agentDescription === 'string' &&
                 value.agentDescription.length > 0 &&

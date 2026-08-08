@@ -57,8 +57,10 @@ bytes; edits and deletes are guarded by the Computer-reported bundle hash.
 
 The local root survives ordinary idle periods, Computer restarts, model or
 runtime changes, and session reset. Session reset creates fresh model context
-without erasing the workspace. Full reset restores minimal `MEMORY.md` and the
-factory-managed skills.
+without erasing the workspace or skills. Full reset restores the workspace for
+the Agent's persisted factory kind: minimal `MEMORY.md` for an ordinary Agent,
+or the exact four-file Cove onboarding seed. It deletes all existing skills
+and restores only current factory-managed skills, presently `visuals`.
 Retirement removes the local execution host after Server retirement has
 completed.
 

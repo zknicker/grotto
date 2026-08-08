@@ -49,8 +49,9 @@ Runtime executes turns through the agent-engine path described in
   `packages/agent-workspace/src/starter-kit.ts` with only a minimal
   `MEMORY.md` containing identity, description-derived role, empty knowledge,
   and initial active context. Seeding skips workspaces that already have a
-  `MEMORY.md`; a full reset recreates that file and the factory-managed
-  `visuals` skill.
+  `MEMORY.md`; a full reset recreates the Agent's factory workspace (minimal
+  memory for ordinary Agents, the exact four-file onboarding seed for Cove)
+  and only the factory-managed `visuals` skill.
 - Tool calls are auto-approved. There is no interactive approval prompt.
 
 ## Persistence

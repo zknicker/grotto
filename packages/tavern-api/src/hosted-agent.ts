@@ -139,6 +139,7 @@ export const hostedAgentSchema = z
         effectiveModelId: z.string().nullable(),
         effectiveReportedAt: hostedTimestampSchema.nullable(),
         effectiveRuntimeId: z.string().nullable(),
+        factoryKind: z.enum(['cove', 'ordinary']),
         handle: z.string(),
         id: hostedIdSchema,
         missingResources: z.array(z.string()),

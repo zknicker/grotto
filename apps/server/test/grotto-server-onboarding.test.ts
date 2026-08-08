@@ -198,6 +198,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             computerId: setup.computerId,
             description: 'Onboarding Assistant',
             displayName: 'Cove',
+            factoryKind: 'cove',
             handle: 'cove',
             role: 'admin',
         },
@@ -352,20 +353,42 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             target: { agentId: first.agent.id, kind: 'agent' },
         })
     ).rejects.toThrow(/product-owned avatar/u);
+    const resetFrame = nextSocketFrame(socket, 'agent-reset');
+    await owner.trpc.agent.reset.mutate({
+        agentId: first.agent.id,
+        kind: 'full',
+        serverId: created.id,
+    });
+    expect(await resetFrame).toMatchObject({
+        agentId: first.agent.id,
+        kind: 'full',
+        type: 'agent-reset',
+    });
+
+    await owner.trpc.agent.delete.mutate({
+        agentId: first.agent.id,
+        confirmation: 'Cove',
+        serverId: created.id,
+    });
+    expect(await owner.trpc.agent.list.query({ serverId: created.id })).toEqual([]);
+    const afterDeletion = await owner.trpc.server.bySlug.query({ slug: created.slug });
+    expect(afterDeletion.onboarding).toMatchObject({
+        agentId: first.agent.id,
+        applicationId: first.applicationId,
+        channelId: created.onboarding.channelId,
+        phase: 'complete',
+    });
+    expect(afterDeletion.channels.filter((channel) => channel.name === 'onboarding-owner')).toEqual(
+        [{ id: created.onboarding.channelId, name: 'onboarding-owner' }]
+    );
     await expect(
-        owner.trpc.agent.reset.mutate({
-            agentId: first.agent.id,
-            kind: 'full',
+        owner.trpc.server.createCove.mutate({
+            computerId: setup.computerId,
+            modelId: 'gpt-5.6-sol',
+            runtimeId: 'codex',
             serverId: created.id,
         })
-    ).rejects.toThrow(/reset is not available/u);
-    await expect(
-        owner.trpc.agent.delete.mutate({
-            agentId: first.agent.id,
-            confirmation: 'Cove',
-            serverId: created.id,
-        })
-    ).rejects.toThrow(/deletion is not available/u);
+    ).rejects.toThrow(/Cove/u);
 
     socket.close();
 });

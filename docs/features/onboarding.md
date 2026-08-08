@@ -54,5 +54,9 @@ Server state and replaces the setup route with retained
 response; Cove's first Agent-authored turn is a separate feature.
 
 Cove's product-owned identity and avatar cannot be edited through ordinary
-Agent controls. Ordinary deletion and reset also fail closed; their supported
-post-onboarding lifecycle belongs to a later feature.
+Agent controls. Once onboarding is complete, Cove otherwise follows the normal
+Agent lifecycle. An Owner or Admin may delete Cove through the confirmed Agent
+flow without changing the durable onboarding record, relocking the App,
+creating another onboarding Channel, or recreating Cove. A full reset restores
+Cove's exact factory workspace; a session reset preserves its workspace and
+skills.

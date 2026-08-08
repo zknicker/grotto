@@ -76,8 +76,10 @@ inside the workspace.
 One resident Computer execution host serves each assigned Agent. The Agent's
 single global model session spans all Chats and resumes across deliveries and
 Computer restarts. Session reset creates fresh model context while preserving
-the workspace. Full reset restores a minimal `MEMORY.md` and the
-factory-managed skills.
+the workspace and skills. Full reset restores the Agent's factory workspace
+and only the current factory-managed skills: minimal `MEMORY.md` for an
+ordinary Agent, or Cove's four-file onboarding workspace for Cove. Today the
+only factory-managed skill is `visuals`.
 
 See [Context management](context-management.md) and
 [Agent daemon and delivery](../internals/agent-daemon-delivery.md).
@@ -94,3 +96,7 @@ Its Owner DM is durable collaboration history and stays. The DM remains listed
 and reachable by direct URL, keeps the retired Agent's name, and is clearly
 labeled **Retired**; its Chat and Thread composers are closed, and it is excluded
 from task creation targets.
+
+Completed onboarding does not depend on Cove remaining active. Retiring Cove
+keeps the onboarding Channel and history under this same retired-Agent
+contract, while the Server stays unlocked and never provisions a replacement.

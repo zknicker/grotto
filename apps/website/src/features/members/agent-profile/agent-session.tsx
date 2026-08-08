@@ -11,6 +11,7 @@ import {
     SettingsRow,
     SettingsSection,
 } from '../../settings/layout/settings-page.tsx';
+import { fullResetCopy } from './agent-session-model.ts';
 
 export function AgentSession({ agent, server }: { agent: HostedAgent; server: ServerDetail }) {
     const reset = useAgentReset(server.id, agent.id);
@@ -18,6 +19,7 @@ export function AgentSession({ agent, server }: { agent: HostedAgent; server: Se
     const restart = useAgentRestart(server.id, agent.id);
     const state = useAgentState(server.id, agent.id);
     const [fullResetOpen, setFullResetOpen] = React.useState(false);
+    const resetCopy = fullResetCopy(agent.factoryKind);
 
     // Ordered by how much they disturb the Agent: halt the current run, restart
     // the process, drop its context, then rebuild it from the ordinary factory state.
@@ -73,7 +75,7 @@ export function AgentSession({ agent, server }: { agent: HostedAgent; server: Se
                 </SettingsRow>
                 <Separator />
                 <SettingsRow
-                    description="Start fresh and restore a minimal MEMORY.md and factory-managed skills."
+                    description={resetCopy.description}
                     title="Full Reset"
                     trailingWidth="intrinsic"
                 >
@@ -95,11 +97,7 @@ export function AgentSession({ agent, server }: { agent: HostedAgent; server: Se
                                 <AlertDialog.Icon status="danger" />
                                 <AlertDialog.Heading>Full Reset?</AlertDialog.Heading>
                             </AlertDialog.Header>
-                            <AlertDialog.Body>
-                                This starts a fresh session and permanently wipes the Agent&apos;s
-                                workspace, MEMORY.md, skills, and runtime-local state. Identity,
-                                Chat history, model configuration, and connections are kept.
-                            </AlertDialog.Body>
+                            <AlertDialog.Body>{resetCopy.confirmation}</AlertDialog.Body>
                             <AlertDialog.Footer>
                                 <Button
                                     isDisabled={reset.isPending}

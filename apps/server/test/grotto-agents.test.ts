@@ -102,6 +102,7 @@ test('provisions an ordinary Agent with its real execution settings and Owner DM
         desiredModelId: 'gpt-5.6-sol',
         desiredRuntimeId: 'codex',
         displayName: 'Scout',
+        factoryKind: 'ordinary',
         handle: 'scout',
         status: 'pending',
     });

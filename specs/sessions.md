@@ -53,8 +53,11 @@ Sessions never rotate because of age or idleness. A new session starts only on:
 3. **Manual lifecycle action** — human-initiated, agent-scoped, in the agent profile:
    - *Restart:* restart the executor and resume the current session unchanged.
    - *Session reset:* fresh context; workspace, `MEMORY.md`, and skills persist.
-   - *Full reset:* fresh context plus a wiped workspace, including `MEMORY.md`; the
-     Agent's canonical skill library and runtime-local state are also wiped.
+   - *Full reset:* fresh context plus a wiped workspace, including `MEMORY.md`;
+     Agent-authored skills and runtime-local state are also wiped. Computer then
+     restores the persisted Agent kind's factory workspace and current
+     factory-managed skills: minimal memory for an ordinary Agent, Cove's exact
+     onboarding seed for Cove, and only `visuals` today.
    Session reset and Full reset rotate the agent token and land a system receipt
    in the agent's built-in DM. Restart does neither.
 

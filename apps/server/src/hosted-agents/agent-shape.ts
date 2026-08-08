@@ -18,6 +18,7 @@ export interface ConfiguredAgentRow {
     effectiveModelId: string | null;
     effectiveReportedAt: Date | null;
     effectiveRuntimeId: string | null;
+    factoryKind: 'cove' | 'ordinary';
     handle: string;
     id: string;
     role: 'admin' | 'member';
@@ -82,6 +83,7 @@ export function toHostedAgent(row: ConfiguredAgentRow): HostedAgent {
         effectiveModelId: row.effectiveModelId,
         effectiveReportedAt: row.effectiveReportedAt?.toISOString() ?? null,
         effectiveRuntimeId: row.effectiveRuntimeId,
+        factoryKind: row.factoryKind,
         handle: row.handle,
         id: row.id,
         missingResources: row.effectiveMissing ?? [],

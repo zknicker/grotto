@@ -2,7 +2,11 @@ import { createHash } from 'node:crypto';
 import { mkdir, readlink, rm, symlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { seedAgentWorkspace, seedFactoryManagedSkills } from '@tavern/agent-workspace';
+import {
+    seedAgentWorkspace,
+    seedCoveWorkspace,
+    seedFactoryManagedSkills,
+} from '@tavern/agent-workspace';
 import { readAgentSeedConfiguration } from './agent-configuration.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { computerEntrypoint } from './build-identity.ts';
@@ -430,11 +434,13 @@ export async function resetAgentState(input: {
         );
         if (seed) {
             await Promise.all([
-                seedAgentWorkspace({
-                    agentName: seed.agentName,
-                    bio: seed.agentDescription,
-                    workspaceDir: join(agentRoot, 'workspace'),
-                }),
+                seed.factoryKind === 'cove'
+                    ? seedCoveWorkspace(join(agentRoot, 'workspace'))
+                    : seedAgentWorkspace({
+                          agentName: seed.agentName,
+                          bio: seed.agentDescription,
+                          workspaceDir: join(agentRoot, 'workspace'),
+                      }),
                 seedFactoryManagedSkills(join(agentRoot, 'skills')),
             ]);
         }

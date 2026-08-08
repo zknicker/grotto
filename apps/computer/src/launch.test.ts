@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
+import {
+    applyAgentConfiguration,
+    applyCoveConfiguration,
+    parseAgentConfigureCommand,
+} from './agent-configuration.ts';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { setHarnessAgentFactoryForTesting } from './harness/executor.ts';
 import {
@@ -369,6 +373,63 @@ test('full reset independently clears harness context and restores the ordinary 
     await expect(
         readFile(join(agentRoot, 'skills', 'tavern-agent', 'SKILL.md'), 'utf8')
     ).rejects.toThrow();
+    await expect(
+        readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
+    ).resolves.toContain('name: visuals');
+});
+
+test('Cove full reset restores its exact factory workspace and only visuals', async () => {
+    const agentId = 'agt_coveresetxxxxxxx';
+    const serverId = 'srv_cove_reset';
+    const command = {
+        agentDescription: 'Onboarding Assistant' as const,
+        agentId,
+        agentName: 'Cove' as const,
+        applicationId: 'cap_coveresetxxxxxx',
+        factoryKind: 'cove' as const,
+        modelId: 'gpt-5.6-sol',
+        runtimeId: 'codex',
+        sessionGeneration: 1,
+        type: 'cove-apply' as const,
+    };
+    await applyCoveConfiguration({
+        command,
+        dataRoot,
+        inventory: {
+            runtimes: [
+                {
+                    id: 'codex',
+                    label: 'Codex',
+                    models: [{ id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' }],
+                },
+            ],
+        },
+        serverId,
+    });
+    const agentRoot = join(dataRoot, 'servers', serverId, 'agents', agentId);
+    await Promise.all([
+        writeFile(join(agentRoot, 'workspace', 'MEMORY.md'), '# Changed\n'),
+        writeFile(join(agentRoot, 'workspace', 'extra.md'), 'remove me\n'),
+        mkdir(join(agentRoot, 'skills', 'custom-skill'), { recursive: true }).then(() =>
+            writeFile(join(agentRoot, 'skills', 'custom-skill', 'SKILL.md'), 'name: custom-skill\n')
+        ),
+    ]);
+
+    await resetAgentState({ agentId, dataRoot, kind: 'full', serverId });
+
+    expect((await readdir(join(agentRoot, 'workspace'))).sort()).toEqual([
+        'MEMORY.md',
+        'onboarding_knowledge_faq.md',
+        'onboarding_objectives.md',
+        'onboarding_playbook.md',
+    ]);
+    const objectives = await readFile(
+        join(agentRoot, 'workspace', 'onboarding_objectives.md'),
+        'utf8'
+    );
+    expect(objectives.match(/^### recipes\//gmu)).toHaveLength(12);
+    expect(objectives).not.toMatch(/save-as-a-skill|tavern-agent|recipes\/archetype\//u);
+    expect(await readdir(join(agentRoot, 'skills'))).toEqual(['visuals']);
     await expect(
         readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
     ).resolves.toContain('name: visuals');

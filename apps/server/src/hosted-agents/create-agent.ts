@@ -107,6 +107,7 @@ export async function createHostedAgent(
             effectiveModelId: null,
             effectiveReportedAt: null,
             effectiveRuntimeId: null,
+            factoryKind: 'ordinary' as const,
             createdByUserId: member.id,
             handle: input.handle,
             id: agentId,

@@ -156,6 +156,7 @@ export async function configureHostedAgent(
                 effectiveModelId: agentsTable.effectiveModelId,
                 effectiveReportedAt: agentsTable.effectiveReportedAt,
                 effectiveRuntimeId: agentsTable.effectiveRuntimeId,
+                factoryKind: agentsTable.factoryKind,
                 handle: agentsTable.handle,
                 id: agentsTable.id,
                 role: agentsTable.role,

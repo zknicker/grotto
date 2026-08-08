@@ -33,7 +33,6 @@ export async function deleteHostedAgent(
             .select({
                 computerId: agentsTable.computerId,
                 displayName: agentsTable.displayName,
-                factoryKind: agentsTable.factoryKind,
                 id: agentsTable.id,
             })
             .from(agentsTable)
@@ -50,9 +49,6 @@ export async function deleteHostedAgent(
         }
         if (!agent.computerId) {
             throw new AgentDeleteDeniedError('That Agent has no assigned Computer.');
-        }
-        if (agent.factoryKind === 'cove') {
-            throw new AgentDeleteDeniedError('Cove deletion is not available.');
         }
         if (input.confirmation !== agent.displayName) {
             throw new AgentDeleteDeniedError('Type the Agent name exactly to delete it.');

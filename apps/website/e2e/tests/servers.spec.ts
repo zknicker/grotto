@@ -109,6 +109,26 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await page.goto('/s/grotto-hq');
     await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\//u);
     await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
+
+    await page.goto('/s/grotto-hq/members');
+    await page.getByRole('row', { name: 'Cove' }).click();
+    await page.getByRole('button', { name: 'Full Reset' }).click();
+    const resetDialog = page.getByRole('alertdialog', { name: 'Full Reset?' });
+    await expect(resetDialog).toContainText("Cove's factory onboarding workspace");
+    await resetDialog.getByRole('button', { name: 'Cancel' }).click();
+
+    await page.getByRole('button', { name: 'Delete Agent' }).click();
+    const deleteDialog = page.getByRole('alertdialog', { name: 'Delete Agent' });
+    await deleteDialog.getByLabel(/Type Cove to confirm/iu).fill('Cove');
+    await deleteDialog.getByRole('button', { name: 'Delete Agent' }).click();
+    await expect(page.getByRole('row', { name: 'Cove' })).toHaveCount(0);
+    await page.goto('/s/grotto-hq');
+    await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\//u);
+    await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toHaveCount(0);
+    await expect(page.getByRole('row', { name: 'onboarding-owner' })).toHaveCount(1);
+    await page.reload();
+    await expect(page.getByRole('row', { name: 'onboarding-owner' })).toHaveCount(1);
+    await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toHaveCount(0);
     reconnected.close();
 });
 

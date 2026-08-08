@@ -28,21 +28,13 @@ export async function assertAgentDeliveryAccess(
     await requireAgent(db, input);
 }
 
-/** Cove reset/deletion lifecycle is intentionally unavailable in this release. */
+/** Authorizes a human session or full reset of an active Agent. */
 export async function assertAgentResetAccess(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: HostedAgentDeliveryControlInput
 ): Promise<void> {
     await assertAgentDeliveryAccess(db, member, input);
-    const [agent] = await db
-        .select({ factoryKind: agentsTable.factoryKind })
-        .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
-        .limit(1);
-    if (agent?.factoryKind === 'cove') {
-        throw new AgentConfigDeniedError('Cove reset is not available.');
-    }
 }
 
 /** Reads one Agent's Server-owned delivery state for any Server member. */

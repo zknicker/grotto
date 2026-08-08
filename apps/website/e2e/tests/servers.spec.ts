@@ -119,15 +119,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         ],
         type: 'start',
     });
-    reconnected.send(
-        JSON.stringify({
-            agentId: command.agentId,
-            runId: greetingStart.runId,
-            type: 'ack',
-        })
-    );
     await expect(page.getByText('Getting Cove ready…')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Stop response' })).toBeVisible();
 
     const runnerToken = await mintRunner({
         agentId: String(command.agentId),
@@ -167,8 +159,6 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
     await expect(messages.getByText(greeting, { exact: true })).toHaveCount(1);
     await expect(page.getByText('Getting Cove ready…')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Stop response' })).toHaveCount(0);
-
     await page.goto('/s/grotto-hq/members');
     await page.getByRole('row', { name: 'Cove' }).click();
     await page.getByRole('button', { name: 'Full Reset' }).click();

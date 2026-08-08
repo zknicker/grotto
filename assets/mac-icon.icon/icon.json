@@ -1,42 +1,75 @@
 {
   "fill" : {
-    "automatic-gradient" : "display-p3:0.84229,0.47363,0.17590,1.00000"
+    "linear-gradient" : [
+      "display-p3:0.02540,0.23240,0.65473,1.00000",
+      "display-p3:0.00831,0.09829,0.28572,1.00000"
+    ]
   },
   "groups" : [
     {
+      "blend-mode" : "normal",
+      "blur-material" : null,
       "layers" : [
         {
           "glass" : false,
-          "image-name" : "Untitled Project - Artboard 14 (1).svg",
-          "name" : "Untitled Project - Artboard 14 (1)",
+          "image-name" : "Untitled Project - New Group.svg",
+          "name" : "Untitled Project - New Group",
           "position" : {
-            "scale" : 1.62,
+            "scale" : 1.29,
             "translation-in-points" : [
-              5.710486427458355,
-              -13.395498259558549
+              0,
+              -21
             ]
           }
         },
         {
-          "image-name" : "Untitled Project - Artboard 14.svg",
-          "name" : "Untitled Project - Artboard 14",
+          "blend-mode" : "normal",
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "display-p3:0.99902,0.99902,0.99902,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "display-p3:0.99902,0.99902,0.99902,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "Untitled Project - Vector.svg",
+          "name" : "Untitled Project - Vector",
           "position" : {
-            "scale" : 1.62,
+            "scale" : 1.13,
             "translation-in-points" : [
-              16.22622904154094,
-              7.262093897883684
+              12.76023816672495,
+              -7.137749425136645
             ]
           }
         }
       ],
+      "lighting" : "individual",
       "shadow" : {
-        "kind" : "neutral",
+        "kind" : "none",
         "opacity" : 0.5
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
+      "specular" : true,
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 0.54
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.59
+          }
+        }
+      ]
     }
   ],
   "supported-platforms" : {

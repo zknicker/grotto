@@ -1,6 +1,8 @@
+diff --git a/dist/index.js b/dist/index.js
+index 06151f589a4c8650c6fd100a9ecd90e02000fd7b..5359dfa718039139262d45701912e71d5174702b 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -263,10 +263,20 @@
+@@ -267,6 +267,15 @@ async function registerCustomProviders({
      if (!baseUrl) {
        continue;
      }
@@ -13,16 +15,20 @@
 +      } catch {
 +      }
 +    }
-     register(registries, provider, apiKey, {
-       apiKey,
-       baseUrl,
--      authHeader: true
-+      authHeader: true,
-+      ...models ? { models } : {}
+     await register({
+       registries,
+       provider,
+@@ -274,7 +283,8 @@ async function registerCustomProviders({
+       config: {
+         apiKey,
+         baseUrl,
+-        authHeader: true
++        authHeader: true,
++        ...models ? { models } : {}
+       }
      });
    }
-   return out;
-@@ -379,7 +389,8 @@
+@@ -390,7 +400,8 @@ function createPiModelResolver({
      if (!effectiveId) return void 0;
      const models = loadModels();
      const matches = (m) => m.id === effectiveId || m.name === effectiveId;
@@ -32,16 +38,16 @@
    };
  }
  
-@@ -1399,7 +1410,7 @@
-   ls: "readonly"
- };
+@@ -1579,7 +1590,7 @@ function resolveActivePiBuiltinNames(toolFiltering) {
+   );
+ }
  async function createPiSession(input) {
 -  if (input.isResume) {
 +  if (input.isResume && !input.refreshInstructions) {
      const parkedSession = parkedPiSessions.get(input.sessionId);
      if (parkedSession) {
        parkedPiSessions.delete(input.sessionId);
-@@ -1513,7 +1524,7 @@
+@@ -1703,7 +1714,7 @@ async function createPiSession(input) {
    let sessionFileName;
    let stopped = false;
    let suspending = false;
@@ -50,11 +56,11 @@
    const pendingToolResults = /* @__PURE__ */ new Map();
    const pendingToolApprovals = /* @__PURE__ */ new Map();
    let currentEmit;
-@@ -2230,6 +2241,7 @@
-           ...settings.thinkingLevel ? { thinkingLevel: settings.thinkingLevel } : {}
+@@ -2432,6 +2443,7 @@ function createPi(settings = {}) {
          },
+         clientApp: PI_CLIENT_APP,
          isResume: lifecycleState != null,
 +        refreshInstructions: resumeData?.refreshInstructions === true,
          permissionMode: startOpts.permissionMode,
+         builtinToolFiltering: startOpts.builtinToolFiltering,
          ...resumeData?.sessionFileName ? { resumeSessionFileName: resumeData.sessionFileName } : {},
-         ...startOpts.abortSignal ? { abortSignal: startOpts.abortSignal } : {}

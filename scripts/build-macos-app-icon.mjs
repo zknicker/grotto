@@ -21,6 +21,7 @@ const stagedIconPath = path.join(
     'AppIcon.icon'
 );
 const outputDirectory = mkdtempSync(path.join(tmpdir(), 'tavern-app-icon-out-'));
+const compiledIconPath = path.join(outputDirectory, 'AppIcon.icns');
 
 if (!existsSync(sourceIconPath)) {
     throw new Error(`Missing Icon Composer source: ${sourceIconPath}`);
@@ -58,8 +59,20 @@ try {
         path.join(outputDirectory, 'Assets.car'),
         path.join(generatedIconsDirectory, 'Assets.car')
     );
-    cpSync(path.join(outputDirectory, 'AppIcon.icns'), path.join(iconsDirectory, 'AppIcon.icns'));
-    cpSync(path.join(outputDirectory, 'AppIcon.icns'), path.join(iconsDirectory, 'icon.icns'));
+    cpSync(compiledIconPath, path.join(iconsDirectory, 'AppIcon.icns'));
+    cpSync(compiledIconPath, path.join(iconsDirectory, 'icon.icns'));
+    execFileSync(
+        '/usr/bin/sips',
+        [
+            '-s',
+            'format',
+            'png',
+            compiledIconPath,
+            '--out',
+            path.join(iconsDirectory, 'AppIcon.png'),
+        ],
+        { stdio: 'pipe' }
+    );
 
     console.log('[grotto] macOS app icon compiled from assets/mac-icon.icon');
 } finally {

@@ -6,7 +6,11 @@ import {
     type HarnessAgentSession,
     type HarnessAgentSkill,
 } from '@ai-sdk/harness/agent';
-import { type ClaudeCodeAuthOptions, createClaudeCode } from '@ai-sdk/harness-claude-code';
+import {
+    type ClaudeCodeAuthOptions,
+    type ClaudeCodeThinkingConfig,
+    createClaudeCode,
+} from '@ai-sdk/harness-claude-code';
 import { createCodex } from '@ai-sdk/harness-codex';
 import { createPi, type PiAuthOptions } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
@@ -211,6 +215,13 @@ async function createHarnessAgent(
     return new HarnessAgent({
         harness,
         id: input.agent.id,
+        ...(['anthropic', 'claude'].includes(input.agentSession.effectiveModel.provider)
+            ? {
+                  inactiveTools: input.agent.webAccessEnabled
+                      ? ['webFetch']
+                      : ['webSearch', 'webFetch'],
+              }
+            : {}),
         instructions: options.instructions,
         permissionMode: 'allow-all',
         sandbox: sandboxFactory(localTrustedSandboxOptions(input)),
@@ -288,10 +299,6 @@ export function createHarnessForModel(input: {
         case 'claude':
             return createClaudeCodeHarnessForRuntime({
                 auth: claudeCodeAuthOptions(modelName.provider),
-                // Native WebFetch stays disallowed even with web access on:
-                // web_fetch is the uniform Tavern fetch tool across providers,
-                // so page reads keep one size-cap and injection posture.
-                disallowedTools: input.webSearch ? ['WebFetch'] : ['WebSearch', 'WebFetch'],
                 // CLI-only output (D1) makes every send/check/read a tool
                 // call, so turns legitimately run long tool loops; the turn
                 // watchdog is the real bound, this only stops runaways.
@@ -482,14 +489,16 @@ export function formatHarnessExecutionError(input: AgentExecutorInput, error: un
     return new Error(message);
 }
 
-function claudeThinking(value: AgentRuntimeThinkingLevel | null | undefined) {
+function claudeThinking(
+    value: AgentRuntimeThinkingLevel | null | undefined
+): ClaudeCodeThinkingConfig | undefined {
     if (value === 'off') {
-        return 'off';
+        return { type: 'disabled' };
     }
     if (value === 'adaptive') {
-        return 'adaptive';
+        return { type: 'adaptive' };
     }
-    return value ? 'on' : undefined;
+    return value ? { type: 'enabled' } : undefined;
 }
 
 function codexReasoningEffort(value: AgentRuntimeThinkingLevel | null | undefined) {

@@ -47,7 +47,6 @@ const bridgeSpecs = {
             { assetName: 'package.json', bootstrapName: 'package.json' },
             { assetName: 'pnpm-lock.yaml', bootstrapName: 'pnpm-lock.yaml' },
             { assetName: 'index.mjs', bootstrapName: 'bridge.mjs' },
-            { assetName: 'host-tool-mcp.mjs', bootstrapName: 'host-tool-mcp.mjs' },
         ],
         harnessId: 'codex',
         packageName: '@ai-sdk/harness-codex',
@@ -84,7 +83,6 @@ async function readBridgeBootstrap(spec: BridgeBootstrapSpec): Promise<HarnessV1
             { command: `mkdir -p ${spec.bootstrapDir}` },
             {
                 command: `CI=true pnpm install --frozen-lockfile --store-dir ${spec.bootstrapDir}/.pnpm-store`,
-                workingDirectory: spec.bootstrapDir,
             },
             ...(spec.postInstallCommands ?? []).map((command) => ({ command })),
         ],

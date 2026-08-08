@@ -338,6 +338,12 @@ function createHarnessAgent(
     return new HarnessAgent({
         harness: createHarnessForRuntime(input.runtimeId, input.modelId, input.webAccess !== null),
         id: input.agentId,
+        ...(input.runtimeId === 'claude-code'
+            ? {
+                  inactiveTools:
+                      input.webAccess !== null ? ['webFetch'] : ['webSearch', 'webFetch'],
+              }
+            : {}),
         instructions: options.instructions,
         permissionMode: 'allow-all',
         sandbox: createLocalTrustedSandboxProvider(sandboxOptions(input)),
@@ -397,9 +403,6 @@ function createHarnessForRuntime(
         case 'claude-code':
             return withComputerBridgeBootstrap(
                 createClaudeCode({
-                    // web_fetch/web_search are not exposed as engine tools (D5), so
-                    // the native browsing tools stay off.
-                    disallowedTools: webAccess ? ['WebFetch'] : ['WebSearch', 'WebFetch'],
                     // CLI-only output makes every send/check a tool call, so turns
                     // legitimately run long tool loops.
                     maxTurns: 50,

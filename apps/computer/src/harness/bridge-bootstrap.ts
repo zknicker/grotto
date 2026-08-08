@@ -16,10 +16,6 @@ import claudeCodeLockfile from '../../node_modules/@ai-sdk/harness-claude-code/d
     type: 'text',
 };
 // @ts-expect-error -- Bun's text loader embeds this bridge in the standalone executable.
-import codexHostToolMcp from '../../node_modules/@ai-sdk/harness-codex/dist/bridge/host-tool-mcp.mjs' with {
-    type: 'text',
-};
-// @ts-expect-error -- Bun's text loader embeds this bridge in the standalone executable.
 import codexBridge from '../../node_modules/@ai-sdk/harness-codex/dist/bridge/index.mjs' with {
     type: 'text',
 };
@@ -47,7 +43,6 @@ const bridgeSpecs = {
             { assetName: 'package.json', bootstrapName: 'package.json' },
             { assetName: 'pnpm-lock.yaml', bootstrapName: 'pnpm-lock.yaml' },
             { assetName: 'index.mjs', bootstrapName: 'bridge.mjs' },
-            { assetName: 'host-tool-mcp.mjs', bootstrapName: 'host-tool-mcp.mjs' },
         ],
         packageName: '@ai-sdk/harness-codex',
     },
@@ -60,7 +55,6 @@ const embeddedBridgeAssets: Record<BridgeHarnessId, Readonly<Record<string, stri
         'pnpm-lock.yaml': claudeCodeLockfile,
     },
     codex: {
-        'host-tool-mcp.mjs': codexHostToolMcp,
         'index.mjs': codexBridge,
         'package.json': codexPackage as unknown as string,
         'pnpm-lock.yaml': codexLockfile,
@@ -102,7 +96,6 @@ async function readBridgeBootstrap(
             { command: `mkdir -p ${spec.bootstrapDir}` },
             {
                 command: `CI=true pnpm install --frozen-lockfile --store-dir ${spec.bootstrapDir}/.pnpm-store`,
-                workingDirectory: spec.bootstrapDir,
             },
             ...('postInstallCommands' in spec
                 ? spec.postInstallCommands.map((command) => ({ command }))

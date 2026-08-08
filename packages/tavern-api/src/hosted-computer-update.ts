@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 export const computerBootstrapProtocolVersion = 1;
-export const computerProtocolVersion = 5;
+export const computerProtocolVersion = 6;
 
 export const computerUpdatePhaseSchema = z.enum([
     'idle',

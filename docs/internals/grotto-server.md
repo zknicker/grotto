@@ -398,6 +398,15 @@ model advances durably to `awaiting-cove`; reconnect clears transient failure
 without reconstructing progress from Agent presence. The App reads this record
 before mounting the general Server shell.
 
+The dedicated Cove mutation takes the Server lock and turns `awaiting-cove`
+into one immutable `applying` reservation containing the Agent, application,
+Channel, Computer, runtime, and model ids. It atomically stores Cove's fixed
+Admin identity and product avatar, adds Cove to the retained onboarding
+Channel, and creates delivery state without dispatching a turn. Reconnect
+replays the factory command while excluding the unacknowledged Cove row from
+ordinary Agent reconciliation. Only the matching Computer application result
+marks the factory applied and onboarding `complete`.
+
 ## Authorization
 
 `apps/server/src/servers/server-access.ts` is the single membership gate. Every

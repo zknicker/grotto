@@ -201,6 +201,12 @@ export async function reportComputerHandshake(
                 and(
                     eq(serverOnboardingTable.serverId, computer.serverId),
                     ne(serverOnboardingTable.phase, 'complete'),
+                    compatible
+                        ? or(
+                              isNull(serverOnboardingTable.failureCode),
+                              ne(serverOnboardingTable.failureCode, 'application-failed')
+                          )
+                        : undefined,
                     or(
                         eq(serverOnboardingTable.phase, 'awaiting-computer'),
                         eq(serverOnboardingTable.computerId, computer.id)
@@ -258,15 +264,33 @@ export async function recordComputerInventory(
             .set({ reportedInventory: inventory })
             .where(eq(computersTable.id, computerId));
         const usable = inventory.runtimes.some((runtime) => runtime.models.length > 0);
+        const [onboarding] = await tx
+            .select({
+                failureCode: serverOnboardingTable.failureCode,
+                phase: serverOnboardingTable.phase,
+            })
+            .from(serverOnboardingTable)
+            .where(eq(serverOnboardingTable.serverId, computer.serverId))
+            .limit(1);
         await tx
             .update(serverOnboardingTable)
             .set({
                 computerId,
-                failureCode: usable ? null : 'inventory-empty',
-                failureDetail: usable
-                    ? null
-                    : 'This Computer did not report a usable runtime and model.',
-                ...(usable ? { phase: 'awaiting-cove' as const } : {}),
+                failureCode:
+                    usable && onboarding?.failureCode === 'application-failed'
+                        ? 'application-failed'
+                        : usable
+                          ? null
+                          : 'inventory-empty',
+                failureDetail:
+                    usable && onboarding?.failureCode === 'application-failed'
+                        ? undefined
+                        : usable
+                          ? null
+                          : 'This Computer did not report a usable runtime and model.',
+                ...(usable && onboarding?.phase === 'awaiting-computer'
+                    ? { phase: 'awaiting-cove' as const }
+                    : {}),
                 updatedAt: new Date(),
             })
             .where(
@@ -307,7 +331,11 @@ export async function markComputerOffline(db: GrottoDatabase, computerId: string
                 and(
                     eq(serverOnboardingTable.serverId, computer.serverId),
                     eq(serverOnboardingTable.computerId, computerId),
-                    ne(serverOnboardingTable.phase, 'complete')
+                    ne(serverOnboardingTable.phase, 'complete'),
+                    or(
+                        isNull(serverOnboardingTable.failureCode),
+                        ne(serverOnboardingTable.failureCode, 'application-failed')
+                    )
                 )
             );
     });
@@ -352,7 +380,11 @@ export async function markAllComputersOffline(db: GrottoDatabase) {
             .where(
                 and(
                     isNotNull(serverOnboardingTable.computerId),
-                    ne(serverOnboardingTable.phase, 'complete')
+                    ne(serverOnboardingTable.phase, 'complete'),
+                    or(
+                        isNull(serverOnboardingTable.failureCode),
+                        ne(serverOnboardingTable.failureCode, 'application-failed')
+                    )
                 )
             );
     });

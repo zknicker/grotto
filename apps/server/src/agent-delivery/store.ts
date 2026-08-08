@@ -36,6 +36,8 @@ export interface AgentDispatchConfig {
     computerId: string | null;
     desiredModelId: string | null;
     desiredRuntimeId: string | null;
+    factoryAppliedAt: Date | null;
+    factoryKind: 'cove' | 'ordinary';
     homeTimezone: string;
     sessionGeneration: number;
     sessionResetKind: 'full' | 'session';
@@ -54,6 +56,8 @@ export async function readAgentDispatchConfig(
             computerId: agentsTable.computerId,
             desiredModelId: agentsTable.desiredModelId,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
+            factoryAppliedAt: agentsTable.factoryAppliedAt,
+            factoryKind: agentsTable.factoryKind,
             homeTimezone: agentsTable.homeTimezone,
             sessionGeneration: agentsTable.sessionGeneration,
             sessionResetKind: agentsTable.sessionResetKind,
@@ -446,6 +450,8 @@ export async function listComputerAgents(
         agentName: string;
         desiredModelId: string | null;
         desiredRuntimeId: string | null;
+        factoryAppliedAt: Date | null;
+        factoryKind: 'cove' | 'ordinary';
         retiredAt: Date | null;
         sessionGeneration: number;
         sessionResetKind: 'full' | 'session';
@@ -459,6 +465,8 @@ export async function listComputerAgents(
             agentName: agentsTable.displayName,
             desiredModelId: agentsTable.desiredModelId,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
+            factoryAppliedAt: agentsTable.factoryAppliedAt,
+            factoryKind: agentsTable.factoryKind,
             retiredAt: agentsTable.retiredAt,
             sessionGeneration: agentsTable.sessionGeneration,
             sessionResetKind: agentsTable.sessionResetKind,

@@ -5,7 +5,12 @@ import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { HostedAgentSkillImportCommand, HostedAgentSkillImportRecord } from '@tavern/api';
 import { runAgentCli } from './agent-cli.ts';
-import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
+import {
+    applyAgentConfiguration,
+    applyCoveConfiguration,
+    parseAgentConfigureCommand,
+    parseCoveApplyCommand,
+} from './agent-configuration.ts';
 import { AgentConfigurationQueue } from './agent-configuration-queue.ts';
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
@@ -932,6 +937,30 @@ async function connect(attachment: Attachment) {
                             });
                         })
                         .then(() => sendComputerReport(socket, attachment.serverId, computerName))
+                        .catch(reportStateError)
+                );
+                return;
+            }
+            const coveApplication = parseCoveApplyCommand(frame);
+            if (coveApplication) {
+                if (retiredAgents.has(coveApplication.agentId)) {
+                    return;
+                }
+                void trackWriter(
+                    agentConfigurations
+                        .enqueue(coveApplication.agentId, async () => {
+                            await runSettlements.wait(coveApplication.agentId);
+                            const result = await applyCoveConfiguration({
+                                command: coveApplication,
+                                dataRoot,
+                                inventory: detectInventory(),
+                                serverId: attachment.serverId,
+                            });
+                            socket.send(JSON.stringify(result));
+                            if (result.status === 'applied') {
+                                await sendComputerReport(socket, attachment.serverId, computerName);
+                            }
+                        })
                         .catch(reportStateError)
                 );
                 return;

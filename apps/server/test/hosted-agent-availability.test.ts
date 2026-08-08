@@ -19,7 +19,7 @@ const base: ConfiguredAgentRow = {
     effectiveModelId: 'gpt-5.6-sol',
     effectiveReportedAt: new Date('2026-07-28T00:00:00Z'),
     effectiveRuntimeId: 'codex',
-    handle: 'cove',
+    handle: 'sage',
     id: 'agt_1234567890123456',
     role: 'member',
     serverId: 'srv_1234567890123456',

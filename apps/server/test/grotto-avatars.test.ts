@@ -53,7 +53,7 @@ beforeAll(async () => {
     const created = await owner.trpc.agent.create.mutate({
         computerId,
         displayName: 'Cove',
-        handle: 'cove',
+        handle: 'sage',
         modelId: 'gpt-5.6-sol',
         role: 'member',
         runtimeId: 'codex',

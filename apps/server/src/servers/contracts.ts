@@ -34,6 +34,8 @@ export interface ServerChannel {
 }
 
 export interface ServerOnboarding {
+    agentId: string | null;
+    applicationId: string | null;
     channelId: string;
     computerId: string | null;
     failure: null | {
@@ -41,10 +43,13 @@ export interface ServerOnboarding {
             | 'computer-disconnected'
             | 'computer-incompatible'
             | 'inventory-empty'
-            | 'inventory-invalid';
+            | 'inventory-invalid'
+            | 'application-failed';
         detail: string;
     };
-    phase: 'awaiting-computer' | 'awaiting-cove' | 'complete';
+    modelId: string | null;
+    phase: 'applying' | 'awaiting-computer' | 'awaiting-cove' | 'complete';
+    runtimeId: string | null;
 }
 
 export interface ServerDetail extends ServerSummary {

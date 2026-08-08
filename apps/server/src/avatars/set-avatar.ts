@@ -103,13 +103,16 @@ async function assignAvatar(tx: AvatarWriter, owner: AvatarOwner, avatarId: null
 async function assignAgentAvatar(tx: AvatarWriter, owner: AvatarOwner, avatarId: null | string) {
     const scope = and(eq(agentsTable.serverId, owner.serverId), eq(agentsTable.id, owner.id));
     const [agent] = await tx
-        .select({ avatarId: agentsTable.avatarId })
+        .select({ avatarId: agentsTable.avatarId, factoryKind: agentsTable.factoryKind })
         .from(agentsTable)
         .where(and(scope, isNull(agentsTable.retiredAt)))
         .limit(1);
 
     if (!agent) {
         throw new AvatarOwnerNotFoundError('No active Agent exists with that id.');
+    }
+    if (agent.factoryKind === 'cove') {
+        throw new AvatarDeniedError("Cove's product-owned avatar cannot be changed.");
     }
 
     await tx.update(agentsTable).set({ avatarId }).where(scope);

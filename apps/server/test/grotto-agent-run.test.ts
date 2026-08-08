@@ -46,8 +46,8 @@ beforeAll(async () => {
 
     const created = await owner.trpc.agent.create.mutate({
         computerId,
-        displayName: 'Cove',
-        handle: 'cove',
+        displayName: 'Sage',
+        handle: 'sage',
         modelId: 'gpt-5.6-sol',
         role: 'member',
         runtimeId: 'codex',
@@ -94,7 +94,7 @@ test('chat mention options expose only the DM Agent and its reported skills', as
         expect.objectContaining({
             id: `agent://${agentId}`,
             kind: 'agent',
-            label: 'Cove',
+            label: 'Sage',
         }),
         expect.objectContaining({
             id: 'skill://agent-browser',
@@ -122,7 +122,7 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     expect(sent.body.message).toMatchObject({
         chat_id: dmChatId,
         content: 'Hello from the Agent.',
-        sender: { handle: 'cove', type: 'agent' },
+        sender: { handle: 'sage', type: 'agent' },
     });
     expect(await sending).toMatchObject({
         done: false,
@@ -413,7 +413,7 @@ test('mute and explicit unfollow purge ordinary work while mentions pierce once'
 
     const mentioned = await owner.trpc.chat.send.mutate({
         chatId: channelId,
-        content: '@cove please inspect this alert.',
+        content: '@sage please inspect this alert.',
         nonce: 'attention_mention_through_mute',
         serverId,
     });
@@ -467,7 +467,7 @@ test('mute and explicit unfollow purge ordinary work while mentions pierce once'
 
     const threadMention = await owner.trpc.chat.send.mutate({
         chatId: channelId,
-        content: '@cove one direct follow-up.',
+        content: '@sage one direct follow-up.',
         nonce: 'attention_thread_mention',
         serverId,
         thread: { anchorMessageId: task.task.messageId },
@@ -645,8 +645,8 @@ test('send hold counts exact Agent handle mentions, never opaque ids or handle p
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_hold_mentions_1' });
     for (const [index, content] of [
         `Opaque ids are not mentions: @${agentId}`,
-        'Handle prefixes are not mentions: @cove-ish',
-        'Exact handles are mentions: @Cove, please inspect this.',
+        'Handle prefixes are not mentions: @sage-ish',
+        'Exact handles are mentions: @Sage, please inspect this.',
     ].entries()) {
         await owner.trpc.chat.send.mutate({
             chatId: channelId,
@@ -771,7 +771,7 @@ test('an Agent adds and removes its own canonical message reaction', async () =>
     });
     expect(added.status).toBe(200);
     expect(added.body.message?.reactions).toEqual([
-        { actors: [{ handle: 'cove', id: agentId }], emoji: '👍' },
+        { actors: [{ handle: 'sage', id: agentId }], emoji: '👍' },
     ]);
 
     const removed = await agentPost(minted.runnerToken, '/api/agent/messages/react', {
@@ -815,7 +815,7 @@ test('the ported Agent directory can inspect and change channel membership', asy
         target: '#research',
     });
     expect(members.body.members).toEqual(
-        expect.arrayContaining([expect.objectContaining({ handle: 'cove', role: 'agent' })])
+        expect.arrayContaining([expect.objectContaining({ handle: 'sage', role: 'agent' })])
     );
 
     const left = await agentPost(minted.runnerToken, '/api/agent/channels/leave', {
@@ -851,7 +851,7 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         target: '#dispatch',
     });
     expect(claimed.body.claimed[0]).toMatchObject({
-        assignee: { handle: 'cove', id: agentId },
+        assignee: { handle: 'sage', id: agentId },
         status: 'in_progress',
         version: 2,
     });
@@ -861,7 +861,7 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         target: '#dispatch',
     });
     expect(updated.body.task).toMatchObject({
-        assignee: { handle: 'cove', id: agentId },
+        assignee: { handle: 'sage', id: agentId },
         status: 'in_review',
         version: 3,
     });
@@ -944,7 +944,7 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         body: {
             claimed: [
                 {
-                    assignee: { handle: 'cove', id: agentId },
+                    assignee: { handle: 'sage', id: agentId },
                     number: 2,
                     status: 'in_progress',
                     target: '#dispatch',
@@ -997,7 +997,7 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
           and nonce = ${`task-receipt:${regular.message.id}`}
     `) as Array<{ content: string; system_author: string }>;
     expect(conversionReceipt).toEqual({
-        content: '📋 @cove converted a message to task #2 "Turn this ordinary message…"',
+        content: '📋 @sage converted a message to task #2 "Turn this ordinary message…"',
         system_author: 'task',
     });
 });
@@ -1022,7 +1022,7 @@ test('task ownership is one lock across human and Agent actors', async () => {
     });
 
     const agentOwned = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
-        assignee: '@cove',
+        assignee: '@sage',
         nonce: 'agent_owned_task_actor_lock',
         target: '#dispatch',
         titles: ['Agent-owned task must stay Agent-owned.'],
@@ -1143,7 +1143,7 @@ test('runner task access fails closed after the Agent loses its parent Channel',
     `;
     const runner = await mintRunner({ chatId: channelId, runId: 'run_revoked_task_access' });
     const claimed = await agentPost(runner.runnerToken, '/api/agent/tasks/create', {
-        assignee: '@cove',
+        assignee: '@sage',
         nonce: 'revoked_task_access_claimed',
         target: '#revoked-task-access',
         titles: ['Claimed work becomes inaccessible.'],
@@ -1223,7 +1223,7 @@ test('runner task access fails closed after the Agent loses its parent Channel',
 test('task status updates wait for newer exact-thread context', async () => {
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_freshness' });
     const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
-        assignee: '@cove',
+        assignee: '@sage',
         nonce: 'agent_task_freshness',
         target: 'dm:@operator',
         titles: ['Incorporate every late correction.'],
@@ -1369,7 +1369,7 @@ test('an Agent owns its profile description and that description rides its messa
         body: {
             profile: {
                 description: 'Resident systems investigator',
-                handle: 'cove',
+                handle: 'sage',
                 isSelf: true,
             },
         },
@@ -1379,7 +1379,7 @@ test('an Agent owns its profile description and that description rides its messa
     const profile = await agentGet(minted.runnerToken, '/api/agent/profile', {});
     expect(profile.body.profile).toMatchObject({
         description: 'Resident systems investigator',
-        handle: 'cove',
+        handle: 'sage',
         isSelf: true,
     });
 
@@ -1390,7 +1390,7 @@ test('an Agent owns its profile description and that description rides its messa
     });
     expect(sent.body.message?.sender).toEqual({
         description: 'Resident systems investigator',
-        handle: 'cove',
+        handle: 'sage',
         type: 'agent',
     });
 });

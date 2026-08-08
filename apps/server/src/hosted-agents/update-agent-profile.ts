@@ -17,6 +17,15 @@ export async function updateHostedAgentProfile(
         throw new AgentConfigDeniedError('Only a Server Owner or Admin can edit an Agent.');
     }
 
+    const [identity] = await db
+        .select({ factoryKind: agentsTable.factoryKind })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
+        .limit(1);
+    if (identity?.factoryKind === 'cove') {
+        throw new AgentConfigDeniedError("Cove's product-owned identity cannot be changed.");
+    }
+
     const [updated] = await db
         .update(agentsTable)
         .set({

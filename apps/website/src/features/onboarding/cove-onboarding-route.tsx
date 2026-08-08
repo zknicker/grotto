@@ -1,4 +1,5 @@
-import { Outlet, useNavigate, useParams } from 'react-router-dom';
+import * as React from 'react';
+import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { CoveComputerStep } from './cove-computer-step.tsx';
 import { CoveMeetStep } from './cove-meet-step.tsx';
@@ -9,7 +10,9 @@ import './cove-onboarding-prototype/cove-prototype.css';
 /** Mandatory fresh-Server gate, structurally outside the general Server shell. */
 export function CoveOnboardingRoute() {
     const { slug = '' } = useParams();
+    const location = useLocation();
     const navigate = useNavigate();
+    const wasGated = React.useRef(false);
     const server = useServer(slug);
 
     if (server.error && !server.data) {
@@ -26,23 +29,37 @@ export function CoveOnboardingRoute() {
 
     const view = getCoveOnboardingView(server.data.onboarding);
     if (view === 'app') {
+        const serverRoot = `/s/${server.data.slug}`;
+        const target = `/s/${server.data.slug}/chats/${server.data.onboarding.channelId}`;
+        if (
+            (wasGated.current || location.pathname === serverRoot) &&
+            location.pathname !== target
+        ) {
+            return <Navigate replace to={target} />;
+        }
         return <Outlet />;
     }
+    wasGated.current = true;
 
     const switchServer = () => navigate('/s');
     return (
         <div className="cove-prototype min-h-dvh bg-background text-foreground">
             <header className="cove-frame-header">
                 <SetupProgressMarker
-                    state={view === 'meet-cove' ? 'meet-cove' : 'connect-computer'}
+                    state={
+                        ['meet-cove', 'applying-cove', 'apply-failed'].includes(view)
+                            ? 'meet-cove'
+                            : 'connect-computer'
+                    }
                 />
             </header>
             <main className="cove-frame-main">
-                {view === 'meet-cove' ? (
+                {view === 'meet-cove' || view === 'applying-cove' || view === 'apply-failed' ? (
                     <CoveMeetStep
                         onboarding={server.data.onboarding}
                         onSwitchServer={switchServer}
                         serverId={server.data.id}
+                        view={view}
                     />
                 ) : (
                     <CoveComputerStep

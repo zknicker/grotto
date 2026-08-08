@@ -12,6 +12,7 @@ import {
     hostedAgentWorkspaceResultSchema,
     hostedBrowserResultSchema,
     hostedComputerInventorySchema,
+    hostedCoveApplyResultSchema,
     hostedReminderScriptResultSchema,
     hostedUsageReportSchema,
 } from '@tavern/api';
@@ -21,6 +22,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitServerUpdated } from '../grotto-api/server-events.ts';
 import { recordAgentEffectiveState } from '../hosted-agents/record-agent-effective-state.ts';
 import { recordHostedComputerUsage } from '../hosted-operations/computer-usage.ts';
+import { recordCoveApplyResult, sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import type { ComputerConnections } from './connections.ts';
 import {
@@ -114,6 +116,9 @@ export function startComputerAttachmentSocket(
                         if (!ordinary) {
                             return;
                         }
+                        void sendPendingCoveApplication(db, connections, computer.id).catch(
+                            () => undefined
+                        );
                         // Idempotent reconnect: resend unacknowledged deliveries and drain
                         // any pending inbox for this Computer's Agents.
                         void delivery.onComputerReconnect(computer.id).catch(() => undefined);
@@ -183,6 +188,15 @@ async function ingestReport(
     const ack = hostedAgentDeliveryAckSchema.safeParse(frame);
     if (ack.success) {
         await delivery.onAck(ack.data);
+        return;
+    }
+
+    const coveApply = hostedCoveApplyResultSchema.safeParse(frame);
+    if (coveApply.success) {
+        const changedServerId = await recordCoveApplyResult(db, computerId, coveApply.data);
+        if (changedServerId) {
+            emitServerUpdated({ scope: 'agent', serverId: changedServerId });
+        }
         return;
     }
 

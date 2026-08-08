@@ -57,6 +57,7 @@ test('Agent events refresh the active directory and durable Chat list', () => {
             list: { invalidate: invalidate('agent.list') },
         },
         chat: { list: { invalidate: invalidate('chat.list') } },
+        server: { bySlug: { invalidate: invalidate('server.bySlug') } },
     };
 
     createServerUpdateHandler(
@@ -64,5 +65,5 @@ test('Agent events refresh the active directory and durable Chat list', () => {
         'server-one'
     )({ scope: 'agent' });
 
-    expect(invalidated).toEqual(['agent.get', 'agent.list', 'chat.list']);
+    expect(invalidated).toEqual(['server.bySlug', 'agent.get', 'agent.list', 'chat.list']);
 });

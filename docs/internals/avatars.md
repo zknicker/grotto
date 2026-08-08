@@ -44,6 +44,12 @@ Agent, self for a person), inserts the new row, repoints the owner, and deletes
 the replaced row in the same transaction, so a row exists only while something
 wears it.
 
+The hosted table permits a release-owned image up to 2 MiB so the exact Cove
+avatar can be assigned byte-for-byte by the Server factory operation. Ordinary
+human and Agent uploads remain limited to `avatarMaxBytes` (512 KiB) and still
+flow through `avatar.set`; this internal asset allowance does not widen the
+upload contract or create a Cove-specific renderer.
+
 Reads are `GET /api/avatars/:avatarId`, unauthenticated on purpose — an `<img>`
 cannot carry a bearer token, ids are opaque, and every replacement mints a fresh
 id. The response is `immutable`-cached for a year. `avatarUrlFor` builds the URL

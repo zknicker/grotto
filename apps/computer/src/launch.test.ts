@@ -381,6 +381,7 @@ async function seedResetFixture() {
         agentDescription: 'Onboarding guide',
         agentId,
         agentName: 'Scout',
+        factoryKind: 'ordinary',
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
         sessionGeneration: 1,

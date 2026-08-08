@@ -56,7 +56,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await expect(page.getByRole('img', { name: 'Cove' })).toBeVisible();
     await expect(page.getByLabel('Runtime')).toContainText('Codex');
     await expect(page.getByLabel('Model')).toContainText('GPT-5.6 Sol');
-    await expect(page.getByRole('button', { name: 'Create Cove' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Create Cove' })).toBeEnabled();
 
     await page.reload();
     await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toBeVisible();
@@ -65,9 +65,50 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await expect(page.getByRole('heading', { level: 1, name: 'Tasks' })).toHaveCount(0);
 
     socket.close();
-    await expect(page.getByRole('alert')).toContainText('The Computer disconnected');
+    await expect(page.getByRole('alert')).toContainText('Reconnect this Computer, then try again.');
     const reconnected = await connectComputer();
     await expect(page.getByRole('alert')).toHaveCount(0);
+
+    const firstApplication = socketMessage(reconnected, 'cove-apply');
+    await page.getByRole('button', { name: 'Create Cove' }).click();
+    const command = await firstApplication;
+    expect(command).toMatchObject({ factoryKind: 'cove', type: 'cove-apply' });
+    await expect(page.getByText('Getting Cove ready…')).toBeVisible();
+    reconnected.send(
+        JSON.stringify({
+            agentId: command.agentId,
+            applicationId: command.applicationId,
+            error: 'Workspace seed failed.',
+            factoryKind: 'cove',
+            status: 'failed',
+            type: 'cove-apply-result',
+        })
+    );
+    await expect(page.getByRole('alert')).toContainText(
+        'Cove isn’t ready yet. Make sure this Computer is connected, then try again.'
+    );
+    await expect(page.getByText('Workspace seed failed.')).toHaveCount(0);
+
+    const replay = socketMessage(reconnected, 'cove-apply');
+    await page.getByRole('button', { name: 'Try again' }).click();
+    expect(await replay).toMatchObject({
+        agentId: command.agentId,
+        applicationId: command.applicationId,
+    });
+    reconnected.send(
+        JSON.stringify({
+            agentId: command.agentId,
+            applicationId: command.applicationId,
+            factoryKind: 'cove',
+            status: 'applied',
+            type: 'cove-apply-result',
+        })
+    );
+    await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\//u);
+    await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
+    await page.goto('/s/grotto-hq');
+    await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\//u);
+    await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
     reconnected.close();
 });
 
@@ -121,4 +162,19 @@ async function connectComputer() {
         });
     });
     return socket;
+}
+
+async function socketMessage(socket: WebSocket, type: string) {
+    return await new Promise<Record<string, unknown>>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error(`No ${type} frame arrived.`)), 5000);
+        socket.on('message', function onMessage(raw) {
+            const frame = JSON.parse(raw.toString()) as Record<string, unknown>;
+            if (frame.type !== type) {
+                return;
+            }
+            clearTimeout(timeout);
+            socket.off('message', onMessage);
+            resolve(frame);
+        });
+    });
 }

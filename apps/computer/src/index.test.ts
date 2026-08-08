@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { computerProtocolVersion } from '@tavern/api';
 import type { ServerWebSocket } from 'bun';
 import { computerVersion } from './build-identity.ts';
 import { launchdPlist, recoverInterruptedUpdate } from './index.ts';
@@ -86,7 +87,7 @@ test('setup stores only a Server credential and reruns by validation', async () 
         expect(socketFrames[0]).toMatchObject({
             bootstrapProtocolVersion: 1,
             productVersion: computerVersion,
-            protocolVersion: 5,
+            protocolVersion: computerProtocolVersion,
             type: 'bootstrap',
             update: { phase: 'idle' },
         });

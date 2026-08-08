@@ -35,6 +35,11 @@ export const agentsTable = pgTable(
         effectiveModelId: text('effective_model_id'),
         effectiveReportedAt: timestamp('effective_reported_at', { withTimezone: true }),
         effectiveRuntimeId: text('effective_runtime_id'),
+        factoryAppliedAt: timestamp('factory_applied_at', { withTimezone: true }),
+        factoryKind: text('factory_kind')
+            .notNull()
+            .default('ordinary')
+            .$type<'cove' | 'ordinary'>(),
         handle: text('handle').notNull(),
         homeTimezone: text('home_timezone').notNull(),
         id: text('id').primaryKey(),
@@ -58,6 +63,7 @@ export const agentsTable = pgTable(
             name: 'agents_computer_fk',
         }),
         check('agents_role', sql`${table.role} in ('admin', 'member')`),
+        check('agents_factory_kind', sql`${table.factoryKind} in ('ordinary', 'cove')`),
         check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
         check('agents_session_reset_kind', sql`${table.sessionResetKind} in ('full', 'session')`),
         check(

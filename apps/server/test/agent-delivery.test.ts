@@ -249,6 +249,28 @@ test('drains delivered work into one run, then settles it', async () => {
     lifecycleController.abort();
 });
 
+test('pending Cove work cannot start before the durable factory acknowledgement', async () => {
+    const seed = await seedAgent();
+    await connection.db
+        .update(agentsTable)
+        .set({ factoryAppliedAt: null, factoryKind: 'cove' })
+        .where(eq(agentsTable.id, seed.agentId));
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'arrived during setup',
+        dedupeKey: 'pending-cove',
+        serverId: seed.serverId,
+    });
+
+    expect(transport.framesOfType('start')).toHaveLength(0);
+    expect(await countQueuedPending(connection.db, seed.agentId)).toBe(1);
+});
+
 test('resends an unacknowledged delivery idempotently on the retry sweep', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
@@ -302,6 +324,7 @@ test('ignores a duplicate delivery of the same message', async () => {
             agentDescription: null,
             agentId: seed.agentId,
             agentName: 'Ada',
+            factoryKind: 'ordinary',
             modelId: 'fake-model',
             runtimeId: 'fake',
             sessionGeneration: 1,

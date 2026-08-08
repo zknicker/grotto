@@ -1,5 +1,5 @@
 ---
-summary: Mandatory fresh-Server setup through the first usable Computer and into Meet Cove.
+summary: Mandatory fresh-Server setup through one durable Cove factory application.
 read_when:
   - changing fresh-Server creation, first-Computer setup, the Server shell gate, or Cove onboarding UI
 ---
@@ -27,9 +27,32 @@ instead of the rail, sidebar, Chats, Members, Tasks, Computers, or Settings.
 Computer events invalidate that focused Server read, so the view advances live
 without polling.
 
-The first-Computer slice ends at **Meet Cove**. It uses the approved Cove avatar,
-identity, runtime/model inventory, hierarchy, copy, semantic tokens, responsive
-layout, and accessible HeroUI controls from the retained PRD-190 prototype. It
-does not create or configure Cove, write a workspace, send a greeting, or enter
-the onboarding Channel; those later transitions require their own durable
-operations.
+At **Meet Cove**, the Owner chooses only a usable runtime and model from the
+pinned Computer's reported inventory. `server.createCove` is the one dedicated
+creation operation; ordinary Agent creation cannot supply Cove's identity. One
+Server transaction locks onboarding, fixes Cove's profile and Admin role,
+stores the release-owned avatar through the normal avatar contract, binds Cove
+immutably to the Computer, joins Cove to `#onboarding-owner`, reserves one
+application id, and advances to `applying`. An identical retry returns that
+reservation. A different Computer/runtime/model conflicts and cannot rebind it.
+
+While applying, reconnect sends only the explicit `cove-apply` factory command,
+never ordinary Agent configuration or a model turn. Computer validates its
+current runtime/model inventory, seeds the exact Cove workspace and normal
+isolated skill library, writes a durable local receipt, then returns a matching
+`cove-apply-result`. Command and acknowledgement replay are idempotent. Only an
+`applied` result for the reserved Agent, application, and Computer advances the
+Server to `complete`; effective-state reports and model messages do not.
+
+The App collapses the internal pipeline at its presentation boundary. While
+the durable phase is applying, the owner sees only a quiet “Getting Cove
+ready…” state—never creation, configuration, workspace, factory, command, or
+acknowledgement substeps. Failures become one plain retry or Computer-repair
+sentence; raw codes and diagnostics remain internal. Completion invalidates
+Server state and replaces the setup route with retained
+`#onboarding-owner`. This slice sends no greeting and waits for no model
+response; Cove's first Agent-authored turn is a separate feature.
+
+Cove's product-owned identity and avatar cannot be edited through ordinary
+Agent controls. Ordinary deletion and reset also fail closed; their supported
+post-onboarding lifecycle belongs to a later feature.

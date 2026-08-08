@@ -154,10 +154,8 @@ export const hostedAgentHandleSchema = z
     .string()
     .trim()
     .toLowerCase()
-    .regex(
-        /^[a-z0-9][a-z0-9-]{1,30}$/u,
-        'A handle is 2-31 lowercase letters, numbers, or hyphens.'
-    );
+    .regex(/^[a-z0-9][a-z0-9-]{1,30}$/u, 'A handle is 2-31 lowercase letters, numbers, or hyphens.')
+    .refine((handle) => handle !== 'cove', 'The cove handle is reserved for onboarding.');
 
 /** Creating an Agent binds it to exactly one reported Computer, runtime, and model. */
 export const hostedCreateAgentInputSchema = z

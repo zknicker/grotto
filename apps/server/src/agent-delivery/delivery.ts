@@ -530,6 +530,9 @@ export class AgentDelivery {
                 });
                 continue;
             }
+            if (agent.factoryKind === 'cove' && !agent.factoryAppliedAt) {
+                continue;
+            }
             if (agent.desiredModelId && agent.desiredRuntimeId) {
                 this.transport.send(computerId, {
                     agentDescription: agent.agentDescription,
@@ -539,6 +542,7 @@ export class AgentDelivery {
                     runtimeId: agent.desiredRuntimeId,
                     sessionGeneration: agent.sessionGeneration,
                     sessionResetKind: agent.sessionResetKind,
+                    factoryKind: 'ordinary',
                     type: 'agent-configure',
                 });
             }
@@ -620,6 +624,7 @@ export class AgentDelivery {
             runtimeId: input.runtimeId,
             sessionGeneration: config.sessionGeneration,
             sessionResetKind: config.sessionResetKind,
+            factoryKind: 'ordinary',
             type: 'agent-configure',
         });
     }
@@ -795,13 +800,20 @@ interface ConfiguredAgent {
     computerId: string;
     desiredModelId: string;
     desiredRuntimeId: string;
+    factoryAppliedAt: Date | null;
+    factoryKind: 'cove' | 'ordinary';
     homeTimezone: string;
     sessionGeneration: number;
     sessionResetKind: 'full' | 'session';
 }
 
 function isConfigured(config: AgentDispatchConfig | null): config is ConfiguredAgent {
-    return Boolean(config?.computerId && config.desiredRuntimeId && config.desiredModelId);
+    return Boolean(
+        config?.computerId &&
+            config.desiredRuntimeId &&
+            config.desiredModelId &&
+            (config.factoryKind === 'ordinary' || config.factoryAppliedAt)
+    );
 }
 
 function configureFrame(agentId: string, config: ConfiguredAgent): HostedAgentCommand {
@@ -809,6 +821,7 @@ function configureFrame(agentId: string, config: ConfiguredAgent): HostedAgentCo
         agentDescription: config.agentDescription,
         agentId,
         agentName: config.agentDisplayName,
+        factoryKind: 'ordinary',
         modelId: config.desiredModelId,
         runtimeId: config.desiredRuntimeId,
         sessionGeneration: config.sessionGeneration,

@@ -32,7 +32,7 @@ export const avatarsTable = pgTable(
             'avatars_media_type',
             sql`${table.mediaType} in ('image/jpeg', 'image/png', 'image/webp')`
         ),
-        check('avatars_size', sql`${table.byteSize} > 0 and ${table.byteSize} <= 524288`),
+        check('avatars_size', sql`${table.byteSize} > 0 and ${table.byteSize} <= 2097152`),
         check('avatars_sha256', sql`${table.sha256} ~ '^[a-f0-9]{64}$'`),
     ]
 );

@@ -97,19 +97,25 @@ export async function openServerBySlug(
     return {
         ...server,
         channels: channels
-            .filter((channel) => channel.id !== onboarding.channelId)
+            .filter(
+                (channel) => onboarding.phase === 'complete' || channel.id !== onboarding.channelId
+            )
             .map((channel) => ({
                 id: channel.id,
                 name: requireChannelName(channel.name),
             })),
         onboarding: {
+            agentId: onboarding.agentId,
+            applicationId: onboarding.applicationId,
             channelId: onboarding.channelId,
             computerId: onboarding.computerId,
             failure:
                 onboarding.failureCode && onboarding.failureDetail
                     ? { code: onboarding.failureCode, detail: onboarding.failureDetail }
                     : null,
+            modelId: onboarding.modelId,
             phase: onboarding.phase,
+            runtimeId: onboarding.runtimeId,
         },
         viewerUserId: member?.id ?? '',
     };

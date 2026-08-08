@@ -15,7 +15,7 @@ const schemaStatements = [
                 media_type IN ('image/jpeg', 'image/png', 'image/webp')
             ),
         byte_size integer NOT NULL
-            CONSTRAINT avatars_size CHECK (byte_size > 0 AND byte_size <= 524288),
+            CONSTRAINT avatars_size CHECK (byte_size > 0 AND byte_size <= 2097152),
         sha256 text NOT NULL
             CONSTRAINT avatars_sha256 CHECK (sha256 ~ '^[a-f0-9]{64}$'),
         bytes bytea NOT NULL,
@@ -190,6 +190,9 @@ const schemaStatements = [
         effective_model_id text,
         effective_reported_at timestamptz,
         effective_missing jsonb,
+        factory_kind text NOT NULL DEFAULT 'ordinary'
+            CONSTRAINT agents_factory_kind CHECK (factory_kind IN ('ordinary', 'cove')),
+        factory_applied_at timestamptz,
         retired_at timestamptz,
         created_by_user_id text REFERENCES users (id) ON DELETE SET NULL,
         created_at timestamptz NOT NULL DEFAULT now(),
@@ -361,16 +364,20 @@ const schemaStatements = [
         server_id text PRIMARY KEY NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         phase text NOT NULL
             CONSTRAINT server_onboarding_phase
-            CHECK (phase IN ('awaiting-computer', 'awaiting-cove', 'complete')),
+            CHECK (phase IN ('awaiting-computer', 'awaiting-cove', 'applying', 'complete')),
+        agent_id text,
+        application_id text UNIQUE,
         channel_id text NOT NULL UNIQUE,
         channel_kind text NOT NULL DEFAULT 'channel'
             CONSTRAINT server_onboarding_channel_kind CHECK (channel_kind = 'channel'),
         computer_id text,
+        runtime_id text,
+        model_id text,
         failure_code text
             CONSTRAINT server_onboarding_failure_code CHECK (
                 failure_code IS NULL OR failure_code IN (
                     'computer-disconnected', 'computer-incompatible',
-                    'inventory-empty', 'inventory-invalid'
+                    'inventory-empty', 'inventory-invalid', 'application-failed'
                 )
             ),
         failure_detail text,
@@ -383,7 +390,14 @@ const schemaStatements = [
             REFERENCES chats (server_id, id, kind),
         CONSTRAINT server_onboarding_computer_fk
             FOREIGN KEY (server_id, computer_id)
-            REFERENCES computers (server_id, id)
+            REFERENCES computers (server_id, id),
+        CONSTRAINT server_onboarding_agent_fk
+            FOREIGN KEY (server_id, agent_id)
+            REFERENCES agents (server_id, id),
+        CONSTRAINT server_onboarding_cove_shape CHECK (
+            (agent_id IS NULL AND application_id IS NULL AND runtime_id IS NULL AND model_id IS NULL)
+            OR (agent_id IS NOT NULL AND application_id IS NOT NULL AND runtime_id IS NOT NULL AND model_id IS NOT NULL)
+        )
     );`,
     `CREATE TABLE channel_agent_participants (
         server_id text NOT NULL,

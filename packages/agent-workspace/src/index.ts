@@ -1,4 +1,10 @@
 export {
+    coveSeededSummaries,
+    coveWorkspaceFiles,
+    seedCoveWorkspace,
+    validateCoveWorkspace,
+} from './cove-starter-kit.ts';
+export {
     defaultVisualsSkill,
     seedFactoryManagedSkills,
     visualsSkillFiles,

@@ -108,6 +108,7 @@ export const hostedAgentConfigureCommandSchema = z
         agentDescription: z.string().trim().min(1).max(500).nullable(),
         agentId: hostedIdSchema,
         agentName: z.string().trim().min(1).max(80),
+        factoryKind: z.literal('ordinary'),
         modelId: z.string().trim().min(1).max(128),
         runtimeId: z.string().trim().min(1).max(64),
         sessionGeneration: z.number().int().positive(),
@@ -117,6 +118,23 @@ export const hostedAgentConfigureCommandSchema = z
     .strict();
 
 export type HostedAgentConfigureCommand = z.infer<typeof hostedAgentConfigureCommandSchema>;
+
+/** Dedicated, replayable factory operation for the one onboarding Agent. */
+export const hostedCoveApplyCommandSchema = z
+    .object({
+        agentDescription: z.literal('Onboarding Assistant'),
+        agentId: hostedIdSchema,
+        agentName: z.literal('Cove'),
+        applicationId: hostedIdSchema,
+        factoryKind: z.literal('cove'),
+        modelId: z.string().trim().min(1).max(128),
+        runtimeId: z.string().trim().min(1).max(64),
+        sessionGeneration: z.number().int().positive(),
+        type: z.literal('cove-apply'),
+    })
+    .strict();
+
+export type HostedCoveApplyCommand = z.infer<typeof hostedCoveApplyCommandSchema>;
 
 export const hostedAgentSkillImportCommandSchema = z
     .object({
@@ -334,6 +352,7 @@ export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
     hostedAgentResetCommandSchema,
     hostedAgentRetireCommandSchema,
     hostedAgentConfigureCommandSchema,
+    hostedCoveApplyCommandSchema,
     hostedAgentSkillImportCommandSchema,
     hostedAgentSkillFileRequestSchema,
     hostedAgentWorkspaceRequestSchema,
@@ -386,6 +405,31 @@ export const hostedAgentDeliveryAckSchema = z
     .strict();
 
 export type HostedAgentDeliveryAck = z.infer<typeof hostedAgentDeliveryAckSchema>;
+
+/** Durable Computer acknowledgement for the dedicated Cove factory operation. */
+export const hostedCoveApplyResultSchema = z.discriminatedUnion('status', [
+    z
+        .object({
+            agentId: hostedIdSchema,
+            applicationId: hostedIdSchema,
+            factoryKind: z.literal('cove'),
+            status: z.literal('applied'),
+            type: z.literal('cove-apply-result'),
+        })
+        .strict(),
+    z
+        .object({
+            agentId: hostedIdSchema,
+            applicationId: hostedIdSchema,
+            error: z.string().trim().min(1).max(300),
+            factoryKind: z.literal('cove'),
+            status: z.literal('failed'),
+            type: z.literal('cove-apply-result'),
+        })
+        .strict(),
+]);
+
+export type HostedCoveApplyResult = z.infer<typeof hostedCoveApplyResultSchema>;
 
 /** Idempotent Computer result for one reminder script attention row. */
 export const hostedReminderScriptResultSchema = z

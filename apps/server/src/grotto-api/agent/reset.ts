@@ -2,7 +2,7 @@ import { hostedAgentDeliveryStateSchema, hostedAgentResetInputSchema } from '@ta
 import { TRPCError } from '@trpc/server';
 import { AgentConfigDeniedError } from '../../hosted-agents/agent-config-errors.ts';
 import {
-    assertAgentDeliveryAccess,
+    assertAgentResetAccess,
     readHostedAgentDeliveryState,
 } from '../../hosted-agents/agent-delivery-control.ts';
 import { memberProcedure } from '../server/procedure.ts';
@@ -12,7 +12,7 @@ export const resetAgentProcedure = memberProcedure
     .output(hostedAgentDeliveryStateSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            await assertAgentDeliveryAccess(ctx.grottoDb, ctx.member, input);
+            await assertAgentResetAccess(ctx.grottoDb, ctx.member, input);
             await ctx.agentDelivery.reset(input);
             return await readHostedAgentDeliveryState(ctx.grottoDb, ctx.member, input);
         } catch (cause) {

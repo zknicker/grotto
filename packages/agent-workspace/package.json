@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@tavern/agent-manual": "workspace:*",
     "@tavern/api": "workspace:*"
   },
   "devDependencies": {

@@ -68,6 +68,21 @@ test('keeps a new Server Agent-free until an Owner explicitly provisions one', a
     expect(agents).toEqual([]);
 });
 
+test('reserves the Cove identity from ordinary Agent creation', async () => {
+    await expect(
+        owner.trpc.agent.create.mutate({
+            computerId: computerA,
+            description: 'Not the onboarding factory Agent.',
+            displayName: 'Cove',
+            handle: 'cove',
+            modelId: 'gpt-5.6-sol',
+            role: 'admin',
+            runtimeId: 'codex',
+            serverId,
+        })
+    ).rejects.toThrow(/reserved for onboarding/i);
+});
+
 test('provisions an ordinary Agent with its real execution settings and Owner DM', async () => {
     const created = await owner.trpc.agent.create.mutate({
         computerId: computerA,

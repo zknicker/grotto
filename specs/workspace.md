@@ -27,6 +27,15 @@ The seed establishes only that minimal starting point and never overwrites an
 existing workspace. The Agent may add, rename, organize, and remove
 task-specific files as its work requires.
 
+Cove is the one distinct factory kind. Its fresh workspace inventory is exactly
+`MEMORY.md`, `onboarding_playbook.md`, `onboarding_knowledge_faq.md`, and
+`onboarding_objectives.md`. Objectives contain 12 separately authored short
+summaries linked to the 12 seeded-tier Manual topics; no full Manual card,
+query-tier summary, archetype note, `save-as-a-skill`, or `tavern-agent` skill
+is copied. Computer records the four-file manifest in the durable Cove
+application receipt and validates it before replaying success. Cove still gets
+the normal isolated skill library and release-owned `visuals` skill.
+
 There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section,
 automatic extraction or dreaming pipeline, or separate Wiki primitive.
 Personality comes from the Server-owned Agent description. Durable learned

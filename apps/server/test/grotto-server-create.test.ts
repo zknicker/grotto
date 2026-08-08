@@ -32,10 +32,14 @@ test('atomically creates a Server, its first Owner, #all, and private onboarding
     expect(created.id).toMatch(/^srv_[A-Za-z0-9_-]{16,}$/);
     expect(created.channels).toEqual([{ id: expect.any(String), name: 'all' }]);
     expect(created.onboarding).toEqual({
+        agentId: null,
+        applicationId: null,
         channelId: expect.any(String),
         computerId: null,
         failure: null,
+        modelId: null,
         phase: 'awaiting-computer',
+        runtimeId: null,
     });
 
     const rows = (await harness.sql`

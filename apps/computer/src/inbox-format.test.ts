@@ -21,6 +21,25 @@ test('uses a zero-based local wall clock at midnight', () => {
     expect(composeInboxDrain([item()], 'UTC')).toContain('time=2026-07-27 00:00:00 type=human');
 });
 
+test('projects one-shot onboarding attention as a system request in its exact Chat', () => {
+    expect(
+        composeInboxDrain(
+            [
+                item({
+                    content: 'Greet the owner in this onboarding Channel.',
+                    id: 'cap_firstgreeting',
+                    senderHandle: 'onboarding',
+                    senderType: 'system',
+                    target: '#onboarding-owner',
+                }),
+            ],
+            'UTC'
+        )
+    ).toContain(
+        '[target=#onboarding-owner msg=firstgre time=2026-07-27 00:00:00 type=system] @onboarding: Greet the owner in this onboarding Channel.'
+    );
+});
+
 test('busy notices include target metadata but never message bodies', () => {
     const notice = composeInboxNotice([
         item(),

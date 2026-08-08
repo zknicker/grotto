@@ -242,6 +242,14 @@ failures back off (`retry_after`) and then degrade (`consecutive_failures`
 reaches its cap), so a broken runtime cannot tight-loop; fresh human intent
 (a new message or Start) clears the backoff.
 
+Fresh onboarding completion inserts Cove's one-shot system attention directly
+into this pending inbox in the same transaction that advances onboarding to
+`complete`. The application id is its stable delivery identity. It has no
+canonical Chat-message row and therefore advances no Chat cursor; Cove's normal
+Agent send creates the first canonical `#onboarding-owner` message. The retained
+onboarding phase is the once-ever authority after pending work settles, so a
+replayed factory acknowledgement cannot recreate the trigger.
+
 Human Stop/Start (`agent.stop` / `agent.start`, Owner/Admin) is persistent: Stop
 sets the durable flag, **revokes the live run's runner credential so the Stop
 holds even when the Computer is offline or restarts and re-runs the turn**, kills

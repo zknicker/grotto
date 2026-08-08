@@ -4,6 +4,7 @@ import { and, eq } from 'drizzle-orm';
 import coveAvatarPath from '../../../website/public/prototypes/cove-avatar.png' with {
     type: 'file',
 };
+import { enqueuePendingWork } from '../agent-delivery/store.ts';
 import { createAvatarId } from '../avatars/avatar-bytes.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import {
@@ -216,19 +217,30 @@ export async function recordCoveApplyResult(
             return null;
         }
         if (result.status === 'applied') {
-            await tx
-                .update(agentsTable)
-                .set({ factoryAppliedAt: new Date() })
-                .where(eq(agentsTable.id, result.agentId));
-            await tx
-                .update(serverOnboardingTable)
-                .set({
-                    failureCode: null,
-                    failureDetail: null,
-                    phase: 'complete',
-                    updatedAt: new Date(),
-                })
-                .where(eq(serverOnboardingTable.serverId, row.serverId));
+            if (row.phase !== 'complete') {
+                await tx
+                    .update(agentsTable)
+                    .set({ factoryAppliedAt: new Date() })
+                    .where(eq(agentsTable.id, result.agentId));
+                await enqueuePendingWork(tx, {
+                    agentId: result.agentId,
+                    chatId: row.channelId,
+                    content:
+                        'Greet the owner in this onboarding Channel. Introduce yourself as Cove and help them begin real work in Grotto.',
+                    dedupeKey: result.applicationId,
+                    serverId: row.serverId,
+                    source: 'onboarding',
+                });
+                await tx
+                    .update(serverOnboardingTable)
+                    .set({
+                        failureCode: null,
+                        failureDetail: null,
+                        phase: 'complete',
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(serverOnboardingTable.serverId, row.serverId));
+            }
         } else if (row.phase !== 'complete') {
             await tx
                 .update(serverOnboardingTable)

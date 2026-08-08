@@ -304,6 +304,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             type: 'cove-apply-result',
         })
     );
+    const greetingStart = await waitForFrame(replayFrames, 'start');
     const completed = await waitForOnboarding(created.slug, { phase: 'complete' });
     expect(completed).toMatchObject({
         agentId: first.agent.id,
@@ -311,6 +312,117 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         channelId: created.onboarding.channelId,
         failure: null,
     });
+    expect(greetingStart).toMatchObject({
+        agentId: first.agent.id,
+        chatId: created.onboarding.channelId,
+        inbox: [
+            {
+                content: expect.stringContaining('Greet the owner'),
+                id: first.applicationId,
+                senderHandle: 'onboarding',
+                senderType: 'system',
+                target: '#onboarding-owner',
+            },
+        ],
+        type: 'start',
+    });
+    expect(replayFrames.filter((frame) => frame.type === 'start')).toHaveLength(1);
+    const [beforeGreeting] = await harness.sql`
+        select count(*)::int as count from chat_messages
+        where server_id = ${created.id} and chat_id = ${created.onboarding.channelId}
+    `;
+    expect(beforeGreeting?.count).toBe(0);
+
+    socket.send(
+        JSON.stringify({
+            agentId: first.agent.id,
+            endedAt: new Date().toISOString(),
+            messageCount: 0,
+            outputProduced: false,
+            runId: greetingStart.runId,
+            startedAt: new Date().toISOString(),
+            status: 'failed',
+            summary: 'provider unavailable',
+            type: 'turn',
+        })
+    );
+    await waitForPendingWork(first.agent.id, 1);
+    expect((await owner.trpc.server.bySlug.query({ slug: created.slug })).onboarding.phase).toBe(
+        'complete'
+    );
+    await Bun.sleep(50);
+    expect(replayFrames.filter((frame) => frame.type === 'start')).toHaveLength(1);
+
+    await owner.trpc.agent.start.mutate({ agentId: first.agent.id, serverId: created.id });
+    const retryStart = await waitForFrameCount(replayFrames, 'start', 2);
+    expect(retryStart.inbox).toEqual(greetingStart.inbox);
+
+    const runnerToken = await mintRunner({
+        agentId: first.agent.id,
+        chatId: created.onboarding.channelId,
+        credentialHash: createHash('sha256').update(coveCredential).digest('hex'),
+        runId: String(retryStart.runId),
+    });
+    const sentGreeting = await sendAgentMessage(runnerToken, {
+        content: 'Hi, I’m Cove. Let’s turn your first idea into real work.',
+        nonce: `cove-greeting:${first.applicationId}`,
+        target: '#onboarding-owner',
+    });
+    expect(sentGreeting).toMatchObject({
+        message: {
+            chat_id: created.onboarding.channelId,
+            sender: { handle: 'cove', type: 'agent' },
+        },
+    });
+    const greetingHistory = await owner.trpc.chat.messages.query({
+        chatId: created.onboarding.channelId,
+        serverId: created.id,
+    });
+    expect(greetingHistory.messages).toEqual([
+        expect.objectContaining({
+            author: { agentId: first.agent.id, kind: 'agent' },
+            content: 'Hi, I’m Cove. Let’s turn your first idea into real work.',
+        }),
+    ]);
+
+    socket.send(
+        JSON.stringify({
+            agentId: first.agent.id,
+            endedAt: new Date().toISOString(),
+            messageCount: 1,
+            outputProduced: true,
+            runId: retryStart.runId,
+            startedAt: new Date().toISOString(),
+            status: 'completed',
+            summary: 'greeted',
+            type: 'turn',
+        })
+    );
+    await waitForPendingWork(first.agent.id, 0);
+    const [cursorRows] = await harness.sql`
+        select count(*)::int as count from agent_inbox_cursors
+        where server_id = ${created.id} and agent_id = ${first.agent.id}
+    `;
+    expect(cursorRows?.count).toBe(0);
+
+    socket.send(
+        JSON.stringify({
+            agentId: first.agent.id,
+            applicationId: first.applicationId,
+            factoryKind: 'cove',
+            status: 'applied',
+            type: 'cove-apply-result',
+        })
+    );
+    await Bun.sleep(50);
+    socket.close();
+    await Bun.sleep(50);
+    const settledReplayFrames: Record<string, unknown>[] = [];
+    socket = await connectComputer(coveCredential, computerProtocolVersion, settledReplayFrames);
+    await waitForFrame(settledReplayFrames, 'agent-configure');
+    await Bun.sleep(50);
+    expect(settledReplayFrames.some((frame) => frame.type === 'start')).toBe(false);
+    expect(await countPendingWork(first.agent.id)).toBe(0);
 
     const [agentRow] = await harness.sql`
         select a.handle, a.display_name, a.description, a.role, a.computer_id,
@@ -440,9 +552,77 @@ async function connectComputer(
 
 async function waitForFrame(frames: Record<string, unknown>[], type: string) {
     const deadline = Date.now() + 3000;
-    while (Date.now() < deadline && !frames.some((frame) => frame.type === type)) {
+    while (Date.now() < deadline) {
+        const frame = frames.find((candidate) => candidate.type === type);
+        if (frame) {
+            return frame;
+        }
         await Bun.sleep(10);
     }
+    throw new Error(`No ${type} frame arrived.`);
+}
+
+async function waitForFrameCount(frames: Record<string, unknown>[], type: string, count: number) {
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+        const matches = frames.filter((candidate) => candidate.type === type);
+        if (matches.length >= count) {
+            return matches[count - 1] as Record<string, unknown>;
+        }
+        await Bun.sleep(10);
+    }
+    throw new Error(
+        `Only ${frames.filter((frame) => frame.type === type).length} ${type} frames arrived.`
+    );
+}
+
+async function countPendingWork(agentId: string) {
+    const [row] = await harness.sql`
+        select count(*)::int as count from agent_pending_work where agent_id = ${agentId}
+    `;
+    return Number(row?.count ?? 0);
+}
+
+async function mintRunner(input: {
+    agentId: string;
+    chatId: string;
+    credentialHash: string;
+    runId: string;
+}) {
+    const response = await fetch(new URL('/computer/runner/mint', harness.url), {
+        body: JSON.stringify(input),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    if (!response.ok) {
+        throw new Error(`Runner mint failed: ${response.status}`);
+    }
+    return ((await response.json()) as { runnerToken: string }).runnerToken;
+}
+
+async function sendAgentMessage(
+    token: string,
+    input: { content: string; nonce: string; target: string }
+) {
+    const response = await fetch(new URL('/api/agent/messages/send', harness.url), {
+        body: JSON.stringify(input),
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    if (!response.ok) {
+        throw new Error(`Agent send failed: ${response.status}`);
+    }
+    return (await response.json()) as Record<string, unknown>;
+}
+
+async function waitForPendingWork(agentId: string, expected: number) {
+    const deadline = Date.now() + 3000;
+    let count = await countPendingWork(agentId);
+    while (Date.now() < deadline && count !== expected) {
+        await Bun.sleep(10);
+        count = await countPendingWork(agentId);
+    }
+    expect(count).toBe(expected);
 }
 
 async function waitForOnboarding(slug: string, expected: Record<string, unknown>) {

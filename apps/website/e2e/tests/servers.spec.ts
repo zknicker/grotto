@@ -95,6 +95,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         agentId: command.agentId,
         applicationId: command.applicationId,
     });
+    const greetingStartPromise = socketMessage(reconnected, 'start');
     reconnected.send(
         JSON.stringify({
             agentId: command.agentId,
@@ -106,9 +107,59 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     );
     await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\//u);
     await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
+    const greetingStart = await greetingStartPromise;
+    expect(greetingStart).toMatchObject({
+        agentId: command.agentId,
+        inbox: [
+            {
+                senderHandle: 'onboarding',
+                senderType: 'system',
+                target: '#onboarding-owner',
+            },
+        ],
+        type: 'start',
+    });
+    await expect(page.getByText('Getting Cove ready…')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Stop response' })).toBeVisible();
+
+    const runnerToken = await mintRunner({
+        agentId: String(command.agentId),
+        chatId: String(greetingStart.chatId),
+        runId: String(greetingStart.runId),
+    });
+    const greeting = 'Hi, I’m Cove. Let’s turn your first idea into real work.';
+    await sendAgentGreeting(runnerToken, greeting, String(command.applicationId));
+    const messages = page.getByLabel('Messages', { exact: true });
+    await expect(messages.getByText(greeting, { exact: true })).toBeVisible();
+    await expect(messages.getByRole('img', { name: 'Cove' })).toBeVisible();
+
+    reconnected.send(
+        JSON.stringify({
+            agentId: command.agentId,
+            endedAt: new Date().toISOString(),
+            messageCount: 1,
+            outputProduced: true,
+            runId: greetingStart.runId,
+            startedAt: new Date().toISOString(),
+            status: 'completed',
+            summary: 'greeted',
+            type: 'turn',
+        })
+    );
+    reconnected.send(
+        JSON.stringify({
+            agentId: command.agentId,
+            applicationId: command.applicationId,
+            factoryKind: 'cove',
+            status: 'applied',
+            type: 'cove-apply-result',
+        })
+    );
     await page.goto('/s/grotto-hq');
     await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\//u);
     await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
+    await expect(messages.getByText(greeting, { exact: true })).toHaveCount(1);
+    await expect(page.getByText('Getting Cove ready…')).toHaveCount(0);
     reconnected.close();
 });
 
@@ -177,4 +228,36 @@ async function socketMessage(socket: WebSocket, type: string) {
             resolve(frame);
         });
     });
+}
+
+async function mintRunner(input: { agentId: string; chatId: string; runId: string }) {
+    const response = await fetch(
+        `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/runner/mint`,
+        {
+            body: JSON.stringify({
+                ...input,
+                credentialHash: createHash('sha256').update(computerCredential).digest('hex'),
+            }),
+            headers: { 'content-type': 'application/json' },
+            method: 'POST',
+        }
+    );
+    expect(response.ok).toBe(true);
+    return ((await response.json()) as { runnerToken: string }).runnerToken;
+}
+
+async function sendAgentGreeting(token: string, content: string, applicationId: string) {
+    const response = await fetch(
+        `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/api/agent/messages/send`,
+        {
+            body: JSON.stringify({
+                content,
+                nonce: `cove-greeting:${applicationId}`,
+                target: '#onboarding-owner',
+            }),
+            headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+            method: 'POST',
+        }
+    );
+    expect(response.ok).toBe(true);
 }

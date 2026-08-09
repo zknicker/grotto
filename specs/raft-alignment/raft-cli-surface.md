@@ -160,8 +160,9 @@ the agent-facing `grotto` CLI.
 In 1.0.13, `setup` is the convenience path that logs in if needed, attaches one Server, and starts
 the service; adding another Server does not detach existing ones. `start [serverSlug]` may resume
 one attachment or all attachments, while `stop` stops compute without deleting attachment records.
-Grotto keeps these additive and temporary lifecycle semantics but omits Raft's persistent
-`login`/`logout`, standalone `attach`, legacy adoption, and fresh-replacement surfaces.
+Grotto keeps these additive and temporary lifecycle semantics and adopts Raft's persistent
+`login`/`logout` plus standalone `attach`; legacy adoption and the general `--fresh` duplicate path
+remain excluded. Grotto additionally makes new attachment issuance crash-idempotent.
 
 ## Managed transport audit (2026-07-25, `raft-computer` 1.0.13)
 

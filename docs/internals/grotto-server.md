@@ -43,10 +43,11 @@ Clerk authenticates humans and nothing more. A verified session token's subject
 is the external reference used to find the stable Grotto User. Clerk
 Organizations and Clerk role claims are never read and carry no authority.
 
-Authentication carries that subject for one request only. It never publishes
-the token to shared process state, so concurrent humans cannot bleed into each
-other. Computers authenticate with their own Server-scoped credentials, never
-with a human Clerk session.
+Authentication carries that subject for one browser request only. It never
+publishes the Clerk token to shared process state, so concurrent humans cannot
+bleed into each other. Browser-approved device login mints a separate,
+revocable Computer login session for human management; attachment runners
+authenticate only with their own Server-scoped Computer credentials.
 
 A Grotto User is minted in exactly one place: inside Server creation's
 transaction. Reads resolve an existing User or find none — asking never mints
@@ -91,7 +92,8 @@ PostgreSQL owns the hosted collaboration tables
 | `avatars` | Uploaded square avatar bytes, media type, size, and digest, served publicly at `/api/avatars/:avatarId` |
 | `servers` / `server_onboarding` | Opaque id, address/display fields, commit-serialized Chat event cursor, and durable fresh-Server setup progress |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
-| `computers` / `computer_setup_approvals` | Server-scoped Computer credentials (hash only), one-use expiring browser approvals, last authenticated handshake facts, and attachment-visible update progress |
+| Computer login and device-grant records | Hashed rotating human management credentials, one-use device codes, expiry, polling state, revocation, and setup-result correlation |
+| `computers` | Server-scoped Computer credentials (hash only), durable attachment idempotency, last authenticated handshake facts, and attachment-visible update progress |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
 | `chats` | Server-owned Channels, canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and hidden child Threads |
 | `channel_participants` | One human's participation in one Channel |
@@ -121,13 +123,17 @@ all fail closed in the database.
 
 ## Computer attachment
 
-`grotto-computer setup /<slug>` creates an expiring browser approval and holds its
-temporary secret only in memory. An Owner or Admin approves exactly once; the
-Server stores only the hash of the Computer-generated Server credential. A
-re-run validates that credential and fails closed if it was revoked. The
-Computer keeps its attachment record under `~/.grotto/computer`, separate from
-the standalone executable at `~/.local/bin/grotto-computer`, and its resident
-launchd service reconnects through the single outbound
+`grotto-computer setup /<slug>` reuses or refreshes one machine-local Computer
+login session, or performs Grotto's browser-approved device grant when no usable
+session exists. The session can discover Servers and manage Computers but has
+no Chat or Agent authority. An Owner or Admin uses it to attach the requested
+Server, which stores only the hash of the Computer-generated Server credential.
+The CLI persists an attachment idempotency key before issuance so a crash after
+Server commit recovers the same Computer instead of creating another. A re-run
+validates the completed credential and fails closed if it was revoked. The
+Computer keeps its login and attachment records under `~/.grotto/computer`,
+separate from the standalone executable at `~/.local/bin/grotto-computer`, and
+its resident launchd service reconnects through the single outbound
 `/computer/attachment` socket.
 
 Every socket starts with bootstrap protocol version 1. The authenticated
@@ -151,9 +157,9 @@ without a deadline, then the verified standalone executable atomically replaces 
 resident service restarts every attachment runner. Queued Server work drains
 after reconnect.
 
-Only Owners and Admins can approve or view Computers. The Server never opens
-an inbound Computer connection and never receives a human login session from a
-Computer.
+Only Owners and Admins can attach or view Computers. The Server never opens an
+inbound Computer connection. It accepts the Computer login session only on
+narrow human-management endpoints; attachment sockets and execution never use it.
 
 Every compatible Computer also reports a sanitized provider-usage snapshot
 after attaching and once per minute. The Server stores the latest snapshot and

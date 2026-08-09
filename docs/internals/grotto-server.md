@@ -123,12 +123,16 @@ all fail closed in the database.
 
 ## Computer attachment
 
-Phase one exposes `grotto-computer login` as a standalone browser-approved device
-grant. The session can eventually discover Servers and manage Computers but has
-no Chat or Agent authority; attachment migration is deliberately subsequent. The
-existing `grotto-computer setup /<slug>` approval remains the compatibility path
-until that migration lands. An Owner or Admin uses it to attach the requested
-Server, which stores only the hash of the Computer-generated Server credential.
+`grotto-computer login` is a standalone browser-approved device grant. The
+machine-local session is origin-bound, reusable, and revocable; access expiry
+rotates a hashed refresh-token family, and reuse revokes the entire family. The
+session is accepted only by narrow Computer management endpoints: it has no Chat,
+Agent, or execution authority. `status` reports the bound origin and attachment
+state without secrets, while `login --replace` is required to replace a saved
+origin. The existing `grotto-computer setup /<slug>` approval remains the
+compatibility path until attachment migration lands. An Owner or Admin uses it to
+attach the requested Server, which stores only the hash of the Computer-generated
+Server credential.
 The CLI persists an attachment idempotency key before issuance so a crash after
 Server commit recovers the same Computer instead of creating another. A re-run
 validates the completed credential and fails closed if it was revoked. The

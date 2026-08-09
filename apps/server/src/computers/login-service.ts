@@ -2,14 +2,18 @@ import { randomBytes, randomInt } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { computerLoginGrantsTable, computerLoginSessionsTable } from '../postgres/schema.ts';
+import {
+    computerLoginGrantsTable,
+    computerLoginRefreshTokensTable,
+    computerLoginSessionsTable,
+} from '../postgres/schema.ts';
 import { ComputerLoginError, computerLoginError } from './login-errors.ts';
 import { hashComputerSecret } from './service.ts';
 
 export const computerLoginGrantLifetimeMs = 10 * 60 * 1000;
 export const computerLoginPollingIntervalMs = 1000;
-const computerAccessTokenLifetimeMs = 15 * 60 * 1000;
-const computerRefreshTokenLifetimeMs = 30 * 24 * 60 * 60 * 1000;
+export const computerAccessTokenLifetimeMs = 15 * 60 * 1000;
+export const computerRefreshTokenLifetimeMs = 30 * 24 * 60 * 60 * 1000;
 const computerLoginCodeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export function normalizeComputerLoginUserCode(value: string): string | null {
@@ -230,6 +234,12 @@ export async function pollComputerLogin(db: GrottoDatabase, input: { deviceCode:
             origin: grant.origin,
             refreshTokenExpiresAt,
             refreshTokenHash: hashComputerSecret(refreshToken),
+        });
+        await tx.insert(computerLoginRefreshTokensTable).values({
+            expiresAt: refreshTokenExpiresAt,
+            id: createOpaqueId('crt'),
+            sessionId,
+            tokenHash: hashComputerSecret(refreshToken),
         });
         await tx
             .update(computerLoginGrantsTable)

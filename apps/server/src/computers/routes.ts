@@ -6,12 +6,20 @@ import {
     beginComputerSetupSchema,
     completeComputerLoginSchema,
     computerSetupStatusSchema,
+    inspectComputerLoginSchema,
     pollComputerLoginSchema,
+    refreshComputerLoginSchema,
+    revokeComputerLoginSchema,
     validateComputerCredentialSchema,
 } from './contracts.ts';
 import { completeComputerLogin } from './login-completion.ts';
 import { ComputerLoginError } from './login-errors.ts';
 import { beginComputerLogin, pollComputerLogin } from './login-service.ts';
+import {
+    inspectComputerLogin,
+    refreshComputerLogin,
+    revokeComputerLogin,
+} from './login-session-service.ts';
 import { mintRunnerCredential, revokeRunnerCredential } from './runner-credentials.ts';
 import {
     beginComputerSetup,
@@ -81,6 +89,30 @@ export function registerComputerRoutes(
         try {
             const input = completeComputerLoginSchema.parse(request.body);
             return await completeComputerLogin(options.db, input);
+        } catch (cause) {
+            return loginError(reply, cause);
+        }
+    });
+    app.post('/computer/login/refresh', async (request, reply) => {
+        try {
+            const input = refreshComputerLoginSchema.parse(request.body);
+            return await refreshComputerLogin(options.db, input);
+        } catch (cause) {
+            return loginError(reply, cause);
+        }
+    });
+    app.post('/computer/login/inspect', async (request, reply) => {
+        try {
+            const input = inspectComputerLoginSchema.parse(request.body);
+            return await inspectComputerLogin(options.db, input);
+        } catch (cause) {
+            return loginError(reply, cause);
+        }
+    });
+    app.post('/computer/login/revoke', async (request, reply) => {
+        try {
+            const input = revokeComputerLoginSchema.parse(request.body);
+            return await revokeComputerLogin(options.db, input);
         } catch (cause) {
             return loginError(reply, cause);
         }

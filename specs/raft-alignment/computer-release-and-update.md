@@ -115,6 +115,10 @@ compatibility with previously published App builds, the installer still accepts 
 5. Installs the resident service. The separately copied setup command attaches the selected
    Server; a legacy combined invocation also runs setup directly.
 
+Setup opens its short-lived approval URL in the default browser, always prints the URL as a
+fallback, and lets an interactive operator press Enter to retry the browser handoff. The command
+continues polling and completes automatically after an authenticated Owner or Admin approves it.
+
 The installed executable then uses its embedded Ed25519 key for every later update. Reinstalling
 code never deletes or adopts `~/.grotto`.
 

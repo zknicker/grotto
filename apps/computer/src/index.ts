@@ -26,6 +26,7 @@ import {
 } from './attachment-recovery.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
+import { installEnterToOpenUrl, openUrlInBrowser } from './browser-handoff.ts';
 import {
     computerEntrypoint,
     computerRunnerEntrypoint,
@@ -253,13 +254,37 @@ async function main(args: string[]) {
         slug,
     });
     approvalSecrets.set(started.approvalId, approvalSecretFromUrl(started.approvalUrl));
+    const browserOpenEnabled = process.env.GROTTO_COMPUTER_DISABLE_BROWSER_OPEN !== '1';
+    const enterOpensBrowser = browserOpenEnabled && process.stdin.isTTY === true;
+    let browserOpenRequested = false;
+    if (browserOpenEnabled) {
+        try {
+            openUrlInBrowser(started.approvalUrl);
+            browserOpenRequested = true;
+        } catch {}
+    }
     console.log(`Approve this Computer in your browser: ${started.approvalUrl}`);
+    console.log(
+        browserOpenRequested
+            ? enterOpensBrowser
+                ? "Opened automatically. If it didn't open, press Enter to try again."
+                : "Opened automatically. If it didn't open, use the URL above."
+            : enterOpensBrowser
+              ? 'Press Enter to open the URL, or open it manually.'
+              : 'Open the URL above in a browser to continue.'
+    );
+    const cleanupEnterToOpen = browserOpenEnabled
+        ? installEnterToOpenUrl({
+              input: process.stdin,
+              url: started.approvalUrl,
+          })
+        : () => {};
     const attachment = await waitForApproval(
         started.approvalId,
         started.serverId,
         credential,
         slug
-    );
+    ).finally(cleanupEnterToOpen);
     if (current) {
         await stopAttachment(current);
         const archivedPath = await archiveUnlinkedAttachment(dataRoot, current);

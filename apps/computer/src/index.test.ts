@@ -13,6 +13,14 @@ const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
 test('setup stores only a Server credential and reruns by validation', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const browserBin = join(dataRoot, 'browser-bin');
+    const browserMarker = join(dataRoot, 'browser-opened.txt');
+    await mkdir(browserBin, { recursive: true });
+    await writeFile(
+        join(browserBin, 'open'),
+        '#!/bin/sh\nprintf \'%s\' "$1" > "$GROTTO_BROWSER_OPEN_MARKER"\n',
+        { mode: 0o755 }
+    );
     const effectiveAgentRoot = join(dataRoot, 'servers', 'srv_test', 'agents', 'agt_effective');
     await mkdir(effectiveAgentRoot, { recursive: true });
     await writeFile(
@@ -65,12 +73,17 @@ test('setup stores only a Server credential and reruns by validation', async () 
     try {
         const environment = {
             ...process.env,
+            GROTTO_BROWSER_OPEN_MARKER: browserMarker,
             GROTTO_COMPUTER_DATA_ROOT: dataRoot,
             GROTTO_COMPUTER_ONESHOT: '1',
             GROTTO_COMPUTER_USAGE_DISABLED: '1',
             GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+            PATH: `${browserBin}:${process.env.PATH ?? ''}`,
         };
         await runCli(environment);
+        expect(await waitForFile(browserMarker)).toBe(
+            `http://127.0.0.1:${peer.port}/computer/approve?approval=cap_1234567890123456&secret=${'s'.repeat(32)}`
+        );
         const attachmentRoot = join(dataRoot, 'servers', 'srv_test');
         const attachmentPath = join(dataRoot, 'servers', 'srv_test', 'attachment.json');
         const attachment = JSON.parse(await readFile(attachmentPath, 'utf8')) as Record<
@@ -177,13 +190,17 @@ test('setup preserves an unlinked attachment when replacement approval fails', a
         const child = Bun.spawn(['bun', entrypoint, 'setup', '/hq'], {
             env: {
                 ...process.env,
+                GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
                 GROTTO_COMPUTER_DATA_ROOT: dataRoot,
                 GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
             },
             stderr: 'pipe',
             stdout: 'pipe',
         });
+        const stdout = new Response(child.stdout).text();
         expect(await child.exited).toBe(1);
+        expect(await stdout).toContain('Open the URL above in a browser to continue.');
+        expect(await stdout).not.toContain('press Enter');
         expect(await stat(join(attachmentRoot, 'attachment.json'))).not.toBeNull();
         expect((await readdir(attachmentRoot)).some((file) => file.includes('.unlinked-'))).toBe(
             false
@@ -264,6 +281,7 @@ test('setup archives an unlinked attachment before connecting a recreated Server
         );
         await runCli({
             ...process.env,
+            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
             GROTTO_COMPUTER_DATA_ROOT: dataRoot,
             GROTTO_COMPUTER_ONESHOT: '1',
             GROTTO_COMPUTER_USAGE_DISABLED: '1',
@@ -543,4 +561,15 @@ async function runCli(environment: Record<string, string | undefined>) {
     });
     const exitCode = await child.exited;
     expect(exitCode, await new Response(child.stderr).text()).toBe(0);
+}
+
+async function waitForFile(path: string): Promise<string> {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+        try {
+            return await readFile(path, 'utf8');
+        } catch {
+            await Bun.sleep(10);
+        }
+    }
+    throw new Error(`Timed out waiting for ${path}.`);
 }

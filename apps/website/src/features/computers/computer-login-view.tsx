@@ -36,6 +36,7 @@ export function ComputerLoginApproval({
     const [searchParams, setSearchParams] = useSearchParams();
     const [userCode, setUserCode] = React.useState(searchParams.get('code') ?? '');
     const codeFromUrl = searchParams.get('code') ?? '';
+    const setupFlowFromUrl = searchParams.get('flow') === 'setup';
     const statusQuery = grottoTrpc.computer.login.status.useQuery(
         { userCode },
         {
@@ -46,7 +47,10 @@ export function ComputerLoginApproval({
     const utils = grottoTrpc.useUtils();
     const approve = grottoTrpc.computer.login.approve.useMutation({
         onSuccess: (result, variables) => {
-            utils.computer.login.status.setData({ userCode: variables.userCode }, result);
+            utils.computer.login.status.setData(
+                { userCode: variables.userCode },
+                setupFlowFromUrl ? { ...result, purpose: 'setup' } : result
+            );
         },
     });
     const deny = grottoTrpc.computer.login.deny.useMutation({
@@ -60,6 +64,12 @@ export function ComputerLoginApproval({
     }, [codeFromUrl]);
 
     const status = statusQuery.data?.status;
+    const setupFlow = Boolean(
+        setupFlowFromUrl ||
+            (statusQuery.data &&
+                'purpose' in statusQuery.data &&
+                statusQuery.data.purpose === 'setup')
+    );
     const isWorking = approve.isPending || deny.isPending;
     const submitCode = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -67,12 +77,14 @@ export function ComputerLoginApproval({
         approve.reset();
         deny.reset();
         setUserCode(nextCode);
-        setSearchParams(nextCode ? { code: nextCode } : {});
+        setSearchParams(
+            nextCode ? { code: nextCode, ...(setupFlow ? { flow: 'setup' } : {}) } : {}
+        );
     };
 
     return (
         <LoginFrame
-            description={loginDescription(status, accountLabel, signedIn)}
+            description={loginDescription(status, accountLabel, signedIn, setupFlow)}
             footer={
                 <LoginActions
                     accountLabel={accountLabel}
@@ -81,11 +93,12 @@ export function ComputerLoginApproval({
                     onDeny={() => deny.mutate({ userCode })}
                     onSignIn={onSignIn}
                     onSwitchAccount={onSwitchAccount}
+                    setupFlow={setupFlow}
                     signedIn={signedIn}
                     status={status}
                 />
             }
-            title={loginTitle(status)}
+            title={loginTitle(status, setupFlow)}
         >
             <Form className="w-full max-w-sm gap-3" onSubmit={submitCode}>
                 <TextField
@@ -133,6 +146,7 @@ function LoginActions({
     onDeny,
     onSignIn,
     onSwitchAccount,
+    setupFlow,
     signedIn,
     status,
 }: {
@@ -142,10 +156,23 @@ function LoginActions({
     onDeny: () => void;
     onSignIn: (() => void) | undefined;
     onSwitchAccount: (() => void) | undefined;
+    setupFlow: boolean;
     signedIn: boolean;
     status: ComputerLoginStatus | undefined;
 }) {
     if (status === 'consumed') {
+        if (setupFlow) {
+            return (
+                <div className="flex flex-col items-center gap-2">
+                    <Button onPress={() => window.close()} variant="secondary">
+                        Close this page
+                    </Button>
+                    <p className="text-center text-muted text-sm">
+                        If this page stays open, close it manually.
+                    </p>
+                </div>
+            );
+        }
         return (
             <Button onPress={() => window.close()} variant="secondary">
                 Close this page
@@ -204,12 +231,14 @@ export function LoginFrame({
     );
 }
 
-function loginTitle(status: ComputerLoginStatus | undefined) {
+function loginTitle(status: ComputerLoginStatus | undefined, setupFlow: boolean) {
     switch (status) {
         case 'approved':
             return 'Signed in — finishing the connection';
         case 'consumed':
-            return 'Grotto Computer signed in';
+            return setupFlow
+                ? 'Computer connected — you can close this page'
+                : 'Grotto Computer signed in';
         case 'denied':
             return 'Computer login denied';
         case 'expired':
@@ -228,13 +257,16 @@ function loginTitle(status: ComputerLoginStatus | undefined) {
 function loginDescription(
     status: ComputerLoginStatus | undefined,
     accountLabel: string | null,
-    signedIn: boolean
+    signedIn: boolean,
+    setupFlow: boolean
 ) {
     switch (status) {
         case 'approved':
             return 'Grotto Computer is completing its secure connection. Keep this page open for a moment.';
         case 'consumed':
-            return 'The standalone Computer login is complete. You can close this page.';
+            return setupFlow
+                ? 'The Computer attachment is saved locally. You can close this page.'
+                : 'The standalone Computer login is complete. You can close this page.';
         case 'denied':
             return 'This Computer login was denied. Start `grotto-computer login` again to try another request.';
         case 'expired':

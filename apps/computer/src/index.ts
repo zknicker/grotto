@@ -24,7 +24,11 @@ import {
     isTerminalUnlinked,
     markTerminalUnlinked,
 } from './attachment-recovery.ts';
-import { getOrCreatePendingAttachment, removePendingAttachment } from './attachment-state.ts';
+import {
+    getOrCreatePendingAttachment,
+    readPendingAttachment,
+    removePendingAttachment,
+} from './attachment-state.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import { installEnterToOpenUrl, openUrlInBrowser } from './browser-handoff.ts';
@@ -80,6 +84,7 @@ import {
 } from './launch.ts';
 import { replaceLaunchdService } from './launchd.ts';
 import {
+    completeComputerLogin,
     isComputerLoginRouteUnavailable,
     readComputerLoginSession,
     resolveComputerLogin,
@@ -291,6 +296,13 @@ async function main(args: string[]) {
         try {
             await validate(current);
             await clearTerminalUnlinked(dataRoot, current);
+            const pending = await readPendingAttachment(dataRoot, slug);
+            if (pending) {
+                const session = await readComputerLoginSession(dataRoot);
+                if (session?.origin === pending.origin) {
+                    await completeComputerLogin(session);
+                }
+            }
             await removePendingAttachment(dataRoot, slug);
             await startAttachment(current);
             console.log(`Grotto Computer resumed /${slug}.`);
@@ -339,7 +351,9 @@ async function setupServer(slug: string, current: Attachment | null) {
     try {
         session = await resolveComputerLogin({
             allowLogin: true,
+            complete: false,
             dataRoot,
+            purpose: 'setup',
             serverOrigin,
         });
     } catch (cause) {
@@ -363,7 +377,9 @@ async function setupServer(slug: string, current: Attachment | null) {
             throw cause;
         }
         session = await runComputerLogin({
+            complete: false,
             dataRoot,
+            purpose: 'setup',
             replace: true,
             serverOrigin,
         });
@@ -376,6 +392,7 @@ async function setupServer(slug: string, current: Attachment | null) {
         console.log(`Archived the stale Computer attachment at ${archivedPath}.`);
     }
     await writeAttachment(issued.attachment);
+    await completeComputerLogin(session);
     await removePendingAttachment(dataRoot, slug);
     await startAttachment(issued.attachment);
     console.log(`Grotto Computer attached to /${slug}.`);

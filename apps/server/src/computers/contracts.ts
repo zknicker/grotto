@@ -39,7 +39,13 @@ export const validateComputerCredentialSchema = z
 export const approveComputerSetupSchema = z
     .object({ approvalId: computerApprovalIdSchema, secret: computerApprovalSecretSchema })
     .strict();
-export const beginComputerLoginSchema = z.object({ origin: computerLoginOriginSchema }).strict();
+export const computerLoginPurposeSchema = z.enum(['login', 'setup']);
+export const beginComputerLoginSchema = z
+    .object({
+        origin: computerLoginOriginSchema,
+        purpose: computerLoginPurposeSchema.default('login'),
+    })
+    .strict();
 export const pollComputerLoginSchema = z
     .object({ deviceCode: computerLoginDeviceCodeSchema })
     .strict();

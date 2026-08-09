@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.2 - 2026-08-08
+
+- Fresh onboarding now creates Cove's built-in direct message with the Server
+  Owner, so the Owner can open Cove immediately after setup.
+- Grotto Computer 1.3.1 and Runtime 1.8.2 correct Codex and Claude Code bridge
+  bootstrap targeting so dependencies install and launch from their dedicated
+  harness directories.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.2
+- Desktop: Publish v1.8.2
+- Computer: Publish v1.3.1
+- Runtime: Publish v1.8.2
+
 ## v1.8.1 - 2026-08-08
 
 - Fixed Cove onboarding and Add Computer to show the standalone Computer's one

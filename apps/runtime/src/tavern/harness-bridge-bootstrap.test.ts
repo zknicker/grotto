@@ -51,14 +51,20 @@ describe('harness bridge bootstrap', () => {
         });
     });
 
-    it('runs bridge package install from the bootstrap directory', async () => {
-        const bootstrap = await withRuntimeBridgeBootstrap(fakeHarness(), 'codex').getBootstrap!();
+    for (const bridge of [
+        { bootstrapDir: '/tmp/harness/codex', harnessId: 'codex' as const },
+        { bootstrapDir: '/tmp/harness/claude-code', harnessId: 'claude-code' as const },
+    ]) {
+        it(`targets the ${bridge.harnessId} bootstrap directory explicitly`, async () => {
+            const bootstrap = await withRuntimeBridgeBootstrap(fakeHarness(), bridge.harnessId)
+                .getBootstrap!();
 
-        expect(bootstrap.commands).toContainEqual({
-            command:
-                'CI=true pnpm install --frozen-lockfile --store-dir /tmp/harness/codex/.pnpm-store',
+            expect(bootstrap.bootstrapDir).toBe(bridge.bootstrapDir);
+            expect(bootstrap.commands?.[1]).toEqual({
+                command: `CI=true pnpm --dir ${bridge.bootstrapDir} install --frozen-lockfile --store-dir ${bridge.bootstrapDir}/.pnpm-store`,
+            });
         });
-    });
+    }
 });
 
 function fakeHarness() {

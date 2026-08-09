@@ -37,7 +37,7 @@ const bridgeSpecs = {
         harnessId: 'claude-code',
         packageName: '@ai-sdk/harness-claude-code',
         postInstallCommands: [
-            'cd /tmp/harness/claude-code && if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version',
+            'if [ -f /tmp/harness/claude-code/node_modules/@anthropic-ai/claude-code/install.cjs ]; then node /tmp/harness/claude-code/node_modules/@anthropic-ai/claude-code/install.cjs; fi && /tmp/harness/claude-code/node_modules/.bin/claude --version',
         ],
     },
     codex: {
@@ -82,7 +82,7 @@ async function readBridgeBootstrap(spec: BridgeBootstrapSpec): Promise<HarnessV1
         commands: [
             { command: `mkdir -p ${spec.bootstrapDir}` },
             {
-                command: `CI=true pnpm install --frozen-lockfile --store-dir ${spec.bootstrapDir}/.pnpm-store`,
+                command: `CI=true pnpm --dir ${spec.bootstrapDir} install --frozen-lockfile --store-dir ${spec.bootstrapDir}/.pnpm-store`,
             },
             ...(spec.postInstallCommands ?? []).map((command) => ({ command })),
         ],

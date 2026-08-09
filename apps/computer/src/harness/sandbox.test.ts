@@ -89,9 +89,16 @@ test('sandbox permits only the shared derived harness bootstrap outside the Agen
             path: join(bootstrapDir, 'bridge.mjs'),
         })
     ).resolves.toBeUndefined();
+    await session.writeTextFile?.({
+        content: '{"private":true}',
+        path: join(bootstrapDir, 'package.json'),
+    });
     const canonicalBootstrapDir = await realpath(bootstrapDir);
     await expect(
-        session.run?.({ command: 'pwd', workingDirectory: bootstrapDir })
+        session.run?.({
+            command: 'test -f package.json && pwd',
+            workingDirectory: bootstrapDir,
+        })
     ).resolves.toMatchObject({
         exitCode: 0,
         stdout: `${canonicalBootstrapDir}\n`,

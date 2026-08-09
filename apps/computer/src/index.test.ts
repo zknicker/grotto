@@ -35,7 +35,7 @@ test('setup stores only a Server credential and reruns by validation', async () 
     const requests: string[] = [];
     const socketFrames: unknown[] = [];
     const peer = Bun.serve({
-        fetch(request, server) {
+        async fetch(request, server) {
             const url = new URL(request.url);
             requests.push(`${request.method} ${url.pathname}`);
             if (url.pathname === '/computer/attachment') {
@@ -59,6 +59,13 @@ test('setup stores only a Server credential and reruns by validation', async () 
             }
             if (url.pathname === '/computer/validate') {
                 return Response.json({ id: 'cmp_1234567890123456' });
+            }
+            if (url.pathname === '/computer/login') {
+                expect(await request.json()).toEqual({
+                    origin: url.origin,
+                    purpose: 'setup',
+                });
+                return Response.json({ error: 'Unrecognized key: "purpose"' }, { status: 400 });
             }
             return new Response('missing', { status: 404 });
         },
@@ -154,6 +161,7 @@ test('login exchanges a device grant and atomically stores an origin-bound sessi
             const url = new URL(request.url);
             requests.push(`${request.method} ${url.pathname}`);
             if (url.pathname === '/computer/login' && request.method === 'POST') {
+                expect(await request.json()).toEqual({ origin: url.origin });
                 return Response.json({
                     deviceCode: 'd'.repeat(43),
                     expiresAt: new Date(Date.now() + 60_000).toISOString(),

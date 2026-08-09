@@ -79,9 +79,6 @@ export function registerComputerRoutes(
             const started = await beginComputerLogin(options.db, input);
             const verificationUrl = new URL('/computer/login', options.appOrigin);
             verificationUrl.searchParams.set('code', started.userCode);
-            if (started.purpose === 'setup') {
-                verificationUrl.searchParams.set('flow', 'setup');
-            }
             return {
                 deviceCode: started.deviceCode,
                 expiresAt: started.expiresAt.toISOString(),

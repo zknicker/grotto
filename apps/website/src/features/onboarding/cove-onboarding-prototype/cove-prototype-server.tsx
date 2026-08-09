@@ -1,7 +1,8 @@
 import { Button, Input, InputGroup, Label, TextField } from '@heroui/react';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
-import { type CovePrototypeState, slugifyServerName } from './cove-prototype-model.ts';
+import { slugifyServerName } from '../../servers/server-slug.ts';
+import type { CovePrototypeState } from './cove-prototype-model.ts';
 import { StepSection } from './cove-prototype-shell.tsx';
 
 const prototypeServers = [

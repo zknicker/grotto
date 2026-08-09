@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateServer } from '../../hooks/servers/use-create-server.ts';
 import { serverRoute } from './server-routes.ts';
+import { slugifyServerName } from './server-slug.ts';
 
 /** Creates a Grotto server and opens it at its new address. */
 export function CreateServerForm({ onCreated }: { onCreated?: () => void } = {}) {
@@ -10,6 +11,19 @@ export function CreateServerForm({ onCreated }: { onCreated?: () => void } = {})
     const createServer = useCreateServer();
     const [displayName, setDisplayName] = React.useState('');
     const [slug, setSlug] = React.useState('');
+    const [isSlugEdited, setIsSlugEdited] = React.useState(false);
+
+    const handleDisplayNameChange = (nextDisplayName: string) => {
+        setDisplayName(nextDisplayName);
+        if (!isSlugEdited) {
+            setSlug(slugifyServerName(nextDisplayName));
+        }
+    };
+
+    const handleSlugChange = (nextSlug: string) => {
+        setIsSlugEdited(true);
+        setSlug(nextSlug);
+    };
 
     return (
         <Form
@@ -27,14 +41,19 @@ export function CreateServerForm({ onCreated }: { onCreated?: () => void } = {})
                 );
             }}
         >
-            <TextField fullWidth onChange={setDisplayName} value={displayName} variant="secondary">
+            <TextField
+                fullWidth
+                onChange={handleDisplayNameChange}
+                value={displayName}
+                variant="secondary"
+            >
                 <Label htmlFor="server-display-name">Name</Label>
                 <Input autoComplete="off" id="server-display-name" placeholder="Grotto HQ" />
             </TextField>
             <TextField
                 fullWidth
                 isInvalid={Boolean(createServer.error)}
-                onChange={setSlug}
+                onChange={handleSlugChange}
                 value={slug}
                 variant="secondary"
             >

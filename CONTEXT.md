@@ -50,11 +50,11 @@ _Avoid_: Grotto Computer CLI, human administration CLI, local service
 **Grotto Computer CLI**:
 The human-operated `grotto-computer` command that installs, attaches, inspects, and controls Grotto
 Computer on a physical machine. Its release artifact also embeds the managed Grotto CLI
-implementation behind an internal entrypoint. `setup` performs inline device authorization and is
-the only attachment flow; there is no persistent human CLI session or `login`, `logout`, or
-standalone `attach` command. Re-running `setup` reuses a valid local attachment and fails closed
-rather than replacing an attachment whose credential is rejected. Setup is additive across
-Servers: adding another Server starts another isolated runner without stopping existing runners.
+implementation behind an internal entrypoint. Its human lifecycle is `login`, `logout`, `attach`,
+`setup`, and `status`; `setup` logs in if needed, attaches one Server, and starts the service.
+Re-running `setup` reuses a valid local attachment and fails closed rather than replacing an
+attachment whose credential is rejected. Setup is additive across Servers: adding another Server
+starts another isolated runner without stopping existing runners.
 Stopping Grotto Computer is temporary and preserves every attachment; permanent Computer removal
 is an App action, not a CLI detach operation. A manual `stop` persists across machine restarts
 until an operator explicitly runs `start`; otherwise the installed OS service starts
@@ -93,13 +93,13 @@ do not own this root.
 _Avoid_: Computer data root, Agent workspace, attachment state
 
 **Computer data root**:
-The stable, version-independent local root containing Computer identity, Server attachment state,
-delivery queues, logs, and Agent workspace directories. It is outside npm package and executable
-locations. Updates drain Agents before changing code and never replace, recursively clean, or
-relocate this root. The updater does not snapshot the data root or Agent workspaces; small
-Computer-owned records use atomic writes, and local schema changes are transactional. Its canonical
-path is `~/.grotto`; resident service state lives under `computer/`, while each attachment owns
-`computer/servers/<server-id>/` with its credential, vault, queues, and
+The stable, version-independent local root containing the Computer login session, Server attachment
+state, delivery queues, logs, and Agent workspace directories. It is outside npm package and
+executable locations. Updates drain Agents before changing code and never replace, recursively
+clean, or relocate this root. The updater does not snapshot the data root or Agent workspaces;
+small Computer-owned records use atomic writes, and local schema changes are transactional. Its
+canonical path is `~/.grotto`; resident service state lives under `computer/`, while each attachment
+owns `computer/servers/<server-id>/` with its credential, vault, queues, and
 `agents/<agent-id>/{home,skills,workspace,runtime}/` directories. Removing or reinstalling the
 standalone executable never deletes this root. Reinstalling resumes every still-valid attachment
 and workspace.
@@ -146,13 +146,17 @@ Grotto Computer keeps it behind the localhost proxy and revokes it when the laun
 Agent process and shell never receive it.
 _Avoid_: Agent proxy credential, external Agent credential, Computer credential, provider credential
 
+**Computer login session**:
+A revocable, machine-local human session bound to one Grotto origin and used by Grotto Computer to
+discover and manage Computers across the signed-in User's Servers. It never authenticates Agent
+execution or grants Chat access.
+_Avoid_: Clerk browser session, Computer credential, Agent session, provider login
+
 **Computer credential**:
-A revocable credential issued by one Grotto server after single-use, expiring, human-approved
-device authorization during `grotto-computer setup`. It authenticates one Computer attachment's
-outbound connection and grants no human or cross-Server authority. The temporary human
-authorization is discarded after exchange; Grotto Computer stores no human session. The
-credential is stored in an atomic, mode-`0600` attachment file under the Computer data root, not
-macOS Keychain.
+A revocable credential issued by one Grotto server when an authorized Computer login session
+attaches a physical machine. It authenticates one Computer attachment's outbound connection and
+grants no human or cross-Server authority. The credential is stored in an atomic, mode-`0600`
+attachment file under the Computer data root, not macOS Keychain.
 _Avoid_: Human session, Agent credential, provider credential, shared Runtime token
 
 **Server member**:

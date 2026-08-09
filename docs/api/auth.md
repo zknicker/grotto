@@ -20,6 +20,7 @@ describes the local-owner surfaces that still exist.
 | Boundary | Trust |
 | --- | --- |
 | Electron shell and local Node app | One Grotto App product boundary |
+| Grotto Computer management to Server | Revocable Computer login session with no Chat or execution authority |
 | Grotto App to Grotto Runtime | Paired local transport with runtime credentials |
 | Runtime to model providers | Provider-specific local OAuth or API-key credentials |
 | External client to Grotto API | Explicit Grotto-issued credentials when exposed |
@@ -135,3 +136,21 @@ implemented surface:
   desktop shell contains no separate React or Clerk build. Before release,
   both Clerk instances must whitelist the canonical
   `grotto://sso-callback` redirect.
+
+## Computer Login Sessions
+
+The human-operated Grotto Computer CLI uses one active, machine-local Computer login session per
+Computer data root, bound to one Grotto origin. Its short-lived access token and rotating refresh
+token authorize identity, Server/role discovery, Computer attachment and recovery, and Computer
+lifecycle records.
+They do not authorize Chats, Agent actions, Runtime execution, or provider access. The session is
+stored atomically with mode `0600`; Server attachment credentials remain independent and continue
+to authenticate runners without the human session.
+
+Clerk authenticates the User in the browser but does not implement Grotto's device grant. Grotto
+Server owns the short human-readable code, complete and manual verification URLs, expiry, polling,
+one-time exchange, refresh rotation, and revocation. The code alone grants nothing: a signed-in User
+must approve it explicitly, and Server attachment still requires Owner or Admin authority. Account
+switching stays in the Clerk-backed browser flow. `grotto-computer logout` revokes the refresh-token
+family, removes the local session, and stops the resident service without deleting Server-scoped
+Computer credentials or workspaces.

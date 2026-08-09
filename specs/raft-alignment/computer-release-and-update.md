@@ -115,9 +115,12 @@ compatibility with previously published App builds, the installer still accepts 
 5. Installs the resident service. The separately copied setup command attaches the selected
    Server; a legacy combined invocation also runs setup directly.
 
-Setup opens its short-lived approval URL in the default browser, always prints the URL as a
-fallback, and lets an interactive operator press Enter to retry the browser handoff. The command
-continues polling and completes automatically after an authenticated Owner or Admin approves it.
+Setup reuses or refreshes the machine-local Computer login session. When login is needed, it opens
+the complete device URL in the default browser, always prints that URL and the short code for manual
+entry, and lets an interactive operator press Enter to retry the handoff. The command continues
+polling after Clerk-backed approval, attaches the selected Server with a persisted idempotency key,
+and completes automatically. The browser distinguishes **Signed in — finishing the connection**
+from the final **Computer connected — you can close this page** state.
 
 The installed executable then uses its embedded Ed25519 key for every later update. Reinstalling
 code never deletes or adopts `~/.grotto`.

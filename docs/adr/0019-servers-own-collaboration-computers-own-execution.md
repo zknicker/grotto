@@ -14,7 +14,8 @@ read_when:
 Accepted 2026-07-25 for WS6 of the Raft-alignment program. ADR 0021 supersedes
 only this ADR's statements that first-Agent setup is optional and that Cove
 uses a normal Owner-to-Cove DM; the Server/Computer ownership boundary remains
-accepted.
+accepted. ADR 0022 supersedes this ADR's inline approval and no-human-session
+Computer setup decision while preserving the same execution boundary.
 
 ## Decision
 
@@ -85,21 +86,19 @@ Agent.
 > correction does not change the Server/Computer ownership boundary below.
 
 Grotto Computer is the local execution service. One installation may maintain
-isolated Computer attachments to multiple Grotto servers. Each attachment
-uses a revocable, Server-scoped Computer credential minted through
-single-use, expiring, human-approved device authorization performed inline by
-`grotto-computer setup`. The Server verifies current Owner or Admin authority,
-mints the Computer credential, and discards the temporary human authorization;
-the CLI stores no human access or refresh session. Existing runners depend
-only on their Server-scoped Computer credentials. Grotto Computer therefore
-has no `login`, `logout`, or standalone `attach` command; `setup` is the one
-attachment flow. Re-running `setup` for a valid local attachment validates and
-starts that attachment idempotently. If its credential is rejected while the
-Server attachment may still exist, `setup` fails closed and directs the
-operator to the App; it never silently creates a replacement Computer or
-adopts the old identity. Computers own Agent workspaces, provider
-credentials, executable model inventory, skill bundles, Agent sessions,
-processes, and effective execution state. An Agent is created on one Computer and that
+isolated Computer attachments to multiple Grotto servers. A reusable,
+machine-local Computer login session authorizes management across the signed-in
+User's Servers; each attachment then uses its own revocable, Server-scoped
+Computer credential. Existing runners depend only on those Server-scoped
+credentials and never receive the human session. The Computer CLI exposes
+`login`, `logout`, `attach`, `setup`, and `status`; `setup` logs in if needed,
+attaches one Server, and starts the service. Re-running `setup` for a valid
+local attachment validates and starts that attachment idempotently. If its
+credential is rejected while the Server attachment may still exist, `setup`
+fails closed and directs the operator to the App; it never silently creates a
+replacement Computer or adopts the old identity. Computers own Agent
+workspaces, provider credentials, executable model inventory, skill bundles,
+Agent sessions, processes, and effective execution state. An Agent is created on one Computer and that
 assignment is immutable. If the Computer is offline, its Agents remain
 assigned and offline until that same Computer reconnects. Grotto does not
 migrate, adopt, or restart an existing Agent on another Computer. A Computer

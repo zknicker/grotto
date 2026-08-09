@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ActivationShell } from '../../../components/activation/activation-shell.tsx';
 import { ConnectComputerStep } from './cove-prototype-connect.tsx';
 import { MeetCoveStep } from './cove-prototype-cove.tsx';
 import { HandoffStep, OnboardingChatStep } from './cove-prototype-handoff.tsx';
@@ -42,24 +43,23 @@ export function CoveOnboardingPrototype() {
     const isValidationPreview = state === 'validation-error';
 
     return (
-        <div className="cove-prototype min-h-dvh bg-background text-foreground">
-            <header className="cove-frame-header">
-                {isServerSelectionState(state) ? null : <SetupProgressMarker state={state} />}
+        <ActivationShell
+            end={
                 <div className="cove-review-controls">
                     <ReviewStateSelect onStateChange={handleStateChange} state={state} />
                 </div>
-            </header>
-            <main className="cove-frame-main">
-                {renderState({
-                    modelId: isValidationPreview ? '' : modelId,
-                    onModelChange: setModelId,
-                    onRuntimeChange: setRuntimeId,
-                    onStateChange: handleStateChange,
-                    runtimeId: isValidationPreview ? '' : runtimeId,
-                    state,
-                })}
-            </main>
-        </div>
+            }
+            progress={isServerSelectionState(state) ? null : <SetupProgressMarker state={state} />}
+        >
+            {renderState({
+                modelId: isValidationPreview ? '' : modelId,
+                onModelChange: setModelId,
+                onRuntimeChange: setRuntimeId,
+                onStateChange: handleStateChange,
+                runtimeId: isValidationPreview ? '' : runtimeId,
+                state,
+            })}
+        </ActivationShell>
     );
 }
 

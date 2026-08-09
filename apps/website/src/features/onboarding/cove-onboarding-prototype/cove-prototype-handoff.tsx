@@ -1,7 +1,7 @@
 import { Button, Input, Label, TextField } from '@heroui/react';
+import { ActivationStep } from '../../../components/activation/activation-shell.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import type { CovePrototypeState } from './cove-prototype-model.ts';
-import { StepHeading, StepSection } from './cove-prototype-shell.tsx';
 
 const onboardingMessages = [
     {
@@ -21,7 +21,7 @@ export function HandoffStep({
     onStateChange: (state: CovePrototypeState) => void;
 }) {
     return (
-        <StepSection
+        <ActivationStep
             footer={
                 <Button fullWidth onPress={() => onStateChange('onboarding-chat')}>
                     Open onboarding Chat
@@ -32,15 +32,22 @@ export function HandoffStep({
             <div className="flex flex-col items-center gap-4 text-center">
                 <EntityAvatar name="Cove" size={88} src="/prototypes/cove-avatar.png" />
             </div>
-        </StepSection>
+        </ActivationStep>
     );
 }
 
 /** Step 3b. The App is unlocked — this is the real Chat, not a setup card. */
 export function OnboardingChatStep() {
     return (
-        <section className="cove-step w-full">
-            <StepHeading title="#onboarding-owner" />
+        <ActivationStep
+            footer={
+                <TextField className="w-full" isDisabled>
+                    <Label className="sr-only">Message #onboarding-owner</Label>
+                    <Input placeholder="Message #onboarding-owner" variant="secondary" />
+                </TextField>
+            }
+            title="#onboarding-owner"
+        >
             <div className="grid gap-4">
                 {onboardingMessages.map((message) => (
                     <div className="flex gap-3" key={message.time + message.body}>
@@ -57,12 +64,6 @@ export function OnboardingChatStep() {
                     </div>
                 ))}
             </div>
-            <footer className="cove-step-footer">
-                <TextField className="w-full" isDisabled>
-                    <Label className="sr-only">Message #onboarding-owner</Label>
-                    <Input placeholder="Message #onboarding-owner" variant="secondary" />
-                </TextField>
-            </footer>
-        </section>
+        </ActivationStep>
     );
 }

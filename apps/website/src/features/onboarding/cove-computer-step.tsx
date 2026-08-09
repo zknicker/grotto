@@ -1,4 +1,5 @@
 import { Tabs } from '@heroui/react';
+import { ActivationStep } from '../../components/activation/activation-shell.tsx';
 import type { ServerDetail } from '../../lib/grotto-server.tsx';
 import { ComputerSetupCommands } from '../computers/computer-setup-commands.tsx';
 import type { CoveOnboardingView } from './cove-onboarding-model.ts';
@@ -6,11 +7,7 @@ import {
     type CoveStatusLine,
     covePrototypePlatforms,
 } from './cove-onboarding-prototype/cove-prototype-model.ts';
-import {
-    StatusLineList,
-    StepSection,
-    SwitchServerButton,
-} from './cove-onboarding-prototype/cove-prototype-shell.tsx';
+import { StatusLineList, SwitchServerButton } from './cove-step-parts.tsx';
 
 export function CoveComputerStep({
     failure,
@@ -24,7 +21,7 @@ export function CoveComputerStep({
     view: Exclude<CoveOnboardingView, 'app' | 'meet-cove'>;
 }) {
     return (
-        <StepSection
+        <ActivationStep
             footer={<SwitchServerButton onPress={onSwitchServer} />}
             title="Connect a Computer"
         >
@@ -54,7 +51,7 @@ export function CoveComputerStep({
                 </Tabs>
                 <StatusLineList lines={statusLines(view, failure)} />
             </div>
-        </StepSection>
+        </ActivationStep>
     );
 }
 

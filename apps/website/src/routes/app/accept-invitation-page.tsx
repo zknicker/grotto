@@ -1,5 +1,6 @@
-import { Button } from '@heroui/react';
+import { Button, Spinner } from '@heroui/react';
 import { useParams } from 'react-router-dom';
+import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import {
     useAcceptInvitation,
     useInvitationPreview,
@@ -25,7 +26,11 @@ export function AcceptInvitationPage() {
     }
 
     if (!preview.data) {
-        return null;
+        return (
+            <ActivationShell>
+                <Spinner aria-label="Checking your invitation" size="sm" />
+            </ActivationShell>
+        );
     }
 
     if (!preview.data.emailMatches) {
@@ -38,28 +43,28 @@ export function AcceptInvitationPage() {
     }
 
     return (
-        <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-6 py-24 text-center">
-            <div className="flex flex-col gap-2">
-                <h1 className="font-semibold text-2xl text-foreground">
-                    Join {preview.data.serverDisplayName}
-                </h1>
-                <p className="text-muted text-sm">
-                    You will join /{preview.data.serverSlug} as a member of #all.
-                </p>
-            </div>
-            <Button isPending={accept.isPending} onPress={() => accept.mutate({ token })} size="lg">
-                Accept Invitation
-            </Button>
-            {accept.error ? <p className="text-danger text-sm">{accept.error.message}</p> : null}
-        </main>
+        <ActivationShell>
+            <ActivationStep
+                description={`You will join /${preview.data.serverSlug} as a member of #all.`}
+                footer={
+                    <Button isPending={accept.isPending} onPress={() => accept.mutate({ token })}>
+                        Accept Invitation
+                    </Button>
+                }
+                title={`Join ${preview.data.serverDisplayName}`}
+            >
+                {accept.error ? (
+                    <p className="text-center text-danger text-sm">{accept.error.message}</p>
+                ) : null}
+            </ActivationStep>
+        </ActivationShell>
     );
 }
 
 function InvitationMessage({ detail, title }: { detail: string; title: string }) {
     return (
-        <main className="flex h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-            <h1 className="font-semibold text-foreground text-lg">{title}</h1>
-            <p className="max-w-sm text-muted text-sm">{detail}</p>
-        </main>
+        <ActivationShell>
+            <ActivationStep description={detail} title={title} />
+        </ActivationShell>
     );
 }

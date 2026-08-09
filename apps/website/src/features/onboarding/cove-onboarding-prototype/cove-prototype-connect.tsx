@@ -1,12 +1,13 @@
 import { Button, Tabs } from '@heroui/react';
+import { ActivationStep } from '../../../components/activation/activation-shell.tsx';
 import { ComputerSetupCommands } from '../../computers/computer-setup-commands.tsx';
+import { StatusLineList, SwitchServerButton } from '../cove-step-parts.tsx';
 import {
     type CovePrototypeState,
     covePrototypePlatforms,
     covePrototypeServerSlug,
     getConnectStatusLines,
 } from './cove-prototype-model.ts';
-import { StatusLineList, StepSection, SwitchServerButton } from './cove-prototype-shell.tsx';
 
 /**
  * Step 1. The command is the whole interaction: the owner runs it in a
@@ -24,7 +25,7 @@ export function ConnectComputerStep({
     const canAdvance = state === 'runtimes-detected';
 
     return (
-        <StepSection
+        <ActivationStep
             footer={
                 <>
                     <SwitchServerButton onPress={() => onStateChange('choose-server')} />
@@ -73,6 +74,6 @@ export function ConnectComputerStep({
                     </Button>
                 ) : null}
             </div>
-        </StepSection>
+        </ActivationStep>
     );
 }

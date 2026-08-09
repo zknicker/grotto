@@ -31,6 +31,9 @@ export const beginComputerLoginSchema = z.object({ origin: computerLoginOriginSc
 export const pollComputerLoginSchema = z
     .object({ deviceCode: computerLoginDeviceCodeSchema })
     .strict();
+export const completeComputerLoginSchema = z
+    .object({ accessToken: z.string().min(1).max(256) })
+    .strict();
 export const computerLoginStatusSchema = z
     .object({ userCode: computerLoginUserCodeSchema })
     .strict();

@@ -151,10 +151,13 @@ without the human session.
 Clerk authenticates the User in the browser but does not implement Grotto's device grant. Grotto
 Server owns the short human-readable code, complete and manual verification URLs, expiry, polling,
 one-time exchange, refresh rotation, and revocation. Phase one exposes this as
-`grotto-computer login`, `POST /computer/login`, `POST /computer/login/poll`, and the public
+`grotto-computer login`, `POST /computer/login`, `POST /computer/login/poll`,
+`POST /computer/login/complete`, and the public
 `computer.login.status` plus Clerk-authenticated `computer.login.approve` and
 `computer.login.deny` procedures. The code alone grants nothing: a signed-in User must approve it
-explicitly, and the returned session is bound to the origin the CLI contacted. The existing
+explicitly, and the returned session is bound to the origin the CLI contacted. After atomically
+storing the returned session, the CLI proves persistence with its access token; the browser does
+not report completion before that acknowledgement. The existing
 one-off `computer/setup` approval remains available for compatibility while attachment migration
 lands in later phases. Account switching stays in the Clerk-backed browser flow. Logout, refresh
 rotation, and attachment migration are subsequent contracts; phase one does not expose them.

@@ -4,10 +4,12 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     beginComputerLoginSchema,
     beginComputerSetupSchema,
+    completeComputerLoginSchema,
     computerSetupStatusSchema,
     pollComputerLoginSchema,
     validateComputerCredentialSchema,
 } from './contracts.ts';
+import { completeComputerLogin } from './login-completion.ts';
 import { ComputerLoginError } from './login-errors.ts';
 import { beginComputerLogin, pollComputerLogin } from './login-service.ts';
 import { mintRunnerCredential, revokeRunnerCredential } from './runner-credentials.ts';
@@ -71,6 +73,14 @@ export function registerComputerRoutes(
         try {
             const input = pollComputerLoginSchema.parse(request.body);
             return await pollComputerLogin(options.db, input);
+        } catch (cause) {
+            return loginError(reply, cause);
+        }
+    });
+    app.post('/computer/login/complete', async (request, reply) => {
+        try {
+            const input = completeComputerLoginSchema.parse(request.body);
+            return await completeComputerLogin(options.db, input);
         } catch (cause) {
             return loginError(reply, cause);
         }

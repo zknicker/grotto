@@ -29,6 +29,14 @@ async function pollLogin(harness: GrottoServerHarness, deviceCode: string) {
     });
 }
 
+async function completeLogin(harness: GrottoServerHarness, accessToken: string) {
+    return await fetch(new URL('/computer/login/complete', harness.url), {
+        body: JSON.stringify({ accessToken }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+}
+
 test('Computer login grants approve without Server membership and exchange once', async () => {
     const harness = await startGrottoServerHarness();
     const client = createGrottoClient(
@@ -76,12 +84,23 @@ test('Computer login grants approve without Server membership and exchange once'
         expect(session.accessTokenExpiresAt).toEqual(expect.any(String));
         expect(session.refreshTokenExpiresAt).toEqual(expect.any(String));
 
+        expect(
+            await client.trpc.computer.login.status.query({ userCode: started.userCode })
+        ).toEqual({ status: 'approved' });
+
+        const completed = await completeLogin(harness, session.accessToken);
+        expect(completed.status).toBe(200);
+        expect(await completed.json()).toEqual({ status: 'completed' });
+        expect(
+            await client.trpc.computer.login.status.query({ userCode: started.userCode })
+        ).toEqual({ status: 'consumed' });
+
         const consumed = await pollLogin(harness, started.deviceCode);
         expect(consumed.status).toBe(409);
         expect(await consumed.json()).toMatchObject({ code: 'computer_login_consumed' });
 
         const rows = await harness.sql`
-            SELECT origin, clerk_user_id, access_token_hash, refresh_token_hash
+            SELECT origin, clerk_user_id, access_token_hash, refresh_token_hash, stored_at
             FROM computer_login_sessions
         `;
         expect(rows).toHaveLength(1);
@@ -91,6 +110,7 @@ test('Computer login grants approve without Server membership and exchange once'
         });
         expect(rows[0].access_token_hash).not.toContain(session.accessToken);
         expect(rows[0].refresh_token_hash).not.toContain(session.refreshToken);
+        expect(rows[0].stored_at).toBeInstanceOf(Date);
     } finally {
         client.close();
         await harness.close();

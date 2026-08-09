@@ -63,6 +63,7 @@ export const computerLoginSessionsTable = pgTable(
         }).notNull(),
         refreshTokenHash: text('refresh_token_hash').notNull(),
         revokedAt: timestamp('revoked_at', { withTimezone: true }),
+        storedAt: timestamp('stored_at', { withTimezone: true }),
     },
     (table) => [
         uniqueIndex('computer_login_sessions_grant_key').on(table.grantId),

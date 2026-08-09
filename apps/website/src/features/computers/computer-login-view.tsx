@@ -45,13 +45,13 @@ export function ComputerLoginApproval({
     );
     const utils = grottoTrpc.useUtils();
     const approve = grottoTrpc.computer.login.approve.useMutation({
-        onSuccess: () => {
-            void utils.computer.login.status.invalidate({ userCode });
+        onSuccess: (result, variables) => {
+            utils.computer.login.status.setData({ userCode: variables.userCode }, result);
         },
     });
     const deny = grottoTrpc.computer.login.deny.useMutation({
-        onSuccess: () => {
-            void utils.computer.login.status.invalidate({ userCode });
+        onSuccess: (result, variables) => {
+            utils.computer.login.status.setData({ userCode: variables.userCode }, result);
         },
     });
 
@@ -59,7 +59,7 @@ export function ComputerLoginApproval({
         setUserCode(codeFromUrl);
     }, [codeFromUrl]);
 
-    const status = approve.data?.status ?? deny.data?.status ?? statusQuery.data?.status;
+    const status = statusQuery.data?.status;
     const isWorking = approve.isPending || deny.isPending;
     const submitCode = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();

@@ -92,7 +92,8 @@ Existing Servers are not migrated.
 Computer login grants store hashed one-use device codes, short-code approval
 state, expiry, and the approving Clerk identity. Consumed grants own one
 origin-bound Computer login session whose access and refresh tokens are stored
-only as hashes; the raw session is returned once to the CLI.
+only as hashes; the raw session is returned once to the CLI. `stored_at` records
+the CLI's post-persistence acknowledgement and gates the browser's completed state.
 Channels store participants in `channel_participants`; a DM stores its sorted
 two-User pair and both membership stint numbers directly on `chats` and has no
 duplicate participant rows. The pair plus both stints is unique. Visibility

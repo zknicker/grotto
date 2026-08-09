@@ -177,6 +177,14 @@ test('login exchanges a device grant and atomically stores an origin-bound sessi
                     status: 'approved',
                 });
             }
+            if (url.pathname === '/computer/login/complete' && request.method === 'POST') {
+                const session = JSON.parse(
+                    await readFile(join(dataRoot, 'login.json'), 'utf8')
+                ) as Record<string, string>;
+                expect(session.accessToken).toBe('gcl_at_access-token');
+                expect(await request.json()).toEqual({ accessToken: 'gcl_at_access-token' });
+                return Response.json({ status: 'completed' });
+            }
             return new Response('missing', { status: 404 });
         },
         port: 0,
@@ -206,6 +214,7 @@ test('login exchanges a device grant and atomically stores an origin-bound sessi
             'POST /computer/login',
             'POST /computer/login/poll',
             'POST /computer/login/poll',
+            'POST /computer/login/complete',
         ]);
 
         const sessionPath = join(dataRoot, 'login.json');

@@ -16,8 +16,8 @@ import { serversTable } from '../postgres/schema.ts';
  *
  * Transactions that take it: Server rename, message send, read marking, Thread
  * following, DM creation, task writes, invitation creation/acceptance/revocation,
- * role change, removal, leaving, reminder scheduling/mutation/firing, and
- * operator reminder cancellation.
+ * role change, removal, leaving, Computer attachment, reminder
+ * scheduling/mutation/firing, and operator reminder cancellation.
  */
 export async function lockServerRow(
     tx: Pick<GrottoDatabase, 'execute'>,

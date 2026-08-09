@@ -110,6 +110,55 @@ test('login rotates an expired access token through the saved refresh session', 
     }
 }, 15_000);
 
+test('login does not forward an origin-bound refresh token through redirects', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-login-redirect-'));
+    const redirectedBodies: string[] = [];
+    const sink = Bun.serve({
+        async fetch(request) {
+            redirectedBodies.push(await request.text());
+            return Response.json({ status: 'unexpected' });
+        },
+        port: 0,
+    });
+    const peer = Bun.serve({
+        fetch(request) {
+            if (new URL(request.url).pathname === '/computer/login/refresh') {
+                return new Response(null, {
+                    headers: { location: `http://127.0.0.1:${sink.port}/capture` },
+                    status: 307,
+                });
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+    });
+    const origin = `http://127.0.0.1:${peer.port}`;
+    const session: StoredSession = {
+        accessToken: `gcl_at_${'r'.repeat(43)}`,
+        accessTokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
+        origin,
+        refreshToken: `gcl_rt_${'s'.repeat(43)}`,
+        refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        sessionId: 'cls_1234567890123456',
+    };
+    try {
+        await writeSession(dataRoot, session);
+        const result = await runCli(['login'], {
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+            GROTTO_SERVER_ORIGIN: origin,
+        });
+
+        expect(result.exitCode).not.toBe(0);
+        expect(redirectedBodies).toEqual([]);
+        expect(JSON.parse(await readFile(join(dataRoot, 'login.json'), 'utf8'))).toEqual(session);
+    } finally {
+        peer.stop(true);
+        sink.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+}, 15_000);
+
 test('login requires explicit replacement before changing the saved origin', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-login-replace-'));
     let polls = 0;

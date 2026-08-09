@@ -250,6 +250,7 @@ async function postJson<Response>(origin: string, path: string, body: object): P
         body: JSON.stringify(body),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
+        redirect: 'error',
     });
     const payload = (await response.json()) as Response & { code?: string; error?: string };
     if (!response.ok) {

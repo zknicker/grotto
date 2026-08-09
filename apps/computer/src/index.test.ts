@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -71,6 +71,7 @@ test('setup stores only a Server credential and reruns by validation', async () 
             GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
         };
         await runCli(environment);
+        const attachmentRoot = join(dataRoot, 'servers', 'srv_test');
         const attachmentPath = join(dataRoot, 'servers', 'srv_test', 'attachment.json');
         const attachment = JSON.parse(await readFile(attachmentPath, 'utf8')) as Record<
             string,
@@ -112,7 +113,17 @@ test('setup stores only a Server credential and reruns by validation', async () 
             type: 'report',
         });
 
+        await writeFile(
+            join(attachmentRoot, 'terminal-unlinked.json'),
+            JSON.stringify({
+                computerId: attachment.computerId,
+                reason: 'computer_machine_unlinked',
+            })
+        );
         await runCli(environment);
+        expect(
+            await stat(join(attachmentRoot, 'terminal-unlinked.json')).catch(() => null)
+        ).toBeNull();
         expect(requests.filter((request) => request === 'POST /computer/setup')).toHaveLength(1);
         expect(requests.filter((request) => request === 'POST /computer/validate')).toHaveLength(3);
     } finally {
@@ -120,6 +131,227 @@ test('setup stores only a Server credential and reruns by validation', async () 
         await rm(dataRoot, { force: true, recursive: true });
     }
 }, 15_000);
+
+test('setup preserves an unlinked attachment when replacement approval fails', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const serverId = 'srv_oldoldoldoldold1';
+    const attachmentRoot = join(dataRoot, 'servers', serverId);
+    await mkdir(attachmentRoot, { recursive: true });
+    const peer = Bun.serve({
+        fetch(request) {
+            const url = new URL(request.url);
+            if (url.pathname === '/computer/validate') {
+                return Response.json(
+                    {
+                        code: 'computer_machine_unlinked',
+                        error: 'Computer credential was rejected.',
+                    },
+                    { status: 403 }
+                );
+            }
+            if (url.pathname === '/computer/setup') {
+                return Response.json({
+                    approvalId: 'cap_1234567890123456',
+                    approvalUrl: `${url.origin}/computer/approve?approval=cap_1234567890123456&secret=${'s'.repeat(32)}`,
+                    serverId: 'srv_newnewnewnewnew1',
+                });
+            }
+            if (url.pathname === '/computer/setup/cap_1234567890123456') {
+                return Response.json({ error: 'Computer approval was rejected.' }, { status: 403 });
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+    });
+    await writeFile(
+        join(attachmentRoot, 'attachment.json'),
+        JSON.stringify({
+            computerId: 'cmp_oldoldoldoldold1',
+            credential: 'old-credential',
+            serverId,
+            serverOrigin: `http://127.0.0.1:${peer.port}`,
+            slug: 'hq',
+        })
+    );
+    try {
+        const child = Bun.spawn(['bun', entrypoint, 'setup', '/hq'], {
+            env: {
+                ...process.env,
+                GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+                GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+            },
+            stderr: 'pipe',
+            stdout: 'pipe',
+        });
+        expect(await child.exited).toBe(1);
+        expect(await stat(join(attachmentRoot, 'attachment.json'))).not.toBeNull();
+        expect((await readdir(attachmentRoot)).some((file) => file.includes('.unlinked-'))).toBe(
+            false
+        );
+    } finally {
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('setup archives an unlinked attachment before connecting a recreated Server', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const oldServerId = 'srv_oldoldoldoldold1';
+    const newServerId = 'srv_newnewnewnewnew1';
+    const oldRoot = join(dataRoot, 'servers', oldServerId);
+    await mkdir(oldRoot, { recursive: true });
+    await writeFile(
+        join(oldRoot, 'attachment.json'),
+        JSON.stringify({
+            computerId: 'cmp_oldoldoldoldold1',
+            credential: 'old-credential',
+            serverId: oldServerId,
+            serverOrigin: 'placeholder',
+            slug: 'hq',
+        })
+    );
+    const peer = Bun.serve({
+        fetch(request, server) {
+            const url = new URL(request.url);
+            if (url.pathname === '/computer/validate') {
+                return request.json().then((body) =>
+                    (body as { serverId?: string }).serverId === oldServerId
+                        ? Response.json(
+                              {
+                                  code: 'computer_machine_unlinked',
+                                  error: 'Computer credential was rejected.',
+                              },
+                              { status: 403 }
+                          )
+                        : Response.json({ id: 'cmp_newnewnewnewnew1' })
+                );
+            }
+            if (url.pathname === '/computer/setup' && request.method === 'POST') {
+                return Response.json({
+                    approvalId: 'cap_1234567890123456',
+                    approvalUrl: `${url.origin}/computer/approve?approval=cap_1234567890123456&secret=${'s'.repeat(32)}`,
+                    serverId: newServerId,
+                });
+            }
+            if (url.pathname === '/computer/setup/cap_1234567890123456') {
+                return Response.json({
+                    computerId: 'cmp_newnewnewnewnew1',
+                    status: 'approved',
+                });
+            }
+            if (url.pathname === '/computer/attachment' && server.upgrade(request)) {
+                return;
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+        websocket: {
+            message(socket) {
+                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+            },
+        },
+    });
+    try {
+        await writeFile(
+            join(oldRoot, 'attachment.json'),
+            JSON.stringify({
+                computerId: 'cmp_oldoldoldoldold1',
+                credential: 'old-credential',
+                serverId: oldServerId,
+                serverOrigin: `http://127.0.0.1:${peer.port}`,
+                slug: 'hq',
+            })
+        );
+        await runCli({
+            ...process.env,
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_COMPUTER_ONESHOT: '1',
+            GROTTO_COMPUTER_USAGE_DISABLED: '1',
+            GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+        });
+
+        const oldFiles = await readdir(oldRoot);
+        expect(oldFiles).not.toContain('attachment.json');
+        expect(
+            oldFiles.some((file) =>
+                /^attachment\.json\.unlinked-[0-9]+-[a-f0-9]{8}\.bak$/u.test(file)
+            )
+        ).toBe(true);
+        expect(
+            JSON.parse(
+                await readFile(join(dataRoot, 'servers', newServerId, 'attachment.json'), 'utf8')
+            )
+        ).toMatchObject({
+            computerId: 'cmp_newnewnewnewnew1',
+            serverId: newServerId,
+            slug: 'hq',
+        });
+    } finally {
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+}, 15_000);
+
+test('resident start parks a terminally unlinked attachment instead of retrying', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const serverId = 'srv_oldoldoldoldold1';
+    const attachmentRoot = join(dataRoot, 'servers', serverId);
+    await mkdir(attachmentRoot, { recursive: true });
+    let validations = 0;
+    const rejected = Promise.withResolvers<void>();
+    const peer = Bun.serve({
+        fetch(request) {
+            if (new URL(request.url).pathname === '/computer/validate') {
+                validations += 1;
+                rejected.resolve();
+                return Response.json(
+                    {
+                        code: 'computer_machine_unlinked',
+                        error: 'Computer credential was rejected.',
+                    },
+                    { status: 403 }
+                );
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+    });
+    await writeFile(
+        join(attachmentRoot, 'attachment.json'),
+        JSON.stringify({
+            computerId: 'cmp_oldoldoldoldold1',
+            credential: 'old-credential',
+            serverId,
+            serverOrigin: `http://127.0.0.1:${peer.port}`,
+            slug: 'hq',
+        })
+    );
+    const child = Bun.spawn(['bun', entrypoint, 'start'], {
+        env: {
+            ...process.env,
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_COMPUTER_RESIDENT: '1',
+        },
+        stderr: 'pipe',
+        stdout: 'pipe',
+    });
+    try {
+        await rejected.promise;
+        await Bun.sleep(1200);
+        expect(validations).toBe(1);
+        expect(
+            JSON.parse(await readFile(join(attachmentRoot, 'terminal-unlinked.json'), 'utf8'))
+        ).toMatchObject({
+            computerId: 'cmp_oldoldoldoldold1',
+            reason: 'computer_machine_unlinked',
+            statusCode: 403,
+        });
+    } finally {
+        child.kill();
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+}, 5000);
 
 test('run keeps the attachment connected until the Server closes it', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));

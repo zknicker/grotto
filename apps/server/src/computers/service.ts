@@ -22,8 +22,11 @@ import type { ComputerHandshake } from './contracts.ts';
 const approvalLifetimeMs = 10 * 60 * 1000;
 
 export class ComputerSetupDeniedError extends Error {
-    constructor(message: string) {
+    readonly code?: 'computer_machine_unlinked';
+
+    constructor(message: string, code?: 'computer_machine_unlinked') {
         super(message);
+        this.code = code;
         this.name = 'ComputerSetupDeniedError';
     }
 }
@@ -149,7 +152,8 @@ export async function validateComputerCredential(
         .limit(1);
     if (!computer) {
         throw new ComputerSetupDeniedError(
-            'Computer credential was rejected. Open the App to manage this attachment.'
+            'Computer credential was rejected. Open the App to manage this attachment.',
+            'computer_machine_unlinked'
         );
     }
     return computer;

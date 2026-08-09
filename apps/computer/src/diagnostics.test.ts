@@ -42,6 +42,20 @@ test('status and doctor expose useful facts without secrets', async () => {
     expect(doctor.checks.map((check) => check.label)).toContain('/hq Server accepts this Computer');
 });
 
+test('status gives an actionable setup command for a terminally unlinked attachment', async () => {
+    await writeFile(
+        join(dataRoot, 'servers', 'srv_diagnostics', 'terminal-unlinked.json'),
+        JSON.stringify({
+            computerId: 'cmp_diagnostics',
+            reason: 'computer_machine_unlinked',
+        })
+    );
+
+    expect(formatComputerStatus(await readComputerStatus(dataRoot))).toContain(
+        '/hq: setup required — run grotto-computer setup /hq'
+    );
+});
+
 test('logs returns a bounded tail from the stable data root', async () => {
     await mkdir(join(dataRoot, 'logs'));
     await writeFile(join(dataRoot, 'logs', 'computer.log'), 'one\ntwo\nthree\n');

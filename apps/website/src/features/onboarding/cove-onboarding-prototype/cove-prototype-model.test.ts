@@ -1,13 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import {
-    covePrototypeComputerCommand,
     covePrototypeRuntimes,
     covePrototypeStateOptions,
     getConnectStatusLines,
     getCoveConfigErrors,
     getStepperIndex,
     isValidCoveConfig,
-    slugifyServerName,
 } from './cove-prototype-model.ts';
 
 describe('Cove onboarding prototype model', () => {
@@ -26,20 +24,6 @@ describe('Cove onboarding prototype model', () => {
             'handoff',
             'onboarding-chat',
         ]);
-    });
-
-    test('uses the canonical Grotto Computer command', () => {
-        expect(covePrototypeComputerCommand).toBe(
-            'curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /grotto'
-        );
-    });
-
-    test('derives a valid URL slug from a Server name', () => {
-        expect(slugifyServerName('Grotto HQ')).toBe('grotto-hq');
-        expect(slugifyServerName('  Café & Tools  ')).toBe('cafe-tools');
-        expect(slugifyServerName('A Server with more than thirty-two characters')).toBe(
-            'a-server-with-more-than-thirty-t'
-        );
     });
 
     test('reports nothing until the setup command has been run', () => {

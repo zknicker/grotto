@@ -1,9 +1,9 @@
 import { Button, Tabs } from '@heroui/react';
-import { CodeSnippet } from '../../../components/code-snippet.tsx';
+import { ComputerSetupCommands } from '../../computers/computer-setup-commands.tsx';
 import {
     type CovePrototypeState,
-    covePrototypeComputerCommand,
     covePrototypePlatforms,
+    covePrototypeServerSlug,
     getConnectStatusLines,
 } from './cove-prototype-model.ts';
 import { StatusLineList, StepSection, SwitchServerButton } from './cove-prototype-shell.tsx';
@@ -55,13 +55,10 @@ export function ConnectComputerStep({
                     </Tabs.ListContainer>
                     <Tabs.Panel className="grid min-w-0 gap-4 pt-4" id="macos">
                         <p className="text-base text-muted sm:text-sm">
-                            Run this command on the Mac you want to connect. Nothing reaches this
-                            Server until you do.
+                            Run both commands on the Mac you want to connect. Setup gives you a
+                            browser approval link.
                         </p>
-                        <CommandStep
-                            command={covePrototypeComputerCommand}
-                            label="Install and connect Grotto Computer"
-                        />
+                        <ComputerSetupCommands serverSlug={covePrototypeServerSlug} />
                     </Tabs.Panel>
                 </Tabs>
                 <StatusLineList lines={statusLines} />
@@ -77,18 +74,5 @@ export function ConnectComputerStep({
                 ) : null}
             </div>
         </StepSection>
-    );
-}
-
-/**
- * The one command the owner runs themselves. `CodeSnippet` is the same row the
- * production Add Computer dialog uses.
- */
-function CommandStep({ command, label }: { command: string; label: string }) {
-    return (
-        <div className="grid min-w-0 gap-2">
-            <p className="font-medium text-base sm:text-sm">{label}</p>
-            <CodeSnippet lines={command} />
-        </div>
     );
 }

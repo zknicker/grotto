@@ -4,7 +4,7 @@ import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import type { Attachment } from './launch.ts';
 
 interface AttachmentStatus {
-    runner: 'running' | 'stopped';
+    runner: 'running' | 'setup-required' | 'stopped';
     serverId: string;
     slug: string;
 }
@@ -19,8 +19,13 @@ export async function readComputerStatus(dataRoot: string): Promise<{
         attachments: await Promise.all(
             attachments.map(async (attachment) => {
                 const marker = await readRunnerMarker(dataRoot, attachment.serverId);
+                const terminal = await readTerminalUnlinked(dataRoot, attachment);
                 return {
-                    runner: marker && isPidAlive(marker.pid) ? 'running' : 'stopped',
+                    runner: terminal
+                        ? 'setup-required'
+                        : marker && isPidAlive(marker.pid)
+                          ? 'running'
+                          : 'stopped',
                     serverId: attachment.serverId,
                     slug: attachment.slug,
                 };
@@ -79,7 +84,11 @@ export function formatComputerStatus(status: Awaited<ReturnType<typeof readCompu
         status.attachments.length === 0
             ? 'No Servers attached.'
             : status.attachments
-                  .map((item) => `/${item.slug}: ${item.runner} (${item.serverId})`)
+                  .map((item) =>
+                      item.runner === 'setup-required'
+                          ? `/${item.slug}: setup required — run grotto-computer setup /${item.slug}`
+                          : `/${item.slug}: ${item.runner} (${item.serverId})`
+                  )
                   .join('\n');
     return `Service: ${status.service}\n${attachments}`;
 }
@@ -115,6 +124,23 @@ async function readRunnerMarker(dataRoot: string, serverId: string) {
         return typeof value.pid === 'number' ? { pid: value.pid } : null;
     } catch {
         return null;
+    }
+}
+
+async function readTerminalUnlinked(dataRoot: string, attachment: Attachment) {
+    try {
+        const value = JSON.parse(
+            await readFile(
+                join(dataRoot, 'servers', attachment.serverId, 'terminal-unlinked.json'),
+                'utf8'
+            )
+        ) as { computerId?: unknown; reason?: unknown };
+        return (
+            value.computerId === attachment.computerId &&
+            value.reason === 'computer_machine_unlinked'
+        );
+    } catch {
+        return false;
     }
 }
 

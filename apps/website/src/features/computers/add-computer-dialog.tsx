@@ -1,8 +1,7 @@
 import { Button, Card, Chip, Modal } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { buildComputerInstallCommand } from './computer-install-command.ts';
+import { ComputerSetupCommands } from './computer-setup-commands.tsx';
 
 export function AddComputerDialog({
     onOpenChange,
@@ -13,7 +12,6 @@ export function AddComputerDialog({
     open: boolean;
     serverSlug: string;
 }) {
-    const installCommand = buildComputerInstallCommand(serverSlug);
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
             <Modal.Backdrop>
@@ -41,12 +39,7 @@ export function AddComputerDialog({
                                     </Card.Header>
                                     <Card.Content>
                                         <div className="grid gap-4">
-                                            <div className="grid gap-2">
-                                                <p className="font-medium text-foreground text-sm">
-                                                    Install and connect
-                                                </p>
-                                                <CodeSnippet lines={installCommand} />
-                                            </div>
+                                            <ComputerSetupCommands serverSlug={serverSlug} />
                                         </div>
                                     </Card.Content>
                                 </Card>

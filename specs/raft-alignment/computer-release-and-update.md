@@ -96,19 +96,24 @@ marks App/Server and Desktop unchanged.
 
 ## Initial installation
 
-Computer setup presents one copyable install-and-setup command for the selected Server. The
-installer:
+Computer setup presents two copyable commands for the selected Server:
 
 ```sh
-curl -fsSL https://releases.grotto.sh/computer/install.sh | sh -s -- /<server-slug>
+curl -fsSL https://releases.grotto.sh/computer/install.sh | sh
+$HOME/.local/bin/grotto-computer setup /<server-slug>
 ```
+
+The split keeps installation independently repeatable and makes Server attachment explicit. For
+compatibility with previously published App builds, the installer still accepts an optional
+`/<server-slug>` argument and runs setup after installation when it is present. The installer:
 
 1. Fetches the production descriptor and artifact over HTTPS.
 2. Verifies the artifact's exact Apple Developer ID and Team ID before execution; the publisher
    has already verified Apple's notarization result.
 3. Verifies the descriptor SHA-256.
 4. Installs the executable atomically at `~/.local/bin/grotto-computer`.
-5. Runs `grotto-computer setup /<server-slug>`.
+5. Installs the resident service. The separately copied setup command attaches the selected
+   Server; a legacy combined invocation also runs setup directly.
 
 The installed executable then uses its embedded Ed25519 key for every later update. Reinstalling
 code never deletes or adopts `~/.grotto`.
@@ -118,10 +123,14 @@ code never deletes or adopts `~/.grotto`.
 The existing 1.0.0 development Computer predates a production publisher and understands only the
 abandoned npm descriptor. It does not receive a compatibility release or npm bridge.
 
-Its one-time transition uses the new install-and-setup command. The installer replaces only code
-at `~/.local/bin/grotto-computer`; setup validates and reuses the existing `~/.grotto` identity,
-attachments, queues, and Agent workspaces. It fails closed rather than replacing a rejected
-attachment. After this transition, every update uses the standalone release contract.
+Its one-time transition uses the new install command followed by Server setup. The installer
+replaces only code at `~/.local/bin/grotto-computer`; setup validates and reuses the existing
+`~/.grotto` identity, attachments, queues, and Agent workspaces. Arbitrary credential rejection
+fails closed. When Server explicitly reports `computer_machine_unlinked`, Computer records that
+terminal state and parks the attachment instead of retrying. A later setup first proves a current
+Server exists at the requested address, then archives only the obsolete `attachment.json` and
+enters normal approval. Agent workspaces and all other Server-partition files remain recoverable.
+After this transition, every update uses the standalone release contract.
 
 ## App update flow
 

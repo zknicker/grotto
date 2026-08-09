@@ -43,6 +43,23 @@ afterAll(async () => {
     await harness?.close();
 });
 
+test('credential validation identifies an attachment removed from its Server', async () => {
+    const response = await fetch(new URL('/computer/validate', harness.url), {
+        body: JSON.stringify({
+            credentialHash: digest('unlinked-computer-credential'),
+            serverId,
+        }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+        code: 'computer_machine_unlinked',
+        error: 'Computer credential was rejected. Open the App to manage this attachment.',
+    });
+});
+
 test('incompatible ordinary protocol remains connected only for update progress', async () => {
     const socket = new WebSocket(computerSocketUrl());
     await opened(socket);

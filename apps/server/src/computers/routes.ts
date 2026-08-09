@@ -78,5 +78,8 @@ function setupError(
 ) {
     const message = cause instanceof Error ? cause.message : 'Computer request was rejected.';
     const status = cause instanceof ComputerSetupDeniedError ? 403 : 400;
-    return reply.code(status).send({ error: message });
+    return reply.code(status).send({
+        ...(cause instanceof ComputerSetupDeniedError && cause.code ? { code: cause.code } : {}),
+        error: message,
+    });
 }

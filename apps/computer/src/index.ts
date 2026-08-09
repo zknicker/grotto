@@ -17,6 +17,13 @@ import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.t
 import { AgentRunSettlements } from './agent-run-settlements.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { parseAgentSkillFileRequest, runAgentSkillFileRequest } from './agent-skill-files.ts';
+import {
+    archiveUnlinkedAttachment,
+    clearTerminalUnlinked,
+    computerMachineUnlinkedExitCode,
+    isTerminalUnlinked,
+    markTerminalUnlinked,
+} from './attachment-recovery.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
@@ -207,7 +214,16 @@ async function main(args: string[]) {
         if (!attachment) {
             throw new Error('This Server is not attached to this Grotto Computer.');
         }
-        await validate(attachment);
+        try {
+            await validate(attachment);
+        } catch (error) {
+            if (!isComputerMachineUnlinked(error)) {
+                throw error;
+            }
+            await markTerminalUnlinked(dataRoot, attachment);
+            process.exitCode = computerMachineUnlinkedExitCode;
+            return;
+        }
         await connect(attachment);
         return;
     }
@@ -219,10 +235,17 @@ async function main(args: string[]) {
     const slug = target.slice(1);
     const current = await findAttachment(slug);
     if (current) {
-        await validate(current);
-        await startAttachment(current);
-        console.log(`Grotto Computer resumed /${slug}.`);
-        return;
+        try {
+            await validate(current);
+            await clearTerminalUnlinked(dataRoot, current);
+            await startAttachment(current);
+            console.log(`Grotto Computer resumed /${slug}.`);
+            return;
+        } catch (error) {
+            if (!isComputerMachineUnlinked(error)) {
+                throw error;
+            }
+        }
     }
     const credential = randomBytes(32).toString('base64url');
     const started = await request<SetupResponse>('/computer/setup', {
@@ -237,6 +260,11 @@ async function main(args: string[]) {
         credential,
         slug
     );
+    if (current) {
+        await stopAttachment(current);
+        const archivedPath = await archiveUnlinkedAttachment(dataRoot, current);
+        console.log(`Archived the stale Computer attachment at ${archivedPath}.`);
+    }
     await writeAttachment(attachment);
     await startAttachment(attachment);
     console.log(`Grotto Computer attached to /${slug}.`);
@@ -381,11 +409,34 @@ async function request<Response>(
         headers: { 'content-type': 'application/json' },
         method: 'POST',
     });
-    const payload = (await response.json()) as Response & { error?: string };
+    const payload = (await response.json()) as Response & { code?: string; error?: string };
     if (!response.ok) {
-        throw new Error(payload.error ?? 'Computer request was rejected.');
+        throw new ComputerRequestError(
+            payload.error ?? 'Computer request was rejected.',
+            payload.code,
+            response.status
+        );
     }
     return payload;
+}
+
+class ComputerRequestError extends Error {
+    constructor(
+        message: string,
+        readonly code: string | undefined,
+        readonly status: number
+    ) {
+        super(message);
+        this.name = 'ComputerRequestError';
+    }
+}
+
+function isComputerMachineUnlinked(error: unknown): boolean {
+    return (
+        error instanceof ComputerRequestError &&
+        error.status === 403 &&
+        error.code === 'computer_machine_unlinked'
+    );
 }
 
 function approvalSecretFromUrl(approvalUrl: string) {
@@ -419,6 +470,9 @@ async function isStopped() {
 }
 
 async function startAttachment(attachment: Attachment) {
+    if (await isTerminalUnlinked(dataRoot, attachment)) {
+        return;
+    }
     const marker = await readRunnerMarker(attachment);
     if (marker && isPidAlive(marker.pid) && marker.credentialHash === hash(attachment.credential)) {
         return;

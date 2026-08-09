@@ -1,7 +1,6 @@
 import { Tabs } from '@heroui/react';
-import { CodeSnippet } from '../../components/code-snippet.tsx';
 import type { ServerDetail } from '../../lib/grotto-server.tsx';
-import { buildComputerInstallCommand } from '../computers/computer-install-command.ts';
+import { ComputerSetupCommands } from '../computers/computer-setup-commands.tsx';
 import type { CoveOnboardingView } from './cove-onboarding-model.ts';
 import {
     type CoveStatusLine,
@@ -24,7 +23,6 @@ export function CoveComputerStep({
     serverSlug: string;
     view: Exclude<CoveOnboardingView, 'app' | 'meet-cove'>;
 }) {
-    const installCommand = buildComputerInstallCommand(serverSlug);
     return (
         <StepSection
             footer={<SwitchServerButton onPress={onSwitchServer} />}
@@ -48,27 +46,15 @@ export function CoveComputerStep({
                     </Tabs.ListContainer>
                     <Tabs.Panel className="grid min-w-0 gap-4 pt-4" id="macos">
                         <p className="text-base text-muted sm:text-sm">
-                            Run this command on the Mac you want to connect. Nothing reaches this
-                            Server until you do.
+                            Run both commands on the Mac you want to connect. Setup gives you a
+                            browser approval link.
                         </p>
-                        <CommandStep
-                            command={installCommand}
-                            label="Install and connect Grotto Computer"
-                        />
+                        <ComputerSetupCommands serverSlug={serverSlug} />
                     </Tabs.Panel>
                 </Tabs>
                 <StatusLineList lines={statusLines(view, failure)} />
             </div>
         </StepSection>
-    );
-}
-
-function CommandStep({ command, label }: { command: string; label: string }) {
-    return (
-        <div className="grid min-w-0 gap-2">
-            <p className="font-medium text-base sm:text-sm">{label}</p>
-            <CodeSnippet lines={command} />
-        </div>
     );
 }
 

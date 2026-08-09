@@ -2,8 +2,8 @@
 set -eu
 
 server_path="${1:-}"
-if [ -z "$server_path" ] || [ "${server_path#/}" = "$server_path" ]; then
-    echo "Usage: install-grotto-computer /server-slug" >&2
+if [ -n "$server_path" ] && [ "${server_path#/}" = "$server_path" ]; then
+    echo "Usage: install-grotto-computer [/server-slug]" >&2
     exit 64
 fi
 
@@ -64,4 +64,6 @@ if ! /bin/mv "$staged" "$install_path"; then
 fi
 
 "$install_path" install
-"$install_path" setup "$server_path"
+if [ -n "$server_path" ]; then
+    "$install_path" setup "$server_path"
+fi

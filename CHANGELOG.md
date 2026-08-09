@@ -9,13 +9,15 @@ All notable changes to this project will be documented in this file.
 - Computer setup now presents separate install and Server setup commands. Grotto
   Computer 1.3.2 parks attachments whose Server was deleted or reset and reconnects
   them through fresh browser approval without deleting local Agent workspaces.
+- Grotto Computer 1.3.3 opens fresh setup approval in the default browser, keeps the
+  URL visible as a fallback, and lets interactive operators press Enter to retry.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.3
+- App/Server: Unchanged
 - Desktop: Unchanged
-- Computer: Publish v1.3.2
-- Runtime: Publish v1.8.3
+- Computer: Publish v1.3.3
+- Runtime: Unchanged
 
 ## v1.8.2 - 2026-08-08
 

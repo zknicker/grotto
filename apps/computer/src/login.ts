@@ -18,6 +18,14 @@ interface ComputerLoginPendingResponse {
     status: 'pending';
 }
 
+interface ComputerLoginRefreshResponse extends ComputerLoginSession {
+    status: 'refreshed';
+}
+
+interface ComputerLoginRevokeResponse {
+    status: 'revoked';
+}
+
 export interface ComputerLoginSession {
     accessToken: string;
     accessTokenExpiresAt: string;
@@ -39,9 +47,30 @@ type ComputerLoginPollResponse = ComputerLoginApprovedResponse | ComputerLoginPe
 
 export async function runComputerLogin(options: {
     dataRoot: string;
+    replace?: boolean;
     serverOrigin: string;
 }): Promise<void> {
     const origin = normalizeHttpOrigin(options.serverOrigin);
+    const current = await readComputerLoginSession(options.dataRoot);
+    if (current && !options.replace) {
+        if (current.origin !== origin) {
+            throw new Error(
+                `Grotto Computer is already signed in to ${current.origin}. Run "grotto-computer login --replace" to use ${origin}.`
+            );
+        }
+        try {
+            await ensureComputerLoginSession({
+                dataRoot: options.dataRoot,
+                session: current,
+            });
+            console.log('Reused the saved Grotto Computer login.');
+            return;
+        } catch (cause) {
+            if (!canStartFreshLogin(cause)) {
+                throw cause;
+            }
+        }
+    }
     const started = await postJson<ComputerLoginBeginResponse>(origin, '/computer/login', {
         origin,
     });
@@ -107,6 +136,86 @@ export async function runComputerLogin(options: {
     }
 }
 
+export async function readComputerLoginSession(
+    dataRoot: string
+): Promise<ComputerLoginSession | null> {
+    try {
+        const value = JSON.parse(
+            await Bun.file(join(dataRoot, loginSessionFilename)).text()
+        ) as Partial<ComputerLoginSession>;
+        if (
+            typeof value.accessToken !== 'string' ||
+            typeof value.accessTokenExpiresAt !== 'string' ||
+            typeof value.origin !== 'string' ||
+            typeof value.refreshToken !== 'string' ||
+            typeof value.refreshTokenExpiresAt !== 'string' ||
+            typeof value.sessionId !== 'string' ||
+            !isAccessToken(value.accessToken) ||
+            !isRefreshToken(value.refreshToken) ||
+            !isSessionId(value.sessionId)
+        ) {
+            return null;
+        }
+        const origin = normalizeHttpOrigin(value.origin);
+        if (
+            !(
+                Number.isFinite(Date.parse(value.accessTokenExpiresAt)) &&
+                Number.isFinite(Date.parse(value.refreshTokenExpiresAt))
+            )
+        ) {
+            return null;
+        }
+        return {
+            accessToken: value.accessToken,
+            accessTokenExpiresAt: value.accessTokenExpiresAt,
+            origin,
+            refreshToken: value.refreshToken,
+            refreshTokenExpiresAt: value.refreshTokenExpiresAt,
+            sessionId: value.sessionId,
+        };
+    } catch {
+        return null;
+    }
+}
+
+export async function ensureComputerLoginSession(options: {
+    dataRoot: string;
+    session: ComputerLoginSession;
+}): Promise<ComputerLoginSession> {
+    if (Date.parse(options.session.accessTokenExpiresAt) > Date.now()) {
+        return options.session;
+    }
+    const refreshed = await postJson<ComputerLoginRefreshResponse>(
+        options.session.origin,
+        '/computer/login/refresh',
+        {
+            refreshToken: options.session.refreshToken,
+            sessionId: options.session.sessionId,
+        }
+    );
+    assertRefreshResponse(refreshed, options.session);
+    const { status: _status, ...session } = refreshed;
+    await writeComputerLoginSession(options.dataRoot, session);
+    return session;
+}
+
+export async function revokeComputerLoginSession(
+    session: ComputerLoginSession
+): Promise<ComputerLoginRevokeResponse> {
+    const revoked = await postJson<ComputerLoginRevokeResponse>(
+        session.origin,
+        '/computer/login/revoke',
+        {
+            refreshToken: session.refreshToken,
+            sessionId: session.sessionId,
+        }
+    );
+    if (revoked.status !== 'revoked') {
+        throw new Error('Server returned an invalid Computer login revocation.');
+    }
+    return revoked;
+}
+
 export async function writeComputerLoginSession(
     dataRoot: string,
     session: ComputerLoginSession
@@ -151,6 +260,42 @@ async function postJson<Response>(origin: string, path: string, body: object): P
         );
     }
     return payload;
+}
+
+function assertRefreshResponse(
+    value: ComputerLoginRefreshResponse,
+    previous: ComputerLoginSession
+): asserts value is ComputerLoginRefreshResponse {
+    if (
+        value.status !== 'refreshed' ||
+        !isAccessToken(value.accessToken) ||
+        !isRefreshToken(value.refreshToken) ||
+        !isSessionId(value.sessionId) ||
+        value.sessionId !== previous.sessionId ||
+        normalizeHttpOrigin(value.origin) !== previous.origin ||
+        !Number.isFinite(Date.parse(value.accessTokenExpiresAt)) ||
+        !Number.isFinite(Date.parse(value.refreshTokenExpiresAt))
+    ) {
+        throw new Error('Server returned an invalid refreshed Computer login session.');
+    }
+}
+
+function canStartFreshLogin(cause: unknown) {
+    return (
+        cause instanceof ComputerLoginRequestError && (cause.status === 401 || cause.status === 409)
+    );
+}
+
+function isAccessToken(value: string) {
+    return /^gcl_at_[A-Za-z0-9_-]{43}$/u.test(value);
+}
+
+function isRefreshToken(value: string) {
+    return /^gcl_rt_[A-Za-z0-9_-]{43}$/u.test(value);
+}
+
+function isSessionId(value: string) {
+    return /^cls_[A-Za-z0-9_-]{16}$/u.test(value);
 }
 
 function normalizeHttpOrigin(value: string): string {

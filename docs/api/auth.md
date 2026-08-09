@@ -150,14 +150,20 @@ without the human session.
 
 Clerk authenticates the User in the browser but does not implement Grotto's device grant. Grotto
 Server owns the short human-readable code, complete and manual verification URLs, expiry, polling,
-one-time exchange, refresh rotation, and revocation. Phase one exposes this as
+one-time exchange, refresh rotation, and revocation. The current contract exposes this as
 `grotto-computer login`, `POST /computer/login`, `POST /computer/login/poll`,
-`POST /computer/login/complete`, and the public
+`POST /computer/login/complete`, `POST /computer/login/refresh`,
+`POST /computer/login/inspect`, and `POST /computer/login/revoke`, plus the public
 `computer.login.status` plus Clerk-authenticated `computer.login.approve` and
 `computer.login.deny` procedures. The code alone grants nothing: a signed-in User must approve it
 explicitly, and the returned session is bound to the origin the CLI contacted. After atomically
 storing the returned session, the CLI proves persistence with its access token; the browser does
 not report completion before that acknowledgement. The existing
 one-off `computer/setup` approval remains available for compatibility while attachment migration
-lands in later phases. Account switching stays in the Clerk-backed browser flow. Logout, refresh
-rotation, and attachment migration are subsequent contracts; phase one does not expose them.
+lands in later phases. A valid same-origin session is reused without browser authorization and an
+expired access token rotates through the refresh endpoint. A different saved origin requires the
+explicit `grotto-computer login --replace` command; login never silently replaces an account. The
+`logout` command revokes the session, removes only the local human-session record, stops the
+resident service, and preserves attachments and workspaces. Account switching remains explicit in
+the Clerk-backed browser flow. The management session is accepted only by narrow Computer
+management endpoints and never by Chat, Agent, or execution routes.

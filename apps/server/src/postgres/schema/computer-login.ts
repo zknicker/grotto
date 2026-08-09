@@ -81,3 +81,30 @@ export const computerLoginSessionsTable = pgTable(
         ),
     ]
 );
+
+export const computerLoginRefreshTokensTable = pgTable(
+    'computer_login_refresh_tokens',
+    {
+        consumedAt: timestamp('consumed_at', { withTimezone: true }),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+        id: text('id').primaryKey(),
+        revokedAt: timestamp('revoked_at', { withTimezone: true }),
+        sessionId: text('session_id')
+            .notNull()
+            .references(() => computerLoginSessionsTable.id, { onDelete: 'cascade' }),
+        tokenHash: text('token_hash').notNull(),
+    },
+    (table) => [
+        uniqueIndex('computer_login_refresh_tokens_token_hash_key').on(table.tokenHash),
+        index('computer_login_refresh_tokens_session_idx').on(table.sessionId, table.createdAt),
+        check(
+            'computer_login_refresh_tokens_id_shape',
+            sql`${table.id} ~ '^crt_[A-Za-z0-9_-]{16}$'`
+        ),
+        check(
+            'computer_login_refresh_tokens_token_hash_shape',
+            sql`${table.tokenHash} ~ '^[a-f0-9]{64}$'`
+        ),
+    ]
+);

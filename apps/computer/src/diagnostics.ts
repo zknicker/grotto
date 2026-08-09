@@ -2,6 +2,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import type { Attachment } from './launch.ts';
+import { readComputerLoginSession } from './login.ts';
 
 interface AttachmentStatus {
     runner: 'running' | 'setup-required' | 'stopped';
@@ -9,12 +10,20 @@ interface AttachmentStatus {
     slug: string;
 }
 
+interface LoginStatus {
+    origin: string | null;
+    state: 'expired' | 'signed in' | 'signed out';
+}
+
 export async function readComputerStatus(dataRoot: string): Promise<{
     attachments: AttachmentStatus[];
+    login: LoginStatus;
     service: 'running' | 'stopped';
 }> {
     const stopped = await exists(join(dataRoot, 'stopped'));
     const attachments = await readAttachments(dataRoot);
+    const login = await readComputerLoginSession(dataRoot);
+    const refreshExpiresAt = login ? Date.parse(login.refreshTokenExpiresAt) : Number.NaN;
     return {
         attachments: await Promise.all(
             attachments.map(async (attachment) => {
@@ -31,6 +40,13 @@ export async function readComputerStatus(dataRoot: string): Promise<{
                 };
             })
         ),
+        login: login
+            ? {
+                  origin: login.origin,
+                  state:
+                      refreshExpiresAt > Date.now() ? ('signed in' as const) : ('expired' as const),
+              }
+            : { origin: null, state: 'signed out' as const },
         service: stopped ? 'stopped' : 'running',
     };
 }
@@ -90,7 +106,11 @@ export function formatComputerStatus(status: Awaited<ReturnType<typeof readCompu
                           : `/${item.slug}: ${item.runner} (${item.serverId})`
                   )
                   .join('\n');
-    return `Service: ${status.service}\n${attachments}`;
+    const login = [`Login: ${status.login.state}`];
+    if (status.login.origin) {
+        login.push(`Origin: ${status.login.origin}`);
+    }
+    return `${login.join('\n')}\nService: ${status.service}\n${attachments}`;
 }
 
 export function formatDoctor(result: Awaited<ReturnType<typeof doctorComputer>>) {

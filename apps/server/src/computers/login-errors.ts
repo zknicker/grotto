@@ -5,7 +5,11 @@ export type ComputerLoginErrorCode =
     | 'computer_login_expired'
     | 'computer_login_invalid_origin'
     | 'computer_login_malformed'
-    | 'computer_login_not_found';
+    | 'computer_login_not_found'
+    | 'computer_login_refresh_expired'
+    | 'computer_login_refresh_reused'
+    | 'computer_login_revoked'
+    | 'computer_login_unauthorized';
 
 export class ComputerLoginError extends Error {
     constructor(
@@ -27,6 +31,13 @@ export function computerLoginError(code: ComputerLoginErrorCode): ComputerLoginE
         computer_login_invalid_origin: 'Computer login origin must be a valid HTTP(S) origin.',
         computer_login_malformed: 'That Computer login code is not valid.',
         computer_login_not_found: 'No Computer login is waiting for that code.',
+        computer_login_refresh_expired:
+            'This Computer login refresh token expired. Run login again.',
+        computer_login_refresh_reused:
+            'This Computer login refresh token was reused. The login session was revoked; run login again.',
+        computer_login_revoked: 'This Computer login was revoked. Run login again.',
+        computer_login_unauthorized:
+            'This Computer login credential was rejected. Run login again.',
     };
     const statuses: Record<ComputerLoginErrorCode, number> = {
         computer_login_already_approved: 409,
@@ -36,6 +47,10 @@ export function computerLoginError(code: ComputerLoginErrorCode): ComputerLoginE
         computer_login_invalid_origin: 400,
         computer_login_malformed: 400,
         computer_login_not_found: 404,
+        computer_login_refresh_expired: 401,
+        computer_login_refresh_reused: 409,
+        computer_login_revoked: 401,
+        computer_login_unauthorized: 401,
     };
     return new ComputerLoginError(code, messages[code], statuses[code]);
 }

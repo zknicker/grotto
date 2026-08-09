@@ -173,6 +173,18 @@ const schemaStatements = [
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
     'CREATE INDEX computer_login_sessions_owner_idx ON computer_login_sessions (clerk_user_id, created_at DESC);',
+    `CREATE TABLE computer_login_refresh_tokens (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT computer_login_refresh_tokens_id_shape CHECK (id ~ '^crt_[A-Za-z0-9_-]{16}$'),
+        session_id text NOT NULL REFERENCES computer_login_sessions (id) ON DELETE CASCADE,
+        token_hash text NOT NULL UNIQUE
+            CONSTRAINT computer_login_refresh_tokens_token_hash_shape CHECK (token_hash ~ '^[a-f0-9]{64}$'),
+        expires_at timestamptz NOT NULL,
+        consumed_at timestamptz,
+        revoked_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now()
+    );`,
+    'CREATE INDEX computer_login_refresh_tokens_session_idx ON computer_login_refresh_tokens (session_id, created_at);',
     `CREATE TABLE server_invitations (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,

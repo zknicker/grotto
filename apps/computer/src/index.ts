@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { HostedAgentSkillImportCommand, HostedAgentSkillImportRecord } from '@tavern/api';
@@ -78,7 +78,7 @@ import {
     runAgentLaunch,
 } from './launch.ts';
 import { replaceLaunchdService } from './launchd.ts';
-import { runComputerLogin } from './login.ts';
+import { readComputerLoginSession, revokeComputerLoginSession, runComputerLogin } from './login.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
 import {
@@ -183,7 +183,21 @@ async function main(args: string[]) {
         return;
     }
     if (command === 'login') {
-        await runComputerLogin({ dataRoot, serverOrigin });
+        await runComputerLogin({
+            dataRoot,
+            replace: target === '--replace',
+            serverOrigin,
+        });
+        return;
+    }
+    if (command === 'logout') {
+        const session = await readComputerLoginSession(dataRoot);
+        if (session) {
+            await revokeComputerLoginSession(session);
+        }
+        await rm(join(dataRoot, 'login.json'), { force: true });
+        await stopComputerService();
+        console.log('Grotto Computer logged out.');
         return;
     }
     if (command === 'start') {
@@ -204,9 +218,7 @@ async function main(args: string[]) {
             await stopAttachment(await requiredAttachment(target));
             return;
         }
-        await writeFile(stoppedPath(), '', { mode: 0o600 });
-        await Promise.all((await listAttachments()).map(stopAttachment));
-        await stopResidentService();
+        await stopComputerService();
         return;
     }
     if (command === 'restart') {
@@ -235,7 +247,7 @@ async function main(args: string[]) {
     }
     if (command !== 'setup' || !target?.startsWith('/')) {
         throw new Error(
-            'Usage: grotto-computer <install|upgrade [--rollback]|start|stop|restart|status|doctor|logs|version|configure-openrouter|login|setup /server-slug>'
+            'Usage: grotto-computer <install|upgrade [--rollback]|start|stop|restart|status|doctor|logs|version|configure-openrouter|login [--replace]|logout|setup /server-slug>'
         );
     }
     const slug = target.slice(1);
@@ -499,6 +511,13 @@ async function isStopped() {
     }
 }
 
+async function stopComputerService() {
+    await mkdir(dataRoot, { mode: 0o700, recursive: true });
+    await writeFile(stoppedPath(), '', { mode: 0o600 });
+    await Promise.all((await listAttachments()).map(stopAttachment));
+    await stopResidentService();
+}
+
 async function startAttachment(attachment: Attachment) {
     if (await isTerminalUnlinked(dataRoot, attachment)) {
         return;
@@ -614,12 +633,11 @@ async function stopResidentService() {
     if (platform() !== 'darwin') {
         return;
     }
-    const result = Bun.spawnSync([
-        '/bin/launchctl',
-        'bootout',
-        `gui/${userInfo().uid}`,
-        join(homedir(), 'Library', 'LaunchAgents', 'com.grotto.computer.plist'),
-    ]);
+    const plistPath = join(homedir(), 'Library', 'LaunchAgents', 'com.grotto.computer.plist');
+    if (!(await stat(plistPath).catch(() => null))) {
+        return;
+    }
+    const result = Bun.spawnSync(['/bin/launchctl', 'bootout', `gui/${userInfo().uid}`, plistPath]);
     if (result.exitCode !== 0 && result.exitCode !== 3) {
         throw new Error('Could not stop Grotto Computer service.');
     }

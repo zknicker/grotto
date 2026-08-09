@@ -11,6 +11,15 @@ interface DeviceGrant {
     verificationUrl: string;
 }
 
+interface ComputerLoginSession {
+    accessToken: string;
+    accessTokenExpiresAt: string;
+    origin: string;
+    refreshToken: string;
+    refreshTokenExpiresAt: string;
+    sessionId: string;
+}
+
 async function beginLogin(harness: GrottoServerHarness): Promise<DeviceGrant> {
     const response = await fetch(new URL('/computer/login', harness.url), {
         body: JSON.stringify({ origin: harness.url.origin }),
@@ -32,6 +41,38 @@ async function pollLogin(harness: GrottoServerHarness, deviceCode: string) {
 async function completeLogin(harness: GrottoServerHarness, accessToken: string) {
     return await fetch(new URL('/computer/login/complete', harness.url), {
         body: JSON.stringify({ accessToken }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+}
+
+async function createLoginSession(
+    harness: GrottoServerHarness,
+    clerkUserId: string
+): Promise<ComputerLoginSession> {
+    const client = createGrottoClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+    try {
+        const started = await beginLogin(harness);
+        await client.trpc.computer.login.approve.mutate({ userCode: started.userCode });
+        const exchanged = await pollLogin(harness, started.deviceCode);
+        expect(exchanged.status).toBe(200);
+        const session = (await exchanged.json()) as ComputerLoginSession & { status: string };
+        expect(session.status).toBe('approved');
+        const completed = await completeLogin(harness, session.accessToken);
+        expect(completed.status).toBe(200);
+        return session;
+    } finally {
+        client.close();
+    }
+}
+
+async function postLoginRoute(
+    harness: GrottoServerHarness,
+    path: string,
+    body: object
+): Promise<Response> {
+    return await fetch(new URL(path, harness.url), {
+        body: JSON.stringify(body),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
     });
@@ -186,6 +227,132 @@ test('Computer login reports malformed, denied, and expired terminal states', as
     } finally {
         anonymous.close();
         client.close();
+        await harness.close();
+    }
+}, 60_000);
+
+test('Computer login rotates access and refresh credentials atomically', async () => {
+    const harness = await startGrottoServerHarness();
+    try {
+        const session = await createLoginSession(harness, 'user_refresh_rotation');
+        const response = await postLoginRoute(harness, '/computer/login/refresh', {
+            refreshToken: session.refreshToken,
+            sessionId: session.sessionId,
+        });
+
+        expect(response.status).toBe(200);
+        const rotated = (await response.json()) as ComputerLoginSession & { status: string };
+        expect(rotated).toMatchObject({
+            origin: session.origin,
+            sessionId: session.sessionId,
+            status: 'refreshed',
+        });
+        expect(rotated.accessToken).not.toBe(session.accessToken);
+        expect(rotated.refreshToken).not.toBe(session.refreshToken);
+
+        const rows = await harness.sql`
+            SELECT token_hash, consumed_at, revoked_at
+            FROM computer_login_refresh_tokens
+            ORDER BY created_at
+        `;
+        expect(rows).toHaveLength(2);
+        expect(rows[0]?.token_hash).not.toContain(session.refreshToken);
+        expect(rows[0]?.consumed_at).toBeInstanceOf(Date);
+        expect(rows[0]?.revoked_at).toBeNull();
+        expect(rows[1]?.token_hash).not.toContain(rotated.refreshToken);
+        expect(rows[1]?.consumed_at).toBeNull();
+        expect(rows[1]?.revoked_at).toBeNull();
+    } finally {
+        await harness.close();
+    }
+}, 60_000);
+
+test('Computer login refresh-token reuse revokes the whole family', async () => {
+    const harness = await startGrottoServerHarness();
+    try {
+        const session = await createLoginSession(harness, 'user_refresh_reuse');
+        const first = await postLoginRoute(harness, '/computer/login/refresh', {
+            refreshToken: session.refreshToken,
+            sessionId: session.sessionId,
+        });
+        expect(first.status).toBe(200);
+        const rotated = (await first.json()) as ComputerLoginSession;
+
+        const reused = await postLoginRoute(harness, '/computer/login/refresh', {
+            refreshToken: session.refreshToken,
+            sessionId: session.sessionId,
+        });
+        expect(reused.status).toBe(409);
+        expect(await reused.json()).toMatchObject({ code: 'computer_login_refresh_reused' });
+
+        const sessionRows = await harness.sql`
+            SELECT revoked_at FROM computer_login_sessions WHERE id = ${session.sessionId}
+        `;
+        expect(sessionRows[0]?.revoked_at).toBeInstanceOf(Date);
+        const tokenRows = await harness.sql`
+            SELECT revoked_at
+            FROM computer_login_refresh_tokens
+            WHERE session_id = ${session.sessionId}
+        `;
+        expect(tokenRows).toHaveLength(2);
+        expect(tokenRows.every((row) => row.revoked_at instanceof Date)).toBe(true);
+
+        const afterReuse = await postLoginRoute(harness, '/computer/login/refresh', {
+            refreshToken: rotated.refreshToken,
+            sessionId: session.sessionId,
+        });
+        expect(afterReuse.status).toBe(401);
+        expect(await afterReuse.json()).toMatchObject({ code: 'computer_login_revoked' });
+    } finally {
+        await harness.close();
+    }
+}, 60_000);
+
+test('Computer management authority is inspectable but cannot access Agent execution', async () => {
+    const harness = await startGrottoServerHarness();
+    try {
+        const session = await createLoginSession(harness, 'user_management_scope');
+        const inspected = await postLoginRoute(harness, '/computer/login/inspect', {
+            accessToken: session.accessToken,
+        });
+        expect(inspected.status).toBe(200);
+        expect(await inspected.json()).toEqual({
+            accessTokenExpiresAt: session.accessTokenExpiresAt,
+            origin: session.origin,
+            refreshTokenExpiresAt: session.refreshTokenExpiresAt,
+            scope: 'computer-management',
+            sessionId: session.sessionId,
+            status: 'active',
+        });
+
+        const agentSurface = await fetch(new URL('/api/agent/server', harness.url), {
+            headers: { authorization: `Bearer ${session.accessToken}` },
+        });
+        expect(agentSurface.status).toBe(401);
+        expect(await agentSurface.json()).toMatchObject({ code: 'MISSING_TOKEN' });
+    } finally {
+        await harness.close();
+    }
+}, 60_000);
+
+test('Computer logout revokes a management session and remains idempotent', async () => {
+    const harness = await startGrottoServerHarness();
+    try {
+        const session = await createLoginSession(harness, 'user_logout');
+        const revoked = await postLoginRoute(harness, '/computer/login/revoke', {
+            refreshToken: session.refreshToken,
+            sessionId: session.sessionId,
+        });
+        expect(revoked.status).toBe(200);
+        expect(await revoked.json()).toEqual({ status: 'revoked' });
+
+        const repeated = await postLoginRoute(harness, '/computer/login/revoke', {
+            refreshToken: session.refreshToken,
+            sessionId: session.sessionId,
+        });
+        expect(repeated.status).toBe(200);
+        expect(await repeated.json()).toEqual({ status: 'revoked' });
+    } finally {
         await harness.close();
     }
 }, 60_000);

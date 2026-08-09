@@ -2,7 +2,12 @@ import { Button, Spinner } from '@heroui/react';
 import { AlertCircleIcon, CheckmarkCircle02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
-import type { CoveStatusLine } from './cove-onboarding-prototype/cove-prototype-model.ts';
+import type { CoveStatusLine } from './cove-onboarding-model.ts';
+import './cove-onboarding.css';
+
+const setupStepLabels = ['Connect a Computer', 'Meet Cove', 'Onboarding Chat'];
+
+export type CoveSetupStage = 'connect-computer' | 'meet-cove';
 
 /** Every onboarding step keeps the same escape hatch. */
 export function SwitchServerButton({ onPress }: { onPress: () => void }) {
@@ -10,6 +15,34 @@ export function SwitchServerButton({ onPress }: { onPress: () => void }) {
         <Button onPress={onPress} variant="ghost">
             Switch Server
         </Button>
+    );
+}
+
+/** Three plain rectangles — the only progress signal in the frame. */
+export function SetupProgressMarker({ stage }: { stage: CoveSetupStage }) {
+    const currentStep = stage === 'meet-cove' ? 1 : 0;
+
+    return (
+        <ol aria-label="Cove onboarding progress" className="cove-progress-marker">
+            {setupStepLabels.map((label, index) => (
+                <li aria-current={index === currentStep ? 'step' : undefined} key={label}>
+                    <span
+                        aria-hidden="true"
+                        className={`cove-progress-marker__bar ${
+                            index <= currentStep ? 'bg-accent' : 'bg-separator'
+                        }`}
+                    />
+                    <span className="sr-only">
+                        {label} ·{' '}
+                        {index < currentStep
+                            ? 'complete'
+                            : index === currentStep
+                              ? 'current'
+                              : 'upcoming'}
+                    </span>
+                </li>
+            ))}
+        </ol>
     );
 }
 

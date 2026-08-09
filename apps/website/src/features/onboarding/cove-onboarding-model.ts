@@ -9,6 +9,17 @@ export type CoveOnboardingView =
     | 'applying-cove'
     | 'apply-failed';
 
+/** Grotto Computer ships Apple Silicon macOS only; Windows stays visible but unselectable. */
+export const coveComputerPlatforms = [
+    { id: 'macos', isAvailable: true, label: 'macOS (Apple Silicon)' },
+    { id: 'windows', isAvailable: false, label: 'Windows' },
+] as const;
+
+export interface CoveStatusLine {
+    label: string;
+    tone: 'done' | 'failed' | 'waiting';
+}
+
 type ServerOnboarding = ServerDetail['onboarding'];
 
 /** Server-owned progress is the only authority for entering the general App. */

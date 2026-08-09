@@ -2,11 +2,11 @@ import { Tabs } from '@heroui/react';
 import { ActivationStep } from '../../components/activation/activation-shell.tsx';
 import type { ServerDetail } from '../../lib/grotto-server.tsx';
 import { ComputerSetupCommands } from '../computers/computer-setup-commands.tsx';
-import type { CoveOnboardingView } from './cove-onboarding-model.ts';
 import {
+    type CoveOnboardingView,
     type CoveStatusLine,
-    covePrototypePlatforms,
-} from './cove-onboarding-prototype/cove-prototype-model.ts';
+    coveComputerPlatforms,
+} from './cove-onboarding-model.ts';
 import { StatusLineList, SwitchServerButton } from './cove-step-parts.tsx';
 
 export function CoveComputerStep({
@@ -29,7 +29,7 @@ export function CoveComputerStep({
                 <Tabs className="min-w-0" defaultSelectedKey="macos" variant="secondary">
                     <Tabs.ListContainer>
                         <Tabs.List aria-label="Computer platform">
-                            {covePrototypePlatforms.map((platform) => (
+                            {coveComputerPlatforms.map((platform) => (
                                 <Tabs.Tab
                                     id={platform.id}
                                     isDisabled={!platform.isAvailable}

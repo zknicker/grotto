@@ -33,16 +33,6 @@ export function createAppRouter() {
             element: <AppFrame />,
             children: [
                 {
-                    path: 'prototype/cove-onboarding',
-                    lazy: lazyRoute(
-                        () =>
-                            import(
-                                './features/onboarding/cove-onboarding-prototype/cove-onboarding-prototype.tsx'
-                            ),
-                        'CoveOnboardingPrototype'
-                    ),
-                },
-                {
                     element: <GrottoServerRoutes />,
                     children: [
                         {

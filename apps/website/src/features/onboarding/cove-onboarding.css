@@ -14,13 +14,3 @@
     height: 0.25rem;
     border-radius: 999px;
 }
-
-.cove-review-controls {
-    width: 13rem;
-}
-
-@media (max-width: 40rem) {
-    .cove-review-controls {
-        width: 10rem;
-    }
-}

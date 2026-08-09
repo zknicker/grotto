@@ -6,8 +6,7 @@ import { useServer } from '../../hooks/servers/use-server.ts';
 import { CoveComputerStep } from './cove-computer-step.tsx';
 import { CoveMeetStep } from './cove-meet-step.tsx';
 import { getCoveOnboardingView } from './cove-onboarding-model.ts';
-import { SetupProgressMarker } from './cove-onboarding-prototype/cove-prototype-review.tsx';
-import './cove-onboarding-prototype/cove-prototype.css';
+import { SetupProgressMarker } from './cove-step-parts.tsx';
 
 /** Mandatory fresh-Server gate, structurally outside the general Server shell. */
 export function CoveOnboardingRoute() {
@@ -54,7 +53,7 @@ export function CoveOnboardingRoute() {
         <ActivationShell
             progress={
                 <SetupProgressMarker
-                    state={
+                    stage={
                         ['meet-cove', 'applying-cove', 'apply-failed'].includes(view)
                             ? 'meet-cove'
                             : 'connect-computer'

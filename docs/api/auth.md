@@ -166,4 +166,11 @@ explicit `grotto-computer login --replace` command; login never silently replace
 `logout` command revokes the session, removes only the local human-session record, stops the
 resident service, and preserves attachments and workspaces. Account switching remains explicit in
 the Clerk-backed browser flow. The management session is accepted only by narrow Computer
-management endpoints and never by Chat, Agent, or execution routes.
+management endpoints and never by Chat, Agent, or execution routes. `POST /computer/attach` is the
+management-only issuance endpoint: it accepts the access token, a hash of the new Server-scoped
+Computer credential, the locally persisted `cak_...` attachment idempotency key, and the Server
+slug. It requires the signed-in Grotto User to be an Owner or Admin, returns the same Computer on
+retries of one key, and never returns either credential. Missing Servers, wrong accounts, and
+Member-role callers receive distinct actionable errors. New `setup` invocations perform login-if-
+needed, attach-or-recover, and start; an existing local attachment resumes through its own
+Server-scoped credential without login or migration.

@@ -78,6 +78,11 @@ const schemaStatements = [
             CONSTRAINT computers_id_shape CHECK (id ~ '^cmp_[A-Za-z0-9_-]{16}$'),
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
         attached_by_user_id text NOT NULL,
+        attachment_idempotency_key text
+            CONSTRAINT computers_attachment_idempotency_key_shape CHECK (
+                attachment_idempotency_key IS NULL
+                OR attachment_idempotency_key ~ '^cak_[A-Za-z0-9_-]{43}$'
+            ),
         credential_hash text NOT NULL UNIQUE
             CONSTRAINT computers_credential_hash_shape CHECK (credential_hash ~ '^[a-f0-9]{64}$'),
         product_version text,
@@ -113,6 +118,7 @@ const schemaStatements = [
             REFERENCES server_memberships (server_id, user_id)
     );`,
     'CREATE UNIQUE INDEX computers_server_id_key ON computers (server_id, id);',
+    'CREATE UNIQUE INDEX computers_attachment_idempotency_key ON computers (attachment_idempotency_key);',
     'CREATE INDEX computers_server_idx ON computers (server_id, created_at DESC);',
     `CREATE TABLE computer_setup_approvals (
         id text PRIMARY KEY NOT NULL

@@ -1,9 +1,9 @@
 import { Button, Input, InputGroup, Label, TextField } from '@heroui/react';
 import * as React from 'react';
+import { ActivationStep } from '../../../components/activation/activation-shell.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { slugifyServerName } from '../../servers/server-slug.ts';
 import type { CovePrototypeState } from './cove-prototype-model.ts';
-import { StepSection } from './cove-prototype-shell.tsx';
 
 const prototypeServers = [
     { label: 'Arcade', slug: 'arcade' },
@@ -18,7 +18,7 @@ export function ChooseServerStep({
     onStateChange: (state: CovePrototypeState) => void;
 }) {
     return (
-        <StepSection
+        <ActivationStep
             footer={
                 <>
                     <Button variant="ghost">Log out</Button>
@@ -48,7 +48,7 @@ export function ChooseServerStep({
                     </Button>
                 ))}
             </div>
-        </StepSection>
+        </ActivationStep>
     );
 }
 
@@ -76,7 +76,7 @@ export function CreateServerStep({
     };
 
     return (
-        <StepSection
+        <ActivationStep
             footer={
                 <>
                     <Button onPress={() => onStateChange('choose-server')} variant="ghost">
@@ -117,6 +117,6 @@ export function CreateServerStep({
                     </InputGroup>
                 </TextField>
             </div>
-        </StepSection>
+        </ActivationStep>
     );
 }

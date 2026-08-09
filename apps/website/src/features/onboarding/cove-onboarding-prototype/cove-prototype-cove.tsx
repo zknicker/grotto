@@ -1,11 +1,12 @@
 import { Alert, Button, FieldError, Label, ListBox, Select } from '@heroui/react';
+import { ActivationStep } from '../../../components/activation/activation-shell.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
+import { SwitchServerButton } from '../cove-step-parts.tsx';
 import {
     type CovePrototypeState,
     covePrototypeRuntimes,
     getCoveConfigErrors,
 } from './cove-prototype-model.ts';
-import { StepSection, SwitchServerButton } from './cove-prototype-shell.tsx';
 
 /**
  * Step 2. Cove's identity is fixed by ADR 0021, so the only real choices are
@@ -34,7 +35,7 @@ export function MeetCoveStep({
     const selectedRuntime = covePrototypeRuntimes.find((runtime) => runtime.id === runtimeId);
 
     return (
-        <StepSection
+        <ActivationStep
             footer={
                 <>
                     <SwitchServerButton onPress={() => onStateChange('choose-server')} />
@@ -62,7 +63,7 @@ export function MeetCoveStep({
                         </Alert.Content>
                     </Alert>
                 ) : null}
-                <div className="grid gap-6 sm:grid-cols-2 sm:items-center">
+                <div className="grid gap-6">
                     <CoveIntroduction />
                     <div className="grid gap-4">
                         <Select
@@ -146,7 +147,7 @@ export function MeetCoveStep({
                     </div>
                 </div>
             </div>
-        </StepSection>
+        </ActivationStep>
     );
 }
 

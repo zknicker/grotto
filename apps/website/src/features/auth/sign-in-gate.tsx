@@ -1,6 +1,7 @@
 import { ClerkFailed, ClerkLoaded, ClerkLoading, useAuth, useClerk } from '@clerk/clerk-react';
-import { Button } from '@heroui/react';
+import { Button, Spinner } from '@heroui/react';
 import { type ReactNode, useEffect, useState } from 'react';
+import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import {
     getClerkSessionToken,
     isClerkEnabled,
@@ -129,14 +130,20 @@ function GateFrame({
     signIn?: boolean;
 }) {
     return (
-        <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-background">
-            <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="font-semibold text-2xl text-foreground">Welcome to Grotto</h1>
-                <p className="max-w-sm text-muted text-sm">{message}</p>
-            </div>
-            {recovery ? <div className="flex items-center gap-2">{recovery}</div> : null}
-            {signIn ? <SignInAction /> : null}
-        </div>
+        <ActivationShell>
+            <ActivationStep
+                description={message}
+                footer={
+                    recovery ??
+                    (signIn ? (
+                        <SignInAction />
+                    ) : (
+                        <Spinner aria-label="Opening your session" size="sm" />
+                    ))
+                }
+                title="Welcome to Grotto"
+            />
+        </ActivationShell>
     );
 }
 

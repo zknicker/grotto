@@ -1,0 +1,87 @@
+/* Activation frame geometry. Component appearance stays with HeroUI. */
+
+.activation-topbar {
+    position: relative;
+    z-index: 40;
+    display: flex;
+    min-height: 3.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 0.875rem 1rem 0;
+}
+
+.activation-topbar__progress {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.activation-main {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.activation-column {
+    display: flex;
+    width: min(100% - 2rem, 28rem);
+    flex-direction: column;
+    align-items: center;
+    margin-inline: auto;
+    padding-block: max(2.75rem, calc(38vh - 10rem)) 4rem;
+}
+
+.activation-mark {
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.activation-step {
+    width: 100%;
+    animation: activation-step-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.activation-step__heading {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.activation-step__content {
+    min-width: 0;
+}
+
+.activation-step__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+}
+
+@keyframes activation-step-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.625rem);
+    }
+}
+
+/* Short viewports get no headroom to spend on the vh anchor. */
+@media (max-height: 40rem) {
+    .activation-column {
+        padding-top: 2.75rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .activation-step {
+        animation: none;
+    }
+}

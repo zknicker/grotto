@@ -1,44 +1,10 @@
 import { Button, Spinner } from '@heroui/react';
 import { AlertCircleIcon, CheckmarkCircle02Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type * as React from 'react';
-import { TavernLogo } from '../../../components/tavern-logo.tsx';
-import { Icon } from '../../../components/ui/icon.tsx';
-import { cn } from '../../../lib/utils.ts';
-import type { CoveStatusLine } from './cove-prototype-model.ts';
+import { Icon } from '../../components/ui/icon.tsx';
+import { cn } from '../../lib/utils.ts';
+import type { CoveStatusLine } from './cove-onboarding-prototype/cove-prototype-model.ts';
 
-export function StepHeading({ title }: { title: string }) {
-    return (
-        <header className="cove-step-heading">
-            <TavernLogo aria-hidden="true" className="cove-step-heading__logo" />
-            <h1 className="text-balance font-semibold text-2xl tracking-tight sm:text-3xl">
-                {title}
-            </h1>
-        </header>
-    );
-}
-
-/** The shared page section for each static onboarding step. */
-export function StepSection({
-    children,
-    className,
-    footer,
-    title,
-}: {
-    children?: React.ReactNode;
-    className?: string;
-    footer?: React.ReactNode;
-    title: string;
-}) {
-    return (
-        <section className={cn('w-full', className)}>
-            <StepHeading title={title} />
-            {children ? <div className="cove-step-content">{children}</div> : null}
-            {footer ? <footer className="cove-step-footer">{footer}</footer> : null}
-        </section>
-    );
-}
-
-/** Static prototype affordance: every step keeps the same escape hatch. */
+/** Every onboarding step keeps the same escape hatch. */
 export function SwitchServerButton({ onPress }: { onPress: () => void }) {
     return (
         <Button onPress={onPress} variant="ghost">

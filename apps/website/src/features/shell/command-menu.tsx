@@ -6,7 +6,7 @@ import type { AppCommand, AppCommandGroup } from '../../commands/types.ts';
 import { getCommandSearchText } from '../../commands/types.ts';
 import { useAppCommands } from '../../commands/use-app-commands.ts';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
-import { TavernLogo } from '../../components/tavern-logo.tsx';
+import { GrottoGlyph } from '../../components/grotto-logo.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAgentAppearanceLookup } from '../../hooks/agents/use-agent-appearance.ts';
@@ -168,7 +168,7 @@ function CommandMenuIcon({
     lookupAgentAvatarUrl: AgentAvatarLookup;
 }) {
     if (command.icon === 'tavern') {
-        return <TavernLogo aria-hidden="true" />;
+        return <GrottoGlyph aria-hidden="true" />;
     }
 
     if (typeof command.icon === 'object' && 'kind' in command.icon) {

@@ -1,5 +1,7 @@
+import { Spinner } from '@heroui/react';
 import * as React from 'react';
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { CoveComputerStep } from './cove-computer-step.tsx';
 import { CoveMeetStep } from './cove-meet-step.tsx';
@@ -17,13 +19,19 @@ export function CoveOnboardingRoute() {
 
     if (server.error && !server.data) {
         return (
-            <main className="flex h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-                <h1 className="font-semibold text-foreground text-lg">Server unavailable</h1>
-                <p className="max-w-sm text-muted text-sm">{server.error.message}</p>
-            </main>
+            <ActivationShell>
+                <ActivationStep description={server.error.message} title="Server Unavailable" />
+            </ActivationShell>
         );
     }
     if (!server.data) {
+        if (wasGated.current) {
+            return (
+                <ActivationShell>
+                    <Spinner aria-label="Loading this Server" size="sm" />
+                </ActivationShell>
+            );
+        }
         return null;
     }
 
@@ -43,8 +51,8 @@ export function CoveOnboardingRoute() {
 
     const switchServer = () => navigate('/s');
     return (
-        <div className="cove-prototype min-h-dvh bg-background text-foreground">
-            <header className="cove-frame-header">
+        <ActivationShell
+            progress={
                 <SetupProgressMarker
                     state={
                         ['meet-cove', 'applying-cove', 'apply-failed'].includes(view)
@@ -52,24 +60,23 @@ export function CoveOnboardingRoute() {
                             : 'connect-computer'
                     }
                 />
-            </header>
-            <main className="cove-frame-main">
-                {view === 'meet-cove' || view === 'applying-cove' || view === 'apply-failed' ? (
-                    <CoveMeetStep
-                        onboarding={server.data.onboarding}
-                        onSwitchServer={switchServer}
-                        serverId={server.data.id}
-                        view={view}
-                    />
-                ) : (
-                    <CoveComputerStep
-                        failure={server.data.onboarding.failure}
-                        onSwitchServer={switchServer}
-                        serverSlug={server.data.slug}
-                        view={view}
-                    />
-                )}
-            </main>
-        </div>
+            }
+        >
+            {view === 'meet-cove' || view === 'applying-cove' || view === 'apply-failed' ? (
+                <CoveMeetStep
+                    onboarding={server.data.onboarding}
+                    onSwitchServer={switchServer}
+                    serverId={server.data.id}
+                    view={view}
+                />
+            ) : (
+                <CoveComputerStep
+                    failure={server.data.onboarding.failure}
+                    onSwitchServer={switchServer}
+                    serverSlug={server.data.slug}
+                    view={view}
+                />
+            )}
+        </ActivationShell>
     );
 }

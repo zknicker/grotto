@@ -1,15 +1,13 @@
 import { Alert, Button, Label, ListBox, Select } from '@heroui/react';
 import * as React from 'react';
+import { ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useCreateCove } from '../../hooks/servers/use-create-cove.ts';
 import type { ServerDetail } from '../../lib/grotto-server.tsx';
 import type { CoveOnboardingView } from './cove-onboarding-model.ts';
 import { getCoveRepairMessage } from './cove-onboarding-model.ts';
-import {
-    StepSection,
-    SwitchServerButton,
-} from './cove-onboarding-prototype/cove-prototype-shell.tsx';
+import { SwitchServerButton } from './cove-step-parts.tsx';
 
 export function CoveMeetStep({
     onboarding,
@@ -50,7 +48,7 @@ export function CoveMeetStep({
     };
 
     return (
-        <StepSection
+        <ActivationStep
             footer={
                 <>
                     <SwitchServerButton onPress={onSwitchServer} />
@@ -88,7 +86,7 @@ export function CoveMeetStep({
                     </Alert>
                 ) : null}
                 {applying ? null : (
-                    <div className="grid gap-6 sm:grid-cols-2 sm:items-center">
+                    <div className="grid gap-6">
                         <CoveIntroduction />
                         <div className="grid gap-4">
                             <Select
@@ -157,7 +155,7 @@ export function CoveMeetStep({
                     </div>
                 )}
             </div>
-        </StepSection>
+        </ActivationStep>
     );
 }
 

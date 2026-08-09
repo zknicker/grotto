@@ -13,6 +13,7 @@ export * from './schema/chat-events.ts';
 export * from './schema/chat-messages.ts';
 export * from './schema/chat-reads.ts';
 export * from './schema/chats.ts';
+export * from './schema/computer-login.ts';
 export * from './schema/computers.ts';
 export * from './schema/mcp.ts';
 export * from './schema/message-reactions.ts';

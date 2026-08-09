@@ -144,13 +144,17 @@ Computer data root, bound to one Grotto origin. Its short-lived access token and
 token authorize identity, Server/role discovery, Computer attachment and recovery, and Computer
 lifecycle records.
 They do not authorize Chats, Agent actions, Runtime execution, or provider access. The session is
-stored atomically with mode `0600`; Server attachment credentials remain independent and continue
-to authenticate runners without the human session.
+stored atomically at `<computer-data-root>/login.json` with directory mode `0700` and file mode
+`0600`; Server attachment credentials remain independent and continue to authenticate runners
+without the human session.
 
 Clerk authenticates the User in the browser but does not implement Grotto's device grant. Grotto
 Server owns the short human-readable code, complete and manual verification URLs, expiry, polling,
-one-time exchange, refresh rotation, and revocation. The code alone grants nothing: a signed-in User
-must approve it explicitly, and Server attachment still requires Owner or Admin authority. Account
-switching stays in the Clerk-backed browser flow. `grotto-computer logout` revokes the refresh-token
-family, removes the local session, and stops the resident service without deleting Server-scoped
-Computer credentials or workspaces.
+one-time exchange, refresh rotation, and revocation. Phase one exposes this as
+`grotto-computer login`, `POST /computer/login`, `POST /computer/login/poll`, and the public
+`computer.login.status` plus Clerk-authenticated `computer.login.approve` and
+`computer.login.deny` procedures. The code alone grants nothing: a signed-in User must approve it
+explicitly, and the returned session is bound to the origin the CLI contacted. The existing
+one-off `computer/setup` approval remains available for compatibility while attachment migration
+lands in later phases. Account switching stays in the Clerk-backed browser flow. Logout, refresh
+rotation, and attachment migration are subsequent contracts; phase one does not expose them.

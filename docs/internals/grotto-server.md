@@ -92,7 +92,7 @@ PostgreSQL owns the hosted collaboration tables
 | `avatars` | Uploaded square avatar bytes, media type, size, and digest, served publicly at `/api/avatars/:avatarId` |
 | `servers` / `server_onboarding` | Opaque id, address/display fields, commit-serialized Chat event cursor, and durable fresh-Server setup progress |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
-| Computer login and device-grant records | Hashed rotating human management credentials, one-use device codes, expiry, polling state, revocation, and setup-result correlation |
+| `computer_login_grants` / `computer_login_sessions` | Hashed one-use device codes, short-code approval state, origin-bound hashed management credentials, expiry, polling state, and Clerk owner |
 | `computers` | Server-scoped Computer credentials (hash only), durable attachment idempotency, last authenticated handshake facts, and attachment-visible update progress |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
 | `chats` | Server-owned Channels, canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and hidden child Threads |
@@ -123,10 +123,11 @@ all fail closed in the database.
 
 ## Computer attachment
 
-`grotto-computer setup /<slug>` reuses or refreshes one machine-local Computer
-login session, or performs Grotto's browser-approved device grant when no usable
-session exists. The session can discover Servers and manage Computers but has
-no Chat or Agent authority. An Owner or Admin uses it to attach the requested
+Phase one exposes `grotto-computer login` as a standalone browser-approved device
+grant. The session can eventually discover Servers and manage Computers but has
+no Chat or Agent authority; attachment migration is deliberately subsequent. The
+existing `grotto-computer setup /<slug>` approval remains the compatibility path
+until that migration lands. An Owner or Admin uses it to attach the requested
 Server, which stores only the hash of the Computer-generated Server credential.
 The CLI persists an attachment idempotency key before issuance so a crash after
 Server commit recovers the same Computer instead of creating another. A re-run

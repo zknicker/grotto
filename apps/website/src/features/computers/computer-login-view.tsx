@@ -36,7 +36,6 @@ export function ComputerLoginApproval({
     const [searchParams, setSearchParams] = useSearchParams();
     const [userCode, setUserCode] = React.useState(searchParams.get('code') ?? '');
     const codeFromUrl = searchParams.get('code') ?? '';
-    const setupFlowFromUrl = searchParams.get('flow') === 'setup';
     const statusQuery = grottoTrpc.computer.login.status.useQuery(
         { userCode },
         {
@@ -47,10 +46,7 @@ export function ComputerLoginApproval({
     const utils = grottoTrpc.useUtils();
     const approve = grottoTrpc.computer.login.approve.useMutation({
         onSuccess: (result, variables) => {
-            utils.computer.login.status.setData(
-                { userCode: variables.userCode },
-                setupFlowFromUrl ? { ...result, purpose: 'setup' } : result
-            );
+            utils.computer.login.status.setData({ userCode: variables.userCode }, result);
         },
     });
     const deny = grottoTrpc.computer.login.deny.useMutation({
@@ -65,10 +61,7 @@ export function ComputerLoginApproval({
 
     const status = statusQuery.data?.status;
     const setupFlow = Boolean(
-        setupFlowFromUrl ||
-            (statusQuery.data &&
-                'purpose' in statusQuery.data &&
-                statusQuery.data.purpose === 'setup')
+        statusQuery.data && 'purpose' in statusQuery.data && statusQuery.data.purpose === 'setup'
     );
     const isWorking = approve.isPending || deny.isPending;
     const submitCode = (event: React.FormEvent<HTMLFormElement>) => {
@@ -77,9 +70,7 @@ export function ComputerLoginApproval({
         approve.reset();
         deny.reset();
         setUserCode(nextCode);
-        setSearchParams(
-            nextCode ? { code: nextCode, ...(setupFlow ? { flow: 'setup' } : {}) } : {}
-        );
+        setSearchParams(nextCode ? { code: nextCode } : {});
     };
 
     return (

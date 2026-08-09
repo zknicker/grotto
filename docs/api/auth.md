@@ -152,7 +152,10 @@ Clerk authenticates the User in the browser but does not implement Grotto's devi
 Server owns the short human-readable code, complete and manual verification URLs, expiry, polling,
 one-time exchange, refresh rotation, and revocation. The `/computer/login` request accepts an
 optional `purpose` of `login` (the default) or `setup`; setup uses the same grant and credential
-exchange while carrying the setup state through to the browser. The current contract exposes this as
+exchange while carrying the setup state through the Server status response. Browser URL parameters
+are never authority for setup completion. Standalone login omits the optional field for compatibility,
+and setup falls back to the retained one-off approval when the preceding strict Server contract rejects
+that field. The current contract exposes this as
 `grotto-computer login`, `POST /computer/login`, `POST /computer/login/poll`,
 `POST /computer/login/complete`, `POST /computer/login/refresh`,
 `POST /computer/login/inspect`, and `POST /computer/login/revoke`, plus the public

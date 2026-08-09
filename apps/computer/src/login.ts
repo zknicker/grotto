@@ -76,7 +76,7 @@ export async function runComputerLogin(options: {
     }
     const started = await postJson<ComputerLoginBeginResponse>(origin, '/computer/login', {
         origin,
-        purpose: options.purpose ?? 'login',
+        ...(options.purpose === 'setup' ? { purpose: options.purpose } : {}),
     });
     assertBeginResponse(started);
 
@@ -197,6 +197,14 @@ export async function completeComputerLogin(session: ComputerLoginSession): Prom
 
 export function isComputerLoginRouteUnavailable(cause: unknown) {
     return cause instanceof ComputerLoginRequestError && [404, 405].includes(cause.status);
+}
+
+export function isComputerLoginPurposeUnsupported(cause: unknown) {
+    return (
+        cause instanceof ComputerLoginRequestError &&
+        cause.status === 400 &&
+        cause.message.includes('Unrecognized key: "purpose"')
+    );
 }
 
 export async function readComputerLoginSession(

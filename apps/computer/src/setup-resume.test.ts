@@ -170,6 +170,15 @@ test('setup retries a durable login acknowledgement after attachment persistence
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-setup-ack-retry-'));
     const sockets = new Set<ServerWebSocket<undefined>>();
     let completionAttempts = 0;
+    let origin = '';
+    const refreshedSession: StoredSession = {
+        accessToken: `gcl_at_${'c'.repeat(43)}`,
+        accessTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        origin: '',
+        refreshToken: `gcl_rt_${'d'.repeat(43)}`,
+        refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        sessionId: session.sessionId,
+    };
     const peer = Bun.serve({
         async fetch(request, server) {
             const url = new URL(request.url);
@@ -178,13 +187,25 @@ test('setup retries a durable login acknowledgement after attachment persistence
             }
             if (url.pathname === '/computer/login/complete') {
                 completionAttempts += 1;
+                const body = (await request.json()) as { accessToken: string };
                 await expect(
                     stat(join(dataRoot, 'servers', 'srv_ack_server', 'attachment.json'))
                 ).resolves.toBeTruthy();
                 if (completionAttempts === 1) {
+                    expect(body.accessToken).toBe(session.accessToken);
                     return Response.json({ error: 'temporary failure' }, { status: 503 });
                 }
+                if (body.accessToken !== refreshedSession.accessToken) {
+                    return Response.json({ error: 'expired access token' }, { status: 401 });
+                }
                 return Response.json({ status: 'completed' });
+            }
+            if (url.pathname === '/computer/login/refresh') {
+                return Response.json({
+                    ...refreshedSession,
+                    origin,
+                    status: 'refreshed',
+                });
             }
             if (url.pathname === '/computer/validate') {
                 return Response.json({ id: 'cmp_ack1234567890' });
@@ -207,7 +228,7 @@ test('setup retries a durable login acknowledgement after attachment persistence
             },
         },
     });
-    const origin = `http://127.0.0.1:${peer.port}`;
+    origin = `http://127.0.0.1:${peer.port}`;
     try {
         await writeSession(dataRoot, { ...session, origin });
         const first = await runCli(['setup', '/hq'], {
@@ -221,6 +242,11 @@ test('setup retries a durable login acknowledgement after attachment persistence
             stat(join(dataRoot, 'servers', 'srv_ack_server', 'attachment.json'))
         ).resolves.toBeTruthy();
         await expect(stat(join(dataRoot, 'pending-attachments', 'hq.json'))).resolves.toBeTruthy();
+        await writeSession(dataRoot, {
+            ...session,
+            accessTokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
+            origin,
+        });
 
         const retry = await runCli(['setup', '/hq'], {
             GROTTO_COMPUTER_DATA_ROOT: dataRoot,

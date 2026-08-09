@@ -338,7 +338,6 @@ async function startComputerSetup(options: { serverId: string; slug: string }) {
                 if (stopped) {
                     return;
                 }
-                stopped = true;
                 const result = await runComputerCli(['stop'], dataRoot, serverOrigin);
                 if (result.exitCode !== 0) {
                     throw new Error(
@@ -346,6 +345,7 @@ async function startComputerSetup(options: { serverId: string; slug: string }) {
                     );
                 }
                 await exited;
+                stopped = true;
             },
             async dispose() {
                 try {

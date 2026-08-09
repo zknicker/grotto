@@ -85,6 +85,8 @@ import {
 import { replaceLaunchdService } from './launchd.ts';
 import {
     completeComputerLogin,
+    ensureComputerLoginSession,
+    isComputerLoginPurposeUnsupported,
     isComputerLoginRouteUnavailable,
     readComputerLoginSession,
     resolveComputerLogin,
@@ -300,7 +302,9 @@ async function main(args: string[]) {
             if (pending) {
                 const session = await readComputerLoginSession(dataRoot);
                 if (session?.origin === pending.origin) {
-                    await completeComputerLogin(session);
+                    await completeComputerLogin(
+                        await ensureComputerLoginSession({ dataRoot, session })
+                    );
                 }
             }
             await removePendingAttachment(dataRoot, slug);
@@ -488,6 +492,7 @@ async function runLegacySetup(slug: string, current: Attachment | null) {
 
 function isRouteUnavailable(cause: unknown) {
     return (
+        isComputerLoginPurposeUnsupported(cause) ||
         isComputerLoginRouteUnavailable(cause) ||
         (cause instanceof ComputerRequestError &&
             [404, 405].includes(cause.status) &&

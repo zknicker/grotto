@@ -199,7 +199,7 @@ test('setup login stays finishing until the Computer acknowledges durable attach
 
     try {
         const started = await beginLogin(harness, 'setup');
-        expect(new URL(started.verificationUrl).searchParams.get('flow')).toBe('setup');
+        expect(new URL(started.verificationUrl).searchParams.get('flow')).toBeNull();
         await client.trpc.computer.login.approve.mutate({ userCode: started.userCode });
         const exchanged = await pollLogin(harness, started.deviceCode);
         expect(exchanged.status).toBe(200);

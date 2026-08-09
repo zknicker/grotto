@@ -169,6 +169,7 @@ const schemaStatements = [
         access_token_expires_at timestamptz NOT NULL,
         refresh_token_expires_at timestamptz NOT NULL,
         revoked_at timestamptz,
+        stored_at timestamptz,
         created_at timestamptz NOT NULL DEFAULT now()
     );`,
     'CREATE INDEX computer_login_sessions_owner_idx ON computer_login_sessions (clerk_user_id, created_at DESC);',

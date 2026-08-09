@@ -30,6 +30,17 @@ test('Clerk-backed Computer login preserves its code and finishes after approval
         method: 'POST',
     });
     expect(exchanged.status).toBe(200);
+    const session = (await exchanged.json()) as { accessToken: string };
+    await expect(
+        page.getByRole('heading', { name: 'Signed in — finishing the connection' })
+    ).toBeVisible();
+
+    const completed = await fetch(new URL('/computer/login/complete', serverOrigin), {
+        body: JSON.stringify({ accessToken: session.accessToken }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    expect(completed.status).toBe(200);
     await expect(page.getByRole('heading', { name: 'Grotto Computer signed in' })).toBeVisible();
 });
 

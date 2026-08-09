@@ -71,9 +71,14 @@ export async function readComputerLoginStatus(db: GrottoDatabase, input: { userC
     const [grant] = await db
         .select({
             expiresAt: computerLoginGrantsTable.expiresAt,
+            storedAt: computerLoginSessionsTable.storedAt,
             status: computerLoginGrantsTable.status,
         })
         .from(computerLoginGrantsTable)
+        .leftJoin(
+            computerLoginSessionsTable,
+            eq(computerLoginSessionsTable.grantId, computerLoginGrantsTable.id)
+        )
         .where(eq(computerLoginGrantsTable.userCodeHash, hashComputerSecret(normalized)))
         .limit(1);
     if (!grant) {
@@ -90,6 +95,9 @@ export async function readComputerLoginStatus(db: GrottoDatabase, input: { userC
                 )
             );
         return { status: 'expired' as const };
+    }
+    if (grant.status === 'consumed' && !grant.storedAt) {
+        return { status: 'approved' as const };
     }
     return { status: grant.status };
 }

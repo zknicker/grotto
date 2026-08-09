@@ -31,6 +31,10 @@ interface ComputerLoginApprovedResponse extends ComputerLoginSession {
     status: 'approved';
 }
 
+interface ComputerLoginCompletedResponse {
+    status: 'completed';
+}
+
 type ComputerLoginPollResponse = ComputerLoginApprovedResponse | ComputerLoginPendingResponse;
 
 export async function runComputerLogin(options: {
@@ -85,6 +89,14 @@ export async function runComputerLogin(options: {
                 assertOriginBoundSession(result, origin);
                 const { status: _status, ...session } = result;
                 await writeComputerLoginSession(options.dataRoot, session);
+                const completed = await postJson<ComputerLoginCompletedResponse>(
+                    origin,
+                    '/computer/login/complete',
+                    { accessToken: session.accessToken }
+                );
+                if (completed.status !== 'completed') {
+                    throw new Error('Server returned an invalid Computer login completion.');
+                }
                 console.log('Grotto Computer signed in.');
                 return;
             }

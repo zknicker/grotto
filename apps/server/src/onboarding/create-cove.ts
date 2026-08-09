@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { HostedAgent, HostedCoveApplyCommand, HostedCoveApplyResult } from '@tavern/api';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import coveAvatarPath from '../../../website/public/prototypes/cove-avatar.png' with {
     type: 'file',
 };
@@ -19,6 +19,8 @@ import {
     agentsTable,
     avatarsTable,
     channelAgentParticipantsTable,
+    chatsTable,
+    serverMembershipsTable,
     serverOnboardingTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -74,6 +76,20 @@ export async function createCove(
         if (onboarding.phase !== 'awaiting-cove' || onboarding.computerId !== input.computerId) {
             throw new CoveSetupError('Cove setup is not ready for that Computer.');
         }
+        const [standing] = await tx
+            .select({ stint: serverMembershipsTable.stint })
+            .from(serverMembershipsTable)
+            .where(
+                and(
+                    eq(serverMembershipsTable.serverId, input.serverId),
+                    eq(serverMembershipsTable.userId, member.id),
+                    isNull(serverMembershipsTable.revokedAt)
+                )
+            )
+            .limit(1);
+        if (!standing) {
+            throw new CoveSetupError('You are not a current member of this Server.');
+        }
         const { health, inventory } = await resolveAssignedComputer(tx, input);
         if (health !== 'healthy') {
             throw new CoveSetupError('The selected Computer must be online and healthy.');
@@ -97,6 +113,14 @@ export async function createCove(
             homeTimezone: 'UTC',
             id: agentId,
             role: 'admin',
+            serverId: input.serverId,
+        });
+        await tx.insert(chatsTable).values({
+            dmAgentId: agentId,
+            dmMemberOneStint: standing.stint,
+            dmMemberOneUserId: member.id,
+            id: createOpaqueId('cht'),
+            kind: 'dm',
             serverId: input.serverId,
         });
         await tx.insert(agentDeliveryTable).values({ agentId, serverId: input.serverId });

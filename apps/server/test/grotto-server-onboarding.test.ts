@@ -198,6 +198,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             computerId: setup.computerId,
             description: 'Onboarding Assistant',
             displayName: 'Cove',
+            dmChatId: expect.stringMatching(/^cht_/u),
             factoryKind: 'cove',
             handle: 'cove',
             role: 'admin',
@@ -205,6 +206,46 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         channelId: created.onboarding.channelId,
         phase: 'applying',
     });
+
+    const [ownerStanding] = await harness.sql`
+        select membership.user_id, membership.stint::int as stint
+        from server_memberships membership
+        join users on users.id = membership.user_id
+        where membership.server_id = ${created.id}
+          and users.clerk_user_id = 'user_onboarding_owner'
+          and membership.revoked_at is null
+    `;
+    const ownerStint = ownerStanding?.stint;
+    const ownerUserId = ownerStanding?.user_id;
+    expect(ownerStint).toBe(1);
+    expect(ownerUserId).toMatch(/^usr_/u);
+    const coveDmRows = await harness.sql`
+        select c.id, c.kind, c.dm_agent_id, c.dm_member_one_user_id,
+               c.dm_member_one_stint, c.dm_member_two_user_id, c.dm_member_two_stint
+        from chats c
+        where c.server_id = ${created.id} and c.dm_agent_id = ${first.agent.id}
+    `;
+    expect(coveDmRows).toEqual([
+        {
+            dm_agent_id: first.agent.id,
+            dm_member_one_stint: ownerStint,
+            dm_member_one_user_id: ownerUserId,
+            dm_member_two_stint: null,
+            dm_member_two_user_id: null,
+            id: first.agent.dmChatId,
+            kind: 'dm',
+        },
+    ]);
+    expect(await owner.trpc.chat.list.query({ serverId: created.id })).toContainEqual(
+        expect.objectContaining({
+            id: first.agent.dmChatId,
+            kind: 'dm',
+            participantAgentIds: [first.agent.id],
+            participantUserIds: [ownerUserId],
+            peerAgentDisplayName: 'Cove',
+            peerAgentId: first.agent.id,
+        })
+    );
 
     const command = await firstApplication;
     expect(command).toMatchObject({
@@ -287,6 +328,11 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         }),
     ]);
     expect(concurrent).toEqual([first, first]);
+    const [coveDmCountAfterRetries] = await harness.sql`
+        select count(*)::int as count from chats
+        where server_id = ${created.id} and kind = 'dm' and dm_agent_id = ${first.agent.id}
+    `;
+    expect(coveDmCountAfterRetries?.count).toBe(1);
     await expect(
         owner.trpc.server.createCove.mutate({
             computerId: setup.computerId,
@@ -416,6 +462,11 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         })
     );
     await Bun.sleep(50);
+    const [coveDmCountAfterApplyReplay] = await harness.sql`
+        select count(*)::int as count from chats
+        where server_id = ${created.id} and kind = 'dm' and dm_agent_id = ${first.agent.id}
+    `;
+    expect(coveDmCountAfterApplyReplay?.count).toBe(1);
     socket.close();
     await Bun.sleep(50);
     const settledReplayFrames: Record<string, unknown>[] = [];

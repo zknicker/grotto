@@ -1,7 +1,9 @@
 import { hostedRunnerMintRequestSchema, hostedRunnerRevokeRequestSchema } from '@tavern/api';
 import type { FastifyInstance } from 'fastify';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import { attachComputer, ComputerAttachmentError } from './attachment-service.ts';
 import {
+    attachComputerSchema,
     beginComputerLoginSchema,
     beginComputerSetupSchema,
     completeComputerLoginSchema,
@@ -32,6 +34,17 @@ export function registerComputerRoutes(
     app: FastifyInstance,
     options: { appOrigin: string; db: GrottoDatabase }
 ) {
+    app.post('/computer/attach', async (request, reply) => {
+        try {
+            const input = attachComputerSchema.parse(request.body);
+            return await attachComputer(options.db, input);
+        } catch (cause) {
+            if (cause instanceof ComputerLoginError) {
+                return loginError(reply, cause);
+            }
+            return attachmentError(reply, cause);
+        }
+    });
     app.post('/computer/setup', async (request, reply) => {
         try {
             const input = beginComputerSetupSchema.parse(request.body);
@@ -140,6 +153,18 @@ export function registerComputerRoutes(
         } catch (cause) {
             return setupError(reply, cause);
         }
+    });
+}
+
+function attachmentError(
+    reply: { code(statusCode: number): { send(payload: unknown): unknown } },
+    cause: unknown
+) {
+    const message = cause instanceof Error ? cause.message : 'Computer attachment was rejected.';
+    const status = cause instanceof ComputerAttachmentError ? cause.httpStatus : 400;
+    return reply.code(status).send({
+        ...(cause instanceof ComputerAttachmentError ? { code: cause.code } : {}),
+        error: message,
     });
 }
 

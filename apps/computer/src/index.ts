@@ -24,6 +24,7 @@ import {
     isTerminalUnlinked,
     markTerminalUnlinked,
 } from './attachment-recovery.ts';
+import { getOrCreatePendingAttachment, removePendingAttachment } from './attachment-state.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import { installEnterToOpenUrl, openUrlInBrowser } from './browser-handoff.ts';
@@ -78,7 +79,13 @@ import {
     runAgentLaunch,
 } from './launch.ts';
 import { replaceLaunchdService } from './launchd.ts';
-import { readComputerLoginSession, revokeComputerLoginSession, runComputerLogin } from './login.ts';
+import {
+    isComputerLoginRouteUnavailable,
+    readComputerLoginSession,
+    resolveComputerLogin,
+    revokeComputerLoginSession,
+    runComputerLogin,
+} from './login.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
 import {
@@ -108,6 +115,13 @@ interface SetupResponse {
     approvalId: string;
     approvalUrl: string;
     serverId: string;
+}
+
+interface AttachResponse {
+    computerId: string;
+    idempotent: boolean;
+    serverId: string;
+    slug: string;
 }
 
 const dataRoot = process.env.GROTTO_COMPUTER_DATA_ROOT ?? join(homedir(), '.grotto', 'computer');
@@ -259,12 +273,19 @@ async function main(args: string[]) {
         await connect(attachment);
         return;
     }
+    if (command === 'attach') {
+        if (!target?.startsWith('/')) {
+            throw new Error('Choose a Server as /server-slug.');
+        }
+        await attachServer(serverSlugFromTarget(target));
+        return;
+    }
     if (command !== 'setup' || !target?.startsWith('/')) {
         throw new Error(
-            'Usage: grotto-computer <install|upgrade [--rollback]|start|stop|restart|status|doctor|logs|version|configure-openrouter|login [--replace]|logout|setup /server-slug>'
+            'Usage: grotto-computer <install|upgrade [--rollback]|start|stop|restart|status|doctor|logs|version|configure-openrouter|login [--replace]|logout|attach /server-slug|setup /server-slug>'
         );
     }
-    const slug = target.slice(1);
+    const slug = serverSlugFromTarget(target);
     const current = await findAttachment(slug);
     if (current) {
         try {
@@ -279,6 +300,117 @@ async function main(args: string[]) {
             }
         }
     }
+    await setupServer(slug, current);
+}
+
+function serverSlugFromTarget(target: string) {
+    const slug = target.slice(1);
+    if (slug.length < 2 || slug.length > 32 || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/u.test(slug)) {
+        throw new Error('A Server address uses 2–32 lowercase letters, numbers, and hyphens.');
+    }
+    return slug;
+}
+
+async function attachServer(slug: string) {
+    const session = await resolveComputerLogin({
+        allowLogin: false,
+        dataRoot,
+        serverOrigin,
+    });
+    const issued = await issueAttachment(slug, session);
+    await writeAttachment(issued.attachment);
+    await removePendingAttachment(dataRoot, slug);
+    await startAttachment(issued.attachment);
+    console.log(`Grotto Computer attached to /${slug}.`);
+}
+
+async function setupServer(slug: string, current: Attachment | null) {
+    let session: Awaited<ReturnType<typeof resolveComputerLogin>>;
+    try {
+        session = await resolveComputerLogin({
+            allowLogin: true,
+            dataRoot,
+            serverOrigin,
+        });
+    } catch (cause) {
+        if (isRouteUnavailable(cause)) {
+            await runLegacySetup(slug, current);
+            return;
+        }
+        throw cause;
+    }
+
+    let issued: Awaited<ReturnType<typeof issueAttachment>>;
+    try {
+        issued = await issueAttachment(slug, session);
+    } catch (cause) {
+        if (isRouteUnavailable(cause)) {
+            await removePendingAttachment(dataRoot, slug);
+            await runLegacySetup(slug, current);
+            return;
+        }
+        if (!isComputerLoginRequestFailure(cause)) {
+            throw cause;
+        }
+        session = await runComputerLogin({
+            dataRoot,
+            replace: true,
+            serverOrigin,
+        });
+        issued = await issueAttachment(slug, session);
+    }
+
+    if (current) {
+        await stopAttachment(current);
+        const archivedPath = await archiveUnlinkedAttachment(dataRoot, current);
+        console.log(`Archived the stale Computer attachment at ${archivedPath}.`);
+    }
+    await writeAttachment(issued.attachment);
+    await removePendingAttachment(dataRoot, slug);
+    await startAttachment(issued.attachment);
+    console.log(`Grotto Computer attached to /${slug}.`);
+}
+
+async function issueAttachment(
+    slug: string,
+    session: Awaited<ReturnType<typeof resolveComputerLogin>>
+) {
+    const pending = await getOrCreatePendingAttachment({
+        dataRoot,
+        origin: session.origin,
+        slug,
+    });
+    const response = await request<AttachResponse>(
+        '/computer/attach',
+        {
+            accessToken: session.accessToken,
+            credentialHash: hash(pending.credential),
+            idempotencyKey: pending.idempotencyKey,
+            slug,
+        },
+        session.origin
+    );
+    if (
+        typeof response.computerId !== 'string' ||
+        typeof response.serverId !== 'string' ||
+        response.slug !== slug ||
+        typeof response.idempotent !== 'boolean'
+    ) {
+        throw new Error('Server returned an invalid Computer attachment.');
+    }
+    return {
+        attachment: {
+            computerId: response.computerId,
+            credential: pending.credential,
+            serverId: response.serverId,
+            serverOrigin: session.origin,
+            slug,
+        } satisfies Attachment,
+        pending,
+    };
+}
+
+async function runLegacySetup(slug: string, current: Attachment | null) {
     const credential = randomBytes(32).toString('base64url');
     const started = await request<SetupResponse>('/computer/setup', {
         credentialHash: hash(credential),
@@ -322,8 +454,23 @@ async function main(args: string[]) {
         console.log(`Archived the stale Computer attachment at ${archivedPath}.`);
     }
     await writeAttachment(attachment);
+    await removePendingAttachment(dataRoot, slug);
     await startAttachment(attachment);
     console.log(`Grotto Computer attached to /${slug}.`);
+}
+
+function isRouteUnavailable(cause: unknown) {
+    return (
+        isComputerLoginRouteUnavailable(cause) ||
+        (cause instanceof ComputerRequestError && [404, 405].includes(cause.status))
+    );
+}
+
+function isComputerLoginRequestFailure(cause: unknown) {
+    return (
+        cause instanceof ComputerRequestError &&
+        (cause.status === 401 || cause.code?.startsWith('computer_login_') === true)
+    );
 }
 
 async function startAttachments(target: string | undefined) {
@@ -465,7 +612,12 @@ async function request<Response>(
         headers: { 'content-type': 'application/json' },
         method: 'POST',
     });
-    const payload = (await response.json()) as Response & { code?: string; error?: string };
+    let payload: Response & { code?: string; error?: string };
+    try {
+        payload = (await response.json()) as Response & { code?: string; error?: string };
+    } catch {
+        payload = {} as Response & { code?: string; error?: string };
+    }
     if (!response.ok) {
         throw new ComputerRequestError(
             payload.error ?? 'Computer request was rejected.',
@@ -508,8 +660,12 @@ async function writeAttachment(attachment: Attachment) {
     await mkdir(directory, { mode: 0o700, recursive: true });
     const destination = join(directory, 'attachment.json');
     const temporary = `${destination}.${randomBytes(8).toString('hex')}.tmp`;
-    await writeFile(temporary, `${JSON.stringify(attachment)}\n`, { mode: 0o600 });
-    await rename(temporary, destination);
+    try {
+        await writeFile(temporary, `${JSON.stringify(attachment)}\n`, { mode: 0o600 });
+        await rename(temporary, destination);
+    } finally {
+        await rm(temporary, { force: true });
+    }
 }
 
 function stoppedPath() {

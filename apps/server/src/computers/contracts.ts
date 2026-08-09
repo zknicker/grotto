@@ -4,6 +4,7 @@ import { serverIdSchema, serverSlugSchema } from '../servers/contracts.ts';
 
 export const computerIdSchema = z.string().regex(/^cmp_[A-Za-z0-9_-]{16}$/u);
 export const computerCredentialHashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
+export const computerAttachmentIdempotencyKeySchema = z.string().regex(/^cak_[A-Za-z0-9_-]{43}$/u);
 export const computerApprovalSecretSchema = z.string().min(32).max(256);
 export const computerApprovalIdSchema = z.string().regex(/^cap_[A-Za-z0-9_-]{16}$/u);
 export const computerLoginDeviceCodeSchema = z.string().min(1).max(256);
@@ -20,6 +21,14 @@ export const computerHandshakeSchema = computerBootstrapHelloSchema.omit({
 
 export const beginComputerSetupSchema = z
     .object({ credentialHash: computerCredentialHashSchema, slug: serverSlugSchema })
+    .strict();
+export const attachComputerSchema = z
+    .object({
+        accessToken: computerLoginAccessTokenSchema,
+        credentialHash: computerCredentialHashSchema,
+        idempotencyKey: computerAttachmentIdempotencyKeySchema,
+        slug: serverSlugSchema,
+    })
     .strict();
 export const computerSetupStatusSchema = z
     .object({ approvalId: computerApprovalIdSchema, secret: computerApprovalSecretSchema })

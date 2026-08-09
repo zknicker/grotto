@@ -49,7 +49,7 @@ export async function runComputerLogin(options: {
     dataRoot: string;
     replace?: boolean;
     serverOrigin: string;
-}): Promise<void> {
+}): Promise<ComputerLoginSession> {
     const origin = normalizeHttpOrigin(options.serverOrigin);
     const current = await readComputerLoginSession(options.dataRoot);
     if (current && !options.replace) {
@@ -59,12 +59,12 @@ export async function runComputerLogin(options: {
             );
         }
         try {
-            await ensureComputerLoginSession({
+            const session = await ensureComputerLoginSession({
                 dataRoot: options.dataRoot,
                 session: current,
             });
             console.log('Reused the saved Grotto Computer login.');
-            return;
+            return session;
         } catch (cause) {
             if (!canStartFreshLogin(cause)) {
                 throw cause;
@@ -127,13 +127,60 @@ export async function runComputerLogin(options: {
                     throw new Error('Server returned an invalid Computer login completion.');
                 }
                 console.log('Grotto Computer signed in.');
-                return;
+                return session;
             }
             await Bun.sleep(result.pollingIntervalMs);
         }
     } finally {
         cleanupEnterToOpen();
     }
+}
+
+export async function resolveComputerLogin(options: {
+    allowLogin: boolean;
+    dataRoot: string;
+    serverOrigin: string;
+}): Promise<ComputerLoginSession> {
+    const origin = normalizeHttpOrigin(options.serverOrigin);
+    const current = await readComputerLoginSession(options.dataRoot);
+    if (!current) {
+        if (!options.allowLogin) {
+            throw new Error('Grotto Computer is not signed in. Run "grotto-computer login" first.');
+        }
+        return await runComputerLogin({
+            dataRoot: options.dataRoot,
+            serverOrigin: origin,
+        });
+    }
+    if (current.origin !== origin) {
+        throw new Error(
+            `Grotto Computer is already signed in to ${current.origin}. Run "grotto-computer login --replace" to use ${origin}.`
+        );
+    }
+    try {
+        return await ensureComputerLoginSession({
+            dataRoot: options.dataRoot,
+            session: current,
+        });
+    } catch (cause) {
+        if (options.allowLogin && canStartFreshLogin(cause)) {
+            return await runComputerLogin({
+                dataRoot: options.dataRoot,
+                replace: true,
+                serverOrigin: origin,
+            });
+        }
+        if (!options.allowLogin) {
+            throw new Error(
+                'The saved Grotto Computer login could not be refreshed. Run "grotto-computer login" again.'
+            );
+        }
+        throw cause;
+    }
+}
+
+export function isComputerLoginRouteUnavailable(cause: unknown) {
+    return cause instanceof ComputerLoginRequestError && [404, 405].includes(cause.status);
 }
 
 export async function readComputerLoginSession(
@@ -252,7 +299,12 @@ async function postJson<Response>(origin: string, path: string, body: object): P
         method: 'POST',
         redirect: 'error',
     });
-    const payload = (await response.json()) as Response & { code?: string; error?: string };
+    let payload: Response & { code?: string; error?: string };
+    try {
+        payload = (await response.json()) as Response & { code?: string; error?: string };
+    } catch {
+        payload = {} as Response & { code?: string; error?: string };
+    }
     if (!response.ok) {
         throw new ComputerLoginRequestError(
             payload.error ?? 'Computer login was rejected.',

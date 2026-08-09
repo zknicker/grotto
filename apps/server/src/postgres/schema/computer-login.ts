@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { check, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export type ComputerLoginGrantStatus = 'approved' | 'consumed' | 'denied' | 'expired' | 'pending';
+export type ComputerLoginPurpose = 'login' | 'setup';
 
 export const computerLoginGrantsTable = pgTable(
     'computer_login_grants',
@@ -17,6 +18,7 @@ export const computerLoginGrantsTable = pgTable(
         id: text('id').primaryKey(),
         origin: text('origin').notNull(),
         pollingIntervalMs: integer('polling_interval_ms').notNull(),
+        purpose: text('purpose').notNull().default('login').$type<ComputerLoginPurpose>(),
         status: text('status').notNull().$type<ComputerLoginGrantStatus>(),
         userCodeHash: text('user_code_hash').notNull(),
     },
@@ -41,6 +43,7 @@ export const computerLoginGrantsTable = pgTable(
             'computer_login_grants_status',
             sql`${table.status} in ('pending', 'approved', 'denied', 'expired', 'consumed')`
         ),
+        check('computer_login_grants_purpose', sql`${table.purpose} in ('login', 'setup')`),
     ]
 );
 

@@ -3,6 +3,8 @@ import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
+    type ComputerLoginGrantStatus,
+    type ComputerLoginPurpose,
     computerLoginGrantsTable,
     computerLoginRefreshTokensTable,
     computerLoginSessionsTable,
@@ -42,8 +44,12 @@ export function normalizeComputerOrigin(value: string): string {
     return origin.origin;
 }
 
-export async function beginComputerLogin(db: GrottoDatabase, input: { origin: string }) {
+export async function beginComputerLogin(
+    db: GrottoDatabase,
+    input: { origin: string; purpose?: ComputerLoginPurpose }
+) {
     const origin = normalizeComputerOrigin(input.origin);
+    const purpose = input.purpose ?? 'login';
     const deviceCode = randomBytes(32).toString('base64url');
     const userCode = createComputerLoginUserCode();
     const expiresAt = new Date(Date.now() + computerLoginGrantLifetimeMs);
@@ -54,6 +60,7 @@ export async function beginComputerLogin(db: GrottoDatabase, input: { origin: st
         id: createOpaqueId('dgr'),
         origin,
         pollingIntervalMs: computerLoginPollingIntervalMs,
+        purpose,
         status: 'pending',
         userCodeHash: hashComputerSecret(userCode),
     });
@@ -62,6 +69,7 @@ export async function beginComputerLogin(db: GrottoDatabase, input: { origin: st
         deviceCode,
         expiresAt,
         pollingIntervalMs: computerLoginPollingIntervalMs,
+        purpose,
         userCode: `${userCode.slice(0, 4)}-${userCode.slice(4)}`,
     };
 }
@@ -75,6 +83,7 @@ export async function readComputerLoginStatus(db: GrottoDatabase, input: { userC
     const [grant] = await db
         .select({
             expiresAt: computerLoginGrantsTable.expiresAt,
+            purpose: computerLoginGrantsTable.purpose,
             storedAt: computerLoginSessionsTable.storedAt,
             status: computerLoginGrantsTable.status,
         })
@@ -98,12 +107,12 @@ export async function readComputerLoginStatus(db: GrottoDatabase, input: { userC
                     eq(computerLoginGrantsTable.status, 'pending')
                 )
             );
-        return { status: 'expired' as const };
+        return loginStatus('expired', grant.purpose);
     }
     if (grant.status === 'consumed' && !grant.storedAt) {
-        return { status: 'approved' as const };
+        return loginStatus('approved', grant.purpose);
     }
-    return { status: grant.status };
+    return loginStatus(grant.status, grant.purpose);
 }
 
 export async function approveComputerLogin(
@@ -130,7 +139,7 @@ export async function approveComputerLogin(
         }
         if (grant.status === 'approved') {
             if (grant.approvedByClerkUserId === clerkUserId) {
-                return { status: 'approved' as const };
+                return loginStatus('approved', grant.purpose);
             }
             throw computerLoginError('computer_login_already_approved');
         }
@@ -142,7 +151,7 @@ export async function approveComputerLogin(
                 status: 'approved',
             })
             .where(eq(computerLoginGrantsTable.id, grant.id));
-        return { status: 'approved' as const };
+        return loginStatus('approved', grant.purpose);
     });
 }
 
@@ -160,7 +169,7 @@ export async function denyComputerLogin(
             throw computerLoginError('computer_login_expired');
         }
         if (grant.status === 'denied') {
-            return { status: 'denied' as const };
+            return loginStatus('denied', grant.purpose);
         }
         if (grant.status === 'expired') {
             throw computerLoginError('computer_login_expired');
@@ -179,7 +188,7 @@ export async function denyComputerLogin(
                 status: 'denied',
             })
             .where(eq(computerLoginGrantsTable.id, grant.id));
-        return { status: 'denied' as const };
+        return loginStatus('denied', grant.purpose);
     });
 }
 
@@ -302,4 +311,11 @@ async function expireComputerLoginGrant(
         .update(computerLoginGrantsTable)
         .set({ status: 'expired' })
         .where(eq(computerLoginGrantsTable.id, id));
+}
+
+function loginStatus(
+    status: ComputerLoginGrantStatus,
+    purpose: ComputerLoginPurpose
+): { purpose?: ComputerLoginPurpose; status: ComputerLoginGrantStatus } {
+    return purpose === 'setup' ? { purpose, status } : { status };
 }

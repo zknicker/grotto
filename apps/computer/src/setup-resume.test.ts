@@ -112,6 +112,9 @@ test('setup adds another Server without replacing the first attachment', async (
             if (url.pathname === '/computer/attachment' && server.upgrade(request)) {
                 return;
             }
+            if (url.pathname === '/computer/login/complete') {
+                return Response.json({ status: 'completed' });
+            }
             if (url.pathname === '/computer/attach') {
                 const body = (await request.json()) as { slug: string };
                 const result = attached.get(body.slug);
@@ -154,6 +157,80 @@ test('setup adds another Server without replacing the first attachment', async (
         await expect(
             stat(join(dataRoot, 'servers', 'srv_first123456789', 'attachment.json'))
         ).resolves.toBeTruthy();
+    } finally {
+        for (const socket of sockets) {
+            socket.close();
+        }
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('setup retries a durable login acknowledgement after attachment persistence', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-setup-ack-retry-'));
+    const sockets = new Set<ServerWebSocket<undefined>>();
+    let completionAttempts = 0;
+    const peer = Bun.serve({
+        async fetch(request, server) {
+            const url = new URL(request.url);
+            if (url.pathname === '/computer/attachment' && server.upgrade(request)) {
+                return;
+            }
+            if (url.pathname === '/computer/login/complete') {
+                completionAttempts += 1;
+                await expect(
+                    stat(join(dataRoot, 'servers', 'srv_ack_server', 'attachment.json'))
+                ).resolves.toBeTruthy();
+                if (completionAttempts === 1) {
+                    return Response.json({ error: 'temporary failure' }, { status: 503 });
+                }
+                return Response.json({ status: 'completed' });
+            }
+            if (url.pathname === '/computer/validate') {
+                return Response.json({ id: 'cmp_ack1234567890' });
+            }
+            if (url.pathname === '/computer/attach') {
+                return Response.json({
+                    computerId: 'cmp_ack1234567890',
+                    idempotent: false,
+                    serverId: 'srv_ack_server',
+                    slug: 'hq',
+                });
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+        websocket: {
+            message(socket) {
+                sockets.add(socket);
+                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+            },
+        },
+    });
+    const origin = `http://127.0.0.1:${peer.port}`;
+    try {
+        await writeSession(dataRoot, { ...session, origin });
+        const first = await runCli(['setup', '/hq'], {
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_COMPUTER_ONESHOT: '1',
+            GROTTO_COMPUTER_USAGE_DISABLED: '1',
+            GROTTO_SERVER_ORIGIN: origin,
+        });
+        expect(first.exitCode).toBe(1);
+        await expect(
+            stat(join(dataRoot, 'servers', 'srv_ack_server', 'attachment.json'))
+        ).resolves.toBeTruthy();
+        await expect(stat(join(dataRoot, 'pending-attachments', 'hq.json'))).resolves.toBeTruthy();
+
+        const retry = await runCli(['setup', '/hq'], {
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_COMPUTER_ONESHOT: '1',
+            GROTTO_COMPUTER_USAGE_DISABLED: '1',
+            GROTTO_SERVER_ORIGIN: origin,
+        });
+        expect(retry.exitCode, retry.stderr).toBe(0);
+        expect(completionAttempts).toBe(2);
+        await expect(stat(join(dataRoot, 'pending-attachments', 'hq.json'))).rejects.toThrow();
     } finally {
         for (const socket of sockets) {
             socket.close();

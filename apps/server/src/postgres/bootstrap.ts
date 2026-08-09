@@ -150,6 +150,8 @@ const schemaStatements = [
         expires_at timestamptz NOT NULL,
         polling_interval_ms integer NOT NULL
             CONSTRAINT computer_login_grants_polling_interval_positive CHECK (polling_interval_ms > 0),
+        purpose text NOT NULL DEFAULT 'login'
+            CONSTRAINT computer_login_grants_purpose CHECK (purpose IN ('login', 'setup')),
         status text NOT NULL
             CONSTRAINT computer_login_grants_status CHECK (
                 status IN ('pending', 'approved', 'denied', 'expired', 'consumed')

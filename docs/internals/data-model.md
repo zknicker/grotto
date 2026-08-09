@@ -91,7 +91,8 @@ authoritative after failed turns, reset, or Cove deletion, so acknowledgement
 replay cannot re-gate the App, recreate Cove, or enqueue another greeting.
 Existing Servers are not migrated.
 Computer login grants store hashed one-use device codes, short-code approval
-state, expiry, and the approving Clerk identity. Consumed grants own one
+state, expiry, the approving Clerk identity, and whether the grant is standalone
+login or Computer setup. Consumed grants own one
 origin-bound Computer login session whose access and refresh tokens are stored
 only as hashes; the raw session is returned once to the CLI. Each session owns a
 rotating refresh-token family: consumed tokens remain as history for reuse detection,

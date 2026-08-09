@@ -44,9 +44,12 @@ interface ComputerLoginCompletedResponse {
 }
 
 type ComputerLoginPollResponse = ComputerLoginApprovedResponse | ComputerLoginPendingResponse;
+export type ComputerLoginPurpose = 'login' | 'setup';
 
 export async function runComputerLogin(options: {
+    complete?: boolean;
     dataRoot: string;
+    purpose?: ComputerLoginPurpose;
     replace?: boolean;
     serverOrigin: string;
 }): Promise<ComputerLoginSession> {
@@ -73,6 +76,7 @@ export async function runComputerLogin(options: {
     }
     const started = await postJson<ComputerLoginBeginResponse>(origin, '/computer/login', {
         origin,
+        purpose: options.purpose ?? 'login',
     });
     assertBeginResponse(started);
 
@@ -118,15 +122,10 @@ export async function runComputerLogin(options: {
                 assertOriginBoundSession(result, origin);
                 const { status: _status, ...session } = result;
                 await writeComputerLoginSession(options.dataRoot, session);
-                const completed = await postJson<ComputerLoginCompletedResponse>(
-                    origin,
-                    '/computer/login/complete',
-                    { accessToken: session.accessToken }
-                );
-                if (completed.status !== 'completed') {
-                    throw new Error('Server returned an invalid Computer login completion.');
+                if (options.complete !== false) {
+                    await completeComputerLogin(session);
+                    console.log('Grotto Computer signed in.');
                 }
-                console.log('Grotto Computer signed in.');
                 return session;
             }
             await Bun.sleep(result.pollingIntervalMs);
@@ -138,7 +137,9 @@ export async function runComputerLogin(options: {
 
 export async function resolveComputerLogin(options: {
     allowLogin: boolean;
+    complete?: boolean;
     dataRoot: string;
+    purpose?: ComputerLoginPurpose;
     serverOrigin: string;
 }): Promise<ComputerLoginSession> {
     const origin = normalizeHttpOrigin(options.serverOrigin);
@@ -148,7 +149,9 @@ export async function resolveComputerLogin(options: {
             throw new Error('Grotto Computer is not signed in. Run "grotto-computer login" first.');
         }
         return await runComputerLogin({
+            complete: options.complete,
             dataRoot: options.dataRoot,
+            purpose: options.purpose,
             serverOrigin: origin,
         });
     }
@@ -165,7 +168,9 @@ export async function resolveComputerLogin(options: {
     } catch (cause) {
         if (options.allowLogin && canStartFreshLogin(cause)) {
             return await runComputerLogin({
+                complete: options.complete,
                 dataRoot: options.dataRoot,
+                purpose: options.purpose,
                 replace: true,
                 serverOrigin: origin,
             });
@@ -176,6 +181,17 @@ export async function resolveComputerLogin(options: {
             );
         }
         throw cause;
+    }
+}
+
+export async function completeComputerLogin(session: ComputerLoginSession): Promise<void> {
+    const completed = await postJson<ComputerLoginCompletedResponse>(
+        session.origin,
+        '/computer/login/complete',
+        { accessToken: session.accessToken }
+    );
+    if (completed.status !== 'completed') {
+        throw new Error('Server returned an invalid Computer login completion.');
     }
 }
 

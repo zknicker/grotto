@@ -20,9 +20,12 @@ interface ComputerLoginSession {
     sessionId: string;
 }
 
-async function beginLogin(harness: GrottoServerHarness): Promise<DeviceGrant> {
+async function beginLogin(
+    harness: GrottoServerHarness,
+    purpose: 'login' | 'setup' = 'login'
+): Promise<DeviceGrant> {
     const response = await fetch(new URL('/computer/login', harness.url), {
-        body: JSON.stringify({ origin: harness.url.origin }),
+        body: JSON.stringify({ origin: harness.url.origin, purpose }),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
     });
@@ -181,6 +184,36 @@ test('Computer login exchange serializes concurrent polling to one session', asy
         expect(terminal).toBeDefined();
         expect(await terminal?.json()).toMatchObject({ code: 'computer_login_consumed' });
         expect((await harness.sql`SELECT id FROM computer_login_sessions`).length).toBe(1);
+    } finally {
+        client.close();
+        await harness.close();
+    }
+}, 60_000);
+
+test('setup login stays finishing until the Computer acknowledges durable attachment storage', async () => {
+    const harness = await startGrottoServerHarness();
+    const client = createGrottoClient(
+        harness,
+        await harness.clerk.mintSessionToken('user_setup_login')
+    );
+
+    try {
+        const started = await beginLogin(harness, 'setup');
+        expect(new URL(started.verificationUrl).searchParams.get('flow')).toBe('setup');
+        await client.trpc.computer.login.approve.mutate({ userCode: started.userCode });
+        const exchanged = await pollLogin(harness, started.deviceCode);
+        expect(exchanged.status).toBe(200);
+        const session = (await exchanged.json()) as ComputerLoginSession & { status: string };
+
+        expect(
+            await client.trpc.computer.login.status.query({ userCode: started.userCode })
+        ).toEqual({ purpose: 'setup', status: 'approved' });
+
+        const completed = await completeLogin(harness, session.accessToken);
+        expect(completed.status).toBe(200);
+        expect(
+            await client.trpc.computer.login.status.query({ userCode: started.userCode })
+        ).toEqual({ purpose: 'setup', status: 'consumed' });
     } finally {
         client.close();
         await harness.close();

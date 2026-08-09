@@ -39,6 +39,10 @@ test('setup falls back to device login, persists pending issuance before attach,
             }
             requests.push(`${request.method} ${url.pathname}`);
             if (url.pathname === '/computer/login') {
+                expect(await request.json()).toEqual({
+                    origin: url.origin,
+                    purpose: 'setup',
+                });
                 return Response.json({
                     deviceCode: `d${'x'.repeat(42)}`,
                     expiresAt: new Date(Date.now() + 60_000).toISOString(),
@@ -62,6 +66,9 @@ test('setup falls back to device login, persists pending issuance before attach,
                       });
             }
             if (url.pathname === '/computer/login/complete') {
+                await expect(
+                    stat(join(dataRoot, 'servers', 'srv_setup_server', 'attachment.json'))
+                ).resolves.toBeTruthy();
                 return Response.json({ status: 'completed' });
             }
             if (url.pathname === '/computer/attach') {
@@ -101,8 +108,8 @@ test('setup falls back to device login, persists pending issuance before attach,
             'POST /computer/login',
             'POST /computer/login/poll',
             'POST /computer/login/poll',
-            'POST /computer/login/complete',
             'POST /computer/attach',
+            'POST /computer/login/complete',
         ]);
         expect(pendingAtAttach).toMatchObject({ origin, slug: 'hq' });
         const pending = pendingAtAttach as unknown as Record<string, string>;
@@ -134,6 +141,12 @@ test('setup retries a crashed issuance with the same pending idempotency key', a
             const url = new URL(request.url);
             if (url.pathname === '/computer/attachment' && server.upgrade(request)) {
                 return;
+            }
+            if (url.pathname === '/computer/login/complete') {
+                await expect(
+                    stat(join(dataRoot, 'servers', 'srv_retry_server', 'attachment.json'))
+                ).resolves.toBeTruthy();
+                return Response.json({ status: 'completed' });
             }
             if (url.pathname === '/computer/attach') {
                 const body = (await request.json()) as Record<string, string>;
@@ -193,7 +206,7 @@ test('setup retries a crashed issuance with the same pending idempotency key', a
             GROTTO_SERVER_ORIGIN: origin,
         });
 
-        expect(retry.exitCode, retry.stderr).toBe(0);
+        expect(retry.exitCode, `${retry.stderr}\n${retry.stdout}`).toBe(0);
         expect(requests).toHaveLength(2);
         expect(requests[1]).toMatchObject({
             credentialHash: requests[0]?.credentialHash,

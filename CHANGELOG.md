@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.3 - 2026-08-08
+
+- Server addresses once again follow the Server name while typing, while preserving
+  any address the Owner edits explicitly.
+- Computer setup now presents separate install and Server setup commands. Grotto
+  Computer 1.3.2 parks attachments whose Server was deleted or reset and reconnects
+  them through fresh browser approval without deleting local Agent workspaces.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.3
+- Desktop: Unchanged
+- Computer: Publish v1.3.2
+- Runtime: Publish v1.8.3
+
 ## v1.8.2 - 2026-08-08
 
 - Fresh onboarding now creates Cove's built-in direct message with the Server

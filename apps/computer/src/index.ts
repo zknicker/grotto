@@ -192,11 +192,25 @@ async function main(args: string[]) {
     }
     if (command === 'logout') {
         const session = await readComputerLoginSession(dataRoot);
-        if (session) {
-            await revokeComputerLoginSession(session);
+        let revocationFailure: unknown;
+        try {
+            if (session) {
+                await revokeComputerLoginSession(session);
+            }
+        } catch (cause) {
+            revocationFailure = cause;
         }
         await rm(join(dataRoot, 'login.json'), { force: true });
         await stopComputerService();
+        if (revocationFailure) {
+            const detail =
+                revocationFailure instanceof Error
+                    ? revocationFailure.message
+                    : String(revocationFailure);
+            throw new Error(
+                `Grotto Computer logged out locally, but Server-side revocation failed: ${detail}`
+            );
+        }
         console.log('Grotto Computer logged out.');
         return;
     }

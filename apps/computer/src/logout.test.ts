@@ -88,6 +88,43 @@ test('logout revokes only the human session, stops the service, and preserves at
     }
 }, 15_000);
 
+test('logout still removes the local session and stops when Server revocation fails', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-logout-failure-'));
+    const peer = Bun.serve({
+        fetch(request) {
+            if (new URL(request.url).pathname === '/computer/login/revoke') {
+                return Response.json({ error: 'temporary revocation failure' }, { status: 503 });
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+    });
+    const session: StoredSession = {
+        accessToken: `gcl_at_${'t'.repeat(43)}`,
+        accessTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        origin: `http://127.0.0.1:${peer.port}`,
+        refreshToken: `gcl_rt_${'u'.repeat(43)}`,
+        refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        sessionId: 'cls_1234567890123456',
+    };
+    try {
+        await writeSession(dataRoot, session);
+        const result = await runCli(['logout'], {
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_SERVER_ORIGIN: session.origin,
+        });
+
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain('logged out locally');
+        expect(result.stderr).toContain('temporary revocation failure');
+        await expect(stat(join(dataRoot, 'login.json'))).rejects.toThrow();
+        await expect(stat(join(dataRoot, 'stopped'))).resolves.toBeTruthy();
+    } finally {
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+}, 15_000);
+
 async function writeSession(dataRoot: string, session: StoredSession) {
     await mkdir(dataRoot, { mode: 0o700, recursive: true });
     await writeFile(join(dataRoot, 'login.json'), `${JSON.stringify(session)}\n`, { mode: 0o600 });

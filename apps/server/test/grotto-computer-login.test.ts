@@ -48,7 +48,8 @@ async function completeLogin(harness: GrottoServerHarness, accessToken: string) 
 
 async function createLoginSession(
     harness: GrottoServerHarness,
-    clerkUserId: string
+    clerkUserId: string,
+    complete = true
 ): Promise<ComputerLoginSession> {
     const client = createGrottoClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
     try {
@@ -58,8 +59,10 @@ async function createLoginSession(
         expect(exchanged.status).toBe(200);
         const session = (await exchanged.json()) as ComputerLoginSession & { status: string };
         expect(session.status).toBe('approved');
-        const completed = await completeLogin(harness, session.accessToken);
-        expect(completed.status).toBe(200);
+        if (complete) {
+            const completed = await completeLogin(harness, session.accessToken);
+            expect(completed.status).toBe(200);
+        }
         return session;
     } finally {
         client.close();
@@ -335,10 +338,10 @@ test('Computer management authority is inspectable but cannot access Agent execu
     }
 }, 60_000);
 
-test('Computer logout revokes a management session and remains idempotent', async () => {
+test('Computer logout revokes idempotently and rejects a late persistence acknowledgement', async () => {
     const harness = await startGrottoServerHarness();
     try {
-        const session = await createLoginSession(harness, 'user_logout');
+        const session = await createLoginSession(harness, 'user_logout', false);
         const revoked = await postLoginRoute(harness, '/computer/login/revoke', {
             refreshToken: session.refreshToken,
             sessionId: session.sessionId,
@@ -352,6 +355,14 @@ test('Computer logout revokes a management session and remains idempotent', asyn
         });
         expect(repeated.status).toBe(200);
         expect(await repeated.json()).toEqual({ status: 'revoked' });
+
+        const completed = await completeLogin(harness, session.accessToken);
+        expect(completed.status).toBe(401);
+        expect(await completed.json()).toMatchObject({ code: 'computer_login_revoked' });
+        const rows = await harness.sql`
+            SELECT stored_at FROM computer_login_sessions WHERE id = ${session.sessionId}
+        `;
+        expect(rows[0]?.stored_at).toBeNull();
     } finally {
         await harness.close();
     }

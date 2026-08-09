@@ -78,6 +78,7 @@ import {
     runAgentLaunch,
 } from './launch.ts';
 import { replaceLaunchdService } from './launchd.ts';
+import { runComputerLogin } from './login.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
 import {
@@ -181,6 +182,10 @@ async function main(args: string[]) {
         console.log('OpenRouter account usage is configured on this Grotto Computer.');
         return;
     }
+    if (command === 'login') {
+        await runComputerLogin({ dataRoot, serverOrigin });
+        return;
+    }
     if (command === 'start') {
         await recoverInterruptedUpdate();
         await finishRestart();
@@ -230,7 +235,7 @@ async function main(args: string[]) {
     }
     if (command !== 'setup' || !target?.startsWith('/')) {
         throw new Error(
-            'Usage: grotto-computer <install|upgrade [--rollback]|start|stop|restart|status|doctor|logs|version|configure-openrouter|setup /server-slug>'
+            'Usage: grotto-computer <install|upgrade [--rollback]|start|stop|restart|status|doctor|logs|version|configure-openrouter|login|setup /server-slug>'
         );
     }
     const slug = target.slice(1);

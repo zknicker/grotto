@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { createBrowserRouter, createHashRouter, Navigate, useParams } from 'react-router-dom';
 import { AppFrame } from './components/app-frame.tsx';
+import { ComputerLoginRoutes } from './features/computers/computer-login-routes.tsx';
 import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
 import { serverRoute } from './features/servers/server-routes.ts';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
@@ -203,6 +204,18 @@ export function createAppRouter() {
                             lazy: lazyRoute(
                                 () => import('./routes/app/accept-invitation-page.tsx'),
                                 'AcceptInvitationPage'
+                            ),
+                        },
+                    ],
+                },
+                {
+                    element: <ComputerLoginRoutes />,
+                    children: [
+                        {
+                            path: 'computer/login',
+                            lazy: lazyRoute(
+                                () => import('./routes/app/computer-login-page.tsx'),
+                                'ComputerLoginPage'
                             ),
                         },
                     ],

@@ -133,6 +133,45 @@ const schemaStatements = [
         )
     );`,
     'CREATE INDEX computer_setup_approvals_server_idx ON computer_setup_approvals (server_id, created_at DESC);',
+    `CREATE TABLE computer_login_grants (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT computer_login_grants_id_shape CHECK (id ~ '^dgr_[A-Za-z0-9_-]{16}$'),
+        device_code_hash text NOT NULL UNIQUE
+            CONSTRAINT computer_login_grants_device_code_hash_shape CHECK (device_code_hash ~ '^[a-f0-9]{64}$'),
+        user_code_hash text NOT NULL UNIQUE
+            CONSTRAINT computer_login_grants_user_code_hash_shape CHECK (user_code_hash ~ '^[a-f0-9]{64}$'),
+        origin text NOT NULL,
+        expires_at timestamptz NOT NULL,
+        polling_interval_ms integer NOT NULL
+            CONSTRAINT computer_login_grants_polling_interval_positive CHECK (polling_interval_ms > 0),
+        status text NOT NULL
+            CONSTRAINT computer_login_grants_status CHECK (
+                status IN ('pending', 'approved', 'denied', 'expired', 'consumed')
+            ),
+        approved_at timestamptz,
+        approved_by_clerk_user_id text,
+        denied_at timestamptz,
+        denied_by_clerk_user_id text,
+        consumed_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now()
+    );`,
+    'CREATE INDEX computer_login_grants_expiry_idx ON computer_login_grants (expires_at, status);',
+    `CREATE TABLE computer_login_sessions (
+        id text PRIMARY KEY NOT NULL
+            CONSTRAINT computer_login_sessions_id_shape CHECK (id ~ '^cls_[A-Za-z0-9_-]{16}$'),
+        grant_id text NOT NULL UNIQUE REFERENCES computer_login_grants (id) ON DELETE CASCADE,
+        origin text NOT NULL,
+        clerk_user_id text NOT NULL,
+        access_token_hash text NOT NULL UNIQUE
+            CONSTRAINT computer_login_sessions_access_token_hash_shape CHECK (access_token_hash ~ '^[a-f0-9]{64}$'),
+        refresh_token_hash text NOT NULL UNIQUE
+            CONSTRAINT computer_login_sessions_refresh_token_hash_shape CHECK (refresh_token_hash ~ '^[a-f0-9]{64}$'),
+        access_token_expires_at timestamptz NOT NULL,
+        refresh_token_expires_at timestamptz NOT NULL,
+        revoked_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now()
+    );`,
+    'CREATE INDEX computer_login_sessions_owner_idx ON computer_login_sessions (clerk_user_id, created_at DESC);',
     `CREATE TABLE server_invitations (
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,

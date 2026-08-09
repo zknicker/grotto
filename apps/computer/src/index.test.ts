@@ -145,6 +145,90 @@ test('setup stores only a Server credential and reruns by validation', async () 
     }
 }, 15_000);
 
+test('login exchanges a device grant and atomically stores an origin-bound session', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-login-test-'));
+    const requests: string[] = [];
+    let polls = 0;
+    const peer = Bun.serve({
+        async fetch(request) {
+            const url = new URL(request.url);
+            requests.push(`${request.method} ${url.pathname}`);
+            if (url.pathname === '/computer/login' && request.method === 'POST') {
+                return Response.json({
+                    deviceCode: 'd'.repeat(43),
+                    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+                    pollingIntervalMs: 1,
+                    userCode: 'ABCD-EFGH',
+                    verificationUrl: `${url.origin}/computer/login?code=ABCD-EFGH`,
+                });
+            }
+            if (url.pathname === '/computer/login/poll' && request.method === 'POST') {
+                polls += 1;
+                if (polls === 1) {
+                    return Response.json({ pollingIntervalMs: 1, status: 'pending' });
+                }
+                return Response.json({
+                    accessToken: 'gcl_at_access-token',
+                    accessTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+                    origin: url.origin,
+                    refreshToken: 'gcl_rt_refresh-token',
+                    refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+                    sessionId: 'cls_1234567890123456',
+                    status: 'approved',
+                });
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+    });
+    try {
+        const child = Bun.spawn(['bun', entrypoint, 'login'], {
+            env: {
+                ...process.env,
+                GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+                GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+                GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+            },
+            stderr: 'pipe',
+            stdout: 'pipe',
+        });
+        const [exitCode, stdout, stderr] = await Promise.all([
+            child.exited,
+            new Response(child.stdout).text(),
+            new Response(child.stderr).text(),
+        ]);
+        expect(exitCode, stderr).toBe(0);
+        expect(stdout).toContain('Verification URL:');
+        expect(stdout).toContain('User code: ABCD-EFGH');
+        expect(stdout).toContain('Grotto Computer signed in.');
+        expect(stdout).not.toContain('press Enter');
+        expect(requests).toEqual([
+            'POST /computer/login',
+            'POST /computer/login/poll',
+            'POST /computer/login/poll',
+        ]);
+
+        const sessionPath = join(dataRoot, 'login.json');
+        const session = JSON.parse(await readFile(sessionPath, 'utf8')) as Record<string, string>;
+        expect(session).toMatchObject({
+            accessToken: 'gcl_at_access-token',
+            origin: `http://127.0.0.1:${peer.port}`,
+            refreshToken: 'gcl_rt_refresh-token',
+            sessionId: 'cls_1234567890123456',
+        });
+        expect(typeof session.accessTokenExpiresAt).toBe('string');
+        expect(typeof session.refreshTokenExpiresAt).toBe('string');
+        expect(session).not.toHaveProperty('status');
+        expect(session).not.toHaveProperty('deviceCode');
+        expect(session).not.toHaveProperty('userCode');
+        expect((await stat(dataRoot)).mode & 0o777).toBe(0o700);
+        expect((await stat(sessionPath)).mode & 0o777).toBe(0o600);
+    } finally {
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+}, 15_000);
+
 test('setup preserves an unlinked attachment when replacement approval fails', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
     const serverId = 'srv_oldoldoldoldold1';

@@ -2,10 +2,14 @@ import { hostedRunnerMintRequestSchema, hostedRunnerRevokeRequestSchema } from '
 import type { FastifyInstance } from 'fastify';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
+    beginComputerLoginSchema,
     beginComputerSetupSchema,
     computerSetupStatusSchema,
+    pollComputerLoginSchema,
     validateComputerCredentialSchema,
 } from './contracts.ts';
+import { ComputerLoginError } from './login-errors.ts';
+import { beginComputerLogin, pollComputerLogin } from './login-service.ts';
 import { mintRunnerCredential, revokeRunnerCredential } from './runner-credentials.ts';
 import {
     beginComputerSetup,
@@ -46,6 +50,31 @@ export function registerComputerRoutes(
             return setupError(reply, cause);
         }
     });
+    app.post('/computer/login', async (request, reply) => {
+        try {
+            const input = beginComputerLoginSchema.parse(request.body);
+            const started = await beginComputerLogin(options.db, input);
+            const verificationUrl = new URL('/computer/login', options.appOrigin);
+            verificationUrl.searchParams.set('code', started.userCode);
+            return {
+                deviceCode: started.deviceCode,
+                expiresAt: started.expiresAt.toISOString(),
+                pollingIntervalMs: started.pollingIntervalMs,
+                userCode: started.userCode,
+                verificationUrl: verificationUrl.toString(),
+            };
+        } catch (cause) {
+            return loginError(reply, cause);
+        }
+    });
+    app.post('/computer/login/poll', async (request, reply) => {
+        try {
+            const input = pollComputerLoginSchema.parse(request.body);
+            return await pollComputerLogin(options.db, input);
+        } catch (cause) {
+            return loginError(reply, cause);
+        }
+    });
     app.post('/computer/validate', async (request, reply) => {
         try {
             const input = validateComputerCredentialSchema.parse(request.body);
@@ -80,6 +109,18 @@ function setupError(
     const status = cause instanceof ComputerSetupDeniedError ? 403 : 400;
     return reply.code(status).send({
         ...(cause instanceof ComputerSetupDeniedError && cause.code ? { code: cause.code } : {}),
+        error: message,
+    });
+}
+
+function loginError(
+    reply: { code(statusCode: number): { send(payload: unknown): unknown } },
+    cause: unknown
+) {
+    const message = cause instanceof Error ? cause.message : 'Computer login was rejected.';
+    const status = cause instanceof ComputerLoginError ? cause.httpStatus : 400;
+    return reply.code(status).send({
+        ...(cause instanceof ComputerLoginError ? { code: cause.code } : {}),
         error: message,
     });
 }

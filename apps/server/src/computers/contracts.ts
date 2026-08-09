@@ -6,6 +6,9 @@ export const computerIdSchema = z.string().regex(/^cmp_[A-Za-z0-9_-]{16}$/u);
 export const computerCredentialHashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
 export const computerApprovalSecretSchema = z.string().min(32).max(256);
 export const computerApprovalIdSchema = z.string().regex(/^cap_[A-Za-z0-9_-]{16}$/u);
+export const computerLoginDeviceCodeSchema = z.string().min(1).max(256);
+export const computerLoginUserCodeSchema = z.string().trim().min(1).max(32);
+export const computerLoginOriginSchema = z.string().url();
 export const computerHandshakeSchema = computerBootstrapHelloSchema.omit({
     bootstrapProtocolVersion: true,
     credential: true,
@@ -24,6 +27,15 @@ export const validateComputerCredentialSchema = z
 export const approveComputerSetupSchema = z
     .object({ approvalId: computerApprovalIdSchema, secret: computerApprovalSecretSchema })
     .strict();
+export const beginComputerLoginSchema = z.object({ origin: computerLoginOriginSchema }).strict();
+export const pollComputerLoginSchema = z
+    .object({ deviceCode: computerLoginDeviceCodeSchema })
+    .strict();
+export const computerLoginStatusSchema = z
+    .object({ userCode: computerLoginUserCodeSchema })
+    .strict();
+export const approveComputerLoginSchema = computerLoginStatusSchema;
+export const denyComputerLoginSchema = computerLoginStatusSchema;
 
 export const computerUpdateInputSchema = z
     .object({ computerId: computerIdSchema, serverId: serverIdSchema })

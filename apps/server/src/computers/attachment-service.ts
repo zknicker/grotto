@@ -7,6 +7,7 @@ import {
     ServerAccessDeniedError,
     ServerNotFoundError,
 } from '../servers/server-access.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import { findUserByClerkId } from '../users/grotto-user.ts';
 import { authenticateComputerLogin } from './login-session-service.ts';
 
@@ -59,6 +60,7 @@ export async function attachComputer(db: GrottoDatabase, input: AttachComputerIn
                 404
             );
         }
+        await lockServerRow(tx, server.id);
         let membership: Awaited<ReturnType<typeof requireServerMembership>>;
         try {
             membership = await requireServerMembership(tx, member, server.id);

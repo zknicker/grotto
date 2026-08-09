@@ -291,6 +291,7 @@ async function main(args: string[]) {
         try {
             await validate(current);
             await clearTerminalUnlinked(dataRoot, current);
+            await removePendingAttachment(dataRoot, slug);
             await startAttachment(current);
             console.log(`Grotto Computer resumed /${slug}.`);
             return;
@@ -317,6 +318,15 @@ async function attachServer(slug: string) {
         dataRoot,
         serverOrigin,
     });
+    const current = await findAttachment(slug);
+    if (current) {
+        await validate(current);
+        await clearTerminalUnlinked(dataRoot, current);
+        await removePendingAttachment(dataRoot, slug);
+        await startAttachment(current);
+        console.log(`Grotto Computer resumed /${slug}.`);
+        return;
+    }
     const issued = await issueAttachment(slug, session);
     await writeAttachment(issued.attachment);
     await removePendingAttachment(dataRoot, slug);
@@ -462,7 +472,9 @@ async function runLegacySetup(slug: string, current: Attachment | null) {
 function isRouteUnavailable(cause: unknown) {
     return (
         isComputerLoginRouteUnavailable(cause) ||
-        (cause instanceof ComputerRequestError && [404, 405].includes(cause.status))
+        (cause instanceof ComputerRequestError &&
+            [404, 405].includes(cause.status) &&
+            cause.code?.startsWith('computer_attachment_') !== true)
     );
 }
 
@@ -611,6 +623,7 @@ async function request<Response>(
         body: JSON.stringify(body),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
+        redirect: 'error',
     });
     let payload: Response & { code?: string; error?: string };
     try {

@@ -366,6 +366,18 @@ test('setup resumes an existing attachment without login or migration', async ()
             })}\n`,
             { mode: 0o600 }
         );
+        const pendingRoot = join(dataRoot, 'pending-attachments');
+        await mkdir(pendingRoot, { mode: 0o700, recursive: true });
+        await writeFile(
+            join(pendingRoot, 'hq.json'),
+            `${JSON.stringify({
+                credential: 'p'.repeat(43),
+                idempotencyKey: `cak_${'i'.repeat(43)}`,
+                origin,
+                slug: 'hq',
+            })}\n`,
+            { mode: 0o600 }
+        );
 
         const result = await runCli(['setup', '/hq'], {
             GROTTO_COMPUTER_DATA_ROOT: dataRoot,
@@ -380,6 +392,7 @@ test('setup resumes an existing attachment without login or migration', async ()
         await expect(readFile(join(attachmentRoot, 'attachment.json'), 'utf8')).resolves.toContain(
             'existing-credential'
         );
+        await expect(stat(join(pendingRoot, 'hq.json'))).rejects.toThrow();
     } finally {
         for (const socket of sockets) {
             socket.close();

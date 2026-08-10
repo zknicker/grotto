@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { getCoveOnboardingView, getCoveRepairMessage } from './cove-onboarding-model.ts';
+import { getCoveOnboardingView, getCoveRepairGuidance } from './cove-onboarding-model.ts';
 
 describe('Cove onboarding phase-to-view mapping', () => {
     test('shows the Computer connection action before a Computer connects', () => {
@@ -113,23 +113,42 @@ describe('Cove onboarding phase-to-view mapping', () => {
 
 describe('Cove onboarding presentation boundary', () => {
     test('never exposes internal application diagnostics to the human', () => {
-        const visible = getCoveRepairMessage({
+        const guidance = getCoveRepairGuidance({
             code: 'application-failed',
             detail: 'Factory acknowledgement failed after workspace seeding.',
         });
 
-        expect(visible).toBe(
-            'Cove isn’t ready yet. Make sure this Computer is connected, then try again.'
+        const visible = [guidance.title, guidance.remedy, guidance.command, guidance.note].join(
+            ' '
         );
         expect(visible).not.toMatch(/factory|acknowledg|workspace|seed|configuration/iu);
+        expect(guidance.remedy).toContain('Try again');
+        expect(guidance.command).toBe('grotto-computer logs');
     });
 
-    test('turns Computer failures into one actionable repair sentence', () => {
-        expect(
-            getCoveRepairMessage({
-                code: 'computer-disconnected',
-                detail: 'Internal socket report detail.',
-            })
-        ).toBe('Reconnect this Computer, then try again.');
+    test('gives a disconnected Computer the exact recovery command', () => {
+        const guidance = getCoveRepairGuidance({
+            code: 'computer-disconnected',
+            detail: 'Internal socket report detail.',
+        });
+
+        expect(guidance.title).toBe('This Computer is offline');
+        expect(guidance.command).toBe('grotto-computer start');
+        expect(guidance.note).toContain('continues automatically');
+    });
+
+    test('routes update-shaped failures to the upgrade command', () => {
+        for (const code of ['computer-incompatible', 'inventory-invalid'] as const) {
+            expect(getCoveRepairGuidance({ code, detail: 'internal' }).command).toBe(
+                'grotto-computer upgrade'
+            );
+        }
+    });
+
+    test('falls back to a safe generic repair without a failure record', () => {
+        const guidance = getCoveRepairGuidance(null);
+
+        expect(guidance.command).toBeNull();
+        expect(guidance.remedy).toContain('try again');
     });
 });

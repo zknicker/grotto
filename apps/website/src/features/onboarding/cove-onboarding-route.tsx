@@ -49,16 +49,13 @@ export function CoveOnboardingRoute() {
     wasGated.current = true;
 
     const switchServer = () => navigate('/s');
+    const meetingCove = ['meet-cove', 'applying-cove', 'apply-failed'].includes(view);
     return (
         <ActivationShell
+            // Once Cove leads the screen, the brand mark would be a second star.
+            mark={meetingCove ? null : undefined}
             progress={
-                <SetupProgressMarker
-                    stage={
-                        ['meet-cove', 'applying-cove', 'apply-failed'].includes(view)
-                            ? 'meet-cove'
-                            : 'connect-computer'
-                    }
-                />
+                <SetupProgressMarker stage={meetingCove ? 'meet-cove' : 'connect-computer'} />
             }
         >
             {view === 'meet-cove' || view === 'applying-cove' || view === 'apply-failed' ? (

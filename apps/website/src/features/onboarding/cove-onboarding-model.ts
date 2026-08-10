@@ -39,18 +39,69 @@ export function getCoveOnboardingView(onboarding: ServerOnboarding): CoveOnboard
     return onboarding.computerId ? 'detecting-runtimes' : 'connect-computer';
 }
 
-/** Human repair copy deliberately hides factory, seed, command, and acknowledgement detail. */
-export function getCoveRepairMessage(
+export interface CoveRepairGuidance {
+    /** Exact command to run on the Computer’s machine, when one repairs it. */
+    command: string | null;
+    /** Set when reconnection alone resumes setup with no App action. */
+    note: string | null;
+    remedy: string;
+    title: string;
+}
+
+const reconnectResumesNote =
+    'Setup continues automatically once the Computer reconnects — no need to press anything.';
+
+/**
+ * Human repair copy deliberately hides factory, seed, command, and
+ * acknowledgement detail; each code maps to one precise operator action.
+ */
+export function getCoveRepairGuidance(
     failure: NonNullable<ServerOnboarding['failure']> | null
-): string {
+): CoveRepairGuidance {
     if (failure?.code === 'computer-disconnected') {
-        return 'Reconnect this Computer, then try again.';
+        return {
+            command: 'grotto-computer start',
+            note: reconnectResumesNote,
+            remedy: 'Start Grotto Computer on the Mac it runs on.',
+            title: 'This Computer is offline',
+        };
     }
     if (failure?.code === 'computer-incompatible') {
-        return 'Update Grotto Computer, reconnect it, then try again.';
+        return {
+            command: 'grotto-computer upgrade',
+            note: reconnectResumesNote,
+            remedy: 'Update Grotto Computer on the Mac it runs on.',
+            title: 'Grotto Computer needs an update',
+        };
     }
-    if (failure?.code === 'inventory-empty' || failure?.code === 'inventory-invalid') {
-        return 'Reconnect a Computer with an available runtime and model, then try again.';
+    if (failure?.code === 'inventory-empty') {
+        return {
+            command: null,
+            note: reconnectResumesNote,
+            remedy: 'Sign in to Codex or Claude Code on that Mac, then restart Grotto Computer.',
+            title: 'No runtime is available on this Computer',
+        };
     }
-    return 'Cove isn’t ready yet. Make sure this Computer is connected, then try again.';
+    if (failure?.code === 'inventory-invalid') {
+        return {
+            command: 'grotto-computer upgrade',
+            note: reconnectResumesNote,
+            remedy: 'Update Grotto Computer on the Mac it runs on.',
+            title: 'This Computer needs an update before Cove can start',
+        };
+    }
+    if (failure?.code === 'application-failed') {
+        return {
+            command: 'grotto-computer logs',
+            note: null,
+            remedy: 'Press Try again. If it fails again, check the Computer’s local logs on that Mac.',
+            title: 'Cove’s setup didn’t finish',
+        };
+    }
+    return {
+        command: null,
+        note: null,
+        remedy: 'Make sure this Computer is connected, then try again.',
+        title: 'Cove needs another try',
+    };
 }

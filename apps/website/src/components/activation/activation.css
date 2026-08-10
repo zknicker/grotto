@@ -26,13 +26,25 @@
     overflow-y: auto;
 }
 
+/*
+ * The optical anchor is a compressible budget, not a constant: scenes that fit
+ * keep the mark at the exact same pinned position, while a tall scene shrinks
+ * this spacer (never below its floor) before anything scrolls.
+ */
+.activation-main::before {
+    content: "";
+    flex: 0 1 max(2.75rem, calc(38vh - 10rem));
+    min-height: 2.75rem;
+}
+
 .activation-column {
     display: flex;
     width: min(100% - 2rem, 28rem);
     flex-direction: column;
+    flex-shrink: 0;
     align-items: center;
     margin-inline: auto;
-    padding-block: max(2.75rem, calc(38vh - 10rem)) 4rem;
+    padding-block: 0 4rem;
 }
 
 .activation-mark {
@@ -44,6 +56,11 @@
 .activation-step {
     width: 100%;
     animation: activation-step-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Steps with side-by-side content escape the narrow column but stay centered. */
+.activation-step--wide {
+    width: min(calc(100vw - 2rem), 42rem);
 }
 
 .activation-step__heading {
@@ -75,8 +92,8 @@
 
 /* Short viewports get no headroom to spend on the vh anchor. */
 @media (max-height: 40rem) {
-    .activation-column {
-        padding-top: 2.75rem;
+    .activation-main::before {
+        flex-basis: 2.75rem;
     }
 }
 

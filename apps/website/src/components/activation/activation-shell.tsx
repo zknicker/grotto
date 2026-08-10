@@ -13,11 +13,14 @@ import './activation.css';
 export function ActivationShell({
     children,
     end,
+    mark = <GrottoLogo animated aria-hidden="true" className="activation-mark" />,
     progress,
 }: {
     children: React.ReactNode;
     /** Quiet top-right actions such as Switch Server or review controls. */
     end?: React.ReactNode;
+    /** The floating brand mark above the step; pass null when another identity leads the screen. */
+    mark?: React.ReactNode;
     /** Centered top progress signal for multi-step flows. */
     progress?: React.ReactNode;
 }) {
@@ -30,7 +33,7 @@ export function ActivationShell({
             </header>
             <main className="activation-main">
                 <div className="activation-column">
-                    <GrottoLogo animated aria-hidden="true" className="activation-mark" />
+                    {mark}
                     {children}
                 </div>
             </main>

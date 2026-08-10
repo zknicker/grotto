@@ -1,17 +1,22 @@
-import {
-    Button,
-    Description,
-    FieldError,
-    Form,
-    Input,
-    Label,
-    Spinner,
-    TextField,
-} from '@heroui/react';
+import { Button, InputOTP, REGEXP_ONLY_DIGITS_AND_CHARS, Spinner } from '@heroui/react';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
+
+const codeLength = 8;
+
+/** The URL and wire format is `ABCD-EFGH`; slots hold the eight characters. */
+function slotsFromCode(code: string): string {
+    return code
+        .replace(/[^a-zA-Z0-9]/gu, '')
+        .toUpperCase()
+        .slice(0, codeLength);
+}
+
+function codeFromSlots(slots: string): string {
+    return slots.length === codeLength ? `${slots.slice(0, 4)}-${slots.slice(4)}` : '';
+}
 
 export type ComputerLoginStatus =
     | 'approved'
@@ -34,12 +39,13 @@ export function ComputerLoginApproval({
     signedIn: boolean;
 }) {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [userCode, setUserCode] = React.useState(searchParams.get('code') ?? '');
-    const codeFromUrl = searchParams.get('code') ?? '';
+    const codeFromUrl = slotsFromCode(searchParams.get('code') ?? '');
+    const [slots, setSlots] = React.useState(codeFromUrl);
+    const userCode = codeFromSlots(slots);
     const statusQuery = grottoTrpc.computer.login.status.useQuery(
         { userCode },
         {
-            enabled: userCode.trim().length > 0,
+            enabled: userCode.length > 0,
             refetchInterval: (query) => (query.state.data?.status === 'approved' ? 1000 : false),
         }
     );
@@ -56,7 +62,7 @@ export function ComputerLoginApproval({
     });
 
     React.useEffect(() => {
-        setUserCode(codeFromUrl);
+        setSlots(codeFromUrl);
     }, [codeFromUrl]);
 
     const status = statusQuery.data?.status;
@@ -64,60 +70,76 @@ export function ComputerLoginApproval({
         statusQuery.data && 'purpose' in statusQuery.data && statusQuery.data.purpose === 'setup'
     );
     const isWorking = approve.isPending || deny.isPending;
-    const submitCode = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        const nextCode = userCode.trim().toUpperCase();
+    const changeSlots = (next: string) => {
         approve.reset();
         deny.reset();
-        setUserCode(nextCode);
-        setSearchParams(nextCode ? { code: nextCode } : {});
+        setSlots(next.toUpperCase());
+    };
+    // A complete code becomes the shareable canonical URL; checking is automatic.
+    const completeCode = (complete: string) => {
+        setSearchParams({ code: codeFromSlots(complete.toUpperCase()) });
     };
 
     return (
         <LoginFrame
             description={loginDescription(status, accountLabel, signedIn, setupFlow)}
             footer={
-                <LoginActions
-                    accountLabel={accountLabel}
-                    isWorking={isWorking}
-                    onApprove={() => approve.mutate({ userCode })}
-                    onDeny={() => deny.mutate({ userCode })}
-                    onSignIn={onSignIn}
-                    onSwitchAccount={onSwitchAccount}
-                    setupFlow={setupFlow}
-                    signedIn={signedIn}
-                    status={status}
-                />
+                status === undefined ? (
+                    // Checking is automatic on the eighth character; this anchor
+                    // keeps the screen actionable while the code is incomplete.
+                    <Button
+                        isDisabled={slots.length < codeLength}
+                        isPending={userCode.length > 0 && statusQuery.isPending}
+                        onPress={() => void statusQuery.refetch()}
+                    >
+                        Check code
+                    </Button>
+                ) : (
+                    <LoginActions
+                        accountLabel={accountLabel}
+                        isWorking={isWorking}
+                        onApprove={() => approve.mutate({ userCode })}
+                        onDeny={() => deny.mutate({ userCode })}
+                        onSignIn={onSignIn}
+                        onSwitchAccount={onSwitchAccount}
+                        setupFlow={setupFlow}
+                        signedIn={signedIn}
+                        status={status}
+                    />
+                )
             }
             title={loginTitle(status, setupFlow)}
         >
-            <Form className="w-full max-w-sm gap-3" onSubmit={submitCode}>
-                <TextField
+            <div className="flex flex-col items-center gap-2">
+                <InputOTP
                     aria-label="Computer login code"
-                    fullWidth
-                    isDisabled={isWorking}
+                    autoFocus={codeFromUrl.length === 0}
+                    className="justify-center"
+                    inputMode="text"
+                    isDisabled={isWorking || status === 'approved' || status === 'consumed'}
                     isInvalid={status === 'malformed'}
-                    onChange={setUserCode}
-                    value={userCode}
+                    maxLength={codeLength}
+                    onChange={changeSlots}
+                    onComplete={completeCode}
+                    pasteTransformer={slotsFromCode}
+                    pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+                    value={slots}
                 >
-                    <Label>Computer login code</Label>
-                    <Input autoComplete="one-time-code" maxLength={9} placeholder="ABCD-EFGH" />
-                    <Description>Enter the code shown by `grotto-computer login`.</Description>
-                    {status === 'malformed' ? (
-                        <FieldError>Use the eight-character code from your terminal.</FieldError>
-                    ) : null}
-                </TextField>
-                <Button
-                    isDisabled={isWorking || !userCode.trim()}
-                    type="submit"
-                    variant="secondary"
-                >
-                    Check code
-                </Button>
-            </Form>
-            {statusQuery.isPending && userCode.trim() ? (
-                <Spinner aria-label="Checking Computer login" size="sm" />
-            ) : null}
+                    <InputOTP.Group>
+                        <InputOTP.Slot index={0} />
+                        <InputOTP.Slot index={1} />
+                        <InputOTP.Slot index={2} />
+                        <InputOTP.Slot index={3} />
+                    </InputOTP.Group>
+                    <InputOTP.Separator />
+                    <InputOTP.Group>
+                        <InputOTP.Slot index={4} />
+                        <InputOTP.Slot index={5} />
+                        <InputOTP.Slot index={6} />
+                        <InputOTP.Slot index={7} />
+                    </InputOTP.Group>
+                </InputOTP>
+            </div>
             {statusQuery.error ? (
                 <p className="text-center text-danger text-sm">{statusQuery.error.message}</p>
             ) : null}
@@ -209,7 +231,7 @@ export function LoginFrame({
     title,
 }: {
     children?: React.ReactNode;
-    description: string;
+    description: React.ReactNode;
     footer?: React.ReactNode;
     title: string;
 }) {
@@ -250,7 +272,7 @@ function loginDescription(
     accountLabel: string | null,
     signedIn: boolean,
     setupFlow: boolean
-) {
+): React.ReactNode {
     switch (status) {
         case 'approved':
             return 'Grotto Computer is completing its secure connection. Keep this page open for a moment.';
@@ -259,18 +281,39 @@ function loginDescription(
                 ? 'The Computer attachment is saved locally. You can close this page.'
                 : 'The standalone Computer login is complete. You can close this page.';
         case 'denied':
-            return 'This Computer login was denied. Start `grotto-computer login` again to try another request.';
+            return (
+                <>
+                    This Computer login was denied. Start <LoginCommand /> again to try another
+                    request.
+                </>
+            );
         case 'expired':
-            return 'This Computer login code expired. Start `grotto-computer login` again for a new code.';
+            return (
+                <>
+                    This Computer login code expired. Start <LoginCommand /> again for a new code.
+                </>
+            );
         case 'malformed':
-            return 'Enter the short code shown in your Grotto Computer terminal.';
+            return 'Enter the eight-character code shown in your Grotto Computer terminal.';
         case 'not-found':
-            return 'No Computer login is waiting for that code. Start `grotto-computer login` again.';
+            return (
+                <>
+                    No Computer login is waiting for that code. Start <LoginCommand /> again.
+                </>
+            );
         case 'pending':
             return signedIn
                 ? `Approve this request for ${accountLabel ?? 'your active account'}.`
                 : 'Sign in with the account that should own this Computer login.';
         default:
-            return 'Enter the short code shown by `grotto-computer login`.';
+            return (
+                <>
+                    Enter the code shown by <LoginCommand />.
+                </>
+            );
     }
+}
+
+function LoginCommand() {
+    return <code className="font-mono text-foreground text-xs">grotto-computer login</code>;
 }

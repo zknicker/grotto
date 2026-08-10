@@ -18,7 +18,10 @@ test('Clerk-backed Computer login preserves its code and finishes after approval
     tamperedVerificationUrl.searchParams.set('flow', 'setup');
     await page.goto(tamperedVerificationUrl.toString());
     await expect(page.getByRole('heading', { name: 'Approve Grotto Computer?' })).toBeVisible();
-    await expect(page.getByLabel('Computer login code')).toHaveValue(started.userCode);
+    // The OTP input holds the eight characters; the hyphen is display format only.
+    await expect(page.getByLabel('Computer login code')).toHaveValue(
+        started.userCode.replace('-', '')
+    );
     await expect(page.getByText('Active account: your current Clerk account')).toBeVisible();
 
     await page.getByRole('button', { name: 'Approve Grotto Computer' }).click();

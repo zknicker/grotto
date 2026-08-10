@@ -1,4 +1,4 @@
-import { Button, Disclosure } from '@heroui/react';
+import { Button, Disclosure, Tooltip } from '@heroui/react';
 import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
@@ -88,6 +88,11 @@ export function ComputerRemovalAction({
 }) {
     const isBlocked = availability.status !== 'ready';
     const description = computerRemovalDescription(availability);
+    const button = (
+        <Button isDisabled={isBlocked} onPress={onRemove} size="sm" variant="danger-soft">
+            Remove Computer
+        </Button>
+    );
 
     return (
         <div className="flex flex-col gap-3 border-separator border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -95,9 +100,19 @@ export function ComputerRemovalAction({
                 <h3 className="font-medium text-foreground text-sm">Remove Computer</h3>
                 <p className="text-muted text-sm">{description}</p>
             </div>
-            <Button isDisabled={isBlocked} onPress={onRemove} size="sm" variant="danger-soft">
-                Remove Computer
-            </Button>
+            {isBlocked ? (
+                <Tooltip delay={0}>
+                    <Tooltip.Trigger aria-label={description}>
+                        <span className="inline-flex cursor-not-allowed">{button}</span>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content showArrow>
+                        <Tooltip.Arrow />
+                        <p className="max-w-xs">{description}</p>
+                    </Tooltip.Content>
+                </Tooltip>
+            ) : (
+                button
+            )}
         </div>
     );
 }

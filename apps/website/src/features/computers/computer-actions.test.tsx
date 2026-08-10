@@ -11,6 +11,7 @@ test('Computer removal stays disabled while an Agent remains assigned', () => {
     );
 
     expect(html).toContain('Delete Cove before removing this Computer.');
+    expect(html).toContain('aria-label="Delete Cove before removing this Computer."');
     expect(html).toContain('disabled=""');
 });
 

@@ -94,6 +94,7 @@ import { parseReminderScriptCommand, runReminderScript } from './reminder-script
 import { runtimeSearchPath } from './runtime-discovery.ts';
 import {
     admitActiveRun,
+    isNewerVersion,
     progress,
     readProductionRelease,
     readUpdateProgress,
@@ -108,6 +109,7 @@ import {
     parseBootstrapAccepted,
     parseComputerUpdateCommand,
 } from './update-contract.ts';
+import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-render.ts';
 import {
     readOpenRouterManagementKey,
     saveOpenRouterManagementKey,
@@ -145,16 +147,43 @@ async function main(args: string[]) {
     }
     if (command === 'upgrade') {
         if (target === '--rollback') {
-            await rollbackComputer({ restart: restartAfterUpdate });
+            await rollbackComputer({
+                onPhase: (phase) => {
+                    console.log(
+                        phase === 'restoring'
+                            ? 'Restoring the previous verified Grotto Computer executable…'
+                            : 'Restarting Grotto Computer…'
+                    );
+                },
+                restart: restartAfterUpdate,
+            });
             console.log('Grotto Computer restored the previous verified executable.');
             return;
         }
+        console.log('Checking for the latest Grotto Computer release…');
         const release = await readProductionRelease();
-        await runSignedUpdate({
+        if (!isNewerVersion(release.release.version, computerVersion)) {
+            console.log(`Grotto Computer ${computerVersion} is already the latest release.`);
+            return;
+        }
+        const renderer = createUpgradeRenderer({
+            isTTY: process.stdout.isTTY === true,
+            write: (text) => process.stdout.write(text),
+        });
+        const outcome = await runSignedUpdate({
             dataRoot,
+            onProgress: (update) => renderer.observe(update),
             release,
             restart: restartAfterUpdate,
         });
+        renderer.finish();
+        if (outcome.status === 'already-running') {
+            console.log(describeConcurrentUpdate(outcome.progress));
+            return;
+        }
+        console.log(
+            `Grotto Computer ${outcome.version} is installed. The Computer service is restarting.`
+        );
         return;
     }
     if (command === '--version' || command === 'version') {

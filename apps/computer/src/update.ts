@@ -97,21 +97,30 @@ export function verifySignedRelease(
     }
 }
 
+export type SignedUpdateOutcome =
+    | { progress: ComputerUpdateProgress; status: 'already-running' }
+    | { status: 'updated'; version: string };
+
 export async function runSignedUpdate(input: {
     dataRoot: string;
     currentVersion?: string;
     install?: (artifactPath: string) => Promise<void>;
+    onProgress?: (progress: ComputerUpdateProgress) => void;
     publicKey?: string;
     release: SignedComputerRelease;
     restart: () => Promise<void>;
     verifyArtifact?: (path: string) => Promise<void>;
-}): Promise<void> {
+}): Promise<SignedUpdateOutcome> {
     const { dataRoot, release } = input;
     const targetVersion = release.release.version;
     const releaseLock = await tryAcquirePidLock(join(dataRoot, 'update-job.lock'));
     if (!releaseLock) {
-        return;
+        return { progress: await readUpdateProgress(dataRoot), status: 'already-running' };
     }
+    const publish = async (next: ComputerUpdateProgress) => {
+        await writeUpdateProgress(dataRoot, next);
+        input.onProgress?.(next);
+    };
     let failedPhase: Exclude<ComputerUpdateProgress['phase'], 'failed'> = 'requested';
     try {
         if (!isNewerVersion(targetVersion, input.currentVersion ?? computerVersion)) {
@@ -120,17 +129,13 @@ export async function runSignedUpdate(input: {
         if (release.release.protocolVersion < computerProtocolVersion) {
             throw new Error('Computer release protocol is older than this Computer.');
         }
-        await writeUpdateProgress(
-            dataRoot,
-            progress('requested', targetVersion, 'Download requested.')
-        );
+        await publish(progress('requested', targetVersion, 'Download requested.'));
         failedPhase = 'verifying';
         verifySignedRelease(release, input.publicKey ?? requiredPublicKey());
         failedPhase = 'downloading';
         const artifactPath = await downloadAndVerifyArtifact({
             onProgress: async ({ downloadedBytes, totalBytes }) => {
-                await writeUpdateProgress(
-                    dataRoot,
+                await publish(
                     progress(
                         'downloading',
                         targetVersion,
@@ -141,8 +146,7 @@ export async function runSignedUpdate(input: {
             },
             onVerify: async () => {
                 failedPhase = 'verifying';
-                await writeUpdateProgress(
-                    dataRoot,
+                await publish(
                     progress('verifying', targetVersion, 'Verifying signature and integrity.')
                 );
             },
@@ -151,27 +155,21 @@ export async function runSignedUpdate(input: {
         });
         try {
             failedPhase = 'waiting-for-agents';
-            await closeTurnAdmission(dataRoot, targetVersion);
-            await waitForActiveRuns(dataRoot, targetVersion);
+            await closeTurnAdmission(dataRoot, targetVersion, publish);
+            await waitForActiveRuns(dataRoot, targetVersion, publish);
             failedPhase = 'installing';
-            await writeUpdateProgress(
-                dataRoot,
-                progress('installing', targetVersion, 'Installing update.')
-            );
+            await publish(progress('installing', targetVersion, 'Installing update.'));
             await (input.install ?? installStandaloneExecutable)(artifactPath);
         } finally {
             await rm(dirname(artifactPath), { force: true, recursive: true });
         }
         failedPhase = 'restarting';
-        await writeUpdateProgress(
-            dataRoot,
-            progress('restarting', targetVersion, 'Restarting Grotto Computer.')
-        );
+        await publish(progress('restarting', targetVersion, 'Restarting Grotto Computer.'));
         await input.restart();
+        return { status: 'updated', version: targetVersion };
     } catch (cause) {
         const current = await readUpdateProgress(dataRoot);
-        await writeUpdateProgress(
-            dataRoot,
+        await publish(
             progress(
                 'failed',
                 targetVersion,
@@ -189,8 +187,14 @@ export async function runSignedUpdate(input: {
     }
 }
 
-export async function rollbackComputer(input: { restart: () => Promise<void> }): Promise<void> {
-    await rollbackStandaloneExecutable();
+export async function rollbackComputer(input: {
+    onPhase?: (phase: 'restarting' | 'restoring') => void;
+    restart: () => Promise<void>;
+    rollback?: () => Promise<void>;
+}): Promise<void> {
+    input.onPhase?.('restoring');
+    await (input.rollback ?? rollbackStandaloneExecutable)();
+    input.onPhase?.('restarting');
     await input.restart();
 }
 
@@ -211,7 +215,11 @@ export async function admitActiveRun(
     });
 }
 
-async function waitForActiveRuns(dataRoot: string, targetVersion: string): Promise<void> {
+async function waitForActiveRuns(
+    dataRoot: string,
+    targetVersion: string,
+    publish: (next: ComputerUpdateProgress) => Promise<void>
+): Promise<void> {
     for (;;) {
         const active = await readdir(activeRunsRoot(dataRoot)).catch(() => []);
         const alive = await Promise.all(
@@ -228,8 +236,7 @@ async function waitForActiveRuns(dataRoot: string, targetVersion: string): Promi
             })
         );
         const activeAgentCount = alive.filter(Boolean).length;
-        await writeUpdateProgress(
-            dataRoot,
+        await publish(
             progress(
                 'waiting-for-agents',
                 targetVersion,
@@ -246,10 +253,13 @@ async function waitForActiveRuns(dataRoot: string, targetVersion: string): Promi
     }
 }
 
-async function closeTurnAdmission(dataRoot: string, targetVersion: string) {
+async function closeTurnAdmission(
+    dataRoot: string,
+    targetVersion: string,
+    publish: (next: ComputerUpdateProgress) => Promise<void>
+) {
     await withUpdateLock(dataRoot, async () => {
-        await writeUpdateProgress(
-            dataRoot,
+        await publish(
             progress('waiting-for-agents', targetVersion, 'Waiting for active Agents to finish.', {
                 activeAgentCount: 0,
             })
@@ -272,7 +282,7 @@ function activeRunsRoot(dataRoot: string) {
     return join(dataRoot, 'update-active-runs');
 }
 
-function isNewerVersion(candidate: string, installed: string) {
+export function isNewerVersion(candidate: string, installed: string) {
     const parse = (version: string) => version.split('.').map(Number);
     const candidateParts = parse(candidate);
     const installedParts = parse(installed);

@@ -6,10 +6,12 @@ import { join } from 'node:path';
 import {
     admitActiveRun,
     readUpdateProgress,
+    rollbackComputer,
     runSignedUpdate,
     verifySignedRelease,
 } from './update.ts';
 import {
+    type ComputerUpdateProgress,
     computerProtocolVersion,
     computerReleaseSigningPayload,
     type SignedComputerRelease,
@@ -84,6 +86,65 @@ test('a signed update waits without a kill timeout, then installs and restarts',
         peer.stop(true);
         await rm(dataRoot, { force: true, recursive: true });
     }
+});
+
+test('a direct observer sees every phase in order with real byte counts', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
+    const tarball = Buffer.from('verified computer tarball');
+    const peer = serveArtifact(tarball);
+    const keys = generateKeyPairSync('ed25519');
+    const release = signedRelease(peer.url, tarball, keys.privateKey);
+    const observed: ComputerUpdateProgress[] = [];
+
+    try {
+        const outcome = await runSignedUpdate({
+            currentVersion: '1.0.0',
+            dataRoot,
+            install: async () => undefined,
+            onProgress: (update) => {
+                observed.push(update);
+            },
+            publicKey: keys.publicKey.export({ format: 'pem', type: 'spki' }).toString(),
+            release,
+            restart: async () => undefined,
+            verifyArtifact: async () => undefined,
+        });
+        expect(outcome).toEqual({ status: 'updated', version: '1.1.0' });
+        const phases = observed
+            .map((update) => update.phase)
+            .filter((phase, index, all) => phase !== all[index - 1]);
+        expect(phases).toEqual([
+            'requested',
+            'downloading',
+            'verifying',
+            'waiting-for-agents',
+            'installing',
+            'restarting',
+        ]);
+        const downloads = observed.filter((update) => update.phase === 'downloading');
+        const lastDownload = downloads.at(-1);
+        expect(lastDownload?.downloadedBytes).toBe(tarball.length);
+        expect(lastDownload?.totalBytes).toBe(tarball.length);
+    } finally {
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('a rollback reports its restore and restart phases in order', async () => {
+    const order: string[] = [];
+    await rollbackComputer({
+        onPhase: (phase) => {
+            order.push(phase);
+        },
+        restart: async () => {
+            order.push('restart');
+        },
+        rollback: async () => {
+            order.push('rollback');
+        },
+    });
+    expect(order).toEqual(['restoring', 'rollback', 'restarting', 'restart']);
 });
 
 test('failed signature verification never touches Computer data or installs', async () => {
@@ -214,9 +275,14 @@ test('one physical Computer runs only one update job', async () => {
     try {
         const first = runSignedUpdate(input);
         await waitForPhase(dataRoot, 'waiting-for-agents');
-        await runSignedUpdate(input);
+        const concurrent = await runSignedUpdate(input);
+        expect(concurrent.status).toBe('already-running');
+        if (concurrent.status === 'already-running') {
+            expect(concurrent.progress.phase).toBe('waiting-for-agents');
+            expect(concurrent.progress.targetVersion).toBe('1.1.0');
+        }
         await clearRun?.();
-        await first;
+        expect((await first).status).toBe('updated');
         expect(installs).toBe(1);
         expect(restarts).toBe(1);
     } finally {

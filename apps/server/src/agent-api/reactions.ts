@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import { requireHostedChatWritable } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageReactionsTable } from '../postgres/schema.ts';
@@ -10,6 +11,10 @@ export async function changeAgentReaction(
     input: { emoji: string; messageId: string; remove: boolean }
 ) {
     const visibleMessage = await resolveAgentMessage(db, runner, input.messageId);
+    await requireHostedChatWritable(db, {
+        chatId: visibleMessage.chat_id,
+        serverId: runner.serverId,
+    });
     if (input.remove) {
         await db
             .delete(messageReactionsTable)

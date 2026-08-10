@@ -1,6 +1,6 @@
 import type { HostedAttachmentReservation, HostedAttachmentReserveInput } from '@tavern/api';
 import { and, eq } from 'drizzle-orm';
-import { requireChatAccess } from '../chats/chat-access.ts';
+import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
@@ -20,7 +20,7 @@ export async function reserveHostedAttachment(
     member: GrottoUser | null,
     input: HostedAttachmentReserveInput
 ): Promise<HostedAttachmentReservation> {
-    await requireChatAccess(db, member, input);
+    await requireChatWriteAccess(db, member, input);
 
     if (!member) {
         throw new Error('An attachment uploader is required.');

@@ -6,6 +6,7 @@ import { agentsTable, channelAgentParticipantsTable, chatsTable } from '../postg
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import { requireHostedChatWritable } from './chat-access.ts';
 import { ChannelAgentNotFoundError, ChannelNameTakenError } from './create-channel.ts';
 import { listHostedChats } from './list-chats.ts';
 
@@ -27,6 +28,7 @@ export async function updateHostedChannel(
         if (!member) {
             throw new Error('Authenticated Server membership requires a Grotto User.');
         }
+        await requireHostedChatWritable(tx, input);
 
         const [chat] = await tx
             .select({ id: chatsTable.id, kind: chatsTable.kind })

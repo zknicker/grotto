@@ -3,10 +3,11 @@ import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import { ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
+import { useLocation } from 'react-router-dom';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
-import { serverChatRoute } from '../servers/server-routes.ts';
+import { serverArchivedChatsRoute, serverChatRoute } from '../servers/server-routes.ts';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
 import { SidebarAccount } from './sidebar-account.tsx';
 
@@ -23,6 +24,7 @@ export function ChatNavigation({
     selectedChatId: string | undefined;
     slug: string;
 }) {
+    const location = useLocation();
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
     const channels = chats.filter((chat) => chat.kind === 'channel');
     const directMessages = chats.filter((chat) => chat.kind === 'dm' && !chat.peerAgentRetired);
@@ -61,7 +63,12 @@ export function ChatNavigation({
                 slug={slug}
             />
             <Sidebar.Menu aria-label="Archive">
-                <Sidebar.MenuItem id="archived" textValue="Archived">
+                <Sidebar.MenuItem
+                    href={serverArchivedChatsRoute(slug)}
+                    id="archived"
+                    isCurrent={location.pathname === serverArchivedChatsRoute(slug)}
+                    textValue="Archived"
+                >
                     <Sidebar.MenuIcon>
                         <Icon aria-hidden="true" icon={ArchiveIcon} />
                     </Sidebar.MenuIcon>

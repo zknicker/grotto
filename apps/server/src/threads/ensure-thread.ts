@@ -1,6 +1,6 @@
 import { hostedIdSchema } from '@tavern/api';
 import { and, eq } from 'drizzle-orm';
-import { requireChatAccess } from '../chats/chat-access.ts';
+import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, threadFollowsTable } from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -26,7 +26,7 @@ export async function ensureHostedThread(
     member: GrottoUser | null,
     input: { anchorMessageId: string; parentChatId: string; serverId: string }
 ) {
-    await requireChatAccess(db, member, {
+    await requireChatWriteAccess(db, member, {
         chatId: input.parentChatId,
         serverId: input.serverId,
     });

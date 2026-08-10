@@ -17,7 +17,11 @@ import { serversTable } from './servers.ts';
 export const chatsTable = pgTable(
     'chats',
     {
+        archivedAt: timestamp('archived_at', { withTimezone: true }),
+        archivedByUserId: text('archived_by_user_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        deletedAt: timestamp('deleted_at', { withTimezone: true }),
+        deletedByUserId: text('deleted_by_user_id'),
         dmAgentId: text('dm_agent_id'),
         dmMemberOneStint: integer('dm_member_one_stint'),
         dmMemberOneUserId: text('dm_member_one_user_id'),
@@ -77,6 +81,14 @@ export const chatsTable = pgTable(
         check('chats_nonnegative_sequence', sql`${table.lastMessageSequence} >= 0`),
         check('chats_nonnegative_task_number', sql`${table.lastTaskNumber} >= 0`),
         check('chats_kind', sql`${table.kind} in ('channel', 'dm', 'thread')`),
+        check(
+            'chats_archive_shape',
+            sql`(${table.archivedAt} is null) = (${table.archivedByUserId} is null)`
+        ),
+        check(
+            'chats_delete_shape',
+            sql`(${table.deletedAt} is null) = (${table.deletedByUserId} is null)`
+        ),
         check(
             'chats_shape',
             sql`(

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { HostedAttachmentUploadResult } from '@tavern/api';
 import { and, eq, inArray } from 'drizzle-orm';
-import { requireChatAccess } from '../chats/chat-access.ts';
+import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
@@ -62,7 +62,7 @@ async function uploadHostedAttachmentOperation(
         throw new AttachmentUploadError('That attachment is not a human upload.', 'forbidden');
     }
 
-    await requireChatAccess(db, input.member, {
+    await requireChatWriteAccess(db, input.member, {
         chatId: attachment.chatId,
         serverId: input.serverId,
     });

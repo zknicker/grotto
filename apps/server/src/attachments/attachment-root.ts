@@ -1,7 +1,19 @@
-import { createHash } from 'node:crypto';
-import { constants } from 'node:fs';
-import { type FileHandle, lstat, mkdir, open, readdir, rename, rm, unlink } from 'node:fs/promises';
+import { type FileHandle, mkdir, rename, rm } from 'node:fs/promises';
 import { isAbsolute, join, relative } from 'node:path';
+import {
+    digest,
+    ensureServerLayout,
+    listRegularLeafNames,
+    openRegularLeaf,
+    requireAbsentLeaf,
+    requireId,
+    requirePrivateDirectory,
+    requirePrivateDirectoryIfPresent,
+    requireRegularLeaf,
+    syncDirectory,
+    unlinkRegularLeaf,
+} from './attachment-root-filesystem.ts';
+import { AttachmentWriteCoordinator } from './attachment-write-coordinator.ts';
 
 const serverIdPattern = /^srv_[A-Za-z0-9_-]{16}$/u;
 const attachmentIdPattern = /^att_[A-Za-z0-9_-]{16}$/u;
@@ -11,6 +23,11 @@ export interface AttachmentRoot {
     /** Holds a Server write open so deletion cannot race its filesystem work. */
     beginServerWrite(serverId: string): () => void;
     createStagingFile(serverId: string, stagingKey: string): Promise<FileHandle>;
+    /** Quiesces Server writes, then removes selected finalized and staging bytes. */
+    discardAttachments(
+        serverId: string,
+        readAttachments: () => Promise<Array<{ attachmentId: string; stagingKey: string | null }>>
+    ): Promise<void>;
     discardStagingFile(serverId: string, stagingKey: string): Promise<void>;
     finalize(serverId: string, attachmentId: string, stagingKey: string): Promise<void>;
     listKeys(serverId: string): Promise<{ objectKeys: string[]; stagingKeys: string[] }>;
@@ -42,33 +59,11 @@ export async function openAttachmentRoot(
     await mkdir(serversPath, { mode: 0o700, recursive: true });
     await requirePrivateDirectory(serversPath, 'attachment servers directory');
 
-    const activeServerWrites = new Map<string, number>();
-    const deletingServers = new Set<string>();
-    const serverWriteWaiters = new Map<string, Set<() => void>>();
+    const writes = new AttachmentWriteCoordinator();
     const attachmentRoot: AttachmentRoot = {
         beginServerWrite(serverId) {
             requireId(serverId, serverIdPattern, 'Server');
-            if (deletingServers.has(serverId)) {
-                throw new Error('This Server attachment root is being deleted.');
-            }
-            activeServerWrites.set(serverId, (activeServerWrites.get(serverId) ?? 0) + 1);
-            let released = false;
-            return () => {
-                if (released) {
-                    return;
-                }
-                released = true;
-                const remaining = (activeServerWrites.get(serverId) ?? 1) - 1;
-                if (remaining > 0) {
-                    activeServerWrites.set(serverId, remaining);
-                    return;
-                }
-                activeServerWrites.delete(serverId);
-                for (const resolve of serverWriteWaiters.get(serverId) ?? []) {
-                    resolve();
-                }
-                serverWriteWaiters.delete(serverId);
-            };
+            return writes.begin(serverId);
         },
         async createStagingFile(serverId, stagingKey) {
             return await withServerWrite(attachmentRoot, serverId, async () => {
@@ -82,6 +77,39 @@ export async function openAttachmentRoot(
                 const paths = await ensureServerLayout(rootPath, serverId);
                 requireId(stagingKey, stagingKeyPattern, 'staging');
                 if (await unlinkRegularLeaf(join(paths.staging, digest(stagingKey)))) {
+                    await syncDirectory(paths.staging);
+                }
+            });
+        },
+        async discardAttachments(serverId, readAttachments) {
+            requireId(serverId, serverIdPattern, 'Server');
+            await writes.runExclusive(serverId, async () => {
+                const attachments = await readAttachments();
+                for (const attachment of attachments) {
+                    requireId(attachment.attachmentId, attachmentIdPattern, 'attachment');
+                    if (attachment.stagingKey) {
+                        requireId(attachment.stagingKey, stagingKeyPattern, 'staging');
+                    }
+                }
+                const paths = await ensureServerLayout(rootPath, serverId);
+                let objectsChanged = false;
+                let stagingChanged = false;
+                for (const attachment of attachments) {
+                    objectsChanged =
+                        (await unlinkRegularLeaf(
+                            join(paths.objects, digest(`${serverId}\0${attachment.attachmentId}`))
+                        )) || objectsChanged;
+                    if (attachment.stagingKey) {
+                        stagingChanged =
+                            (await unlinkRegularLeaf(
+                                join(paths.staging, digest(attachment.stagingKey))
+                            )) || stagingChanged;
+                    }
+                }
+                if (objectsChanged) {
+                    await syncDirectory(paths.objects);
+                }
+                if (stagingChanged) {
                     await syncDirectory(paths.staging);
                 }
             });
@@ -148,18 +176,21 @@ export async function openAttachmentRoot(
         path: rootPath,
         async purgeServer(serverId) {
             requireId(serverId, serverIdPattern, 'Server');
-            deletingServers.add(serverId);
-            await waitForServerWrites(serverId, activeServerWrites, serverWriteWaiters);
-            await requirePrivateDirectory(rootPath, 'attachment root');
-            await requirePrivateDirectory(serversPath, 'attachment servers directory');
-            const serverPath = join(serversPath, digest(serverId));
-            if (
-                !(await requirePrivateDirectoryIfPresent(serverPath, 'attachment Server directory'))
-            ) {
-                return;
-            }
-            await rm(serverPath, { force: true, recursive: true });
-            await syncDirectory(serversPath);
+            await writes.runPermanentlyExclusive(serverId, async () => {
+                await requirePrivateDirectory(rootPath, 'attachment root');
+                await requirePrivateDirectory(serversPath, 'attachment servers directory');
+                const serverPath = join(serversPath, digest(serverId));
+                if (
+                    !(await requirePrivateDirectoryIfPresent(
+                        serverPath,
+                        'attachment Server directory'
+                    ))
+                ) {
+                    return;
+                }
+                await rm(serverPath, { force: true, recursive: true });
+                await syncDirectory(serversPath);
+            });
         },
         stagingKey(serverId, stagingKey) {
             requireId(serverId, serverIdPattern, 'Server');
@@ -185,143 +216,4 @@ async function withServerWrite<Result>(
     } finally {
         release();
     }
-}
-
-async function waitForServerWrites(
-    serverId: string,
-    activeWrites: Map<string, number>,
-    waiters: Map<string, Set<() => void>>
-) {
-    if (!activeWrites.has(serverId)) {
-        return;
-    }
-    await new Promise<void>((resolve) => {
-        const serverWaiters = waiters.get(serverId) ?? new Set();
-        serverWaiters.add(resolve);
-        waiters.set(serverId, serverWaiters);
-    });
-}
-
-async function requirePrivateDirectory(path: string, label: string) {
-    const stat = await lstat(path);
-
-    if (stat.isSymbolicLink()) {
-        throw new Error(`The ${label} cannot be a symbolic link.`);
-    }
-    if (!stat.isDirectory()) {
-        throw new Error(`The ${label} must be a directory.`);
-    }
-    if ((stat.mode & 0o777) !== 0o700) {
-        throw new Error(`The ${label} must have mode 0700.`);
-    }
-}
-
-async function requirePrivateDirectoryIfPresent(path: string, label: string) {
-    try {
-        await requirePrivateDirectory(path, label);
-        return true;
-    } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            return false;
-        }
-        throw error;
-    }
-}
-
-async function ensureServerLayout(rootPath: string, serverId: string) {
-    requireId(serverId, serverIdPattern, 'Server');
-    await requirePrivateDirectory(rootPath, 'attachment root');
-    const serversPath = join(rootPath, 'servers');
-    await requirePrivateDirectory(serversPath, 'attachment servers directory');
-    const serverPath = join(serversPath, digest(serverId));
-    const objects = join(serverPath, 'objects');
-    const staging = join(serverPath, 'staging');
-
-    for (const path of [serverPath, objects, staging]) {
-        await mkdir(path, { mode: 0o700, recursive: true });
-        await requirePrivateDirectory(path, 'attachment layout directory');
-    }
-
-    return { objects, staging };
-}
-
-async function openRegularLeaf(path: string, create: boolean) {
-    const flags = create
-        ? constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW
-        : constants.O_RDONLY | constants.O_NOFOLLOW;
-    const file = await open(path, flags, 0o600);
-    const stat = await file.stat();
-
-    if (!stat.isFile()) {
-        await file.close();
-        throw new Error('Attachment leaf must be a regular file.');
-    }
-
-    return file;
-}
-
-async function requireRegularLeaf(path: string) {
-    const stat = await lstat(path);
-
-    if (stat.isSymbolicLink() || !stat.isFile()) {
-        throw new Error('Attachment leaf must be a non-symlink regular file.');
-    }
-}
-
-async function requireAbsentLeaf(path: string) {
-    try {
-        await lstat(path);
-    } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            return;
-        }
-        throw error;
-    }
-
-    throw new Error('Attachment object leaf already exists.');
-}
-
-async function unlinkRegularLeaf(path: string) {
-    try {
-        await requireRegularLeaf(path);
-        await unlink(path);
-        return true;
-    } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-            throw error;
-        }
-        return false;
-    }
-}
-
-async function listRegularLeafNames(path: string) {
-    const entries = await readdir(path, { withFileTypes: true });
-
-    for (const entry of entries) {
-        if (!entry.isFile() || entry.isSymbolicLink() || !/^[a-f0-9]{64}$/u.test(entry.name)) {
-            throw new Error('Attachment layout contains an unexpected leaf.');
-        }
-    }
-
-    return entries.map((entry) => entry.name).sort();
-}
-
-async function syncDirectory(path: string) {
-    const directory = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
-
-    try {
-        await directory.sync();
-    } finally {
-        await directory.close();
-    }
-}
-
-function requireId(value: string, pattern: RegExp, kind: string) {
-    if (!pattern.test(value)) {
-        throw new Error(`Invalid ${kind} id.`);
-    }
-}
-
-function digest(value: string) {
-    return createHash('sha256').update(value).digest('hex');
 }

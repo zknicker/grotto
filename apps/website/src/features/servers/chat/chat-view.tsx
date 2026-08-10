@@ -21,6 +21,7 @@ import { TaskContent } from '../tasks/task-content.tsx';
 import { TaskControls } from '../tasks/task-controls.tsx';
 import { ThreadPanel } from '../thread/thread-panel.tsx';
 import { ChatAgentComposition, hasAgentComposition } from './agent-composition.tsx';
+import { ArchivedChannelBar } from './archived-channel-bar.tsx';
 import { ChatComposer } from './chat-composer.tsx';
 import { ChatFiles } from './chat-files.tsx';
 import { mergeTaskAnchor, projectChatMessages } from './chat-message-model.ts';
@@ -78,6 +79,7 @@ export function ChatView({
     const ensureDm = useDmEnsure(onOpenChat);
     const humans = useHumanDirectory(chat.serverId);
     const peerRetired = chat.kind === 'dm' && chat.peerAgentRetired;
+    const readOnly = peerRetired || chat.archivedAt !== null;
     const chatName =
         chat.kind === 'channel'
             ? (chat.name ?? 'channel')
@@ -177,7 +179,7 @@ export function ChatView({
             }}
             onOpenArtifact={openArtifact}
             onViewInChannel={viewThreadInChannel}
-            readOnly={peerRetired}
+            readOnly={readOnly}
             summary={threadSummary}
             takeover={threadTakeover}
         />
@@ -215,7 +217,7 @@ export function ChatView({
                     chatName={chatName}
                     onToggleArtifacts={artifactState.toggleVisible}
                     onViewTabChange={setViewTab}
-                    retired={peerRetired}
+                    server={server}
                     viewTab={viewTab}
                 />
             </PageTopbar>
@@ -236,7 +238,7 @@ export function ChatView({
                         <ChatFiles messages={messages.data?.messages} />
                     ) : undefined
                 }
-                canRequestMention
+                canRequestMention={!readOnly}
                 chatId={chat.id}
                 emptyLabel="No messages yet."
                 error={messages.error}
@@ -249,7 +251,12 @@ export function ChatView({
                             <span className="sr-only" data-testid="read-state">
                                 {read.data ? `Read through ${read.data.sequence}` : ''}
                             </span>
-                            {peerRetired ? (
+                            {chat.archivedAt ? (
+                                <ArchivedChannelBar
+                                    canManage={server.role === 'owner' || server.role === 'admin'}
+                                    chat={chat}
+                                />
+                            ) : peerRetired ? (
                                 <p className="mx-auto w-full max-w-none px-9 pb-4 text-muted text-xs">
                                     {chatName} has been retired. You can read this conversation, but
                                     you can’t send new messages.

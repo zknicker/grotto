@@ -41,6 +41,7 @@ export function visibleHostedChats(userId: string): SQL {
                 from chats parent
                 where parent.server_id = ${chatsTable.serverId}
                     and parent.id = ${chatsTable.parentChatId}
+                    and parent.deleted_at is null
                     and (
                         (
                             parent.kind = 'dm'

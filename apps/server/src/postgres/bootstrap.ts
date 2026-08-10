@@ -298,6 +298,10 @@ const schemaStatements = [
         parent_chat_id text,
         parent_chat_kind text,
         anchor_message_id text,
+        archived_at timestamptz,
+        archived_by_user_id text,
+        deleted_at timestamptz,
+        deleted_by_user_id text,
         last_message_sequence integer NOT NULL DEFAULT 0
             CONSTRAINT chats_nonnegative_sequence CHECK (last_message_sequence >= 0),
         last_task_number integer NOT NULL DEFAULT 0
@@ -305,6 +309,12 @@ const schemaStatements = [
         last_activity_at timestamptz,
         created_at timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT chats_server_id_kind_unique UNIQUE (server_id, id, kind),
+        CONSTRAINT chats_archive_shape CHECK (
+            (archived_at IS NULL) = (archived_by_user_id IS NULL)
+        ),
+        CONSTRAINT chats_delete_shape CHECK (
+            (deleted_at IS NULL) = (deleted_by_user_id IS NULL)
+        ),
         CONSTRAINT chats_shape CHECK (
             (
                 kind = 'channel'
@@ -979,6 +989,8 @@ const schemaStatements = [
         id text PRIMARY KEY NOT NULL,
         server_id text NOT NULL,
         chat_id text,
+        lifecycle_chat_id text,
+        chat_action text,
         event_type text NOT NULL,
         message_id text,
         label_id text,
@@ -999,6 +1011,10 @@ const schemaStatements = [
         CONSTRAINT chat_events_reminder_fk
             FOREIGN KEY (server_id, reminder_id)
             REFERENCES reminders (server_id, id) ON DELETE CASCADE,
+        CONSTRAINT chat_events_lifecycle_shape CHECK (
+            (event_type = 'chat.lifecycle') = (lifecycle_chat_id IS NOT NULL)
+            AND (event_type = 'chat.lifecycle') = (chat_action IS NOT NULL)
+        ),
         CONSTRAINT chat_events_shape CHECK (
             (
                 event_type = 'message.created'
@@ -1007,6 +1023,18 @@ const schemaStatements = [
                 AND label_id IS NULL
                 AND reader_user_id IS NULL
                 AND sequence > 0
+            )
+            OR (
+                event_type = 'chat.lifecycle'
+                AND chat_id IS NULL
+                AND lifecycle_chat_id IS NOT NULL
+                AND chat_action IN ('archived', 'deleted', 'unarchived')
+                AND message_id IS NULL
+                AND label_id IS NULL
+                AND reader_user_id IS NULL
+                AND reminder_id IS NULL
+                AND reminder_action IS NULL
+                AND sequence = 0
             )
             OR (
                 event_type IN ('task.created', 'task.updated')

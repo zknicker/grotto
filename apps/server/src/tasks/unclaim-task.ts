@@ -1,5 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { requireChatAccess } from '../chats/chat-access.ts';
+import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -33,7 +33,7 @@ export async function unclaimHostedTask(
               and revoked_at is null
             for update
         `);
-        await requireChatAccess(tx, member, {
+        await requireChatWriteAccess(tx, member, {
             chatId: beforeLock.chatId,
             serverId: input.serverId,
         });

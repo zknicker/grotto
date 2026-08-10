@@ -3,7 +3,7 @@ import type {
     HostedReminderScriptCommand,
     HostedReminderScriptResult,
 } from '@tavern/api';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -148,7 +148,19 @@ export async function settleReminderScript(
             .where(
                 and(
                     eq(chatsTable.serverId, identity.serverId),
-                    eq(chatsTable.id, attention.anchorChatId)
+                    eq(chatsTable.id, attention.anchorChatId),
+                    isNull(chatsTable.archivedAt),
+                    isNull(chatsTable.deletedAt),
+                    or(
+                        isNull(chatsTable.parentChatId),
+                        sql`exists (
+                            select 1 from chats parent
+                            where parent.server_id = ${chatsTable.serverId}
+                                and parent.id = ${chatsTable.parentChatId}
+                                and parent.archived_at is null
+                                and parent.deleted_at is null
+                        )`
+                    )
                 )
             )
             .returning({

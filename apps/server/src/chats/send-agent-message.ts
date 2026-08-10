@@ -19,6 +19,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
+import { requireHostedChatWritable } from './chat-access.ts';
 
 export interface SendHostedAgentMessageInput {
     agentId: string;
@@ -55,6 +56,7 @@ export async function sendHostedAgentMessage(
             where server_id = ${input.serverId} and id = ${input.chatId}
             for update
         `);
+        await requireHostedChatWritable(tx, input);
         const [agent] = await tx
             .select({
                 description: agentsTable.description,

@@ -1,5 +1,5 @@
 import { hostedCompositionPublishedSchema, hostedCompositionPublishInputSchema } from '@tavern/api';
-import { requireChatAccess } from '../../chats/chat-access.ts';
+import { requireChatWriteAccess } from '../../chats/chat-access.ts';
 import { publishChatComposition } from '../../chats/composition-hub.ts';
 import { chatProcedure } from './procedure.ts';
 
@@ -7,7 +7,7 @@ export const publishCompositionProcedure = chatProcedure
     .input(hostedCompositionPublishInputSchema)
     .output(hostedCompositionPublishedSchema)
     .mutation(async ({ ctx, input }) => {
-        await requireChatAccess(ctx.grottoDb, ctx.member, input);
+        await requireChatWriteAccess(ctx.grottoDb, ctx.member, input);
 
         if (!ctx.member) {
             throw new Error('A Server member is required to publish a composition.');

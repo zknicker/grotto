@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import { ChatAccessDeniedError, ChatNotFoundError } from '../chats/chat-access.ts';
+import {
+    ChatAccessDeniedError,
+    ChatArchivedError,
+    ChatNotFoundError,
+} from '../chats/chat-access.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../servers/server-access.ts';
@@ -134,6 +138,9 @@ function sendAttachmentError(reply: FastifyReply, error: unknown) {
     }
     if (error instanceof ServerAccessDeniedError) {
         return reply.code(403).send({ error: error.message });
+    }
+    if (error instanceof ChatArchivedError) {
+        return reply.code(409).send({ error: error.message });
     }
     if (error instanceof ChatNotFoundError || error instanceof ServerNotFoundError) {
         return reply.code(404).send({ error: error.message });

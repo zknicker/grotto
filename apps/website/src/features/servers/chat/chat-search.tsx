@@ -1,4 +1,4 @@
-import { SearchField } from '@heroui/react';
+import { Chip, SearchField } from '@heroui/react';
 import { ListView } from '@heroui-pro/react';
 import * as React from 'react';
 import { useChatSearch } from '../../../hooks/servers/use-chat-search.ts';
@@ -56,6 +56,11 @@ export function ChatSearch({
                                 <ListView.ItemContent>
                                     <ListView.Title>{message.content}</ListView.Title>
                                 </ListView.ItemContent>
+                                {message.chatArchivedAt ? (
+                                    <ListView.ItemAction>
+                                        <Chip size="sm">Archived</Chip>
+                                    </ListView.ItemAction>
+                                ) : null}
                             </ListView.Item>
                         )}
                     </ListView>

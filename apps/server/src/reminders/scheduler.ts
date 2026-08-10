@@ -1,5 +1,5 @@
 import type { HostedDurableEvent } from '@tavern/api';
-import { and, asc, eq, lte, notInArray } from 'drizzle-orm';
+import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -83,6 +83,7 @@ async function fireNextDueReminder(
                     and(
                         eq(remindersTable.status, 'scheduled'),
                         lte(remindersTable.fireAt, now),
+                        writableReminderAnchor(),
                         excludedReminderIds.length > 0
                             ? notInArray(remindersTable.id, excludedReminderIds)
                             : undefined
@@ -103,7 +104,8 @@ async function fireNextDueReminder(
                         eq(remindersTable.serverId, candidate.serverId),
                         eq(remindersTable.id, candidate.id),
                         eq(remindersTable.status, 'scheduled'),
-                        lte(remindersTable.fireAt, now)
+                        lte(remindersTable.fireAt, now),
+                        writableReminderAnchor()
                     )
                 )
                 .for('update', { skipLocked: true });
@@ -294,6 +296,26 @@ async function fireNextDueReminder(
         }
         throw cause;
     }
+}
+
+function writableReminderAnchor() {
+    return sql`exists (
+        select 1 from chats anchor
+        where anchor.server_id = ${remindersTable.serverId}
+            and anchor.id = ${remindersTable.anchorChatId}
+            and anchor.archived_at is null
+            and anchor.deleted_at is null
+            and (
+                anchor.kind <> 'thread'
+                or exists (
+                    select 1 from chats parent
+                    where parent.server_id = anchor.server_id
+                        and parent.id = anchor.parent_chat_id
+                        and parent.archived_at is null
+                        and parent.deleted_at is null
+                )
+            )
+    )`;
 }
 
 interface ReminderFireAttempt {

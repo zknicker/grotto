@@ -1,5 +1,5 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import { findHostedChatAccess, requireChatAccess } from '../chats/chat-access.ts';
+import { findHostedChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTasksTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -64,7 +64,7 @@ export async function assignHostedTask(
         if (server.role !== 'owner' && server.role !== 'admin') {
             throw new TaskAdminRequiredError();
         }
-        await requireChatAccess(tx, member, {
+        await requireChatWriteAccess(tx, member, {
             chatId: currentBeforeLock.chatId,
             serverId: input.serverId,
         });

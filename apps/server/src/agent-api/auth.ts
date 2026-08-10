@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { ChatArchivedError } from '../chats/chat-access.ts';
 import { resolveRunnerCredential } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { AgentTargetError } from './resolve-target.ts';
@@ -27,6 +28,9 @@ export function sendAgentReadError(reply: FastifyReply, cause: unknown) {
     }
     if (cause instanceof AgentTaskError) {
         return sendAgentApiError(reply, 409, 'TASK_CONFLICT', cause.message);
+    }
+    if (cause instanceof ChatArchivedError) {
+        return sendAgentApiError(reply, 409, 'TARGET_READ_ONLY', cause.message);
     }
     return sendAgentApiError(reply, 500, 'SERVER_5XX', 'The Server could not read messages.');
 }

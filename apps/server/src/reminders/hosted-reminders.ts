@@ -1,4 +1,5 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
+import { requireHostedChatWritable } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -78,6 +79,10 @@ export async function scheduleHostedReminder(
             agentId,
             anchorChatId: input.anchorChatId,
             anchorMessageId: input.anchorMessageId,
+            serverId: input.serverId,
+        });
+        await requireHostedChatWritable(tx, {
+            chatId: input.anchorChatId,
             serverId: input.serverId,
         });
         await lockReminderCommand(tx, input.serverId, 'agent', agentId, input.commandId);

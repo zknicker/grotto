@@ -12,11 +12,13 @@ export function eventRefetchTargets(events: HostedDurableEvent[]) {
             event.type === 'task.created' || event.type === 'task.updated'
     );
     const taskLabelEvents = events.filter((event) => event.type === 'task.label.updated');
+    const chatLifecycleEvents = events.filter((event) => event.type === 'chat.lifecycle');
 
     return {
         invalidateSearch: messageEvents.length > 0,
         invalidateTaskLabels: taskLabelEvents.length > 0,
         invalidateTasks: taskEvents.length > 0 || taskLabelEvents.length > 0,
+        lifecycleChatIds: [...new Set(chatLifecycleEvents.map((event) => event.chatId))],
         messageChatIds: [
             ...new Set(
                 [...messageEvents, ...taskEvents].flatMap((event) => [

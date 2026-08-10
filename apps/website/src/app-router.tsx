@@ -95,6 +95,13 @@ export function createAppRouter() {
                                                     ),
                                                 },
                                                 {
+                                                    path: 'archived',
+                                                    lazy: lazyRoute(
+                                                        serverRouteModules.archivedChats,
+                                                        'ArchivedChatsRoute'
+                                                    ),
+                                                },
+                                                {
                                                     path: 'chats/:chatId',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.chat,

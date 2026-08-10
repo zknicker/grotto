@@ -1,5 +1,5 @@
 import type { HostedChat } from '@tavern/api';
-import { and, eq, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable, serverOnboardingTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -10,7 +10,8 @@ import { visibleHostedChats } from './chat-visibility.ts';
 export async function listHostedChats(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    serverId: string
+    serverId: string,
+    archive: 'active' | 'all' | 'archived' = 'active'
 ): Promise<HostedChat[]> {
     await requireServerMembership(db, member, serverId);
 
@@ -20,6 +21,8 @@ export async function listHostedChats(
 
     const rows = await db
         .select({
+            archivedAt: chatsTable.archivedAt,
+            archivedByUserId: chatsTable.archivedByUserId,
             createdAt: chatsTable.createdAt,
             id: chatsTable.id,
             isAll: chatsTable.isAll,
@@ -126,6 +129,12 @@ export async function listHostedChats(
                     isNull(chatsTable.dmAgentId),
                     isNull(agentsTable.retiredAt)
                 ),
+                isNull(chatsTable.deletedAt),
+                archive === 'active'
+                    ? isNull(chatsTable.archivedAt)
+                    : archive === 'archived'
+                      ? isNotNull(chatsTable.archivedAt)
+                      : undefined,
                 visibleHostedChats(member.id)
             )
         )
@@ -139,6 +148,7 @@ export async function listHostedChats(
 
     return rows.map((chat) => ({
         ...chat,
+        archivedAt: chat.archivedAt?.toISOString() ?? null,
         createdAt: chat.createdAt.toISOString(),
         lastActivityAt: chat.lastActivityAt?.toISOString() ?? null,
         unreadCount: chat.unreadCount + (threadAttentionCounts.get(chat.id) ?? 0),

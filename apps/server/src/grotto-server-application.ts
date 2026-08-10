@@ -8,6 +8,7 @@ import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { reconcileHostedAttachments } from './attachments/reconcile-attachments.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
+import { purgeDeletedHostedChannels } from './chats/channel-lifecycle.ts';
 import { ComputerConnections } from './computers/connections.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
 import { markAllComputersOffline } from './computers/service.ts';
@@ -79,6 +80,7 @@ export async function createGrottoServerApplication(
     try {
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot);
         await reconcileHostedAttachments(grotto.db, attachmentRoot);
+        await purgeDeletedHostedChannels(grotto.db, attachmentRoot);
         await purgeDeletedServers(grotto.db, attachmentRoot);
         await markAllComputersOffline(grotto.db);
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);

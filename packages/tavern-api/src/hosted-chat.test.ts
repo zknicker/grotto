@@ -91,6 +91,19 @@ test('hosted messages and durable events keep stable Server and Chat identity', 
             type: 'reminder.changed',
         })
     ).toMatchObject({ action: 'fired', reminderId: 'rem_one' });
+    expect(
+        hostedDurableEventSchema.parse({
+            action: 'archived',
+            chatId: message.chatId,
+            createdAt: message.createdAt,
+            cursor: '6',
+            id: 'evt_archive',
+            parentChatId: null,
+            sequence: 0,
+            serverId: message.serverId,
+            type: 'chat.lifecycle',
+        })
+    ).toMatchObject({ action: 'archived', chatId: 'cht_all', type: 'chat.lifecycle' });
 });
 
 test('hosted message history can preserve a deleted author profile', () => {

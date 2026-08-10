@@ -91,7 +91,14 @@ export async function openServerBySlug(
     const channels = await db
         .select({ id: chatsTable.id, name: chatsTable.name })
         .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, server.id), eq(chatsTable.kind, 'channel')))
+        .where(
+            and(
+                eq(chatsTable.serverId, server.id),
+                eq(chatsTable.kind, 'channel'),
+                isNull(chatsTable.archivedAt),
+                isNull(chatsTable.deletedAt)
+            )
+        )
         .orderBy(asc(chatsTable.name));
 
     return {

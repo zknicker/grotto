@@ -119,6 +119,8 @@ export async function createHostedAgent(
         return {
             agent: toHostedAgent(agentRow),
             chat: {
+                archivedAt: null,
+                archivedByUserId: null,
                 createdAt: (chatRow?.createdAt ?? new Date()).toISOString(),
                 id: chatId,
                 isAll: false,

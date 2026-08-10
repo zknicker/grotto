@@ -122,6 +122,8 @@ export type HostedChatSendInput = z.infer<typeof hostedChatSendInputSchema>;
 
 export const hostedChatSchema = z
     .object({
+        archivedAt: hostedTimestampSchema.nullable(),
+        archivedByUserId: hostedIdSchema.nullable(),
         createdAt: hostedTimestampSchema,
         id: hostedIdSchema,
         isAll: z.boolean(),
@@ -141,6 +143,10 @@ export const hostedChatSchema = z
     .strict();
 
 export type HostedChat = z.infer<typeof hostedChatSchema>;
+
+export const hostedChatGetInputSchema = z
+    .object({ chatId: hostedIdSchema, serverId: hostedIdSchema })
+    .strict();
 
 export const hostedChannelCreateInputSchema = z
     .object({
@@ -190,6 +196,30 @@ export const hostedChannelUpdateInputSchema = z
     });
 
 export type HostedChannelUpdateInput = z.infer<typeof hostedChannelUpdateInputSchema>;
+
+export const hostedChannelLifecycleInputSchema = z
+    .object({ chatId: hostedIdSchema, serverId: hostedIdSchema })
+    .strict();
+
+export const hostedChannelLifecycleReceiptSchema = z
+    .object({
+        archivedAt: hostedTimestampSchema.nullable(),
+        chatId: hostedIdSchema,
+        serverId: hostedIdSchema,
+    })
+    .strict();
+
+export type HostedChannelLifecycleReceipt = z.infer<typeof hostedChannelLifecycleReceiptSchema>;
+
+export const hostedChannelDeleteInputSchema = hostedChannelLifecycleInputSchema
+    .extend({ confirmation: z.string().trim().min(1).max(32) })
+    .strict();
+
+export const hostedChannelDeleteReceiptSchema = z
+    .object({ chatId: hostedIdSchema, serverId: hostedIdSchema })
+    .strict();
+
+export type HostedChannelDeleteReceipt = z.infer<typeof hostedChannelDeleteReceiptSchema>;
 
 export const hostedEnsureDmInputSchema = z
     .object({
@@ -294,7 +324,13 @@ export const hostedChatSearchInputSchema = z
     })
     .strict();
 
-export const hostedChatSearchResultsSchema = z.array(hostedChatMessageSchema);
+export const hostedChatSearchResultSchema = hostedChatMessageSchema.extend({
+    chatArchivedAt: hostedTimestampSchema.nullable(),
+});
+
+export type HostedChatSearchResult = z.infer<typeof hostedChatSearchResultSchema>;
+
+export const hostedChatSearchResultsSchema = z.array(hostedChatSearchResultSchema);
 
 export const hostedMessageCreatedEventSchema = z
     .object({
@@ -381,6 +417,20 @@ export const hostedReminderChangedEventSchema = z
 
 export type HostedReminderChangedEvent = z.infer<typeof hostedReminderChangedEventSchema>;
 
+export const hostedChatLifecycleEventSchema = z
+    .object({
+        action: z.enum(['archived', 'deleted', 'unarchived']),
+        chatId: hostedIdSchema,
+        createdAt: hostedTimestampSchema,
+        cursor: z.string().regex(/^[1-9]\d*$/u),
+        id: hostedIdSchema,
+        parentChatId: z.null(),
+        sequence: z.literal(0),
+        serverId: hostedIdSchema,
+        type: z.literal('chat.lifecycle'),
+    })
+    .strict();
+
 export const hostedDurableEventSchema = z.discriminatedUnion('type', [
     hostedMessageCreatedEventSchema,
     hostedChatReadEventSchema,
@@ -388,6 +438,7 @@ export const hostedDurableEventSchema = z.discriminatedUnion('type', [
     hostedTaskChangedEventSchema,
     hostedTaskLabelChangedEventSchema,
     hostedReminderChangedEventSchema,
+    hostedChatLifecycleEventSchema,
 ]);
 
 export type HostedDurableEvent = z.infer<typeof hostedDurableEventSchema>;

@@ -1,4 +1,5 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -6,6 +7,7 @@ import type { GrottoUser } from '../users/grotto-user.ts';
 import { visibleHostedChats } from './chat-visibility.ts';
 
 type ChatReader = Pick<GrottoDatabase, 'select'>;
+const parentChatsTable = alias(chatsTable, 'parent_chat');
 
 export class ChatNotFoundError extends Error {
     constructor() {
@@ -21,7 +23,15 @@ export class ChatAccessDeniedError extends Error {
     }
 }
 
+export class ChatArchivedError extends Error {
+    constructor() {
+        super('This channel is archived. Restore it before adding new work.');
+        this.name = 'ChatArchivedError';
+    }
+}
+
 export interface AccessibleChat {
+    archivedAt: Date | null;
     dmAgentId: string | null;
     dmMemberOneStint: number | null;
     dmMemberOneUserId: string | null;
@@ -30,6 +40,7 @@ export interface AccessibleChat {
     id: string;
     kind: 'channel' | 'dm' | 'thread';
     lastMessageSequence: number;
+    parentArchivedAt: Date | null;
     parentChatId: string | null;
     serverId: string;
 }
@@ -64,6 +75,54 @@ export async function requireChatAccess(
     throw new ChatAccessDeniedError();
 }
 
+export async function requireChatWriteAccess(
+    db: ChatReader,
+    member: GrottoUser | null,
+    input: { chatId: string; serverId: string }
+): Promise<AccessibleChat> {
+    const chat = await requireChatAccess(db, member, input);
+    assertChatWritable(chat);
+    return chat;
+}
+
+/** Agent routes authorize visibility separately, then share this lifecycle gate. */
+export async function requireHostedChatWritable(
+    db: ChatReader,
+    input: { chatId: string; serverId: string }
+): Promise<void> {
+    const [chat] = await db
+        .select({
+            archivedAt: chatsTable.archivedAt,
+            id: chatsTable.id,
+            parentArchivedAt: parentChatsTable.archivedAt,
+            parentChatId: chatsTable.parentChatId,
+            parentDeletedAt: parentChatsTable.deletedAt,
+        })
+        .from(chatsTable)
+        .leftJoin(
+            parentChatsTable,
+            and(
+                eq(parentChatsTable.serverId, chatsTable.serverId),
+                eq(parentChatsTable.id, chatsTable.parentChatId)
+            )
+        )
+        .where(
+            and(
+                eq(chatsTable.serverId, input.serverId),
+                eq(chatsTable.id, input.chatId),
+                isNull(chatsTable.deletedAt)
+            )
+        )
+        .limit(1);
+    if (!chat) {
+        throw new ChatNotFoundError();
+    }
+    if (chat.parentChatId && chat.parentDeletedAt) {
+        throw new ChatNotFoundError();
+    }
+    assertChatWritable({ archivedAt: chat.archivedAt, parentArchivedAt: chat.parentArchivedAt });
+}
+
 export async function findHostedChatAccess(
     db: ChatReader,
     userId: string,
@@ -71,6 +130,7 @@ export async function findHostedChatAccess(
 ): Promise<AccessibleChat | null> {
     const [chat] = await db
         .select({
+            archivedAt: chatsTable.archivedAt,
             dmAgentId: chatsTable.dmAgentId,
             dmMemberOneStint: chatsTable.dmMemberOneStint,
             dmMemberOneUserId: chatsTable.dmMemberOneUserId,
@@ -80,13 +140,23 @@ export async function findHostedChatAccess(
             kind: chatsTable.kind,
             lastMessageSequence: chatsTable.lastMessageSequence,
             parentChatId: chatsTable.parentChatId,
+            parentArchivedAt: parentChatsTable.archivedAt,
             serverId: chatsTable.serverId,
         })
         .from(chatsTable)
+        .leftJoin(
+            parentChatsTable,
+            and(
+                eq(parentChatsTable.serverId, chatsTable.serverId),
+                eq(parentChatsTable.id, chatsTable.parentChatId),
+                isNull(parentChatsTable.deletedAt)
+            )
+        )
         .where(
             and(
                 eq(chatsTable.serverId, input.serverId),
                 eq(chatsTable.id, input.chatId),
+                isNull(chatsTable.deletedAt),
                 visibleHostedChats(userId)
             )
         )
@@ -94,6 +164,7 @@ export async function findHostedChatAccess(
 
     return chat
         ? {
+              archivedAt: chat.archivedAt,
               dmAgentId: chat.dmAgentId,
               dmMemberOneStint: chat.dmMemberOneStint,
               dmMemberOneUserId: chat.dmMemberOneUserId,
@@ -103,7 +174,14 @@ export async function findHostedChatAccess(
               kind: chat.kind,
               lastMessageSequence: chat.lastMessageSequence,
               parentChatId: chat.parentChatId,
+              parentArchivedAt: chat.parentArchivedAt,
               serverId: chat.serverId,
           }
         : null;
+}
+
+function assertChatWritable(chat: { archivedAt: Date | null; parentArchivedAt: Date | null }) {
+    if (chat.archivedAt || chat.parentArchivedAt) {
+        throw new ChatArchivedError();
+    }
 }

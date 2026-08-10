@@ -19,11 +19,13 @@ export async function listHostedChatEvents(
 
     const rows = await db
         .select({
+            chatAction: chatEventsTable.chatAction,
             chatId: chatEventsTable.chatId,
             createdAt: chatEventsTable.createdAt,
             cursor: chatEventsTable.cursor,
             id: chatEventsTable.id,
             labelId: chatEventsTable.labelId,
+            lifecycleChatId: chatEventsTable.lifecycleChatId,
             messageId: chatEventsTable.messageId,
             parentChatId: chatsTable.parentChatId,
             reminderAction: chatEventsTable.reminderAction,
@@ -46,6 +48,7 @@ export async function listHostedChatEvents(
                 gt(chatEventsTable.cursor, BigInt(input.afterCursor)),
                 or(
                     eq(chatEventsTable.type, 'task.label.updated'),
+                    eq(chatEventsTable.type, 'chat.lifecycle'),
                     eq(chatEventsTable.type, 'reminder.changed'),
                     and(
                         or(
@@ -84,6 +87,17 @@ export async function listHostedChatEvents(
                 parentChatId: null,
                 sequence: 0 as const,
                 type: 'task.label.updated' as const,
+            };
+        }
+
+        if (event.type === 'chat.lifecycle') {
+            return {
+                ...common,
+                action: event.chatAction as 'archived' | 'deleted' | 'unarchived',
+                chatId: event.lifecycleChatId as string,
+                parentChatId: null,
+                sequence: 0 as const,
+                type: 'chat.lifecycle' as const,
             };
         }
 

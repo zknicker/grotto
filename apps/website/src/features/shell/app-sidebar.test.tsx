@@ -31,6 +31,8 @@ test('hides a retired Agent DM from active navigation', () => {
 
 function retiredDm(): HostedChat {
     return {
+        archivedAt: null,
+        archivedByUserId: null,
         createdAt: '2026-07-29T12:00:00.000Z',
         id: 'chat_fen',
         isAll: false,

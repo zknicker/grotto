@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
+import { ChatArchivedError } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { AgentSendConflictError, sendHostedAgentMessage } from '../chats/send-agent-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -373,6 +374,9 @@ export function registerAgentApiRoutes(
             }
             if (cause instanceof AgentTargetError) {
                 return sendAgentApiError(reply, 404, 'INVALID_TARGET', cause.message);
+            }
+            if (cause instanceof ChatArchivedError) {
+                return sendAgentApiError(reply, 409, 'TARGET_READ_ONLY', cause.message);
             }
             return sendAgentApiError(
                 reply,

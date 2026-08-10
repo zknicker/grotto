@@ -1,6 +1,14 @@
 import { TRPCError } from '@trpc/server';
 import { AttachmentAssociationError } from '../../attachments/message-attachments.ts';
-import { ChatAccessDeniedError, ChatNotFoundError } from '../../chats/chat-access.ts';
+import {
+    ChannelLifecycleConflictError,
+    ChannelLifecycleDeniedError,
+} from '../../chats/channel-lifecycle.ts';
+import {
+    ChatAccessDeniedError,
+    ChatArchivedError,
+    ChatNotFoundError,
+} from '../../chats/chat-access.ts';
 import { ChannelAgentNotFoundError, ChannelNameTakenError } from '../../chats/create-channel.ts';
 import { DmPeerNotFoundError, InvalidDmPeerError } from '../../chats/ensure-dm.ts';
 import {
@@ -28,6 +36,10 @@ export const chatProcedure = memberProcedure.use(async ({ next }) => {
         throw new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
     }
 
+    if (cause instanceof ChatArchivedError) {
+        throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
+    }
+
     if (cause instanceof ChatNonceConflictError) {
         throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
@@ -53,6 +65,14 @@ export const chatProcedure = memberProcedure.use(async ({ next }) => {
     }
 
     if (cause instanceof ChannelNameTakenError) {
+        throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
+    }
+
+    if (cause instanceof ChannelLifecycleDeniedError) {
+        throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });
+    }
+
+    if (cause instanceof ChannelLifecycleConflictError) {
         throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 

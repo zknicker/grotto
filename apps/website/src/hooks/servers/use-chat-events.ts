@@ -23,6 +23,15 @@ export function useChatEvents(serverId: string | undefined) {
             const targets = eventRefetchTargets(events);
             const invalidations: Promise<unknown>[] = [utils.chat.list.invalidate({ serverId })];
 
+            if (targets.lifecycleChatIds.length > 0) {
+                invalidations.push(
+                    utils.chat.listArchived.invalidate({ serverId }),
+                    ...targets.lifecycleChatIds.map((chatId) =>
+                        utils.chat.get.invalidate({ chatId, serverId })
+                    )
+                );
+            }
+
             if (targets.invalidateSearch) {
                 invalidations.push(utils.chat.search.invalidate({ serverId }));
             }
@@ -52,7 +61,9 @@ export function useChatEvents(serverId: string | undefined) {
         [
             serverId,
             queryClient,
+            utils.chat.get,
             utils.chat.list,
+            utils.chat.listArchived,
             utils.chat.messages,
             utils.chat.search,
             utils.task.list,
@@ -67,6 +78,8 @@ export function useChatEvents(serverId: string | undefined) {
 
         await Promise.all([
             utils.chat.list.invalidate({ serverId }),
+            utils.chat.listArchived.invalidate({ serverId }),
+            utils.chat.get.invalidate({ serverId }),
             utils.chat.messages.invalidate({ serverId }),
             utils.chat.search.invalidate({ serverId }),
             utils.task.list.invalidate({ serverId }, { refetchType: 'all' }),
@@ -75,6 +88,8 @@ export function useChatEvents(serverId: string | undefined) {
     }, [
         serverId,
         utils.chat.list,
+        utils.chat.listArchived,
+        utils.chat.get,
         utils.chat.messages,
         utils.chat.search,
         utils.task.list,

@@ -104,6 +104,46 @@ test('quiesces active writes before purge and rejects later layout recreation', 
     await expect(root.listKeys(serverId)).rejects.toThrow(/being deleted/i);
 });
 
+test('quiesces uploads before discarding finalized and staging attachment bytes', async () => {
+    const parent = await temporaryDirectory();
+    const root = await openAttachmentRoot(join(parent, 'attachments'));
+    const serverId = 'srv_1234567890abcdef';
+    const finalizedId = 'att_1234567890abcdef';
+    const finalizedStagingKey = 'upl_1234567890abcdef';
+    const pendingId = 'att_abcdef1234567890';
+    const pendingStagingKey = 'upl_abcdef1234567890';
+    const finalizedFile = await root.createStagingFile(serverId, finalizedStagingKey);
+    await finalizedFile.write('finalized');
+    await finalizedFile.close();
+    await root.finalize(serverId, finalizedId, finalizedStagingKey);
+    const pendingFile = await root.createStagingFile(serverId, pendingStagingKey);
+    await pendingFile.write('pending');
+    await pendingFile.close();
+
+    const releaseUpload = root.beginServerWrite(serverId);
+    let discarded = false;
+    let inventoryRead = false;
+    const discard = root
+        .discardAttachments(serverId, () => {
+            inventoryRead = true;
+            return Promise.resolve([
+                { attachmentId: finalizedId, stagingKey: finalizedStagingKey },
+                { attachmentId: pendingId, stagingKey: pendingStagingKey },
+            ]);
+        })
+        .then(() => {
+            discarded = true;
+        });
+
+    await Bun.sleep(0);
+    expect(discarded).toBe(false);
+    expect(inventoryRead).toBe(false);
+    expect(() => root.beginServerWrite(serverId)).toThrow(/being deleted/i);
+    releaseUpload();
+    await discard;
+    expect(await root.listKeys(serverId)).toEqual({ objectKeys: [], stagingKeys: [] });
+});
+
 async function temporaryDirectory() {
     const root = await mkdtemp(join(tmpdir(), 'grotto-attachment-root-'));
     roots.push(root);

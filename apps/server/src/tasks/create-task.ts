@@ -3,7 +3,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
-import { findHostedChatAccess, requireChatAccess } from '../chats/chat-access.ts';
+import { findHostedChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
 import { insertHostedSystemMessage } from '../chats/insert-system-message.ts';
 import { ChatNonceConflictError, requireActiveDmPeer } from '../chats/send-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -81,7 +81,7 @@ export async function createHostedTask(
             where server_id = ${input.serverId} and id = ${input.chatId}
             for update
         `);
-        const chat = await requireChatAccess(tx, member, input);
+        const chat = await requireChatWriteAccess(tx, member, input);
         if (chat.kind !== 'channel' && chat.kind !== 'dm') {
             throw new UntaskableMessageError();
         }

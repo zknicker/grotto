@@ -1,6 +1,6 @@
 import type { HostedDurableEvent, HostedMessageTask } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
-import { requireChatAccess } from '../chats/chat-access.ts';
+import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import { insertHostedSystemMessage } from '../chats/insert-system-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
@@ -68,7 +68,7 @@ export async function promoteHostedMessageTask(
             throw new TaskMessageNotFoundError();
         }
 
-        const chat = await requireChatAccess(tx, member, {
+        const chat = await requireChatWriteAccess(tx, member, {
             chatId: message.chatId,
             serverId: input.serverId,
         });

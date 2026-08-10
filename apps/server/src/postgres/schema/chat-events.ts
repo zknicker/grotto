@@ -18,6 +18,8 @@ export const chatEventsTable = pgTable(
     'chat_events',
     {
         chatId: text('chat_id'),
+        chatAction: text('chat_action').$type<'archived' | 'deleted' | 'unarchived'>(),
+        lifecycleChatId: text('lifecycle_chat_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         cursor: bigint('cursor', { mode: 'bigint' }).notNull(),
         id: text('id').primaryKey(),
@@ -34,6 +36,7 @@ export const chatEventsTable = pgTable(
             .notNull()
             .$type<
                 | 'chat.read'
+                | 'chat.lifecycle'
                 | 'message.created'
                 | 'reminder.changed'
                 | 'task.created'
@@ -45,6 +48,11 @@ export const chatEventsTable = pgTable(
     (table) => [
         uniqueIndex('chat_events_server_cursor_key').on(table.serverId, table.cursor),
         check('chat_events_positive_cursor', sql`${table.cursor} > 0`),
+        check(
+            'chat_events_lifecycle_shape',
+            sql`(${table.type} = 'chat.lifecycle') = (${table.lifecycleChatId} is not null)
+                and (${table.type} = 'chat.lifecycle') = (${table.chatAction} is not null)`
+        ),
         foreignKey({
             columns: [table.serverId, table.chatId],
             foreignColumns: [chatsTable.serverId, chatsTable.id],
@@ -76,6 +84,17 @@ export const chatEventsTable = pgTable(
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
                     AND ${table.sequence} > 0)
+                OR
+                (${table.type} = 'chat.lifecycle'
+                    AND ${table.chatId} IS NULL
+                    AND ${table.lifecycleChatId} IS NOT NULL
+                    AND ${table.chatAction} IN ('archived', 'deleted', 'unarchived')
+                    AND ${table.messageId} IS NULL
+                    AND ${table.labelId} IS NULL
+                    AND ${table.readerUserId} IS NULL
+                    AND ${table.reminderId} IS NULL
+                    AND ${table.reminderAction} IS NULL
+                    AND ${table.sequence} = 0)
                 OR
                 (${table.type} IN ('task.created', 'task.updated')
                     AND ${table.chatId} IS NOT NULL

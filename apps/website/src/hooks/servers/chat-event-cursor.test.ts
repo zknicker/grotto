@@ -51,6 +51,7 @@ test('read and follow events refetch only their parent summaries', () => {
         invalidateSearch: false,
         invalidateTaskLabels: false,
         invalidateTasks: false,
+        lifecycleChatIds: [],
         messageChatIds: [],
         parentChatIds: ['chat_parent'],
     });
@@ -75,6 +76,7 @@ test('task events refetch the task list and only the affected message chat', () 
         invalidateSearch: false,
         invalidateTaskLabels: false,
         invalidateTasks: true,
+        lifecycleChatIds: [],
         messageChatIds: ['chat_one'],
         parentChatIds: [],
     });
@@ -99,9 +101,28 @@ test('task label events refetch the task catalog and task list without chat snap
         invalidateSearch: false,
         invalidateTaskLabels: true,
         invalidateTasks: true,
+        lifecycleChatIds: [],
         messageChatIds: [],
         parentChatIds: [],
     });
+});
+
+test('channel lifecycle events target the changed channel snapshot', () => {
+    expect(
+        eventRefetchTargets([
+            {
+                action: 'archived',
+                chatId: 'chat_one',
+                createdAt: '2026-08-10T12:00:00.000Z',
+                cursor: '5',
+                id: 'event_5',
+                parentChatId: null,
+                sequence: 0,
+                serverId: 'server_one',
+                type: 'chat.lifecycle',
+            },
+        ])
+    ).toMatchObject({ lifecycleChatIds: ['chat_one'] });
 });
 
 function messageEvent(cursor: string, chatId: string): HostedDurableEvent {

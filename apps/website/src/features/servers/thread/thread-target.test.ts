@@ -8,6 +8,8 @@ test('hosted Thread targets preserve non-canonical opaque anchor ids', () => {
     expect(
         threadTitles(
             {
+                archivedAt: null,
+                archivedByUserId: null,
                 createdAt: '2026-07-26T12:00:00.000Z',
                 id: 'cht_parent',
                 isAll: true,

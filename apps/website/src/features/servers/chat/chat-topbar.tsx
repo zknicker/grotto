@@ -1,14 +1,27 @@
-import { Button, Chip, Tooltip } from '@heroui/react';
-import { SidebarRightIcon, UserMultiple02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Button, Chip, Dropdown, Label, Tooltip, toast } from '@heroui/react';
+import {
+    MoreHorizontalIcon,
+    SidebarRightIcon,
+    UserMultiple02Icon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
+import {
+    useChannelArchive,
+    useChannelDelete,
+    useChannelUnarchive,
+} from '../../../hooks/servers/use-channel-lifecycle.ts';
 import { useChannelUpdate } from '../../../hooks/servers/use-channel-update.ts';
+import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import { HostedDeleteDialog } from '../../../routes/app/hosted-delete-dialog.tsx';
 import { ChannelDialog } from '../../chats/channel-dialog.tsx';
 import { ChatViewSwitcher, type ChatViewTab } from '../../chats/chat-view-tabs.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
+import { serverRoute } from '../server-routes.ts';
 
 export function ChatTopbar({
     artifactVisible,
@@ -16,7 +29,7 @@ export function ChatTopbar({
     chatName,
     onToggleArtifacts,
     onViewTabChange,
-    retired,
+    server,
     viewTab,
 }: {
     artifactVisible: boolean;
@@ -24,7 +37,7 @@ export function ChatTopbar({
     chatName: string;
     onToggleArtifacts: () => void;
     onViewTabChange: (tab: ChatViewTab) => void;
-    retired: boolean;
+    server: ServerDetail;
     viewTab: ChatViewTab;
 }) {
     const agents = useAgents(chat.serverId);
@@ -33,10 +46,16 @@ export function ChatTopbar({
         <SectionHeader
             center={<ChatViewSwitcher onValueChange={onViewTabChange} value={viewTab} />}
             leading={chat.kind === 'channel' ? <ChannelIconBox size="topbar" /> : null}
-            meta={retired ? <Chip size="sm">Retired</Chip> : null}
+            meta={
+                chat.kind === 'dm' && chat.peerAgentRetired ? (
+                    <Chip size="sm">Retired</Chip>
+                ) : chat.archivedAt ? (
+                    <Chip size="sm">Archived</Chip>
+                ) : null
+            }
             title={chatName}
         >
-            <ChannelParticipants agents={agents.data ?? []} chat={chat} />
+            <ChannelParticipants agents={agents.data ?? []} chat={chat} server={server} />
             <Tooltip>
                 <Button
                     aria-label={artifactVisible ? 'Hide artifacts' : 'Show artifacts'}
@@ -55,9 +74,22 @@ export function ChatTopbar({
     );
 }
 
-function ChannelParticipants({ agents, chat }: { agents: HostedAgent[]; chat: HostedChat }) {
+function ChannelParticipants({
+    agents,
+    chat,
+    server,
+}: {
+    agents: HostedAgent[];
+    chat: HostedChat;
+    server: ServerDetail;
+}) {
+    const navigate = useNavigate();
     const updateChannel = useChannelUpdate();
+    const archive = useChannelArchive();
+    const unarchive = useChannelUnarchive();
+    const deleteChannel = useChannelDelete();
     const [editing, setEditing] = React.useState(false);
+    const [confirmingDelete, setConfirmingDelete] = React.useState(false);
     const count =
         chat.kind === 'channel'
             ? chat.participantAgentIds.length + chat.participantUserIds.length
@@ -72,11 +104,34 @@ function ChannelParticipants({ agents, chat }: { agents: HostedAgent[]; chat: Ho
         );
     }
 
+    const canManage = server.role === 'owner' || server.role === 'admin';
+    const lifecyclePending = archive.isPending || unarchive.isPending || deleteChannel.isPending;
+    const runLifecycleAction = (key: React.Key) => {
+        if (key === 'edit') {
+            updateChannel.reset();
+            setEditing(true);
+            return;
+        }
+        if (key === 'delete') {
+            deleteChannel.reset();
+            setConfirmingDelete(true);
+            return;
+        }
+        const mutation = key === 'restore' ? unarchive : archive;
+        mutation
+            .mutateAsync({ chatId: chat.id, serverId: chat.serverId })
+            .then(() => toast.success(key === 'restore' ? 'Channel restored' : 'Channel archived'))
+            .catch((error: Error) =>
+                toast.danger('Channel update failed', { description: error.message })
+            );
+    };
+
     return (
         <>
             <Tooltip>
                 <Button
                     aria-label="Edit participants"
+                    isDisabled={Boolean(chat.archivedAt)}
                     onPress={() => {
                         updateChannel.reset();
                         setEditing(true);
@@ -89,6 +144,57 @@ function ChannelParticipants({ agents, chat }: { agents: HostedAgent[]; chat: Ho
                 </Button>
                 <Tooltip.Content>Edit participants</Tooltip.Content>
             </Tooltip>
+            {canManage ? (
+                <Dropdown>
+                    <Dropdown.Trigger>
+                        <Tooltip>
+                            <Button
+                                aria-label="Channel actions"
+                                isIconOnly
+                                size="sm"
+                                variant="ghost"
+                            >
+                                <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={18} />
+                            </Button>
+                            <Tooltip.Content>Channel actions</Tooltip.Content>
+                        </Tooltip>
+                    </Dropdown.Trigger>
+                    <Dropdown.Popover placement="bottom end">
+                        <Dropdown.Menu onAction={runLifecycleAction}>
+                            <Dropdown.Item
+                                id="edit"
+                                isDisabled={Boolean(chat.archivedAt)}
+                                textValue="Edit channel"
+                            >
+                                <Label>Edit channel</Label>
+                            </Dropdown.Item>
+                            {chat.isAll ? null : (
+                                <Dropdown.Item
+                                    id={chat.archivedAt ? 'restore' : 'archive'}
+                                    isDisabled={lifecyclePending}
+                                    textValue={
+                                        chat.archivedAt ? 'Restore channel' : 'Archive channel'
+                                    }
+                                >
+                                    <Label>
+                                        {chat.archivedAt ? 'Restore channel' : 'Archive channel'}
+                                    </Label>
+                                </Dropdown.Item>
+                            )}
+                            {chat.isAll ? null : (
+                                <Dropdown.Item
+                                    id="delete"
+                                    isDisabled={lifecyclePending}
+                                    textValue="Delete channel"
+                                    variant="danger"
+                                >
+                                    <Label>Delete channel</Label>
+                                </Dropdown.Item>
+                            )}
+                        </Dropdown.Menu>
+                    </Dropdown.Popover>
+                </Dropdown>
+            ) : null}
             <ChannelDialog
                 agents={agents.map((agent) => ({
                     avatarUrl: agent.avatarUrl,
@@ -114,6 +220,29 @@ function ChannelParticipants({ agents, chat }: { agents: HostedAgent[]; chat: Ho
                 submitLabel="Save"
                 title="Edit channel"
             />
+            {confirmingDelete ? (
+                <HostedDeleteDialog
+                    confirmation={chat.name ?? ''}
+                    description="This permanently deletes the channel, its messages, threads, tasks, reminders, reactions, and attachments. This cannot be undone."
+                    error={deleteChannel.error?.message}
+                    onConfirm={() => {
+                        deleteChannel
+                            .mutateAsync({
+                                chatId: chat.id,
+                                confirmation: chat.name ?? '',
+                                serverId: chat.serverId,
+                            })
+                            .then(() => {
+                                setConfirmingDelete(false);
+                                navigate(serverRoute(server.slug), { replace: true });
+                            })
+                            .catch(() => undefined);
+                    }}
+                    onOpenChange={setConfirmingDelete}
+                    pending={deleteChannel.isPending}
+                    title="Delete Channel"
+                />
+            ) : null}
         </>
     );
 }

@@ -1,5 +1,5 @@
-import type { HostedChatMessage } from '@tavern/api';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import type { HostedChatSearchResult } from '@tavern/api';
+import { and, eq, isNull, ne, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -19,7 +19,7 @@ export async function searchHostedChatMessages(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { chatId?: string; limit: number; query: string; serverId: string }
-): Promise<HostedChatMessage[]> {
+): Promise<HostedChatSearchResult[]> {
     await requireServerMembership(db, member, input.serverId);
 
     if (!member) {
@@ -38,6 +38,7 @@ export async function searchHostedChatMessages(
             authorAgentId: chatMessagesTable.authorAgentId,
             authorUserId: chatMessagesTable.authorUserId,
             chatId: chatMessagesTable.chatId,
+            chatArchivedAt: chatsTable.archivedAt,
             content: chatMessagesTable.content,
             createdAt: chatMessagesTable.createdAt,
             id: chatMessagesTable.id,
@@ -81,6 +82,7 @@ export async function searchHostedChatMessages(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),
                 ne(chatsTable.kind, 'thread'),
+                isNull(chatsTable.deletedAt),
                 input.chatId ? eq(chatMessagesTable.chatId, input.chatId) : undefined,
                 sql`${chatMessagesTable.searchVector}
                     @@ websearch_to_tsquery('simple', ${input.query})`,
@@ -96,11 +98,12 @@ export async function searchHostedChatMessages(
         rows.map((message) => message.id)
     );
 
-    return rows.map((message) =>
-        toHostedChatMessage(
+    return rows.map((message) => ({
+        ...toHostedChatMessage(
             message,
             attachments.get(message.id) ?? [],
             readStoredAuthorProfile(message)
-        )
-    );
+        ),
+        chatArchivedAt: message.chatArchivedAt?.toISOString() ?? null,
+    }));
 }

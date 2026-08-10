@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
+import { requireHostedChatWritable } from '../chats/chat-access.ts';
 import { insertHostedSystemMessage } from '../chats/insert-system-message.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -96,6 +97,7 @@ export async function createAgentTasks(
     const nonces = titles.map((_, index) => `${input.nonce}:${index}`);
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
+        await requireHostedChatWritable(tx, { chatId, serverId: runner.serverId });
         const replay = await replayAgentTasks(tx, runner, chatId, titles, nonces, assigneeAgentId);
         if (replay) {
             return { events: [], tasks: replay, wakes: [] };
@@ -294,6 +296,10 @@ async function mutateAgentTask(
         if (!current) {
             throw new AgentTaskError('That task no longer exists.');
         }
+        await requireHostedChatWritable(tx, {
+            chatId: current.chatId,
+            serverId: runner.serverId,
+        });
         if (current.version !== expectedVersion) {
             throw new AgentTaskError('That task changed; refresh it before updating.');
         }
@@ -417,6 +423,7 @@ async function promoteAgentMessageTask(
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
+        await requireHostedChatWritable(tx, { chatId, serverId: runner.serverId });
         const [message] = await tx
             .select({
                 chatId: chatMessagesTable.chatId,

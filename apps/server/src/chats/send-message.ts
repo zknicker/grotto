@@ -26,7 +26,7 @@ import { ensureHostedThread } from '../threads/ensure-thread.ts';
 import { autoFollowHostedThreadMentions } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
-import { requireChatAccess } from './chat-access.ts';
+import { requireChatWriteAccess } from './chat-access.ts';
 import { toHostedChatMessage } from './message-shape.ts';
 
 export class ChatNonceConflictError extends Error {
@@ -79,7 +79,7 @@ export async function sendHostedChatMessage(
             : null;
         const writeChatId = thread?.id ?? input.chatId;
 
-        const writeChat = await requireChatAccess(tx, member, {
+        const writeChat = await requireChatWriteAccess(tx, member, {
             chatId: writeChatId,
             serverId: input.serverId,
         });

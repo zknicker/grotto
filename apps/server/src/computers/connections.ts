@@ -15,7 +15,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { SkillFileRelay } from './skill-file-relay.ts';
 
 interface AttachedComputer {
-    disconnect?(): void;
+    disconnect?(reason: string): void;
     ordinary: boolean;
     send(frame: unknown): void;
     serverId: string;
@@ -90,6 +90,21 @@ export class ComputerConnections implements DeliveryTransport {
         }
     }
 
+    /** Drops one revoked Computer attachment without disturbing the Server's other Computers. */
+    disconnectComputer(computerId: string): boolean {
+        const computer = this.attached.get(computerId);
+        if (!computer) {
+            return false;
+        }
+        this.unregister(computerId);
+        try {
+            computer.disconnect?.('Computer removed');
+        } catch {
+            // The credential is already revoked; disconnect is best-effort.
+        }
+        return true;
+    }
+
     isOnline(computerId: string): boolean {
         const computer = this.attached.get(computerId);
         return Boolean(
@@ -113,7 +128,7 @@ export class ComputerConnections implements DeliveryTransport {
                 // Closing sockets and offline Computers never delay Server deletion.
             }
             try {
-                computer.disconnect?.();
+                computer.disconnect?.('Server deleted');
             } catch {
                 // The credential is already revoked; disconnect is best-effort.
             }

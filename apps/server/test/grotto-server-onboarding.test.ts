@@ -99,11 +99,17 @@ test('Computer reports advance durable onboarding only after usable inventory', 
     socket.close();
     const reconnected = await connectComputer();
     await expectOnboarding('awaiting-cove', { failure: null });
+    await owner.trpc.computer.remove.mutate({
+        computerId: setup.computerId,
+        confirmation: 'REMOVE',
+        serverId: created.id,
+    });
+    await expectOnboarding('awaiting-computer', { computerId: null, failure: null });
     reconnected.close();
 
     async function expectOnboarding(
         phase: 'awaiting-computer' | 'awaiting-cove',
-        expected: { computerId?: string; failure: unknown }
+        expected: { computerId?: string | null; failure: unknown }
     ) {
         expect(await waitForOnboarding(created.slug, { phase, ...expected })).toMatchObject({
             phase,
@@ -566,6 +572,16 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         })
     ).rejects.toThrow(/Cove/u);
 
+    const socketClosed = nextSocketClose(socket);
+    await owner.trpc.computer.remove.mutate({
+        computerId: setup.computerId,
+        confirmation: 'REMOVE',
+        serverId: created.id,
+    });
+    expect(await socketClosed).toMatchObject({ code: 4000, reason: 'Computer removed' });
+    const removedComputers = await owner.trpc.computer.list.query({ serverId: created.id });
+    expect(removedComputers).toEqual([]);
+
     socket.close();
 });
 
@@ -757,5 +773,19 @@ async function nextSocketFrame(socket: WebSocket, type: string) {
             socket.removeEventListener('message', onMessage);
             resolve(frame);
         });
+    });
+}
+
+async function nextSocketClose(socket: WebSocket) {
+    return await new Promise<{ code: number; reason: string }>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Computer socket stayed open.')), 3000);
+        socket.addEventListener(
+            'close',
+            (event) => {
+                clearTimeout(timeout);
+                resolve({ code: event.code, reason: event.reason });
+            },
+            { once: true }
+        );
     });
 }

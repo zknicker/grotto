@@ -16,11 +16,17 @@ export const removeComputerProcedure = memberProcedure
     )
     .mutation(async ({ ctx, input }) => {
         try {
-            return await removeServerComputer(ctx.grottoDb, ctx.member, input);
+            const removed = await removeServerComputer(ctx.grottoDb, ctx.member, input);
+            ctx.computerConnections.disconnectComputer(removed.computerId);
+            return removed;
         } catch (cause) {
             if (cause instanceof ComputerSetupDeniedError) {
                 throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });
             }
-            throw cause;
+            throw new TRPCError({
+                cause,
+                code: 'INTERNAL_SERVER_ERROR',
+                message: 'Computer could not be removed. Try again.',
+            });
         }
     });

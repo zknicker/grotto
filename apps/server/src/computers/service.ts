@@ -369,6 +369,31 @@ export async function removeServerComputer(
             );
         }
         await tx
+            .update(serverOnboardingTable)
+            .set({ computerId: null })
+            .where(
+                and(
+                    eq(serverOnboardingTable.serverId, input.serverId),
+                    eq(serverOnboardingTable.computerId, computer.id),
+                    eq(serverOnboardingTable.phase, 'complete')
+                )
+            );
+        await tx
+            .update(serverOnboardingTable)
+            .set({
+                computerId: null,
+                failureCode: null,
+                failureDetail: null,
+                phase: 'awaiting-computer',
+            })
+            .where(
+                and(
+                    eq(serverOnboardingTable.serverId, input.serverId),
+                    eq(serverOnboardingTable.computerId, computer.id),
+                    ne(serverOnboardingTable.phase, 'complete')
+                )
+            );
+        await tx
             .update(agentsTable)
             .set({ computerId: null, desiredModelId: null, desiredRuntimeId: null })
             .where(

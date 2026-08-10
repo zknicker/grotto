@@ -1,7 +1,14 @@
 import { Button, Disclosure } from '@heroui/react';
 import { CodeSnippet } from '../../components/code-snippet.tsx';
+import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { ComputerUpdateControls } from './computer-update-controls.tsx';
+
+type ComputerRemovalAvailability =
+    | { status: 'checking' }
+    | { status: 'error' }
+    | { agentNames: string[]; status: 'blocked' }
+    | { status: 'ready' };
 
 export function ComputerActions({
     computerId,
@@ -14,11 +21,25 @@ export function ComputerActions({
     serverId: string;
     serverSlug: string;
 }) {
+    const agents = useAgents(serverId);
     const computers = useComputers(serverId);
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
 
     if (!computer) {
         return null;
+    }
+
+    const assignedAgents = (agents.data ?? []).filter((agent) => agent.computerId === computerId);
+    let removalAvailability: ComputerRemovalAvailability;
+    if (agents.data === undefined) {
+        removalAvailability = agents.error ? { status: 'error' } : { status: 'checking' };
+    } else if (assignedAgents.length > 0) {
+        removalAvailability = {
+            agentNames: assignedAgents.map((agent) => agent.displayName),
+            status: 'blocked',
+        };
+    } else {
+        removalAvailability = { status: 'ready' };
     }
 
     return (
@@ -52,18 +73,47 @@ export function ComputerActions({
                         </Disclosure.Body>
                     </Disclosure.Content>
                 </Disclosure>
-                <div className="flex flex-col gap-3 border-separator border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h3 className="font-medium text-foreground text-sm">Remove Computer</h3>
-                        <p className="text-muted text-sm">
-                            Delete every Agent on this Computer first.
-                        </p>
-                    </div>
-                    <Button onPress={onRemove} size="sm" variant="danger-soft">
-                        Remove Computer
-                    </Button>
-                </div>
+                <ComputerRemovalAction availability={removalAvailability} onRemove={onRemove} />
             </div>
         </section>
     );
+}
+
+export function ComputerRemovalAction({
+    availability,
+    onRemove,
+}: {
+    availability: ComputerRemovalAvailability;
+    onRemove: () => void;
+}) {
+    const isBlocked = availability.status !== 'ready';
+    const description = computerRemovalDescription(availability);
+
+    return (
+        <div className="flex flex-col gap-3 border-separator border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h3 className="font-medium text-foreground text-sm">Remove Computer</h3>
+                <p className="text-muted text-sm">{description}</p>
+            </div>
+            <Button isDisabled={isBlocked} onPress={onRemove} size="sm" variant="danger-soft">
+                Remove Computer
+            </Button>
+        </div>
+    );
+}
+
+function computerRemovalDescription(availability: ComputerRemovalAvailability) {
+    if (availability.status === 'ready') {
+        return 'This immediately revokes this Computer’s credential.';
+    }
+    if (availability.status === 'checking') {
+        return 'Checking for assigned Agents…';
+    }
+    if (availability.status === 'error') {
+        return 'Assigned Agents could not be verified. Try again.';
+    }
+    if (availability.agentNames.length === 1) {
+        return `Delete ${availability.agentNames[0]} before removing this Computer.`;
+    }
+    return `Delete all ${availability.agentNames.length} assigned Agents before removing this Computer.`;
 }

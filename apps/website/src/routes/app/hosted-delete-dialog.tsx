@@ -4,6 +4,7 @@ import * as React from 'react';
 export function HostedDeleteDialog({
     confirmation,
     description,
+    error,
     onConfirm,
     onOpenChange,
     pending,
@@ -11,6 +12,7 @@ export function HostedDeleteDialog({
 }: {
     confirmation: string;
     description: string;
+    error?: string;
     onConfirm(): void;
     onOpenChange(open: boolean): void;
     pending: boolean;
@@ -45,6 +47,11 @@ export function HostedDeleteDialog({
                                     </Label>
                                     <Input />
                                 </TextField>
+                                {error ? (
+                                    <p aria-live="polite" className="text-danger text-sm">
+                                        {error}
+                                    </p>
+                                ) : null}
                             </div>
                         </AlertDialog.Body>
                         <AlertDialog.Footer>

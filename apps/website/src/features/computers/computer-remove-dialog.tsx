@@ -15,7 +15,8 @@ export function ComputerRemoveDialog({
     return (
         <HostedDeleteDialog
             confirmation="REMOVE"
-            description="This immediately revokes this Computer’s credential. Delete every Agent on this Computer first."
+            description="This immediately revokes this Computer’s credential and removes it from the Server."
+            error={remove.error?.message}
             onConfirm={() =>
                 remove.mutate({
                     computerId,

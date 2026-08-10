@@ -84,19 +84,25 @@ Use this compact shape:
 
 Released **vX.Y.Z** 🚀
 
-### Update decisions
+### Required updates
 
-🖥️ **Desktop app — NO UPDATE**
+When no installed surface requires an update:
 
-The desktop shell is unchanged and loads the hosted App automatically.
+✅ All changes were deployed to the Grotto Server. No Desktop app,
+Grotto Computer, or Runtime updates are required.
 
-💻 **Grotto Computer — UPDATE REQUIRED**
+When updates are required, list only those actionable updates:
 
-Update to `X.Y.Z` using `exact command or UI action`.
+- 🖥️ **Desktop app**: Update to `vX.Y.Z` using `exact action`.
+- 💻 **Grotto Computer**: Update to `vX.Y.Z` using `exact command or UI action`.
+- ⚙️ **Runtime**: Update to `vX.Y.Z` using `exact command`.
 
-⚙️ **Runtime — NO UPDATE**
+### Release versions
 
-The Runtime artifact and minimum version are unchanged.
+- Grotto Server: `vX.Y.Z`
+- Desktop app: `vX.Y.Z`
+- Grotto Computer: `vX.Y.Z`
+- Runtime: `vX.Y.Z`
 
 ### Release details
 
@@ -109,14 +115,16 @@ The Runtime artifact and minimum version are unchanged.
   exact operator action still required`.
 - ➡️ **Next**: `what the operator can test now or must do before testing`.
 
-Always name all three installable surfaces, even when each answer is **No**.
-Put the update decisions immediately after the release outcome, before release
-details. Use the bold directives **UPDATE REQUIRED** and **NO UPDATE** exactly;
-do not soften or bury them in prose. Keep emoji limited to the semantic markers
-shown above so the handoff remains scannable rather than decorative.
+Put required updates immediately after the release outcome and before the version
+inventory. Do not enumerate unchanged surfaces in that section; use the single green-check
+sentence when no installed surface needs action. Every handoff must then list all four
+currently versioned surfaces and their actual deployed or published versions. For an unchanged
+surface, resolve the latest published artifact version rather than copying the current Server
+package version or the release target. Keep emoji limited to the semantic markers shown above
+so the handoff remains scannable rather than decorative.
 “Published” and “deployed” are different states: do not call production ready
-until the production deployment and public health checks pass. A **Yes** update
-must name the required version and exact action. Name destructive data work,
+until the production deployment and public health checks pass. Every required update
+must name the version and exact action. Name destructive data work,
 what it removed, and whether recovery is possible. Report failed checks,
 pending deployment, and other verification gaps directly instead of omitting
 them.

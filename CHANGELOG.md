@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.8 - 2026-08-10
+
+- Computer removal now releases its durable onboarding reference, preserving
+  completed onboarding while returning incomplete setup to **Connect a Computer**.
+- Removing a Computer closes its live Server connection immediately, and unexpected
+  failures no longer expose database queries in the confirmation dialog.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.8
+- Desktop: Unchanged
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.8.7 - 2026-08-10
 
 - Computer settings now disable **Remove Computer** while assigned Agents remain

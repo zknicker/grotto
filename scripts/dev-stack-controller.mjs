@@ -376,7 +376,25 @@ export class DevStackController extends EventEmitter {
             GROTTO_DATABASE_URL: postgres.databaseUrl,
             GROTTO_SERVER_PORT: String(this.ports.grottoPort),
         };
-        if (!hasGrottoSchema(postgres)) {
+        if (hasGrottoSchema(postgres)) {
+            const migrated = await this.spawnBackgroundProcess(
+                'grotto',
+                'bun apps/server/src/grotto-server-migrate.ts',
+                {
+                    ...hostedServerEnv,
+                    GROTTO_DATABASE_MIGRATION_URL: postgres.databaseUrl,
+                    GROTTO_DATABASE_BACKUP_ROLE: 'grotto',
+                    GROTTO_DATABASE_RUNTIME_ROLE: 'grotto',
+                }
+            );
+            if (!migrated) {
+                const dataRoot = devStackEnvironment.GROTTO_POSTGRES_DATA_ROOT;
+                throw new Error(
+                    'Failed to migrate the hosted development Server database. ' +
+                        `If this dev database predates checked-in migrations, move ${dataRoot} aside and rerun.`
+                );
+            }
+        } else {
             const bootstrapped = await this.spawnBackgroundProcess(
                 'grotto',
                 'bun apps/server/src/grotto-server-bootstrap.ts',

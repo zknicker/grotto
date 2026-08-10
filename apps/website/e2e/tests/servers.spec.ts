@@ -10,7 +10,10 @@ import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-se
 import { createHostedClient } from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('a fresh Server stays gated until a Computer reports usable inventory', async ({ page }) => {
+test('a fresh Server stays gated until a Computer reports usable inventory', async ({
+    browser,
+    page,
+}) => {
     await signInAsClerkHuman(page);
     await page.goto('/s');
 
@@ -52,30 +55,61 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     const server = await owner.server.bySlug.query({ slug: 'grotto-hq' });
     const computer = await startComputerSetup({ serverId: server.id, slug: 'grotto-hq' });
     try {
-        await page.goto(computer.verificationUrl);
-        await expect(page.getByRole('heading', { name: 'Approve Grotto Computer?' })).toBeVisible();
-        await page.getByRole('button', { name: 'Approve Grotto Computer' }).click();
-        await expect(
-            page.getByRole('heading', { name: 'Signed in — finishing the connection' })
-        ).toBeVisible();
-        await expect(
-            page.getByRole('heading', { name: 'Computer connected — you can close this page' })
-        ).toHaveCount(0);
+        const approvalContext = await browser.newContext();
+        let attachment: Awaited<ReturnType<typeof computer.waitForAttachment>>;
+        try {
+            const approvalPage = await approvalContext.newPage();
+            await signInAsClerkHuman(approvalPage);
+            await approvalPage.goto(computer.verificationUrl);
+            await expect(
+                approvalPage.getByRole('heading', { name: 'Approve Grotto Computer?' })
+            ).toBeVisible();
 
-        const attachment = await computer.waitForAttachment();
-        expect(attachment).toMatchObject({ serverId: server.id, slug: 'grotto-hq' });
-        expect(
-            (await stat(join(computer.dataRoot, 'servers', server.id, 'attachment.json'))).mode &
-                0o777
-        ).toBe(0o600);
-        await expect(
-            page.getByRole('heading', { name: 'Computer connected — you can close this page' })
-        ).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Close this page' })).toBeVisible();
-        await expect(page.getByText('If this page stays open, close it manually.')).toBeVisible();
+            await page.context().setOffline(true);
+            await approvalPage.getByRole('button', { name: 'Approve Grotto Computer' }).click();
+            await expect(
+                approvalPage.getByRole('heading', { name: 'Signed in — finishing the connection' })
+            ).toBeVisible();
+            await expect(
+                approvalPage.getByRole('heading', {
+                    name: 'Computer connected — you can close this page',
+                })
+            ).toHaveCount(0);
 
-        await page.goto('/s/grotto-hq');
-        await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toBeVisible();
+            attachment = await computer.waitForAttachment();
+            expect(attachment).toMatchObject({ serverId: server.id, slug: 'grotto-hq' });
+            expect(
+                (await stat(join(computer.dataRoot, 'servers', server.id, 'attachment.json')))
+                    .mode & 0o777
+            ).toBe(0o600);
+            await expect(
+                approvalPage.getByRole('heading', {
+                    name: 'Computer connected — you can close this page',
+                })
+            ).toBeVisible();
+            await expect(
+                approvalPage.getByRole('button', { name: 'Close this page' })
+            ).toBeVisible();
+            await expect(
+                approvalPage.getByText('If this page stays open, close it manually.')
+            ).toBeVisible();
+
+            await expect
+                .poll(
+                    async () =>
+                        (await owner.server.bySlug.query({ slug: 'grotto-hq' })).onboarding.phase
+                )
+                .toBe('awaiting-cove');
+            await expect(
+                page.getByRole('heading', { level: 1, name: 'Connect a Computer' })
+            ).toBeVisible();
+            await page.context().setOffline(false);
+            await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toBeVisible();
+        } finally {
+            await page.context().setOffline(false);
+            await approvalContext.close();
+        }
+
         await expect(page.getByRole('img', { name: 'Cove' })).toBeVisible();
         await expect(page.getByLabel('Runtime')).toContainText('Codex');
         await expect(page.getByLabel('Model')).toContainText('GPT-5.6 Sol');
@@ -338,6 +372,14 @@ async function startComputerSetup(options: { serverId: string; slug: string }) {
             },
             async stop() {
                 if (stopped) {
+                    return;
+                }
+                if (child.exitCode !== null || child.signalCode !== null) {
+                    const exitCode = await exited;
+                    if (exitCode !== 0) {
+                        throw new Error(`grotto-computer setup failed:\n${stderr.text}`);
+                    }
+                    stopped = true;
                     return;
                 }
                 const result = await runComputerCli(['stop'], dataRoot, serverOrigin);

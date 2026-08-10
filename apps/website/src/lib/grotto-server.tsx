@@ -9,6 +9,7 @@ import { UpdateRequiredGate } from '../features/servers/update-required-gate.tsx
 import { getClerkSessionToken } from './clerk.tsx';
 import { watchGrottoSession } from './grotto-session-refresh.ts';
 import { queryClientDefaultOptions } from './query-policy.ts';
+import { type ConnectionState, createQueryReconnectHandler } from './query-reconnect-recovery.ts';
 
 /**
  * The App's direct connection to the hosted Grotto Server. It is separate from
@@ -21,7 +22,7 @@ export type GrottoOutputs = inferRouterOutputs<GrottoRouter>;
 export type GrottoInputs = inferRouterInputs<GrottoRouter>;
 export type ServerSummary = GrottoOutputs['server']['list'][number];
 export type ServerDetail = GrottoOutputs['server']['bySlug'];
-export type GrottoServerConnectionState = 'connected' | 'connecting' | 'reconnecting';
+export type GrottoServerConnectionState = ConnectionState;
 
 const sessionWatchIntervalMs = 30_000;
 // Provenance only; the build injects the App package version (see vite.config).
@@ -76,8 +77,16 @@ export function GrottoServerProvider({ children }: React.PropsWithChildren) {
     // against it. Query data lives in the shared cache, so the swap is silent.
     const [connectionState, setConnectionState] =
         React.useState<GrottoServerConnectionState>('connecting');
+    const [handleConnectionState] = React.useState(() =>
+        createQueryReconnectHandler({
+            onReconnect: () => {
+                void queryClient.invalidateQueries({ refetchType: 'active' });
+            },
+            onStateChange: setConnectionState,
+        })
+    );
     const [connection, setConnection] = React.useState(() =>
-        createGrottoConnection(0, setConnectionState)
+        createGrottoConnection(0, handleConnectionState)
     );
 
     React.useEffect(() => {
@@ -87,7 +96,7 @@ export function GrottoServerProvider({ children }: React.PropsWithChildren) {
             onStaleSession: () => {
                 setConnectionState('connecting');
                 setConnection((current) =>
-                    createGrottoConnection(current.generation + 1, setConnectionState)
+                    createGrottoConnection(current.generation + 1, handleConnectionState)
                 );
             },
             readSessionToken: getClerkSessionToken,
@@ -98,7 +107,7 @@ export function GrottoServerProvider({ children }: React.PropsWithChildren) {
             stop();
             void connection.wsClient.close();
         };
-    }, [connection]);
+    }, [connection, handleConnectionState]);
 
     return (
         <GrottoServerConnectionContext value={connectionState}>

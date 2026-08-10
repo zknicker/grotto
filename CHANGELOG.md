@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.9 - 2026-08-10
+
+- Dialogs now use consistent HeroUI form spacing and dismiss when the surrounding
+  backdrop is clicked; Agent creation keeps its full form visible when no Computer
+  is available and explains the disabled Computer choice in place.
+- Contextual sidebars now share one aligned header band and switch instantly, while
+  Search and Reminders use the full workspace and Tasks and Search keep their search
+  fields in the page topbar.
+- Returning to Chat opens the last valid conversation directly, and non-owner members
+  and Admins no longer get redirected toward the owner-only onboarding channel.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.9
+- Desktop: Unchanged
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.8.8 - 2026-08-10
 
 - Computer removal now releases its durable onboarding reference, preserving

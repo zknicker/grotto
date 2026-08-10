@@ -29,8 +29,10 @@ The Server UI owns no onboarding authority. The `/s/:slug` route reads the Serve
 onboarding record before mounting `ServerLayout`; while setup is incomplete,
 every nested destination renders the dedicated HeroUI onboarding feature
 instead of the rail, sidebar, Chats, Members, Tasks, Computers, or Settings.
-Computer events invalidate that focused Server read, so the view advances live
-without polling.
+Computer events invalidate that focused Server read for immediate progress. While onboarding is
+incomplete, the Server UI also reconciles the durable record once per second so a missed or racing
+realtime event cannot leave Computer connection or Cove application visibly stuck. This reads only
+the Server; the Server UI never connects to the Computer directly.
 
 At **Meet Cove**, the Owner chooses only a usable runtime and model from the
 pinned Computer's reported inventory. `server.createCove` is the one dedicated

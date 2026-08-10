@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { getCoveOnboardingView, getCoveRepairGuidance } from './cove-onboarding-model.ts';
+import {
+    getCoveOnboardingView,
+    getCoveRepairGuidance,
+    resolveCoveAppHandoff,
+} from './cove-onboarding-model.ts';
 
 describe('Cove onboarding phase-to-view mapping', () => {
     test('shows the Computer connection action before a Computer connects', () => {
@@ -151,4 +155,23 @@ describe('Cove onboarding presentation boundary', () => {
         expect(guidance.command).toBeNull();
         expect(guidance.remedy).toContain('try again');
     });
+});
+
+test('completed onboarding redirects once, then releases ordinary Chat navigation', () => {
+    const first = resolveCoveAppHandoff({
+        onboardingChatPath: '/s/fresh/chats/onboarding',
+        pathname: '/s/fresh',
+        pending: true,
+        serverRootPath: '/s/fresh',
+    });
+    expect(first).toEqual({ pending: false, redirect: '/s/fresh/chats/onboarding' });
+
+    expect(
+        resolveCoveAppHandoff({
+            onboardingChatPath: '/s/fresh/chats/onboarding',
+            pathname: '/s/fresh/chats/general',
+            pending: first.pending,
+            serverRootPath: '/s/fresh',
+        })
+    ).toEqual({ pending: false, redirect: null });
 });

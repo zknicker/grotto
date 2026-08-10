@@ -5,7 +5,7 @@ import { ActivationShell, ActivationStep } from '../../components/activation/act
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { CoveComputerStep } from './cove-computer-step.tsx';
 import { CoveMeetStep } from './cove-meet-step.tsx';
-import { getCoveOnboardingView } from './cove-onboarding-model.ts';
+import { getCoveOnboardingView, resolveCoveAppHandoff } from './cove-onboarding-model.ts';
 import { SetupProgressMarker } from './cove-step-parts.tsx';
 
 /** Mandatory fresh-Server gate, structurally outside the general Server shell. */
@@ -43,11 +43,15 @@ export function CoveOnboardingRoute() {
     if (view === 'app') {
         const serverRoot = `/s/${server.data.slug}`;
         const target = `/s/${server.data.slug}/chats/${server.data.onboarding.channelId}`;
-        if (
-            (wasGated.current || location.pathname === serverRoot) &&
-            location.pathname !== target
-        ) {
-            return <Navigate replace to={target} />;
+        const handoff = resolveCoveAppHandoff({
+            onboardingChatPath: target,
+            pathname: location.pathname,
+            pending: wasGated.current,
+            serverRootPath: serverRoot,
+        });
+        wasGated.current = handoff.pending;
+        if (handoff.redirect) {
+            return <Navigate replace to={handoff.redirect} />;
         }
         return <Outlet />;
     }

@@ -39,6 +39,22 @@ export function getCoveOnboardingView(onboarding: ServerOnboarding): CoveOnboard
     return onboarding.computerId ? 'detecting-runtimes' : 'connect-computer';
 }
 
+export function resolveCoveAppHandoff(input: {
+    onboardingChatPath: string;
+    pathname: string;
+    pending: boolean;
+    serverRootPath: string;
+}) {
+    const shouldEnterOnboardingChat = input.pending || input.pathname === input.serverRootPath;
+    return {
+        pending: false,
+        redirect:
+            shouldEnterOnboardingChat && input.pathname !== input.onboardingChatPath
+                ? input.onboardingChatPath
+                : null,
+    };
+}
+
 export interface CoveRepairGuidance {
     /** Exact command to run on the Computer’s machine, when one repairs it. */
     command: string | null;

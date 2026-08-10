@@ -121,10 +121,11 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
 
     await openHostedSection(page, 'Search');
     await page.getByPlaceholder('Search messages').fill('First durable');
-    await page.getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
+    await page.getByPlaceholder('Search messages').press('Enter');
     await expect(
         page.getByRole('row', { exact: true, name: 'First durable human message' })
     ).toBeVisible();
+    await openHostedSection(page, 'Chat');
     await openHostedChannel(page, 'all');
 
     const peerMessage = page.getByText('Peer-authored hosted message', { exact: true });

@@ -39,7 +39,7 @@ export function ReminderCancelDialog({
                 }
             }}
         >
-            <AlertDialog.Backdrop>
+            <AlertDialog.Backdrop isDismissable>
                 <AlertDialog.Container size="sm">
                     <AlertDialog.Dialog>
                         <AlertDialog.Header>

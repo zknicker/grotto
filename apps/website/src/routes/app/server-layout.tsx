@@ -8,13 +8,13 @@ import { MembersSidebar } from '../../features/members/members-sidebar.tsx';
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
 import {
+    readLastChatId,
     rememberLastChatId,
     rememberLastServerSlug,
 } from '../../features/servers/server-choice.ts';
 import { ServerChoicePanel } from '../../features/servers/server-choice-panel.tsx';
 import {
     membersRoute,
-    serverChatRoute,
     serverComputersRoute,
     serverRemindersRoute,
     serverRoute,
@@ -38,9 +38,11 @@ import { useServerList } from '../../hooks/servers/use-server-list.ts';
 import { preloadServerRoutes, preloadServerSection } from './server-route-modules.ts';
 import {
     resolveActiveSection,
+    resolveChatSectionRoute,
     resolveSelectedChatId,
     resolveSettingsSection,
     resolveSidebarPage,
+    shouldShowSidebar,
 } from './server-route-state.ts';
 
 export function ServerLayout() {
@@ -99,11 +101,16 @@ export function ServerLayout() {
     const settingsSection = resolveSettingsSection(location.pathname, slug);
     const serverChoices = servers.data ?? [server.data];
     const canOperate = server.data.role === 'owner' || server.data.role === 'admin';
-    const showSidebar = active !== 'computers' || canOperate;
+    const showSidebar = shouldShowSidebar(active, canOperate);
     const activeSidebarPage = resolveSidebarPage(active, canOperate);
+    const chatSectionRoute = resolveChatSectionRoute(
+        chats.data ?? [],
+        selectedChatId ?? readLastChatId(slug),
+        slug
+    );
     const selectSection = (section: AppRailSection) => {
         const route = {
-            chat: selectedChatId ? serverChatRoute(slug, selectedChatId) : serverRoute(slug),
+            chat: chatSectionRoute,
             computers: serverComputersRoute(slug),
             members: membersRoute(slug),
             reminders: serverRemindersRoute(slug),
@@ -192,7 +199,7 @@ export function ServerLayout() {
                         </AppLayout>
                     </div>
                     <Modal isOpen={managingServers} onOpenChange={setManagingServers}>
-                        <Modal.Backdrop>
+                        <Modal.Backdrop isDismissable>
                             <Modal.Container scroll="outside" size="lg">
                                 <Modal.Dialog>
                                     <Modal.Header>

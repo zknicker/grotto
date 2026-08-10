@@ -14,6 +14,20 @@ export function useTaskView() {
             view: resolveTaskView(searchParams.get('view')),
         },
         layout,
+        setQuery: (query: string) => {
+            setSearchParams(
+                (params) => {
+                    const next = new URLSearchParams(params);
+                    if (query) {
+                        next.set('q', query);
+                    } else {
+                        next.delete('q');
+                    }
+                    return next;
+                },
+                { replace: true }
+            );
+        },
         setLayout: (nextLayout: TaskLayout) => {
             setSearchParams(
                 (params) => {

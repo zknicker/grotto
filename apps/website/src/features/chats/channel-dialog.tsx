@@ -12,7 +12,7 @@ import {
     TextField,
 } from '@heroui/react';
 import { CheckboxButtonGroup } from '@heroui-pro/react';
-import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { AlertCircleIcon, HashtagIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -54,9 +54,10 @@ export function ChannelDialog({
 }: ChannelDialogProps) {
     return (
         <Modal isOpen={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-            <Modal.Backdrop>
+            <Modal.Backdrop isDismissable>
                 <Modal.Container scroll="outside" size="lg">
                     <Modal.Dialog>
+                        <Modal.CloseTrigger />
                         {open ? (
                             <ChannelDialogForm
                                 agents={agents}
@@ -66,7 +67,6 @@ export function ChannelDialog({
                                 initialDisplayName={initialDisplayName}
                                 isPending={isPending}
                                 key={`${title}:${initialDisplayName}:${initialAgentIds.join(',')}`}
-                                onClose={onClose}
                                 onSubmit={onSubmit}
                                 showDisplayName={showDisplayName}
                                 submitLabel={submitLabel}
@@ -80,9 +80,7 @@ export function ChannelDialog({
     );
 }
 
-interface ChannelDialogFormProps extends Omit<ChannelDialogProps, 'open'> {
-    onClose: () => void;
-}
+type ChannelDialogFormProps = Omit<ChannelDialogProps, 'onClose' | 'open'>;
 
 function ChannelDialogForm({
     agents,
@@ -91,7 +89,6 @@ function ChannelDialogForm({
     initialAgentIds,
     initialDisplayName,
     isPending,
-    onClose,
     onSubmit,
     showDisplayName = true,
     submitLabel,
@@ -147,17 +144,18 @@ function ChannelDialogForm({
     return (
         <Form onSubmit={handleSubmit}>
             <Modal.Header>
-                <div className="min-w-0 flex-1">
-                    <Modal.Heading>{title}</Modal.Heading>
-                    <p className="mt-1 text-muted text-sm">
-                        {showDisplayName
-                            ? 'Name the channel and choose its agents.'
-                            : 'Choose the agents in this channel.'}
-                    </p>
-                </div>
+                <Modal.Icon>
+                    <Icon icon={HashtagIcon} />
+                </Modal.Icon>
+                <Modal.Heading>{title}</Modal.Heading>
+                <p className="text-muted text-sm leading-5">
+                    {showDisplayName
+                        ? 'Name the channel and choose its agents.'
+                        : 'Choose the agents in this channel.'}
+                </p>
             </Modal.Header>
             <Modal.Body>
-                <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-5 pt-2">
                     {showDisplayName ? (
                         <TextField
                             fullWidth
@@ -191,7 +189,7 @@ function ChannelDialogForm({
                 </div>
             </Modal.Body>
             <Modal.Footer>
-                <Button onPress={onClose} type="button" variant="secondary">
+                <Button slot="close" type="button" variant="secondary">
                     Cancel
                 </Button>
                 <Button isDisabled={!canSubmit} isPending={isPending} type="submit">

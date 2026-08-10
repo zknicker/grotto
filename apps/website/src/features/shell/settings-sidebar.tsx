@@ -20,7 +20,7 @@ export function SettingsSidebar({
 }) {
     const itemById = new Map(settingsNavItems.map((item) => [item.id, item]));
     return (
-        <ShellSidebarPageContent>
+        <ShellSidebarPageContent band={<Sidebar.GroupLabel>General</Sidebar.GroupLabel>}>
             {settingsNavSections.map((section) => {
                 const items = section.itemIds
                     .filter((id) => !hostedHiddenSettings.has(id))
@@ -31,7 +31,9 @@ export function SettingsSidebar({
                 }
                 return (
                     <Sidebar.Group key={section.id}>
-                        <Sidebar.GroupLabel>{section.label}</Sidebar.GroupLabel>
+                        {section.id === 'general' ? null : (
+                            <Sidebar.GroupLabel>{section.label}</Sidebar.GroupLabel>
+                        )}
                         <Sidebar.Menu aria-label={section.label}>
                             {items.map((item) => (
                                 <Sidebar.MenuItem

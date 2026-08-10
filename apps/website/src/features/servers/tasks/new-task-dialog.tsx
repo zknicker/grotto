@@ -53,7 +53,7 @@ export function NewTaskDialog({
 
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop>
+            <Modal.Backdrop isDismissable>
                 <Modal.Container>
                     <Modal.Dialog>
                         <Form onSubmit={submit}>

@@ -90,7 +90,7 @@ export function AgentSession({ agent, server }: { agent: HostedAgent; server: Se
                 </SettingsRow>
             </SettingsGroup>
             <AlertDialog isOpen={fullResetOpen} onOpenChange={setFullResetOpen}>
-                <AlertDialog.Backdrop>
+                <AlertDialog.Backdrop isDismissable>
                     <AlertDialog.Container size="sm">
                         <AlertDialog.Dialog>
                             <AlertDialog.Header>

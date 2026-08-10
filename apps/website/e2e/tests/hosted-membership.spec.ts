@@ -3,6 +3,7 @@ import {
     completeHostedOnboarding,
     createHostedClient,
     openHostedChannel,
+    openHostedSection,
 } from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -87,6 +88,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
 
     // The removed human is sitting on the Server with its transcript rendered.
     await peerPage.goto(`/s/${slug}`);
+    await openHostedSection(peerPage, 'Chat');
     await openHostedChannel(peerPage, 'all');
     await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     const peerListPage = await peerContext.newPage();

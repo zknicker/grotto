@@ -42,7 +42,7 @@ export function SkillDialog({
                     }
                 }}
             >
-                <Modal.Backdrop>
+                <Modal.Backdrop isDismissable>
                     <Modal.Container scroll="outside" size="lg">
                         <Modal.Dialog>
                             <Modal.Header>
@@ -117,7 +117,7 @@ export function SkillDialog({
                 </Modal.Backdrop>
             </Modal>
             <AlertDialog isOpen={confirmDelete} onOpenChange={setConfirmDelete}>
-                <AlertDialog.Backdrop>
+                <AlertDialog.Backdrop isDismissable>
                     <AlertDialog.Container size="sm">
                         <AlertDialog.Dialog>
                             <AlertDialog.Header>

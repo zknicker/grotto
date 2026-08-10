@@ -13,7 +13,7 @@ export function BrowserDisableConfirmationDialog({
 }) {
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop>
+            <Modal.Backdrop isDismissable>
                 <Modal.Container size="sm">
                     <Modal.Dialog role="alertdialog">
                         <Modal.Header>
@@ -55,7 +55,7 @@ export function BrowserSkillConflictConfirmationDialog({
 }) {
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop>
+            <Modal.Backdrop isDismissable>
                 <Modal.Container size="sm">
                     <Modal.Dialog role="alertdialog">
                         <Modal.Header>

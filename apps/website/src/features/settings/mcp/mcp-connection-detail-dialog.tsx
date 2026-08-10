@@ -54,7 +54,7 @@ export function McpConnectionDetailDialog({
     return (
         <>
             <Modal isOpen={open} onOpenChange={onOpenChange}>
-                <Modal.Backdrop>
+                <Modal.Backdrop isDismissable>
                     <Modal.Container scroll="outside" size="lg">
                         <Modal.Dialog>
                             <Modal.CloseTrigger />

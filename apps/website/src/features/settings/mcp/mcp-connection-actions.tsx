@@ -109,7 +109,7 @@ export function ConnectionDestructiveDialog({
               : 'Disconnect';
     return (
         <AlertDialog isOpen={action !== null} onOpenChange={onOpenChange}>
-            <AlertDialog.Backdrop>
+            <AlertDialog.Backdrop isDismissable>
                 <AlertDialog.Container size="sm">
                     <AlertDialog.Dialog>
                         <AlertDialog.Header>

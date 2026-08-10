@@ -1,4 +1,4 @@
-import { Button, SearchField, Tooltip } from '@heroui/react';
+import { Button, Tooltip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { Edit02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -42,7 +42,7 @@ export function TaskSidebar({
     serverId: string;
     slug: string;
 }) {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const [labelsOpen, setLabelsOpen] = React.useState(false);
     const tasksQuery = useTasks(serverId, undefined, { enabled: isActive });
     const labelsQuery = useTaskLabels(serverId, { enabled: isActive });
@@ -59,36 +59,8 @@ export function TaskSidebar({
     const labelHref = (labelId?: string) => taskFilterHref(route, activeView, labelId);
 
     return (
-        <ShellSidebarPageContent
-            band={
-                <SearchField
-                    aria-label="Search tasks"
-                    onChange={(value) => {
-                        setSearchParams(
-                            (params) => {
-                                const next = new URLSearchParams(params);
-                                if (value) {
-                                    next.set('q', value);
-                                } else {
-                                    next.delete('q');
-                                }
-                                return next;
-                            },
-                            { replace: true }
-                        );
-                    }}
-                    value={searchParams.get('q') ?? ''}
-                >
-                    <SearchField.Group>
-                        <SearchField.SearchIcon />
-                        <SearchField.Input placeholder="Search tasks..." />
-                        <SearchField.ClearButton />
-                    </SearchField.Group>
-                </SearchField>
-            }
-        >
+        <ShellSidebarPageContent band={<Sidebar.GroupLabel>Views</Sidebar.GroupLabel>}>
             <Sidebar.Group>
-                <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
                 <Sidebar.Menu aria-label="Task views">
                     {views.map((view) => (
                         <Sidebar.MenuItem

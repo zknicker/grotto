@@ -128,3 +128,14 @@
         pointer-events: none;
     }
 }
+
+@layer components {
+    /*
+     * Route changes may add or remove the contextual left sidebar. Reflow the
+     * workspace immediately; right-side inspector panes own their own motion.
+     */
+    .app-shell .sidebar__offcanvas-wrapper,
+    .app-shell [data-slot='sidebar'][data-collapsible='offcanvas'] {
+        transition: none;
+    }
+}

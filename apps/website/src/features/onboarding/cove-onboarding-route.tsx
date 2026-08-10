@@ -34,6 +34,11 @@ export function CoveOnboardingRoute() {
         return null;
     }
 
+    const canManageOnboarding = server.data.role === 'owner';
+    if (!canManageOnboarding) {
+        return <Outlet />;
+    }
+
     const view = getCoveOnboardingView(server.data.onboarding);
     if (view === 'app') {
         const serverRoot = `/s/${server.data.slug}`;

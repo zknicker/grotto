@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import { Sidebar } from '@heroui-pro/react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ShellSidebar, ShellSidebarPage } from './shell-sidebar.tsx';
+import { ShellSidebar, ShellSidebarPage, ShellSidebarPageContent } from './shell-sidebar.tsx';
 
-test('gives HeroUI direct pages so inactive sidebars receive a slide offset', () => {
+test('renders only the active sidebar page so route changes are instant', () => {
     const markup = renderToStaticMarkup(
         <Sidebar.Provider>
             <ShellSidebar activePage="server">
@@ -18,6 +18,21 @@ test('gives HeroUI direct pages so inactive sidebars receive a slide offset', ()
         </Sidebar.Provider>
     );
 
-    expect(markup).toContain('data-slot="sidebar-page"');
-    expect(markup).toContain('transform:translateX(100%)');
+    expect(markup).toContain('aria-label="Server"');
+    expect(markup).toContain('Server');
+    expect(markup).not.toContain('Tasks');
+});
+
+test('renders every sidebar page through the shared header band', () => {
+    const markup = renderToStaticMarkup(
+        <Sidebar.Provider>
+            <Sidebar>
+                <ShellSidebarPageContent band="Header">Content</ShellSidebarPageContent>
+            </Sidebar>
+        </Sidebar.Provider>
+    );
+
+    expect(markup).toContain('data-slot="sidebar-header"');
+    expect(markup).toContain('Header');
+    expect(markup).toContain('data-slot="sidebar-content"');
 });

@@ -35,7 +35,7 @@ export function ProviderApiKeyDialog({
 
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop>
+            <Modal.Backdrop isDismissable>
                 <Modal.Container size="md">
                     <Modal.Dialog>
                         <Form
@@ -124,7 +124,7 @@ export function ProviderInstructionsDialog({
 }) {
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop>
+            <Modal.Backdrop isDismissable>
                 <Modal.Container size="md">
                     <Modal.Dialog>
                         <Modal.Header>
@@ -190,7 +190,7 @@ export function ProviderOAuthDialog({
 
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop>
+            <Modal.Backdrop isDismissable>
                 <Modal.Container size="md">
                     <Modal.Dialog>
                         <Modal.Header>

@@ -9,10 +9,7 @@ interface ShellSidebarPageProps {
     value: ShellSidebarPageId;
 }
 
-/**
- * Shell-owned contextual sidebar. Page descriptors are converted to direct
- * HeroUI Sidebar.Page children so HeroUI can calculate and animate page order.
- */
+/** Shell-owned contextual sidebar. Route changes replace the left page instantly. */
 export function ShellSidebar({
     activePage,
     children,
@@ -20,35 +17,24 @@ export function ShellSidebar({
     activePage: ShellSidebarPageId;
     children: React.ReactNode;
 }) {
-    const pages = React.Children.map(children, (child) => {
+    let activePageContent: ShellSidebarPageProps | undefined;
+    React.Children.forEach(children, (child) => {
         if (child === null) {
-            return null;
+            return;
         }
-        if (
-            !React.isValidElement<ShellSidebarPageProps>(child) ||
-            child.type !== ShellSidebarPage
-        ) {
+        if (!React.isValidElement<ShellSidebarPageProps>(child)) {
             throw new Error('ShellSidebar children must be ShellSidebarPage descriptors.');
         }
-        return (
-            <Sidebar.Page
-                aria-label={child.props.ariaLabel}
-                className="min-h-0 flex-1"
-                key={child.props.value}
-                value={child.props.value}
-            >
-                {child.props.children}
-            </Sidebar.Page>
-        );
+        if (child.props.value === activePage) {
+            activePageContent = child.props;
+        }
     });
 
-    return (
-        <Sidebar aria-label="Server navigation">
-            <Sidebar.Pages className="min-h-0 flex-1" value={activePage}>
-                {pages}
-            </Sidebar.Pages>
-        </Sidebar>
-    );
+    if (!activePageContent) {
+        throw new Error(`ShellSidebar is missing its active ${activePage} page.`);
+    }
+
+    return <Sidebar aria-label={activePageContent.ariaLabel}>{activePageContent.children}</Sidebar>;
 }
 
 /** Declarative page marker consumed by ShellSidebar. */
@@ -57,10 +43,9 @@ export function ShellSidebarPage({ children }: ShellSidebarPageProps) {
 }
 
 /**
- * Frame inside one contextual sidebar page. The header zone always renders —
- * Sidebar.Header's stock padding keeps the first row off the window edge and
- * visually inline with the shell topbar. Section pages supply content only;
- * sidebar chrome decisions live here.
+ * Frame inside one contextual sidebar page. Every page supplies a semantic
+ * header band; Sidebar.Header's stock padding keeps it visually inline with
+ * the shell topbar instead of approximating that alignment in scrollable content.
  * (Sidebar.Header does not forward className; the inner wrapper shapes a
  * 32px row whose midline matches the shell topbar's.)
  */
@@ -69,14 +54,14 @@ export function ShellSidebarPageContent({
     children,
     footer,
 }: {
-    band?: React.ReactNode;
+    band: React.ReactNode;
     children: React.ReactNode;
     footer?: React.ReactNode;
 }) {
     return (
         <>
             <Sidebar.Header>
-                <div className="-mt-2 flex min-h-8 w-full items-center">{band}</div>
+                <div className="-mx-1 -mt-2 flex min-h-8 items-center">{band}</div>
             </Sidebar.Header>
             <Sidebar.Content>{children}</Sidebar.Content>
             {footer ? <Sidebar.Footer>{footer}</Sidebar.Footer> : null}

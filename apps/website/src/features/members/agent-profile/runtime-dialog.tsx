@@ -24,7 +24,7 @@ export function RuntimeDialog({
 }) {
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop>
+            <Modal.Backdrop isDismissable>
                 <Modal.Container size="md">
                     <Modal.Dialog>
                         <RuntimeConfigForm

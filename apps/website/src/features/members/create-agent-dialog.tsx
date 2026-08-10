@@ -51,16 +51,15 @@ export function CreateAgentDialog({
 
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop>
+            <Modal.Backdrop isDismissable>
                 <Modal.Container scroll="outside" size="lg">
                     <Modal.Dialog>
+                        <Modal.CloseTrigger />
                         <Modal.Header>
-                            <div className="min-w-0 flex-1">
-                                <Modal.Heading>Create Agent</Modal.Heading>
-                                <p className="mt-1 text-muted text-sm">
-                                    Choose where this Agent runs and what role it should take on.
-                                </p>
-                            </div>
+                            <Modal.Heading>Create Agent</Modal.Heading>
+                            <p className="text-muted text-sm leading-5">
+                                Choose where this Agent runs and what role it should take on.
+                            </p>
                         </Modal.Header>
                         {computers.isPending ? (
                             <Modal.Body>
@@ -68,8 +67,6 @@ export function CreateAgentDialog({
                                     <Spinner />
                                 </div>
                             </Modal.Body>
-                        ) : reported.length === 0 ? (
-                            <NoComputerState />
                         ) : (
                             <CreateHostedAgentForm
                                 agents={agents}
@@ -132,8 +129,14 @@ function CreateHostedAgentForm({
     return (
         <Form onSubmit={handleSubmit}>
             <Modal.Body>
-                <div className="grid gap-4">
+                <div className="grid gap-4 pt-2">
                     <InventorySelect
+                        description={
+                            reported.length === 0
+                                ? 'Connect a Computer before you can create this Agent.'
+                                : undefined
+                        }
+                        disabled={reported.length === 0}
                         label="Computer"
                         onChange={(nextId) => {
                             const next = reported.find((entry) => entry.id === nextId);
@@ -143,13 +146,26 @@ function CreateHostedAgentForm({
                             setModelId(firstRuntime?.models[0]?.id ?? '');
                         }}
                         options={reported}
+                        placeholder={
+                            reported.length === 0 ? 'No Computers available' : 'Select a Computer'
+                        }
                         value={computer?.id ?? ''}
                     />
-                    <TextField fullWidth onChange={setDisplayName} value={displayName}>
+                    <TextField
+                        fullWidth
+                        onChange={setDisplayName}
+                        value={displayName}
+                        variant="secondary"
+                    >
                         <Label>Name</Label>
                         <Input autoFocus maxLength={80} placeholder="e.g. Alice" />
                     </TextField>
-                    <TextField fullWidth onChange={setDescription} value={description}>
+                    <TextField
+                        fullWidth
+                        onChange={setDescription}
+                        value={description}
+                        variant="secondary"
+                    >
                         <Label>Description</Label>
                         <TextArea
                             maxLength={500}
@@ -159,6 +175,7 @@ function CreateHostedAgentForm({
                         <Description>Optional</Description>
                     </TextField>
                     <InventorySelect
+                        disabled={!computer}
                         label="Runtime"
                         onChange={(nextId) => {
                             const nextRuntime = runtimes.find((entry) => entry.id === nextId);
@@ -166,12 +183,15 @@ function CreateHostedAgentForm({
                             setModelId(nextRuntime?.models[0]?.id ?? '');
                         }}
                         options={runtimes}
+                        placeholder="Select a runtime"
                         value={runtime?.id ?? ''}
                     />
                     <InventorySelect
+                        disabled={!runtime}
                         label="Model"
                         onChange={setModelId}
                         options={models}
+                        placeholder="Select a model"
                         value={model?.id ?? ''}
                     />
                     {create.error ? (
@@ -196,20 +216,28 @@ function CreateHostedAgentForm({
 }
 
 function InventorySelect({
+    description,
+    disabled = false,
     label,
     onChange,
     options,
+    placeholder,
     value,
 }: {
+    description?: string;
+    disabled?: boolean;
     label: string;
     onChange: (value: string) => void;
     options: Array<{ id: string; label: string }>;
+    placeholder: string;
     value: string;
 }) {
     return (
         <Select
             fullWidth
+            isDisabled={disabled}
             onChange={(next) => onChange(next ? String(next) : '')}
+            placeholder={placeholder}
             value={value}
             variant="secondary"
         >
@@ -228,27 +256,7 @@ function InventorySelect({
                     ))}
                 </ListBox>
             </Select.Popover>
+            {description ? <Description>{description}</Description> : null}
         </Select>
-    );
-}
-
-function NoComputerState() {
-    return (
-        <>
-            <Modal.Body>
-                <Alert status="warning">
-                    <Alert.Content>
-                        <Alert.Description>
-                            Connect an online Computer before creating an Agent.
-                        </Alert.Description>
-                    </Alert.Content>
-                </Alert>
-            </Modal.Body>
-            <Modal.Footer>
-                <Button slot="close" type="button" variant="secondary">
-                    Close
-                </Button>
-            </Modal.Footer>
-        </>
     );
 }

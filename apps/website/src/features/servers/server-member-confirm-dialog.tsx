@@ -44,7 +44,7 @@ export function ServerMemberConfirmDialog({
 
     return (
         <AlertDialog isOpen onOpenChange={onOpenChange}>
-            <AlertDialog.Backdrop>
+            <AlertDialog.Backdrop isDismissable>
                 <AlertDialog.Container size="sm">
                     <AlertDialog.Dialog>
                         <AlertDialog.Header>

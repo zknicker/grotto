@@ -38,7 +38,7 @@ export function ConnectionTrustDialog({
 }) {
     return (
         <AlertDialog isOpen={request !== null} onOpenChange={(open) => !open && onClose()}>
-            <AlertDialog.Backdrop>
+            <AlertDialog.Backdrop isDismissable>
                 <AlertDialog.Container size="sm">
                     <AlertDialog.Dialog>
                         <AlertDialog.Header>

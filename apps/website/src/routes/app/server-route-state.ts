@@ -1,4 +1,10 @@
-import { serverRoute, serverSettingsRoute } from '../../features/servers/server-routes.ts';
+import type { HostedChat } from '@tavern/api';
+import { resolveEntryChat } from '../../features/servers/server-choice.ts';
+import {
+    serverChatRoute,
+    serverRoute,
+    serverSettingsRoute,
+} from '../../features/servers/server-routes.ts';
 import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
 import type { AppRailSection } from '../../features/shell/app-rail.tsx';
 
@@ -10,6 +16,22 @@ export function resolveSidebarPage(active: AppRailSection, canOperate: boolean) 
         return active;
     }
     return 'server';
+}
+
+export function shouldShowSidebar(active: AppRailSection, canOperate: boolean) {
+    if (active === 'search' || active === 'reminders') {
+        return false;
+    }
+    return active !== 'computers' || canOperate;
+}
+
+export function resolveChatSectionRoute(
+    chats: HostedChat[],
+    lastChatId: string | null,
+    slug: string
+) {
+    const chat = resolveEntryChat(chats, lastChatId);
+    return chat ? serverChatRoute(slug, chat.id) : serverRoute(slug);
 }
 
 export function resolveActiveSection(pathname: string, slug: string): AppRailSection {

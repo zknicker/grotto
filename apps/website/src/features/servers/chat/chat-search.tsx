@@ -1,7 +1,9 @@
-import { Button, SearchField } from '@heroui/react';
+import { SearchField } from '@heroui/react';
 import { ListView } from '@heroui-pro/react';
 import * as React from 'react';
 import { useChatSearch } from '../../../hooks/servers/use-chat-search.ts';
+import { SectionHeader } from '../../shell/section-header.tsx';
+import { PageTopbar } from '../../shell/shell-topbar.tsx';
 
 export function ChatSearch({
     onOpenChat,
@@ -16,32 +18,27 @@ export function ChatSearch({
     const matches = search.data ?? [];
 
     return (
-        <div className="border-border border-b px-6 py-3">
-            <form
-                className="flex gap-2"
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    setQuery(draft.trim());
-                }}
-            >
-                <SearchField
-                    aria-label="Search messages"
-                    fullWidth
-                    onChange={setDraft}
-                    value={draft}
-                >
-                    <SearchField.Group>
-                        <SearchField.SearchIcon />
-                        <SearchField.Input placeholder="Search messages" />
-                        <SearchField.ClearButton />
-                    </SearchField.Group>
-                </SearchField>
-                <Button type="submit" variant="outline">
-                    Search
-                </Button>
-            </form>
+        <section aria-label="Search" className="flex min-h-0 flex-1 flex-col">
+            <PageTopbar>
+                <SectionHeader title="Search">
+                    <SearchField
+                        aria-label="Search messages"
+                        className="w-72 max-w-[50vw]"
+                        onChange={setDraft}
+                        onClear={() => setQuery('')}
+                        onSubmit={(value) => setQuery(value.trim())}
+                        value={draft}
+                    >
+                        <SearchField.Group>
+                            <SearchField.SearchIcon />
+                            <SearchField.Input placeholder="Search messages..." />
+                            <SearchField.ClearButton />
+                        </SearchField.Group>
+                    </SearchField>
+                </SectionHeader>
+            </PageTopbar>
             {query.length > 0 ? (
-                <div className="mt-2">
+                <div className="min-h-0 flex-1 overflow-y-auto p-4">
                     <ListView
                         aria-label="Message search results"
                         items={matches}
@@ -64,6 +61,6 @@ export function ChatSearch({
                     </ListView>
                 </div>
             ) : null}
-        </div>
+        </section>
     );
 }

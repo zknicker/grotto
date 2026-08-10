@@ -72,6 +72,55 @@ updates are operator work; do not force one for a desktop-only patch. When a
 Runtime fix changes whether core chat execution is truthful or correct, treat it
 as **Required Runtime** even if the HTTP/API shape is unchanged.
 
+## Release Handoff
+
+Every completed release ends with one operator-facing chat message. This
+handoff is part of the release contract. Derive it from
+`release-surfaces.json`, publisher output, deployment state, and live health;
+do not infer a successful release or required user action from the changed
+files alone.
+
+Use this compact shape:
+
+Released **vX.Y.Z** 🚀
+
+### Update decisions
+
+🖥️ **Desktop app — NO UPDATE**
+
+The desktop shell is unchanged and loads the hosted App automatically.
+
+💻 **Grotto Computer — UPDATE REQUIRED**
+
+Update to `X.Y.Z` using `exact command or UI action`.
+
+⚙️ **Runtime — NO UPDATE**
+
+The Runtime artifact and minimum version are unchanged.
+
+### Release details
+
+- 🚦 **Production**: `deployed and healthy | published, deployment pending | failed`
+  at `short source SHA`, with release and deployment links when available.
+- ✨ **What changed**: `one to three user-facing sentences`.
+- ✅ **Verification**: `release checks, focused tests, artifact checks, deployment,
+  and public health evidence`.
+- 🗄️ **Data operations**: `none | exact migration, reset, or backfill performed |
+  exact operator action still required`.
+- ➡️ **Next**: `what the operator can test now or must do before testing`.
+
+Always name all three installable surfaces, even when each answer is **No**.
+Put the update decisions immediately after the release outcome, before release
+details. Use the bold directives **UPDATE REQUIRED** and **NO UPDATE** exactly;
+do not soften or bury them in prose. Keep emoji limited to the semantic markers
+shown above so the handoff remains scannable rather than decorative.
+“Published” and “deployed” are different states: do not call production ready
+until the production deployment and public health checks pass. A **Yes** update
+must name the required version and exact action. Name destructive data work,
+what it removed, and whether recovery is possible. Report failed checks,
+pending deployment, and other verification gaps directly instead of omitting
+them.
+
 ## App-Only Flow
 
 1. Run `bun run release:bump <patch|minor|major|X.Y.Z>`.

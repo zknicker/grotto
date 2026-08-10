@@ -1,9 +1,9 @@
-import { Button, Card } from '@heroui/react';
+import { Button, Card, Form } from '@heroui/react';
 import * as React from 'react';
 import { ActivationStep } from '../../components/activation/activation-shell.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
-import { CreateServerForm } from './create-server-form.tsx';
-import { JoinServerForm } from './join-server-form.tsx';
+import { CreateServerFields, useCreateServerForm } from './create-server-form.tsx';
+import { JoinServerFields, useJoinServerForm } from './join-server-form.tsx';
 import { ServerSwitcher } from './server-switcher.tsx';
 
 export type ServerChoiceView = 'servers' | 'create' | 'join';
@@ -50,10 +50,11 @@ function ServerChoiceStep({
 
     return (
         <ActivationStep
+            className={hasServers ? 'activation-step--tall' : undefined}
             description={
                 hasServers
                     ? 'Open a joined Server, or start another.'
-                    : 'Create a Server or join one with an invitation.'
+                    : 'A Server is home base for you, your people, and your Agents. Create your own to get started, or join one with an invitation.'
             }
             footer={
                 <>
@@ -63,7 +64,7 @@ function ServerChoiceStep({
                     <Button onPress={onCreate}>Create a Server</Button>
                 </>
             }
-            title={hasServers ? 'Choose a Server' : 'Your First Server'}
+            title={hasServers ? 'Choose a Server' : 'Welcome to Grotto'}
         >
             {hasServers ? (
                 <Card>
@@ -77,35 +78,86 @@ function ServerChoiceStep({
 }
 
 function CreateServerStep({ onBack }: { onBack: () => void }) {
+    const form = useCreateServerForm();
+
     return (
         <ActivationStep
+            className="activation-step--tall"
             description="Start a new place for your people and Agents."
-            footer={<BackButton onPress={onBack} />}
+            footer={
+                <>
+                    <BackButton onPress={onBack} />
+                    <Button
+                        isDisabled={!form.isSubmittable}
+                        isPending={form.isPending}
+                        onPress={form.submit}
+                    >
+                        Create Server
+                    </Button>
+                </>
+            }
             title="Create a Server"
         >
-            <Card>
-                <Card.Content>
-                    <CreateServerForm />
-                </Card.Content>
-            </Card>
+            <Form
+                className="flex flex-col items-stretch"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.submit();
+                }}
+            >
+                <Card>
+                    <Card.Content className="flex flex-col gap-4">
+                        <CreateServerFields form={form} />
+                    </Card.Content>
+                </Card>
+                <ImplicitSubmit />
+            </Form>
         </ActivationStep>
     );
 }
 
 function JoinServerStep({ onBack }: { onBack: () => void }) {
+    const form = useJoinServerForm();
+
     return (
         <ActivationStep
+            className="activation-step--tall"
             description="Paste an invitation link or token."
-            footer={<BackButton onPress={onBack} />}
+            footer={
+                <>
+                    <BackButton onPress={onBack} />
+                    <Button isDisabled={!form.isSubmittable} onPress={form.submit}>
+                        Continue
+                    </Button>
+                </>
+            }
             title="Join a Server"
         >
-            <Card>
-                <Card.Content>
-                    <JoinServerForm />
-                </Card.Content>
-            </Card>
+            <Form
+                className="flex flex-col items-stretch"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.submit();
+                }}
+            >
+                <Card>
+                    <Card.Content className="flex flex-col gap-4">
+                        <JoinServerFields form={form} />
+                    </Card.Content>
+                </Card>
+                <ImplicitSubmit />
+            </Form>
         </ActivationStep>
     );
+}
+
+/**
+ * Hidden native submit button: HeroUI buttons swallow the native click default,
+ * so the visible action lives in the step footer via onPress while this keeps
+ * Enter-in-field implicit submission working.
+ */
+function ImplicitSubmit() {
+    return <button aria-hidden hidden tabIndex={-1} type="submit" />;
 }
 
 function BackButton({ onPress }: { onPress: () => void }) {

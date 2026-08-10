@@ -50,7 +50,7 @@ export function CoveMeetStep({
 
     return (
         <ActivationStep
-            className="activation-step--wide"
+            className="activation-step--wide activation-step--tall"
             description="Your Server’s onboarding assistant that knows Grotto inside and out."
             footer={
                 <>

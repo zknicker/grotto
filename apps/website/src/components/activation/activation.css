@@ -27,14 +27,28 @@
 }
 
 /*
- * The optical anchor is a compressible budget, not a constant: scenes that fit
- * keep the mark at the exact same pinned position, while a tall scene shrinks
- * this spacer (never below its floor) before anything scrolls.
+ * The optical anchor is a compressible budget, not a constant. Each step class
+ * picks its own budget so the mark + heading + content block reads centered for
+ * that step's designed height, and the anchor stays static while a step is up:
+ * content appended below (status lines, errors) grows downward, never recenters.
+ * Between steps the budget transitions, so the mark glides instead of jumping.
+ * A scene taller than the viewport shrinks the spacer (never below its floor)
+ * before anything scrolls.
  */
+.activation-main {
+    --activation-anchor: max(2.75rem, calc(50vh - 12rem));
+}
+
+/* Steps that carry a card of content sit higher so the whole block stays centered. */
+.activation-main:has(.activation-step--tall) {
+    --activation-anchor: max(2.75rem, calc(50vh - 18rem));
+}
+
 .activation-main::before {
     content: "";
-    flex: 0 1 max(2.75rem, calc(38vh - 10rem));
+    flex: 0 1 var(--activation-anchor);
     min-height: 2.75rem;
+    transition: flex-basis 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .activation-column {
@@ -92,13 +106,18 @@
 
 /* Short viewports get no headroom to spend on the vh anchor. */
 @media (max-height: 40rem) {
-    .activation-main::before {
-        flex-basis: 2.75rem;
+    .activation-main,
+    .activation-main:has(.activation-step--tall) {
+        --activation-anchor: 2.75rem;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .activation-step {
         animation: none;
+    }
+
+    .activation-main::before {
+        transition: none;
     }
 }

@@ -22,6 +22,7 @@ export function CoveComputerStep({
 }) {
     return (
         <ActivationStep
+            className="activation-step--tall"
             footer={<SwitchServerButton onPress={onSwitchServer} />}
             title="Connect a Computer"
         >

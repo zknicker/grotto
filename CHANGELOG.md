@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.11 - 2026-08-10
+
+- Channels can now be archived, restored, and permanently deleted, with archived
+  conversations kept out of normal navigation and available from a dedicated view.
+- Channel deletion now removes associated attachments and safely rejects operations
+  when the channel cannot be deleted.
+- Production database changes now ship as checked-in, forward-only PostgreSQL
+  migrations that are verified and applied atomically before Server activation.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.11
+- Desktop: Unchanged
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.8.10 - 2026-08-10
 
 - Deleted Agents and departed humans now remain recognizable in historical

@@ -28,7 +28,14 @@ export function GrottoLogo({
         >
             <title>Grotto</title>
             <defs>
-                <linearGradient gradientUnits="objectBoundingBox" id={gradientId} x1="0" x2="0" y1="0" y2="1">
+                <linearGradient
+                    gradientUnits="objectBoundingBox"
+                    id={gradientId}
+                    x1="0"
+                    x2="0"
+                    y1="0"
+                    y2="1"
+                >
                     <stop offset="0" stopColor="#0038A5" />
                     <stop offset="1" stopColor="#00184A" />
                 </linearGradient>
@@ -66,10 +73,7 @@ export function GrottoLogo({
 }
 
 /** Monochrome blob silhouette (eyes knocked out) for small chrome like menus. */
-export function GrottoGlyph({
-    className,
-    ...props
-}: React.ComponentPropsWithoutRef<'svg'>) {
+export function GrottoGlyph({ className, ...props }: React.ComponentPropsWithoutRef<'svg'>) {
     const maskId = React.useId();
 
     return (

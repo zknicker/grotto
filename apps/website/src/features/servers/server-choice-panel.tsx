@@ -1,10 +1,7 @@
-import { Button, Form, Input, Label, Separator, TextField } from '@heroui/react';
-import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Separator } from '@heroui/react';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { CreateServerForm } from './create-server-form.tsx';
-import { parseInvitationToken } from './server-choice.ts';
-import { invitationRoute } from './server-routes.ts';
+import { JoinServerForm } from './join-server-form.tsx';
 import { ServerSwitcher } from './server-switcher.tsx';
 
 export function ServerChoicePanel({
@@ -40,37 +37,5 @@ export function ServerChoicePanel({
                 <JoinServerForm />
             </section>
         </div>
-    );
-}
-
-function JoinServerForm() {
-    const navigate = useNavigate();
-    const [invitation, setInvitation] = React.useState('');
-    const token = parseInvitationToken(invitation);
-
-    return (
-        <Form
-            className="flex flex-col items-stretch gap-4"
-            onSubmit={(event) => {
-                event.preventDefault();
-                if (token) {
-                    navigate(invitationRoute(token));
-                }
-            }}
-        >
-            <TextField fullWidth onChange={setInvitation} value={invitation} variant="secondary">
-                <Label htmlFor="server-invitation">Invitation</Label>
-                <Input
-                    autoComplete="off"
-                    id="server-invitation"
-                    placeholder="https://app.grotto.com/invite/…"
-                />
-            </TextField>
-            <div className="mt-1">
-                <Button isDisabled={!token} type="submit" variant="secondary">
-                    Continue
-                </Button>
-            </div>
-        </Form>
     );
 }

@@ -1,8 +1,8 @@
-import { Card, Spinner } from '@heroui/react';
+import { Spinner } from '@heroui/react';
 import { Navigate } from 'react-router-dom';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { readLastServerSlug, resolveEntryServer } from '../../features/servers/server-choice.ts';
-import { ServerChoicePanel } from '../../features/servers/server-choice-panel.tsx';
+import { ServerChoiceFlow } from '../../features/servers/server-choice-flow.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
 
@@ -33,16 +33,7 @@ export function ServersPage() {
 
     return (
         <ActivationShell>
-            <ActivationStep
-                description="Create a Server or join one with an invitation."
-                title="Your First Server"
-            >
-                <Card>
-                    <Card.Content>
-                        <ServerChoicePanel servers={[]} />
-                    </Card.Content>
-                </Card>
-            </ActivationStep>
+            <ServerChoiceFlow servers={[]} />
         </ActivationShell>
     );
 }

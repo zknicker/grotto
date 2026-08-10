@@ -48,6 +48,7 @@ export const agentDeliveryTable = pgTable(
             name: 'agent_delivery_agent_fk',
         }).onDelete('cascade'),
         check('agent_delivery_nonnegative_chain_turns', sql`${table.agentChainTurns} >= 0`),
+        check('agent_delivery_nonnegative_failures', sql`${table.consecutiveFailures} >= 0`),
         check(
             'agent_delivery_active_run',
             sql`(
@@ -109,5 +110,6 @@ export const agentPendingWorkTable = pgTable(
             table.dedupeKey
         ),
         index('agent_pending_work_queue_idx').on(table.serverId, table.agentId, table.createdAt),
+        check('agent_pending_work_id_shape', sql`${table.id} ~ '^apw_[A-Za-z0-9_-]{16}$'`),
     ]
 );

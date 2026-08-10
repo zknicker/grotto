@@ -1,4 +1,13 @@
-import { boolean, foreignKey, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+    boolean,
+    check,
+    foreignKey,
+    pgTable,
+    primaryKey,
+    text,
+    timestamp,
+} from 'drizzle-orm/pg-core';
 import { chatsTable } from './chats.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 
@@ -25,5 +34,6 @@ export const threadFollowsTable = pgTable(
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
             name: 'thread_follows_membership_fk',
         }).onDelete('cascade'),
+        check('thread_follows_kind', sql`${table.threadChatKind} = 'thread'`),
     ]
 );

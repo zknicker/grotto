@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { foreignKey, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { check, foreignKey, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { chatsTable } from './chats.ts';
 import { computersTable } from './computers.ts';
@@ -46,5 +46,15 @@ export const agentRunnerCredentialsTable = pgTable(
             foreignColumns: [chatsTable.serverId, chatsTable.id],
             name: 'agent_runner_credentials_chat_fk',
         }).onDelete('cascade'),
+        index('agent_runner_credentials_agent_idx').on(
+            table.serverId,
+            table.agentId,
+            table.createdAt
+        ),
+        check('agent_runner_credentials_id_shape', sql`${table.id} ~ '^arc_[A-Za-z0-9_-]{16}$'`),
+        check(
+            'agent_runner_credentials_token_hash_shape',
+            sql`${table.tokenHash} ~ '^[a-f0-9]{64}$'`
+        ),
     ]
 );

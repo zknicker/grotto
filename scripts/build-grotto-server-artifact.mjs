@@ -31,6 +31,7 @@ const binaries = [
     ['activate-grotto-server', 'grotto-server-activation.ts'],
     ['grotto-server', 'grotto-server.ts'],
     ['grotto-server-bootstrap', 'grotto-server-bootstrap.ts'],
+    ['grotto-server-migrate', 'grotto-server-migrate.ts'],
     ['grotto-server-backup', 'grotto-server-backup.ts'],
     ['grotto-server-restore', 'grotto-server-restore.ts'],
 ];
@@ -80,6 +81,11 @@ await fs.copyFile(
 await fs.cp(path.join(repoRoot, 'apps', 'server', 'config'), path.join(stageRoot, 'config'), {
     recursive: true,
 });
+await fs.cp(
+    path.join(repoRoot, 'apps', 'server', 'drizzle', 'postgres'),
+    path.join(stageRoot, 'share', 'grotto-server', 'migrations'),
+    { recursive: true }
+);
 await fs.cp(
     path.join(repoRoot, 'apps', 'server', 'operations'),
     path.join(stageRoot, 'operations'),

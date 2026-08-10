@@ -8,6 +8,7 @@ import {
     pgTable,
     text,
     timestamp,
+    unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
@@ -36,14 +37,14 @@ export const chatMessagesTable = pgTable(
         systemAuthor: text('system_author').$type<'reminder' | 'session' | 'task'>(),
     },
     (table) => [
-        uniqueIndex('chat_messages_server_id_key').on(table.serverId, table.id),
+        unique('chat_messages_server_id_key').on(table.serverId, table.id),
         uniqueIndex('chat_messages_chat_sequence_key').on(
             table.serverId,
             table.chatId,
             table.sequence
         ),
         uniqueIndex('chat_messages_chat_nonce_key').on(table.serverId, table.chatId, table.nonce),
-        uniqueIndex('chat_messages_chat_id_key').on(table.serverId, table.chatId, table.id),
+        unique('chat_messages_chat_id_key').on(table.serverId, table.chatId, table.id),
         foreignKey({
             columns: [table.serverId, table.chatId],
             foreignColumns: [chatsTable.serverId, chatsTable.id],

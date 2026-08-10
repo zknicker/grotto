@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { check, foreignKey, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { serversTable } from './servers.ts';
 
@@ -29,6 +29,16 @@ export const agentManualLookupAuditTable = pgTable(
             foreignColumns: [serversTable.id],
             name: 'manual_lookup_audit_server_fk',
         }).onDelete('cascade'),
+        index('manual_lookup_audit_server_time_idx').on(table.serverId, table.createdAt),
+        check('manual_lookup_audit_id_shape', sql`${table.id} ~ '^aml_[A-Za-z0-9_-]{16}$'`),
+        check(
+            'manual_lookup_audit_intent_length',
+            sql`char_length(${table.intent}) between 12 and 500`
+        ),
+        check(
+            'manual_lookup_audit_reason_length',
+            sql`char_length(${table.reason}) between 12 and 500`
+        ),
         check('manual_lookup_audit_operation', sql`${table.operation} IN ('get', 'search')`),
         check(
             'manual_lookup_audit_target_shape',

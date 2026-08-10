@@ -9,8 +9,10 @@ import {
     primaryKey,
     text,
     timestamp,
+    unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { agentsTable } from './agents.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
 
@@ -42,8 +44,8 @@ export const chatsTable = pgTable(
             .references(() => serversTable.id, { onDelete: 'cascade' }),
     },
     (table) => [
-        uniqueIndex('chats_server_id_key').on(table.serverId, table.id),
-        uniqueIndex('chats_server_id_kind_key').on(table.serverId, table.id, table.kind),
+        unique('chats_server_id_key').on(table.serverId, table.id),
+        unique('chats_server_id_kind_key').on(table.serverId, table.id, table.kind),
         uniqueIndex('chats_server_channel_name_key')
             .on(table.serverId, table.name)
             .where(sql`${table.kind} = 'channel'`),
@@ -77,6 +79,11 @@ export const chatsTable = pgTable(
             columns: [table.serverId, table.parentChatId, table.parentChatKind],
             foreignColumns: [table.serverId, table.id, table.kind],
             name: 'chats_thread_parent_fk',
+        }),
+        foreignKey({
+            columns: [table.serverId, table.dmAgentId],
+            foreignColumns: [agentsTable.serverId, agentsTable.id],
+            name: 'chats_dm_agent_fk',
         }),
         check('chats_nonnegative_sequence', sql`${table.lastMessageSequence} >= 0`),
         check('chats_nonnegative_task_number', sql`${table.lastTaskNumber} >= 0`),

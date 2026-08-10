@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
     check,
     foreignKey,
+    index,
     integer,
     pgTable,
     text,
@@ -36,6 +37,7 @@ export const agentTurnsTable = pgTable(
     },
     (table) => [
         uniqueIndex('agent_turns_run_key').on(table.serverId, table.agentId, table.runId),
+        index('agent_turns_agent_idx').on(table.serverId, table.agentId, table.reportedAt),
         foreignKey({
             columns: [table.serverId, table.agentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],
@@ -48,5 +50,6 @@ export const agentTurnsTable = pgTable(
         }).onDelete('cascade'),
         check('agent_turns_status', sql`${table.status} in ('completed', 'failed')`),
         check('agent_turns_message_count', sql`${table.messageCount} >= 0`),
+        check('agent_turns_id_shape', sql`${table.id} ~ '^atn_[A-Za-z0-9_-]{16}$'`),
     ]
 );

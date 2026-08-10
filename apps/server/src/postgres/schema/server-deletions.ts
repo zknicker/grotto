@@ -17,6 +17,7 @@ export const serverDeletionsTable = pgTable(
     },
     (table) => [
         index('server_deletions_requester_idx').on(table.requestedByUserId, table.createdAt),
+        check('server_deletions_id_shape', sql`${table.id} ~ '^sdl_[A-Za-z0-9_-]{16}$'`),
         check(
             'server_deletions_status',
             sql`${table.status} in ('pending', 'completed', 'failed')`

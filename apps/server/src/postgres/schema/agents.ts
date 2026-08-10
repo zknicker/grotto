@@ -4,14 +4,13 @@ import {
     foreignKey,
     integer,
     pgTable,
-    primaryKey,
     text,
     timestamp,
+    unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { avatarsTable } from './avatars.ts';
 import { bunJsonb } from './bun-jsonb.ts';
-import { chatsTable } from './chats.ts';
 import { computersTable } from './computers.ts';
 import { serversTable } from './servers.ts';
 
@@ -55,7 +54,7 @@ export const agentsTable = pgTable(
             .references(() => serversTable.id, { onDelete: 'cascade' }),
     },
     (table) => [
-        uniqueIndex('agents_server_id_key').on(table.serverId, table.id),
+        unique('agents_server_id_key').on(table.serverId, table.id),
         uniqueIndex('agents_server_handle_key')
             .on(table.serverId, sql`lower(${table.handle})`)
             .where(sql`${table.retiredAt} is null`),
@@ -69,36 +68,15 @@ export const agentsTable = pgTable(
         check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
         check('agents_session_reset_kind', sql`${table.sessionResetKind} in ('full', 'session')`),
         check(
+            'agents_description_length',
+            sql`${table.description} is null or char_length(${table.description}) between 1 and 500`
+        ),
+        check(
             'agents_configuration',
             sql`(
                 (${table.computerId} is null and ${table.desiredRuntimeId} is null and ${table.desiredModelId} is null)
                 or (${table.computerId} is not null and ${table.desiredRuntimeId} is not null and ${table.desiredModelId} is not null)
             )`
         ),
-    ]
-);
-
-export const channelAgentParticipantsTable = pgTable(
-    'channel_agent_participants',
-    {
-        agentId: text('agent_id').notNull(),
-        chatId: text('chat_id').notNull(),
-        chatKind: text('chat_kind').notNull().default('channel'),
-        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-        serverId: text('server_id').notNull(),
-    },
-    (table) => [
-        primaryKey({ columns: [table.serverId, table.chatId, table.agentId] }),
-        foreignKey({
-            columns: [table.serverId, table.chatId, table.chatKind],
-            foreignColumns: [chatsTable.serverId, chatsTable.id, chatsTable.kind],
-            name: 'channel_agent_participants_chat_fk',
-        }).onDelete('cascade'),
-        foreignKey({
-            columns: [table.serverId, table.agentId],
-            foreignColumns: [agentsTable.serverId, agentsTable.id],
-            name: 'channel_agent_participants_agent_fk',
-        }).onDelete('cascade'),
-        check('channel_agent_participants_kind', sql`${table.chatKind} = 'channel'`),
     ]
 );

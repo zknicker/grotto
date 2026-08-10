@@ -9,11 +9,12 @@ import {
     createGrottoServerApplication,
     type GrottoServerApplication,
 } from '../src/grotto-server-application.ts';
-import { ensureGrottoSchema } from '../src/postgres/bootstrap.ts';
+import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 const appOrigin = 'https://grotto.sh';
+const backupRole = 'grotto_backup_test';
 const runtimeRole = 'grotto_runtime_test';
 let admin: SQL;
 let application: GrottoServerApplication;
@@ -25,9 +26,11 @@ let attachmentRoot: string;
 beforeAll(async () => {
     cluster = await startPostgresCluster();
     admin = new SQL(cluster.databaseUrl);
+    await admin.unsafe(`CREATE ROLE ${backupRole} LOGIN`);
     await admin.unsafe(`CREATE ROLE ${runtimeRole} LOGIN`);
     await admin.unsafe(`GRANT CONNECT ON DATABASE grotto_test TO ${runtimeRole}`);
-    await ensureGrottoSchema(admin, runtimeRole);
+    await admin.unsafe(`GRANT CONNECT ON DATABASE grotto_test TO ${backupRole}`);
+    await bootstrapGrottoDatabase(cluster.databaseUrl, runtimeRole, backupRole);
 
     const runtimeUrl = new URL(cluster.databaseUrl);
     runtimeUrl.username = runtimeRole;
@@ -69,6 +72,38 @@ test('boots with a DML-only role that cannot create schema objects', async () =>
     expect(psql.stderr).toContain('permission denied for schema public');
 });
 
+test('grants runtime DML on tables created by later migrations', async () => {
+    await admin`CREATE TABLE migration_role_default_privileges (id serial PRIMARY KEY)`;
+    const runtime = new SQL(runtimeDatabaseUrl);
+
+    try {
+        await runtime`INSERT INTO migration_role_default_privileges DEFAULT VALUES`;
+        const rows = (await runtime`
+            SELECT id FROM migration_role_default_privileges
+        `) as { id: number }[];
+        expect(rows).toEqual([{ id: 1 }]);
+    } finally {
+        await runtime.close();
+        await admin`DROP TABLE migration_role_default_privileges`;
+    }
+});
+
+test('keeps product tables and migration history readable by backups', async () => {
+    const backupUrl = new URL(cluster.databaseUrl);
+    backupUrl.username = backupRole;
+    const backup = new SQL(backupUrl.toString());
+
+    try {
+        const tables = (await backup`
+            SELECT (SELECT count(*) FROM servers)::int AS servers,
+                   (SELECT count(*) FROM drizzle.__drizzle_migrations)::int AS migrations
+        `) as { migrations: number; servers: number }[];
+        expect(tables).toEqual([{ migrations: 2, servers: 0 }]);
+    } finally {
+        await backup.close();
+    }
+});
+
 test('bootstraps one fresh database before the runtime role starts', async () => {
     const databaseName = 'grotto_bootstrap_command_test';
     await admin.unsafe(`CREATE DATABASE ${databaseName}`);
@@ -85,6 +120,7 @@ test('bootstraps one fresh database before the runtime role starts', async () =>
         env: {
             ...process.env,
             GROTTO_DATABASE_BOOTSTRAP_URL: bootstrapUrl.toString(),
+            GROTTO_DATABASE_BACKUP_ROLE: backupRole,
             GROTTO_DATABASE_RUNTIME_ROLE: runtimeRole,
         },
     });
@@ -118,6 +154,7 @@ test('refuses to adopt an existing PostgreSQL schema', async () => {
         env: {
             ...process.env,
             GROTTO_DATABASE_BOOTSTRAP_URL: databaseUrl.toString(),
+            GROTTO_DATABASE_BACKUP_ROLE: backupRole,
             GROTTO_DATABASE_RUNTIME_ROLE: runtimeRole,
         },
     });

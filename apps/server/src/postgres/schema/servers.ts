@@ -20,7 +20,7 @@ export const serversTable = pgTable(
         id: text('id').primaryKey(),
         lastChatEventCursor: bigint('last_chat_event_cursor', { mode: 'bigint' })
             .notNull()
-            .default(0n),
+            .default(sql`0`),
         slug: text('slug').notNull(),
     },
     (table) => [

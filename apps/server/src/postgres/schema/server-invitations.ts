@@ -1,4 +1,13 @@
-import { foreignKey, index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+    check,
+    foreignKey,
+    index,
+    pgTable,
+    text,
+    timestamp,
+    uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
 
@@ -25,6 +34,9 @@ export const serverInvitationsTable = pgTable(
     },
     (table) => [
         uniqueIndex('server_invitations_token_hash_key').on(table.tokenHash),
+        uniqueIndex('server_invitations_live_email_key')
+            .on(table.serverId, table.email)
+            .where(sql`${table.revokedAt} is null and ${table.acceptedAt} is null`),
         index('server_invitations_server_idx').on(table.serverId, table.createdAt),
         foreignKey({
             columns: [table.serverId, table.invitedByUserId],
@@ -36,5 +48,14 @@ export const serverInvitationsTable = pgTable(
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
             name: 'server_invitations_accepted_membership_fk',
         }),
+        check(
+            'server_invitations_email_normalized',
+            sql`${table.email} = lower(${table.email}) and ${table.email} <> ''`
+        ),
+        check(
+            'server_invitations_terminal',
+            sql`(${table.acceptedAt} is null) = (${table.acceptedUserId} is null)
+                and not (${table.acceptedAt} is not null and ${table.revokedAt} is not null)`
+        ),
     ]
 );

@@ -50,6 +50,64 @@ test('atomically activates one verified release and restarts only the Server', a
     }
 });
 
+test('migrates the candidate before switching releases', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'grotto-activation-migration-'));
+    const previous = makeRelease(root, previousRevision, 'previous');
+    const next = makeRelease(root, nextRevision, 'next');
+    symlinkSync(previous, join(root, 'current'));
+
+    try {
+        await activateGrottoRelease({
+            deployRoot: root,
+            migrateRelease: (releaseRoot) => {
+                expect(releaseRoot).toBe(next);
+                expect(readlinkSync(join(root, 'current'))).toBe(previous);
+            },
+            restartServer: () => '101',
+            serverHealthy: () => Promise.resolve(true),
+            sourceRevision: nextRevision,
+            startServer: () => ({ introducedLabel: false, previousPid: '101' }),
+            stopServer: () => undefined,
+        });
+
+        expect(readlinkSync(join(root, 'current'))).toBe(next);
+    } finally {
+        rmSync(root, { force: true, recursive: true });
+    }
+});
+
+test('leaves the current release untouched when migration fails', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'grotto-activation-migration-failure-'));
+    const previous = makeRelease(root, previousRevision, 'previous');
+    makeRelease(root, nextRevision, 'next');
+    symlinkSync(previous, join(root, 'current'));
+    let starts = 0;
+
+    try {
+        await expect(
+            activateGrottoRelease({
+                deployRoot: root,
+                migrateRelease: () => {
+                    throw new Error('migration failed');
+                },
+                restartServer: () => '101',
+                serverHealthy: () => Promise.resolve(true),
+                sourceRevision: nextRevision,
+                startServer: () => {
+                    starts += 1;
+                    return { introducedLabel: false, previousPid: '101' };
+                },
+                stopServer: () => undefined,
+            })
+        ).rejects.toThrow('migration failed');
+
+        expect(readlinkSync(join(root, 'current'))).toBe(previous);
+        expect(starts).toBe(0);
+    } finally {
+        rmSync(root, { force: true, recursive: true });
+    }
+});
+
 test('restores and restarts the previous release when local health fails', async () => {
     const root = mkdtempSync(join(tmpdir(), 'grotto-rollback-'));
     const previous = makeRelease(root, previousRevision, 'previous');

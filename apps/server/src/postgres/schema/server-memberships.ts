@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { check, index, integer, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 import { serversTable } from './servers.ts';
 import { usersTable } from './users.ts';
 
@@ -26,8 +26,9 @@ export const serverMembershipsTable = pgTable(
             .references(() => usersTable.id, { onDelete: 'cascade' }),
     },
     (table) => [
-        uniqueIndex('server_memberships_server_user_key').on(table.serverId, table.userId),
+        unique('server_memberships_server_user_key').on(table.serverId, table.userId),
         index('server_memberships_user_idx').on(table.userId),
+        check('server_memberships_role', sql`${table.role} in ('owner', 'admin', 'member')`),
         check('server_memberships_positive_stint', sql`${table.stint} > 0`),
     ]
 );

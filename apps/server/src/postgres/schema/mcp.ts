@@ -1,11 +1,13 @@
+import { sql } from 'drizzle-orm';
 import {
     boolean,
+    check,
     foreignKey,
     pgTable,
     primaryKey,
     text,
     timestamp,
-    uniqueIndex,
+    unique,
 } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
@@ -28,7 +30,15 @@ export const mcpConnectionsTable = pgTable(
         tools: text('tools').array().notNull(),
         url: text('url').notNull(),
     },
-    (table) => [uniqueIndex('mcp_connections_server_id_key').on(table.serverId, table.id)]
+    (table) => [
+        unique('mcp_connections_server_id_key').on(table.serverId, table.id),
+        check('mcp_connections_id_shape', sql`${table.id} ~ '^mcp_[A-Za-z0-9_-]{16}$'`),
+        check('mcp_connections_auth', sql`${table.auth} in ('none', 'headers', 'oauth')`),
+        check(
+            'mcp_connections_preset',
+            sql`${table.preset} is null or ${table.preset} in ('google-calendar', 'merchbase')`
+        ),
+    ]
 );
 
 export const mcpSecretsTable = pgTable('mcp_secrets', {

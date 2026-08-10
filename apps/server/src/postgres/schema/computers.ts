@@ -12,6 +12,7 @@ import {
     pgTable,
     text,
     timestamp,
+    unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { bunJsonb } from './bun-jsonb.ts';
@@ -51,7 +52,7 @@ export const computersTable = pgTable(
         updateUpdatedAt: timestamp('update_updated_at', { withTimezone: true }),
     },
     (table) => [
-        uniqueIndex('computers_server_id_key').on(table.serverId, table.id),
+        unique('computers_server_id_key').on(table.serverId, table.id),
         uniqueIndex('computers_credential_hash_key').on(table.credentialHash),
         uniqueIndex('computers_attachment_idempotency_key').on(table.attachmentIdempotencyKey),
         index('computers_server_idx').on(table.serverId, table.createdAt),
@@ -61,6 +62,11 @@ export const computersTable = pgTable(
             name: 'computers_attacher_membership_fk',
         }),
         check('computers_id_shape', sql`${table.id} ~ '^cmp_[A-Za-z0-9_-]{16}$'`),
+        check('computers_credential_hash_shape', sql`${table.credentialHash} ~ '^[a-f0-9]{64}$'`),
+        check(
+            'computers_health',
+            sql`${table.health} in ('offline', 'healthy', 'degraded', 'update-required')`
+        ),
         check(
             'computers_attachment_idempotency_key_shape',
             sql`${table.attachmentIdempotencyKey} IS NULL OR ${table.attachmentIdempotencyKey} ~ '^cak_[A-Za-z0-9_-]{43}$'`

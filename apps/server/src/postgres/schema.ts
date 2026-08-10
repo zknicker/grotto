@@ -1,4 +1,4 @@
-// Typed query surface for the tables `bootstrap.ts` creates.
+// Typed query surface and source of truth for hosted PostgreSQL migrations.
 
 export * from './schema/agent-attention.ts';
 export * from './schema/agent-delivery.ts';
@@ -9,6 +9,7 @@ export * from './schema/agent-turns.ts';
 export * from './schema/agents.ts';
 export * from './schema/attachments.ts';
 export * from './schema/avatars.ts';
+export * from './schema/channel-agent-participants.ts';
 export * from './schema/chat-events.ts';
 export * from './schema/chat-messages.ts';
 export * from './schema/chat-reads.ts';

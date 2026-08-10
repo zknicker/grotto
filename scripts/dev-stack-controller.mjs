@@ -383,6 +383,7 @@ export class DevStackController extends EventEmitter {
                 {
                     ...hostedServerEnv,
                     GROTTO_DATABASE_BOOTSTRAP_URL: postgres.databaseUrl,
+                    GROTTO_DATABASE_BACKUP_ROLE: 'grotto',
                     GROTTO_DATABASE_RUNTIME_ROLE: 'grotto',
                 }
             );

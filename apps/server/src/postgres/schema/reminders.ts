@@ -8,6 +8,7 @@ import {
     pgTable,
     text,
     timestamp,
+    unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
@@ -38,7 +39,7 @@ export const remindersTable = pgTable(
         version: integer('version').notNull().default(1),
     },
     (table) => [
-        uniqueIndex('reminders_server_id_key').on(table.serverId, table.id),
+        unique('reminders_server_id_key').on(table.serverId, table.id),
         index('reminders_due_idx')
             .on(table.fireAt, table.id)
             .where(sql`${table.status} = 'scheduled'`),
@@ -128,7 +129,7 @@ export const reminderFiresTable = pgTable(
             .references(() => serversTable.id, { onDelete: 'cascade' }),
     },
     (table) => [
-        uniqueIndex('reminder_fires_server_id_key').on(table.serverId, table.id),
+        unique('reminder_fires_server_id_key').on(table.serverId, table.id),
         uniqueIndex('reminder_fires_logical_fire_key').on(
             table.serverId,
             table.reminderId,

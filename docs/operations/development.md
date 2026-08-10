@@ -117,13 +117,14 @@ hand; the file regenerates each session.
 
 ## Activation Preview
 
-`/prototype/activation` renders every activation surface — sign-in, Server
+In development builds, `/prototype/activation` renders every activation surface — sign-in, Server
 choice and creation, invitations, Computer login, and Cove onboarding — as
 independently addressable scenes for design iteration. Each scene mounts the
 real component; a fixture tRPC client
 (`apps/website/src/features/activation-preview/`) answers its Grotto API calls,
 so no hosted Server, Computer, or signed-in session is needed. The URL selects
 the scene (shareable per step) and a floating picker switches between them.
+Production builds do not register this route or bundle its fixture Server.
 Mutations resolve against fixtures: approving the Computer login code plays the
 pending → approved → connected arc live; everything else fails with a clear
 preview message after showing its pending state.

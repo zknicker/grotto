@@ -55,13 +55,13 @@ export function CoveMeetStep({
             footer={
                 <>
                     <SwitchServerButton onPress={onSwitchServer} />
-                    {view === 'apply-failed' ? null : (
+                    {view === 'apply-failed' || applying ? null : (
                         <Button
                             isDisabled={!canSubmit}
-                            isPending={applying || createCove.isPending}
+                            isPending={createCove.isPending}
                             onPress={submit}
                         >
-                            {applying ? 'Creating Cove…' : 'Create Cove'}
+                            Create Cove
                         </Button>
                     )}
                 </>
@@ -155,7 +155,7 @@ export function CoveMeetStep({
                     </Card.Content>
                 </Card>
                 {applying ? (
-                    <output aria-live="polite" className="sr-only">
+                    <output aria-live="polite" className="text-center text-muted text-sm">
                         Getting Cove ready…
                     </output>
                 ) : null}

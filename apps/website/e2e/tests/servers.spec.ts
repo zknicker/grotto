@@ -16,11 +16,15 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
 
     const nameField = page.getByLabel('Name');
     const serverSwitcher = page.getByRole('button', { name: /^Switch Server \(current:/u });
-    await expect(nameField.or(serverSwitcher)).toBeVisible();
+    const createServerStep = page.getByRole('button', { name: 'Create a Server' });
+    await expect(createServerStep.or(serverSwitcher)).toBeVisible();
     if (await serverSwitcher.isVisible()) {
         await serverSwitcher.click();
         await page.getByRole('menuitem', { name: 'Switch or create Server…' }).click();
+    } else {
+        await createServerStep.click();
     }
+    await expect(nameField).toBeVisible();
 
     await nameField.fill('Grotto HQ');
     const addressField = page.getByLabel('Address');
@@ -91,9 +95,8 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         await expect(page.getByRole('heading', { level: 1, name: 'Tasks' })).toHaveCount(0);
 
         socket.close();
-        await expect(page.getByRole('alert')).toContainText(
-            'Reconnect this Computer, then try again.'
-        );
+        await expect(page.getByRole('alert')).toContainText('This Computer is offline');
+        await expect(page.getByRole('alert')).toContainText('grotto-computer start');
         const reconnected = await connectComputer(attachment.credential);
         await expect(page.getByRole('alert')).toHaveCount(0);
 
@@ -112,9 +115,8 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
                 type: 'cove-apply-result',
             })
         );
-        await expect(page.getByRole('alert')).toContainText(
-            'Cove isn’t ready yet. Make sure this Computer is connected, then try again.'
-        );
+        await expect(page.getByRole('alert')).toContainText('Cove’s setup didn’t finish');
+        await expect(page.getByRole('alert')).toContainText('grotto-computer logs');
         await expect(page.getByText('Workspace seed failed.')).toHaveCount(0);
 
         const replay = socketMessage(reconnected, 'cove-apply');

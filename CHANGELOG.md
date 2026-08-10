@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.10 - 2026-08-10
+
+- Deleted Agents and departed humans now remain recognizable in historical
+  transcripts with their saved profile, muted presentation, and a **DELETED** badge.
+- Retired Agent DMs leave active navigation while their transcripts remain
+  reachable as durable history.
+- Retiring an Agent releases its handle for a new Agent identity without moving
+  old messages, references, queued work, DMs, or execution history to the replacement.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.10
+- Desktop: Unchanged
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.8.9 - 2026-08-10
 
 - Dialogs now use consistent HeroUI form spacing and dismiss when the surrounding

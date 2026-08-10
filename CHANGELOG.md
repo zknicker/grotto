@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.6 - 2026-08-09
+
+- Server activation now separates choosing, creating, and joining a Server into
+  focused steps while preserving automatic address completion.
+- Computer login accepts the CLI's eight-character code through a grouped OTP
+  input, checks complete codes automatically, and keeps account approval and
+  durable attachment completion unchanged.
+- Meet Cove has a clearer model picker and actionable repair guidance for an
+  offline, incompatible, or misconfigured Computer while keeping Cove's
+  application behind the quiet **Getting Cove ready…** state.
+- Development activation previews now exercise the real UI against fixtures
+  without shipping that fixture Server in production builds.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.6
+- Desktop: Unchanged
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.8.5 - 2026-08-09
 
 - Final App/Server removes the temporary one-off Computer approval protocol;

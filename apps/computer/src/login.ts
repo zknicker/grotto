@@ -195,18 +195,6 @@ export async function completeComputerLogin(session: ComputerLoginSession): Prom
     }
 }
 
-export function isComputerLoginRouteUnavailable(cause: unknown) {
-    return cause instanceof ComputerLoginRequestError && [404, 405].includes(cause.status);
-}
-
-export function isComputerLoginPurposeUnsupported(cause: unknown) {
-    return (
-        cause instanceof ComputerLoginRequestError &&
-        cause.status === 400 &&
-        cause.message.includes('Unrecognized key: "purpose"')
-    );
-}
-
 export async function readComputerLoginSession(
     dataRoot: string
 ): Promise<ComputerLoginSession | null> {

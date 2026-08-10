@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import {
     type ComputerUpdateProgress,
     computerProtocolVersion,
@@ -6,20 +6,11 @@ import {
 } from '@tavern/api';
 import { and, desc, eq, isNotNull, isNull, ne, or } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
-import {
-    agentsTable,
-    computerSetupApprovalsTable,
-    computersTable,
-    serverOnboardingTable,
-    serversTable,
-} from '../postgres/schema.ts';
+import { agentsTable, computersTable, serverOnboardingTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import type { ComputerHandshake } from './contracts.ts';
-
-const approvalLifetimeMs = 10 * 60 * 1000;
 
 export class ComputerSetupDeniedError extends Error {
     readonly code?: 'computer_machine_unlinked';
@@ -33,107 +24,6 @@ export class ComputerSetupDeniedError extends Error {
 
 export function hashComputerSecret(value: string) {
     return createHash('sha256').update(value).digest('hex');
-}
-
-export async function beginComputerSetup(
-    db: GrottoDatabase,
-    input: { credentialHash: string; slug: string }
-) {
-    const [server] = await db
-        .select({ id: serversTable.id })
-        .from(serversTable)
-        .where(and(eq(serversTable.slug, input.slug), isNull(serversTable.deletedAt)))
-        .limit(1);
-    if (!server) {
-        throw new ComputerSetupDeniedError('No Grotto server exists at that address.');
-    }
-    const secret = randomBytes(32).toString('base64url');
-    const approvalId = createOpaqueId('cap');
-    await db.insert(computerSetupApprovalsTable).values({
-        approvalSecretHash: hashComputerSecret(secret),
-        credentialHash: input.credentialHash,
-        expiresAt: new Date(Date.now() + approvalLifetimeMs),
-        id: approvalId,
-        serverId: server.id,
-    });
-    return { approvalId, secret, serverId: server.id };
-}
-
-export async function readComputerSetupStatus(
-    db: GrottoDatabase,
-    input: { approvalId: string; secret: string }
-) {
-    const [approval] = await db
-        .select({
-            computerId: computerSetupApprovalsTable.computerId,
-            expiresAt: computerSetupApprovalsTable.expiresAt,
-            secretHash: computerSetupApprovalsTable.approvalSecretHash,
-            serverId: computerSetupApprovalsTable.serverId,
-        })
-        .from(computerSetupApprovalsTable)
-        .where(eq(computerSetupApprovalsTable.id, input.approvalId))
-        .limit(1);
-    if (!approval || approval.secretHash !== hashComputerSecret(input.secret)) {
-        throw new ComputerSetupDeniedError('Computer approval was rejected.');
-    }
-    if (approval.expiresAt <= new Date()) {
-        throw new ComputerSetupDeniedError('Computer approval expired. Run setup again.');
-    }
-    return approval.computerId
-        ? {
-              computerId: approval.computerId,
-              serverId: approval.serverId,
-              status: 'approved' as const,
-          }
-        : { status: 'pending' as const };
-}
-
-export async function approveComputerSetup(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
-    input: { approvalId: string; secret: string }
-) {
-    return await db.transaction(async (tx) => {
-        const [approval] = await tx
-            .select()
-            .from(computerSetupApprovalsTable)
-            .where(eq(computerSetupApprovalsTable.id, input.approvalId))
-            .for('update');
-        if (
-            !approval ||
-            approval.approvalSecretHash !== hashComputerSecret(input.secret) ||
-            approval.expiresAt <= new Date() ||
-            approval.computerId
-        ) {
-            throw new ComputerSetupDeniedError('Computer approval expired or was already used.');
-        }
-        const server = await requireServerMembership(tx, member, approval.serverId);
-        if (server.role !== 'owner' && server.role !== 'admin') {
-            throw new ComputerSetupDeniedError(
-                'Only a Server Owner or Admin can attach a Computer.'
-            );
-        }
-        if (!member) {
-            throw new ComputerSetupDeniedError('Sign in to attach a Computer.');
-        }
-        const computerId = createOpaqueId('cmp');
-        await tx.insert(computersTable).values({
-            attachedByUserId: member.id,
-            credentialHash: approval.credentialHash,
-            id: computerId,
-            serverId: approval.serverId,
-        });
-        await tx
-            .update(computerSetupApprovalsTable)
-            .set({ approvedAt: new Date(), approvedByUserId: member.id, computerId })
-            .where(
-                and(
-                    eq(computerSetupApprovalsTable.id, approval.id),
-                    isNull(computerSetupApprovalsTable.computerId)
-                )
-            );
-        return { computerId, serverId: approval.serverId };
-    });
 }
 
 export async function validateComputerCredential(

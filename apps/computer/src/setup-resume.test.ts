@@ -24,6 +24,31 @@ const session: StoredSession = {
     sessionId: 'cls_1234567890123456',
 };
 
+test('setup does not probe the superseded one-off approval protocol', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-setup-no-legacy-'));
+    const requests: string[] = [];
+    const peer = Bun.serve({
+        fetch(request) {
+            requests.push(new URL(request.url).pathname);
+            return Response.json({ error: 'missing' }, { status: 404 });
+        },
+        port: 0,
+    });
+
+    try {
+        const result = await runCli(['setup', '/hq'], {
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+        });
+
+        expect(result.exitCode).toBe(1);
+        expect(requests).toEqual(['/computer/login']);
+    } finally {
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
 test('setup resumes an existing attachment without login or migration', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-setup-existing-'));
     const requests: string[] = [];

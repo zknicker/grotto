@@ -10,7 +10,6 @@ import {
     agentsTable,
     avatarsTable,
     chatEventsTable,
-    computerSetupApprovalsTable,
     computersTable,
     reminderAgentAttentionTable,
     remindersTable,
@@ -105,9 +104,6 @@ export async function markServerDeleting(
                 .set({ credentialHash: revokedComputerCredential(computer.id, deletionId) })
                 .where(eq(computersTable.id, computer.id));
         }
-        await tx
-            .delete(computerSetupApprovalsTable)
-            .where(eq(computerSetupApprovalsTable.serverId, server.id));
         await tx.delete(agentPendingWorkTable).where(eq(agentPendingWorkTable.serverId, server.id));
         await tx.delete(agentDeliveryTable).where(eq(agentDeliveryTable.serverId, server.id));
         await tx

@@ -6,7 +6,7 @@ import './activation.css';
 
 /**
  * ActivationShell — the one frame every signed-out and setup surface shares:
- * sign-in, Server choice and creation, invitations, Computer approval, and
+ * sign-in, Server choice and creation, invitations, Computer login, and
  * Server onboarding. The Grotto mark and chrome stay put while steps change
  * beneath them, so consecutive screens read as one continuous flow.
  */

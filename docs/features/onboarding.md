@@ -12,13 +12,13 @@ progress and private `#onboarding-owner`, initially containing only that Owner.
 No Computer, Agent, or execution configuration is created automatically.
 
 The first step gives the Owner two Server-specific commands: install Grotto Computer, then set it
-up for this Server. The standalone `grotto-computer login` device-code journey is available in
-phase one: the CLI opens and prints a complete device URL plus a short code that can also be
-entered manually. The Grotto App keeps the code through Clerk sign-in, shows the current account
-with a **Use another account** path, and requires explicit approval. It then reports **Signed in —
-finishing the connection** and a truthful standalone completion state. The existing one-off setup
-approval remains available while Server attachment migration lands in a later phase. A Computer
-connection records live progress but does not advance setup. The Server advances from `awaiting-computer` to
+up for this Server. `grotto-computer setup /<slug>` reuses a valid Computer login or opens and
+prints a complete device URL plus a short code that can also be entered manually. The Grotto App
+keeps the code through Clerk sign-in, shows the current account with a **Use another account**
+path, and requires explicit approval. It then reports **Signed in — finishing the connection**
+until the CLI durably stores the Server attachment, followed by **Computer connected — you can
+close this page**. A Computer connection records live progress but does not advance setup. The
+Server advances from `awaiting-computer` to
 `awaiting-cove` only after that Computer reports at least one runtime with at
 least one model. Empty or invalid inventory, protocol incompatibility, and
 disconnection remain on the owning durable phase with a concrete repair

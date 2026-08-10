@@ -1,7 +1,6 @@
-import { createHash } from 'node:crypto';
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@tavern/api';
 import { WebSocket } from 'ws';
-import { createHostedTestServer } from '../support/hosted-server.ts';
+import { attachHostedComputer, createHostedTestServer } from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
 const computerCredential = 'agent-e2e-credential-0000000000000000';
@@ -25,13 +24,10 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
         displayName: 'Agent HQ',
         slug: 'agent-hq',
     });
-    const setup = await owner.computer.begin.mutate({
-        credentialHash: createHash('sha256').update(computerCredential).digest('hex'),
+    const attachment = await attachHostedComputer(owner, {
+        credential: computerCredential,
         slug: 'agent-hq',
     });
-    await page.goto(setup.approvalUrl);
-    await page.getByRole('button', { name: 'Approve Computer' }).click();
-    await expect(page.getByText('Approved. Return to Grotto Computer.')).toBeVisible();
 
     // The Computer reports its sanitized inventory over its attachment socket.
     await reportInventory();
@@ -93,7 +89,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(page.getByRole('row', { name: 'Scout' })).toBeVisible();
 
     // Cross-Computer / unreported references fail closed at the contract.
-    const [computer] = await owner.computer.list.query({ serverId: setup.serverId });
+    const [computer] = await owner.computer.list.query({ serverId: attachment.serverId });
     await expect(
         owner.agent.create.mutate({
             computerId: computer.id,
@@ -102,7 +98,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
             modelId: 'gpt-9-unreported',
             role: 'member',
             runtimeId: 'codex',
-            serverId: setup.serverId,
+            serverId: attachment.serverId,
         })
     ).rejects.toThrow(/does not report the model/iu);
 });

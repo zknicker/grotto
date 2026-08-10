@@ -167,6 +167,10 @@ previous verified executable for explicit `grotto-computer upgrade --rollback`.
 
 ## Computer Release Flow
 
+Reusable-login protocol changes use the ordered
+[Computer login cutover](computer-login-cutover.md): expanded Server, publicly verified Computer,
+then final App/Server. Its rollback order is part of the contract.
+
 Use this lane when the release decision marks Computer **publish**:
 
 1. Choose the next independent Computer SemVer.

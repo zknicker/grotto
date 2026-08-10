@@ -570,23 +570,39 @@ test('creates and applies one immutable Cove through a replayable Computer opera
 });
 
 async function createComputerAttachment(slug = 'onboarding-hq', secret = credential) {
-    const computer = createGrottoClient(harness);
-    const setup = await computer.trpc.computer.begin.mutate({
-        credentialHash: createHash('sha256').update(secret).digest('hex'),
-        slug,
+    const started = await fetch(new URL('/computer/login', harness.url), {
+        body: JSON.stringify({ origin: harness.url.origin, purpose: 'setup' }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
     });
-    const approvalUrl = new URL(setup.approvalUrl);
-    const approvalId = approvalUrl.searchParams.get('approval');
-    const approvalSecret = approvalUrl.searchParams.get('secret');
-    if (!(approvalId && approvalSecret)) {
-        throw new Error('Computer approval URL did not contain its credentials.');
-    }
-    const approved = await owner.trpc.computer.approve.mutate({
-        approvalId,
-        secret: approvalSecret,
+    expect(started.status).toBe(200);
+    const grant = (await started.json()) as { deviceCode: string; userCode: string };
+    await owner.trpc.computer.login.approve.mutate({ userCode: grant.userCode });
+    const exchanged = await fetch(new URL('/computer/login/poll', harness.url), {
+        body: JSON.stringify({ deviceCode: grant.deviceCode }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
     });
-    computer.close();
-    return approved;
+    expect(exchanged.status).toBe(200);
+    const session = (await exchanged.json()) as { accessToken: string };
+    const attached = await fetch(new URL('/computer/attach', harness.url), {
+        body: JSON.stringify({
+            accessToken: session.accessToken,
+            credentialHash: createHash('sha256').update(secret).digest('hex'),
+            idempotencyKey: `cak_${createHash('sha256').update(`${slug}:${secret}`).digest('base64url')}`,
+            slug,
+        }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    expect(attached.status).toBe(200);
+    const completed = await fetch(new URL('/computer/login/complete', harness.url), {
+        body: JSON.stringify({ accessToken: session.accessToken }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    expect(completed.status).toBe(200);
+    return (await attached.json()) as { computerId: string; serverId: string };
 }
 
 async function connectComputer(

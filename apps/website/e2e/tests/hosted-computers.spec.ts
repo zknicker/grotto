@@ -1,6 +1,5 @@
-import { createHash } from 'node:crypto';
 import { computerProtocolVersion } from '@tavern/api';
-import { createHostedTestServer } from '../support/hosted-server.ts';
+import { attachHostedComputer, createHostedTestServer } from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('an Owner updates one Computer from Settings through isolated progress', async ({ page }) => {
@@ -9,13 +8,10 @@ test('an Owner updates one Computer from Settings through isolated progress', as
         slug: 'computer-hq',
     });
     const credential = 'computer-test-credential-1234567890';
-    const setup = await owner.computer.begin.mutate({
-        credentialHash: createHash('sha256').update(credential).digest('hex'),
+    await attachHostedComputer(owner, {
+        credential,
         slug: 'computer-hq',
     });
-    await page.goto(setup.approvalUrl);
-    await page.getByRole('button', { name: 'Approve Computer' }).click();
-    await expect(page.getByText('Approved. Return to Grotto Computer.')).toBeVisible();
 
     await page.goto('/s/computer-hq/computers');
     await expect(page.getByText('Attached · 1', { exact: true })).toBeVisible();
@@ -90,13 +86,6 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     await expect(page.getByText('Grotto Computer 1.1.0 is the latest version.')).toBeVisible();
     await expect(page.getByRole('button', { exact: true, name: 'Update' })).toBeDisabled();
     reconnectedComputer.close();
-
-    await expect(
-        owner.computer.approve.mutate({
-            approvalId: new URL(setup.approvalUrl).searchParams.get('approval') ?? '',
-            secret: new URL(setup.approvalUrl).searchParams.get('secret') ?? '',
-        })
-    ).rejects.toThrow(/already used/iu);
 });
 
 function socketOpen(socket: WebSocket) {

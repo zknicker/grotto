@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { createHash, randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Page } from '@playwright/test';
@@ -52,6 +53,60 @@ export function createHostedClient(token: string) {
             }),
         ],
     });
+}
+
+export async function attachHostedComputer(
+    client: ReturnType<typeof createHostedClient>,
+    input: { credential: string; slug: string }
+) {
+    const origin = `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}`;
+    const started = await fetch(new URL('/computer/login', origin), {
+        body: JSON.stringify({ origin, purpose: 'setup' }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    if (!started.ok) {
+        throw new Error(`Computer login failed (${started.status}).`);
+    }
+    const grant = (await started.json()) as { deviceCode: string; userCode: string };
+    await client.computer.login.approve.mutate({ userCode: grant.userCode });
+    const exchanged = await fetch(new URL('/computer/login/poll', origin), {
+        body: JSON.stringify({ deviceCode: grant.deviceCode }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    if (!exchanged.ok) {
+        throw new Error(`Computer login exchange failed (${exchanged.status}).`);
+    }
+    const session = (await exchanged.json()) as { accessToken: string };
+    const attached = await fetch(new URL('/computer/attach', origin), {
+        body: JSON.stringify({
+            accessToken: session.accessToken,
+            credentialHash: createHash('sha256').update(input.credential).digest('hex'),
+            idempotencyKey: `cak_${randomBytes(32).toString('base64url')}`,
+            slug: input.slug,
+        }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    if (!attached.ok) {
+        throw new Error(`Computer attachment failed (${attached.status}).`);
+    }
+    const result = (await attached.json()) as {
+        computerId: string;
+        idempotent: boolean;
+        serverId: string;
+        slug: string;
+    };
+    const completed = await fetch(new URL('/computer/login/complete', origin), {
+        body: JSON.stringify({ accessToken: session.accessToken }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    if (!completed.ok) {
+        throw new Error(`Computer login completion failed (${completed.status}).`);
+    }
+    return result;
 }
 
 export function runHostedPsql(databaseUrl: string, statement: string) {

@@ -31,7 +31,6 @@ import {
 } from './attachment-state.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
-import { installEnterToOpenUrl, openUrlInBrowser } from './browser-handoff.ts';
 import {
     computerEntrypoint,
     computerRunnerEntrypoint,
@@ -86,8 +85,6 @@ import { replaceLaunchdService } from './launchd.ts';
 import {
     completeComputerLogin,
     ensureComputerLoginSession,
-    isComputerLoginPurposeUnsupported,
-    isComputerLoginRouteUnavailable,
     readComputerLoginSession,
     resolveComputerLogin,
     revokeComputerLoginSession,
@@ -117,12 +114,6 @@ import {
 } from './usage/openrouter-settings.ts';
 import { readComputerUsage } from './usage/read-usage.ts';
 import { parseAgentWorkspaceRequest, runAgentWorkspaceRequest } from './workspace-files.ts';
-
-interface SetupResponse {
-    approvalId: string;
-    approvalUrl: string;
-    serverId: string;
-}
 
 interface AttachResponse {
     computerId: string;
@@ -351,32 +342,18 @@ async function attachServer(slug: string) {
 }
 
 async function setupServer(slug: string, current: Attachment | null) {
-    let session: Awaited<ReturnType<typeof resolveComputerLogin>>;
-    try {
-        session = await resolveComputerLogin({
-            allowLogin: true,
-            complete: false,
-            dataRoot,
-            purpose: 'setup',
-            serverOrigin,
-        });
-    } catch (cause) {
-        if (isRouteUnavailable(cause)) {
-            await runLegacySetup(slug, current);
-            return;
-        }
-        throw cause;
-    }
+    let session = await resolveComputerLogin({
+        allowLogin: true,
+        complete: false,
+        dataRoot,
+        purpose: 'setup',
+        serverOrigin,
+    });
 
     let issued: Awaited<ReturnType<typeof issueAttachment>>;
     try {
         issued = await issueAttachment(slug, session);
     } catch (cause) {
-        if (isRouteUnavailable(cause)) {
-            await removePendingAttachment(dataRoot, slug);
-            await runLegacySetup(slug, current);
-            return;
-        }
         if (!isComputerLoginRequestFailure(cause)) {
             throw cause;
         }
@@ -439,65 +416,6 @@ async function issueAttachment(
         } satisfies Attachment,
         pending,
     };
-}
-
-async function runLegacySetup(slug: string, current: Attachment | null) {
-    const credential = randomBytes(32).toString('base64url');
-    const started = await request<SetupResponse>('/computer/setup', {
-        credentialHash: hash(credential),
-        slug,
-    });
-    approvalSecrets.set(started.approvalId, approvalSecretFromUrl(started.approvalUrl));
-    const browserOpenEnabled = process.env.GROTTO_COMPUTER_DISABLE_BROWSER_OPEN !== '1';
-    const enterOpensBrowser = browserOpenEnabled && process.stdin.isTTY === true;
-    let browserOpenRequested = false;
-    if (browserOpenEnabled) {
-        try {
-            openUrlInBrowser(started.approvalUrl);
-            browserOpenRequested = true;
-        } catch {}
-    }
-    console.log(`Approve this Computer in your browser: ${started.approvalUrl}`);
-    console.log(
-        browserOpenRequested
-            ? enterOpensBrowser
-                ? "Opened automatically. If it didn't open, press Enter to try again."
-                : "Opened automatically. If it didn't open, use the URL above."
-            : enterOpensBrowser
-              ? 'Press Enter to open the URL, or open it manually.'
-              : 'Open the URL above in a browser to continue.'
-    );
-    const cleanupEnterToOpen = browserOpenEnabled
-        ? installEnterToOpenUrl({
-              input: process.stdin,
-              url: started.approvalUrl,
-          })
-        : () => {};
-    const attachment = await waitForApproval(
-        started.approvalId,
-        started.serverId,
-        credential,
-        slug
-    ).finally(cleanupEnterToOpen);
-    if (current) {
-        await stopAttachment(current);
-        const archivedPath = await archiveUnlinkedAttachment(dataRoot, current);
-        console.log(`Archived the stale Computer attachment at ${archivedPath}.`);
-    }
-    await writeAttachment(attachment);
-    await removePendingAttachment(dataRoot, slug);
-    await startAttachment(attachment);
-    console.log(`Grotto Computer attached to /${slug}.`);
-}
-
-function isRouteUnavailable(cause: unknown) {
-    return (
-        isComputerLoginPurposeUnsupported(cause) ||
-        isComputerLoginRouteUnavailable(cause) ||
-        (cause instanceof ComputerRequestError &&
-            [404, 405].includes(cause.status) &&
-            cause.code?.startsWith('computer_attachment_') !== true)
-    );
 }
 
 function isComputerLoginRequestFailure(cause: unknown) {
@@ -595,47 +513,6 @@ async function validate(attachment: Attachment) {
     );
 }
 
-async function waitForApproval(
-    approvalId: string,
-    serverId: string,
-    credential: string,
-    slug: string
-) {
-    for (;;) {
-        const response = await fetch(
-            new URL(
-                `/computer/setup/${approvalId}?secret=${encodeURIComponent(readApprovalSecret())}`,
-                serverOrigin
-            )
-        );
-        if (!response.ok) {
-            const payload = (await response.json()) as { error?: string };
-            throw new Error(payload.error ?? 'Computer approval was rejected.');
-        }
-        const status = (await response.json()) as {
-            computerId?: string;
-            status: 'approved' | 'pending';
-        };
-        if (status.status === 'approved' && status.computerId) {
-            return {
-                computerId: status.computerId,
-                credential,
-                serverOrigin,
-                serverId,
-                slug,
-            } satisfies Attachment;
-        }
-        await Bun.sleep(1000);
-    }
-    function readApprovalSecret() {
-        // The approval link is the only holder of this short-lived secret. The
-        // local setup invocation keeps it in memory and never writes it.
-        return approvalSecrets.get(approvalId) ?? '';
-    }
-}
-
-const approvalSecrets = new Map<string, string>();
-
 async function request<Response>(
     path: string,
     body: object,
@@ -680,14 +557,6 @@ function isComputerMachineUnlinked(error: unknown): boolean {
         error.status === 403 &&
         error.code === 'computer_machine_unlinked'
     );
-}
-
-function approvalSecretFromUrl(approvalUrl: string) {
-    const secret = new URL(approvalUrl).searchParams.get('secret');
-    if (!secret) {
-        throw new Error('Server returned an invalid Computer approval URL.');
-    }
-    return secret;
 }
 
 async function writeAttachment(attachment: Attachment) {

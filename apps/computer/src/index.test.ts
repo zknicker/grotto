@@ -11,7 +11,7 @@ import { progress, readUpdateProgress, writeUpdateProgress } from './update.ts';
 
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
-test('setup stores only a Server credential and reruns by validation', async () => {
+test('setup signs in, stores only a Server credential, and reruns by validation', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
     const browserBin = join(dataRoot, 'browser-bin');
     const browserMarker = join(dataRoot, 'browser-opened.txt');
@@ -44,28 +44,39 @@ test('setup stores only a Server credential and reruns by validation', async () 
                 }
                 return new Response('upgrade failed', { status: 500 });
             }
-            if (url.pathname === '/computer/setup' && request.method === 'POST') {
+            if (url.pathname === '/computer/login' && request.method === 'POST') {
                 return Response.json({
-                    approvalId: 'cap_1234567890123456',
-                    approvalUrl: `${url.origin}/computer/approve?approval=cap_1234567890123456&secret=${'s'.repeat(32)}`,
-                    serverId: 'srv_test',
+                    deviceCode: 'd'.repeat(43),
+                    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+                    pollingIntervalMs: 1,
+                    userCode: 'ABCD-EFGH',
+                    verificationUrl: `${url.origin}/computer/login?code=ABCD-EFGH`,
                 });
             }
-            if (url.pathname === '/computer/setup/cap_1234567890123456') {
+            if (url.pathname === '/computer/login/poll') {
                 return Response.json({
-                    computerId: 'cmp_1234567890123456',
+                    accessToken: `gcl_at_${'a'.repeat(43)}`,
+                    accessTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+                    origin: url.origin,
+                    refreshToken: `gcl_rt_${'b'.repeat(43)}`,
+                    refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+                    sessionId: 'cls_1234567890123456',
                     status: 'approved',
                 });
             }
+            if (url.pathname === '/computer/attach') {
+                return Response.json({
+                    computerId: 'cmp_1234567890123456',
+                    idempotent: false,
+                    serverId: 'srv_test',
+                    slug: 'hq',
+                });
+            }
+            if (url.pathname === '/computer/login/complete') {
+                return Response.json({ status: 'completed' });
+            }
             if (url.pathname === '/computer/validate') {
                 return Response.json({ id: 'cmp_1234567890123456' });
-            }
-            if (url.pathname === '/computer/login') {
-                expect(await request.json()).toEqual({
-                    origin: url.origin,
-                    purpose: 'setup',
-                });
-                return Response.json({ error: 'Unrecognized key: "purpose"' }, { status: 400 });
             }
             return new Response('missing', { status: 404 });
         },
@@ -89,7 +100,7 @@ test('setup stores only a Server credential and reruns by validation', async () 
         };
         await runCli(environment);
         expect(await waitForFile(browserMarker)).toBe(
-            `http://127.0.0.1:${peer.port}/computer/approve?approval=cap_1234567890123456&secret=${'s'.repeat(32)}`
+            `http://127.0.0.1:${peer.port}/computer/login?code=ABCD-EFGH`
         );
         const attachmentRoot = join(dataRoot, 'servers', 'srv_test');
         const attachmentPath = join(dataRoot, 'servers', 'srv_test', 'attachment.json');
@@ -144,7 +155,8 @@ test('setup stores only a Server credential and reruns by validation', async () 
         expect(
             await stat(join(attachmentRoot, 'terminal-unlinked.json')).catch(() => null)
         ).toBeNull();
-        expect(requests.filter((request) => request === 'POST /computer/setup')).toHaveLength(1);
+        expect(requests).not.toContain('POST /computer/setup');
+        expect(requests.filter((request) => request === 'POST /computer/attach')).toHaveLength(1);
         expect(requests.filter((request) => request === 'POST /computer/validate')).toHaveLength(3);
     } finally {
         peer.stop(true);
@@ -246,13 +258,13 @@ test('login exchanges a device grant and atomically stores an origin-bound sessi
     }
 }, 15_000);
 
-test('setup preserves an unlinked attachment when replacement approval fails', async () => {
+test('setup preserves an unlinked attachment when replacement attachment fails', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
     const serverId = 'srv_oldoldoldoldold1';
     const attachmentRoot = join(dataRoot, 'servers', serverId);
     await mkdir(attachmentRoot, { recursive: true });
     const peer = Bun.serve({
-        fetch(request) {
+        async fetch(request) {
             const url = new URL(request.url);
             if (url.pathname === '/computer/validate') {
                 return Response.json(
@@ -263,15 +275,35 @@ test('setup preserves an unlinked attachment when replacement approval fails', a
                     { status: 403 }
                 );
             }
-            if (url.pathname === '/computer/setup') {
+            if (url.pathname === '/computer/login') {
                 return Response.json({
-                    approvalId: 'cap_1234567890123456',
-                    approvalUrl: `${url.origin}/computer/approve?approval=cap_1234567890123456&secret=${'s'.repeat(32)}`,
-                    serverId: 'srv_newnewnewnewnew1',
+                    deviceCode: 'd'.repeat(43),
+                    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+                    pollingIntervalMs: 1,
+                    userCode: 'ABCD-EFGH',
+                    verificationUrl: `${url.origin}/computer/login?code=ABCD-EFGH`,
                 });
             }
-            if (url.pathname === '/computer/setup/cap_1234567890123456') {
-                return Response.json({ error: 'Computer approval was rejected.' }, { status: 403 });
+            if (url.pathname === '/computer/login/poll') {
+                return Response.json({
+                    accessToken: `gcl_at_${'a'.repeat(43)}`,
+                    accessTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+                    origin: url.origin,
+                    refreshToken: `gcl_rt_${'b'.repeat(43)}`,
+                    refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+                    sessionId: 'cls_1234567890123456',
+                    status: 'approved',
+                });
+            }
+            if (url.pathname === '/computer/attach') {
+                await request.json();
+                return Response.json(
+                    {
+                        code: 'computer_attachment_insufficient_role',
+                        error: 'Only a Server Owner or Admin can attach a Computer.',
+                    },
+                    { status: 403 }
+                );
             }
             return new Response('missing', { status: 404 });
         },
@@ -300,7 +332,7 @@ test('setup preserves an unlinked attachment when replacement approval fails', a
         });
         const stdout = new Response(child.stdout).text();
         expect(await child.exited).toBe(1);
-        expect(await stdout).toContain('Open the URL above in a browser to continue.');
+        expect(await stdout).toContain('Open the URL above and enter the code if needed.');
         expect(await stdout).not.toContain('press Enter');
         expect(await stat(join(attachmentRoot, 'attachment.json'))).not.toBeNull();
         expect((await readdir(attachmentRoot)).some((file) => file.includes('.unlinked-'))).toBe(
@@ -329,33 +361,50 @@ test('setup archives an unlinked attachment before connecting a recreated Server
         })
     );
     const peer = Bun.serve({
-        fetch(request, server) {
+        async fetch(request, server) {
             const url = new URL(request.url);
             if (url.pathname === '/computer/validate') {
-                return request.json().then((body) =>
-                    (body as { serverId?: string }).serverId === oldServerId
-                        ? Response.json(
-                              {
-                                  code: 'computer_machine_unlinked',
-                                  error: 'Computer credential was rejected.',
-                              },
-                              { status: 403 }
-                          )
-                        : Response.json({ id: 'cmp_newnewnewnewnew1' })
-                );
+                const body = (await request.json()) as { serverId?: string };
+                return body.serverId === oldServerId
+                    ? Response.json(
+                          {
+                              code: 'computer_machine_unlinked',
+                              error: 'Computer credential was rejected.',
+                          },
+                          { status: 403 }
+                      )
+                    : Response.json({ id: 'cmp_newnewnewnewnew1' });
             }
-            if (url.pathname === '/computer/setup' && request.method === 'POST') {
+            if (url.pathname === '/computer/login' && request.method === 'POST') {
                 return Response.json({
-                    approvalId: 'cap_1234567890123456',
-                    approvalUrl: `${url.origin}/computer/approve?approval=cap_1234567890123456&secret=${'s'.repeat(32)}`,
-                    serverId: newServerId,
+                    deviceCode: 'd'.repeat(43),
+                    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+                    pollingIntervalMs: 1,
+                    userCode: 'ABCD-EFGH',
+                    verificationUrl: `${url.origin}/computer/login?code=ABCD-EFGH`,
                 });
             }
-            if (url.pathname === '/computer/setup/cap_1234567890123456') {
+            if (url.pathname === '/computer/login/poll') {
                 return Response.json({
-                    computerId: 'cmp_newnewnewnewnew1',
+                    accessToken: `gcl_at_${'a'.repeat(43)}`,
+                    accessTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+                    origin: url.origin,
+                    refreshToken: `gcl_rt_${'b'.repeat(43)}`,
+                    refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+                    sessionId: 'cls_1234567890123456',
                     status: 'approved',
                 });
+            }
+            if (url.pathname === '/computer/attach') {
+                return Response.json({
+                    computerId: 'cmp_newnewnewnewnew1',
+                    idempotent: false,
+                    serverId: newServerId,
+                    slug: 'hq',
+                });
+            }
+            if (url.pathname === '/computer/login/complete') {
+                return Response.json({ status: 'completed' });
             }
             if (url.pathname === '/computer/attachment' && server.upgrade(request)) {
                 return;

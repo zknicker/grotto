@@ -95,6 +95,16 @@ grotto-computer logs 200
 private local files plus Server credential acceptance without printing secrets,
 and `logs` tails the resident service log.
 
+For login and setup failures, start with `grotto-computer status`. An expired or
+abandoned device code is not resumed; rerun `setup /<server-slug>` for a new code.
+A saved wrong account or origin requires `grotto-computer login --replace`, then
+setup again. **Signed in — finishing the connection** means browser approval
+succeeded but durable local attachment storage has not; leave the page open and
+rerun the same setup command if the CLI stopped. Its persisted idempotency key
+recovers the issued Computer instead of creating another. `logout` revokes only
+the human management session and stops the service; it preserves every Server
+attachment and Agent workspace for an explicit later `start`.
+
 ## Claude Code Previews
 
 `.claude/launch.json` tells Claude Code's browser preview which port to attach

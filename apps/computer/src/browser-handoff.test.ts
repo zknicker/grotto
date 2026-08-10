@@ -6,7 +6,7 @@ import {
     type SpawnBrowserProcess,
 } from './browser-handoff.ts';
 
-test('opens an approval URL with the native macOS browser command', () => {
+test('opens a verification URL with the native macOS browser command', () => {
     const calls: unknown[][] = [];
     let unrefCalled = false;
     const spawn = ((...args: unknown[]) => {
@@ -21,7 +21,7 @@ test('opens an approval URL with the native macOS browser command', () => {
         };
     }) as SpawnBrowserProcess;
 
-    openUrlInBrowser('https://grotto.sh/computer/approve?approval=cap_test', {
+    openUrlInBrowser('https://grotto.sh/computer/login?code=ABCD-EFGH', {
         platform: 'darwin',
         spawn,
     });
@@ -29,7 +29,7 @@ test('opens an approval URL with the native macOS browser command', () => {
     expect(calls).toEqual([
         [
             'open',
-            ['https://grotto.sh/computer/approve?approval=cap_test'],
+            ['https://grotto.sh/computer/login?code=ABCD-EFGH'],
             { detached: true, stdio: 'ignore', windowsHide: true },
         ],
     ]);
@@ -46,13 +46,13 @@ test('Enter retries the browser handoff only for an interactive terminal', () =>
     const cleanup = installEnterToOpenUrl({
         input,
         openUrl: (url) => opened.push(url),
-        url: 'https://grotto.sh/computer/approve?approval=cap_test',
+        url: 'https://grotto.sh/computer/login?code=ABCD-EFGH',
     });
 
     input.emit('data', Buffer.from('not yet'));
     expect(opened).toEqual([]);
     input.emit('data', Buffer.from('\n'));
-    expect(opened).toEqual(['https://grotto.sh/computer/approve?approval=cap_test']);
+    expect(opened).toEqual(['https://grotto.sh/computer/login?code=ABCD-EFGH']);
     input.emit('data', Buffer.from('\n'));
     expect(opened).toHaveLength(1);
     cleanup();
@@ -71,7 +71,7 @@ test('a non-interactive input never installs an Enter retry', () => {
     installEnterToOpenUrl({
         input,
         openUrl: (url) => opened.push(url),
-        url: 'https://grotto.sh/computer/approve?approval=cap_test',
+        url: 'https://grotto.sh/computer/login?code=ABCD-EFGH',
     });
 
     input.emit('data', Buffer.from('\n'));

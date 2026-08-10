@@ -120,25 +120,6 @@ const schemaStatements = [
     'CREATE UNIQUE INDEX computers_server_id_key ON computers (server_id, id);',
     'CREATE UNIQUE INDEX computers_attachment_idempotency_key ON computers (attachment_idempotency_key);',
     'CREATE INDEX computers_server_idx ON computers (server_id, created_at DESC);',
-    `CREATE TABLE computer_setup_approvals (
-        id text PRIMARY KEY NOT NULL
-            CONSTRAINT computer_setup_approvals_id_shape CHECK (id ~ '^cap_[A-Za-z0-9_-]{16}$'),
-        server_id text NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
-        credential_hash text NOT NULL
-            CONSTRAINT computer_setup_approvals_credential_hash_shape CHECK (credential_hash ~ '^[a-f0-9]{64}$'),
-        approval_secret_hash text NOT NULL UNIQUE
-            CONSTRAINT computer_setup_approvals_secret_hash_shape CHECK (approval_secret_hash ~ '^[a-f0-9]{64}$'),
-        expires_at timestamptz NOT NULL,
-        approved_at timestamptz,
-        approved_by_user_id text,
-        computer_id text UNIQUE REFERENCES computers (id) ON DELETE CASCADE,
-        created_at timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT computer_setup_approvals_approval_shape CHECK (
-            (approved_at IS NULL AND approved_by_user_id IS NULL AND computer_id IS NULL)
-            OR (approved_at IS NOT NULL AND approved_by_user_id IS NOT NULL AND computer_id IS NOT NULL)
-        )
-    );`,
-    'CREATE INDEX computer_setup_approvals_server_idx ON computer_setup_approvals (server_id, created_at DESC);',
     `CREATE TABLE computer_login_grants (
         id text PRIMARY KEY NOT NULL
             CONSTRAINT computer_login_grants_id_shape CHECK (id ~ '^dgr_[A-Za-z0-9_-]{16}$'),

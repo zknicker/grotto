@@ -40,7 +40,7 @@ test('attach rejects redirects without forwarding the management token', async (
     }
 });
 
-test('setup preserves a missing-Server attach error instead of entering legacy setup', async () => {
+test('setup preserves a missing-Server attach error without trying another protocol', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-attach-missing-'));
     const requests: string[] = [];
     const peer = Bun.serve({
@@ -56,7 +56,7 @@ test('setup preserves a missing-Server attach error instead of entering legacy s
                     { status: 404 }
                 );
             }
-            return Response.json({ error: 'legacy setup must not run' }, { status: 500 });
+            return Response.json({ error: 'no other request should run' }, { status: 500 });
         },
         port: 0,
     });

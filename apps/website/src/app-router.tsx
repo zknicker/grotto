@@ -193,13 +193,6 @@ export function createAppRouter() {
                             ],
                         },
                         {
-                            path: 'computer/approve',
-                            lazy: lazyRoute(
-                                () => import('./routes/app/computer-approval-page.tsx'),
-                                'ComputerApprovalPage'
-                            ),
-                        },
-                        {
                             path: 'invite/:token',
                             lazy: lazyRoute(
                                 () => import('./routes/app/accept-invitation-page.tsx'),

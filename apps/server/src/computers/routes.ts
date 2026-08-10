@@ -5,9 +5,7 @@ import { attachComputer, ComputerAttachmentError } from './attachment-service.ts
 import {
     attachComputerSchema,
     beginComputerLoginSchema,
-    beginComputerSetupSchema,
     completeComputerLoginSchema,
-    computerSetupStatusSchema,
     inspectComputerLoginSchema,
     pollComputerLoginSchema,
     refreshComputerLoginSchema,
@@ -23,12 +21,7 @@ import {
     revokeComputerLogin,
 } from './login-session-service.ts';
 import { mintRunnerCredential, revokeRunnerCredential } from './runner-credentials.ts';
-import {
-    beginComputerSetup,
-    ComputerSetupDeniedError,
-    readComputerSetupStatus,
-    validateComputerCredential,
-} from './service.ts';
+import { ComputerSetupDeniedError, validateComputerCredential } from './service.ts';
 
 export function registerComputerRoutes(
     app: FastifyInstance,
@@ -43,34 +36,6 @@ export function registerComputerRoutes(
                 return loginError(reply, cause);
             }
             return attachmentError(reply, cause);
-        }
-    });
-    app.post('/computer/setup', async (request, reply) => {
-        try {
-            const input = beginComputerSetupSchema.parse(request.body);
-            const setup = await beginComputerSetup(options.db, input);
-            const approvalUrl = new URL('/computer/approve', options.appOrigin);
-            approvalUrl.searchParams.set('approval', setup.approvalId);
-            approvalUrl.searchParams.set('secret', setup.secret);
-            return {
-                approvalId: setup.approvalId,
-                approvalUrl: approvalUrl.toString(),
-                serverId: setup.serverId,
-            };
-        } catch (cause) {
-            return setupError(reply, cause);
-        }
-    });
-    app.get('/computer/setup/:approvalId', async (request, reply) => {
-        try {
-            const query = request.query as { secret?: string };
-            const input = computerSetupStatusSchema.parse({
-                approvalId: (request.params as { approvalId?: string }).approvalId,
-                secret: query.secret,
-            });
-            return await readComputerSetupStatus(options.db, input);
-        } catch (cause) {
-            return setupError(reply, cause);
         }
     });
     app.post('/computer/login', async (request, reply) => {

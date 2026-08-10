@@ -153,9 +153,7 @@ Server owns the short human-readable code, complete and manual verification URLs
 one-time exchange, refresh rotation, and revocation. The `/computer/login` request accepts an
 optional `purpose` of `login` (the default) or `setup`; setup uses the same grant and credential
 exchange while carrying the setup state through the Server status response. Browser URL parameters
-are never authority for setup completion. Standalone login omits the optional field for compatibility,
-and setup falls back to the retained one-off approval when the preceding strict Server contract rejects
-that field. The current contract exposes this as
+are never authority for setup completion. The contract exposes this as
 `grotto-computer login`, `POST /computer/login`, `POST /computer/login/poll`,
 `POST /computer/login/complete`, `POST /computer/login/refresh`,
 `POST /computer/login/inspect`, and `POST /computer/login/revoke`, plus the public
@@ -163,9 +161,7 @@ that field. The current contract exposes this as
 `computer.login.deny` procedures. The code alone grants nothing: a signed-in User must approve it
 explicitly, and the returned session is bound to the origin the CLI contacted. After atomically
 storing the returned session, the CLI proves persistence with its access token; the browser does
-not report completion before that acknowledgement. The existing
-one-off `computer/setup` approval remains available for compatibility while attachment migration
-lands in later phases. A valid same-origin session is reused without browser authorization and an
+not report completion before that acknowledgement. A valid same-origin session is reused without browser authorization and an
 expired access token rotates through the refresh endpoint. A different saved origin requires the
 explicit `grotto-computer login --replace` command; login never silently replaces an account. The
 `logout` command revokes the session, removes only the local human-session record, stops the
@@ -176,6 +172,6 @@ management-only issuance endpoint: it accepts the access token, a hash of the ne
 Computer credential, the locally persisted `cak_...` attachment idempotency key, and the Server
 slug. It requires the signed-in Grotto User to be an Owner or Admin, returns the same Computer on
 retries of one key, and never returns either credential. Missing Servers, wrong accounts, and
-Member-role callers receive distinct actionable errors. New `setup` invocations perform login-if-
+Member-role callers receive distinct actionable errors. `setup` invocations perform login-if-
 needed, attach-or-recover, and start; an existing local attachment resumes through its own
 Server-scoped credential without login or migration.

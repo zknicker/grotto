@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.4 - 2026-08-09
+
+- App/Server prepares reusable Grotto Computer device login and management
+  sessions for attaching additional Servers without repeated browser approval.
+- First-Computer setup reports **Signed in — finishing the connection** until
+  the attachment is durably recoverable, and **Computer connected** only after
+  the CLI stores it successfully.
+- Fresh-Server onboarding continues to hide Cove's factory commands, workspace,
+  and acknowledgement details behind the quiet **Getting Cove ready…** state.
+- App/Server 1.8.4 remains compatible with the currently published Grotto
+  Computer 1.3.3, including its one-off setup flow and existing attachments.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.4
+- Desktop: Unchanged
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.8.3 - 2026-08-08
 
 - Server addresses once again follow the Server name while typing, while preserving

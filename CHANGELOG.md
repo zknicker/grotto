@@ -11,14 +11,22 @@ All notable changes to this project will be documented in this file.
   the CLI stores it successfully.
 - Fresh-Server onboarding continues to hide Cove's factory commands, workspace,
   and acknowledgement details behind the quiet **Getting Cove ready…** state.
-- App/Server 1.8.4 remains compatible with the currently published Grotto
-  Computer 1.3.3, including its one-off setup flow and existing attachments.
+- Grotto Computer 1.4.0 replaces one-off setup approval with a reusable,
+  origin-bound login session, so Owners and Admins can attach additional
+  Servers without reopening the browser while existing attachments and Agent
+  workspaces remain intact.
+- Login refresh, explicit account replacement, durable attach retries, logout,
+  and upgrade rollback preserve the contracted cutover boundary: management
+  uses the saved human session while execution keeps Server-scoped Computer
+  credentials.
+- App/Server remains unchanged at the already-published v1.8.4 expanded
+  compatibility checkpoint; Desktop and Runtime remain unchanged.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.4
+- App/Server: Unchanged
 - Desktop: Unchanged
-- Computer: Unchanged
+- Computer: Publish v1.4.0
 - Runtime: Unchanged
 
 ## v1.8.3 - 2026-08-08

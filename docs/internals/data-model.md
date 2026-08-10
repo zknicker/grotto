@@ -32,7 +32,8 @@ delivery, and the product timeline.
 | Runtime timeline tests   | `apps/runtime/src/tavern/chat-api-timeline.test.ts` | Turn-aligned history pages, cursor stability, and window alignment                          |
 | App schema               | `apps/server/src/db/bootstrap.ts`                   | App SQLite fresh setup                                                                      |
 | App Drizzle schema       | `apps/server/src/db/schema/`                        | Typed app cache and synced runtime tables                                                   |
-| Hosted schema            | `apps/server/src/postgres/schema/`                  | PostgreSQL collaboration, reminder, and durable-attention tables                            |
+| Hosted schema            | `apps/server/src/postgres/schema/`                  | Typed PostgreSQL collaboration, reminder, and durable-attention schema                       |
+| Hosted migrations        | `apps/server/drizzle/postgres/`                     | Ordered, checked-in PostgreSQL migration SQL and snapshots                                   |
 | Grotto API package       | `packages/tavern-api/src/`                          | OpenAPI-generated and Zod-backed API contracts                                              |
 | Agent execution evidence | Runtime SQLite                                      | Native execution and transcripts                                                            |
 
@@ -206,9 +207,10 @@ and attention rows, advances or completes the schedule, then appends
 advances from the current controlled clock, so restart recovery fires at most
 one missed slot.
 
-The hosted schema is fresh-bootstrap only. An incompatible development
-database must be recreated manually after operator approval; there is no
-migration runner, compatibility view, or fallback path.
+Fresh databases are created entirely by the checked-in Drizzle migration
+history. Production deployment migrates before activating the new Server
+release; migrations must therefore remain compatible with the previous release
+so application rollback remains safe.
 
 Hosted parent unread count is top-level unread plus unread replies by others in
 followed Threads. For an explicitly unfollowed Thread, only an unread explicit

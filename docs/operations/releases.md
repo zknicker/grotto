@@ -167,6 +167,12 @@ surface. It accepts an exact existing published, non-draft, non-prerelease
 * `activate`: verify and switch to that already installed release without a
   download or rebuild
 
+Both paths invoke the root-owned activation helper. It applies the candidate
+release's pending checked-in PostgreSQL migrations before switching `current`.
+A migration failure leaves the running release untouched. Database migrations
+are not rolled back when application health rollback restores an older release,
+so every migration must remain compatible with that older release.
+
 `activate` validates the published tag and the already-installed release; it
 does not require release assets. This preserves rollback to an installed
 transitional release whose GitHub Release predates hosted Server assets.

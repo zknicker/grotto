@@ -33,15 +33,14 @@ The self-hosted `Deploy Grotto Server` workflow:
    GitHub API
 4. in `deploy` mode, requires the exact Server archive and sidecar whose
    version and short SHA match that release
-5. verifies the existing private PostgreSQL service without starting,
-   recreating, migrating, or bootstrapping it
+5. verifies the existing private PostgreSQL service without mutating it
 6. in `deploy` mode, downloads and checksum-verifies those two assets, extracts
    only the compiled deploy operation, and uses it to verify and install the
    immutable full-SHA release; `activate` verifies the installed release through
    the activation helper and skips asset download and installation
-7. switches `current`, bootstraps the exact root-owned Server plist when its
-   label is not loaded, otherwise restarts only `com.grotto.server`, and proves
-   local health
+7. applies the candidate's pending checked-in PostgreSQL migrations, switches
+   `current`, bootstraps the exact root-owned Server plist when its label is not
+   loaded, otherwise restarts only `com.grotto.server`, and proves local health
 8. rolls back to the exact previous SHA on failure; a failed first activation
    boots out the label it introduced before removing `current`
 
@@ -62,8 +61,9 @@ output.
 The Apple Silicon archive and SHA-256 file are built under
 `apps/server/release/`, verified by the publisher, and attached to the GitHub
 Release. The archive contains the compiled deploy operation, Server operations,
-hosted App, four Grotto launchd jobs, one narrow activation sudoers rule, shared
-Colima boot assets, and safe configuration examples. The mini verifies the
+hosted App, PostgreSQL migration runner and files, four Grotto launchd jobs, one
+narrow activation sudoers rule, shared Colima boot assets, and safe
+configuration examples. The mini verifies the
 outer checksum before extracting or executing the deploy operation, which then
 verifies the internal manifest and release identity before atomic installation.
 A manual `activate` never downloads, rebuilds, or reinterprets an artifact.
@@ -85,7 +85,8 @@ Host-only state lives under `/Users/zknicker/srv/grotto`: `.env`,
 and `current`. Preserve `bin/`, `colima/`, and `operations/` when present. Put
 these names in the checkout's local `.git/info/exclude`; do not commit them and
 never run `git clean`. Secret files are mode `0600`, owned by the one service
-identity that needs them. Service identities cannot write the checkout,
+identity that needs them; `migration.env` is root-owned because only the
+activation helper reads it. Service identities cannot write the checkout,
 release, or activation-helper directories. The Server and PostgreSQL listen
 only on loopback.
 
@@ -116,8 +117,10 @@ provisions and verifies the sentinel.
 
 The operator creates three roles:
 
-- `grotto_bootstrap`: owns the `public` schema (or its database) and is used
-  only for the one fresh bootstrap.
+- `grotto_bootstrap`: owns the database and its `public` schema, performs the
+  one fresh bootstrap, and then acts as the migration login during activation.
+  Each migration run reapplies privileges so new tables and sequences are
+  immediately usable by `grotto_runtime`.
 - `grotto_runtime`: login with `CONNECT`, schema `USAGE`, and table DML only.
 - `grotto_backup`: login with `CONNECT` and read-only access needed by
   `pg_dump`.
@@ -126,15 +129,40 @@ Run bootstrap once against an empty, newly created production database:
 
 ```bash
 GROTTO_DATABASE_BOOTSTRAP_URL='postgres://grotto_bootstrap:…@127.0.0.1:5438/grotto_production' \
+GROTTO_DATABASE_BACKUP_ROLE=grotto_backup \
 GROTTO_DATABASE_RUNTIME_ROLE=grotto_runtime \
 /Users/zknicker/srv/grotto/current/bin/grotto-server-bootstrap
 ```
 
-Grant `grotto_backup` read-only access after bootstrap, then change
-`grotto_bootstrap` to `NOLOGIN`. Inject the runtime URL into `server.env`.
-Startup checks connectivity and does not execute DDL. There are no migrations,
-adoption paths, or schema compatibility shims. Any incompatible development
-state requires a separately named, manual, operator-approved recreate.
+Bootstrap and every migration grant `grotto_backup` its required read access.
+Store the migration URL only in root-readable `config/migration.env`; store the
+runtime URL in `server.env`. Startup checks connectivity and never executes
+DDL. The verified activation helper runs pending SQL from
+`apps/server/drizzle/postgres/` with the bootstrap/migration role before
+switching `current` and restarting the Server. A migration failure leaves the
+previous release active.
+
+For the one-time pre-release migration cutover, install the new privileged
+activation helper and recreate the greenfield database through
+`grotto-server-bootstrap`. Then install `migration.env` before activating the
+first migration-enabled release. Keep that credential root-only; neither the
+Server service nor the deploy runner may read it. There is no adoption path for
+a database created by the former handwritten bootstrap.
+
+Generate a migration whenever `apps/server/src/postgres/schema/` changes:
+
+```bash
+cd apps/server
+bun run db:generate -- --name=<short-name>
+bun run db:check
+```
+
+Review and commit the generated SQL and metadata. Never use `drizzle-kit push`
+against production. Migrations are forward-only and must use expand/contract:
+the old Server must remain valid after the migration because application
+rollback does not reverse database changes. Destructive cleanup lands only in a
+later release after every deployed Server version has stopped using the old
+shape.
 
 ## Supervision and health
 
@@ -242,7 +270,8 @@ secret source, and rollback release before changing the host.
    `/Users/zknicker/srv` and verify those ancestors are not group- or
    world-writable.
 8. Create the fresh database and least-privilege roles; run bootstrap once,
-   grant backup reads, and revoke bootstrap login.
+   grant backup reads, and install root-readable `migration.env` for automatic
+   release migrations.
 9. Create mode `0600` runtime configuration. `config/server.env` requires the
    production database URL, `https://grotto.sh` origin, Grotto Clerk issuer,
    and Grotto production `CLERK_SECRET_KEY`; invitation acceptance needs that
@@ -258,7 +287,8 @@ secret source, and rollback release before changing the host.
     argument contract. This is the runner's only NOPASSWD command. Install
     reviewed launchd plists separately; ordinary release workflows never update
     these privileged assets. Reinstall the helper through this operator gate
-    before deploying a release that changes its validation contract.
+    before the one-time migration cutover or any later release that changes its
+    validation contract.
 11. Manually dispatch the exact published `vX.Y.Z` in `deploy` mode. This seeds
     the first immutable release through the same download, verification,
     install, helper-owned Server bootstrap, health, and rollback path used by

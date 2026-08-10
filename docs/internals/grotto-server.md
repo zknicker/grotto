@@ -213,11 +213,15 @@ library. Imports wait for the Agent's current turn to settle and affect the next
 turn only. Native skill paths and harness injection resolve to the same library.
 See [Skills](../features/skills.md) and [Skills API](../api/skills.md).
 
-`apps/server/src/postgres/bootstrap.ts` is the schema of record — fresh-schema
-DDL applied by the explicit bootstrap command before the application starts.
-`schema.ts` describes the same tables for typed queries. The Server application
-role has table DML authority but no DDL authority. There is no migration history
-or tooling.
+`apps/server/src/postgres/schema/` is the typed schema of record, and
+`apps/server/drizzle/postgres/` contains its ordered Drizzle migration history.
+Fresh bootstrap applies that history to an empty database; it does not maintain
+a second handwritten schema. The migration history carries the one composite
+Thread-anchor foreign key that cannot live in the typed modules without a
+`chats`/`chat_messages` initializer cycle. Each production activation applies
+pending checked-in migrations before switching releases. The Server application
+role retains table DML authority but no DDL authority; only the root-scoped
+bootstrap/migration login can change the schema.
 
 ## Durable Agent delivery
 

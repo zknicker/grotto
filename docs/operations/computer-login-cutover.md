@@ -13,7 +13,7 @@ App/Server. Never activate the contracted Server before the new Computer is publ
 the production Computer has upgraded. The hosted App and Server are one artifact, so the last
 checkpoint activates both together.
 
-Choose and record three exact versions before starting:
+Choose and record the three release versions plus the rollback Server version before starting:
 
 ```sh
 export EXPANDED_SERVER_VERSION=X.Y.Z
@@ -61,19 +61,38 @@ public health, then run setup once with the currently published Computer. Do not
 existing attachment, workspace, and Agent remain available after reconnect.
 
 Rollback checkpoint: activate the previously recorded Server release. No Computer rollback is
-needed because no Computer has changed:
+needed because no Computer has changed. Dispatch alone is not rollback proof; wait for the exact
+workflow run and public health before continuing:
 
 ```sh
-gh workflow run deploy-grotto-server.yml \
-  -f version="v$PREVIOUS_SERVER_VERSION" -f mode=activate
+SERVER_ROLLBACK_RUN_URL="$(
+  gh workflow run deploy-grotto-server.yml \
+    -f version="v$PREVIOUS_SERVER_VERSION" -f mode=activate
+)"
+test -n "$SERVER_ROLLBACK_RUN_URL"
+gh run watch "${SERVER_ROLLBACK_RUN_URL##*/}" --exit-status
+curl --fail --silent --show-error https://grotto.sh/healthz
 ```
 
 ## 2. Computer
 
-From the cutover source, prepare release metadata so `release-surfaces.json` publishes the selected
-Computer version. Run the signed artifact dry run, then publish:
+From the cutover source, set `apps/computer/package.json` to `$COMPUTER_VERSION`. Prepare a
+Computer-only `release-surfaces.json`: Computer publishes `$COMPUTER_VERSION`; App/Server,
+Desktop, and Runtime are unchanged; `targetVersion` is `null`. Update the current changelog entry
+with that exact surface block. The dry run deliberately does not validate this metadata, so check
+and commit it before building:
 
 ```sh
+bun install --frozen-lockfile
+bun run release:collect-changelog-context
+# Complete CHANGELOG.md and release-surfaces.json with the reviewed Computer-only decision.
+bun run release:check
+git diff --check
+git add CHANGELOG.md apps/computer/package.json release-surfaces.json
+git commit -m "chore(release): prepare Computer $COMPUTER_VERSION"
+# Land that reviewed commit on main, then prove this exact source is present there.
+git fetch origin main
+git merge-base --is-ancestor HEAD origin/main
 bun run computer:release -- --dry-run "$COMPUTER_VERSION"
 bun run computer:release "$COMPUTER_VERSION"
 curl --fail --silent --show-error \
@@ -98,13 +117,15 @@ the Computer back by itself after the contracted Server activates.
 The cutover source removes the one-off Server endpoints and PostgreSQL model, Computer fallback,
 and browser route. It does not drop or rewrite the production database; existing Computer rows,
 credentials, attachments, and workspaces stay in place. Prepare and publish the final App/Server
-release with Computer marked unchanged at the version already published:
+release with Computer marked **publish** at the exact version already published. This does not
+republish Computer: it makes `release:publish` reject the final release unless the signed production
+descriptor is exactly `$COMPUTER_VERSION`. Mark Desktop and Runtime unchanged:
 
 ```sh
 bun run release:bump "$CUTOVER_APP_VERSION"
 bun install --frozen-lockfile
 bun run release:collect-changelog-context
-# Complete CHANGELOG.md and release-surfaces.json with the reviewed surface decision.
+# Set Computer to publish $COMPUTER_VERSION in CHANGELOG.md and release-surfaces.json.
 bun run release:check
 bun run release:publish
 ```
@@ -113,11 +134,17 @@ Confirm the published release deployed, `/healthz` is healthy, the hosted App lo
 production Computer reconnects. Then run the clean-root smoke below.
 
 Rollback checkpoint: first reactivate the expanded Server release, then roll Computer back only if
-needed. This order restores the endpoint the previous Computer requires:
+needed. Wait for successful Server activation and public health before changing Computer; dispatching
+the workflow is not sufficient:
 
 ```sh
-gh workflow run deploy-grotto-server.yml \
-  -f version="v$EXPANDED_SERVER_VERSION" -f mode=activate
+SERVER_ROLLBACK_RUN_URL="$(
+  gh workflow run deploy-grotto-server.yml \
+    -f version="v$EXPANDED_SERVER_VERSION" -f mode=activate
+)"
+test -n "$SERVER_ROLLBACK_RUN_URL"
+gh run watch "${SERVER_ROLLBACK_RUN_URL##*/}" --exit-status
+curl --fail --silent --show-error https://grotto.sh/healthz
 $HOME/.local/bin/grotto-computer upgrade --rollback
 ```
 
@@ -126,10 +153,17 @@ rollback step.
 
 ## Production Smoke From A Clean Data Root
 
-Create a fresh Server in the production App and record its exact slug and Server id. Use an isolated
-temporary Computer root; never point the smoke at `~/.grotto`:
+Run this smoke from a dedicated macOS Unix account or separate host that does not own an existing
+Grotto Computer service. A temporary data root isolates Computer files, but `logout` intentionally
+stops the account-wide `com.grotto.computer` launchd service; running it as the production Computer
+account would take existing attachments offline. Prove the smoke account has no service plist and
+uses the published executable, then create a fresh Server in the production App and record its exact
+slug and Server id:
 
 ```sh
+test ! -e "$HOME/Library/LaunchAgents/com.grotto.computer.plist"
+test -x "$HOME/.local/bin/grotto-computer"
+$HOME/.local/bin/grotto-computer version
 export SMOKE_SERVER_SLUG=replace-with-recorded-slug
 export SMOKE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/grotto-computer-smoke.XXXXXX")"
 GROTTO_COMPUTER_DATA_ROOT="$SMOKE_ROOT/computer" \

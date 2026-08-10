@@ -26,7 +26,7 @@ type BridgeHarnessId = 'claude-code' | 'codex';
 
 const bridgeSpecs = {
     'claude-code': {
-        bootstrapDir: '/tmp/harness/claude-code',
+        bootstrapDir: '.harness-bootstrap/claude-code',
         files: [
             { assetName: 'package.json', bootstrapName: 'package.json' },
             { assetName: 'pnpm-lock.yaml', bootstrapName: 'pnpm-lock.yaml' },
@@ -34,11 +34,11 @@ const bridgeSpecs = {
         ],
         packageName: '@ai-sdk/harness-claude-code',
         postInstallCommands: [
-            'if [ -f /tmp/harness/claude-code/node_modules/@anthropic-ai/claude-code/install.cjs ]; then node /tmp/harness/claude-code/node_modules/@anthropic-ai/claude-code/install.cjs; fi && /tmp/harness/claude-code/node_modules/.bin/claude --version',
+            'if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version',
         ],
     },
     codex: {
-        bootstrapDir: '/tmp/harness/codex',
+        bootstrapDir: '.harness-bootstrap/codex',
         files: [
             { assetName: 'package.json', bootstrapName: 'package.json' },
             { assetName: 'pnpm-lock.yaml', bootstrapName: 'pnpm-lock.yaml' },
@@ -77,7 +77,7 @@ export function withComputerBridgeBootstrap<T extends HarnessV1>(
     };
 }
 
-/** Release/doctor gate: every bridge file required by a real Agent turn is embedded. */
+/** Release/doctor gate: embedded bridge files land where each adapter launches them. */
 export async function validateComputerBridgeAssets(): Promise<void> {
     await Promise.all(
         (Object.keys(bridgeSpecs) as BridgeHarnessId[]).map((harnessId) =>
@@ -93,9 +93,8 @@ async function readBridgeBootstrap(
     return {
         bootstrapDir: spec.bootstrapDir,
         commands: [
-            { command: `mkdir -p ${spec.bootstrapDir}` },
             {
-                command: `CI=true pnpm --dir ${spec.bootstrapDir} install --frozen-lockfile --store-dir ${spec.bootstrapDir}/.pnpm-store`,
+                command: 'CI=true pnpm install --frozen-lockfile --store-dir .pnpm-store',
             },
             ...('postInstallCommands' in spec
                 ? spec.postInstallCommands.map((command) => ({ command }))

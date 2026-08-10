@@ -19,7 +19,7 @@ export function classifyRuntimeFailure(error: unknown): RuntimeFailureKind {
         return 'authentication';
     }
     if (
-        /unknown model|model .*(not found|unsupported|invalid)|unsupported model|invalid model/u.test(
+        /unknown model|model .*(not found|unsupported|invalid)|unsupported model|invalid model|cannot find module .*\.harness-bootstrap/u.test(
             normalized
         )
     ) {

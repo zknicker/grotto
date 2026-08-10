@@ -1,20 +1,20 @@
 import { getDesktopBridge, isElectronDesktopApp } from './desktop-bridge.ts';
 
 /**
- * The hosted Server admits only an App that declares the exact
+ * The hosted Server admits only a client that declares the exact
  * `appProtocolVersion`. When it does not, every hosted procedure and each
  * subscription start fails closed with this one tRPC code before any product
- * data is served. It is the App's single typed "update required" signal.
+ * data is served. It is the Server UI's single typed "update required" signal.
  */
 const updateRequiredTrpcCode = 'PRECONDITION_FAILED';
 
-/** How the App resolves an update-required signal for the current shell. */
+/** How the Server UI resolves an update-required signal for the current shell. */
 export type UpdateRequiredMode = 'desktop-update' | 'reload';
 
 /**
  * A hosted browser or current thin desktop shell reloads to fetch the current
- * App. Older desktop releases still carrying a bundled renderer must install a
- * desktop update instead.
+ * Server UI. Older App releases still carrying a bundled renderer must install an
+ * App update instead.
  */
 export function updateRequiredMode(): UpdateRequiredMode {
     return isElectronDesktopApp() && !getDesktopBridge()?.loadsHostedApp

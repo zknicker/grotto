@@ -251,7 +251,7 @@ const hostedAgentLifecycleBaseSchema = z.object({
 
 /**
  * Volatile execution projection for one hosted Agent run. Durable turn
- * evidence remains in `agent.activity`; this feed exists so App surfaces can
+ * evidence remains in `agent.activity`; this feed exists so Server UI surfaces can
  * react immediately without inventing transcript rows.
  */
 export const hostedAgentLifecycleEventSchema = z.discriminatedUnion('phase', [

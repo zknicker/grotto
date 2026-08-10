@@ -1,11 +1,11 @@
 {
   "targetVersion": "1.8.13",
   "surfaces": {
-    "appServer": {
+    "server": {
       "action": "publish",
       "version": "1.8.13"
     },
-    "desktop": {
+    "app": {
       "action": "unchanged",
       "version": null
     },

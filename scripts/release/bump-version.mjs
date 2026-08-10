@@ -33,7 +33,7 @@ const main = async () => {
 
     if (latestChangelogVersion !== currentVersion) {
         fail(
-            `latest changelog version (${latestChangelogVersion}) must match current app version (${currentVersion}) before bumping`
+            `latest changelog version (${latestChangelogVersion}) must match current Server version (${currentVersion}) before bumping`
         );
     }
 

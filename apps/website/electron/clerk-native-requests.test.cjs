@@ -72,7 +72,7 @@ describe('prepareNativeClerkRequest', () => {
 });
 
 describe('prepareNativeClerkResponse', () => {
-    test('permits only the hosted App to read native Clerk responses', () => {
+    test('permits only the Server UI to read native Clerk responses', () => {
         expect(
             prepareNativeClerkResponse(
                 {

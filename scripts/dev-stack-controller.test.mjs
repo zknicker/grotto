@@ -8,7 +8,7 @@ import {
     waitForChildShutdown,
 } from './dev-stack-controller.mjs';
 
-test('desktop development receives the Clerk issuer used by the hosted App', () => {
+test('App development receives the Clerk issuer used by the Server UI', () => {
     assert.deepEqual(
         createDesktopDevEnvironment({
             clerkEnvironmentOverrides: {

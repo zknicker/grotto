@@ -59,7 +59,7 @@ export interface GrottoServerApplicationOptions {
     reminderClock?: ReminderClock;
     /** Timer seam; production uses the process interval. */
     reminderSchedulerTimers?: ReminderSchedulerTimers;
-    /** Built hosted App assets. Omit only when another process serves the App in development. */
+    /** Built Server UI assets. Omit only when another process serves the UI in development. */
     staticAppRoot?: string;
 }
 

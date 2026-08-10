@@ -52,7 +52,7 @@ const main = async () => {
 
     assert(
         latestRelease.version === releaseVersion,
-        'latest changelog version must match app version'
+        'latest changelog version must match Server version'
     );
 
     if (expectedVersion) {

@@ -11,7 +11,7 @@ const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 const releaseRoot = path.join(repoRoot, 'apps', 'server', 'release');
 const stageRoot = path.join(releaseRoot, 'stage');
 if (!process.env.VITE_CLERK_PUBLISHABLE_KEY?.trim()) {
-    throw new Error('VITE_CLERK_PUBLISHABLE_KEY is required for the hosted App artifact.');
+    throw new Error('VITE_CLERK_PUBLISHABLE_KEY is required for the Server UI artifact.');
 }
 const sourceRevision = process.env.GROTTO_SOURCE_REVISION?.trim() ?? '';
 if (!/^[0-9a-f]{40}$/.test(sourceRevision)) {

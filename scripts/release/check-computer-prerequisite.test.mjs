@@ -6,7 +6,7 @@ import {
     createSignedComputerRelease,
 } from './computer-release-contract.mjs';
 
-test('App/Server publishing refuses a production Computer below its protocol floor', async () => {
+test('Server publishing refuses a production Computer below its protocol floor', async () => {
     const keys = generateKeyPairSync('ed25519');
     const server = serveDescriptor(
         createSignedComputerRelease(
@@ -33,7 +33,7 @@ test('App/Server publishing refuses a production Computer below its protocol flo
     }
 });
 
-test('App/Server publishing verifies the production descriptor signature', async () => {
+test('Server publishing verifies the production descriptor signature', async () => {
     const trusted = generateKeyPairSync('ed25519');
     const untrusted = generateKeyPairSync('ed25519');
     const server = serveDescriptor(

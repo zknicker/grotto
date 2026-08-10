@@ -4,7 +4,7 @@ const { describe, expect, test } = require('bun:test');
 const { assertTrustedRenderer, isTrustedRendererUrl } = require('./trusted-renderer.cjs');
 
 describe('trusted desktop renderer', () => {
-    test('accepts only the configured App origin', () => {
+    test('accepts only the configured Server UI origin', () => {
         expect(isTrustedRendererUrl('https://grotto.sh/s/dev/activity', 'https://grotto.sh')).toBe(
             true
         );

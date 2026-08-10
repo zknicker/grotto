@@ -57,7 +57,7 @@ async function start() {
 
     logStartupSection('Grotto Runtime');
     logStartupDetail('🗄️', 'Database', shortenHomePath(env.DATABASE_PATH));
-    logStartupDetail('🌐', 'App origin', env.APP_ORIGIN);
+    logStartupDetail('🌐', 'Server UI origin', env.APP_ORIGIN);
     logStartupDetail('📡', 'HTTP', `http://localhost:${env.SERVER_PORT}`);
     logStartupDetail('🔌', 'WebSocket', `ws://localhost:${env.SERVER_PORT}/trpc`);
     logStartupDetail('🎮', 'Grotto Runtime', getCurrentAgentRuntimeUrl() ?? 'disabled');

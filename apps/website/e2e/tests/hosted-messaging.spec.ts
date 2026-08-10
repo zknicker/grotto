@@ -421,7 +421,7 @@ test('a signed-out human cannot read hosted messages', async ({ page }) => {
     await expect(page.getByText('First durable human message')).toHaveCount(0);
 });
 
-test('the direct-hosted App never requests a retired local product endpoint', async ({ page }) => {
+test('the direct Server UI never requests a retired local product endpoint', async ({ page }) => {
     const localServerOrigin = `http://127.0.0.1:${process.env.TAVERN_SERVER_PORT}`;
     const localRequests: string[] = [];
 

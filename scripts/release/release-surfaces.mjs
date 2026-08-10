@@ -1,8 +1,8 @@
 import { isSemver } from './release-utils.mjs';
 
 const surfaceLabels = {
-    appServer: 'App/Server',
-    desktop: 'Desktop',
+    server: 'Server',
+    app: 'App',
     computer: 'Computer',
     runtime: 'Runtime',
 };
@@ -27,14 +27,14 @@ export function assertReleaseSurfaceDecision(value, options = {}) {
             return { complete: false, value };
         }
         if (options.targetVersion) {
-            throw new Error('Computer-only release decision cannot satisfy an App release');
+            throw new Error('Computer-only release decision cannot satisfy a Server release');
         }
         for (const key of surfaceKeys) {
             assertSurface(value.surfaces[key], key, false);
         }
         if (
-            value.surfaces.appServer.action !== 'unchanged' ||
-            value.surfaces.desktop.action !== 'unchanged' ||
+            value.surfaces.server.action !== 'unchanged' ||
+            value.surfaces.app.action !== 'unchanged' ||
             value.surfaces.runtime.action !== 'unchanged' ||
             value.surfaces.computer.action !== 'publish'
         ) {
@@ -57,15 +57,15 @@ export function assertReleaseSurfaceDecision(value, options = {}) {
         assertSurface(value.surfaces[key], key, false);
     }
     if (
-        value.surfaces.appServer.action !== 'publish' ||
-        value.surfaces.appServer.version !== value.targetVersion
+        value.surfaces.server.action !== 'publish' ||
+        value.surfaces.server.version !== value.targetVersion
     ) {
-        throw new Error('App/Server must publish at the target App version');
+        throw new Error('Server must publish at the target Server version');
     }
-    for (const key of ['desktop']) {
+    for (const key of ['app']) {
         const surface = value.surfaces[key];
         if (surface.action === 'publish' && surface.version !== value.targetVersion) {
-            throw new Error(`${surfaceLabels[key]} must publish at the target App version`);
+            throw new Error(`${surfaceLabels[key]} must publish at the target Server version`);
         }
     }
     return { complete: true, value };
@@ -95,8 +95,8 @@ export function resetReleaseSurfaceDecision(targetVersion) {
             surfaceKeys.map((key) => [
                 key,
                 {
-                    action: key === 'appServer' ? 'publish' : 'undecided',
-                    version: key === 'appServer' ? targetVersion : null,
+                    action: key === 'server' ? 'publish' : 'undecided',
+                    version: key === 'server' ? targetVersion : null,
                 },
             ])
         ),

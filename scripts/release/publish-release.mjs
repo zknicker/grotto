@@ -39,7 +39,7 @@ const main = async () => {
     assertNoTag(tagName);
     run('bun', ['run', 'release:check', '--', '--expect-version', version]);
     const computerRelease = await checkComputerReleasePrerequisite().catch((error) => {
-        fail('compatible Grotto Computer must be published before App/Server', {
+        fail('compatible Grotto Computer must be published before Server', {
             message: error instanceof Error ? error.message : String(error),
         });
     });
@@ -47,7 +47,7 @@ const main = async () => {
         `Computer prerequisite: ${computerRelease.version} (protocol ${computerRelease.protocolVersion})`
     );
     const surfaceDecision = await readJson('release-surfaces.json');
-    const publishDesktop = releasePublishesSurface(surfaceDecision, 'desktop');
+    const publishApp = releasePublishesSurface(surfaceDecision, 'app');
     if (
         surfaceDecision.surfaces.computer.action === 'publish' &&
         surfaceDecision.surfaces.computer.version !== computerRelease.version
@@ -73,7 +73,7 @@ const main = async () => {
     if (publishRuntime) {
         run('bun', ['run', 'release:build-runtime-artifact']);
     }
-    if (publishDesktop) {
+    if (publishApp) {
         run('bun', ['run', 'publish:desktop'], {
             env: {
                 ...process.env,
@@ -90,13 +90,13 @@ const main = async () => {
             },
         });
     }
-    if (publishDesktop) {
+    if (publishApp) {
         run('bun', ['run', 'release:check-desktop-artifacts']);
     }
 
     const notesPath = await writeReleaseNotes(version);
     const artifacts = await findReleaseArtifacts({
-        includeDesktop: publishDesktop,
+        includeDesktop: publishApp,
         includeRuntime: publishRuntime,
         sourceRevision,
         version,
@@ -141,7 +141,7 @@ function assertVersion(version) {
 async function assertRuntimeReleaseVersion(appVersion) {
     const runtimePackage = await readJson('apps/runtime/package.json');
     if (runtimePackage.version !== appVersion) {
-        fail('Runtime releases must use the same version as the desktop release tag', {
+        fail('Runtime releases must use the same version as the release tag', {
             app: appVersion,
             runtime: runtimePackage.version,
         });

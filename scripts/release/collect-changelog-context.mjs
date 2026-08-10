@@ -29,12 +29,12 @@ const main = async () => {
         const result = assertReleaseSurfaceDecision(surfaceDecision);
         computerOnly = result.complete && surfaceDecision.targetVersion === null;
     } catch {
-        // The context still prints an incomplete App release decision for the operator to finish.
+        // The context still prints an incomplete Server release decision for the operator to finish.
     }
 
     if (compareVersions(targetVersion, latestChangelogVersion) <= 0 && !computerOnly) {
         fail(
-            `app version ${targetVersion} must be greater than changelog latest ${latestChangelogVersion}. Run release:bump first.`
+            `Server version ${targetVersion} must be greater than changelog latest ${latestChangelogVersion}. Run release:bump first.`
         );
     }
 

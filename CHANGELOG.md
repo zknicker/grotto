@@ -14,8 +14,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.13
-- Desktop: Unchanged
+- Server: Publish v1.8.13
+- App: Unchanged
 - Computer: Publish v1.4.2
 - Runtime: Unchanged
 
@@ -30,8 +30,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.12
-- Desktop: Unchanged
+- Server: Publish v1.8.12
+- App: Unchanged
 - Computer: Publish v1.4.1
 - Runtime: Unchanged
 
@@ -46,8 +46,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.11
-- Desktop: Unchanged
+- Server: Publish v1.8.11
+- App: Unchanged
 - Computer: Unchanged
 - Runtime: Unchanged
 
@@ -62,8 +62,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.10
-- Desktop: Unchanged
+- Server: Publish v1.8.10
+- App: Unchanged
 - Computer: Unchanged
 - Runtime: Unchanged
 
@@ -80,8 +80,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.9
-- Desktop: Unchanged
+- Server: Publish v1.8.9
+- App: Unchanged
 - Computer: Unchanged
 - Runtime: Unchanged
 
@@ -94,8 +94,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.8
-- Desktop: Unchanged
+- Server: Publish v1.8.8
+- App: Unchanged
 - Computer: Unchanged
 - Runtime: Unchanged
 
@@ -108,8 +108,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.7
-- Desktop: Unchanged
+- Server: Publish v1.8.7
+- App: Unchanged
 - Computer: Unchanged
 - Runtime: Unchanged
 
@@ -128,14 +128,14 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.6
-- Desktop: Unchanged
+- Server: Publish v1.8.6
+- App: Unchanged
 - Computer: Unchanged
 - Runtime: Unchanged
 
 ## v1.8.5 - 2026-08-09
 
-- Final App/Server removes the temporary one-off Computer approval protocol;
+- Final Server removes the temporary one-off Computer approval protocol;
   Computer management now uses only reusable, origin-bound login sessions and
   the durable attach flow.
 - Setup reports **Computer connected** only after the attachment is recoverable
@@ -143,18 +143,18 @@ All notable changes to this project will be documented in this file.
 - Existing Server-scoped Computer credentials, attachments, and Agent
   workspaces remain intact; the cutover does not rewrite production data.
 - Grotto Computer 1.4.0 is the already-published prerequisite for this final
-  App/Server cutover. Desktop and Runtime remain unchanged.
+  Server cutover. App and Runtime remain unchanged.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.5
-- Desktop: Unchanged
+- Server: Publish v1.8.5
+- App: Unchanged
 - Computer: Publish v1.4.0
 - Runtime: Unchanged
 
 ## v1.8.4 - 2026-08-09
 
-- App/Server prepares reusable Grotto Computer device login and management
+- Server prepares reusable Grotto Computer device login and management
   sessions for attaching additional Servers without repeated browser approval.
 - First-Computer setup reports **Signed in — finishing the connection** until
   the attachment is durably recoverable, and **Computer connected** only after
@@ -169,13 +169,13 @@ All notable changes to this project will be documented in this file.
   and upgrade rollback preserve the contracted cutover boundary: management
   uses the saved human session while execution keeps Server-scoped Computer
   credentials.
-- App/Server remains unchanged at the already-published v1.8.4 expanded
-  compatibility checkpoint; Desktop and Runtime remain unchanged.
+- Server remains unchanged at the already-published v1.8.4 expanded
+  compatibility checkpoint; App and Runtime remain unchanged.
 
 ### Release surfaces
 
-- App/Server: Unchanged
-- Desktop: Unchanged
+- Server: Unchanged
+- App: Unchanged
 - Computer: Publish v1.4.0
 - Runtime: Unchanged
 
@@ -191,8 +191,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Unchanged
-- Desktop: Unchanged
+- Server: Unchanged
+- App: Unchanged
 - Computer: Publish v1.3.3
 - Runtime: Unchanged
 
@@ -206,8 +206,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.2
-- Desktop: Publish v1.8.2
+- Server: Publish v1.8.2
+- App: Publish v1.8.2
 - Computer: Publish v1.3.1
 - Runtime: Publish v1.8.2
 
@@ -220,8 +220,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.1
-- Desktop: Publish v1.8.1
+- Server: Publish v1.8.1
+- App: Publish v1.8.1
 - Computer: Unchanged
 - Runtime: Publish v1.8.1
 
@@ -239,9 +239,9 @@ All notable changes to this project will be documented in this file.
   ordinary Agents begin with a clean identity-focused `MEMORY.md`.
 - Grotto Computer 1.3.0 ships ordinary protocol 6, the Cove configuration and
   workspace lifecycle, the managed Manual CLI, visible inbox consumption, and
-  exact result-destination handling required by this App/Server release.
-- App/Server 1.8.0 makes Chat the Server entry surface, sharpens the persistent
-  shell and member profiles, and completes desktop development OAuth. Desktop
+  exact result-destination handling required by this Server release.
+- Server 1.8.0 makes Chat the Server entry surface, sharpens the persistent
+  shell and member profiles, and completes desktop development OAuth. App
   1.8.0 also carries normalized native icon assets and the Grotto development
   icon.
 - Computer and Runtime adopt the current AI SDK and harness releases. Runtime
@@ -250,14 +250,14 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.8.0
-- Desktop: Publish v1.8.0
+- Server: Publish v1.8.0
+- App: Publish v1.8.0
 - Computer: Publish v1.3.0
 - Runtime: Publish v1.8.0
 
 ## v1.7.0 - 2026-08-03
 
-- Rebuilt the hosted App on HeroUI across the shell, chat, Agent profiles,
+- Rebuilt the Server UI on HeroUI across the shell, chat, Agent profiles,
   settings, tasks, reminders, Computers, members, connections, and Stats,
   with a simpler shared navigation and layout system.
 - Humans and Agents now use one uploaded-avatar vocabulary. Server members
@@ -278,8 +278,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.7.0
-- Desktop: Unchanged
+- Server: Publish v1.7.0
+- App: Unchanged
 - Computer: Publish v1.2.0
 - Runtime: Unchanged
 
@@ -295,8 +295,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.6.14
-- Desktop: Unchanged
+- Server: Publish v1.6.14
+- App: Unchanged
 - Computer: Publish v1.1.5
 - Runtime: Unchanged
 
@@ -307,8 +307,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.6.13
-- Desktop: Unchanged
+- Server: Publish v1.6.13
+- App: Unchanged
 - Computer: Unchanged
 - Runtime: Unchanged
 
@@ -325,7 +325,7 @@ All notable changes to this project will be documented in this file.
   and terminal-versus-retryable failure policy.
 - Agent profile edits now refresh the Computer's durable reset seed, and
   configuration, reset, and turn launch are serialized per Agent.
-- Desktop v1.6.12 is a signed native shell for the canonical hosted App, with
+- App v1.6.12 is a signed native shell for the canonical Server UI, with
   native Clerk session storage, strict origin routing, and desktop updates
   behind a narrow preload bridge.
 - macOS release publishers now read the established Computer signing keys
@@ -335,8 +335,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.6.12
-- Desktop: Publish v1.6.12
+- Server: Publish v1.6.12
+- App: Publish v1.6.12
 - Computer: Publish v1.1.4
 - Runtime: Unchanged
 
@@ -348,8 +348,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.6.11
-- Desktop: Publish v1.6.11
+- Server: Publish v1.6.11
+- App: Publish v1.6.11
 - Computer: Unchanged
 - Runtime: Unchanged
 
@@ -362,8 +362,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.6.10
-- Desktop: Publish v1.6.10
+- Server: Publish v1.6.10
+- App: Publish v1.6.10
 - Computer: Unchanged
 - Runtime: Unchanged
 
@@ -381,8 +381,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.6.9
-- Desktop: Publish v1.6.9
+- Server: Publish v1.6.9
+- App: Publish v1.6.9
 - Computer: Publish v1.1.2
 - Runtime: Unchanged
 
@@ -394,8 +394,8 @@ All notable changes to this project will be documented in this file.
 
 ### Release surfaces
 
-- App/Server: Publish v1.6.8
-- Desktop: Publish v1.6.8
+- Server: Publish v1.6.8
+- App: Publish v1.6.8
 - Computer: Unchanged
 - Runtime: Unchanged
 
@@ -412,14 +412,14 @@ All notable changes to this project will be documented in this file.
 - Computer updates retain one verified executable for explicit local rollback.
   Existing pre-publisher 1.0.0 Computers transition once through the standalone
   installer and reuse their attachments, Agent workspaces, and queued work.
-- App/Server release publication now requires a compatible publicly verified
+- Server release publication now requires a compatible publicly verified
   Computer release, while immutable publishing, version monotonicity, and
   release-key continuity fail closed.
 
 ### Release surfaces
 
-- App/Server: Publish v1.6.7
-- Desktop: Publish v1.6.7
+- Server: Publish v1.6.7
+- App: Publish v1.6.7
 - Computer: Publish v1.1.1
 - Runtime: Unchanged
 
@@ -443,7 +443,7 @@ All notable changes to this project will be documented in this file.
 ## v1.6.4 - 2026-07-27
 
 - Grotto now uses the hosted Server as the canonical collaboration system:
-  desktop and web Apps connect directly through exact-versioned HTTP and
+  Grotto App and the Server UI connect directly through exact-versioned HTTP and
   WebSocket contracts while attached Grotto Computers own private Agent
   execution, workspaces, skills, model access, and MCP credentials.
 - Hosted Servers now support Computer attachment and lifecycle, Agent creation
@@ -457,8 +457,8 @@ All notable changes to this project will be documented in this file.
 
 - Hosted Grotto adds Clerk sign-in, Server creation and reopen, durable human
   chats, member invitations and removal, child threads, tasks, reminders, and
-  scheduled wakes at the canonical web App origin.
-- Published Grotto versions now promote the hosted App and Server atomically by
+  scheduled wakes at the canonical Server UI origin.
+- Published Grotto versions now promote the Server UI and Server backend atomically by
   immutable source revision, with local PostgreSQL, supervised health,
   encrypted backup and restore tooling, and rollback-safe activation.
 
@@ -629,7 +629,7 @@ All notable changes to this project will be documented in this file.
   and `chat_send`, agent bios with per-session instruction freshness, session
   freshness rotation from the reset point, `NO_REPLY` for channels, and
   home-timezone prompt timestamps.
-- Server/App: archived chats are listable, read-only, and restorable.
+- Server: archived chats are listable, read-only, and restorable.
 - App: queued drafts steer a mentioned agent's live run, the chat rests
   against its composer with a per-exchange runway, post edits never move a
   reader who scrolled up, and thinking indicators end exactly with the turn.
@@ -664,7 +664,7 @@ All notable changes to this project will be documented in this file.
 - App: adds the Cmd+K command menu, merges per-agent Skills and Plugins into an
   enabled-first settings page, refreshes Tasks and Automations layout polish,
   and adds the alien agent avatar.
-- App/Server: fixes settings catch-all redirects, app-root command menu
+- Server: fixes settings catch-all redirects, app-root command menu
   mounting, task realtime registration, skill-save validation, agent DM sync,
   chat composer focus, and code editor line-number alignment.
 

@@ -9,7 +9,7 @@ import {
 test('release bump starts an incomplete four-surface decision', () => {
     const decision = resetReleaseSurfaceDecision('1.2.3');
     expect(() => assertReleaseSurfaceDecision(decision, { targetVersion: '1.2.3' })).toThrow(
-        'Desktop has no explicit'
+        'App has no explicit'
     );
 });
 
@@ -17,25 +17,28 @@ test('release check accepts and formats one explicit decision per surface', () =
     const decision = {
         targetVersion: '1.2.3',
         surfaces: {
-            appServer: { action: 'publish', version: '1.2.3' },
+            server: { action: 'publish', version: '1.2.3' },
             computer: { action: 'publish', version: '2.0.0' },
-            desktop: { action: 'unchanged', version: null },
+            app: { action: 'unchanged', version: null },
             runtime: { action: 'unchanged', version: null },
         },
     };
     expect(assertReleaseSurfaceDecision(decision, { targetVersion: '1.2.3' }).complete).toBe(true);
-    expect(formatReleaseSurfaceDecision(decision)).toContain('- Computer: Publish v2.0.0');
-    expect(releasePublishesSurface(decision, 'appServer')).toBe(true);
-    expect(releasePublishesSurface(decision, 'desktop')).toBe(false);
+    const formatted = formatReleaseSurfaceDecision(decision);
+    expect(formatted).toContain('- Server: Publish v1.2.3');
+    expect(formatted).toContain('- App: Unchanged');
+    expect(formatted).toContain('- Computer: Publish v2.0.0');
+    expect(releasePublishesSurface(decision, 'server')).toBe(true);
+    expect(releasePublishesSurface(decision, 'app')).toBe(false);
 });
 
 test('Computer-only repairs explicitly leave every other surface unchanged', () => {
     const decision = {
         targetVersion: null,
         surfaces: {
-            appServer: { action: 'unchanged', version: null },
+            server: { action: 'unchanged', version: null },
             computer: { action: 'publish', version: '2.0.1' },
-            desktop: { action: 'unchanged', version: null },
+            app: { action: 'unchanged', version: null },
             runtime: { action: 'unchanged', version: null },
         },
     };
@@ -45,5 +48,5 @@ test('Computer-only repairs explicitly leave every other surface unchanged', () 
             requireDecision: true,
             targetVersion: '1.2.3',
         })
-    ).toThrow('cannot satisfy an App release');
+    ).toThrow('cannot satisfy a Server release');
 });

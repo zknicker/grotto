@@ -4,15 +4,21 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpLink } from '@trpc/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import {
+    MessageScroller,
+    MessageScrollerProvider,
+    MessageScrollerViewport,
+} from '../../components/chats/message-scroller.tsx';
 import { DevModeProvider } from '../../components/dev-mode-provider.tsx';
 import { mergeTimelineMessages } from '../../hooks/chats/chat-timeline-messages.ts';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import { type ChatLogOutput, trpc } from '../../lib/trpc.tsx';
 import { ArtifactLogEntry } from '../sessions/log/event-entry/artifact-entry.tsx';
 import { ToolDrawerBody } from '../sessions/tools/tool-drawer-body.tsx';
-import { ChatTranscript } from './chat-transcript.tsx';
+import { ChatTranscript, ChatTranscriptPresentation } from './chat-transcript.tsx';
 import { groupAgentItems } from './chat-transcript-item-utils.ts';
 import type { TranscriptItem } from './chat-transcript-model.ts';
+import type { TranscriptRenderContextValue } from './chat-transcript-render-context.tsx';
 import { SystemStep } from './chat-transcript-system-step.tsx';
 import {
     filterPaneSegments,
@@ -66,6 +72,49 @@ test('ChatTranscript renders hover time and copy action without session or usage
     assert.doesNotMatch(markup, /Agent idle/);
     assert.doesNotMatch(markup, /aria-label="Collapse message"/);
     assert.doesNotMatch(markup, /session 9f83ac/);
+});
+
+test('ChatTranscript mutes deleted authors and labels their historical messages', () => {
+    const rows: ChatRow[] = [
+        {
+            actor: { id: 'agent-deleted', kind: 'agent' },
+            connectsToNext: false,
+            connectsToPrevious: false,
+            id: 'message-deleted',
+            isFirstInGroup: true,
+            kind: 'message',
+            message: {
+                tavernAgentId: 'agent-deleted',
+                content: 'This history stays readable.',
+                id: 'message-deleted',
+                sender: 'Cove',
+                senderType: 'agent',
+                sourceSessionId: null,
+                sourceSessionKey: 'hosted:agent-deleted',
+                timestamp: '2026-08-10T16:00:00.000Z',
+            },
+        },
+    ];
+    const markup = renderTranscriptPresentation(rows, {
+        resolveActorProfile: (actor) =>
+            actor?.kind === 'agent'
+                ? {
+                      avatarUrl: '/avatars/cove.png',
+                      bio: 'Onboarding Assistant',
+                      deleted: true,
+                      id: actor.id,
+                      isSelf: false,
+                      kind: 'agent',
+                      name: 'Cove',
+                  }
+                : null,
+    });
+
+    assert.match(markup, />DELETED</);
+    assert.match(markup, /opacity-50 grayscale/);
+    assert.match(markup, /text-muted/);
+    assert.doesNotMatch(markup, /Mention Cove/);
+    assert.doesNotMatch(markup, /Agent details: Cove/);
 });
 
 test('ChatTranscript fills the detail lane full width', () => {
@@ -1951,6 +2000,54 @@ function renderTranscript(
                             defaultOpenWorkGroups={options.defaultOpenWorkGroups}
                             rows={rows}
                         />
+                    </DevModeProvider>
+                </MemoryRouter>
+            </QueryClientProvider>
+        </trpc.Provider>
+    );
+}
+
+function renderTranscriptPresentation(
+    rows: ChatRow[],
+    overrides: Partial<TranscriptRenderContextValue>
+) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = trpc.createClient({
+        links: [httpLink({ url: 'http://127.0.0.1:1/trpc' })],
+    });
+    const context: TranscriptRenderContextValue = {
+        activeThreadAnchorId: null,
+        canRequestMention: true,
+        chatId: 'chat-history',
+        composerId: 'chat-history',
+        conversationLayout: { showAgentIdentity: true, showHumanIdentity: true },
+        defaultOpenWorkGroups: false,
+        disableAgentHoverCard: true,
+        flashMessageId: null,
+        hiddenCount: 0,
+        onOpenThread: () => undefined,
+        onUnfollowThread: () => undefined,
+        repliedRunIds: new Set(),
+        shouldAnimateItemEnter: () => false,
+        threadActionsEnabled: false,
+        ...overrides,
+    };
+
+    return renderToStaticMarkup(
+        <trpc.Provider client={client} queryClient={queryClient}>
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter>
+                    <DevModeProvider>
+                        <MessageScrollerProvider>
+                            <MessageScroller>
+                                <MessageScrollerViewport>
+                                    <ChatTranscriptPresentation
+                                        renderContext={context}
+                                        rows={rows}
+                                    />
+                                </MessageScrollerViewport>
+                            </MessageScroller>
+                        </MessageScrollerProvider>
                     </DevModeProvider>
                 </MemoryRouter>
             </QueryClientProvider>

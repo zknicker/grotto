@@ -1,3 +1,4 @@
+import { Chip } from '@heroui/react';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
@@ -69,7 +70,7 @@ function ThreadPreviewReply({
     reply: NonNullable<ThreadReplyPreview>[number];
     resolveActorProfile?: (
         actor: TranscriptActor
-    ) => { avatarUrl: null | string; name: string } | null;
+    ) => { avatarUrl: null | string; deleted: boolean; name: string } | null;
 }) {
     const actor: TranscriptActor = reply.authorAgentId
         ? { id: reply.authorAgentId, kind: 'agent' }
@@ -81,8 +82,22 @@ function ThreadPreviewReply({
 
     return (
         <span className="flex min-w-0 items-center gap-1.5 text-xs leading-tight">
-            <EntityAvatar name={name} size={20} src={profile?.avatarUrl} />
-            <span className="shrink-0 font-semibold text-foreground">{name}</span>
+            <span className={cn(profile?.deleted && 'opacity-50 grayscale')}>
+                <EntityAvatar name={name} size={20} src={profile?.avatarUrl} />
+            </span>
+            <span
+                className={cn(
+                    'shrink-0 font-semibold',
+                    profile?.deleted ? 'text-muted' : 'text-foreground'
+                )}
+            >
+                {name}
+            </span>
+            {profile?.deleted ? (
+                <Chip size="sm" variant="secondary">
+                    DELETED
+                </Chip>
+            ) : null}
             <span className="min-w-0 flex-1 truncate text-muted">{oneLine(reply.content)}</span>
             <span className={cn('shrink-0 text-muted tabular-nums')}>
                 {formatRelativeTime(reply.createdAt, now)}

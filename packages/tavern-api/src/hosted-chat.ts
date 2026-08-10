@@ -6,8 +6,36 @@ export const hostedIdSchema = z.string().trim().min(1);
 const hostedTimestampSchema = z.iso.datetime({ offset: true });
 
 export const hostedChatMessageAuthorSchema = z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('human'), userId: hostedIdSchema }).strict(),
-    z.object({ agentId: hostedIdSchema, kind: z.literal('agent') }).strict(),
+    z
+        .object({
+            agentId: hostedIdSchema,
+            kind: z.literal('agent'),
+            profile: z
+                .object({
+                    avatarUrl: z.string().nullable(),
+                    deleted: z.boolean(),
+                    description: z.string().nullable(),
+                    displayName: z.string().min(1),
+                })
+                .strict()
+                .optional(),
+        })
+        .strict(),
+    z
+        .object({
+            kind: z.literal('human'),
+            profile: z
+                .object({
+                    avatarUrl: z.string().nullable(),
+                    deleted: z.boolean(),
+                    description: z.string().nullable(),
+                    displayName: z.string().min(1),
+                })
+                .strict()
+                .optional(),
+            userId: hostedIdSchema,
+        })
+        .strict(),
     z
         .object({ kind: z.literal('system'), system: z.enum(['reminder', 'session', 'task']) })
         .strict(),

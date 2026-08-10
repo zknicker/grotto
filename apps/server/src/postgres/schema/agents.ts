@@ -56,7 +56,9 @@ export const agentsTable = pgTable(
     },
     (table) => [
         uniqueIndex('agents_server_id_key').on(table.serverId, table.id),
-        uniqueIndex('agents_server_handle_key').on(table.serverId, sql`lower(${table.handle})`),
+        uniqueIndex('agents_server_handle_key')
+            .on(table.serverId, sql`lower(${table.handle})`)
+            .where(sql`${table.retiredAt} is null`),
         foreignKey({
             columns: [table.serverId, table.computerId],
             foreignColumns: [computersTable.serverId, computersTable.id],

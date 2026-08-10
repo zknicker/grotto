@@ -249,6 +249,70 @@ test('drains delivered work into one run, then settles it', async () => {
     lifecycleController.abort();
 });
 
+test('keeps a queued message bound to its retired author after handle reuse', async () => {
+    const seed = await seedAgent();
+    const authorId = createOpaqueId('agt');
+    const replacementId = createOpaqueId('agt');
+    const handle = `echo-${randomBytes(4).toString('hex')}`;
+    const messageId = createOpaqueId('msg');
+    await connection.db.insert(agentsTable).values({
+        computerId: seed.computerId,
+        description: 'Original teammate',
+        desiredModelId: 'fake-model',
+        desiredRuntimeId: 'fake',
+        displayName: 'Echo',
+        handle,
+        homeTimezone: 'UTC',
+        id: authorId,
+        role: 'member',
+        serverId: seed.serverId,
+    });
+    await connection.db.insert(chatMessagesTable).values({
+        authorAgentId: authorId,
+        chatId: seed.chatId,
+        content: 'Historical work',
+        id: messageId,
+        nonce: createOpaqueId('nonce'),
+        sequence: 1,
+        serverId: seed.serverId,
+    });
+    await connection.db
+        .update(agentsTable)
+        .set({ retiredAt: new Date() })
+        .where(eq(agentsTable.id, authorId));
+    await connection.db.insert(agentsTable).values({
+        computerId: seed.computerId,
+        description: 'Replacement teammate',
+        desiredModelId: 'fake-model',
+        desiredRuntimeId: 'fake',
+        displayName: 'Echo',
+        handle,
+        homeTimezone: 'UTC',
+        id: replacementId,
+        role: 'member',
+        serverId: seed.serverId,
+    });
+
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'Historical work',
+        dedupeKey: messageId,
+        sequence: 1,
+        serverId: seed.serverId,
+        source: `agent:${handle}`,
+    });
+
+    expect(transport.framesOfType('start')[0]?.inbox[0]).toMatchObject({
+        senderDescription: 'Original teammate',
+        senderHandle: handle,
+        senderType: 'agent',
+    });
+});
+
 test('pending Cove work cannot start before the durable factory acknowledgement', async () => {
     const seed = await seedAgent();
     await connection.db

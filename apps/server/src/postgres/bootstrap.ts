@@ -247,7 +247,8 @@ const schemaStatements = [
     );`,
     'CREATE UNIQUE INDEX agents_server_id_key ON agents (server_id, id);',
     `CREATE UNIQUE INDEX agents_server_handle_key
-        ON agents (server_id, lower(handle));`,
+        ON agents (server_id, lower(handle))
+        WHERE retired_at IS NULL;`,
     `CREATE TABLE mcp_connections (
         id text PRIMARY KEY NOT NULL
             CONSTRAINT mcp_connections_id_shape CHECK (id ~ '^mcp_[A-Za-z0-9_-]{16}$'),

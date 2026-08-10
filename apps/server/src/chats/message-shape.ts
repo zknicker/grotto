@@ -1,4 +1,5 @@
 import type { HostedAttachmentMetadata, HostedChatMessage } from '@tavern/api';
+import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 interface StoredChatMessage {
     authorAgentId: string | null;
@@ -13,13 +14,56 @@ interface StoredChatMessage {
     systemAuthor: 'reminder' | 'session' | 'task' | null;
 }
 
+export interface StoredChatMessageAuthorProfile {
+    avatarUrl: string | null;
+    deleted: boolean;
+    description: string | null;
+    displayName: string;
+}
+
+export interface StoredChatMessageAuthorProfileRow {
+    authorAgentAvatarId: string | null;
+    authorAgentDescription: string | null;
+    authorAgentDisplayName: string | null;
+    authorAgentId: string | null;
+    authorAgentRetiredAt: Date | null;
+    authorUserAvatarId: string | null;
+    authorUserDescription: string | null;
+    authorUserDisplayName: string | null;
+    authorUserId: string | null;
+    authorUserRevokedAt: Date | null;
+}
+
+export function readStoredAuthorProfile(
+    message: StoredChatMessageAuthorProfileRow
+): StoredChatMessageAuthorProfile | undefined {
+    if (message.authorAgentId && message.authorAgentDisplayName) {
+        return {
+            avatarUrl: avatarUrlFor(message.authorAgentAvatarId),
+            deleted: message.authorAgentRetiredAt !== null,
+            description: message.authorAgentDescription,
+            displayName: message.authorAgentDisplayName,
+        };
+    }
+    if (message.authorUserId) {
+        return {
+            avatarUrl: avatarUrlFor(message.authorUserAvatarId),
+            deleted: message.authorUserRevokedAt !== null,
+            description: message.authorUserDescription,
+            displayName: message.authorUserDisplayName ?? `Human ${message.authorUserId.slice(-6)}`,
+        };
+    }
+    return undefined;
+}
+
 export function toHostedChatMessage(
     message: StoredChatMessage,
-    attachments: HostedAttachmentMetadata[] = []
+    attachments: HostedAttachmentMetadata[] = [],
+    authorProfile?: StoredChatMessageAuthorProfile
 ): HostedChatMessage {
     return {
         attachments,
-        author: readAuthor(message),
+        author: readAuthor(message, authorProfile),
         chatId: message.chatId,
         content: message.content,
         createdAt: message.createdAt.toISOString(),
@@ -30,7 +74,10 @@ export function toHostedChatMessage(
     };
 }
 
-function readAuthor(message: StoredChatMessage): HostedChatMessage['author'] {
+function readAuthor(
+    message: StoredChatMessage,
+    profile?: StoredChatMessageAuthorProfile
+): HostedChatMessage['author'] {
     if (message.systemAuthor === 'reminder') {
         return { kind: 'system', system: 'reminder' };
     }
@@ -41,10 +88,10 @@ function readAuthor(message: StoredChatMessage): HostedChatMessage['author'] {
         return { kind: 'system', system: 'task' };
     }
     if (message.authorAgentId !== null) {
-        return { agentId: message.authorAgentId, kind: 'agent' };
+        return { agentId: message.authorAgentId, kind: 'agent', profile };
     }
     if (message.authorUserId === null) {
         throw new Error('A hosted Chat message must have an explicit author.');
     }
-    return { kind: 'human', userId: message.authorUserId };
+    return { kind: 'human', profile, userId: message.authorUserId };
 }

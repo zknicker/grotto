@@ -159,7 +159,9 @@ function buildHostedChatGroups(context: HostedCommandContext): AppCommandGroup[]
             title: 'Channels',
         },
         {
-            commands: context.chats.filter((chat) => chat.kind === 'dm').map(toCommand),
+            commands: context.chats
+                .filter((chat) => chat.kind === 'dm' && !chat.peerAgentRetired)
+                .map(toCommand),
             id: 'direct-messages',
             title: 'Direct Messages',
         },

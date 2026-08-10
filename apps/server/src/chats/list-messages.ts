@@ -1,13 +1,18 @@
 import type { HostedChatMessage } from '@tavern/api';
-import { and, desc, eq, lt } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, lt } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { chatMessagesTable } from '../postgres/schema.ts';
+import {
+    agentsTable,
+    chatMessagesTable,
+    serverMembershipsTable,
+    usersTable,
+} from '../postgres/schema.ts';
 import { listHostedMessageTaskMap } from '../tasks/task-shape.ts';
 import { listHostedThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
-import { toHostedChatMessage } from './message-shape.ts';
+import { readStoredAuthorProfile, toHostedChatMessage } from './message-shape.ts';
 
 export async function listHostedChatMessages(
     db: GrottoDatabase,
@@ -35,8 +40,33 @@ export async function listHostedChatMessages(
     }
 
     const newestFirst = await db
-        .select()
+        .select({
+            ...getTableColumns(chatMessagesTable),
+            authorAgentAvatarId: agentsTable.avatarId,
+            authorAgentDescription: agentsTable.description,
+            authorAgentDisplayName: agentsTable.displayName,
+            authorAgentRetiredAt: agentsTable.retiredAt,
+            authorUserAvatarId: usersTable.avatarId,
+            authorUserDescription: usersTable.description,
+            authorUserDisplayName: usersTable.displayName,
+            authorUserRevokedAt: serverMembershipsTable.revokedAt,
+        })
         .from(chatMessagesTable)
+        .leftJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, chatMessagesTable.serverId),
+                eq(agentsTable.id, chatMessagesTable.authorAgentId)
+            )
+        )
+        .leftJoin(usersTable, eq(usersTable.id, chatMessagesTable.authorUserId))
+        .leftJoin(
+            serverMembershipsTable,
+            and(
+                eq(serverMembershipsTable.serverId, chatMessagesTable.serverId),
+                eq(serverMembershipsTable.userId, chatMessagesTable.authorUserId)
+            )
+        )
         .where(and(...predicates))
         .orderBy(desc(chatMessagesTable.sequence))
         .limit(input.limit + 1);
@@ -48,7 +78,11 @@ export async function listHostedChatMessages(
         listHostedMessageTaskMap(db, input.serverId, messageIds),
     ]);
     const messages = messageRows.map((message) => ({
-        ...toHostedChatMessage(message, attachmentsByMessageId.get(message.id) ?? []),
+        ...toHostedChatMessage(
+            message,
+            attachmentsByMessageId.get(message.id) ?? [],
+            readStoredAuthorProfile(message)
+        ),
         task: taskByMessageId.get(message.id) ?? null,
     }));
 

@@ -25,7 +25,7 @@ export function ChatNavigation({
 }) {
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
     const channels = chats.filter((chat) => chat.kind === 'channel');
-    const directMessages = chats.filter((chat) => chat.kind === 'dm');
+    const directMessages = chats.filter((chat) => chat.kind === 'dm' && !chat.peerAgentRetired);
 
     return (
         <ShellSidebarPageContent
@@ -112,9 +112,6 @@ function ChatGroup({
                             </Sidebar.MenuIcon>
                             <Sidebar.MenuItemContent>
                                 <Sidebar.MenuLabel>{name}</Sidebar.MenuLabel>
-                                {chat.peerAgentRetired ? (
-                                    <Sidebar.MenuChip>Retired</Sidebar.MenuChip>
-                                ) : null}
                                 {chat.unreadCount > 0 ? (
                                     <Sidebar.MenuChip>{chat.unreadCount}</Sidebar.MenuChip>
                                 ) : null}

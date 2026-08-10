@@ -169,7 +169,7 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     // an Agent author, not a human one.
     const page = await owner.trpc.chat.messages.query({ chatId: dmChatId, serverId });
     const agentMessage = page.messages.find((message) => message.nonce === 'agent_nonce_1');
-    expect(agentMessage?.author).toEqual({ agentId, kind: 'agent' });
+    expect(agentMessage?.author).toMatchObject({ agentId, kind: 'agent' });
 });
 
 test('an Agent send resolves its target instead of writing into the launch chat', async () => {

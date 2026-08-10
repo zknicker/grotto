@@ -66,8 +66,10 @@ and [Agent Inbox](../../specs/inbox.md).
   Archived badge and a restore bar in place of the composer. New workspaces
   start with no user channels. Each agent has one
   built-in DM with the local human operator. Agent DMs are not user-deleteable;
-  retiring the agent keeps its built-in DM in the sidebar as labeled, read-only
-  history. There is no separate pinned-chat state.
+  retiring the Agent removes its built-in DM from active navigation. The durable
+  Chat remains canonical history. Deleted Agents and departed humans stay visible
+  on authored transcript messages with muted identity and a `DELETED` badge.
+  There is no separate pinned-chat state.
 * **Chat appearance and instructions.** Grotto chats can carry durable channel
   color and trusted chat-specific agent instructions.
 * **Offline catch-up.** Grotto Runtime keeps chat history while the app is

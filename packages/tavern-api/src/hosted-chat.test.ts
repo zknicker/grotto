@@ -93,6 +93,34 @@ test('hosted messages and durable events keep stable Server and Chat identity', 
     ).toMatchObject({ action: 'fired', reminderId: 'rem_one' });
 });
 
+test('hosted message history can preserve a deleted author profile', () => {
+    const message = hostedChatMessageSchema.parse({
+        attachments: [],
+        author: {
+            agentId: 'agt_cove',
+            kind: 'agent',
+            profile: {
+                avatarUrl: '/api/avatars/avt_cove',
+                deleted: true,
+                description: 'Onboarding Assistant',
+                displayName: 'Cove',
+            },
+        },
+        chatId: 'cht_onboarding',
+        content: 'Historical guidance.',
+        createdAt: '2026-08-10T12:00:00.000Z',
+        id: 'msg_cove',
+        nonce: 'cove-history',
+        sequence: 1,
+        serverId: 'srv_main',
+    });
+
+    expect(message.author).toMatchObject({
+        kind: 'agent',
+        profile: { deleted: true, displayName: 'Cove' },
+    });
+});
+
 test('hosted message contracts carry Server-authored task timeline receipts', () => {
     expect(
         hostedChatMessageSchema.parse({

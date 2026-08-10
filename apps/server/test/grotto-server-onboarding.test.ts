@@ -433,7 +433,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
     });
     expect(greetingHistory.messages).toEqual([
         expect.objectContaining({
-            author: { agentId: first.agent.id, kind: 'agent' },
+            author: expect.objectContaining({ agentId: first.agent.id, kind: 'agent' }),
             content: 'Hi, I’m Cove. Let’s turn your first idea into real work.',
         }),
     ]);
@@ -559,7 +559,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         ).messages
     ).toEqual([
         expect.objectContaining({
-            author: { agentId: first.agent.id, kind: 'agent' },
+            author: expect.objectContaining({ agentId: first.agent.id, kind: 'agent' }),
             content: 'Hi, I’m Cove. Let’s turn your first idea into real work.',
         }),
     ]);

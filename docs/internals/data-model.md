@@ -160,11 +160,14 @@ only join table. These tables do not form a generic taxonomy. Task mutations
 write `task.created`, `task.updated`, or `task.label.updated` events in the
 same transaction; task and label reads remain the recovery source.
 
-Hosted Agent rows own identity, the uploaded avatar they wear (`avatar_id`),
+Hosted Agent rows own immutable identity, the uploaded avatar they wear (`avatar_id`),
 role, home timezone, retirement, immutable Computer assignment, Server-desired
 runtime/model configuration, the Computer-reported effective snapshot, and
-Channel participation. Computer credentials, execution transport, and turn
-evidence remain separate records.
+Channel participation. An Agent handle is a Server-scoped active alias: it is
+case-insensitively unique only among non-retired Agents. A retired tombstone keeps
+its historical handle, while a later Agent may reuse the alias under a new Agent
+id. Computer credentials, execution transport, and turn evidence remain separate
+records.
 
 `avatars` holds the bytes of one uploaded square image, keyed by an opaque
 `avt_` id. Agents and Users point at it through a nullable `avatar_id`;

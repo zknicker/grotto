@@ -112,6 +112,26 @@ export function useChatTranscript({
         () => new Map(agentList.map((agent) => [agent.id, agent])),
         [agentList]
     );
+    const historicalProfilesByActor = React.useMemo(() => {
+        const profiles = new Map<string, ActorProfile>();
+        for (const message of messages ?? []) {
+            if (message.author.kind === 'system' || !message.author.profile) {
+                continue;
+            }
+            const id =
+                message.author.kind === 'agent' ? message.author.agentId : message.author.userId;
+            profiles.set(`${message.author.kind}:${id}`, {
+                avatarUrl: message.author.profile.avatarUrl,
+                bio: message.author.profile.description,
+                deleted: message.author.profile.deleted,
+                id,
+                isSelf: message.author.kind === 'human' && humans.isSelf(id),
+                kind: message.author.kind === 'agent' ? 'agent' : 'participant',
+                name: message.author.profile.displayName,
+            });
+        }
+        return profiles;
+    }, [humans, messages]);
     const resolveActorProfile = React.useCallback(
         (actor: TranscriptActor): ActorProfile | null => {
             if (!actor) {
@@ -123,24 +143,30 @@ export function useChatTranscript({
                     ? {
                           avatarUrl: agent.avatarUrl,
                           bio: agent.description,
+                          deleted: false,
                           id: agent.id,
                           isSelf: false,
                           kind: 'agent',
                           name: agent.displayName,
                       }
-                    : null;
+                    : (historicalProfilesByActor.get(`agent:${actor.id}`) ?? null);
             }
             const member = humans.member(actor.id);
+            const historical = historicalProfilesByActor.get(`human:${actor.id}`);
+            if (!member && historical) {
+                return historical;
+            }
             return {
                 avatarUrl: humans.avatarUrl(actor.id),
                 bio: member?.description ?? null,
+                deleted: false,
                 id: actor.id,
                 isSelf: humans.isSelf(actor.id),
                 kind: actor.kind,
                 name: humans.name(actor.id),
             };
         },
-        [agentsById, humans]
+        [agentsById, historicalProfilesByActor, humans]
     );
     const renderMessageAttachments = React.useCallback(
         (message: TranscriptMessage) => {

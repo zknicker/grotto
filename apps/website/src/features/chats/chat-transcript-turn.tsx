@@ -1,4 +1,4 @@
-import { Separator } from '@heroui/react';
+import { Chip, Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { AlertCircleIcon, ListViewIcon } from '@hugeicons/core-free-icons';
 import { splitVisualFences } from '@tavern/api/widgets/visual';
@@ -206,13 +206,18 @@ function UserTurnPresentation({
     // plain text. No right-anchored self bubbles.
     return (
         <ChatMessage.Assistant className={turnRowClassName}>
-            <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
+            <TurnAvatar
+                avatarUrl={actorProfile?.avatarUrl}
+                deleted={actorProfile?.deleted}
+                name={displayName}
+            />
             <ChatMessage.Body className={turnBodyClassName}>
                 {layout.showHumanIdentity ? (
                     <TurnHeader
+                        deleted={actorProfile?.deleted}
                         displayName={displayName}
                         onClick={
-                            entry.actor && context?.onActorClick
+                            entry.actor && context?.onActorClick && !actorProfile?.deleted
                                 ? () => context.onActorClick?.(entry.actor)
                                 : undefined
                         }
@@ -255,11 +260,19 @@ function getActiveReplyText(items: TranscriptItem[]) {
 
 // Agents and people share one identity mark: the uploaded square image when
 // there is one, initials otherwise.
-function TurnAvatar({ avatarUrl, name }: { avatarUrl?: string | null; name: string }) {
+function TurnAvatar({
+    avatarUrl,
+    deleted = false,
+    name,
+}: {
+    avatarUrl?: string | null;
+    deleted?: boolean;
+    name: string;
+}) {
     return (
         <ChatMessage.Avatar
             alt={`${name} avatar`}
-            className={turnAvatarOffsetClassName}
+            className={cn(turnAvatarOffsetClassName, deleted && 'opacity-50 grayscale')}
             fallback={getEntityInitials(name)}
             src={avatarUrl ?? undefined}
         />
@@ -273,6 +286,7 @@ const turnHeaderBioMaxChars = 165;
 function TurnHeader({
     bio,
     composerId,
+    deleted = false,
     displayName,
     mentionAgentId,
     onClick,
@@ -280,6 +294,7 @@ function TurnHeader({
 }: {
     bio?: string | null;
     composerId?: string;
+    deleted?: boolean;
     displayName: string;
     mentionAgentId?: string;
     onClick?: () => void;
@@ -290,7 +305,10 @@ function TurnHeader({
             {mentionAgentId && composerId ? (
                 <button
                     aria-label={`Mention ${displayName}`}
-                    className="shrink-0 cursor-pointer truncate font-semibold text-foreground text-sm leading-5 hover:underline"
+                    className={cn(
+                        'shrink-0 cursor-pointer truncate font-semibold text-sm leading-5 hover:underline',
+                        deleted ? 'text-muted' : 'text-foreground'
+                    )}
                     onClick={() =>
                         requestChatComposerMention({ agentId: mentionAgentId, composerId })
                     }
@@ -300,17 +318,30 @@ function TurnHeader({
                 </button>
             ) : onClick ? (
                 <button
-                    className="shrink-0 cursor-pointer truncate font-semibold text-foreground text-sm leading-5 hover:underline"
+                    className={cn(
+                        'shrink-0 cursor-pointer truncate font-semibold text-sm leading-5 hover:underline',
+                        deleted ? 'text-muted' : 'text-foreground'
+                    )}
                     onClick={onClick}
                     type="button"
                 >
                     {displayName}
                 </button>
             ) : (
-                <span className="shrink-0 truncate font-semibold text-foreground text-sm leading-5">
+                <span
+                    className={cn(
+                        'shrink-0 truncate font-semibold text-sm leading-5',
+                        deleted ? 'text-muted' : 'text-foreground'
+                    )}
+                >
                     {displayName}
                 </span>
             )}
+            {deleted ? (
+                <Chip size="sm" variant="secondary">
+                    DELETED
+                </Chip>
+            ) : null}
             {bio ? (
                 <span className="min-w-0 truncate text-muted text-xs leading-5">
                     {bio.length > turnHeaderBioMaxChars
@@ -482,7 +513,7 @@ function AgentTurnPresentation({
         <ChatMessage.Assistant
             className={cn(turnRowClassName, !showIdentity && followsRuntimeNotice && 'mt-0')}
         >
-            {chatId && actorId && !disableAgentHoverCard ? (
+            {chatId && actorId && !disableAgentHoverCard && !actorProfile?.deleted ? (
                 <AgentHoverCard
                     agentId={actorId}
                     agentName={displayName}
@@ -499,7 +530,7 @@ function AgentTurnPresentation({
                 >
                     <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
                 </AgentHoverCard>
-            ) : chatId && actorId && profilePaneChatId ? (
+            ) : chatId && actorId && profilePaneChatId && !actorProfile?.deleted ? (
                 <button
                     aria-label={`Agent details: ${displayName}`}
                     className="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -509,18 +540,23 @@ function AgentTurnPresentation({
                     <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
                 </button>
             ) : (
-                <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
+                <TurnAvatar
+                    avatarUrl={actorProfile?.avatarUrl}
+                    deleted={actorProfile?.deleted}
+                    name={displayName}
+                />
             )}
             <ChatMessage.Body className={turnBodyClassName}>
                 {showIdentity ? (
                     <TurnHeader
                         bio={actorProfile?.bio}
                         composerId={composerId}
+                        deleted={actorProfile?.deleted}
                         displayName={displayName}
                         mentionAgentId={resolveMentionAgentId(
                             actorId,
                             actorProfile?.kind,
-                            canRequestMention && Boolean(composerId)
+                            canRequestMention && Boolean(composerId) && !actorProfile?.deleted
                         )}
                         timestamp={entry.timestamp}
                     />

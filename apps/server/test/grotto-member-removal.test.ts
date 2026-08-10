@@ -69,8 +69,9 @@ test('a removed human loses access at once while their authorship remains', asyn
     expect(messages.messages.map((message) => message.content)).toContain(
         'Authored before removal'
     );
-    expect(messages.messages.at(0)?.author).toEqual({
+    expect(messages.messages.at(0)?.author).toMatchObject({
         kind: 'human',
+        profile: { deleted: true },
         userId: leaverUserId,
     });
 

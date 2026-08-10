@@ -87,7 +87,7 @@ describe('hosted command groups', () => {
         expect(navigated).toEqual(['/s/dev']);
     });
 
-    test('keeps a retired Agent DM searchable by name without send commands', () => {
+    test('omits a retired Agent DM from chat commands', () => {
         const retiredChats = chats.map((chat) =>
             chat.id === 'cht_cove'
                 ? {
@@ -109,7 +109,7 @@ describe('hosted command groups', () => {
         });
         const titles = groups.flatMap((group) => group.commands.map((command) => command.title));
 
-        expect(titles).toContain('Cove');
+        expect(titles).not.toContain('Cove');
         expect(titles).not.toContain('Focus Composer');
     });
 });

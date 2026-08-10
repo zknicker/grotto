@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ChatNavigation } from './chat-navigation.tsx';
 import { ShellSidebar, ShellSidebarPage } from './shell-sidebar.tsx';
 
-test('keeps a retired Agent DM listed with its name and a Retired label', () => {
+test('hides a retired Agent DM from active navigation', () => {
     const markup = renderToStaticMarkup(
         <MemoryRouter>
             <Sidebar.Provider>
@@ -25,8 +25,8 @@ test('keeps a retired Agent DM listed with its name and a Retired label', () => 
         </MemoryRouter>
     );
 
-    expect(markup).toContain('Fen');
-    expect(markup).toContain('Retired');
+    expect(markup).not.toContain('Fen');
+    expect(markup).not.toContain('Retired');
 });
 
 function retiredDm(): HostedChat {

@@ -1,5 +1,5 @@
 import type { HostedChat } from '@tavern/api';
-import { and, eq, ne, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, ne, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable, serverOnboardingTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -121,6 +121,11 @@ export async function listHostedChats(
                     eq(serverOnboardingTable.phase, 'complete')
                 ),
                 ne(chatsTable.kind, 'thread'),
+                or(
+                    ne(chatsTable.kind, 'dm'),
+                    isNull(chatsTable.dmAgentId),
+                    isNull(agentsTable.retiredAt)
+                ),
                 visibleHostedChats(member.id)
             )
         )

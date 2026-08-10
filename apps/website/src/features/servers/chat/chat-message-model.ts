@@ -53,9 +53,9 @@ export function projectChatMessages(
                 id: message.id,
                 sender:
                     message.author.kind === 'human'
-                        ? message.author.userId
+                        ? (message.author.profile?.displayName ?? message.author.userId)
                         : message.author.kind === 'agent'
-                          ? message.author.agentId
+                          ? (message.author.profile?.displayName ?? message.author.agentId)
                           : message.author.system === 'reminder'
                             ? 'Reminder'
                             : 'Grotto',

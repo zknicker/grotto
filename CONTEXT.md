@@ -188,6 +188,11 @@ never changes. An offline Computer leaves the Agent offline, and the Computer ca
 until the Agent is explicitly deleted.
 _Avoid_: Agent session, Agent turn, executor, Computer
 
+**Agent handle**:
+The Server-scoped alias used to address one active Agent. A retired Agent keeps its historical
+handle, while a newly created Agent may reuse that alias with a new Agent identity.
+_Avoid_: Agent id, display name, permanent username
+
 **Agent execution configuration**:
 The Grotto server's immutable Computer assignment plus desired executor, model reference, execution
 policy, Server-owned MCP connection grants, and lifecycle state for an Agent. Humans may edit this desired

@@ -8,6 +8,7 @@ import { useUserProfilePreference } from '../shell/use-user-profile-preference.t
 export interface ActorProfile {
     avatarUrl: string | null;
     bio: string | null;
+    deleted: boolean;
     id: string;
     isSelf: boolean;
     kind: HistoryActorOutput['kind'];
@@ -52,6 +53,7 @@ export function useActorProfile(actor: HistoryActorOutput | null) {
                 ? ({
                       avatarUrl: agent.avatarUrl,
                       bio: agent.bio ?? null,
+                      deleted: false,
                       id: agent.id,
                       isSelf: false,
                       kind: 'agent',
@@ -66,6 +68,7 @@ export function useActorProfile(actor: HistoryActorOutput | null) {
             return {
                 avatarUrl: userProfile.avatarUrl,
                 bio: null,
+                deleted: false,
                 id: actor.id,
                 isSelf: true,
                 kind: actor.kind,
@@ -85,6 +88,7 @@ export function useActorProfile(actor: HistoryActorOutput | null) {
             ? ({
                   avatarUrl: null,
                   bio: null,
+                  deleted: false,
                   id: participant.id,
                   isSelf: false,
                   kind: 'participant',

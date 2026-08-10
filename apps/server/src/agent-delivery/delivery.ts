@@ -888,7 +888,10 @@ async function buildInboxItems(
     return await Promise.all(
         rows.map(async (row) => {
             const [message] = await db
-                .select({ sequence: chatMessagesTable.sequence })
+                .select({
+                    authorAgentId: chatMessagesTable.authorAgentId,
+                    sequence: chatMessagesTable.sequence,
+                })
                 .from(chatMessagesTable)
                 .where(eq(chatMessagesTable.id, row.dedupeKey))
                 .limit(1);
@@ -896,18 +899,14 @@ async function buildInboxItems(
             const agentHandle = row.source.startsWith('agent:')
                 ? row.source.slice('agent:'.length)
                 : null;
-            const [senderAgent] = agentHandle
-                ? await db
-                      .select({ description: agentsTable.description })
-                      .from(agentsTable)
-                      .where(
-                          and(
-                              eq(agentsTable.serverId, row.serverId),
-                              eq(agentsTable.handle, agentHandle)
-                          )
-                      )
-                      .limit(1)
-                : [];
+            const [senderAgent] =
+                agentHandle && message?.authorAgentId
+                    ? await db
+                          .select({ description: agentsTable.description })
+                          .from(agentsTable)
+                          .where(eq(agentsTable.id, message.authorAgentId))
+                          .limit(1)
+                    : [];
             return {
                 chatId: row.chatId,
                 content: row.content,

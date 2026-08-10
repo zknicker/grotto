@@ -49,10 +49,10 @@ export function CoveOnboardingRoute() {
             pending: wasGated.current,
             serverRootPath: serverRoot,
         });
-        wasGated.current = handoff.pending;
         if (handoff.redirect) {
             return <Navigate replace to={handoff.redirect} />;
         }
+        wasGated.current = handoff.pending;
         return <Outlet />;
     }
     wasGated.current = true;

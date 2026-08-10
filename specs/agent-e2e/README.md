@@ -15,7 +15,7 @@ baseline, but scenario names and assertions describe only Grotto behavior.
 
 1. Establish the expected behavior through product research and record the
    prompt, model, transcript, timing, and screenshots.
-2. Repeat the same business interaction in Grotto through the real App UI.
+2. Repeat the same business interaction in Grotto through the real Server UI.
 3. Record the Grotto result before changing implementation.
 4. Encode stable user-visible behavior in the live browser suite.
 5. Keep internal races, retries, bounds, and failure injection in deterministic

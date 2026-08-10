@@ -10,7 +10,7 @@ read_when:
 
 `grotto.sh` is one Server on the Mac mini. Cloudflare provides DNS, TLS, and a
 named Tunnel only. The Tunnel sends `https://grotto.sh` to
-`http://127.0.0.1:18791`; the Server serves the App, tRPC HTTP, WebSocket, and
+`http://127.0.0.1:18791`; the Server serves the Server UI, tRPC HTTP, WebSocket, and
 `/healthz` from that origin. A Cloudflare Redirect Rule sends
 `www.grotto.sh/*` to the matching apex path and preserves the query string.
 PostgreSQL, attachments, and jobs stay on the mini. There is no public inbound
@@ -20,7 +20,7 @@ or deployment uses Vercel.
 
 ## Release artifact
 
-The hosted Server and hosted web App are one Grotto product release. Publishing
+The Server and Server UI are one Grotto Server release. Publishing
 the repository's annotated `vX.Y.Z` GitHub Release promotes that exact tag to
 production. A push to `main` never deploys.
 
@@ -61,7 +61,7 @@ output.
 The Apple Silicon archive and SHA-256 file are built under
 `apps/server/release/`, verified by the publisher, and attached to the GitHub
 Release. The archive contains the compiled deploy operation, Server operations,
-hosted App, PostgreSQL migration runner and files, four Grotto launchd jobs, one
+Server UI, PostgreSQL migration runner and files, four Grotto launchd jobs, one
 narrow activation sudoers rule, shared Colima boot assets, and safe
 configuration examples. The mini verifies the
 outer checksum before extracting or executing the deploy operation, which then

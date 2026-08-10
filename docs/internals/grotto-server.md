@@ -1,5 +1,5 @@
 ---
-summary: The hosted Grotto Server's PostgreSQL collaboration, reminders, durable attention, local attachment bytes, recovery, realtime, and direct App surface.
+summary: The hosted Grotto Server's Server UI, PostgreSQL collaboration, reminders, durable attention, local attachment bytes, recovery, and realtime behavior.
 read_when:
   - changing Grotto Server creation, slugs, membership, roles, or Channels
   - changing hosted PostgreSQL schema or Server authorization
@@ -22,19 +22,19 @@ MCP connections are not supported.
 
 A Grotto server is the durable collaboration container
 ([ADR 0019](../adr/0019-servers-own-collaboration-computers-own-execution.md)).
-The hosted Server owns its state in PostgreSQL and the App talks to it directly
+The hosted Server owns its state in PostgreSQL and its clients talk to it directly
 over tRPC HTTP and WebSocket.
 
 ## Applications
 
 | Application | Entrypoint | Owns |
 | --- | --- | --- |
-| Grotto Server | `src/grotto-server.ts` | tRPC, collaboration, delivery, attachment bytes, and PostgreSQL |
-| Grotto App | `apps/website` | Web UI plus the optional Electron native shell |
+| Grotto Server | `apps/server` and `apps/website` | Server UI, tRPC, collaboration, delivery, attachment bytes, and PostgreSQL |
+| Grotto App | `apps/website/electron*` | Installed Electron shell, native credentials, deep links, and updates |
 | Grotto Computer | `apps/computer` | Local Agent execution and one isolated attachment per Server |
 
-The App calls the Server. Each Computer opens an outbound attachment socket to
-the Server. The App and Computer never connect directly. Legacy local-owner
+The Server UI and App call the Server. Each Computer opens an outbound attachment socket to
+the Server. App and Computer never connect directly. Legacy local-owner
 Runtime procedures are not part of the hosted transport.
 
 ## Identity
@@ -54,13 +54,13 @@ transaction. Reads resolve an existing User or find none — asking never mints
 one, so an authenticated human who has done nothing leaves no row behind.
 
 `CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
-App attaches the token as `Authorization: Bearer` on HTTP and as
+Server UI attaches the token as `Authorization: Bearer` on HTTP and as
 `connectionParams.clerkSessionToken` on the WebSocket.
 
 ### Authorized party
 
 One Clerk instance signs tokens for every frontend attached to it, so a valid
-signature and issuer do not say a token was minted for this App. The `azp`
+signature and issuer do not say a token was minted for this Server UI. The `azp`
 claim names the frontend that asked for it, and the Server judges it after
 signature, configured issuer, expiry, and subject all pass:
 
@@ -346,7 +346,7 @@ while every membership gate fails closed.
 
 Humans hold Member, Admin, or Owner. A Server may have several Owners and must
 always keep one. One rule decides every change and is shared by the Server and
-the App as `resolveServerMemberAuthority` in `@tavern/api`:
+the Server UI as `resolveServerMemberAuthority` in `@tavern/api`:
 
 - Owners and Admins issue and revoke invitations.
 - An Admin manages Members, including promoting one to Admin. An Admin never
@@ -360,7 +360,7 @@ Server's immutable slug: every elevation (Member to Admin, and Member or Admin
 to Owner), plus removal, leaving, and revoking Owner. Stepping an Admin down to
 Member is the one ordinary confirmation — it grants nothing and costs no
 access. The Server verifies that confirmation inside the same transaction; the
-App's copy is presentation.
+Server UI's copy is presentation.
 
 Every remove, demote, and leave locks the `servers` row before counting Owners,
 so two Owners racing to unseat each other serialize and exactly one commits.
@@ -417,7 +417,7 @@ the candidate Computer without advancing. Empty or invalid inventory and
 incompatible or disconnected Computers retain the owning phase plus actionable
 failure detail. Only a report containing at least one runtime with at least one
 model advances durably to `awaiting-cove`; reconnect clears transient failure
-without reconstructing progress from Agent presence. The App reads this record
+without reconstructing progress from Agent presence. The Server UI reads this record
 before mounting the general Server shell.
 
 The dedicated Cove mutation takes the Server lock and turns `awaiting-cove`
@@ -453,12 +453,12 @@ Server query, mutation, and subscription resolves membership through it:
   Revoked Server membership ends delivery.
 
 A human without membership gets `FORBIDDEN`; an address with no Server gets
-`NOT_FOUND`. App-side checks are presentation only.
+`NOT_FOUND`. Server UI checks are presentation only.
 
-## App surface
+## Server UI
 
 - `/` signs the human in, then opens the last Server they used or their first
-  current membership. Server switching and creation live in the App sidebar.
+  current membership. Server switching and creation live in the Server UI sidebar.
 - `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, search,
   attachments, and the hosted task Board/List. It reserves and streams local
   files to the hosted Server, renders only attachment metadata in messages,
@@ -477,24 +477,24 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   the reported machine name, attachment health, reported runtimes/models,
   assigned Agents, update state, recovery commands, and removal. Computer
   reports invalidate this inventory and Agent availability through the Server
-  websocket; the App does not poll a Computer or connect to one directly.
+  websocket; the Server UI does not poll a Computer or connect to one directly.
 - `/s/<slug>/settings/connections` manages MCP connections on one selected
   Computer attachment. Secrets relay over the Server's existing authenticated
-  Computer socket and never enter App storage.
+  Computer socket and never enter Server UI storage.
 - `/s/<slug>/settings/updates` owns only the thin desktop shell update.
-  Computer updates live on the selected Computer detail. The hosted App has no
+  Computer updates live on the selected Computer detail. The Server UI has no
   Runtime URL, token, connection banner, or Runtime update flow.
 - `/invite/<token>` is where an invited human accepts. It sits outside the
   `/s/<slug>` branch because a Server address may itself be `invite` or `join`.
   Manual links use `VITE_GROTTO_APP_ORIGIN` when configured; that origin must
   match `APP_ORIGIN`.
-- `/privacy` serves the public privacy policy directly from the hosted App
-  artifact without loading the signed-in App shell.
+- `/privacy` serves the public privacy policy directly from the Server UI
+  artifact without loading the signed-in Server UI shell.
 
-The App uses `apps/website/src/lib/grotto-server.tsx`: the browser's same origin
+The Server UI uses `apps/website/src/lib/grotto-server.tsx`: the browser's same origin
 in production and `VITE_GROTTO_SERVER_ORIGIN` in development, with the Clerk
 session attached per request and per WebSocket connection. Product operations
-never use a local sidecar or Electron IPC. Electron loads this same hosted App
+never use a local sidecar or Electron IPC. Grotto App loads this same Server UI
 and supplies native window, link, authentication-storage, and desktop-update
 behavior only. Hooks live in
 `apps/website/src/hooks/servers/`.
@@ -512,13 +512,13 @@ intentionally best-effort and disappears instead of replaying.
 
 Thread message and follow notifications retain the existing durable event row
 shape. The public event adds only `parentChatId`, nullable for top-level Chats,
-so the App can refetch the child and its exact parent summary without carrying
+so the Server UI can refetch the child and its exact parent summary without carrying
 anchor or message content in the event.
 
 ## Production
 
 The single-node production Server listens on `127.0.0.1:18791` and serves the
-hosted App, tRPC HTTP, WebSocket, and `/healthz` from `https://grotto.sh`.
+Server UI, tRPC HTTP, WebSocket, and `/healthz` from `https://grotto.sh`.
 Cloudflare owns DNS, TLS, named Tunnel ingress, and the `www`-to-apex Redirect
 Rule. PostgreSQL, attachment storage, and jobs remain local to the Mac mini.
 Vercel remains the registrar only and serves no production traffic. See [Grotto

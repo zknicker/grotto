@@ -4,12 +4,12 @@ read_when:
   - deploying Grotto Runtime to a Mac mini or always-on host
   - changing runtime CLI commands, Homebrew service packaging, runtime host/port defaults, or app runtime URL setup
   - changing how a deployed host runs local agent execution
-  - separating Grotto desktop app releases from Grotto Runtime releases
+  - separating Grotto App releases from Grotto Runtime releases
 ---
 
 # Runtime Deployment
 
-Grotto Runtime is an always-on server process. The desktop app connects to its
+Grotto Runtime is an always-on server process. Grotto App connects to its
 configured Runtime URL.
 
 ## Grotto Computer Recovery

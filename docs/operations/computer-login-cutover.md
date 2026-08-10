@@ -9,8 +9,8 @@ read_when:
 # Computer Login Cutover
 
 Reusable Computer login ships through three checkpoints: expanded Server, Computer, then final
-App/Server. Never activate the contracted Server before the new Computer is publicly available and
-the production Computer has upgraded. The hosted App and Server are one artifact, so the last
+Server. Never activate the contracted Server before the new Computer is publicly available and
+the production Computer has upgraded. The Server UI and Server backend are one artifact, so the last
 checkpoint activates both together.
 
 Choose and record the three release versions plus the rollback Server version before starting:
@@ -18,7 +18,7 @@ Choose and record the three release versions plus the rollback Server version be
 ```sh
 export EXPANDED_SERVER_VERSION=X.Y.Z
 export COMPUTER_VERSION=X.Y.Z
-export CUTOVER_APP_VERSION=X.Y.Z
+export CUTOVER_SERVER_VERSION=X.Y.Z
 export PREVIOUS_SERVER_VERSION=X.Y.Z
 ```
 
@@ -44,7 +44,7 @@ bun e2e/run-playwright.ts e2e/tests/servers.spec.ts e2e/tests/computer-login.spe
 cd ../..
 ```
 
-Prepare and publish the expansion App/Server release, marking Computer, Desktop, and Runtime
+Prepare and publish the expansion Server release, marking Computer, App, and Runtime
 unchanged unless their own diffs require publication:
 
 ```sh
@@ -77,8 +77,8 @@ curl --fail --silent --show-error https://grotto.sh/healthz
 ## 2. Computer
 
 From the cutover source, set `apps/computer/package.json` to `$COMPUTER_VERSION`. Prepare a
-Computer-only `release-surfaces.json`: Computer publishes `$COMPUTER_VERSION`; App/Server,
-Desktop, and Runtime are unchanged; `targetVersion` is `null`. Update the current changelog entry
+Computer-only `release-surfaces.json`: Computer publishes `$COMPUTER_VERSION`; Server,
+App, and Runtime are unchanged; `targetVersion` is `null`. Update the current changelog entry
 with that exact surface block. The dry run deliberately does not validate this metadata, so check
 and commit it before building:
 
@@ -99,7 +99,7 @@ curl --fail --silent --show-error \
   https://releases.grotto.sh/computer/latest.json
 ```
 
-Upgrade the production Computer through the App or run `grotto-computer upgrade`. Verify the new
+Upgrade the production Computer through the Server UI or run `grotto-computer upgrade`. Verify the new
 version, every pre-existing Server attachment, and an existing Agent workspace before continuing:
 
 ```sh
@@ -112,17 +112,17 @@ Rollback checkpoint: while the expanded Server remains active, run
 `grotto-computer upgrade --rollback`, then recheck status and one existing workspace. Do not roll
 the Computer back by itself after the contracted Server activates.
 
-## 3. Final App/Server
+## 3. Final Server
 
 The cutover source removes the one-off Server endpoints and PostgreSQL model, Computer fallback,
 and browser route. It does not drop or rewrite the production database; existing Computer rows,
-credentials, attachments, and workspaces stay in place. Prepare and publish the final App/Server
+credentials, attachments, and workspaces stay in place. Prepare and publish the final Server
 release with Computer marked **publish** at the exact version already published. This does not
 republish Computer: it makes `release:publish` reject the final release unless the signed production
-descriptor is exactly `$COMPUTER_VERSION`. Mark Desktop and Runtime unchanged:
+descriptor is exactly `$COMPUTER_VERSION`. Mark App and Runtime unchanged:
 
 ```sh
-bun run release:bump "$CUTOVER_APP_VERSION"
+bun run release:bump "$CUTOVER_SERVER_VERSION"
 bun install --frozen-lockfile
 bun run release:collect-changelog-context
 # Set Computer to publish $COMPUTER_VERSION in CHANGELOG.md and release-surfaces.json.
@@ -130,7 +130,7 @@ bun run release:check
 bun run release:publish
 ```
 
-Confirm the published release deployed, `/healthz` is healthy, the hosted App loads, and the
+Confirm the published release deployed, `/healthz` is healthy, the Server UI loads, and the
 production Computer reconnects. Then run the clean-root smoke below.
 
 Rollback checkpoint: first reactivate the expanded Server release, then roll Computer back only if
@@ -157,7 +157,7 @@ Run this smoke from a dedicated macOS Unix account or separate host that does no
 Grotto Computer service. A temporary data root isolates Computer files, but `logout` intentionally
 stops the account-wide `com.grotto.computer` launchd service; running it as the production Computer
 account would take existing attachments offline. Prove the smoke account has no service plist and
-uses the published executable, then create a fresh Server in the production App and record its exact
+uses the published executable, then create a fresh Server in the production Server UI and record its exact
 slug and Server id:
 
 ```sh
@@ -172,9 +172,9 @@ GROTTO_COMPUTER_DATA_ROOT="$SMOKE_ROOT/computer" \
 ```
 
 In the browser, verify device code prefill, explicit account approval, **Signed in — finishing the
-connection**, then **Computer connected** only after the CLI stores the attachment. In the App,
+connection**, then **Computer connected** only after the CLI stores the attachment. In the Server UI,
 verify the Server observes the Computer, onboarding advances only after runtime/model inventory,
-the Owner selects Cove's model, and the App unlocks into the retained onboarding Channel. Verify
+the Owner selects Cove's model, and the Server UI unlocks into the retained onboarding Channel. Verify
 Cove's Owner DM is visible and Cove's first greeting is one canonical Agent-authored message.
 
 Record the Computer id, attachment path under the isolated root, Cove id, DM id, greeting message
@@ -189,6 +189,6 @@ GROTTO_COMPUTER_DATA_ROOT="$SMOKE_ROOT/computer" \
   $HOME/.local/bin/grotto-computer logout
 ```
 
-Delete only the recorded smoke Server through its confirmed App flow if cleanup is authorized.
+Delete only the recorded smoke Server through its confirmed Server UI flow if cleanup is authorized.
 Move the exact `SMOKE_ROOT` to Trash only after evidence is captured and Server cleanup succeeds.
 Never sweep Servers, Computers, attachments, or local roots by prefix or age.

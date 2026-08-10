@@ -12,7 +12,7 @@ state, Agent workspaces, credentials, or old desktop-sidecar configuration.
 
 1. Back up any information the operator wants to keep outside Grotto. The
    product does not import it.
-2. Stop and uninstall the old local Runtime/Desktop deployment. Remove its
+2. Stop and uninstall the old local Runtime/App deployment. Remove its
    local SQLite and App-cache state only after confirming the external backup.
 3. Bootstrap a new hosted Grotto Server PostgreSQL database and attachment
    root following [Grotto Server deploy](grotto-server-deploy.md).

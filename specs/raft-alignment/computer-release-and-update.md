@@ -7,9 +7,9 @@ Computer settings, and local recovery CLI.
 ## Product contract
 
 Grotto Computer is a separately versioned part of one Grotto product. Every Grotto release
-decision assesses App/Server, Desktop, Computer, and any remaining Runtime surface together.
+decision assesses Server, App, Computer, and any remaining Runtime surface together.
 Those surfaces may remain unchanged, but the decision must be explicit. Releases are ordered:
-a compatible Computer release is published and publicly verified before an App/Server release
+a compatible Computer release is published and publicly verified before a Server release
 that requires its protocol.
 
 Computer has independent SemVer and annotated `computer-vX.Y.Z` tags. It has one production
@@ -59,7 +59,7 @@ the old key that trusts both the old and new public keys. A later release may re
 ## Publishing
 
 `bun run computer:release <version>` is the dedicated Computer publisher. It runs locally on
-macOS, following the same authority model as the App/Server release publisher.
+macOS, following the same authority model as the Server release publisher.
 
 The publisher must:
 
@@ -86,13 +86,13 @@ Before every Grotto release, the release instructions require an explicit surfac
 
 | Surface | Publish when |
 | --- | --- |
-| App/Server | Product UI, hosted API, hosted persistence, or Server behavior changes |
-| Desktop | The Electron shell or bundled desktop artifact changes |
+| Server | Server UI, hosted API, persistence, or Server behavior changes |
+| App | The Electron shell or installed desktop artifact changes |
 | Computer | Computer execution, lifecycle, local CLI, updater, embedded managed CLI, bootstrap or ordinary protocol, or required shared Computer dependencies change |
 
 A Server protocol-floor increase cannot publish until the signed production Computer descriptor
 reports a compatible protocol. Computer-only repairs are allowed, but the release record still
-marks App/Server and Desktop unchanged.
+marks Server and App unchanged.
 
 ## Initial installation
 

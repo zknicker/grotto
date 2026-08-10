@@ -103,14 +103,14 @@ implemented surface:
   builds run a signed-out dev mode with no gate; e2e forces keyless. If
   clerk-js cannot load (offline), the app renders local data on the cached
   identity instead of locking the user out. The Electron shell loads the same
-  hosted App but uses Clerk's native header authentication, keeps the encrypted
+  Server UI but uses Clerk's native header authentication, keeps the encrypted
   client token in Electron storage, and completes Google sign-in in the system
   browser. Packaged builds return through the `grotto://sso-callback` protocol;
   development uses a process-owned loopback callback because unbundled Electron
   apps share a generic macOS protocol-handler identity. Electron removes the
   hosted renderer's automatic `Origin` header only from Clerk requests explicitly
   marked as native, because Clerk accepts either native `Authorization` or a
-  browser `Origin`, never both. The shell permits only the configured hosted App
+  browser `Origin`, never both. The shell permits only the configured Server UI
   origin to read those native Clerk responses; it does not disable Chromium web
   security or widen CORS for other traffic.
 - Dev builds automatically sign in as the configured dev user when
@@ -132,7 +132,7 @@ implemented surface:
   client code or version control.
 - Production runs on the Clerk instance at `clerk.grotto.sh` (Google OAuth
   via the Grotto Clerk client in the technical `tavern-499717` Google Cloud
-  project). The hosted App build carries the production publishable key; the
+  project). The Server UI build carries the production publishable key; the
   desktop shell contains no separate React or Clerk build. Before release,
   both Clerk instances must whitelist the canonical
   `grotto://sso-callback` redirect.

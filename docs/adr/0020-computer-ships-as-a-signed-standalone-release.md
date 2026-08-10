@@ -17,7 +17,7 @@ no-rollback portions of ADR 0019.
 
 WS6 implemented signed Computer update commands, graceful turn draining, shared progress, and a
 stable bootstrap protocol, but did not implement the production Computer publisher. The documented
-descriptor URL returned 404, `apps/computer` remained at 1.0.0, and an App/Server release required
+descriptor URL returned 404, `apps/computer` remained at 1.0.0, and a Server release required
 a newer Computer protocol without publishing a compatible Computer artifact.
 
 The prior design used an npm tarball while Raft's proven production path uses a signed standalone
@@ -36,12 +36,12 @@ The executable installs at `~/.local/bin/grotto-computer`; npm and Homebrew do n
 exactly one previous verified executable for explicit `grotto-computer upgrade --rollback`.
 
 Computer retains independent SemVer and `computer-vX.Y.Z` tags, but release planning is holistic.
-Every Grotto release explicitly assesses App/Server, Desktop, and Computer. A compatible Computer
-release must be published and publicly verified before an App/Server release that requires its
+Every Grotto release explicitly assesses Server, App, and Computer. A compatible Computer
+release must be published and publicly verified before a Server release that requires its
 protocol.
 
 Production Computer publishing uses a dedicated local macOS command, matching the existing
-App/Server release authority. It uploads immutable versioned objects before atomically promoting
+Server release authority. It uploads immutable versioned objects before atomically promoting
 the one production `latest.json` pointer.
 
 The App keeps Raft's responsive update interaction: immediate requested state, real byte-based

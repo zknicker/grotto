@@ -12,14 +12,15 @@ Always-on Grotto guidance for AI coding assistants.
 
 ## Architecture Map
 
-Grotto has three first-party layers plus an internal agent engine. Grotto is the product.
+Grotto has four first-party layers plus an internal agent engine. Grotto is the product.
 Grotto Runtime manages the engine dependency — users install only Grotto and experience
 the engine's abilities as the assistant's abilities, never its plumbing.
 
 | Layer | Owns |
 | --- | --- |
+| Grotto Server | The hosted Server UI, collaboration API, persistence, and shared Server behavior. |
 | Grotto Runtime | Canonical chats, messages, participants, events, reads, automations, deliveries, runtime activity, Memory reads, agent execution, and Grotto tools. |
-| Grotto App | The Electron/React product surface, local presentation, app cache, app settings, optimistic UI, and tRPC client behavior. |
+| Grotto App | The installed Electron desktop application: native shell, preload bridge, local presentation, app cache, app settings, optimistic UI, and tRPC client behavior. It loads the Server UI. |
 | Grotto API / SDK | Stable contracts for chats, realtime, admin/runtime control, automations, Memory, skills, stats, and external clients. |
 | Agent engine | Agent execution: instructions, turns, tools, model calls, and projected activity. |
 
@@ -32,6 +33,8 @@ Use product nouns directly:
 - Grotto chat history is canonical Grotto Runtime state.
 - Agent execution traces are execution evidence, not the product timeline.
 - Memory is Grotto's durable knowledge surface.
+- Use Server for the hosted deployment and Server UI for its web surface. Use App only for the
+  installed desktop application.
 
 ## Docs Routing
 
@@ -82,7 +85,7 @@ so `docs:list` routes future agents correctly.
 - App event hooks should own their tRPC subscription and the exact React Query invalidation or cache
   update.
 
-## Grotto App UI
+## Grotto Server UI And App
 
 - React structure, behavior, data flow, or state: before editing, use
   `architect-react-features` and read `docs/internals/react.md`. Also use

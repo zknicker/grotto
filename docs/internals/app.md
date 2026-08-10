@@ -1,5 +1,5 @@
 ---
-summary: Grotto App boundary for the Electron product shell, React/tRPC client, app cache, presentation state, runtime adapters, and optimistic UI rules.
+summary: Grotto App boundary for the installed Electron desktop application and its native shell, React client, local cache, presentation state, and optimistic UI rules.
 read_when:
   - changing the local app backend, tRPC procedures, client cache, or app-owned settings
   - changing how Grotto App consumes Grotto Runtime or Grotto API records
@@ -7,17 +7,16 @@ read_when:
 
 # Grotto App
 
-The hosted React App is Grotto's canonical product surface. Browsers load it
-directly from `grotto.sh`; the Electron desktop app is a thin native shell that
-loads the same hosted App. Electron adds only native window behavior, system
+Grotto App is the installed Electron desktop application. It loads the canonical
+Server UI from `grotto.sh` and adds native window behavior, system
 links, native Clerk token storage, deep links, and desktop updates through a
 narrow preload bridge.
 
-The packaged desktop artifact does not contain a second copy of the product UI.
-Only the exact configured App origin may navigate inside the shell or invoke
+The packaged App artifact does not contain a second copy of the Server UI.
+Only the exact configured Server origin may navigate inside the shell or invoke
 native IPC. UI fixes therefore reach browsers and desktop windows together when
-the hosted App is promoted; a signed desktop release is required only when the
-Electron shell or preload bridge changes.
+the Server is promoted; a signed App release is required only when the Electron
+shell or preload bridge changes.
 
 Grotto App must not gain execution ownership from the agent-engine integration.
 Anything a headless Runtime API client needs to run the agent belongs to

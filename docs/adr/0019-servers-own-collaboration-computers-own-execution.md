@@ -74,7 +74,7 @@ the dialog warns that Grotto cannot erase data from offline, lost, or
 destroyed machines. There is no restore path.
 
 Each Grotto server has a stable opaque id, an immutable globally unique slug,
-and an editable display name. Human-facing App routes and Computer setup use
+and an editable display name. Human-facing Server UI routes and Computer setup use
 the slug; stored relationships and protocol authorization use the id.
 
 Creating a Server creates its first Owner and `#all`, but no Computer or
@@ -460,7 +460,7 @@ deployment needs.
   flow, app-side sync database, and mixed operator/Agent CLI retire.
 - Server mutations can atomically commit product state, events, inbox
   delivery, and Computer wake work.
-- Every App surface is available from the web; Computer-local operations are
+- Every Server UI surface is available from the web; Computer-local operations are
   authorized and relayed through the hosted Server.
 - Computer outages degrade execution and local inspection without making
   hosted collaboration state unavailable.

@@ -114,8 +114,8 @@ The timeline combines three inputs:
 | --- | --- | --- |
 | Durable messages | Grotto Runtime | Canonical timeline rows |
 | Artifacts | Grotto Runtime | Rich renderable outputs |
-| Composition bubbles | App UI (ephemeral) | In-flight agent send preview |
-| Optimistic local rows | App UI | One-frame accepted-message handoff |
+| Composition bubbles | Server UI (ephemeral) | In-flight agent send preview |
+| Optimistic local rows | Server UI | One-frame accepted-message handoff |
 
 Rendering rules:
 

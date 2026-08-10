@@ -92,7 +92,7 @@ Disconnect clears credentials and grants. Custom connections may also be
 deleted.
 
 OAuth routes implement MCP authorization discovery, PKCE, refresh, and dynamic
-client registration through the AI SDK MCP client. The App Server owns the
+client registration through the AI SDK MCP client. The Grotto App backend owns the
 ephemeral loopback callback. Browser is a separate host-tool service with its
 own settings and lifecycle routes.
 

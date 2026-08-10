@@ -8,10 +8,10 @@ the docs to read before changing behavior.
 
 ## Language
 
-**Grotto server**:
-The durable top-level collaboration container that owns Chats, members, agents, reminders, tasks,
-attachments, and other shared product state. A human may belong to multiple independent Grotto
-servers.
+**Grotto Server**:
+The hosted deployment and durable top-level collaboration container. It serves the Server UI and
+owns the API, persistence, Chats, members, agents, reminders, tasks, attachments, and other shared
+product state. A human may belong to multiple independent Grotto Servers.
 _Avoid_: Runtime, Computer, workspace, deployment
 
 **Server slug**:
@@ -20,9 +20,14 @@ relationships and authorization use the stable Server id instead.
 _Avoid_: Server name, Server id, invitation code
 
 **Grotto App**:
-The web client through which humans use one or more Grotto servers. The Electron distribution is an
-optional native shell around the same client, not a separate product backend.
-_Avoid_: Grotto server, Grotto Computer, local app server
+The installed Electron desktop application through which humans use one or more Grotto Servers. It
+loads the Server UI and adds native window, credential, deep-link, and update behavior.
+_Avoid_: Server, Server UI, website, web app
+
+**Server UI**:
+The browser UI served by Grotto Server. It is available directly over HTTPS and is also loaded by
+Grotto App; it is part of the Server release, not a separately versioned App artifact.
+_Avoid_: App, website, combined Server-and-App terminology
 
 **Computer**:
 A Server-scoped attachment of a physical machine that runs Agent sessions and Agent turns and
@@ -56,7 +61,7 @@ Re-running `setup` reuses a valid local attachment and fails closed rather than 
 attachment whose credential is rejected. Setup is additive across Servers: adding another Server
 starts another isolated Server attachment daemon without stopping existing daemons.
 Stopping Grotto Computer is temporary and preserves every attachment; permanent Computer removal
-is an App action, not a CLI detach operation. A manual `stop` persists across machine restarts
+is a Server UI action, not a CLI detach operation. A manual `stop` persists across machine restarts
 until an operator explicitly runs `start`; otherwise the installed OS service starts
 automatically at boot.
 _Avoid_: Grotto CLI, Agent tool, hosted Server administration
@@ -64,14 +69,14 @@ _Avoid_: Grotto CLI, Agent tool, hosted Server administration
 **Computer release**:
 An independently versioned, immutable Grotto Computer executable plus its signed production
 descriptor. It uses `computer-vX.Y.Z` tags and one production stream, but participates in the same
-holistic release decision as App/Server and Desktop. A compatible Computer release is published
-and publicly verified before an App/Server release that requires its protocol.
+holistic release decision as Server and App. A compatible Computer release is published
+and publicly verified before a Server release that requires its protocol.
 _Avoid_: App release, Server deployment, release channel, npm package
 
 **Computer update**:
 An operator-triggered upgrade of the installed Grotto Computer service. The service reports its
 current version and update state to every attached Server. Owners and Admins initiate updates from
-the App's Computer settings; the Server sends a typed update command to the online Computer, which
+the Server UI's Computer settings; the Server sends a typed update command to the online Computer, which
 downloads and verifies the signed standalone release, drains active turns, atomically replaces the
 executable, restarts, and reconnects. Updates never install automatically during ordinary startup.
 Because the resident service is shared, any attached Server's Owner or Admin may trigger the
@@ -206,11 +211,11 @@ _Avoid_: Effective execution state, provider credentials, executable model inven
 Computer-reported facts about an Agent's current executor, model, session, process, capability
 health, and failures. A Computer reports unsatisfied configuration instead of silently substituting
 another executor or model.
-_Avoid_: Agent execution configuration, Server policy, cached App state
+_Avoid_: Agent execution configuration, Server policy, cached Server UI state
 
 **Reported execution snapshot**:
 The Grotto server's latest persisted report of a Computer's effective execution state. It serves
-routine App reads without contacting the Computer and may be labeled stale when reports stop.
+routine Server UI reads without contacting the Computer and may be labeled stale when reports stop.
 _Avoid_: Desired configuration, live Computer query, execution trace
 
 **Turn summary**:
@@ -256,8 +261,8 @@ _Avoid_: Agent run, Chat, session
 **Agent workspace**:
 The Computer-local per-Agent filesystem home that stores the Agent's editable identity,
 instructions, briefing files, episodic observations, generated files, and working state. The
-Grotto server does not cache it; authorized App reads use a live Computer relay and are unavailable
-while that Computer is offline. Only human Server Owners and Admins may inspect it through the App.
+Grotto Server does not cache it; authorized Server UI reads use a live Computer relay and are unavailable
+while that Computer is offline. Only human Server Owners and Admins may inspect it through the Server UI.
 _Avoid_: Server attachment storage, Wiki root, provider home
 
 **Agent runtime home**:
@@ -380,7 +385,7 @@ import a selected bundle from the physical machine into this directory while the
 online. Its contents are the exact skill set exposed to every executor the Agent uses. Changing
 the Agent's runtime or model never changes, copies, converts, or filters this library. The Computer
 reports compact metadata—name, description, content hash, and modified time—to the Server for
-offline App display. Skill bodies and supporting files remain Computer-local and require an
+offline Server UI display. Skill bodies and supporting files remain Computer-local and require an
 authorized live relay to view or edit.
 _Avoid_: Global skill folder, disposable harness projection, skill assignment
 
@@ -389,7 +394,7 @@ An explicit online copy of one bundle from a runtime-compatible global skill fol
 machine into one Agent skill library. Global folders are opt-in import sources only and are never
 inherited or scanned by an Agent executor. Matching Raft's skill-list boundary, the Computer may
 report importable names, descriptions, and shortened source paths to Server Owners and Admins in
-the App, but bundle contents never transit or persist on the Server. **Import to Agent** performs
+the Server UI, but bundle contents never transit or persist on the Server. **Import to Agent** performs
 the copy entirely on the Computer. The imported copy has no synchronization or provenance
 lifecycle and may be modified freely by the Agent.
 _Avoid_: Skill assignment, shared catalog, global skill enablement
@@ -450,7 +455,7 @@ layer's existing event, projection, or rendering pipeline.
 _Avoid_: Widget implementation, plugin loader
 
 **Surface component**:
-A normal Grotto App React component used to render validated Widget props with the app's shared
+A normal Server UI React component used to render validated Widget props with the UI's shared
 visual system.
 _Avoid_: Model component, widget primitive
 

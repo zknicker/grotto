@@ -1,40 +1,40 @@
 ---
-summary: Coordinated release workflow for App/Server, Desktop, Computer, and remaining Runtime artifacts, including signing, publishing, compatibility ordering, and promotion.
+summary: Coordinated release workflow for Server, App, Computer, and remaining Runtime artifacts, including signing, publishing, compatibility ordering, and promotion.
 read_when:
   - cutting, signing, notarizing, or publishing a Grotto release
   - deciding whether a Grotto release needs a Computer release
   - changing Computer packaging, protocol, updater, or release progress
-  - deciding whether a Grotto app release needs a Runtime release
+  - deciding whether a Grotto App release needs a Runtime release
   - changing Runtime release artifacts or Homebrew deployment
   - changing release scripts, updater metadata, or release environment variables
 ---
 
 # Releases
 
-Every release starts with one Grotto release decision across App/Server,
-Desktop, Computer, and any remaining Runtime surface. A surface may remain
+Every release starts with one Grotto release decision across Server, App,
+Computer, and any remaining Runtime surface. A surface may remain
 unchanged, but the release notes must say so. Independently versioned artifacts
 are prerequisites in one ordered release train, not isolated release projects.
 
-Grotto releases optimize for frequent app updates and infrequent Runtime updates.
-The desktop app has its own release version. Runtime has a package version, and
-the app declares the minimum compatible Runtime version in
+Grotto releases optimize for frequent Server updates and infrequent Runtime updates.
+The App has its own release version. Runtime has a package version, and
+the App declares the minimum compatible Runtime version in
 `apps/website/package.json` at `tavern.runtime.minimumVersion`.
 
-Users experience app and Runtime updates as one Grotto update. The desktop
+Users experience App and Runtime updates as one Grotto update. The App
 updater stages a Runtime package first when a newer Runtime is required, keeps
 the existing Runtime process online, downloads the desktop update, then asks for
 one restart. The final restart restarts Runtime, waits for Runtime health, and
-then restarts the app when an app update is staged.
+then restarts the App when an App update is staged.
 
-The app accepts a connected Runtime when:
+The App accepts a connected Runtime when:
 
-* the Runtime version is exactly the app version, or
+* the Runtime version is exactly the App version, or
 * the Runtime version is in the same Runtime API epoch as
   `tavern.runtime.minimumVersion` and is greater than or equal to that floor.
 
 The Runtime API epoch is `major.minor`. Patch releases inside the same epoch are
-compatible unless the app raises the floor.
+compatible unless the App raises the floor.
 
 ## Agent Release Decision
 
@@ -42,8 +42,8 @@ Before every release, inspect the changed files and record every surface:
 
 | Surface | Publish when |
 | --- | --- |
-| App/Server | Product UI, hosted API, hosted persistence, or Server behavior changes |
-| Desktop | The Electron shell, preload bridge, or native desktop artifact changes |
+| Server | Server UI, hosted API, persistence, or Server behavior changes |
+| App | The Electron shell, preload bridge, or native desktop artifact changes |
 | Computer | Computer execution, lifecycle, local CLI, updater, embedded managed CLI, bootstrap or ordinary protocol, or a required shared Computer dependency changes |
 | Runtime | A remaining pre-Computer Runtime package contract changes |
 
@@ -52,22 +52,22 @@ with its version or `unchanged`, then copy the exact block from
 `release:collect-changelog-context` into the new changelog entry.
 `release:check` and production publishers reject missing or inconsistent
 decisions. For a Computer-only repair, leave `targetVersion` null, publish the
-Computer version, mark App/Server, Desktop, and Runtime unchanged, and record
+Computer version, mark Server, App, and Runtime unchanged, and record
 the generated surface block in the current changelog entry.
 
-If App/Server raises its required Computer protocol, publish and publicly verify
-the compatible Computer release first. The App/Server publisher must not proceed
+If Server raises its required Computer protocol, publish and publicly verify
+the compatible Computer release first. The Server publisher must not proceed
 against a production Computer descriptor below that floor.
 
 For the remaining Runtime surface, choose one compatibility lane:
 
 | Lane | Use when | Runtime package | Runtime floor |
 | --- | --- | --- | --- |
-| App-only | UI, desktop shell, docs, app cache, app presentation, or any change that does not require a new Runtime behavior | unchanged | unchanged |
-| Compatible Runtime | Runtime bugfix or operational improvement that users can safely defer because the old Runtime still preserves correct core behavior | bump with app release | unchanged |
-| Required Runtime | App depends on new Runtime API, storage, capability, event, job, executor behavior, or CLI behavior; or the release fixes correctness-critical Runtime behavior | bump with app release | bump to the release version |
+| App-only | App shell, docs, app cache, app presentation, or any change that does not require new Runtime behavior | unchanged | unchanged |
+| Compatible Runtime | Runtime bugfix or operational improvement that users can safely defer because the old Runtime still preserves correct core behavior | bump with App release | unchanged |
+| Required Runtime | App depends on new Runtime API, storage, capability, event, job, executor behavior, or CLI behavior; or the release fixes correctness-critical Runtime behavior | bump with App release | bump to the release version |
 
-Default to **App-only** unless the app needs new Runtime behavior. Runtime
+Default to **App-only** unless the App needs new Runtime behavior. Runtime
 updates are operator work; do not force one for a desktop-only patch. When a
 Runtime fix changes whether core chat execution is truthful or correct, treat it
 as **Required Runtime** even if the HTTP/API shape is unchanged.
@@ -88,19 +88,19 @@ Released **vX.Y.Z** 🚀
 
 When no installed surface requires an update:
 
-✅ All changes were deployed to the Grotto Server. No Desktop app,
+✅ All changes were deployed to the Grotto Server. No Grotto App,
 Grotto Computer, or Runtime updates are required.
 
 When updates are required, list only those actionable updates:
 
-- 🖥️ **Desktop app**: Update to `vX.Y.Z` using `exact action`.
+- 🖥️ **Grotto App**: Update to `vX.Y.Z` using `exact action`.
 - 💻 **Grotto Computer**: Update to `vX.Y.Z` using `exact command or UI action`.
 - ⚙️ **Runtime**: Update to `vX.Y.Z` using `exact command`.
 
 ### Release versions
 
 - Grotto Server: `vX.Y.Z`
-- Desktop app: `vX.Y.Z`
+- Grotto App: `vX.Y.Z`
 - Grotto Computer: `vX.Y.Z`
 - Runtime: `vX.Y.Z`
 
@@ -129,7 +129,7 @@ what it removed, and whether recovery is possible. Report failed checks,
 pending deployment, and other verification gaps directly instead of omitting
 them.
 
-## App-Only Flow
+## Server Release Flow
 
 1. Run `bun run release:bump <patch|minor|major|X.Y.Z>`.
 2. Run `bun install --frozen-lockfile`.
@@ -140,23 +140,22 @@ them.
    S3, and GitHub auth configured.
 
 `release:publish` commits and pushes release metadata first so the future tag
-commit has a stable full SHA. It builds the hosted Server and hosted App
-artifact once with that SHA, verifies its archive and sidecar, then builds and
-notarizes the signed desktop app. It uploads the desktop updater files to
+commit has a stable full SHA. It builds the Server artifact, including the Server UI,
+once with that SHA, verifies its archive and sidecar, then builds and
+notarizes the signed App when required. It uploads the App updater files to
 `TAVERN_RELEASE_S3_URI`, verifies that remote `main` still contains the release
-commit, pushes the version tag, and creates the GitHub Release with the desktop
+commit, pushes the version tag, and creates the GitHub Release with the App
 files plus the Server archive and sidecar. New commits may land on `main` during
 the build without invalidating the immutable release commit.
 
 ## Hosted Server Promotion
 
-The hosted Server and hosted web App use the same product version as
-`apps/website`. They are one atomic production artifact; there is no separate
-Server SemVer. The Electron app loads this canonical hosted App; ordinary UI
-changes do not require a desktop release. A desktop release is required only
+The Server and Server UI use the same product version from `apps/website`.
+They are one atomic production artifact with one Server SemVer. Grotto App loads
+this canonical Server UI; ordinary Server UI changes do not require an App release. An App release is required only
 when the native shell or preload bridge changes. The publisher reads the
-release-surface decision and skips desktop building, notarization, updater
-upload, and GitHub artifacts when Desktop is unchanged.
+release-surface decision and skips App building, notarization, updater
+upload, and GitHub artifacts when App is unchanged.
 
 Publishing the annotated `vX.Y.Z` GitHub Release triggers the production
 deployment. A push to `main` does not. The deploy resolves that immutable tag to
@@ -232,18 +231,18 @@ previous verified executable for explicit `grotto-computer upgrade --rollback`.
 
 Reusable-login protocol changes use the ordered
 [Computer login cutover](computer-login-cutover.md): expanded Server, publicly verified Computer,
-then final App/Server. Its rollback order is part of the contract.
+then final Server. Its rollback order is part of the contract.
 
 Use this lane when the release decision marks Computer **publish**:
 
 1. Choose the next independent Computer SemVer.
 2. Run `bun run computer:release -- --dry-run <version>`.
-3. Update the changelog with the Computer version and any App/Server dependency.
+3. Update the changelog with the Computer version and any Server dependency.
 4. Run `bun run computer:release <version>` from macOS with Apple, Ed25519, S3,
    Git, and GitHub credentials configured.
 5. Confirm the publisher publicly verified the immutable executable and signed
    descriptor before promoting `computer/latest.json`.
-6. If App/Server requires the new protocol, only then continue its release flow.
+6. If Server requires the new protocol, only then continue its release flow.
 
 The publisher creates the annotated Computer tag and GitHub Release. It never
 promotes `latest.json` before the immutable public artifact passes signature,
@@ -268,12 +267,12 @@ reuses `~/.grotto` state. Do not publish an npm compatibility bridge.
 Use this lane only when the Runtime package must ship.
 
 1. Run `bun run release:bump <patch|minor|major|X.Y.Z> -- --runtime`.
-2. If the app requires this Runtime version, use
+2. If the App requires this Runtime version, use
    `bun run release:bump <patch|minor|major|X.Y.Z> -- --runtime --require-runtime`
    instead. This also updates `tavern.runtime.minimumVersion`.
 3. Run `bun install --frozen-lockfile`.
 4. Run `bun run release:collect-changelog-context`.
-5. Update the top `CHANGELOG.md` entry. Name app changes and Runtime changes
+5. Update the top `CHANGELOG.md` entry. Name App changes and Runtime changes
    separately when both ship.
 6. Run `bun run release:check`.
 7. Run `bun run release:build-runtime-artifact` when validating the Runtime
@@ -281,8 +280,8 @@ Use this lane only when the Runtime package must ship.
 8. Run `bun run release:publish -- --runtime` from macOS.
 
 `release:publish -- --runtime` also builds and verifies the hosted Server
-artifact for the same tag, builds the Runtime artifact and signed desktop app,
-notarizes it, creates updater metadata, uploads desktop updater artifacts and
+artifact for the same tag, builds the Runtime artifact and signed App,
+notarizes it, creates updater metadata, uploads App updater artifacts and
 Runtime tarballs to `TAVERN_RELEASE_S3_URI`, verifies each S3 object is visible,
 pushes `main` and the version tag, creates the GitHub Release, and updates the
 Homebrew tap formula.
@@ -292,23 +291,23 @@ resources required by the local service.
 
 ## Compatibility Floor Rules
 
-* **Do not raise the floor for desktop-only work.** App version bumps do not
+* **Do not raise the floor for App-only work.** App version bumps do not
   imply Runtime updates.
-* **Raise the floor when the app calls a new Runtime contract.** This includes
+* **Raise the floor when the App calls a new Runtime contract.** This includes
   new or changed Runtime API fields, capability ids, websocket events, durable
   records, executor behavior, Runtime CLI behavior, or adapter behavior that
-  the app requires.
+  the App requires.
 * **Raise the floor for correctness-critical Runtime fixes.** This includes
   fixes for chat/session binding, model selection, command routing, skill
   projection, tool execution, auth, data integrity, updater correctness, or any
   other Runtime bug where leaving users on the old Runtime would make core
-  workflows silently wrong while the app still reports healthy or up to date.
+  workflows silently wrong while the App still reports healthy or up to date.
 * **Keep compatible Runtime fixes optional.** If a Runtime patch improves
   reliability or performance but old Runtime builds still preserve correct core
   behavior, publish the Runtime artifact without changing
   `tavern.runtime.minimumVersion`.
 * **Use patch bumps inside a Runtime API epoch.** If Runtime compatibility needs
-  a clean break, bump the minor version and raise the app floor to that new
+  a clean break, bump the minor version and raise the App floor to that new
   minor.
 * **Allow patch skew within a known epoch.** The App accepts Runtime patches in
   its own minor epoch up through the App version, plus patches at or above the
@@ -316,29 +315,29 @@ resources required by the local service.
   patches and unlisted intermediate minor epochs.
 * **Verify old Runtime behavior when leaving the floor unchanged.** Run the
   focused app/server test lane against the floor contract or add a fixture-backed
-  test for the field/event/capability the app consumes.
+  test for the field/event/capability the App consumes.
 
 Raise `tavern.runtime.minimumVersion` when any answer is yes:
 
-* Does the app require a new Runtime API route, request field, response field, or
+* Does the App require a new Runtime API route, request field, response field, or
   error shape?
-* Does the app require a new Runtime capability id, health state, event, durable
+* Does the App require a new Runtime capability id, health state, event, durable
   record, job, or storage invariant?
-* Does the app require new model-provider startup, model config, or executor
+* Does the App require new model-provider startup, model config, or executor
   behavior?
-* Does the app require new Runtime CLI, Homebrew service, artifact layout, port,
+* Does the App require new Runtime CLI, Homebrew service, artifact layout, port,
   or environment behavior?
 * Does this release fix a core Runtime correctness bug in chat execution,
   session routing, model choice, commands, skills, tools, auth, data integrity,
   or updater behavior?
-* Would the new app fail, hide core functionality, corrupt state, or show a
+* Would the new App fail, hide core functionality, corrupt state, or show a
   false healthy state against the current floor Runtime?
 
 Do not raise `tavern.runtime.minimumVersion` when every answer is no. Examples:
 
-* UI copy, layout, navigation, visual polish, or desktop updater changes.
+* App copy, layout, navigation, visual polish, or updater changes.
 * App cache, optimistic UI, local settings, or presentation-only fixes.
-* Runtime fixes that old app builds can use opportunistically but the new app
+* Runtime fixes that old App builds can use opportunistically but the new App
   does not require.
 * Release tooling or documentation changes that do not change the Runtime
   artifact contract.
@@ -347,15 +346,15 @@ Do not raise `tavern.runtime.minimumVersion` when every answer is no. Examples:
 
 The Grotto updater has one visible product flow:
 
-1. Show the topbar updater control when an app update is available, Runtime must
+1. Show the topbar updater control when an App update is available, Runtime must
    be staged, a stage/download/restart is active, or the configured Runtime is
    disconnected.
 2. Stage Runtime with `brew update && brew upgrade grotto-runtime`. Do not
    restart Runtime during staging.
-3. Download the desktop update.
+3. Download the App update.
 4. Show **Restart** only when every required artifact is staged.
 5. On restart, restart Runtime first, wait for the minimal Runtime health check,
-   then restart the desktop app when an app update is staged.
+   then restart the App when an App update is staged.
 
 Do not reintroduce a separate Runtime update wizard or fake progress checklist.
 Runtime install progress is phase-based unless Runtime owns real byte progress.
@@ -381,17 +380,17 @@ behavior changes:
 `zknicker/homebrew-grotto` by default through `TAVERN_HOMEBREW_TAP_REPO`, or an
 explicit local checkout through `TAVERN_HOMEBREW_TAP_DIR`.
 
-Desktop builds compile `assets/mac-icon.icon` with Xcode `actool` before Electron
+App builds compile `assets/mac-icon.icon` with Xcode `actool` before Electron
 packaging. The compiled `Assets.car` provides the layered Liquid Glass app icon
 on macOS 26, and `AppIcon.icns` remains the fallback icon for older macOS
 versions and Electron's DMG/app bundle path.
 
 Grotto releases publish these production artifacts:
 
-* `Grotto.app` (`build.grotto.desktop`) is the desktop client plus its local app backend. Desktop release files use the
+* `Grotto.app` (`build.grotto.desktop`) is the installed Grotto App. App release files use the
   `Grotto_<version>_<arch>` prefix.
 * `grotto-server-<version>+git.<short-sha>-aarch64-apple-darwin.tar.gz`
-  contains the hosted Server and hosted App. Its sidecar travels with it as a
+  contains the Server and Server UI. Its sidecar travels with it as a
   GitHub Release asset.
 * `computer/<version>/grotto-computer-aarch64-apple-darwin` is the independently
   versioned, signed and notarized Computer executable. Its signed descriptor is
@@ -399,7 +398,7 @@ Grotto releases publish these production artifacts:
 * `grotto-runtime-<version>-<target>.tar.gz` is the always-on Runtime server for
   a Mac mini or other host when the release includes Runtime.
 
-The desktop app connects to the configured Runtime URL. Runtime deployment and
+The App connects to the configured Runtime URL. Runtime deployment and
 Homebrew service management live in [Runtime Deployment](runtime-deploy.md).
 
 Keep every published changelog version anchored by a matching `vX.Y.Z` git tag
@@ -412,7 +411,7 @@ Required release environment:
 
 * `TAVERN_RELEASE_BASE_URL`
 * `TAVERN_RELEASE_S3_URI`
-* `VITE_CLERK_PUBLISHABLE_KEY` for the hosted App inside the Server artifact
+* `VITE_CLERK_PUBLISHABLE_KEY` for the Server UI inside the Server artifact
 * `TAVERN_HOMEBREW_TAP_REPO` defaults to `zknicker/homebrew-grotto`
 * `TAVERN_HOMEBREW_TAP_DIR` optionally points to a local tap checkout
 * `CSC_NAME` or `CSC_LINK` + `CSC_KEY_PASSWORD`
@@ -447,7 +446,7 @@ On macOS, `VITE_CLERK_PUBLISHABLE_KEY` also falls back to the login Keychain
 generic-password service `grotto-release-clerk-publishable-key`, using the
 macOS username as the account. The publisher resolves this value before
 committing or pushing release metadata, so checkout-local `.env` files are not
-required for the hosted App build.
+required for the Server UI build.
 
 Runtime releases additionally require `TAVERN_GOOGLE_OAUTH_CLIENT_ID` and
 `TAVERN_GOOGLE_OAUTH_CLIENT_SECRET` for the Runtime artifact. App-only releases

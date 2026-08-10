@@ -72,7 +72,7 @@ to the capability id.
 | --- | --- |
 | Runtime | Capability definitions, checks, storage, API, and update job. |
 | App backend | Runtime client/proxy and optional local cache for presentation only. |
-| App UI | Rendering status, reason, timestamps, and actions. |
+| Server UI | Rendering status, reason, timestamps, and actions. |
 | Agent engine | Execution-owned facts that Runtime may inspect while checking a capability. |
 
 The app must not invent Runtime capability rows, run Runtime capability checks,

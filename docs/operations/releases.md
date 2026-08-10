@@ -247,6 +247,10 @@ resources required by the local service.
 * **Use patch bumps inside a Runtime API epoch.** If Runtime compatibility needs
   a clean break, bump the minor version and raise the app floor to that new
   minor.
+* **Allow patch skew within a known epoch.** The App accepts Runtime patches in
+  its own minor epoch up through the App version, plus patches at or above the
+  declared minimum within the floor's minor epoch. It rejects newer Runtime
+  patches and unlisted intermediate minor epochs.
 * **Verify old Runtime behavior when leaving the floor unchanged.** Run the
   focused app/server test lane against the floor contract or add a fixture-backed
   test for the field/event/capability the app consumes.

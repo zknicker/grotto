@@ -32,19 +32,42 @@ export function getRuntimeVersionStatus(input: {
         return 'unknown';
     }
 
+    const requiredRuntimeVersion =
+        input.requiredRuntimeVersion ?? getRequiredRuntimeVersion(input.appVersion);
+
     if (input.runtimeVersion === input.appVersion) {
         return 'matched';
     }
 
-    const requiredRuntimeVersion =
-        input.requiredRuntimeVersion ?? getRequiredRuntimeVersion(input.appVersion);
-
-    return isCompatibleRuntimeVersion({
+    return isRuntimeVersionAcceptedByApp({
+        appVersion: input.appVersion,
         requiredRuntimeVersion,
         runtimeVersion: input.runtimeVersion,
     })
         ? 'compatible'
         : 'mismatched';
+}
+
+export function isRuntimeVersionAcceptedByApp(input: {
+    appVersion: string;
+    requiredRuntimeVersion: string;
+    runtimeVersion: string;
+}) {
+    const app = parseVersion(input.appVersion);
+    const required = parseVersion(input.requiredRuntimeVersion);
+    const runtime = parseVersion(input.runtimeVersion);
+    if (!(app && required && runtime)) {
+        return false;
+    }
+
+    const appSharesRequiredEpoch = app.major === required.major && app.minor === required.minor;
+    const inAppEpoch =
+        runtime.major === app.major &&
+        runtime.minor === app.minor &&
+        compareVersionParts(runtime, app) <= 0 &&
+        (!appSharesRequiredEpoch || compareVersionParts(runtime, required) >= 0);
+
+    return inAppEpoch || isCompatibleRuntimeVersion(input);
 }
 
 export function isCompatibleRuntimeVersion(input: {

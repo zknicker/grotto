@@ -45,10 +45,34 @@ describe('Runtime version compatibility', () => {
         ).toBe('matched');
         expect(
             getRuntimeVersionStatus({
-                appVersion: '1.1.12',
-                requiredRuntimeVersion: '1.1.11',
-                runtimeVersion: '1.1.11',
+                appVersion: '1.8.6',
+                requiredRuntimeVersion: '1.6.2',
+                runtimeVersion: '1.8.5',
             })
         ).toBe('compatible');
+    });
+
+    test('rejects intermediate epochs and Runtime patches newer than the App', () => {
+        expect(
+            getRuntimeVersionStatus({
+                appVersion: '1.8.6',
+                requiredRuntimeVersion: '1.6.2',
+                runtimeVersion: '1.7.0',
+            })
+        ).toBe('mismatched');
+        expect(
+            getRuntimeVersionStatus({
+                appVersion: '1.8.6',
+                requiredRuntimeVersion: '1.6.2',
+                runtimeVersion: '1.8.7',
+            })
+        ).toBe('mismatched');
+        expect(
+            getRuntimeVersionStatus({
+                appVersion: '1.6.6',
+                requiredRuntimeVersion: '1.6.2',
+                runtimeVersion: '1.6.1',
+            })
+        ).toBe('mismatched');
     });
 });

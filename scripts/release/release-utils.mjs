@@ -92,19 +92,25 @@ export const compareVersions = (left, right) => {
 };
 
 export const isRuntimeVersionAcceptedByApp = ({ appVersion, minimumVersion, runtimeVersion }) => {
-    if (runtimeVersion === appVersion) {
-        return true;
-    }
-
+    const app = parseVersion(appVersion);
     const runtime = parseVersion(runtimeVersion);
     const minimum = parseVersion(minimumVersion);
-    return (
-        runtime !== null &&
-        minimum !== null &&
+    if (!(app && runtime && minimum)) {
+        return false;
+    }
+
+    const appSharesMinimumEpoch = app.major === minimum.major && app.minor === minimum.minor;
+    const inAppEpoch =
+        runtime.major === app.major &&
+        runtime.minor === app.minor &&
+        compareVersions(runtimeVersion, appVersion) <= 0 &&
+        (!appSharesMinimumEpoch || compareVersions(runtimeVersion, minimumVersion) >= 0);
+    const inMinimumEpoch =
         runtime.major === minimum.major &&
         runtime.minor === minimum.minor &&
-        compareVersions(runtimeVersion, minimumVersion) >= 0
-    );
+        compareVersions(runtimeVersion, minimumVersion) >= 0;
+
+    return inAppEpoch || inMinimumEpoch;
 };
 
 export const todayDateString = () => new Date().toISOString().slice(0, 10);

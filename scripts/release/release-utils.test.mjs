@@ -9,6 +9,13 @@ test('accepts the App release Runtime without raising an older compatible floor'
             runtimeVersion: '1.8.0',
         })
     ).toBe(true);
+    expect(
+        isRuntimeVersionAcceptedByApp({
+            appVersion: '1.8.6',
+            minimumVersion: '1.6.2',
+            runtimeVersion: '1.8.5',
+        })
+    ).toBe(true);
 });
 
 test('accepts the existing minimum Runtime epoch and rejects other versions', () => {
@@ -24,6 +31,20 @@ test('accepts the existing minimum Runtime epoch and rejects other versions', ()
             appVersion: '1.8.0',
             minimumVersion: '1.6.2',
             runtimeVersion: '1.7.0',
+        })
+    ).toBe(false);
+    expect(
+        isRuntimeVersionAcceptedByApp({
+            appVersion: '1.8.6',
+            minimumVersion: '1.6.2',
+            runtimeVersion: '1.8.7',
+        })
+    ).toBe(false);
+    expect(
+        isRuntimeVersionAcceptedByApp({
+            appVersion: '1.6.6',
+            minimumVersion: '1.6.2',
+            runtimeVersion: '1.6.1',
         })
     ).toBe(false);
 });

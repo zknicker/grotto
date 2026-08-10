@@ -31,13 +31,17 @@ Chats are Grotto's shared conversation surfaces.
 
 ## Config And Observation
 
-- Grotto-owned chats are created, named, bound, ordered, renamed, and archived by Grotto Runtime
+- Grotto-owned chats are created, named, bound, ordered, renamed, archived, and deleted by Grotto Runtime
   through Grotto API.
 - Agent engines do not create, name, rename, archive, or delete Grotto-owned chats.
 - Archiving a chat hides it from normal Grotto chat lists without deleting its chat row. Runtime
   session and message records may continue to reference that stable chat id.
-- Archived chats stay listable through an explicit archived chat list, stay readable by id, and
-  can be unarchived. While archived, a chat accepts no new user messages.
+- Archived regular channels stay listable through an explicit archived chat list, stay readable
+  by id, and can be unarchived. While archived, the channel and its child threads accept no new
+  writes. Undrained Agent work is canceled and is not replayed after restore.
+- Owner/Admin deletion of a regular channel is irreversible aggregate deletion. It removes the
+  channel, child threads, durable collaboration dependents, and attachment bytes. `#all`, DMs,
+  and threads do not expose independent archive or delete actions.
 - Runtime may observe agent sessions and messages that belong to a Grotto chat.
   Those observations attach through the Runtime-owned agent participant for that chat.
 - External platform conversations, such as Discord channels or DMs, are separate first-class

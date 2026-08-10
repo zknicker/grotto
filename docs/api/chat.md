@@ -25,7 +25,11 @@ The App calls the hosted Server directly over typed tRPC:
 
 | Procedure | Contract |
 | --- | --- |
-| `chat.list` | Accessible Channels and DMs with Server-owned unread counts |
+| `chat.list` | Accessible active Channels and DMs with Server-owned unread counts |
+| `chat.listArchived` | Accessible archived regular Channels |
+| `chat.get` | One accessible Chat by id, including archived Channels |
+| `chat.archiveChannel` / `chat.unarchiveChannel` | Owner/Admin reversible regular-Channel lifecycle transition |
+| `chat.deleteChannel` | Owner/Admin irreversible regular-Channel aggregate deletion; exact name confirmation |
 | `chat.ensureDm` | Resolve or create the sorted two-human DM for both current membership stints |
 | `chat.messages` | Stable sequence page for one authorized Chat |
 | `chat.send` | Immutable message create; optional anchor target creates/posts to a child Thread |
@@ -76,6 +80,21 @@ the same Server and Chat. Message creation, attachment association, and the
 `message.created` event commit in one PostgreSQL transaction. The normal
 message refetch carries attachment metadata; no separate attachment event is
 emitted. Messages have no update or delete procedure.
+
+Regular Channels carry `archivedAt` and `archivedByUserId`. Archive preserves
+the Channel and all history, hides it from `chat.list`, freezes writes to the
+Channel and its child Threads, pauses anchored reminders, and deletes pending
+Agent work whose run has not been accepted. `chat.listArchived`, `chat.get`,
+message reads, and search keep archived history reachable. Unarchive clears the
+archive fields and does not replay canceled work.
+
+Delete first tombstones the regular Channel so access and writes fail closed,
+then purges attachment objects and the Channel aggregate. Database dependents
+cascade or are explicitly removed, including child Threads and reminders. A
+durable `chat.lifecycle` event retains only the deleted Chat id and transition
+metadata so clients can invalidate stale state. Startup retries any interrupted
+tombstoned-Channel purge. `#all`, DMs, and Threads cannot use these lifecycle
+procedures independently.
 
 Hosted human chat includes hidden child Threads with parent-derived
 authorization, per-human follows, reads, and parent unread rollup. It also owns

@@ -332,10 +332,13 @@ inbox. Human **Start** resumes the current session and drains that work.
   nesting; thread messages can't become tasks. Inline replies (`parent_message_id`) are replaced
   entirely — replying is threading; the `Reply context:` prompt section dies. Targets:
   `#channel:anchorShortId` / `dm:@name:anchorShortId`.
-- **T2 — Full message immutability, Raft-pure.** No edits, no deletes, no tombstones, nothing in
-  the schema anticipating redaction. Corrections are thread replies; leaked credentials are
-  rotated, not scrubbed. If an un-fixable leak ever occurs, redaction is a one-off operator DB
-  intervention that day — productized only if it recurs.
+- **T2 — Individual-message immutability, Raft-pure.** No per-message edits,
+  deletes, or redaction tombstones. Corrections are Thread replies; leaked
+  credentials are rotated, not scrubbed. This does not prohibit an authorized
+  destructive aggregate operation: deleting a regular Channel permanently
+  removes that Channel and its messages, matching Raft's human Server-management
+  surface. If an un-fixable leak requires selective redaction, it remains a
+  one-off operator DB intervention — productized only if it recurs.
 - **T3 — Threads open in a side panel** (Slack-style): reply-count + latest-reply-time badge on
   anchors; main channel stays visible; one right pane visible at a time (thread vs artifact,
   most recent wins, both reopenable). Follow/unfollow in the thread header with identical

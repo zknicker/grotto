@@ -54,6 +54,10 @@ present, the Chat list, and Server search; read/follow events invalidate the
 parent summary and Chat list. `task.created` and `task.updated` invalidate the
 Server task list and affected parent-Chat message snapshot.
 `task.label.updated` invalidates the task-label catalog and task list.
+`chat.lifecycle` carries `archived`, `unarchived`, or `deleted` plus the stable
+Chat id. It invalidates active and archived lists, the focused Chat query,
+search, messages, and tasks. Unlike ordinary Chat events, its id is retained
+outside the live Chat foreign key so a delete notification survives the purge.
 
 The Server row owns the next durable cursor. Event transactions increment that
 counter while holding the Server row lock, then insert `chat_events` before
@@ -85,7 +89,7 @@ exact target Chat renders it. Settlement invalidates the durable Agent list,
 delivery state, and activity reads. Reconnect recovers from those reads rather
 than replaying lifecycle events.
 
-Hosted durable event kinds are `message.created`, `chat.read`, the
+Hosted durable event kinds are `message.created`, `chat.read`, `chat.lifecycle`, the
 reader-private `thread.follow.updated`, `task.created`, `task.updated`, and
 `task.label.updated`, plus `reminder.changed`.
 

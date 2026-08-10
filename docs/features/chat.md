@@ -59,11 +59,22 @@ and [Agent Inbox](../../specs/inbox.md).
   turn's prompt carries the channel's name and description, so agents treat it
   as the room's purpose. Users create channels by naming the channel
   and choosing its agent participants.
-  Archive channel is an explicit menu action that hides the channel from the
-  sidebar without deleting history. The sidebar's Archived entry opens the
-  archived chats view (`/chats/archived`), grouped by chat kind, where any
-  archived chat can be reopened or restored. An open archived chat shows an
-  Archived badge and a restore bar in place of the composer. New workspaces
+  Archive channel is an Owner/Admin action for a regular channel. It hides the
+  channel from the active sidebar without deleting history. The sidebar's
+  Archived entry opens the archived channel view (`/s/:slug/archived`), where
+  a channel can be reopened or restored. An open archived channel shows an
+  Archived badge and a restore bar in place of the composer. Its history,
+  search results, deep link, and child Threads remain readable, but new
+  messages, tasks, reactions, attachments, compositions, and reminder output
+  in the aggregate are rejected. Archive cancels undrained
+  Agent inbox work for the aggregate; already accepted turns cannot send back
+  after the transition. Restore permits new work without replaying canceled
+  envelopes.
+  Delete channel is a separate irreversible Owner/Admin action guarded by the
+  exact channel name. It removes the regular channel, child Threads, messages,
+  tasks, reads, reactions, reminders, delivery rows, search state, attachment
+  metadata, and attachment bytes. `#all`, DMs, and Threads have no independent
+  archive/delete action. New workspaces
   start with no user channels. Each agent has one
   built-in DM with the local human operator. Agent DMs are not user-deleteable;
   retiring the Agent removes its built-in DM from active navigation. The durable

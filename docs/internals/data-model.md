@@ -111,10 +111,24 @@ constraints bind the parent and anchor to the same Server and forbid a Thread
 parent. `thread_follows` stores attention only; every access check resolves the
 parent Chat.
 
+Regular hosted Channels use nullable `archived_at`/`archived_by_user_id` and
+`deleted_at`/`deleted_by_user_id` lifecycle pairs. Archived rows remain
+canonical and readable but are absent from active lists; write authorization
+inherits the parent Channel's archive state for child Threads. Delete uses the
+row as a fail-closed tombstone while filesystem attachment objects are purged,
+then explicitly removes reminder roots and child Threads before deleting the
+parent. Foreign-key cascades own the remaining relational dependents. Startup
+retries any tombstone left by an interrupted filesystem/database purge.
+Lifecycle actor ids are audit facts rather than membership foreign keys, so a
+later membership transition cannot block lifecycle history or cleanup.
+
 `chats.last_message_sequence` is locked and incremented in the message
 transaction. `chat_messages` is unique by `(server_id, chat_id, sequence)` and
 by `(server_id, chat_id, nonce)`. Message and `message.created` event insertion
 are atomic. Read advancement and its private `chat.read` event are atomic.
+Archive/unarchive and their `chat.lifecycle` event are atomic. A deletion event
+uses `lifecycle_chat_id`, not the live Chat foreign key, so it survives the
+aggregate purge and lets connected clients discard stale cached state.
 `chat_messages.search_vector` is a generated PostgreSQL `tsvector`; it is
 derived search state queried through its GIN index, not a second message store.
 `servers.last_chat_event_cursor` allocates commit-ordered event cursors while

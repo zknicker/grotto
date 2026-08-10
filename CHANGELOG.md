@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.7 - 2026-08-10
+
+- Computer settings now disable **Remove Computer** while assigned Agents remain
+  and identify the Agent that must be deleted first.
+- The disabled action includes the same remediation in a tooltip, and any
+  Server-side removal rejection remains visible in the confirmation dialog.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.7
+- Desktop: Unchanged
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.8.6 - 2026-08-09
 
 - Server activation now separates choosing, creating, and joining a Server into

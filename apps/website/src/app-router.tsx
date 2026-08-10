@@ -34,6 +34,13 @@ export function createAppRouter() {
             element: <AppFrame />,
             children: [
                 {
+                    path: 'prototype/activation/*',
+                    lazy: lazyRoute(
+                        () => import('./features/activation-preview/activation-preview-route.tsx'),
+                        'ActivationPreviewRoute'
+                    ),
+                },
+                {
                     element: <GrottoServerRoutes />,
                     children: [
                         {

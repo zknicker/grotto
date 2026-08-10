@@ -28,10 +28,10 @@ export function SignInGate({ children }: { children: ReactNode }) {
     return (
         <>
             <ClerkLoading>
-                <GateFrame />
+                <SignInGateFrame />
             </ClerkLoading>
             <ClerkFailed>
-                <GateFrame signIn />
+                <SignInGateFrame signIn />
             </ClerkFailed>
             {/* ClerkLoaded also covers the degraded status (degraded implies
                 loaded). The session gate also requires the token used by the
@@ -74,11 +74,11 @@ function ClerkSessionGate({ children }: { children: ReactNode }) {
     }, [isLoaded, isSignedIn, retryKey]);
 
     if (!(isLoaded && isSignedIn)) {
-        return <GateFrame signIn={isLoaded} />;
+        return <SignInGateFrame signIn={isLoaded} />;
     }
 
     if (tokenState === 'loading') {
-        return <GateFrame />;
+        return <SignInGateFrame />;
     }
 
     if (tokenState === 'missing' || refreshState === 'missing') {
@@ -91,21 +91,37 @@ function ClerkSessionGate({ children }: { children: ReactNode }) {
         };
 
         return (
-            <GateFrame
-                message="We couldn’t open your signed-in session."
-                recovery={
-                    <>
-                        <Button onPress={() => setRetryKey((key) => key + 1)}>Try again</Button>
-                        <Button onPress={signInAgain} variant="outline">
-                            Sign in again
-                        </Button>
-                    </>
-                }
+            <SignInSessionRecovery
+                onRetry={() => setRetryKey((key) => key + 1)}
+                onSignOut={signInAgain}
             />
         );
     }
 
     return children;
+}
+
+/** The signed-in-but-unusable-session repair screen. */
+export function SignInSessionRecovery({
+    onRetry,
+    onSignOut,
+}: {
+    onRetry: () => void;
+    onSignOut: () => void;
+}) {
+    return (
+        <SignInGateFrame
+            message="We couldn’t open your signed-in session."
+            recovery={
+                <>
+                    <Button onPress={onRetry}>Try again</Button>
+                    <Button onPress={onSignOut} variant="outline">
+                        Sign in again
+                    </Button>
+                </>
+            }
+        />
+    );
 }
 
 type ClerkSessionTokenState = 'loading' | 'ready' | 'missing';
@@ -120,7 +136,7 @@ export async function readClerkSessionToken(
     }
 }
 
-function GateFrame({
+export function SignInGateFrame({
     message = 'Sign in to open your Grotto.',
     recovery,
     signIn = false,

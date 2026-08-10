@@ -32,8 +32,8 @@ import {
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
+    computerAttachmentDaemonEntrypoint,
     computerEntrypoint,
-    computerRunnerEntrypoint,
     computerSourceRevision,
     computerVersion,
 } from './build-identity.ts';
@@ -241,7 +241,7 @@ async function main(args: string[]) {
     }
     if (command === 'stop') {
         if (target) {
-            await stopAttachment(await requiredAttachment(target));
+            await stopAttachmentDaemon(await requiredAttachment(target));
             return;
         }
         await stopComputerService();
@@ -249,11 +249,11 @@ async function main(args: string[]) {
     }
     if (command === 'restart') {
         const attachment = await requiredAttachment(target);
-        await stopAttachment(attachment);
-        await startAttachment(attachment);
+        await stopAttachmentDaemon(attachment);
+        await startAttachmentDaemon(attachment);
         return;
     }
-    if (command === 'run') {
+    if (command === '__attachment-daemon') {
         const attachment = await readAttachment(target);
         if (!attachment) {
             throw new Error('This Server is not attached to this Grotto Computer.');
@@ -299,7 +299,7 @@ async function main(args: string[]) {
                 }
             }
             await removePendingAttachment(dataRoot, slug);
-            await startAttachment(current);
+            await startAttachmentDaemon(current);
             console.log(`Grotto Computer resumed /${slug}.`);
             return;
         } catch (error) {
@@ -330,14 +330,14 @@ async function attachServer(slug: string) {
         await validate(current);
         await clearTerminalUnlinked(dataRoot, current);
         await removePendingAttachment(dataRoot, slug);
-        await startAttachment(current);
+        await startAttachmentDaemon(current);
         console.log(`Grotto Computer resumed /${slug}.`);
         return;
     }
     const issued = await issueAttachment(slug, session);
     await writeAttachment(issued.attachment);
     await removePendingAttachment(dataRoot, slug);
-    await startAttachment(issued.attachment);
+    await startAttachmentDaemon(issued.attachment);
     console.log(`Grotto Computer attached to /${slug}.`);
 }
 
@@ -368,14 +368,14 @@ async function setupServer(slug: string, current: Attachment | null) {
     }
 
     if (current) {
-        await stopAttachment(current);
+        await stopAttachmentDaemon(current);
         const archivedPath = await archiveUnlinkedAttachment(dataRoot, current);
         console.log(`Archived the stale Computer attachment at ${archivedPath}.`);
     }
     await writeAttachment(issued.attachment);
     await completeComputerLogin(session);
     await removePendingAttachment(dataRoot, slug);
-    await startAttachment(issued.attachment);
+    await startAttachmentDaemon(issued.attachment);
     console.log(`Grotto Computer attached to /${slug}.`);
 }
 
@@ -430,10 +430,10 @@ async function startAttachments(target: string | undefined) {
         return;
     }
     if (target) {
-        await startAttachment(await requiredAttachment(target));
+        await startAttachmentDaemon(await requiredAttachment(target));
         return;
     }
-    await Promise.all((await listAttachments()).map(startAttachment));
+    await Promise.all((await listAttachments()).map(startAttachmentDaemon));
 }
 
 async function requiredAttachment(target: string | undefined) {
@@ -588,71 +588,71 @@ async function isStopped() {
 async function stopComputerService() {
     await mkdir(dataRoot, { mode: 0o700, recursive: true });
     await writeFile(stoppedPath(), '', { mode: 0o600 });
-    await Promise.all((await listAttachments()).map(stopAttachment));
+    await Promise.all((await listAttachments()).map(stopAttachmentDaemon));
     await stopResidentService();
 }
 
-async function startAttachment(attachment: Attachment) {
+async function startAttachmentDaemon(attachment: Attachment) {
     if (await isTerminalUnlinked(dataRoot, attachment)) {
         return;
     }
-    const marker = await readRunnerMarker(attachment);
+    const marker = await readAttachmentDaemonMarker(attachment);
     if (marker && isPidAlive(marker.pid) && marker.credentialHash === hash(attachment.credential)) {
         return;
     }
     if (marker && isPidAlive(marker.pid)) {
         process.kill(marker.pid, 'SIGTERM');
     }
-    const entrypoint = computerRunnerEntrypoint(attachment.serverId, {
-        watch: process.env.GROTTO_COMPUTER_WATCH_RUNNER === '1',
+    const entrypoint = computerAttachmentDaemonEntrypoint(attachment.serverId, {
+        watch: process.env.GROTTO_COMPUTER_WATCH_ATTACHMENT_DAEMON === '1',
     });
     const child = Bun.spawn([entrypoint.executable, ...entrypoint.args], {
         env: {
             ...process.env,
             GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_RUNNER: '1',
+            GROTTO_COMPUTER_ATTACHMENT_DAEMON: '1',
         },
         stderr: 'inherit',
         stdin: 'ignore',
         stdout: 'inherit',
     });
     await writeFile(
-        runnerPath(attachment),
+        attachmentDaemonPath(attachment),
         `${JSON.stringify({ credentialHash: hash(attachment.credential), pid: child.pid })}\n`,
         { mode: 0o600 }
     );
-    // The durable marker and resident supervisor own the runner, not this
+    // The durable marker and resident supervisor own the attachment daemon, not this
     // one-shot CLI invocation.
     child.unref();
     void child.exited.then(async () => {
-        const marker = await readRunnerMarker(attachment);
+        const marker = await readAttachmentDaemonMarker(attachment);
         if (marker?.pid === child.pid) {
-            await rm(runnerPath(attachment), { force: true });
+            await rm(attachmentDaemonPath(attachment), { force: true });
         }
     });
 }
 
-async function stopAttachment(attachment: Attachment) {
-    const marker = await readRunnerMarker(attachment);
+async function stopAttachmentDaemon(attachment: Attachment) {
+    const marker = await readAttachmentDaemonMarker(attachment);
     try {
         if (marker && isPidAlive(marker.pid)) {
             process.kill(marker.pid, 'SIGTERM');
         }
     } catch {
-        // A stopped or stale runner is already isolated from the other attachments.
+        // A stopped or stale attachment daemon is already isolated from the other attachments.
     }
-    await rm(runnerPath(attachment), { force: true });
+    await rm(attachmentDaemonPath(attachment), { force: true });
 }
 
-function runnerPath(attachment: Attachment) {
-    return join(dataRoot, 'servers', attachment.serverId, 'runner.pid');
+function attachmentDaemonPath(attachment: Attachment) {
+    return join(dataRoot, 'servers', attachment.serverId, 'attachment-daemon.pid');
 }
 
-async function readRunnerMarker(
+async function readAttachmentDaemonMarker(
     attachment: Attachment
 ): Promise<{ credentialHash: string | null; pid: number } | null> {
     try {
-        const contents = await readFile(runnerPath(attachment), 'utf8');
+        const contents = await readFile(attachmentDaemonPath(attachment), 'utf8');
         const legacyPid = Number.parseInt(contents, 10);
         if (Number.isSafeInteger(legacyPid) && legacyPid > 0) {
             return { credentialHash: null, pid: legacyPid };
@@ -720,17 +720,17 @@ async function stopResidentService() {
 async function restartAfterUpdate() {
     for (const attachment of await listAttachments()) {
         try {
-            const marker = await readRunnerMarker(attachment);
+            const marker = await readAttachmentDaemonMarker(attachment);
             if (marker && marker.pid !== process.pid && isPidAlive(marker.pid)) {
                 process.kill(marker.pid, 'SIGTERM');
             }
         } catch {
-            // A missing runner is already ready for the resident restart.
+            // A missing attachment daemon is already ready for the resident restart.
         }
-        await rm(runnerPath(attachment), { force: true });
+        await rm(attachmentDaemonPath(attachment), { force: true });
     }
     await installResidentService();
-    if (process.env.GROTTO_COMPUTER_RUNNER === '1') {
+    if (process.env.GROTTO_COMPUTER_ATTACHMENT_DAEMON === '1') {
         setTimeout(() => process.exit(0), 100);
     }
 }

@@ -89,7 +89,7 @@ Grotto Computer is the local execution service. One installation may maintain
 isolated Computer attachments to multiple Grotto servers. A reusable,
 machine-local Computer login session authorizes management across the signed-in
 User's Servers; each attachment then uses its own revocable, Server-scoped
-Computer credential. Existing runners depend only on those Server-scoped
+Computer credential. Existing Server attachment daemons depend only on those Server-scoped
 credentials and never receive the human session. The Computer CLI exposes
 `login`, `logout`, `attach`, `setup`, and `status`; `setup` logs in if needed,
 attaches one Server, and starts the service. Re-running `setup` for a valid
@@ -106,8 +106,8 @@ cannot be removed while Agents remain assigned; each Agent must first be
 explicitly deleted through its confirmed deletion flow. The Server never
 silently substitutes an executor or model that a Computer cannot satisfy.
 
-One resident `grotto-computer` OS service supervises one isolated child runner
-per Server attachment. Each child owns only that attachment's Computer
+One resident `grotto-computer` OS service supervises one isolated Server
+attachment daemon per Server attachment. Each daemon owns only that attachment's Computer
 credential, outbound socket, local state partition, Agents, workspaces, skill
 bundles, queues, and processes. These resources never
 cross Computer boundaries, including between two attachments supervised by
@@ -185,7 +185,7 @@ model and Grotto's existing Runtime update UX. The service reports its installed
 version, available release, and update phase. An Owner or Admin starts an update
 from the App; the Server sends a typed update command over the Computer's
 existing attachment socket. The Computer downloads and verifies the signed
-release, stages it, restarts the resident service and child runners, then
+release, stages it, restarts the resident service and Server attachment daemons, then
 reconnects with its new version. The App presents checking, available,
 requested, byte-progress downloading, verifying, waiting-for-agents, installing,
 restarting, complete, and failed states. Restart uses prominent indeterminate
@@ -193,7 +193,7 @@ progress through the expected disconnect and new bootstrap handshake. Offline
 Computers cannot update. Ordinary service startup never installs an update automatically.
 `grotto-computer upgrade` remains the local repair path. The resident binary is
 shared by every attachment on the physical machine, so an update restarts all
-child runners. An Owner or Admin of any attached Server may trigger a signed
+Server attachment daemons. An Owner or Admin of any attached Server may trigger a signed
 Computer update. Every attachment observes the update state and reconnect, but
 only the initiating Server records the initiating User; other Servers receive
 no cross-Server identity or slug.

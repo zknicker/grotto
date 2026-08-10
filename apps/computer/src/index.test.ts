@@ -521,7 +521,7 @@ test('resident start parks a terminally unlinked attachment instead of retrying'
     }
 }, 5000);
 
-test('run keeps the attachment connected until the Server closes it', async () => {
+test('the Server attachment daemon stays connected until the Server closes it', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
     const connected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
@@ -561,7 +561,7 @@ test('run keeps the attachment connected until the Server closes it', async () =
             slug: 'hq',
         })
     );
-    const child = Bun.spawn(['bun', entrypoint, 'run', serverId], {
+    const child = Bun.spawn(['bun', entrypoint, '__attachment-daemon', serverId], {
         env: { ...process.env, GROTTO_COMPUTER_DATA_ROOT: dataRoot },
         stderr: 'pipe',
         stdout: 'pipe',
@@ -648,11 +648,12 @@ test('resident start reconnects an attachment after the Server closes it', async
         await Promise.race([
             reconnected.promise,
             Bun.sleep(5000).then(async () => {
-                const marker = await readFile(join(attachmentRoot, 'runner.pid'), 'utf8').catch(
-                    () => 'missing'
-                );
+                const marker = await readFile(
+                    join(attachmentRoot, 'attachment-daemon.pid'),
+                    'utf8'
+                ).catch(() => 'missing');
                 throw new Error(
-                    `Computer did not reconnect after the Server closed its socket. Runner: ${marker}`
+                    `Computer did not reconnect after the Server closed its socket. Attachment daemon: ${marker}`
                 );
             }),
         ]);

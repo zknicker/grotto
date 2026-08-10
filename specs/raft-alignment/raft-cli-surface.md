@@ -156,7 +156,7 @@ the agent-facing `grotto` CLI.
 
 `login`, `attach <serverSlug>`, `setup <serverSlug>`, `start/stop/restart`, `status`, `doctor`,
 `logs`, `runners list/stop`, `channel` (release channel), `upgrade`. State under `$SLOCK_HOME`
-(`~/.slock`): per-agent workspaces, per-agent proxy tokens, per-server runner state, trace jsonl.
+(`~/.slock`): per-agent workspaces, per-agent proxy tokens, per-server daemon state, trace jsonl.
 In 1.0.13, `setup` is the convenience path that logs in if needed, attaches one Server, and starts
 the service; adding another Server does not detach existing ones. `start [serverSlug]` may resume
 one attachment or all attachments, while `stop` stops compute without deleting attachment records.
@@ -169,7 +169,7 @@ remain excluded. Grotto additionally makes new attachment issuance crash-idempot
 The current Computer binary confirms the managed path that the older npm-only audit could not
 fully observe:
 
-- One per-Server runner opens an authenticated outbound WebSocket at `/daemon/connect`. On
+- One per-Server daemon opens an authenticated outbound WebSocket at `/daemon/connect`. On
   connect it sends a `ready` snapshot containing detected runtimes, running Agents, host facts,
   versions, and capabilities.
 - `agent:start` carries desired runtime configuration, launch/session identity, an optional

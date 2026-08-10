@@ -36,10 +36,10 @@ _Avoid_: Grotto server, tenant, Grotto Computer installation, agent runtime, mod
 **Grotto Computer**:
 The local service installation that connects a physical machine to zero or more Grotto servers and
 supervises each Server-scoped Computer attachment independently. One resident OS service supervises
-one isolated child runner per attachment; each child owns only that Server's credential, socket,
-and Agent processes. WS6 supports Apple Silicon macOS only and installs the resident service with
-launchd.
-_Avoid_: Grotto server, Computer attachment, Agent runtime, tenant
+one isolated Server attachment daemon per attachment; each daemon owns only that Server's
+credential, socket, and Agent processes. WS6 supports Apple Silicon macOS only and installs the
+resident service with launchd.
+_Avoid_: Grotto server, Computer attachment, Agent runtime, child runner, attachment runner, tenant
 
 **Grotto CLI**:
 The agent-facing `grotto` command that acts on one Grotto server through the managed Agent's local
@@ -54,7 +54,7 @@ implementation behind an internal entrypoint. Its human lifecycle is `login`, `l
 `setup`, and `status`; `setup` logs in if needed, attaches one Server, and starts the service.
 Re-running `setup` reuses a valid local attachment and fails closed rather than replacing an
 attachment whose credential is rejected. Setup is additive across Servers: adding another Server
-starts another isolated runner without stopping existing runners.
+starts another isolated Server attachment daemon without stopping existing daemons.
 Stopping Grotto Computer is temporary and preserves every attachment; permanent Computer removal
 is an App action, not a CLI detach operation. A manual `stop` persists across machine restarts
 until an operator explicitly runs `start`; otherwise the installed OS service starts

@@ -5,7 +5,7 @@ import type { Attachment } from './launch.ts';
 import { readComputerLoginSession } from './login.ts';
 
 interface AttachmentStatus {
-    runner: 'running' | 'setup-required' | 'stopped';
+    daemon: 'running' | 'setup-required' | 'stopped';
     serverId: string;
     slug: string;
 }
@@ -27,10 +27,10 @@ export async function readComputerStatus(dataRoot: string): Promise<{
     return {
         attachments: await Promise.all(
             attachments.map(async (attachment) => {
-                const marker = await readRunnerMarker(dataRoot, attachment.serverId);
+                const marker = await readAttachmentDaemonMarker(dataRoot, attachment.serverId);
                 const terminal = await readTerminalUnlinked(dataRoot, attachment);
                 return {
-                    runner: terminal
+                    daemon: terminal
                         ? 'setup-required'
                         : marker && isPidAlive(marker.pid)
                           ? 'running'
@@ -101,9 +101,9 @@ export function formatComputerStatus(status: Awaited<ReturnType<typeof readCompu
             ? 'No Servers attached.'
             : status.attachments
                   .map((item) =>
-                      item.runner === 'setup-required'
+                      item.daemon === 'setup-required'
                           ? `/${item.slug}: setup required — run grotto-computer setup /${item.slug}`
-                          : `/${item.slug}: ${item.runner} (${item.serverId})`
+                          : `/${item.slug}: ${item.daemon} (${item.serverId})`
                   )
                   .join('\n');
     const login = [`Login: ${status.login.state}`];
@@ -136,10 +136,10 @@ async function readAttachments(dataRoot: string): Promise<Attachment[]> {
         .sort((left, right) => left.slug.localeCompare(right.slug));
 }
 
-async function readRunnerMarker(dataRoot: string, serverId: string) {
+async function readAttachmentDaemonMarker(dataRoot: string, serverId: string) {
     try {
         const value = JSON.parse(
-            await readFile(join(dataRoot, 'servers', serverId, 'runner.pid'), 'utf8')
+            await readFile(join(dataRoot, 'servers', serverId, 'attachment-daemon.pid'), 'utf8')
         ) as { pid?: unknown };
         return typeof value.pid === 'number' ? { pid: value.pid } : null;
     } catch {

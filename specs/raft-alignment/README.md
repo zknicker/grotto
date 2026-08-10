@@ -62,7 +62,7 @@ viewing, multi-device, and member visibility all require Server fan-out, and the
 membership-checks every relayed event, ephemeral ones
 included. Pre-WS6 both connections are in-process hops inside the co-hosted process; WS6
 upgrades transport only, contracts unchanged. One resident `grotto-computer` OS service
-supervises one isolated child runner per Server attachment; attaching another Server creates
+supervises one isolated Server attachment daemon per Server attachment; attaching another Server creates
 another child, not another service or a stop/restart cycle. Setup is additive across Servers.
 Each Computer attachment is a hard execution namespace for its Agents, workspaces, skills, queues,
 sessions, and effective state. MCP connections and grants are Server-owned. Server-owned desired
@@ -110,7 +110,7 @@ Computer verifies, stages, restarts, and reconnects. The App immediately acknowl
 shows real byte-based download progress, names verification and drain phases, and uses prominent
 indeterminate progress through restart and reconnect. `grotto-computer upgrade` remains the local
 recovery path. Any attached Server's Owner or Admin may trigger the signed update. Because the
-resident binary is shared, every child runner restarts; all attachments see update state but never
+resident binary is shared, every Server attachment daemon restarts; all attachments see update state but never
 the initiating Server or User. Download and verification may overlap active turns, but restart
 drains first: stop admitting new turns, report `waiting-for-agents`, finish active turns, restart,
 then resume queued work. A stuck Agent requires an explicit admin stop; updates never force-kill a
@@ -675,7 +675,7 @@ deployment, so intermediate brokenness is not a constraint.
   Agent workspaces, skills, queues, sessions, and effective state are isolated to one Computer
   attachment. MCP connections and grants are Server-owned and available to that Server's Agents
   regardless of which Computer executes them.
-  `grotto-computer setup /server` is additive and idempotent: it starts a new per-Server runner
+  `grotto-computer setup /server` is additive and idempotent: it starts a new Server attachment daemon
   without disturbing current attachments, or validates and starts that Server's existing valid
   attachment. A manual `stop` persists across reboot until an explicit `start`; absent that pause,
   the service starts automatically at boot. Replacing a Computer means creating a new Computer and

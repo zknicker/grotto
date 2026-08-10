@@ -19,7 +19,7 @@ export function computerEntrypoint(): { args: string[]; executable: string } {
     };
 }
 
-export function computerRunnerEntrypoint(
+export function computerAttachmentDaemonEntrypoint(
     serverId: string,
     options: { watch: boolean }
 ): { args: string[]; executable: string } {
@@ -28,7 +28,7 @@ export function computerRunnerEntrypoint(
         args: [
             ...(options.watch && !computerStandalone ? ['--watch'] : []),
             ...entrypoint.args,
-            'run',
+            '__attachment-daemon',
             serverId,
         ],
         executable: entrypoint.executable,

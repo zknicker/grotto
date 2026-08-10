@@ -241,7 +241,7 @@ Release evidence proves:
 - the one-time 1.0.0 transition reuses existing attachments and Agent workspaces without an npm
   compatibility release
 - active turns continue during download, drain before replacement, and are never force-killed
-- all child runners reconnect after update
+- all Server attachment daemons reconnect after update
 - explicit rollback restores the one previous verified executable
 - two attached Servers observe the same progress without cross-Server initiator identity
 - the App shows truthful determinate download progress and indeterminate restart progress through

@@ -46,7 +46,7 @@ Organizations and Clerk role claims are never read and carry no authority.
 Authentication carries that subject for one browser request only. It never
 publishes the Clerk token to shared process state, so concurrent humans cannot
 bleed into each other. Browser-approved device login mints a separate,
-revocable Computer login session for human management; attachment runners
+revocable Computer login session for human management; Server attachment daemons
 authenticate only with their own Server-scoped Computer credentials.
 
 A Grotto User is minted in exactly one place: inside Server creation's
@@ -158,7 +158,7 @@ phase without receiving the initiating User or Server identity. Download and
 signature verification run while turns may continue. `waiting-for-agents`
 closes local and Server admission, waits for every active-run marker to clear
 without a deadline, then the verified standalone executable atomically replaces code and the
-resident service restarts every attachment runner. Queued Server work drains
+resident service restarts every Server attachment daemon. Queued Server work drains
 after reconnect.
 
 Only Owners and Admins can attach or view Computers. The Server never opens an

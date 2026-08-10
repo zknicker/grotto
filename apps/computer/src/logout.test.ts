@@ -132,7 +132,11 @@ async function writeSession(dataRoot: string, session: StoredSession) {
 
 async function runCli(args: string[], environment: Record<string, string>) {
     const child = Bun.spawn(['bun', entrypoint, ...args], {
-        env: { ...process.env, ...environment },
+        env: {
+            ...process.env,
+            HOME: environment.GROTTO_COMPUTER_DATA_ROOT,
+            ...environment,
+        },
         stderr: 'pipe',
         stdout: 'pipe',
     });

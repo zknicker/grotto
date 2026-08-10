@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.5 - 2026-08-09
+
+- Final App/Server removes the temporary one-off Computer approval protocol;
+  Computer management now uses only reusable, origin-bound login sessions and
+  the durable attach flow.
+- Setup reports **Computer connected** only after the attachment is recoverable
+  locally, while standalone login reports the narrower signed-in state.
+- Existing Server-scoped Computer credentials, attachments, and Agent
+  workspaces remain intact; the cutover does not rewrite production data.
+- Grotto Computer 1.4.0 is the already-published prerequisite for this final
+  App/Server cutover. Desktop and Runtime remain unchanged.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.5
+- Desktop: Unchanged
+- Computer: Publish v1.4.0
+- Runtime: Unchanged
+
 ## v1.8.4 - 2026-08-09
 
 - App/Server prepares reusable Grotto Computer device login and management

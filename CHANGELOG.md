@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.12 - 2026-08-10
+
+- First-boot Server creation, invitation joining, Computer connection, and Cove setup now use
+  warmer, centered activation layouts with smoother movement between differently sized steps.
+- Grotto Computer 1.4.1 consistently identifies each isolated per-Server child as a Server
+  attachment daemon across its service lifecycle, diagnostics, and local state.
+- Existing development Servers now apply checked-in PostgreSQL migrations automatically when the
+  managed development stack starts.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.12
+- Desktop: Unchanged
+- Computer: Publish v1.4.1
+- Runtime: Unchanged
+
 ## v1.8.11 - 2026-08-10
 
 - Channels can now be archived, restored, and permanently deleted, with archived

@@ -60,7 +60,9 @@ stint.
 
 The hosted `/s/<slug>` App surface provides Board and List lenses with create, claim, unclaim,
 assignment, status, priority, and task-label controls. Loading, empty, filtered-empty, and
-authorization failures are explicit. Opening a row returns to its message and Thread.
+authorization failures are explicit. The Tasks topbar owns search, layout, and creation controls;
+the contextual sidebar owns saved views and label filters. Opening a row returns to its message
+and Thread.
 
 Concrete durable events (`message.created` for the receipt, `task.created`, `task.updated`, and
 `task.label.updated`) notify the App. The hosted realtime hook owns exact task-list, label-catalog,

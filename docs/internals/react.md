@@ -73,12 +73,15 @@ a product owner exists. Prefer short names scoped by folders.
 
 * `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
   `ShellSidebar`. Sections compose `ShellSidebarPage` slots; route state
-  controls HeroUI `Sidebar.Pages` so contextual navigation transitions without
-  replacing the sidebar root.
-* `ShellSidebar` must translate those slots into direct `Sidebar.Page` children.
-  HeroUI derives slide position from direct child order; wrapping pages in
-  feature components collapses that order and degrades the transition to a
-  fade.
+  selects one slot without replacing the sidebar root. Search and Reminders
+  are full-width destinations and do not show contextual navigation.
+  Returning to Chat resolves the remembered valid Chat directly instead of
+  rendering the Server entry redirect between rail destinations.
+* `ShellSidebar` mounts only the active page descriptor. Left-sidebar changes
+  are navigation, not disclosure, so they are instant and inactive page controls
+  never enter the accessibility tree. Routes that add or remove the contextual
+  left sidebar also reflow immediately; right-side chat panes retain their own
+  open and close motion.
 * The shell renders one `ShellTopbar`. Pages compose its content through
   `PageTopbar` and `SectionHeader`. Embedded surfaces use `SectionBar`.
 * Chat side panes portal into the shell-level side-pane slot so their header
@@ -141,6 +144,8 @@ a product owner exists. Prefer short names scoped by folders.
 * Compose HeroUI compound parts directly. Chat composers use Pro
   `PromptInput.Shell`, `PromptInput.Content`, and `PromptInput.Toolbar`; do not
   recreate a monolithic app-level PromptInput primitive.
+* Grotto Modals and AlertDialogs set `isDismissable` on their Backdrop so
+  clicking outside the dialog acts like Cancel.
 * Composer `@`/`$` autocomplete and transcript reference rendering belong to
   the mentions capability. See [Rich References](../features/rich-references.md).
 

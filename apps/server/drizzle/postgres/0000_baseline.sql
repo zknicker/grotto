@@ -245,8 +245,20 @@ CREATE TABLE "avatars" (
 	CONSTRAINT "avatars_sha256" CHECK ("avatars"."sha256" ~ '^[a-f0-9]{64}$')
 );
 --> statement-breakpoint
+CREATE TABLE "channel_agent_participants" (
+	"agent_id" text NOT NULL,
+	"chat_id" text NOT NULL,
+	"chat_kind" text DEFAULT 'channel' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"server_id" text NOT NULL,
+	CONSTRAINT "channel_agent_participants_server_id_chat_id_agent_id_pk" PRIMARY KEY("server_id","chat_id","agent_id"),
+	CONSTRAINT "channel_agent_participants_kind" CHECK ("channel_agent_participants"."chat_kind" = 'channel')
+);
+--> statement-breakpoint
 CREATE TABLE "chat_events" (
 	"chat_id" text,
+	"chat_action" text,
+	"lifecycle_chat_id" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"cursor" bigint NOT NULL,
 	"id" text PRIMARY KEY NOT NULL,
@@ -259,6 +271,8 @@ CREATE TABLE "chat_events" (
 	"server_id" text NOT NULL,
 	"event_type" text NOT NULL,
 	CONSTRAINT "chat_events_positive_cursor" CHECK ("chat_events"."cursor" > 0),
+	CONSTRAINT "chat_events_lifecycle_shape" CHECK (("chat_events"."event_type" = 'chat.lifecycle') = ("chat_events"."lifecycle_chat_id" is not null)
+                and ("chat_events"."event_type" = 'chat.lifecycle') = ("chat_events"."chat_action" is not null)),
 	CONSTRAINT "chat_events_shape" CHECK ((
                 ("chat_events"."event_type" = 'message.created'
                     AND "chat_events"."chat_id" IS NOT NULL
@@ -268,6 +282,17 @@ CREATE TABLE "chat_events" (
                     AND "chat_events"."reminder_id" IS NULL
                     AND "chat_events"."reminder_action" IS NULL
                     AND "chat_events"."sequence" > 0)
+                OR
+                ("chat_events"."event_type" = 'chat.lifecycle'
+                    AND "chat_events"."chat_id" IS NULL
+                    AND "chat_events"."lifecycle_chat_id" IS NOT NULL
+                    AND "chat_events"."chat_action" IN ('archived', 'deleted', 'unarchived')
+                    AND "chat_events"."message_id" IS NULL
+                    AND "chat_events"."label_id" IS NULL
+                    AND "chat_events"."reader_user_id" IS NULL
+                    AND "chat_events"."reminder_id" IS NULL
+                    AND "chat_events"."reminder_action" IS NULL
+                    AND "chat_events"."sequence" = 0)
                 OR
                 ("chat_events"."event_type" IN ('task.created', 'task.updated')
                     AND "chat_events"."chat_id" IS NOT NULL
@@ -351,16 +376,6 @@ CREATE TABLE "chat_reads" (
 	CONSTRAINT "chat_reads_server_id_chat_id_reader_user_id_pk" PRIMARY KEY("server_id","chat_id","reader_user_id")
 );
 --> statement-breakpoint
-CREATE TABLE "channel_agent_participants" (
-	"agent_id" text NOT NULL,
-	"chat_id" text NOT NULL,
-	"chat_kind" text DEFAULT 'channel' NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"server_id" text NOT NULL,
-	CONSTRAINT "channel_agent_participants_server_id_chat_id_agent_id_pk" PRIMARY KEY("server_id","chat_id","agent_id"),
-	CONSTRAINT "channel_agent_participants_kind" CHECK ("channel_agent_participants"."chat_kind" = 'channel')
-);
---> statement-breakpoint
 CREATE TABLE "channel_participants" (
 	"chat_id" text NOT NULL,
 	"chat_kind" text DEFAULT 'channel' NOT NULL,
@@ -372,7 +387,11 @@ CREATE TABLE "channel_participants" (
 );
 --> statement-breakpoint
 CREATE TABLE "chats" (
+	"archived_at" timestamp with time zone,
+	"archived_by_user_id" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone,
+	"deleted_by_user_id" text,
 	"dm_agent_id" text,
 	"dm_member_one_stint" integer,
 	"dm_member_one_user_id" text,
@@ -394,6 +413,8 @@ CREATE TABLE "chats" (
 	CONSTRAINT "chats_nonnegative_sequence" CHECK ("chats"."last_message_sequence" >= 0),
 	CONSTRAINT "chats_nonnegative_task_number" CHECK ("chats"."last_task_number" >= 0),
 	CONSTRAINT "chats_kind" CHECK ("chats"."kind" in ('channel', 'dm', 'thread')),
+	CONSTRAINT "chats_archive_shape" CHECK (("chats"."archived_at" is null) = ("chats"."archived_by_user_id" is null)),
+	CONSTRAINT "chats_delete_shape" CHECK (("chats"."deleted_at" is null) = ("chats"."deleted_by_user_id" is null)),
 	CONSTRAINT "chats_shape" CHECK ((
                 (
                     "chats"."kind" = 'channel'
@@ -818,6 +839,8 @@ ALTER TABLE "attachments" ADD CONSTRAINT "attachments_chat_fk" FOREIGN KEY ("ser
 ALTER TABLE "attachments" ADD CONSTRAINT "attachments_uploader_membership_fk" FOREIGN KEY ("server_id","uploader_user_id") REFERENCES "public"."server_memberships"("server_id","user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "attachments" ADD CONSTRAINT "attachments_uploader_agent_fk" FOREIGN KEY ("server_id","uploader_agent_id") REFERENCES "public"."agents"("server_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "attachments" ADD CONSTRAINT "attachments_message_fk" FOREIGN KEY ("server_id","chat_id","message_id") REFERENCES "public"."chat_messages"("server_id","chat_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "channel_agent_participants" ADD CONSTRAINT "channel_agent_participants_chat_fk" FOREIGN KEY ("server_id","chat_id","chat_kind") REFERENCES "public"."chats"("server_id","id","kind") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "channel_agent_participants" ADD CONSTRAINT "channel_agent_participants_agent_fk" FOREIGN KEY ("server_id","agent_id") REFERENCES "public"."agents"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chat_events" ADD CONSTRAINT "chat_events_chat_fk" FOREIGN KEY ("server_id","chat_id") REFERENCES "public"."chats"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chat_events" ADD CONSTRAINT "chat_events_reminder_fk" FOREIGN KEY ("server_id","reminder_id") REFERENCES "public"."reminders"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chat_events" ADD CONSTRAINT "chat_events_message_fk" FOREIGN KEY ("server_id","message_id") REFERENCES "public"."chat_messages"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -827,8 +850,6 @@ ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_author_membership_fk" 
 ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_author_agent_fk" FOREIGN KEY ("server_id","author_agent_id") REFERENCES "public"."agents"("server_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chat_reads" ADD CONSTRAINT "chat_reads_chat_fk" FOREIGN KEY ("server_id","chat_id") REFERENCES "public"."chats"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chat_reads" ADD CONSTRAINT "chat_reads_reader_membership_fk" FOREIGN KEY ("server_id","reader_user_id") REFERENCES "public"."server_memberships"("server_id","user_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "channel_agent_participants" ADD CONSTRAINT "channel_agent_participants_chat_fk" FOREIGN KEY ("server_id","chat_id","chat_kind") REFERENCES "public"."chats"("server_id","id","kind") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "channel_agent_participants" ADD CONSTRAINT "channel_agent_participants_agent_fk" FOREIGN KEY ("server_id","agent_id") REFERENCES "public"."agents"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "channel_participants" ADD CONSTRAINT "channel_participants_chat_fk" FOREIGN KEY ("server_id","chat_id","chat_kind") REFERENCES "public"."chats"("server_id","id","kind") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "channel_participants" ADD CONSTRAINT "channel_participants_membership_fk" FOREIGN KEY ("server_id","user_id") REFERENCES "public"."server_memberships"("server_id","user_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chats" ADD CONSTRAINT "chats_server_id_servers_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."servers"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -890,7 +911,7 @@ CREATE INDEX "manual_lookup_audit_server_time_idx" ON "manual_lookup_audit" USIN
 CREATE INDEX "agent_runner_credentials_agent_idx" ON "agent_runner_credentials" USING btree ("server_id","agent_id","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "agent_turns_run_key" ON "agent_turns" USING btree ("server_id","agent_id","run_id");--> statement-breakpoint
 CREATE INDEX "agent_turns_agent_idx" ON "agent_turns" USING btree ("server_id","agent_id","reported_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "agents_server_handle_key" ON "agents" USING btree ("server_id",lower("handle"));--> statement-breakpoint
+CREATE UNIQUE INDEX "agents_server_handle_key" ON "agents" USING btree ("server_id",lower("handle")) WHERE "agents"."retired_at" is null;--> statement-breakpoint
 CREATE UNIQUE INDEX "attachments_server_id_key" ON "attachments" USING btree ("server_id","id");--> statement-breakpoint
 CREATE UNIQUE INDEX "attachments_user_nonce_key" ON "attachments" USING btree ("server_id","uploader_user_id","upload_nonce") WHERE "attachments"."uploader_user_id" is not null;--> statement-breakpoint
 CREATE UNIQUE INDEX "attachments_agent_nonce_key" ON "attachments" USING btree ("server_id","uploader_agent_id","upload_nonce") WHERE "attachments"."uploader_agent_id" is not null;--> statement-breakpoint

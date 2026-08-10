@@ -1,9 +1,9 @@
 {
-  "targetVersion": "1.8.12",
+  "targetVersion": "1.8.13",
   "surfaces": {
     "appServer": {
       "action": "publish",
-      "version": "1.8.12"
+      "version": "1.8.13"
     },
     "desktop": {
       "action": "unchanged",
@@ -11,7 +11,7 @@
     },
     "computer": {
       "action": "publish",
-      "version": "1.4.1"
+      "version": "1.4.2"
     },
     "runtime": {
       "action": "unchanged",

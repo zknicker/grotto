@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.13 - 2026-08-10
+
+- Cove onboarding now recovers across Server reconnects and reliably preserves the pending chat
+  handoff until navigation completes.
+- Grotto Computer 1.4.2 shows live, truthful upgrade feedback in the terminal, including real
+  download progress, verification, active-Agent draining, installation, restart, failure, and
+  concurrent-update states; rollback now reports its progress as well.
+- Signed Grotto Computer builds now resolve their embedded Claude Code and Codex harness bridge
+  assets from the packaged executable correctly.
+
+### Release surfaces
+
+- App/Server: Publish v1.8.13
+- Desktop: Unchanged
+- Computer: Publish v1.4.2
+- Runtime: Unchanged
+
 ## v1.8.12 - 2026-08-10
 
 - First-boot Server creation, invitation joining, Computer connection, and Cove setup now use

@@ -73,9 +73,10 @@ export function progress(
 }
 
 export async function readProductionRelease(
-    manifestUrl = process.env.GROTTO_COMPUTER_RELEASE_MANIFEST_URL ?? productionComputerManifestUrl
+    manifestUrl = process.env.GROTTO_COMPUTER_RELEASE_MANIFEST_URL ?? productionComputerManifestUrl,
+    init: { signal?: AbortSignal } = {}
 ): Promise<SignedComputerRelease> {
-    const response = await fetch(manifestUrl);
+    const response = await fetch(manifestUrl, { signal: init.signal });
     if (!response.ok) {
         throw new Error(`Production release check failed (${response.status}).`);
     }

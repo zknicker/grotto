@@ -37,6 +37,9 @@ import {
     computerSourceRevision,
     computerVersion,
 } from './build-identity.ts';
+import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
+import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
+import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
 import { readComputerName } from './computer-name.ts';
 import {
     decideStart,
@@ -127,6 +130,24 @@ interface AttachResponse {
 const dataRoot = process.env.GROTTO_COMPUTER_DATA_ROOT ?? join(homedir(), '.grotto', 'computer');
 const serverOrigin = process.env.GROTTO_SERVER_ORIGIN ?? 'https://grotto.sh';
 
+// Commands that open with the one-line header on a TTY. The freshness status
+// line rides along only where staleness is the point of the command.
+const headerCommands: Record<string, { updateStatus: boolean }> = {
+    attach: { updateStatus: false },
+    'configure-openrouter': { updateStatus: false },
+    doctor: { updateStatus: true },
+    install: { updateStatus: false },
+    login: { updateStatus: false },
+    logout: { updateStatus: false },
+    logs: { updateStatus: false },
+    restart: { updateStatus: false },
+    setup: { updateStatus: false },
+    start: { updateStatus: false },
+    status: { updateStatus: true },
+    stop: { updateStatus: false },
+    upgrade: { updateStatus: false },
+};
+
 async function main(args: string[]) {
     const [command, target] = args;
     // The embedded Agent CLI. The managed `grotto` wrapper re-executes this
@@ -140,9 +161,21 @@ async function main(args: string[]) {
         console.log('Grotto Computer release assets are ready.');
         return;
     }
+    const helpRequest = resolveComputerHelpRequest(args);
+    if (helpRequest) {
+        await printComputerHelpPage(helpRequest, { dataRoot });
+        return;
+    }
+    const headerPrinted =
+        command !== undefined && command in headerCommands
+            ? await printComputerHeader({
+                  dataRoot,
+                  updateStatus: headerCommands[command]?.updateStatus === true,
+              })
+            : false;
     if (command === 'install') {
         await installResidentService();
-        console.log('Grotto Computer resident service installed.');
+        console.log(stdoutRenderer.ok('Grotto Computer resident service installed.'));
         return;
     }
     if (command === 'upgrade') {
@@ -157,13 +190,19 @@ async function main(args: string[]) {
                 },
                 restart: restartAfterUpdate,
             });
-            console.log('Grotto Computer restored the previous verified executable.');
+            console.log(
+                stdoutRenderer.ok('Grotto Computer restored the previous verified executable.')
+            );
             return;
         }
         console.log('Checking for the latest Grotto Computer release…');
         const release = await readProductionRelease();
         if (!isNewerVersion(release.release.version, computerVersion)) {
-            console.log(`Grotto Computer ${computerVersion} is already the latest release.`);
+            console.log(
+                stdoutRenderer.ok(
+                    `Grotto Computer ${computerVersion} is already the latest release.`
+                )
+            );
             return;
         }
         const renderer = createUpgradeRenderer({
@@ -178,15 +217,27 @@ async function main(args: string[]) {
         });
         renderer.finish();
         if (outcome.status === 'already-running') {
-            console.log(describeConcurrentUpdate(outcome.progress));
+            console.log(stdoutRenderer.warn(describeConcurrentUpdate(outcome.progress)));
             return;
         }
         console.log(
-            `Grotto Computer ${outcome.version} is installed. The Computer service is restarting.`
+            stdoutRenderer.ok(
+                `Grotto Computer ${outcome.version} is installed. The Computer service is restarting.`
+            )
         );
         return;
     }
     if (command === '--version' || command === 'version') {
+        // Piped output is a contract: the signed-release updater JSON-parses
+        // this to verify artifact identity. Only a TTY gets the pretty line.
+        if (process.stdout.isTTY === true) {
+            console.log(
+                `${stdoutRenderer.header({ version: computerVersion })} ${stdoutRenderer.hint(
+                    `protocol ${computerProtocolVersion} · revision ${computerSourceRevision}`
+                )}`
+            );
+            return;
+        }
         console.log(
             JSON.stringify({
                 protocolVersion: computerProtocolVersion,
@@ -197,12 +248,12 @@ async function main(args: string[]) {
         return;
     }
     if (command === 'status') {
-        console.log(formatComputerStatus(await readComputerStatus(dataRoot)));
+        console.log(formatComputerStatus(await readComputerStatus(dataRoot), stdoutRenderer));
         return;
     }
     if (command === 'doctor') {
         const result = await doctorComputer(dataRoot, validate);
-        console.log(formatDoctor(result));
+        console.log(formatDoctor(result, stdoutRenderer));
         if (!result.healthy) {
             process.exitCode = 1;
         }
@@ -220,7 +271,9 @@ async function main(args: string[]) {
     }
     if (command === 'configure-openrouter') {
         await saveOpenRouterManagementKey(dataRoot, await Bun.stdin.text());
-        console.log('OpenRouter account usage is configured on this Grotto Computer.');
+        console.log(
+            stdoutRenderer.ok('OpenRouter account usage is configured on this Grotto Computer.')
+        );
         return;
     }
     if (command === 'login') {
@@ -252,13 +305,16 @@ async function main(args: string[]) {
                 `Grotto Computer logged out locally, but Server-side revocation failed: ${detail}`
             );
         }
-        console.log('Grotto Computer logged out.');
+        console.log(stdoutRenderer.ok('Grotto Computer logged out.'));
         return;
     }
     if (command === 'start') {
         await recoverInterruptedUpdate();
         await finishRestart();
         await rm(stoppedPath(), { force: true });
+        if (target && (await reportUnlinkedAttachment(await requiredAttachment(target)))) {
+            return;
+        }
         await startAttachments(target);
         if (process.env.GROTTO_COMPUTER_RESIDENT === '1') {
             for (;;) {
@@ -266,20 +322,31 @@ async function main(args: string[]) {
                 await startAttachments(target);
             }
         }
+        console.log(stdoutRenderer.ok(target ? `Started ${target}.` : 'Grotto Computer started.'));
         return;
     }
     if (command === 'stop') {
         if (target) {
             await stopAttachmentDaemon(await requiredAttachment(target));
+            console.log(stdoutRenderer.ok(`Stopped ${target}.`));
             return;
         }
         await stopComputerService();
+        console.log(stdoutRenderer.ok('Grotto Computer stopped.'));
         return;
     }
     if (command === 'restart') {
+        if (!target) {
+            await printIncompleteCommand('restart', headerPrinted);
+            return;
+        }
         const attachment = await requiredAttachment(target);
+        if (await reportUnlinkedAttachment(attachment)) {
+            return;
+        }
         await stopAttachmentDaemon(attachment);
         await startAttachmentDaemon(attachment);
+        console.log(stdoutRenderer.ok(`Restarted /${attachment.slug}.`));
         return;
     }
     if (command === '__attachment-daemon') {
@@ -302,15 +369,22 @@ async function main(args: string[]) {
     }
     if (command === 'attach') {
         if (!target?.startsWith('/')) {
-            throw new Error('Choose a Server as /server-slug.');
+            await printIncompleteCommand('attach', headerPrinted);
+            return;
         }
         await attachServer(serverSlugFromTarget(target));
         return;
     }
-    if (command !== 'setup' || !target?.startsWith('/')) {
-        throw new Error(
-            'Usage: grotto-computer <install|upgrade [--rollback]|start|stop|restart|status|doctor|logs|version|configure-openrouter|login [--replace]|logout|attach /server-slug|setup /server-slug>'
+    if (command !== 'setup') {
+        await printComputerHelpPage(
+            { error: `Unknown command "${command}".`, kind: 'global' },
+            { dataRoot }
         );
+        return;
+    }
+    if (!target?.startsWith('/')) {
+        await printIncompleteCommand('setup', headerPrinted);
+        return;
     }
     const slug = serverSlugFromTarget(target);
     const current = await findAttachment(slug);
@@ -329,7 +403,7 @@ async function main(args: string[]) {
             }
             await removePendingAttachment(dataRoot, slug);
             await startAttachmentDaemon(current);
-            console.log(`Grotto Computer resumed /${slug}.`);
+            console.log(stdoutRenderer.ok(`Grotto Computer resumed /${slug}.`));
             return;
         } catch (error) {
             if (!isComputerMachineUnlinked(error)) {
@@ -338,6 +412,34 @@ async function main(args: string[]) {
         }
     }
     await setupServer(slug, current);
+}
+
+/**
+ * A terminally unlinked attachment never starts its daemon, so start/restart
+ * must report the setup path instead of claiming success.
+ */
+async function reportUnlinkedAttachment(attachment: Attachment): Promise<boolean> {
+    if (!(await isTerminalUnlinked(dataRoot, attachment))) {
+        return false;
+    }
+    console.log(
+        stdoutRenderer.fail(
+            `/${attachment.slug} needs setup — run grotto-computer setup /${attachment.slug}.`
+        )
+    );
+    process.exitCode = 1;
+    return true;
+}
+
+async function printIncompleteCommand(name: string, omitHeader: boolean) {
+    const command = findComputerCommandHelp(name);
+    if (!command) {
+        throw new Error(`Unknown command "${name}".`);
+    }
+    await printComputerHelpPage(
+        { command, error: `${name} needs a Server address such as /hq.`, kind: 'command' },
+        { dataRoot, omitHeader }
+    );
 }
 
 function serverSlugFromTarget(target: string) {
@@ -360,14 +462,14 @@ async function attachServer(slug: string) {
         await clearTerminalUnlinked(dataRoot, current);
         await removePendingAttachment(dataRoot, slug);
         await startAttachmentDaemon(current);
-        console.log(`Grotto Computer resumed /${slug}.`);
+        console.log(stdoutRenderer.ok(`Grotto Computer resumed /${slug}.`));
         return;
     }
     const issued = await issueAttachment(slug, session);
     await writeAttachment(issued.attachment);
     await removePendingAttachment(dataRoot, slug);
     await startAttachmentDaemon(issued.attachment);
-    console.log(`Grotto Computer attached to /${slug}.`);
+    console.log(stdoutRenderer.ok(`Grotto Computer attached to /${slug}.`));
 }
 
 async function setupServer(slug: string, current: Attachment | null) {
@@ -405,7 +507,7 @@ async function setupServer(slug: string, current: Attachment | null) {
     await completeComputerLogin(session);
     await removePendingAttachment(dataRoot, slug);
     await startAttachmentDaemon(issued.attachment);
-    console.log(`Grotto Computer attached to /${slug}.`);
+    console.log(stdoutRenderer.ok(`Grotto Computer attached to /${slug}.`));
 }
 
 async function issueAttachment(
@@ -1512,7 +1614,10 @@ if (import.meta.main) {
     try {
         await main(process.argv.slice(2));
     } catch (error) {
-        console.error(error instanceof Error ? error.message : error);
+        const stderrRenderer = createCliRenderer({
+            colors: cliColorsEnabled(process.env, process.stderr.isTTY === true),
+        });
+        console.error(stderrRenderer.fail(error instanceof Error ? error.message : String(error)));
         process.exitCode = 1;
     }
 }

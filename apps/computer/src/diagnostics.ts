@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { type CliRenderer, plainCliRenderer } from './cli/render.ts';
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import type { Attachment } from './launch.ts';
 import { readComputerLoginSession } from './login.ts';
@@ -95,26 +96,71 @@ export async function readComputerLogs(dataRoot: string, lines = 200): Promise<s
         .join('\n');
 }
 
-export function formatComputerStatus(status: Awaited<ReturnType<typeof readComputerStatus>>) {
-    const attachments =
-        status.attachments.length === 0
-            ? 'No Servers attached.'
-            : status.attachments
-                  .map((item) =>
-                      item.daemon === 'setup-required'
-                          ? `/${item.slug}: setup required — run grotto-computer setup /${item.slug}`
-                          : `/${item.slug}: ${item.daemon} (${item.serverId})`
-                  )
-                  .join('\n');
-    const login = [`Login: ${status.login.state}`];
-    if (status.login.origin) {
-        login.push(`Origin: ${status.login.origin}`);
+export function formatComputerStatus(
+    status: Awaited<ReturnType<typeof readComputerStatus>>,
+    render: CliRenderer = plainCliRenderer
+) {
+    const lines = [
+        `Login     ${loginLine(status.login, render)}`,
+        `Service   ${serviceLine(status.service, render)}`,
+        'Servers',
+    ];
+    if (status.attachments.length === 0) {
+        lines.push(
+            `  ${render.hint('· No Servers attached — run grotto-computer setup /server-slug')}`
+        );
+        return lines.join('\n');
     }
-    return `${login.join('\n')}\nService: ${status.service}\n${attachments}`;
+    const width = Math.max(...status.attachments.map((item) => item.slug.length + 1));
+    for (const item of status.attachments) {
+        lines.push(`  ${`/${item.slug}`.padEnd(width + 3)}${attachmentLine(item, render)}`);
+    }
+    return lines.join('\n');
 }
 
-export function formatDoctor(result: Awaited<ReturnType<typeof doctorComputer>>) {
-    return result.checks.map((check) => `${check.ok ? 'PASS' : 'FAIL'} ${check.label}`).join('\n');
+export function formatDoctor(
+    result: Awaited<ReturnType<typeof doctorComputer>>,
+    render: CliRenderer = plainCliRenderer
+) {
+    const failed = result.checks.filter((check) => !check.ok).length;
+    const verdict =
+        failed === 0
+            ? render.ok(`All ${result.checks.length} checks passed.`)
+            : render.fail(`${failed} of ${result.checks.length} checks failed.`);
+    return [
+        ...result.checks.map((check) =>
+            check.ok ? render.ok(check.label) : render.fail(check.label)
+        ),
+        '',
+        verdict,
+    ].join('\n');
+}
+
+function loginLine(login: LoginStatus, render: CliRenderer) {
+    if (login.state === 'signed in') {
+        return `${render.ok('signed in')}${login.origin ? ` — ${login.origin}` : ''}`;
+    }
+    if (login.state === 'expired') {
+        return render.warn('expired — run grotto-computer login');
+    }
+    return render.warn('signed out — run grotto-computer login');
+}
+
+function serviceLine(service: 'running' | 'stopped', render: CliRenderer) {
+    return service === 'running'
+        ? render.ok('running')
+        : render.warn('stopped — run grotto-computer start');
+}
+
+function attachmentLine(item: AttachmentStatus, render: CliRenderer) {
+    if (item.daemon === 'setup-required') {
+        return render.fail(`setup required — run grotto-computer setup /${item.slug}`);
+    }
+    const state =
+        item.daemon === 'running'
+            ? render.ok('running')
+            : render.warn(`stopped — run grotto-computer start /${item.slug}`);
+    return `${state} ${render.hint(`(${item.serverId})`)}`;
 }
 
 async function readAttachments(dataRoot: string): Promise<Attachment[]> {

@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { chmod, mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { installEnterToOpenUrl, openUrlInBrowser } from './browser-handoff.ts';
+import { stdoutRenderer } from './cli/render.ts';
 
 const loginSessionFilename = 'login.json';
 
@@ -66,7 +67,7 @@ export async function runComputerLogin(options: {
                 dataRoot: options.dataRoot,
                 session: current,
             });
-            console.log('Reused the saved Grotto Computer login.');
+            console.log(stdoutRenderer.ok('Reused the saved Grotto Computer login.'));
             return session;
         } catch (cause) {
             if (!canStartFreshLogin(cause)) {
@@ -124,7 +125,7 @@ export async function runComputerLogin(options: {
                 await writeComputerLoginSession(options.dataRoot, session);
                 if (options.complete !== false) {
                     await completeComputerLogin(session);
-                    console.log('Grotto Computer signed in.');
+                    console.log(stdoutRenderer.ok('Grotto Computer signed in.'));
                 }
                 return session;
             }

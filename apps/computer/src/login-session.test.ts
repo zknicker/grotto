@@ -263,9 +263,10 @@ test('status reports the login origin and attached Servers without secrets', asy
         });
 
         expect(result.exitCode, result.stderr).toBe(0);
-        expect(result.stdout).toContain('Login: signed in');
-        expect(result.stdout).toContain(`Origin: ${origin}`);
-        expect(result.stdout).toContain('/hq: stopped');
+        expect(result.stdout).toContain('✓ signed in');
+        expect(result.stdout).toContain(origin);
+        expect(result.stdout).toContain('/hq');
+        expect(result.stdout).toContain('● stopped — run grotto-computer start /hq');
         expect(result.stdout).not.toContain(secret);
         expect(result.stdout).not.toContain('gcl_rt_');
     } finally {

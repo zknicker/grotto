@@ -25,7 +25,11 @@ brew install postgresql@16
 
 Do not start a Homebrew PostgreSQL service. The dev stack owns its direct child,
 chooses a private loopback port, bootstraps a fresh schema, and preserves that
-worktree's data across runs. On first use, Server creates one demo Server with
+worktree's data across runs. On later boots it applies any new checked-in
+PostgreSQL migrations before starting Grotto Server, so an existing worktree
+database stays current with main. If that migration step fails, the database
+predates the checked-in migration baseline: move
+`~/.tavern/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. On first use, Server creates one demo Server with
 the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
 `#product` Channels, starter messages, a Thread, two tasks, and one MCP
 connection — enough to open any surface without hand-building data. Computer

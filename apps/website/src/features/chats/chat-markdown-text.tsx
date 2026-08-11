@@ -16,7 +16,9 @@ export function ChatMarkdownText({
     mentions?: readonly Mention[];
 }) {
     if (animatedRanges.length === 0) {
-        return <ReferenceMarkdown content={content} mentions={mentions} />;
+        return (
+            <ReferenceMarkdown className="chat-markdown" content={content} mentions={mentions} />
+        );
     }
 
     const blocks = parseChatMarkdownBlocks(content);

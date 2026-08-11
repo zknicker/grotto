@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
 import { type Browser, chromium, type Page } from '@playwright/test';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpLink } from '@trpc/client';
@@ -15,6 +16,7 @@ import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 
 const appointmentText =
     'Your next dentist appointment is Dental Cleaning on Monday, September 28, 2026 at 10:00 AM EDT, at Meridian Dental, NYC. 🫡';
+const chatCss = readFileSync(new URL('./chat.css', import.meta.url), 'utf8');
 
 let browser: Browser;
 
@@ -159,6 +161,34 @@ test('active and durable assistant reply wrappers keep the same text geometry', 
     expect(metrics.durable.bodyHeight).toBe(metrics.live.bodyHeight);
     expect(Math.abs(metrics.durable.rootHeight - metrics.live.rootHeight)).toBeLessThanOrEqual(0.5);
     expect(Math.abs(metrics.durable.textTop - metrics.live.textTop)).toBeLessThanOrEqual(0.5);
+
+    await page.close();
+});
+
+test('settled Markdown keeps visible rhythm between paragraphs', async () => {
+    const markup = renderToStaticMarkup(
+        <ChatMarkdownText content={'First paragraph.\n\nSecond paragraph.'} />
+    );
+    const page = await newGeometryPage(`
+        <style>
+            * { margin: 0; }
+            .markdown p { margin-bottom: 12px; }
+            .markdown p:last-child { margin-bottom: 0; }
+            .markdown__block { width: 100%; }
+            ${chatCss}
+        </style>
+        <div id="message">${markup}</div>
+    `);
+
+    const gap = await page.evaluate(() => {
+        const paragraphs = document.querySelectorAll('#message p');
+        const first = paragraphs.item(0).getBoundingClientRect();
+        const second = paragraphs.item(1).getBoundingClientRect();
+
+        return second.top - first.bottom;
+    });
+
+    expect(gap).toBe(12);
 
     await page.close();
 });

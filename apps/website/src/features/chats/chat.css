@@ -38,6 +38,12 @@
     animation: chat-thread-flash 1.5s ease-out both;
 }
 
+/* HeroUI Pro wraps each paragraph in a streaming block, so its p:last-child
+   reset otherwise removes the intended paragraph rhythm. */
+.chat-markdown > .markdown__block:not(:last-child) > p:last-child {
+    margin-bottom: calc(var(--spacing, 0.25rem) * 3);
+}
+
 @layer components {
     /* Measured manually so the turn disclosure does not share the smaller
        tool drawers' auto/closed handoff. */

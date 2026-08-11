@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.16 - 2026-08-10
+
+- Server releases now apply pending database migrations as an explicit deployment step before
+  activation, using the deployment workflow's dedicated migration credential.
+- Release output now reports the exact database migrations applied and whether they succeeded.
+
+### Release surfaces
+
+- Server: Publish v1.8.16
+- App: Unchanged
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.8.15 - 2026-08-10
 
 - Permanent Server deletion now completes when Agents have authored messages or other Server-owned

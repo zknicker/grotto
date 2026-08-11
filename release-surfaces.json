@@ -1,9 +1,9 @@
 {
-  "targetVersion": "1.8.15",
+  "targetVersion": "1.8.16",
   "surfaces": {
     "server": {
       "action": "publish",
-      "version": "1.8.15"
+      "version": "1.8.16"
     },
     "app": {
       "action": "unchanged",

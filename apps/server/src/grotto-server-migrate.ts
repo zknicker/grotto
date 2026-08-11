@@ -12,8 +12,12 @@ if (!(databaseUrl && backupRole && runtimeRole)) {
 }
 
 try {
-    await migrateGrottoDatabase(databaseUrl, runtimeRole, backupRole);
-    console.log('Grotto PostgreSQL migrations are current.');
+    const applied = await migrateGrottoDatabase(databaseUrl, runtimeRole, backupRole);
+    console.log(
+        applied.length
+            ? `Applied ${applied.join(', ')} successfully.`
+            : 'No database migrations were required.'
+    );
 } catch (error) {
     const reason = error instanceof Error ? error.message : 'Unknown PostgreSQL error.';
     console.error(`Grotto PostgreSQL migration failed: ${reason}`);

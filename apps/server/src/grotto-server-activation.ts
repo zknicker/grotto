@@ -2,7 +2,6 @@
 
 import { lstat, readlink, realpath, rename, rm, symlink } from 'node:fs/promises';
 import { basename, isAbsolute, join, resolve } from 'node:path';
-import { migrateProductionDatabase } from './grotto-production-migrations.ts';
 import { assertGrottoRevision, verifyGrottoRelease } from './grotto-release-verification.ts';
 
 const productionRoot = '/Users/zknicker/srv/grotto';
@@ -16,7 +15,6 @@ const regularFileType = 0o10_0000;
 
 interface ActivateGrottoReleaseInput {
     deployRoot: string;
-    migrateRelease?(releaseRoot: string): Promise<void> | void;
     restartServer(): Promise<string | null> | string | null;
     serverHealthy(previousPid: string | null): Promise<boolean>;
     sourceRevision: string;
@@ -49,7 +47,6 @@ export async function activateGrottoRelease(input: ActivateGrottoReleaseInput) {
     const currentPath = join(deployRoot, 'current');
     const previousRelease = await readCurrentRelease(deployRoot, currentPath);
 
-    await input.migrateRelease?.(releaseRoot);
     await switchCurrentRelease(deployRoot, currentPath, releaseRoot);
     let introducedLabel = false;
     try {
@@ -286,7 +283,6 @@ async function main() {
 
     const release = await activateGrottoRelease({
         deployRoot: productionRoot,
-        migrateRelease: migrateProductionDatabase,
         restartServer: restartProductionServer,
         serverHealthy: waitForRestartedServerHealth,
         sourceRevision,

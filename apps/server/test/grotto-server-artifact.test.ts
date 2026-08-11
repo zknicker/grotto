@@ -61,6 +61,9 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./share/grotto-server/app/privacy.html');
     expect(paths).toContain('./share/grotto-server/migrations/0000_baseline.sql');
     expect(paths).toContain('./share/grotto-server/migrations/0001_chat-anchor-fk.sql');
+    expect(paths).toContain(
+        './share/grotto-server/migrations/0002_defer-server-purge-constraints.sql'
+    );
     expect(paths).toContain('./share/grotto-server/migrations/meta/_journal.json');
     expect(paths).toContain('./compose.yml');
     expect(paths).toContain('./colima/com.merchbaseco.colima-autostart.plist');
@@ -76,7 +79,7 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./operations/run-server');
     expect(paths).toContain('./operations/run-restore');
     expect(paths).toContain('./config/server.env.example');
-    expect(paths).toContain('./config/migration.env.example');
+    expect(paths).not.toContain('./config/migration.env.example');
     expect(paths).toContain('./config/restore.env.example');
     expect(paths).toContain('./config/cloudflared.yml.example');
     expect(verboseArchive.stdout.toString()).toMatch(

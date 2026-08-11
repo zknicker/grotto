@@ -17,6 +17,7 @@ test('promotes only published Grotto versions or an explicit published-version c
                 permissions: { contents: string };
                 steps: {
                     'continue-on-error'?: boolean;
+                    env?: Record<string, string>;
                     if?: string;
                     name?: string;
                     run?: string;
@@ -66,8 +67,9 @@ test('promotes only published Grotto versions or an explicit published-version c
         job.steps.find((step) => step.name === 'Resolve published version')?.run ?? '';
     const deployCommands =
         job.steps.find((step) => step.name === 'Deploy downloaded release')?.run ?? '';
-    const activateCommands =
-        job.steps.find((step) => step.name === 'Activate installed release')?.run ?? '';
+    const verifyCommands =
+        job.steps.find((step) => step.name === 'Verify installed release')?.run ?? '';
+    const migrationStep = job.steps.find((step) => step.name === 'Apply database migrations');
     expect(job['runs-on']).toEqual(['self-hosted', 'grotto']);
     expect(job.if).toBe(
         "github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')"
@@ -84,15 +86,31 @@ test('promotes only published Grotto versions or an explicit published-version c
     expect(deployCommands).toContain('/usr/bin/shasum -a 256 -c');
     expect(deployCommands).toContain('./bin/grotto-server-deploy');
     expect(deployCommands).toContain('/bin/grotto-server-deploy');
-    expect(activateCommands).not.toContain('/releases/assets/');
-    expect(activateCommands).not.toContain('grotto-server-');
+    expect(verifyCommands).not.toContain('/releases/assets/');
+    expect(verifyCommands).not.toContain('grotto-server-');
     const installedReleasePath = [
         '$',
         '{GROTTO_DEPLOY_ROOT}/releases/',
         '$',
         '{GROTTO_SOURCE_REVISION}',
     ].join('');
-    expect(activateCommands).toContain(installedReleasePath);
+    expect(verifyCommands).toContain(installedReleasePath);
+    expect(migrationStep?.env).toMatchObject({
+        GROTTO_DATABASE_BACKUP_ROLE: 'grotto_backup',
+        GROTTO_DATABASE_RUNTIME_ROLE: 'grotto_runtime',
+    });
+    expect(migrationStep?.env?.GROTTO_DATABASE_MIGRATION_URL).toContain(
+        'secrets.GROTTO_DATABASE_MIGRATION_URL'
+    );
+    expect(migrationStep?.run).toContain('/bin/grotto-server-migrate');
+    expect(migrationStep?.run).toContain(
+        ['[[ -n "$', '{GROTTO_DATABASE_MIGRATION_URL}" ]]'].join('')
+    );
+    expect(migrationStep?.run).toContain('Database: ✅');
+    expect(migrationStep?.run).toContain('release was not activated');
+    expect(commands.indexOf('/bin/grotto-server-migrate')).toBeLessThan(
+        commands.indexOf('/usr/local/libexec/grotto/activate-grotto-server')
+    );
     expect(commands).toContain('/usr/bin/sudo -n /usr/local/libexec/grotto/activate-grotto-server');
     expect(deployCommands.indexOf('/usr/bin/shasum -a 256 -c')).toBeLessThan(
         deployCommands.indexOf('./bin/grotto-server-deploy')
@@ -108,14 +126,14 @@ test('promotes only published Grotto versions or an explicit published-version c
     expect(commands).not.toContain('VITE_CLERK_PUBLISHABLE_KEY');
     expect(commands).not.toContain('--env-file');
     expect(commands).not.toContain('bootstrap:grotto');
-    expect(commands).not.toContain('migration');
+    expect(commands).not.toContain('migration.env');
     expect(commands).not.toContain('docker compose up');
     expect(commands).not.toContain('docker compose down');
 
     expect(job.steps.find((step) => step.name === 'Deploy downloaded release')?.if).toBe(
         "env.GROTTO_RELEASE_MODE == 'deploy'"
     );
-    expect(job.steps.find((step) => step.name === 'Activate installed release')?.if).toBe(
+    expect(job.steps.find((step) => step.name === 'Verify installed release')?.if).toBe(
         "env.GROTTO_RELEASE_MODE == 'activate'"
     );
     expect(job.steps.at(-1)).toMatchObject({

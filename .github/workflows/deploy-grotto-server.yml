@@ -140,13 +140,39 @@ jobs:
             "${archive_path}" \
             "${GROTTO_RELEASE_VERSION}" \
             "${GROTTO_SOURCE_REVISION}"
-          /usr/bin/sudo -n /usr/local/libexec/grotto/activate-grotto-server \
-            "${GROTTO_SOURCE_REVISION}"
 
-      - name: Activate installed release
+      - name: Verify installed release
         if: env.GROTTO_RELEASE_MODE == 'activate'
         run: |
           test -d "${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}"
+
+      - name: Apply database migrations
+        env:
+          GROTTO_DATABASE_BACKUP_ROLE: grotto_backup
+          GROTTO_DATABASE_MIGRATION_URL: ${{ secrets.GROTTO_DATABASE_MIGRATION_URL }}
+          GROTTO_DATABASE_RUNTIME_ROLE: grotto_runtime
+        run: |
+          set -euo pipefail
+          migration_binary="${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}/bin/grotto-server-migrate"
+          migration_result=""
+          if [[ -n "${GROTTO_DATABASE_MIGRATION_URL}" ]] && migration_result="$("${migration_binary}")"; then
+            echo "Database: ✅ ${migration_result}"
+            {
+              echo "### Database"
+              echo
+              echo "- ✅ ${migration_result}"
+            } >>"${GITHUB_STEP_SUMMARY}"
+          else
+            {
+              echo "### Database"
+              echo
+              echo "- ❌ Migration failed; release was not activated."
+            } >>"${GITHUB_STEP_SUMMARY}"
+            exit 1
+          fi
+
+      - name: Activate migrated release
+        run: |
           /usr/bin/sudo -n /usr/local/libexec/grotto/activate-grotto-server \
             "${GROTTO_SOURCE_REVISION}"
 

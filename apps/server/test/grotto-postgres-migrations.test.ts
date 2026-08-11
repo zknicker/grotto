@@ -19,8 +19,12 @@ test('creates the baseline once and keeps repeated deploys idempotent', async ()
     await expect(
         migrateGrottoDatabase(cluster.databaseUrl, 'not-a-role', 'grotto')
     ).rejects.toThrow('plain PostgreSQL identifier');
-    await migrateGrottoDatabase(cluster.databaseUrl, 'grotto', 'grotto');
-    await migrateGrottoDatabase(cluster.databaseUrl, 'grotto', 'grotto');
+    await expect(migrateGrottoDatabase(cluster.databaseUrl, 'grotto', 'grotto')).resolves.toEqual(
+        []
+    );
+    await expect(migrateGrottoDatabase(cluster.databaseUrl, 'grotto', 'grotto')).resolves.toEqual(
+        []
+    );
 
     const database = new SQL(cluster.databaseUrl);
     try {
@@ -35,6 +39,27 @@ test('creates the baseline once and keeps repeated deploys idempotent', async ()
         expect(rows).toEqual([{ total: 3 }]);
         expect(servers).toEqual([{ total: 0 }]);
     } finally {
+        await database.close();
+    }
+});
+
+test('reports the exact migrations applied to a fresh database', async () => {
+    const database = new SQL(cluster.databaseUrl);
+    const databaseName = 'grotto_migration_report_test';
+    const databaseUrl = new URL(cluster.databaseUrl);
+    databaseUrl.pathname = `/${databaseName}`;
+
+    try {
+        await database.unsafe(`CREATE DATABASE ${databaseName}`);
+        await expect(
+            migrateGrottoDatabase(databaseUrl.toString(), 'grotto', 'grotto')
+        ).resolves.toEqual([
+            '0000_baseline',
+            '0001_chat-anchor-fk',
+            '0002_defer-server-purge-constraints',
+        ]);
+    } finally {
+        await database.unsafe(`DROP DATABASE IF EXISTS ${databaseName}`);
         await database.close();
     }
 });

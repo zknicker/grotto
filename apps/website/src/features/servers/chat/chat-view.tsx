@@ -11,7 +11,6 @@ import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import type { ChatViewTab } from '../../chats/chat-view-tabs.tsx';
-import type { TavernResourceTarget } from '../../chats/tavern-resource-link.ts';
 import { SectionBar, SectionHeader } from '../../shell/section-header.tsx';
 import { ShellSidePane } from '../../shell/shell-side-pane.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
@@ -24,7 +23,7 @@ import { ChatAgentComposition, hasAgentComposition } from './agent-composition.t
 import { ArchivedChannelBar } from './archived-channel-bar.tsx';
 import { ChatComposer } from './chat-composer.tsx';
 import { ChatFiles } from './chat-files.tsx';
-import { mergeTaskAnchor, projectChatMessages } from './chat-message-model.ts';
+import { mergeTaskAnchor } from './chat-message-model.ts';
 import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
 import { PendingChatMessages } from './pending-messages.tsx';
@@ -67,10 +66,14 @@ export function ChatView({
     const threadTakeover = useViewportBelow(1024);
     const messages = useChatMessages(chat.serverId, chat.id);
     const pendingMessages = usePendingChatMessages(chat.id, messages.data?.messages);
-    const transcriptMessages = mergeTaskAnchor(messages.data?.messages, initialTask?.message);
-    const transcriptRows = React.useMemo(
-        () => projectChatMessages(transcriptMessages ?? [], messages.data?.threads ?? []),
-        [messages.data?.threads, transcriptMessages]
+    const sourceMessages = messages.data?.messages;
+    const anchorMessage = initialTask?.message;
+    // Memoized so the transcript keeps projecting against one array identity:
+    // React Query's structural sharing only pays off downstream if the merge
+    // above it does not hand out a fresh array on every render.
+    const transcriptMessages = React.useMemo(
+        () => mergeTaskAnchor(sourceMessages, anchorMessage),
+        [anchorMessage, sourceMessages]
     );
     const lastSequence = messages.data?.messages.at(-1)?.sequence ?? 0;
     const read = useChatRead({
@@ -124,7 +127,7 @@ export function ChatView({
         setChatSidePane(chat.id, 'thread');
     }, [chat.id, threadAnchorId, threadSelection?.anchor.id, transcriptMessages]);
 
-    const closeThread = () => {
+    const closeThread = React.useCallback(() => {
         threadCloseRequestedRef.current = true;
         setSearchParams(
             (current) => {
@@ -135,20 +138,26 @@ export function ChatView({
             { replace: true }
         );
         setChatSidePane(chat.id, 'artifact');
-    };
-    const openThread = (anchor: HostedChatMessage, initialSummary: HostedThreadSummary | null) => {
-        threadCloseRequestedRef.current = false;
-        setThreadSelection({ anchor, initialSummary });
-        setSearchParams(
-            (current) => {
-                const next = new URLSearchParams(current);
-                next.set('thread', anchor.id);
-                return next;
-            },
-            { replace: true }
-        );
-        setChatSidePane(chat.id, 'thread');
-    };
+    }, [chat.id, setSearchParams]);
+    // The transcript's render context reaches every row through React context,
+    // so these handlers stay referentially stable: a fresh callback per render
+    // would rebuild that context and re-render the whole transcript.
+    const openThread = React.useCallback(
+        (anchor: HostedChatMessage, initialSummary: HostedThreadSummary | null) => {
+            threadCloseRequestedRef.current = false;
+            setThreadSelection({ anchor, initialSummary });
+            setSearchParams(
+                (current) => {
+                    const next = new URLSearchParams(current);
+                    next.set('thread', anchor.id);
+                    return next;
+                },
+                { replace: true }
+            );
+            setChatSidePane(chat.id, 'thread');
+        },
+        [chat.id, setSearchParams]
+    );
     const viewThreadInChannel = () => {
         const anchorId = threadSelection?.anchor.id;
         closeThread();
@@ -162,11 +171,13 @@ export function ChatView({
             window.setTimeout(() => element?.classList.remove('chat-thread-flash'), 1500);
         });
     };
-    const openArtifact = (target: TavernResourceTarget) => {
-        // The chat-scoped pane and Thread share the side panel. The latest
-        // artifact opener wins and reveals the pane.
-        artifactState.open(target);
-    };
+    // The chat-scoped pane and Thread share the side panel. The latest
+    // artifact opener wins and reveals the pane.
+    const openArtifact = artifactState.open;
+    const startDm = React.useCallback(
+        (peerUserId: string) => ensureDm.mutate({ peerUserId, serverId: chat.serverId }),
+        [chat.serverId, ensureDm.mutate]
+    );
     const threadPanel = threadSelection ? (
         <ThreadPanel
             active={activeSidePane === 'thread'}
@@ -241,7 +252,6 @@ export function ChatView({
                         <ChatFiles messages={messages.data?.messages} />
                     ) : undefined
                 }
-                canRequestMention={!readOnly}
                 chatId={chat.id}
                 emptyLabel="No messages yet."
                 error={messages.error}
@@ -282,7 +292,7 @@ export function ChatView({
                 }
                 historyLoaded={Boolean(messages.data)}
                 isPending={messages.isPending}
-                rows={transcriptRows}
+                rowCount={transcriptMessages?.length ?? 0}
                 timelineContent={(scrollContentRef) => (
                     <ChatTranscript
                         chatId={chat.id}
@@ -299,15 +309,12 @@ export function ChatView({
                         messages={transcriptMessages}
                         onOpenArtifact={openArtifact}
                         onOpenThread={openThread}
-                        onStartDm={(peerUserId) =>
-                            ensureDm.mutate({ peerUserId, serverId: chat.serverId })
-                        }
+                        onStartDm={startDm}
                         scrollContentRef={scrollContentRef}
                         serverId={chat.serverId}
                         threads={messages.data?.threads}
                     />
                 )}
-                totalMessages={transcriptMessages?.length ?? 0}
             />
         </section>
     );

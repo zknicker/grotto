@@ -9,6 +9,63 @@ export function readMentionsFromMarkdown(content: string) {
     );
 }
 
+/**
+ * Mentions are re-read from the message text on every render, so identity says
+ * nothing. Rendering surfaces compare them by value to decide whether a
+ * re-parse actually changed anything.
+ */
+export function areMentionsEqual(
+    previous: readonly Mention[] | undefined,
+    next: readonly Mention[] | undefined
+) {
+    if (previous === next) {
+        return true;
+    }
+
+    const left = previous ?? noMentions;
+    const right = next ?? noMentions;
+
+    return (
+        left.length === right.length &&
+        left.every((mention, index) => isSameMention(mention, right[index]))
+    );
+}
+
+const noMentions: readonly Mention[] = [];
+
+function isSameMention(previous: Mention, next: Mention | undefined) {
+    return Boolean(
+        next &&
+            previous.end === next.end &&
+            previous.id === next.id &&
+            previous.kind === next.kind &&
+            previous.label === next.label &&
+            previous.projection === next.projection &&
+            previous.start === next.start &&
+            previous.text === next.text &&
+            isSameMentionMetadata(previous.metadata, next.metadata)
+    );
+}
+
+function isSameMentionMetadata(
+    previous: Record<string, unknown> | undefined,
+    next: Record<string, unknown> | undefined
+) {
+    if (previous === next) {
+        return true;
+    }
+
+    if (!(previous && next)) {
+        return false;
+    }
+
+    const keys = Object.keys(previous);
+
+    return (
+        keys.length === Object.keys(next).length && keys.every((key) => previous[key] === next[key])
+    );
+}
+
 export interface AgentMentionAppearance {
     avatarUrl: string | null;
     primaryColor: string | null;

@@ -14,63 +14,90 @@ export function mergeTaskAnchor(
     return [...messages, anchor].sort((left, right) => left.sequence - right.sequence);
 }
 
+export type ProjectedChatRow = NonNullable<ChatLogOutput>['rows'][number];
+export type ProjectedChatMessageRow = Extract<ProjectedChatRow, { kind: 'message' }>;
+
+/** The directories a message's task fields are resolved against. */
+export interface ChatMessageDirectories {
+    handleByAgentId: ReadonlyMap<string, string>;
+    humans?: HumanDirectory;
+}
+
+export function chatMessageDirectories(
+    agents: readonly HostedAgent[],
+    humans?: HumanDirectory
+): ChatMessageDirectories {
+    return {
+        handleByAgentId: new Map(agents.map((agent) => [agent.id, agent.handle])),
+        humans,
+    };
+}
+
 export function projectChatMessages(
     messages: readonly HostedChatMessage[],
     threads: readonly HostedThreadSummary[],
     agents: readonly HostedAgent[] = [],
     humans?: HumanDirectory
-): NonNullable<ChatLogOutput>['rows'] {
+): ProjectedChatMessageRow[] {
     const threadsByAnchor = new Map(threads.map((thread) => [thread.anchorMessageId, thread]));
-    const handleByAgentId = new Map(agents.map((agent) => [agent.id, agent.handle]));
+    const directories = chatMessageDirectories(agents, humans);
 
-    return messages.map((message): NonNullable<ChatLogOutput>['rows'][number] => {
-        const actor = messageActor(message);
-        const senderType =
-            message.author.kind === 'agent'
-                ? ('agent' as const)
-                : message.author.kind === 'human'
-                  ? ('user' as const)
-                  : ('system' as const);
-        const agentId = message.author.kind === 'agent' ? message.author.agentId : null;
+    return messages.map((message) =>
+        projectChatMessage(message, threadsByAnchor.get(message.id) ?? null, directories)
+    );
+}
 
-        return {
+export function projectChatMessage(
+    message: HostedChatMessage,
+    thread: HostedThreadSummary | null,
+    directories: ChatMessageDirectories
+): ProjectedChatMessageRow {
+    const actor = messageActor(message);
+    const senderType =
+        message.author.kind === 'agent'
+            ? ('agent' as const)
+            : message.author.kind === 'human'
+              ? ('user' as const)
+              : ('system' as const);
+    const agentId = message.author.kind === 'agent' ? message.author.agentId : null;
+
+    return {
+        actor,
+        connectsToNext: false,
+        connectsToPrevious: false,
+        id: message.id,
+        isFirstInGroup: true,
+        kind: 'message',
+        message: {
             actor,
-            connectsToNext: false,
-            connectsToPrevious: false,
+            attachments: message.attachments.map((attachment) => ({
+                filename: attachment.filename,
+                mediaType: attachment.mediaType,
+                path: `hosted:${attachment.id}`,
+                sizeBytes: attachment.sizeBytes,
+                type: 'file' as const,
+            })),
+            content: message.content,
             id: message.id,
-            isFirstInGroup: true,
-            kind: 'message',
-            message: {
-                actor,
-                attachments: message.attachments.map((attachment) => ({
-                    filename: attachment.filename,
-                    mediaType: attachment.mediaType,
-                    path: `hosted:${attachment.id}`,
-                    sizeBytes: attachment.sizeBytes,
-                    type: 'file' as const,
-                })),
-                content: message.content,
-                id: message.id,
-                sender:
-                    message.author.kind === 'human'
-                        ? (message.author.profile?.displayName ?? message.author.userId)
-                        : message.author.kind === 'agent'
-                          ? (message.author.profile?.displayName ?? message.author.agentId)
-                          : message.author.system === 'reminder'
-                            ? 'Reminder'
-                            : 'Grotto',
-                senderType,
-                sourceSessionId: null,
-                sourceSessionKey: `hosted:${agentId ?? message.author.kind}`,
-                tavernAgentId: agentId,
-                task: messageTask(message.task, handleByAgentId, humans),
-                timestamp: message.createdAt,
-            },
-            responseId: agentId ? message.id : undefined,
-            runId: agentId ? `hosted:${message.id}` : null,
-            thread: threadsByAnchor.get(message.id) ?? null,
-        };
-    });
+            sender:
+                message.author.kind === 'human'
+                    ? (message.author.profile?.displayName ?? message.author.userId)
+                    : message.author.kind === 'agent'
+                      ? (message.author.profile?.displayName ?? message.author.agentId)
+                      : message.author.system === 'reminder'
+                        ? 'Reminder'
+                        : 'Grotto',
+            senderType,
+            sourceSessionId: null,
+            sourceSessionKey: `hosted:${agentId ?? message.author.kind}`,
+            tavernAgentId: agentId,
+            task: messageTask(message.task, directories.handleByAgentId, directories.humans),
+            timestamp: message.createdAt,
+        },
+        responseId: agentId ? message.id : undefined,
+        runId: agentId ? `hosted:${message.id}` : null,
+        thread,
+    };
 }
 
 function messageTask(

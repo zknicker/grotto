@@ -1,8 +1,8 @@
 import { Markdown } from '@heroui-pro/react/markdown';
-import type * as React from 'react';
+import * as React from 'react';
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
 import { parseTavernResourceLink } from '../chats/tavern-resource-link.ts';
-import { readMentionsFromMarkdown } from './mention-metadata.ts';
+import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
 import type { Mention } from './mention-types.ts';
 import { ReferenceChip } from './reference-chip.tsx';
 
@@ -11,32 +11,41 @@ const markdownLinkPattern = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
 
 type PreparedLink = { href: string; kind: 'resource' } | { kind: 'reference'; reference: Mention };
 
-export function ReferenceMarkdown({
-    className,
-    content,
-    mentions,
-}: {
+interface ReferenceMarkdownProps {
     className?: string;
     content: string;
     mentions?: readonly Mention[];
-}) {
-    const prepared = prepareMarkdownReferences(content, mentions);
-
-    return (
-        <Markdown
-            className={className}
-            components={{
-                a: ({ children, href }) => (
-                    <ReferenceLink href={href} links={prepared.links}>
-                        {children}
-                    </ReferenceLink>
-                ),
-            }}
-        >
-            {prepared.content}
-        </Markdown>
-    );
 }
+
+// A rendered message re-parses its whole markdown source on every render, and
+// a transcript re-renders far more often than its history changes. Callers
+// re-read mentions from the same text each time, so equality is by value.
+export const ReferenceMarkdown = React.memo(
+    ({ className, content, mentions }: ReferenceMarkdownProps) => {
+        const prepared = prepareMarkdownReferences(content, mentions);
+
+        return (
+            <Markdown
+                className={className}
+                components={{
+                    a: ({ children, href }) => (
+                        <ReferenceLink href={href} links={prepared.links}>
+                            {children}
+                        </ReferenceLink>
+                    ),
+                }}
+            >
+                {prepared.content}
+            </Markdown>
+        );
+    },
+    (previous, next) =>
+        previous.className === next.className &&
+        previous.content === next.content &&
+        areMentionsEqual(previous.mentions, next.mentions)
+);
+
+ReferenceMarkdown.displayName = 'ReferenceMarkdown';
 
 export function prepareMarkdownReferences(content: string, suppliedMentions?: readonly Mention[]) {
     const mentions = suppliedMentions ?? readMentionsFromMarkdown(content);

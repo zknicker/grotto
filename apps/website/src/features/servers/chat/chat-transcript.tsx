@@ -1,13 +1,11 @@
 import type { HostedChatMessage, HostedThreadSummary } from '@tavern/api';
 import * as React from 'react';
-import type { ActorProfile } from '../../../hooks/actors/use-actor.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import { ChatTranscriptPresentation } from '../../chats/chat-transcript.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
-import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type {
     TranscriptMessageRow,
     TranscriptRenderContextValue,
@@ -18,7 +16,14 @@ import {
     readMentionsFromMarkdown,
 } from '../../mentions/mention-metadata.ts';
 import { ArtifactMessage } from './artifact-message.tsx';
-import { projectChatMessages } from './chat-message-model.ts';
+import { useResolveActorProfile } from './chat-actor-profiles.ts';
+import { applyLocalReactions, useLocalChatReactions } from './chat-local-reactions.ts';
+import {
+    emptyChatAgents,
+    emptyChatMessages,
+    emptyChatThreads,
+    useStableChatMessageRows,
+} from './chat-message-projection.ts';
 import { MessageAttachments } from './message-attachments.tsx';
 
 const conversationLayout = {
@@ -28,12 +33,12 @@ const conversationLayout = {
 
 interface ChatTranscriptInput {
     chatId: string;
-    messages: HostedChatMessage[] | undefined;
+    messages: readonly HostedChatMessage[] | undefined;
     onOpenArtifact: (target: TavernResourceTarget) => void;
     onOpenThread?: (message: HostedChatMessage, summary: HostedThreadSummary | null) => void;
     onStartDm?: (userId: string) => void;
     serverId: string;
-    threads?: HostedThreadSummary[];
+    threads?: readonly HostedThreadSummary[];
 }
 
 export function ChatTranscript({
@@ -70,6 +75,12 @@ export function ChatTranscript({
  * transcript rows and builds the render context the shared turn
  * presentation needs. The thread panel reuses this so replies render with
  * exactly the same rows as the main chat.
+ *
+ * Both the rows and the render context hold their identity across a refetch
+ * that changed nothing they render. That is what the transcript's row memo
+ * needs: the render context reaches every row through context, so a context
+ * value rebuilt on each refetch would re-render the whole transcript no matter
+ * how stable the rows were.
  */
 export function useChatTranscript({
     chatId,
@@ -78,103 +89,55 @@ export function useChatTranscript({
     onOpenThread,
     onStartDm,
     serverId,
-    threads = [],
+    threads = emptyChatThreads,
 }: ChatTranscriptInput) {
+    const messageList = messages ?? emptyChatMessages;
     const agents = useAgents(serverId);
-    const agentList = agents.data ?? [];
+    const agentList = agents.data ?? emptyChatAgents;
     const download = useAttachmentDownload();
     const humans = useHumanDirectory(serverId);
-    // App-local reactions until the hosted reaction API lands: toggling only
-    // updates this in-memory map, so the reaction UI is fully exercisable
-    // today and swaps to the server mutation later without UI changes.
-    const [localReactions, setLocalReactions] = React.useState<LocalReactionsByMessage>({});
-    const onToggleReaction = React.useCallback(
-        (input: { emoji: string; messageId: string; remove: boolean }) =>
-            setLocalReactions((previous) => toggleLocalReaction(previous, input)),
-        []
-    );
-    const rows = React.useMemo(() => {
-        const projected = projectChatMessages(messages ?? [], threads, agentList, humans);
-
-        return projected.map((row) =>
-            row.kind === 'message' && localReactions[row.id]?.length
-                ? { ...row, message: { ...row.message, reactions: localReactions[row.id] } }
-                : row
-        );
-    }, [agentList, humans, localReactions, messages, threads]);
-    const messagesById = React.useMemo(
-        () => new Map(messages?.map((message) => [message.id, message]) ?? []),
-        [messages]
+    const { onToggleReaction, reactions } = useLocalChatReactions();
+    const projectedRows = useStableChatMessageRows({
+        agents: agentList,
+        humans,
+        messages: messageList,
+        threads,
+    });
+    const rows = React.useMemo(
+        () => applyLocalReactions(projectedRows, reactions),
+        [projectedRows, reactions]
     );
     const agentsById = React.useMemo(
         () => new Map(agentList.map((agent) => [agent.id, agent])),
         [agentList]
     );
-    const historicalProfilesByActor = React.useMemo(() => {
-        const profiles = new Map<string, ActorProfile>();
-        for (const message of messages ?? []) {
-            if (message.author.kind === 'system' || !message.author.profile) {
-                continue;
-            }
-            const id =
-                message.author.kind === 'agent' ? message.author.agentId : message.author.userId;
-            profiles.set(`${message.author.kind}:${id}`, {
-                avatarUrl: message.author.profile.avatarUrl,
-                bio: message.author.profile.description,
-                deleted: message.author.profile.deleted,
-                id,
-                isSelf: message.author.kind === 'human' && humans.isSelf(id),
-                kind: message.author.kind === 'agent' ? 'agent' : 'participant',
-                name: message.author.profile.displayName,
-            });
-        }
-        return profiles;
-    }, [humans, messages]);
-    const resolveActorProfile = React.useCallback(
-        (actor: TranscriptActor): ActorProfile | null => {
-            if (!actor) {
-                return null;
-            }
-            if (actor.kind === 'agent') {
-                const agent = agentsById.get(actor.id);
-                return agent
-                    ? {
-                          avatarUrl: agent.avatarUrl,
-                          bio: agent.description,
-                          deleted: false,
-                          id: agent.id,
-                          isSelf: false,
-                          kind: 'agent',
-                          name: agent.displayName,
-                      }
-                    : (historicalProfilesByActor.get(`agent:${actor.id}`) ?? null);
-            }
-            const member = humans.member(actor.id);
-            const historical = historicalProfilesByActor.get(`human:${actor.id}`);
-            if (!member && historical) {
-                return historical;
-            }
-            return {
-                avatarUrl: humans.avatarUrl(actor.id),
-                bio: member?.description ?? null,
-                deleted: false,
-                id: actor.id,
-                isSelf: humans.isSelf(actor.id),
-                kind: actor.kind,
-                name: humans.name(actor.id),
-            };
-        },
-        [agentsById, historicalProfilesByActor, humans]
-    );
+    // Read through a ref: these lookups answer a click or a row's own render,
+    // both of which already happen after the newest snapshot landed. Depending
+    // on them directly would rebuild the render context on every refetch.
+    const lookupRef = useLatestRef({
+        messagesById: React.useMemo(
+            () => new Map(messageList.map((message) => [message.id, message])),
+            [messageList]
+        ),
+        threads,
+    });
+    const resolveActorProfile = useResolveActorProfile({
+        agentsById,
+        humans,
+        messages: messageList,
+    });
+    const downloadAttachment = download.mutate;
+    const downloadPending = download.isPending;
     const renderMessageAttachments = React.useCallback(
         (message: TranscriptMessage) => {
-            const sourceMessage = messagesById.get(message.id);
+            const sourceMessage = lookupRef.current.messagesById.get(message.id);
+
             return sourceMessage?.attachments.length ? (
                 <MessageAttachments
                     attachments={sourceMessage.attachments}
-                    disabled={download.isPending}
+                    disabled={downloadPending}
                     onDownload={(attachment) =>
-                        download.mutate({
+                        downloadAttachment({
                             attachmentId: attachment.id,
                             filename: attachment.filename,
                             serverId: sourceMessage.serverId,
@@ -183,19 +146,24 @@ export function useChatTranscript({
                 />
             ) : null;
         },
-        [download, messagesById]
+        [downloadAttachment, downloadPending, lookupRef]
     );
     const handleOpenThread = React.useCallback(
         (row: TranscriptMessageRow) => {
-            const message = messagesById.get(row.message.id);
+            const message = lookupRef.current.messagesById.get(row.message.id);
+
             if (!message) {
                 return;
             }
+
             const summary =
-                threads.find((candidate) => candidate.anchorMessageId === message.id) ?? null;
+                lookupRef.current.threads.find(
+                    (candidate) => candidate.anchorMessageId === message.id
+                ) ?? null;
+
             onOpenThread?.(message, summary);
         },
-        [messagesById, onOpenThread, threads]
+        [lookupRef, onOpenThread]
     );
     const renderContext = React.useMemo(
         () =>
@@ -264,39 +232,10 @@ export function useChatTranscript({
     return { downloadError: download.error?.message ?? null, renderContext, rows };
 }
 
-type LocalReactionsByMessage = Record<
-    string,
-    { actors: { handle: null | string; id: string }[]; emoji: string }[]
->;
+function useLatestRef<T>(value: T) {
+    const ref = React.useRef(value);
 
-const localReactionViewer = { handle: 'you', id: 'usr_tavern' } as const;
+    ref.current = value;
 
-function toggleLocalReaction(
-    previous: LocalReactionsByMessage,
-    input: { emoji: string; messageId: string; remove: boolean }
-): LocalReactionsByMessage {
-    const current = previous[input.messageId] ?? [];
-    const next = input.remove
-        ? current
-              .map((reaction) =>
-                  reaction.emoji === input.emoji
-                      ? {
-                            ...reaction,
-                            actors: reaction.actors.filter(
-                                ({ id }) => id !== localReactionViewer.id
-                            ),
-                        }
-                      : reaction
-              )
-              .filter((reaction) => reaction.actors.length > 0)
-        : current.some((reaction) => reaction.emoji === input.emoji)
-          ? current.map((reaction) =>
-                reaction.emoji === input.emoji &&
-                !reaction.actors.some(({ id }) => id === localReactionViewer.id)
-                    ? { ...reaction, actors: [...reaction.actors, localReactionViewer] }
-                    : reaction
-            )
-          : [...current, { actors: [localReactionViewer], emoji: input.emoji }];
-
-    return { ...previous, [input.messageId]: next };
+    return ref;
 }

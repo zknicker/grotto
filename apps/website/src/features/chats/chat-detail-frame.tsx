@@ -7,18 +7,12 @@ import {
     MessageScrollerViewport,
 } from '../../components/chats/message-scroller.tsx';
 import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
-import type { ChatLogOutput } from '../../lib/trpc.tsx';
 import { ChatScrollPositionMemory } from './chat-scroll-position-memory.tsx';
-import { ChatTimeline } from './chat-timeline.tsx';
 import { ChatTranscriptLoadingIndicator } from './chat-transcript-loading-indicator.tsx';
-import type { ConversationMessageLayout } from './chat-transcript-model.ts';
 
 export function ChatDetailFrame({
     activeReplies,
-    canRequestMention = true,
     chatId,
-    conversationLayout,
-    defaultOpenWorkGroups = false,
     emptyLabel,
     error,
     body,
@@ -30,15 +24,11 @@ export function ChatDetailFrame({
     hasTransientTimelineContent = false,
     isFetchingOlderHistory = false,
     isPending,
-    rows,
+    rowCount,
     timelineContent,
-    totalMessages,
 }: {
     activeReplies: readonly ChatActiveReply[];
-    canRequestMention?: boolean;
     chatId: string;
-    conversationLayout?: ConversationMessageLayout;
-    defaultOpenWorkGroups?: boolean;
     emptyLabel: string;
     error?: unknown;
     body?: React.ReactNode;
@@ -50,9 +40,8 @@ export function ChatDetailFrame({
     hasTransientTimelineContent?: boolean;
     isFetchingOlderHistory?: boolean;
     isPending: boolean;
-    rows: NonNullable<ChatLogOutput>['rows'];
-    timelineContent?: (scrollContentRef: React.RefObject<HTMLDivElement | null>) => React.ReactNode;
-    totalMessages: number;
+    rowCount: number;
+    timelineContent: (scrollContentRef: React.RefObject<HTMLDivElement | null>) => React.ReactNode;
 }) {
     const viewportRef = React.useRef<HTMLDivElement | null>(null);
     const contentRef = React.useRef<HTMLDivElement | null>(null);
@@ -60,7 +49,7 @@ export function ChatDetailFrame({
     const hasTimelineContent = chatTimelineHasContent({
         activeReplyCount: activeReplies.length,
         hasTransientTimelineContent,
-        rowCount: rows.length,
+        rowCount,
     });
     const isInitialTranscriptPending = isPending && !historyLoaded && !hasActiveReply;
     const handleScroll = () => {
@@ -104,19 +93,7 @@ export function ChatDetailFrame({
                                             </div>
                                         </MessageScrollerContent>
                                     ) : hasTimelineContent ? (
-                                        timelineContent ? (
-                                            timelineContent(contentRef)
-                                        ) : (
-                                            <ChatTimeline
-                                                canRequestMention={canRequestMention}
-                                                chatId={chatId}
-                                                conversationLayout={conversationLayout}
-                                                defaultOpenWorkGroups={defaultOpenWorkGroups}
-                                                rows={rows}
-                                                scrollContentRef={contentRef}
-                                                totalMessages={totalMessages}
-                                            />
-                                        )
+                                        timelineContent(contentRef)
                                     ) : (
                                         <MessageScrollerContent className="w-full">
                                             <div className="px-2 py-4 text-muted text-sm">

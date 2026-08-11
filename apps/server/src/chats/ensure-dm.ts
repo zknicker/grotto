@@ -62,6 +62,10 @@ export async function ensureHostedDm(
             throw new DmPeerNotFoundError();
         }
 
+        // Byte order, matching the `collate "C"` comparison in `chats_shape`.
+        // User ids are ASCII (`usr_` plus base64url bytes), so JavaScript's
+        // code-unit `<` and PostgreSQL's `"C"` collation agree exactly; the
+        // database's default collation does not.
         const [memberOne, memberTwo] = [actorStanding, peerStanding].sort((left, right) =>
             left.userId < right.userId ? -1 : 1
         );

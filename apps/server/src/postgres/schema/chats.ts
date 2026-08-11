@@ -126,7 +126,7 @@ export const chatsTable = pgTable(
                             ${table.dmAgentId} is null
                             and ${table.dmMemberTwoStint} is not null
                             and ${table.dmMemberTwoUserId} is not null
-                            and ${table.dmMemberOneUserId} < ${table.dmMemberTwoUserId}
+                            and ${table.dmMemberOneUserId} collate "C" < ${table.dmMemberTwoUserId} collate "C"
                         )
                         or (
                             ${table.dmAgentId} is not null

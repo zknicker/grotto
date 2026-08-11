@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HostedAgentCommand } from '@tavern/api';
 import { eq, sql } from 'drizzle-orm';
+import { pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { createGrottoServerApplication } from '../src/grotto-server-application.ts';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
@@ -349,6 +350,20 @@ describe('hosted reminder scheduler lifecycle', () => {
         ]);
 
         await delivery.onAck({ agentId: start.agentId, runId: start.runId });
+        // A start frame only notices the Agent about the fire. The turn sees the
+        // receipt by pulling it, and that pull is what the settle consumes.
+        const pulled = await pullAgentEvents(connection.db, {
+            agentId: start.agentId,
+            capabilities: [],
+            chatId: 'cht_scheduler',
+            computerId: 'cmp_ssssssssssssssss',
+            runId: start.runId,
+            runnerId: 'arc_scheduler',
+            serverId: 'srv_scheduler',
+        });
+        expect(pulled.messages.map((row) => row.message.content)).toEqual([
+            '🔔 Reminder: Recover me',
+        ]);
         await delivery.onTurnSettled('cmp_ssssssssssssssss', {
             agentId: start.agentId,
             endedAt: '2026-07-26T14:00:02.000Z',

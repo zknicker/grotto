@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.15 - 2026-08-10
+
+- Permanent Server deletion now completes when Agents have authored messages or other Server-owned
+  records cross-reference one another, releasing the Server address once the purge completes.
+- Startup recovery retries previously failed Server purges after the corrected PostgreSQL constraint
+  contract is installed.
+
+### Release surfaces
+
+- Server: Publish v1.8.15
+- App: Unchanged
+- Computer: Unchanged
+- Runtime: Unchanged
+
 ## v1.8.14 - 2026-08-10
 
 - Fresh Server onboarding now reconciles incomplete Computer connection and Cove application state,

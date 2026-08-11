@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.14 - 2026-08-10
+
+- Fresh Server onboarding now reconciles incomplete Computer connection and Cove application state,
+  preventing a missed realtime update from leaving the Server UI visibly stuck.
+- Grotto Computer 1.4.3 gives every human-facing CLI command a consistent identity header and clear
+  success or failure verdict, with redesigned help, status, doctor, and update-check surfaces.
+- Bare, unknown, and incomplete Computer commands now lead to actionable help, while scripts and
+  piped output retain their plain machine-readable contracts.
+
+### Release surfaces
+
+- Server: Publish v1.8.14
+- App: Unchanged
+- Computer: Publish v1.4.3
+- Runtime: Unchanged
+
 ## v1.8.13 - 2026-08-10
 
 - Cove onboarding now recovers across Server reconnects and reliably preserves the pending chat

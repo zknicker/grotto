@@ -4,6 +4,7 @@ import {
     computerBootstrapHelloSchema,
     computerProtocolVersion,
     computerUpdateProgressFrameSchema,
+    hostedAgentActivityFrameSchema,
     hostedAgentDeliveryAckSchema,
     hostedAgentEffectiveStateSchema,
     hostedAgentNoticeAckSchema,
@@ -19,8 +20,10 @@ import {
 } from '@tavern/api';
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
+import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitServerUpdated } from '../grotto-api/server-events.ts';
+import { recordComputerAgentActivityWithStatus } from '../hosted-agents/agent-activity.ts';
 import { recordAgentEffectiveState } from '../hosted-agents/record-agent-effective-state.ts';
 import { recordHostedComputerUsage } from '../hosted-operations/computer-usage.ts';
 import { recordCoveApplyResult, sendPendingCoveApplication } from '../onboarding/create-cove.ts';
@@ -183,6 +186,19 @@ async function ingestReport(
         return;
     }
     if (!ordinary) {
+        return;
+    }
+
+    const activity = hostedAgentActivityFrameSchema.safeParse(frame);
+    if (activity.success) {
+        const committed = await recordComputerAgentActivityWithStatus(db, {
+            computerId,
+            frame: activity.data,
+            serverId,
+        });
+        if (committed?.inserted) {
+            publishCommittedAgentActivity(committed.event);
+        }
         return;
     }
 

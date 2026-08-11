@@ -95,7 +95,7 @@ export function projectChatMessage(
             timestamp: message.createdAt,
         },
         responseId: agentId ? message.id : undefined,
-        runId: agentId ? `hosted:${message.id}` : null,
+        runId: message.author.kind === 'agent' ? message.runId : null,
         thread,
     };
 }

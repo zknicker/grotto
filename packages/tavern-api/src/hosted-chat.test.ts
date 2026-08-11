@@ -60,6 +60,7 @@ test('hosted messages and durable events keep stable Server and Chat identity', 
         createdAt: '2026-07-26T12:00:00.000Z',
         id: 'msg_one',
         nonce: 'send-1',
+        runId: null,
         sequence: 1,
         serverId: 'srv_main',
     });
@@ -124,6 +125,7 @@ test('hosted message history can preserve a deleted author profile', () => {
         createdAt: '2026-08-10T12:00:00.000Z',
         id: 'msg_cove',
         nonce: 'cove-history',
+        runId: null,
         sequence: 1,
         serverId: 'srv_main',
     });
@@ -144,6 +146,7 @@ test('hosted message contracts carry Server-authored task timeline receipts', ()
             createdAt: '2026-07-26T12:00:00.000Z',
             id: 'msg_task_receipt',
             nonce: 'task-receipt:send-1',
+            runId: null,
             sequence: 2,
             serverId: 'srv_main',
         })

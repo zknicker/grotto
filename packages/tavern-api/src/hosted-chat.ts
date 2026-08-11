@@ -50,6 +50,8 @@ export const hostedChatMessageSchema = z
         createdAt: hostedTimestampSchema,
         id: hostedIdSchema,
         nonce: z.string().trim().min(1).max(128),
+        /** The real Server-assigned Agent run; human/system messages are null. */
+        runId: hostedIdSchema.nullable(),
         sequence: z.number().int().positive(),
         serverId: hostedIdSchema,
         task: hostedMessageTaskSchema.nullable().optional(),

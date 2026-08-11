@@ -11,6 +11,7 @@ import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { createCodex } from '@ai-sdk/harness-codex';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import type { HostedAgentInboxItem } from '../launch.ts';
@@ -56,6 +57,7 @@ export interface HarnessTurnInput {
     /** The Agent's description — the personality surface (ruling W2). */
     initialRole: string | null;
     modelId: string;
+    onActivity?: (activity: ComputerAgentActivityUpdate) => void;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     registerNoticeSink?: NoticeSinkRegistrar;
     runtimeId: string;
@@ -216,9 +218,18 @@ async function executeHarnessTurn(
             () => storedNoticeReady.resolve()
         );
         let observation: HarnessTurnResult;
+        input.onActivity?.({ category: 'thinking', phase: 'started' });
         try {
             await storedNoticeReady.promise;
-            observation = await observeTurnStream(turn.fullStream, noticeCoordinator.flush);
+            observation = await observeTurnStream(
+                turn.fullStream,
+                noticeCoordinator.flush,
+                input.onActivity
+            );
+            input.onActivity?.({ category: 'thinking', phase: 'completed' });
+        } catch (error) {
+            input.onActivity?.({ category: 'thinking', phase: 'failed' });
+            throw error;
         } finally {
             unregisterNoticeSink?.();
             noticeCoordinator.close();
@@ -392,7 +403,8 @@ function pendingNoticePath(agentRoot: string) {
  */
 async function observeTurnStream(
     stream: AsyncIterable<unknown>,
-    onToolBoundary?: () => Promise<void>
+    onToolBoundary?: () => Promise<void>,
+    onActivity?: (activity: ComputerAgentActivityUpdate) => void
 ): Promise<HarnessTurnResult> {
     let contextTokens: number | null = null;
     let streamError: unknown;
@@ -404,12 +416,14 @@ async function observeTurnStream(
         }
         switch (part.type) {
             case 'tool-call':
+                onActivity?.({ category: 'using_tool', phase: 'started' });
                 if (typeof part.toolName === 'string' && toolNames.size < 6) {
                     toolNames.add(part.toolName.slice(0, 128));
                 }
                 break;
             case 'tool-result':
                 await onToolBoundary?.();
+                onActivity?.({ category: 'using_tool', phase: 'completed' });
                 break;
             case 'finish-step':
                 contextTokens = usageContextTokens(part.usage) ?? contextTokens;

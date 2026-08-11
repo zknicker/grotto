@@ -60,6 +60,7 @@ test('reports the exact migrations applied to a fresh database', async () => {
             '0003_inbox-notice-state',
             '0004_lifecycle-created-updated',
             '0005_dm-pair-c-collation',
+            '0006_striped_randall_flagg',
         ]);
     } finally {
         await database.unsafe(`DROP DATABASE IF EXISTS ${databaseName}`);

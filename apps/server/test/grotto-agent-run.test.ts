@@ -142,14 +142,20 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     lifecycleController.abort();
 
     const rows = (await harness.sql`
-        select author_agent_id, author_user_id, content from chat_messages
+        select author_agent_id, author_user_id, content, run_id from chat_messages
         where server_id = ${serverId} and chat_id = ${dmChatId} and nonce = 'agent_nonce_1'
-    `) as { author_agent_id: string; author_user_id: string | null; content: string }[];
+    `) as {
+        author_agent_id: string;
+        author_user_id: string | null;
+        content: string;
+        run_id: string | null;
+    }[];
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
         author_agent_id: agentId,
         author_user_id: null,
         content: 'Hello from the Agent.',
+        run_id: 'run_send_1',
     });
 
     // A redriven send with the same nonce and content is idempotent, not a dup.
@@ -169,7 +175,10 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     // an Agent author, not a human one.
     const page = await owner.trpc.chat.messages.query({ chatId: dmChatId, serverId });
     const agentMessage = page.messages.find((message) => message.nonce === 'agent_nonce_1');
-    expect(agentMessage?.author).toMatchObject({ agentId, kind: 'agent' });
+    expect(agentMessage).toMatchObject({
+        author: { agentId, kind: 'agent' },
+        runId: 'run_send_1',
+    });
 });
 
 test('an Agent send resolves its target instead of writing into the launch chat', async () => {

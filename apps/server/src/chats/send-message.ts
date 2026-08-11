@@ -107,6 +107,7 @@ export async function sendHostedChatMessage(
                 eventCursor: chatEventsTable.cursor,
                 id: chatMessagesTable.id,
                 nonce: chatMessagesTable.nonce,
+                runId: chatMessagesTable.runId,
                 sequence: chatMessagesTable.sequence,
                 serverId: chatMessagesTable.serverId,
                 systemAuthor: chatMessagesTable.systemAuthor,

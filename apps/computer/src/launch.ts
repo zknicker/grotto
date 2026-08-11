@@ -7,6 +7,7 @@ import {
     seedCoveWorkspace,
     seedFactoryManagedSkills,
 } from '@tavern/agent-workspace';
+import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { readAgentSeedConfiguration } from './agent-configuration.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { computerEntrypoint } from './build-identity.ts';
@@ -212,6 +213,24 @@ export async function runAgentLaunch(
         skillsDir: dirs.skills,
     });
     const { proxy, proxyToken } = host;
+    let activitySequence = 0;
+    const sendActivity = (activity: ComputerAgentActivityUpdate) => {
+        const frame = {
+            agentId: command.agentId,
+            category: activity.category,
+            occurredAt: new Date().toISOString(),
+            phase: activity.phase,
+            producerSequence: ++activitySequence,
+            runId: command.runId,
+            type: 'agent-activity' as const,
+        };
+        try {
+            options.sendFrame(frame);
+        } catch {
+            // Activity is recoverable presentation metadata; a disconnected
+            // socket must not turn a model turn into a delivery failure.
+        }
+    };
     const tokenFile = join(dirs.runtime, 'proxy-token');
     const binDir = join(dirs.runtime, 'bin');
     await mkdir(binDir, { mode: 0o700, recursive: true });
@@ -269,6 +288,7 @@ export async function runAgentLaunch(
                       command,
                       dirs,
                       onStoredNoticeDelivered: options.onStoredNoticeDelivered,
+                      onActivity: sendActivity,
                       registerNoticeSink: options.registerNoticeSink,
                       tools: await createServerMcpTools({
                           proxyToken,
@@ -577,6 +597,7 @@ interface RuntimeExecutionInput {
     agentEnv: Record<string, string>;
     command: HostedAgentStartCommand;
     dirs: { home: string; runtime: string; skills: string; workspace: string };
+    onActivity?: (activity: ComputerAgentActivityUpdate) => void;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     registerNoticeSink?: NoticeSinkRegistrar;
     signal?: AbortSignal;
@@ -644,6 +665,7 @@ async function runRealRuntime(
             inbox: command.inbox ?? [],
             inboxDelivery: command.inboxDelivery,
             onStoredNoticeDelivered: input.onStoredNoticeDelivered,
+            onActivity: input.onActivity,
             registerNoticeSink: input.registerNoticeSink,
             runtimeId: command.runtimeId,
             sessionGeneration: command.sessionGeneration,

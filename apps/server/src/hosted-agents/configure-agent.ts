@@ -1,4 +1,9 @@
-import type { HostedAgent, HostedConfigureAgentInput, HostedDurableEvent } from '@tavern/api';
+import type {
+    HostedAgent,
+    HostedAgentActivityEvent,
+    HostedConfigureAgentInput,
+    HostedDurableEvent,
+} from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { recordHostedSessionRotationReceipts } from '../agent-delivery/session-rotation.ts';
@@ -14,11 +19,13 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import { appendServerAgentActivity } from './agent-activity.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
 import { assertRuntimeModelReported, resolveAssignedComputer } from './agent-inventory.ts';
 import { type ConfiguredAgentRow, toHostedAgent } from './agent-shape.ts';
 
 export interface HostedAgentConfigurationRotation {
+    activity: HostedAgentActivityEvent | null;
     chatId: string | null;
     computerId: string;
     events: HostedDurableEvent[];
@@ -88,6 +95,7 @@ export async function configureHostedAgent(
         const changed =
             agent.desiredRuntimeId !== input.runtimeId || agent.desiredModelId !== input.modelId;
         const delivery = changed ? await deliveryStore.readDeliveryState(tx, input.agentId) : null;
+        let activity: HostedAgentActivityEvent | null = null;
         if (changed && delivery?.activeRunId) {
             await revokeRunnerCredentialsForRun(tx, {
                 agentId: input.agentId,
@@ -97,6 +105,13 @@ export async function configureHostedAgent(
             await deliveryStore.requeuePendingForRun(tx, {
                 agentId: input.agentId,
                 runId: delivery.activeRunId,
+            });
+            activity = await appendServerAgentActivity(tx, {
+                agentId: input.agentId,
+                category: 'working',
+                phase: 'failed',
+                runId: delivery.activeRunId,
+                serverId: input.serverId,
             });
             await deliveryStore.clearActiveRun(tx, input.agentId);
         }
@@ -125,6 +140,7 @@ export async function configureHostedAgent(
                 .delete(agentMessageDraftsTable)
                 .where(eq(agentMessageDraftsTable.agentId, input.agentId));
             rotation = {
+                activity,
                 chatId: delivery?.activeRunChatId ?? null,
                 computerId: agent.computerId,
                 events: await recordHostedSessionRotationReceipts(tx, {

@@ -200,6 +200,21 @@ test('returns bounded unique tool names as safe turn evidence', async () => {
     ]);
 });
 
+test('projects tool stream boundaries into safe semantic activity', async () => {
+    streamToolNames = ['cat_private_file'];
+    streamIncludesToolBoundary = true;
+    const activity: Array<{ category: string; phase: string }> = [];
+
+    await runHarnessTurn(turnInput({ onActivity: (event) => activity.push(event) }));
+
+    expect(activity).toEqual([
+        { category: 'thinking', phase: 'started' },
+        { category: 'using_tool', phase: 'started' },
+        { category: 'using_tool', phase: 'completed' },
+        { category: 'thinking', phase: 'completed' },
+    ]);
+});
+
 test('uses a concrete cold inbox as the first prompt without mid-turn injection', async () => {
     acceptsUserMessages = false;
 

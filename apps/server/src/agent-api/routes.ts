@@ -1,6 +1,7 @@
 import { hostedAgentSendInputSchema } from '@tavern/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
@@ -326,6 +327,7 @@ export function registerAgentApiRoutes(
                         chatId,
                         content: prepared.outgoing.content,
                         nonce: parsed.data.nonce,
+                        runId: runner.runId,
                         serverId: runner.serverId,
                         target: parsed.data.target,
                     },
@@ -338,6 +340,9 @@ export function registerAgentApiRoutes(
                 return committed.response;
             }
             const { chatId, result } = committed;
+            for (const activity of result.activities) {
+                publishCommittedAgentActivity(activity);
+            }
             publishAgentLifecycle({
                 agentId: runner.agentId,
                 chatId,

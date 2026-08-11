@@ -23,6 +23,7 @@ test('projects hosted messages into the preserved transcript contract', () => {
     const agent: HostedChatMessage = {
         ...message('message_agent', 2),
         author: { agentId: 'agent_one', kind: 'agent' },
+        runId: 'run_agent',
     };
     const rows = projectChatMessages(
         [human, agent],
@@ -58,7 +59,7 @@ test('projects hosted messages into the preserved transcript contract', () => {
         id: 'agent_one',
         kind: 'agent',
     });
-    expect(agentRow?.kind === 'message' ? agentRow.runId : null).toBe('hosted:message_agent');
+    expect(agentRow?.kind === 'message' ? agentRow.runId : null).toBe('run_agent');
 });
 
 test('projects a hosted system receipt as a quiet Grotto timeline row', () => {
@@ -90,6 +91,7 @@ function message(id: string, sequence: number): HostedChatMessage {
         createdAt: '2026-07-26T12:00:00.000Z',
         id,
         nonce: `nonce_${id}`,
+        runId: null,
         sequence,
         serverId: 'server_one',
     };

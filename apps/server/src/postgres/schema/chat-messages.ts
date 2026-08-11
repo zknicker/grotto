@@ -29,6 +29,7 @@ export const chatMessagesTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         id: text('id').primaryKey(),
         nonce: text('nonce').notNull(),
+        runId: text('run_id'),
         searchVector: tsvector('search_vector').generatedAlwaysAs(
             sql`to_tsvector('simple', content)`
         ),

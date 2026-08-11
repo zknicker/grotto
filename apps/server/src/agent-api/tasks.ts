@@ -1,4 +1,4 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { HostedAgentActivityEvent, HostedDurableEvent } from '@tavern/api';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
@@ -6,6 +6,7 @@ import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireHostedChatWritable } from '../chats/chat-access.ts';
 import { insertHostedSystemMessage } from '../chats/insert-system-message.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
+import { appendServerAgentActivity } from '../hosted-agents/agent-activity.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -100,12 +101,23 @@ export async function createAgentTasks(
         await requireHostedChatWritable(tx, { chatId, serverId: runner.serverId });
         const replay = await replayAgentTasks(tx, runner, chatId, titles, nonces, assigneeAgentId);
         if (replay) {
-            return { events: [], tasks: replay, wakes: [] };
+            return { activities: [], events: [], tasks: replay, wakes: [] };
         }
         const created: Awaited<ReturnType<typeof taskRow>>[] = [];
+        const activities: HostedAgentActivityEvent[] = [];
         const events: HostedDurableEvent[] = [];
         const wakes = new Set<string>();
         for (const [index, title] of titles.entries()) {
+            const startedActivity = await appendServerAgentActivity(tx, {
+                agentId: runner.agentId,
+                category: 'sending_message',
+                phase: 'started',
+                runId: runner.runId,
+                serverId: runner.serverId,
+            });
+            if (startedActivity) {
+                activities.push(startedActivity);
+            }
             const [numberedChat] = await tx
                 .update(chatsTable)
                 .set({
@@ -129,10 +141,21 @@ export async function createAgentTasks(
                     content: title.trim(),
                     id: createOpaqueId('msg'),
                     nonce: nonces[index],
+                    runId: runner.runId,
                     sequence: numberedChat.messageSequence,
                     serverId: runner.serverId,
                 })
                 .returning(messageSelection);
+            const completedActivity = await appendServerAgentActivity(tx, {
+                agentId: runner.agentId,
+                category: 'sending_message',
+                phase: 'completed',
+                runId: runner.runId,
+                serverId: runner.serverId,
+            });
+            if (completedActivity) {
+                activities.push(completedActivity);
+            }
             await tx.insert(messageTasksTable).values({
                 assigneeAgentId,
                 chatId,
@@ -215,6 +238,7 @@ export async function createAgentTasks(
             })
         );
         return {
+            activities,
             events,
             tasks: created,
             wakes: [...wakes].map((agentId) => ({ agentId, serverId: runner.serverId })),

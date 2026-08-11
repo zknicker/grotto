@@ -9,6 +9,7 @@ interface StoredChatMessage {
     createdAt: Date;
     id: string;
     nonce: string;
+    runId: string | null;
     sequence: number;
     serverId: string;
     systemAuthor: 'reminder' | 'session' | 'task' | null;
@@ -69,6 +70,7 @@ export function toHostedChatMessage(
         createdAt: message.createdAt.toISOString(),
         id: message.id,
         nonce: message.nonce,
+        runId: message.runId,
         sequence: message.sequence,
         serverId: message.serverId,
     };

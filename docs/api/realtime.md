@@ -141,7 +141,10 @@ than replaying lifecycle events.
 Semantic Agent activity is written before broadcast. Computer frames carry a narrow category,
 phase, run id, per-run sequence, timestamp, and optional canonical safe tool reference. They never
 carry reasoning, drafts, commands, paths, inputs, or outputs. Reconnect reads durable Activity
-History plus the current unsettled-Agent snapshot before applying later live updates.
+History plus the current unsettled-Agent snapshot before applying later live updates. Hosted tRPC
+uses one Server-scoped `agent.onActivity` subscription; `agent.activityHistory` and
+`agent.activeActivity` are the durable history and reconnect snapshot reads. Activity positions
+are assigned under the Server row lock and are never derived from producer timestamps.
 
 Hosted durable event kinds are `message.created`, `chat.read`, `chat.lifecycle`, the
 reader-private `thread.follow.updated`, `task.created`, `task.updated`, and

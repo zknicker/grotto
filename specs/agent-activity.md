@@ -65,6 +65,7 @@ Server and Computer produce the same narrow event shape:
 ```ts
 type AgentActivityEvent = {
   id: string
+  serverId: string
   agentId: string
   runId: string
   position: number
@@ -85,6 +86,11 @@ delivery/turn lock, persists the event, then broadcasts it. `position` is the on
 order; producer timestamps never resolve cross-machine ordering. Server-originated lifecycle events
 use their own producer identity and the same ordered journal without pretending they came from
 Harness.
+
+The hosted Server API exposes this journal through `agent.activityHistory`, the unsettled-run
+`agent.activeActivity` snapshot, and one Server-scoped `agent.onActivity` subscription. History
+pages use a run-local `{ runId, position }` cursor; the legacy compact `agent.activity` turn
+summary remains a separate compatibility read.
 
 Heartbeats and repeated identical current states are not persisted. Short adjacent events may be
 coalesced for the live strip, but every meaningful transition remains available in history.

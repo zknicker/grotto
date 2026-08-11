@@ -1,6 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
-import { createWSClient, httpLink, splitLink, wsLink } from '@trpc/client';
+import {
+    createWSClient,
+    httpLink,
+    splitLink,
+    type TRPCWebSocketClient,
+    wsLink,
+} from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import * as React from 'react';
@@ -72,9 +78,6 @@ export function GrottoServerProvider({ children }: React.PropsWithChildren) {
     const [queryClient] = React.useState(
         () => new QueryClient({ defaultOptions: queryClientDefaultOptions })
     );
-    // A socket presents the Clerk session it was opened with. When Clerk hands
-    // out a new one, open the next connection and re-register subscriptions
-    // against it. Query data lives in the shared cache, so the swap is silent.
     const [connectionState, setConnectionState] =
         React.useState<GrottoServerConnectionState>('connecting');
     const [handleConnectionState] = React.useState(() =>
@@ -85,38 +88,47 @@ export function GrottoServerProvider({ children }: React.PropsWithChildren) {
             onStateChange: setConnectionState,
         })
     );
-    const [connection, setConnection] = React.useState(() =>
-        createGrottoConnection(0, handleConnectionState)
-    );
+    const [connection, setConnection] = React.useState<GrottoConnection | null>(null);
 
     React.useEffect(() => {
+        let active = true;
+        const nextConnection = createGrottoConnection((state) => {
+            if (active) {
+                handleConnectionState(state);
+            }
+        });
+        setConnection(nextConnection);
+
+        return () => {
+            active = false;
+            void nextConnection.wsClient.close();
+        };
+    }, [handleConnectionState]);
+
+    React.useEffect(() => {
+        if (!connection) {
+            return;
+        }
+
         const stop = watchGrottoSession({
             clearTimer: (handle) => window.clearInterval(handle),
             intervalMs: sessionWatchIntervalMs,
-            onStaleSession: () => {
-                setConnectionState('connecting');
-                setConnection((current) =>
-                    createGrottoConnection(current.generation + 1, handleConnectionState)
-                );
-            },
+            onStaleSession: () => reconnectGrottoSession(connection.wsClient),
             readSessionToken: getClerkSessionToken,
             startTimer: (run, intervalMs) => window.setInterval(run, intervalMs),
         });
 
-        return () => {
-            stop();
-            void connection.wsClient.close();
-        };
-    }, [connection, handleConnectionState]);
+        return stop;
+    }, [connection]);
+
+    if (!connection) {
+        return null;
+    }
 
     return (
         <GrottoServerConnectionContext value={connectionState}>
             <QueryClientProvider client={queryClient}>
-                <grottoTrpc.Provider
-                    client={connection.client}
-                    key={connection.generation}
-                    queryClient={queryClient}
-                >
+                <grottoTrpc.Provider client={connection.client} queryClient={queryClient}>
                     <UpdateRequiredGate queryClient={queryClient}>{children}</UpdateRequiredGate>
                 </grottoTrpc.Provider>
             </QueryClientProvider>
@@ -124,11 +136,10 @@ export function GrottoServerProvider({ children }: React.PropsWithChildren) {
     );
 }
 
-/** One connection to the hosted Server; `generation` counts session renewals. */
+/** One stable tRPC client whose websocket re-authenticates in place. */
 function createGrottoConnection(
-    generation: number,
     onConnectionState: (state: GrottoServerConnectionState) => void
-) {
+): GrottoConnection {
     const origin = getGrottoServerOrigin();
     const httpUrl = new URL('/trpc', origin).toString();
     const socketUrl = new URL('/trpc', origin);
@@ -170,9 +181,18 @@ function createGrottoConnection(
                 }),
             ],
         }),
-        generation,
         wsClient,
     };
+}
+
+interface GrottoConnection {
+    client: ReturnType<typeof grottoTrpc.createClient>;
+    wsClient: TRPCWebSocketClient;
+}
+
+/** Re-authenticate the transport without replacing its tRPC or React providers. */
+function reconnectGrottoSession(wsClient: TRPCWebSocketClient) {
+    wsClient.connection?.ws?.close();
 }
 
 export function useGrottoServerConnectionState() {

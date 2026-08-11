@@ -52,11 +52,11 @@ afterAll(() => {
     mock.module('../../lib/grotto-server.tsx', () => actualGrottoServer);
 });
 
-test('mounts development sign-in inside hosted tRPC and before the sign-in gate', () => {
+test('mounts authenticated hosted state inside the sign-in gate', () => {
     const markup = renderToStaticMarkup(<GrottoServerRoutes />);
 
     expect(markup).toContain(
-        '<div data-testid="grotto-server-provider"><div data-testid="dev-auto-sign-in"></div><div data-testid="sign-in-gate">'
+        '<div data-testid="dev-auto-sign-in"></div><div data-testid="sign-in-gate"><div data-testid="grotto-server-provider">'
     );
     expect(markup).toContain('hosted-server-event-listeners');
 });

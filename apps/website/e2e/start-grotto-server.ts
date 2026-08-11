@@ -73,6 +73,7 @@ writeFileSync(
         databaseUrl: cluster.databaseUrl,
         peerEmail: e2ePeerEmail,
         peerToken: await clerk.mintSessionToken(e2ePeerClerkUserId),
+        rotatedToken: await clerk.mintSessionToken(e2eClerkUserId, { rotation: 'second' }),
         token: await clerk.mintSessionToken(e2eClerkUserId),
     })
 );

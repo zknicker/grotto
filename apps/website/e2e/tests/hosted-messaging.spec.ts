@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import type { Locator } from '@playwright/test';
-import { clerkSessionFile, signInAsClerkHuman } from '../support/clerk-session.ts';
+import {
+    clerkSessionFile,
+    readClerkSessionFixture,
+    signInAsClerkHuman,
+} from '../support/clerk-session.ts';
 import { createHostedAgentThreadSender } from '../support/hosted-agent-thread.ts';
 import {
     assertOpaqueId,
@@ -131,6 +135,49 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     const peerMessage = page.getByText('Peer-authored hosted message', { exact: true });
     await expect(peerMessage).toBeVisible();
     expect(localProductRequests).toEqual([]);
+});
+
+test('session rotation preserves the mounted chat and its unsent draft', async ({ page }) => {
+    test.setTimeout(100_000);
+    await signInAsClerkHuman(page);
+    await page.goto('/s/hosted-messages');
+    await openHostedChannel(page, 'all');
+
+    const composer = page.getByRole('textbox', { name: 'Message all' });
+    await composer.fill('Keep this thought through session rotation');
+    const mountedComposer = await composer.elementHandle();
+    if (!mountedComposer) {
+        throw new Error('The hosted composer did not mount before session rotation.');
+    }
+
+    const nextSocket = page.waitForEvent('websocket', { timeout: 40_000 });
+    const { peerToken, rotatedToken } = readClerkSessionFixture();
+    await page.evaluate((token) => {
+        (
+            window as Window & {
+                __setE2eClerkSessionToken?: (nextToken: string) => void;
+            }
+        ).__setE2eClerkSessionToken?.(token);
+    }, rotatedToken);
+    await nextSocket;
+
+    expect(await mountedComposer.evaluate((element) => element.isConnected)).toBe(true);
+    await expect(composer).toHaveText('Keep this thought through session rotation');
+
+    const server = await createHostedClient(peerToken).server.bySlug.query({
+        slug: 'hosted-messages',
+    });
+    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
+    if (!chatId) {
+        throw new Error('The hosted rotation test did not resolve #all.');
+    }
+    await createHostedClient(peerToken).chat.send.mutate({
+        chatId,
+        content: 'Live peer message after session rotation',
+        nonce: 'e2e-peer-after-session-rotation',
+        serverId: server.id,
+    });
+    await expect(page.getByText('Live peer message after session rotation')).toBeVisible();
 });
 
 test('an Agent-authored artifact fence in a Thread opens the chat Artifact Pane', async ({

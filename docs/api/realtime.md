@@ -196,6 +196,14 @@ Examples:
 Clients do not rebuild state from missed websocket events. They refetch durable
 resources and let React Query reconcile active views.
 
+The Server UI keeps one tRPC client and React provider mounted for the signed-in
+human. Clerk token rotation reconnects only that client's websocket; the reconnect
+reads fresh connection parameters and resumes its pending subscriptions. Credential
+rotation must not replace the tRPC provider, remount the Server shell, clear composer
+drafts, or discard other local presentation state. A genuine human identity change
+renders through a newly keyed hosted QueryClient/provider, so the next identity never
+observes the previous identity's cache or local presentation state.
+
 Reconnect flow:
 
 1. Keep rendering cached query data while the socket reconnects.

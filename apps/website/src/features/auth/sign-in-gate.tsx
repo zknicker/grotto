@@ -1,12 +1,8 @@
 import { ClerkFailed, ClerkLoaded, ClerkLoading, useAuth, useClerk } from '@clerk/clerk-react';
 import { Button, Spinner } from '@heroui/react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
-import {
-    getClerkSessionToken,
-    isClerkEnabled,
-    useClerkSessionTokenState,
-} from '../../lib/clerk.tsx';
+import { getClerkSessionToken, isClerkEnabled } from '../../lib/clerk.tsx';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { useDesktopOAuth } from './use-desktop-oauth.ts';
 
@@ -45,10 +41,12 @@ export function SignInGate({ children }: { children: ReactNode }) {
 }
 
 function ClerkSessionGate({ children }: { children: ReactNode }) {
-    const { isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn, sessionId, userId } = useAuth();
     const clerk = useClerk();
-    const refreshState = useClerkSessionTokenState();
-    const [tokenState, setTokenState] = useState<ClerkSessionTokenState>('loading');
+    const [tokenSnapshot, setTokenSnapshot] = useState<ClerkSessionTokenSnapshot>({
+        sessionId: null,
+        state: 'loading',
+    });
     const [retryKey, setRetryKey] = useState(0);
 
     useEffect(() => {
@@ -56,32 +54,35 @@ function ClerkSessionGate({ children }: { children: ReactNode }) {
         void retryKey;
         let active = true;
 
-        if (!(isLoaded && isSignedIn)) {
-            setTokenState('missing');
+        if (!(isLoaded && isSignedIn && sessionId)) {
+            setTokenSnapshot({ sessionId: null, state: 'missing' });
             return;
         }
 
-        setTokenState('loading');
+        setTokenSnapshot({ sessionId, state: 'loading' });
         void readClerkSessionToken(getClerkSessionToken).then((state) => {
             if (active) {
-                setTokenState(state);
+                setTokenSnapshot({ sessionId, state });
             }
         });
 
         return () => {
             active = false;
         };
-    }, [isLoaded, isSignedIn, retryKey]);
+    }, [isLoaded, isSignedIn, retryKey, sessionId]);
 
-    if (!(isLoaded && isSignedIn)) {
+    const tokenState = resolveClerkSessionTokenState(tokenSnapshot, sessionId);
+    const gate = resolveClerkSessionGate({ isLoaded, isSignedIn, tokenState, userId });
+
+    if (gate.kind === 'signed-out') {
         return <SignInGateFrame signIn={isLoaded} />;
     }
 
-    if (tokenState === 'loading') {
+    if (gate.kind === 'loading') {
         return <SignInGateFrame />;
     }
 
-    if (tokenState === 'missing' || refreshState === 'missing') {
+    if (gate.kind === 'missing') {
         const signInAgain = () => {
             if (isElectronDesktopApp()) {
                 void clerk.signOut(() => undefined);
@@ -98,7 +99,7 @@ function ClerkSessionGate({ children }: { children: ReactNode }) {
         );
     }
 
-    return children;
+    return <Fragment key={gate.userId}>{children}</Fragment>;
 }
 
 /** The signed-in-but-unusable-session repair screen. */
@@ -125,6 +126,48 @@ export function SignInSessionRecovery({
 }
 
 type ClerkSessionTokenState = 'loading' | 'ready' | 'missing';
+interface ClerkSessionTokenSnapshot {
+    sessionId: string | null;
+    state: ClerkSessionTokenState;
+}
+type ClerkSessionGateState =
+    | { kind: 'signed-out' }
+    | { kind: 'loading' }
+    | { kind: 'missing' }
+    | { kind: 'authenticated'; userId: string };
+
+export function resolveClerkSessionGate({
+    isLoaded,
+    isSignedIn,
+    tokenState,
+    userId,
+}: {
+    isLoaded: boolean;
+    isSignedIn: boolean | undefined;
+    tokenState: ClerkSessionTokenState;
+    userId: string | null | undefined;
+}): ClerkSessionGateState {
+    if (!(isLoaded && isSignedIn)) {
+        return { kind: 'signed-out' };
+    }
+    if (tokenState === 'missing') {
+        return { kind: 'missing' };
+    }
+    if (tokenState === 'loading' || !userId) {
+        return { kind: 'loading' };
+    }
+    return { kind: 'authenticated', userId };
+}
+
+export function resolveClerkSessionTokenState(
+    snapshot: ClerkSessionTokenSnapshot,
+    currentSessionId: string | null | undefined
+): ClerkSessionTokenState {
+    if (!(currentSessionId && snapshot.sessionId === currentSessionId)) {
+        return 'loading';
+    }
+    return snapshot.state;
+}
 
 export async function readClerkSessionToken(
     getToken: () => Promise<string | null>

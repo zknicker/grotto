@@ -18,7 +18,7 @@ export function watchGrottoSession(watch: GrottoSessionWatch): () => void {
     let hasObserved = false;
     let isWatching = true;
 
-    const handle = watch.startTimer(() => {
+    const readCurrentToken = () => {
         void watch.readSessionToken().then((token) => {
             if (!isWatching) {
                 return;
@@ -36,7 +36,9 @@ export function watchGrottoSession(watch: GrottoSessionWatch): () => void {
                 watch.onStaleSession();
             }
         });
-    }, watch.intervalMs);
+    };
+    const handle = watch.startTimer(readCurrentToken, watch.intervalMs);
+    readCurrentToken();
 
     return () => {
         isWatching = false;

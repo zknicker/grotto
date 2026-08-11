@@ -21,7 +21,7 @@ test('reconciles durable queries after reconnecting without refetching on initia
     expect(reconciliations).toBe(1);
 });
 
-test('preserves reconnect recovery across an authenticated connection replacement', () => {
+test('preserves reconnect recovery when an authenticated socket reopens in place', () => {
     let reconciliations = 0;
     const handleConnectionState = createQueryReconnectHandler({
         onReconnect: () => {

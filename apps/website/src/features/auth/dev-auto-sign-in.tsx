@@ -1,7 +1,7 @@
 import { useAuth, useSignIn } from '@clerk/clerk-react';
 import { useEffect, useRef } from 'react';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { GrottoServerProvider, grottoTrpc } from '../../lib/grotto-server.tsx';
 
 export function DevAutoSignIn() {
     const shouldAutoSignIn =
@@ -13,7 +13,19 @@ export function DevAutoSignIn() {
         return null;
     }
 
-    return <DevAutoSignInInner />;
+    return <DevAutoSignInGate />;
+}
+
+function DevAutoSignInGate() {
+    const { isSignedIn } = useAuth();
+    if (isSignedIn) {
+        return null;
+    }
+    return (
+        <GrottoServerProvider>
+            <DevAutoSignInInner />
+        </GrottoServerProvider>
+    );
 }
 
 function DevAutoSignInInner() {

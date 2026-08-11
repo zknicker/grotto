@@ -15,6 +15,7 @@ export interface ClerkSessionFixture {
     databaseUrl: string;
     peerEmail: string;
     peerToken: string;
+    rotatedToken: string;
     token: string;
 }
 
@@ -33,9 +34,16 @@ export async function signInAsClerkHuman(page: Page, who: 'human' | 'peer' = 'hu
     const sessionToken = who === 'peer' ? fixture.peerToken : fixture.token;
 
     await page.addInitScript((value: string) => {
+        let currentToken = value;
+        Object.defineProperty(window, '__setE2eClerkSessionToken', {
+            configurable: true,
+            value: (nextToken: string) => {
+                currentToken = nextToken;
+            },
+        });
         Object.defineProperty(window, 'Clerk', {
             configurable: true,
-            value: { session: { getToken: () => Promise.resolve(value) } },
+            value: { session: { getToken: () => Promise.resolve(currentToken) } },
         });
     }, sessionToken);
 }

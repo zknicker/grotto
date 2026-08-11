@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
+import { resolveClerkSessionToken } from '../../lib/clerk.tsx';
 import {
-    readClerkSessionTokenState,
-    resolveClerkSessionToken,
-    subscribeToClerkSessionTokenState,
-} from '../../lib/clerk.tsx';
-import { readClerkSessionToken } from './sign-in-gate.tsx';
+    readClerkSessionToken,
+    resolveClerkSessionGate,
+    resolveClerkSessionTokenState,
+} from './sign-in-gate.tsx';
 
 describe('readClerkSessionToken', () => {
     test('settles token failures into the recoverable missing state', async () => {
@@ -21,23 +21,57 @@ describe('readClerkSessionToken', () => {
     });
 });
 
-test('a refresh failure after readiness publishes recoverable auth state', async () => {
-    await resolveClerkSessionToken(async () => null);
-    const states: string[] = [];
-    const unsubscribe = subscribeToClerkSessionTokenState(() => {
-        states.push(readClerkSessionTokenState());
-    });
+test('a transient refresh failure does not poison the next token read', async () => {
+    expect(await resolveClerkSessionToken(async () => 'session-token')).toBe('session-token');
+    expect(
+        await resolveClerkSessionToken(async () => {
+            throw new Error('refresh failed');
+        })
+    ).toBeNull();
+    expect(await resolveClerkSessionToken(async () => 'next-session-token')).toBe(
+        'next-session-token'
+    );
+});
 
-    try {
-        expect(await resolveClerkSessionToken(async () => 'session-token')).toBe('session-token');
-        expect(
-            await resolveClerkSessionToken(async () => {
-                throw new Error('refresh failed');
-            })
-        ).toBeNull();
-        expect(states.slice(-2)).toEqual(['ready', 'missing']);
-        expect(readClerkSessionTokenState()).toBe('missing');
-    } finally {
-        unsubscribe();
-    }
+test('only a ready known Clerk identity owns authenticated Server state', () => {
+    expect(
+        resolveClerkSessionGate({
+            isLoaded: false,
+            isSignedIn: undefined,
+            tokenState: 'loading',
+            userId: undefined,
+        })
+    ).toEqual({ kind: 'signed-out' });
+    expect(
+        resolveClerkSessionGate({
+            isLoaded: true,
+            isSignedIn: true,
+            tokenState: 'ready',
+            userId: undefined,
+        })
+    ).toEqual({ kind: 'loading' });
+    expect(
+        resolveClerkSessionGate({
+            isLoaded: true,
+            isSignedIn: true,
+            tokenState: 'ready',
+            userId: 'user-a',
+        })
+    ).toEqual({ kind: 'authenticated', userId: 'user-a' });
+    expect(
+        resolveClerkSessionGate({
+            isLoaded: true,
+            isSignedIn: true,
+            tokenState: 'ready',
+            userId: 'user-b',
+        })
+    ).toEqual({ kind: 'authenticated', userId: 'user-b' });
+});
+
+test('token readiness belongs only to the Clerk session that produced it', () => {
+    const readySessionA = { sessionId: 'session-a', state: 'ready' as const };
+
+    expect(resolveClerkSessionTokenState(readySessionA, 'session-a')).toBe('ready');
+    expect(resolveClerkSessionTokenState(readySessionA, 'session-b')).toBe('loading');
+    expect(resolveClerkSessionTokenState(readySessionA, undefined)).toBe('loading');
 });

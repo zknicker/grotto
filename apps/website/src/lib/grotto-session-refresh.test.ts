@@ -11,7 +11,7 @@ describe('watchGrottoSession', () => {
     test('reconnects only when the Clerk session token changes', async () => {
         const watch = startWatch(['token-one', 'token-two', 'token-two', 'token-three']);
 
-        await watch.tick();
+        await watch.ready();
         expect(watch.reconnects).toBe(0);
 
         await watch.tick();
@@ -29,7 +29,7 @@ describe('watchGrottoSession', () => {
     test('does not reconnect while the human is signed out', async () => {
         const watch = startWatch([null, null]);
 
-        await watch.tick();
+        await watch.ready();
         await watch.tick();
 
         expect(watch.reconnects).toBe(0);
@@ -39,7 +39,7 @@ describe('watchGrottoSession', () => {
     test('reconnects when the human signs out', async () => {
         const watch = startWatch(['token-one', null]);
 
-        await watch.tick();
+        await watch.ready();
         expect(watch.reconnects).toBe(0);
 
         await watch.tick();
@@ -51,7 +51,7 @@ describe('watchGrottoSession', () => {
     test('reconnects when the human signs in later', async () => {
         const watch = startWatch([null, 'token-one']);
 
-        await watch.tick();
+        await watch.ready();
         expect(watch.reconnects).toBe(0);
 
         await watch.tick();
@@ -63,7 +63,7 @@ describe('watchGrottoSession', () => {
     test('stops watching when torn down', async () => {
         const watch = startWatch(['token-one', 'token-two']);
 
-        await watch.tick();
+        await watch.ready();
         watch.stop();
         await watch.tick();
 
@@ -100,6 +100,9 @@ function startWatch(tokens: (string | null)[]) {
         },
         get reconnects() {
             return reconnects;
+        },
+        async ready() {
+            await Bun.sleep(0);
         },
         stop,
         async tick() {

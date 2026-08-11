@@ -69,6 +69,11 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 * Keep route files thin.
 * Let route/page boundaries own `Suspense`, skeletons, and error boundaries.
 * Keep primary page content mounted during background refreshes.
+* Keep the authenticated Server shell mounted across Clerk token rotation and
+  websocket reconnects. Transport credentials and connection generations must not
+  become React keys. Only a genuine human identity change may clear hosted query
+  ownership or replace the authenticated surface; key that identity-owned provider
+  by the known Clerk user id rather than clearing a shared cache after render.
 * Keep primary Server destinations code-split, but share their cached module
   loaders between router navigation and preloading. The persistent shell warms
   them while idle; rail hover warms the destination before selection.

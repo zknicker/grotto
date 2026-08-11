@@ -10,14 +10,16 @@ import { HostedServerEventListeners } from './hosted-server-event-listeners.tsx'
  */
 export function GrottoServerRoutes() {
     return (
-        <GrottoServerProvider>
+        <>
             <DevAutoSignIn />
             <SignInGate>
-                <HostedDevelopmentBootstrap />
-                <HostedServerEventListeners />
-                <Outlet />
+                <GrottoServerProvider>
+                    <HostedDevelopmentBootstrap />
+                    <HostedServerEventListeners />
+                    <Outlet />
+                </GrottoServerProvider>
             </SignInGate>
-        </GrottoServerProvider>
+        </>
     );
 }
 

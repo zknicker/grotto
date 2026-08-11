@@ -27,7 +27,9 @@ import { ChatFiles } from './chat-files.tsx';
 import { mergeTaskAnchor, projectChatMessages } from './chat-message-model.ts';
 import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
+import { PendingChatMessages } from './pending-messages.tsx';
 import { useChatArtifactPanel } from './use-artifact-panel.ts';
+import { usePendingChatMessages } from './use-pending-messages.ts';
 
 export function ChatView({
     chat,
@@ -64,6 +66,7 @@ export function ChatView({
     );
     const threadTakeover = useViewportBelow(1024);
     const messages = useChatMessages(chat.serverId, chat.id);
+    const pendingMessages = usePendingChatMessages(chat.id, messages.data?.messages);
     const transcriptMessages = mergeTaskAnchor(messages.data?.messages, initialTask?.message);
     const transcriptRows = React.useMemo(
         () => projectChatMessages(transcriptMessages ?? [], messages.data?.threads ?? []),
@@ -266,6 +269,7 @@ export function ChatView({
                                     chatId={chat.id}
                                     chatName={chatName}
                                     compositionChatId={chat.id}
+                                    pendingChatId={chat.id}
                                     placeholder="Let's go on an adventure..."
                                     serverId={chat.serverId}
                                 />
@@ -273,7 +277,9 @@ export function ChatView({
                         </>
                     ) : null
                 }
-                hasTransientTimelineContent={hasAgentComposition(chat.id, agentLifecycles)}
+                hasTransientTimelineContent={
+                    hasAgentComposition(chat.id, agentLifecycles) || pendingMessages.length > 0
+                }
                 historyLoaded={Boolean(messages.data)}
                 isPending={messages.isPending}
                 rows={transcriptRows}
@@ -281,7 +287,14 @@ export function ChatView({
                     <ChatTranscript
                         chatId={chat.id}
                         composition={
-                            <ChatAgentComposition chatId={chat.id} serverId={chat.serverId} />
+                            <>
+                                <PendingChatMessages
+                                    messages={pendingMessages}
+                                    serverId={chat.serverId}
+                                    viewerUserId={server.viewerUserId}
+                                />
+                                <ChatAgentComposition chatId={chat.id} serverId={chat.serverId} />
+                            </>
                         }
                         messages={transcriptMessages}
                         onOpenArtifact={openArtifact}

@@ -24,8 +24,13 @@ import {
 } from '../../mentions/use-mention-composer.tsx';
 import { buildAgentMentionOption } from '../../mentions/use-mention-options.ts';
 import { ComposerAttachments } from './composer-attachments.tsx';
-import { useComposerAttachments } from './use-composer-attachments.ts';
+import { type ComposerAttachment, useComposerAttachments } from './use-composer-attachments.ts';
 import { useCompositionDraft } from './use-composition-draft.ts';
+import {
+    addPendingChatMessage,
+    dropPendingChatMessage,
+    settlePendingChatMessage,
+} from './use-pending-messages.ts';
 
 const emptyAgents: HostedAgent[] = [];
 
@@ -34,6 +39,7 @@ export function ChatComposer({
     chatName,
     compositionChatId,
     onThreadCreated,
+    pendingChatId,
     placeholder,
     serverId,
     thread,
@@ -42,6 +48,8 @@ export function ChatComposer({
     chatName: string;
     compositionChatId: string | undefined;
     onThreadCreated?: (threadChatId: string) => void;
+    /** The transcript that shows this composer's sends while they are in flight. */
+    pendingChatId?: string;
     placeholder?: string;
     serverId: string;
     thread?: { anchorMessageId: string };
@@ -59,6 +67,11 @@ export function ChatComposer({
         inputRef: attachmentInput,
         remove: removeAttachment,
     } = useComposerAttachments();
+    // Submitting is synchronous now, so the guard against a second handler
+    // firing for the same keystroke has to be too: React has not re-rendered
+    // yet, and both would otherwise read the same uncleared draft.
+    const submissionRef = React.useRef({ attachments, draft, mentions });
+    submissionRef.current = { attachments, draft, mentions };
     const send = useChatMessageSend();
     const createTask = useTaskCreate();
     const upload = useUploadServerAttachment();
@@ -108,57 +121,89 @@ export function ChatComposer({
         );
     });
 
+    // Sending is optimistic: the draft leaves the editor immediately and the
+    // transcript's pending row carries it, so nothing here waits on a round
+    // trip. A failed send puts the whole draft back, ready to retry.
     async function handleSubmit(event?: React.FormEvent, forceAsTask = false) {
         event?.preventDefault();
-        const { content } = buildChatComposerSubmission({ content: draft, mentions });
+        const submitted = { asTask, ...submissionRef.current };
+        const { content } = buildChatComposerSubmission({
+            content: submitted.draft,
+            mentions: submitted.mentions,
+        });
         const submitAsTask = forceAsTask || asTask;
 
         if (
-            (content.length === 0 && attachments.length === 0) ||
-            (submitAsTask && content.length === 0) ||
-            send.isPending ||
-            createTask.isPending ||
-            upload.isPending
+            (content.length === 0 && submitted.attachments.length === 0) ||
+            (submitAsTask && content.length === 0)
         ) {
             return;
         }
 
-        if (submitAsTask && !thread) {
-            await createTask.mutateAsync({
-                chatId,
-                content,
-                nonce: crypto.randomUUID(),
-                serverId,
-            });
-            setDraft('');
-            setMentions([]);
-            setAsTask(false);
-            return;
-        }
-
-        const uploaded = await Promise.all(
-            attachments.map(({ file, nonce }) =>
-                upload.mutateAsync({ chatId, file, nonce, serverId })
-            )
-        );
-        const receipt = await send.mutateAsync({
-            attachmentIds: uploaded.map((attachment) => attachment.id),
-            chatId,
-            content,
-            nonce: crypto.randomUUID(),
-            serverId,
-            thread,
-        });
-        if (receipt.threadChatId) {
-            onThreadCreated?.(receipt.threadChatId);
-        }
+        const nonce = crypto.randomUUID();
+        submissionRef.current = { attachments: [], draft: '', mentions: [] };
         setDraft('');
         setMentions([]);
+        setAsTask(false);
         clearAttachments();
         clearComposition();
-    }
 
-    const isPending = send.isPending || createTask.isPending || upload.isPending;
+        try {
+            if (submitAsTask && !thread) {
+                await createTask.mutateAsync({ chatId, content, nonce, serverId });
+                return;
+            }
+
+            if (pendingChatId) {
+                addPendingChatMessage(pendingChatId, {
+                    attachments: submitted.attachments.map(pendingAttachment),
+                    content,
+                    nonce,
+                });
+            }
+            const uploaded = await Promise.all(
+                submitted.attachments.map((attachment) =>
+                    upload.mutateAsync({
+                        chatId,
+                        file: attachment.file,
+                        nonce: attachment.nonce,
+                        serverId,
+                    })
+                )
+            );
+            const receipt = await send.mutateAsync({
+                attachmentIds: uploaded.map((attachment) => attachment.id),
+                chatId,
+                content,
+                nonce,
+                serverId,
+                thread,
+            });
+            if (pendingChatId) {
+                settlePendingChatMessage({
+                    chatId: pendingChatId,
+                    messageId: receipt.message.id,
+                    nonce,
+                });
+            }
+            if (receipt.threadChatId) {
+                onThreadCreated?.(receipt.threadChatId);
+            }
+        } catch {
+            // The mutation hooks own the error text below; this restores the
+            // draft so the send can be retried without retyping it.
+            if (pendingChatId) {
+                dropPendingChatMessage(pendingChatId, nonce);
+            }
+            setDraft(submitted.draft);
+            setMentions(submitted.mentions);
+            setAsTask(submitted.asTask);
+            if (submitted.attachments.length > 0) {
+                addAttachments(submitted.attachments.map((attachment) => attachment.file));
+            }
+            mentionComposer.focusTextEditor();
+        }
+    }
 
     const errorMessage =
         attachmentError ??
@@ -182,7 +227,6 @@ export function ChatComposer({
                     <PromptInput.Content>
                         <ComposerAttachments
                             attachments={attachments}
-                            disabled={isPending}
                             onRemove={(nonce) => {
                                 removeAttachment(nonce);
                                 mentionComposer.focusTextEditor();
@@ -196,7 +240,6 @@ export function ChatComposer({
                                 ariaLabel={`Message ${chatName}`}
                                 autoFocus={!thread}
                                 composer={mentionComposer}
-                                disabled={isPending}
                                 name="chat-message"
                                 placeholder={placeholder ?? `Message ${chatName}`}
                             />
@@ -216,7 +259,6 @@ export function ChatComposer({
                             />
                             <PromptInput.Action
                                 aria-label="Add attachments"
-                                isDisabled={isPending}
                                 onPress={() => attachmentInput.current?.click()}
                                 tooltip="Add attachments"
                             >
@@ -239,10 +281,7 @@ export function ChatComposer({
                                     </Switch.Content>
                                 </Switch>
                             )}
-                            <PromptInput.Send
-                                aria-label="Send"
-                                isDisabled={isPending || !canSubmit}
-                            />
+                            <PromptInput.Send aria-label="Send" isDisabled={!canSubmit} />
                         </PromptInput.ToolbarEnd>
                     </PromptInput.Toolbar>
                 </PromptInput.Shell>
@@ -257,10 +296,6 @@ export function ChatComposer({
     // Clicking inert composer space focuses the editor, which the shell cannot
     // do itself because the mention editor replaces its textarea.
     function handleShellMouseDown(event: React.MouseEvent<HTMLDivElement>) {
-        if (isPending) {
-            return;
-        }
-
         const target = event.target as HTMLElement;
 
         if (
@@ -274,4 +309,15 @@ export function ChatComposer({
         event.preventDefault();
         mentionComposer.focusTextEditor();
     }
+}
+
+// The pending row names the files while their bytes are still uploading, so it
+// describes the local File rather than a reserved hosted attachment.
+function pendingAttachment(attachment: ComposerAttachment) {
+    return {
+        filename: attachment.file.name,
+        id: attachment.nonce,
+        mediaType: attachment.file.type || 'application/octet-stream',
+        sizeBytes: attachment.file.size,
+    };
 }

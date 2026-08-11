@@ -3,11 +3,9 @@ import type { ComposerAttachment } from './use-composer-attachments.ts';
 
 export function ComposerAttachments({
     attachments,
-    disabled,
     onRemove,
 }: {
     attachments: ComposerAttachment[];
-    disabled: boolean;
     onRemove: (nonce: string) => void;
 }) {
     if (attachments.length === 0) {
@@ -29,7 +27,6 @@ export function ComposerAttachments({
                         <ChatAttachment.Name />
                         <ChatAttachment.Remove
                             aria-label={`Remove ${attachment.file.name}`}
-                            isDisabled={disabled}
                             onPress={() => onRemove(attachment.nonce)}
                         />
                     </ChatAttachment>

@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { AgentConfigDeniedError } from '../../hosted-agents/agent-config-errors.ts';
 import { createHostedAgent } from '../../hosted-agents/create-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
+import { emitServerUpdated } from '../server-events.ts';
 
 export const createAgentProcedure = memberProcedure
     .input(hostedCreateAgentInputSchema)
@@ -17,6 +18,11 @@ export const createAgentProcedure = memberProcedure
                 computerId: created.agent.computerId,
                 modelId: created.agent.desiredModelId,
                 runtimeId: created.agent.desiredRuntimeId,
+            });
+            emitServerUpdated({
+                agentId: created.agent.id,
+                scope: 'agent',
+                serverId: input.serverId,
             });
             return created;
         } catch (cause) {

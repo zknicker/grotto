@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { AgentConfigDeniedError } from '../../hosted-agents/agent-config-errors.ts';
 import { updateHostedAgentProfile } from '../../hosted-agents/update-agent-profile.ts';
 import { memberProcedure } from '../server/procedure.ts';
+import { emitServerUpdated } from '../server-events.ts';
 
 export const updateAgentProfileProcedure = memberProcedure
     .input(hostedUpdateAgentProfileInputSchema)
@@ -18,6 +19,7 @@ export const updateAgentProfileProcedure = memberProcedure
                 modelId: agent.desiredModelId,
                 runtimeId: agent.desiredRuntimeId,
             });
+            emitServerUpdated({ agentId: agent.id, scope: 'agent', serverId: input.serverId });
             return agent;
         } catch (cause) {
             if (cause instanceof AgentConfigDeniedError) {

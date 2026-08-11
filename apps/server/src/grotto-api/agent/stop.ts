@@ -6,6 +6,7 @@ import {
     readHostedAgentDeliveryState,
 } from '../../hosted-agents/agent-delivery-control.ts';
 import { memberProcedure } from '../server/procedure.ts';
+import { emitServerUpdated } from '../server-events.ts';
 
 export const stopAgentProcedure = memberProcedure
     .input(hostedAgentDeliveryControlInputSchema)
@@ -14,6 +15,11 @@ export const stopAgentProcedure = memberProcedure
         try {
             await assertAgentDeliveryAccess(ctx.grottoDb, ctx.member, input);
             await ctx.agentDelivery.stop(input);
+            emitServerUpdated({
+                agentId: input.agentId,
+                scope: 'agent',
+                serverId: input.serverId,
+            });
             return await readHostedAgentDeliveryState(ctx.grottoDb, ctx.member, input);
         } catch (cause) {
             if (cause instanceof AgentConfigDeniedError) {

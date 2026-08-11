@@ -18,7 +18,11 @@ export const deleteAgentProcedure = memberProcedure
                 agentId: result.agentId,
                 computerId: result.computerId,
             });
-            emitServerUpdated({ scope: 'agent', serverId: input.serverId });
+            emitServerUpdated({
+                agentId: result.agentId,
+                scope: 'agent',
+                serverId: input.serverId,
+            });
             return { agentId: result.agentId };
         } catch (cause) {
             if (cause instanceof AgentDeleteDeniedError) {

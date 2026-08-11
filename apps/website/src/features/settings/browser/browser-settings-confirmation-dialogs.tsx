@@ -1,4 +1,4 @@
-import { Button, Modal } from '@heroui/react';
+import { AlertDialog, Button } from '@heroui/react';
 
 export function BrowserDisableConfirmationDialog({
     affectedAgentNames,
@@ -12,31 +12,32 @@ export function BrowserDisableConfirmationDialog({
     open: boolean;
 }) {
     return (
-        <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container size="sm">
-                    <Modal.Dialog role="alertdialog">
-                        <Modal.Header>
-                            <Modal.Heading>Disable Browser?</Modal.Heading>
-                        </Modal.Header>
-                        <Modal.Body>
-                            <p className="text-muted text-sm">
+        <AlertDialog isOpen={open} onOpenChange={onOpenChange}>
+            <AlertDialog.Backdrop isDismissable>
+                <AlertDialog.Container size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="danger" />
+                            <AlertDialog.Heading>Disable Browser?</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <p>
                                 {affectedAgentNames.join(', ')} will lose Browser access.
                                 Re-enabling Browser will not restore their grants.
                             </p>
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <Button slot="close" variant="secondary">
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button slot="close" type="button" variant="secondary">
                                 Cancel
                             </Button>
-                            <Button onPress={onConfirm} slot="close" variant="danger-soft">
+                            <Button onPress={onConfirm} slot="close" variant="danger">
                                 Disable
                             </Button>
-                        </Modal.Footer>
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
+        </AlertDialog>
     );
 }
 
@@ -54,35 +55,42 @@ export function BrowserSkillConflictConfirmationDialog({
     open: boolean;
 }) {
     return (
-        <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container size="sm">
-                    <Modal.Dialog role="alertdialog">
-                        <Modal.Header>
-                            <Modal.Heading>Replace Existing Skill?</Modal.Heading>
-                        </Modal.Header>
-                        <Modal.Body>
-                            <p className="text-muted text-sm">
+        <AlertDialog isOpen={open} onOpenChange={onOpenChange}>
+            <AlertDialog.Backdrop isDismissable>
+                <AlertDialog.Container size="sm">
+                    <AlertDialog.Dialog>
+                        <AlertDialog.Header>
+                            <AlertDialog.Icon status="warning" />
+                            <AlertDialog.Heading>Replace Existing Skill?</AlertDialog.Heading>
+                        </AlertDialog.Header>
+                        <AlertDialog.Body>
+                            <p>
                                 Enabling Browser reserves the browser skill so the agent gets the
                                 right tools and widget guidance.
                             </p>
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <Button isDisabled={isSaving} onPress={onCancel} variant="secondary">
+                        </AlertDialog.Body>
+                        <AlertDialog.Footer>
+                            <Button
+                                isDisabled={isSaving}
+                                onPress={onCancel}
+                                slot="close"
+                                type="button"
+                                variant="secondary"
+                            >
                                 Cancel
                             </Button>
                             <Button
                                 isPending={isSaving}
                                 onPress={onReplace}
                                 type="button"
-                                variant="danger-soft"
+                                variant="danger"
                             >
                                 Replace Skill
                             </Button>
-                        </Modal.Footer>
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Dialog>
+                </AlertDialog.Container>
+            </AlertDialog.Backdrop>
+        </AlertDialog>
     );
 }

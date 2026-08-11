@@ -127,7 +127,7 @@ export function ConnectionDestructiveDialog({
                             <Button slot="close" variant="secondary">
                                 Cancel
                             </Button>
-                            <Button onPress={onConfirm} slot="close" variant="danger-soft">
+                            <Button onPress={onConfirm} slot="close" variant="danger">
                                 {label}
                             </Button>
                         </AlertDialog.Footer>

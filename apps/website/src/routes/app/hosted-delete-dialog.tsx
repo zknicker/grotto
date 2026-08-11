@@ -31,19 +31,16 @@ export function HostedDeleteDialog({
                         </AlertDialog.Header>
                         <AlertDialog.Body>
                             <div className="grid gap-4">
-                                <p className="text-muted text-sm">{description}</p>
+                                <p>{description}</p>
                                 <TextField
                                     autoComplete="off"
                                     fullWidth
                                     onChange={setTyped}
                                     value={typed}
+                                    variant="secondary"
                                 >
                                     <Label>
-                                        Type{' '}
-                                        <span className="font-medium text-foreground">
-                                            {confirmation}
-                                        </span>{' '}
-                                        to confirm
+                                        Type <strong>{confirmation}</strong> to confirm
                                     </Label>
                                     <Input />
                                 </TextField>

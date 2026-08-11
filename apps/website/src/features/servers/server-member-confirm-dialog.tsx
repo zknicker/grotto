@@ -55,7 +55,12 @@ export function ServerMemberConfirmDialog({
                             <div className="grid gap-4">
                                 <p>{pending.description}</p>
                                 {pending.requiresSlug ? (
-                                    <TextField fullWidth onChange={setTyped} value={typed}>
+                                    <TextField
+                                        fullWidth
+                                        onChange={setTyped}
+                                        value={typed}
+                                        variant="secondary"
+                                    >
                                         <Label htmlFor="server-member-confirmation">
                                             Type the Server address to confirm
                                         </Label>

@@ -202,6 +202,7 @@ export function ServerLayout() {
                         <Modal.Backdrop isDismissable>
                             <Modal.Container scroll="outside" size="lg">
                                 <Modal.Dialog>
+                                    <Modal.CloseTrigger />
                                     <Modal.Header>
                                         <Modal.Heading>Servers</Modal.Heading>
                                         <p className="mt-1 text-muted text-sm">

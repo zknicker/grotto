@@ -82,7 +82,7 @@ export function ReminderCancelDialog({
                                     });
                                     onClose();
                                 }}
-                                variant="danger-soft"
+                                variant="danger"
                             >
                                 Cancel Reminder
                             </Button>

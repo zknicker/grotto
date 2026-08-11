@@ -1,18 +1,42 @@
-import { type QueryClient, useQueryClient } from '@tanstack/react-query';
+import type { HostedDurableEvent } from '@tavern/api';
 import * as React from 'react';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import {
-    type ChatEventTargets,
     chatEventBatchWindowMs,
     createChatEventBatch,
     laterEventCursor,
     walkEventCatchUp,
 } from './chat-event-cursor.ts';
-import { threadMessagesQueryKey } from './use-thread-messages.ts';
+import {
+    type ChatEventHandler,
+    type ChatEventRegistry,
+    type ChatEventType,
+    createChatEventRegistry,
+} from './chat-event-registry.ts';
 
-export function useChatEvents(serverId: string | undefined) {
+const ChatEventStreamContext = React.createContext<ChatEventRegistry | null>(null);
+
+/**
+ * The Chat event transport: one durable subscription, one monotonic cursor, one
+ * burst window, and reconnect catch-up. It owns no invalidation mapping — each
+ * listener registered through {@link useChatEvent} owns what its own event type
+ * refetches.
+ *
+ * The cold-start snapshot lives here because it predates knowing any event: a
+ * first subscription seeds its cursor from the event head and refetches the
+ * Server Chat snapshot outright.
+ */
+export function ChatEventStreamProvider({
+    children,
+    serverId,
+}: {
+    children: React.ReactNode;
+    serverId: string | undefined;
+}) {
     const utils = grottoTrpc.useUtils();
-    const queryClient = useQueryClient();
+    const registryRef = React.useRef<ChatEventRegistry | null>(null);
+    registryRef.current ??= createChatEventRegistry();
+    const registry = registryRef.current;
     const eventStateRef = React.useRef({ cursor: '0', serverId });
     const batchRef = React.useRef(createChatEventBatch());
     const batchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -21,17 +45,15 @@ export function useChatEvents(serverId: string | undefined) {
         eventStateRef.current = { cursor: '0', serverId };
     }
 
-    const invalidateTargets = React.useCallback(
-        async (targets: ChatEventTargets) => {
+    const dispatchEvents = React.useCallback(
+        async (events: HostedDurableEvent[]) => {
             if (serverId === undefined) {
                 return;
             }
 
-            await createChatEventInvalidator({ queryClient, serverId, utils })(targets);
+            await registry.dispatch(events, serverId);
         },
-        // The utils proxy root is stable; each `utils.chat.x` access is a fresh
-        // object, so depending on paths would rebuild this every render.
-        [queryClient, serverId, utils]
+        [registry, serverId]
     );
 
     const flushEventBatch = React.useCallback(() => {
@@ -40,11 +62,11 @@ export function useChatEvents(serverId: string | undefined) {
             batchTimerRef.current = null;
         }
 
-        const targets = batchRef.current.drain();
-        if (targets) {
-            void invalidateTargets(targets);
+        const events = batchRef.current.drain();
+        if (events) {
+            void dispatchEvents(events);
         }
-    }, [invalidateTargets]);
+    }, [dispatchEvents]);
 
     const refetchServerChatSnapshot = React.useCallback(async () => {
         if (serverId === undefined) {
@@ -60,6 +82,8 @@ export function useChatEvents(serverId: string | undefined) {
             utils.task.list.invalidate({ serverId }, { refetchType: 'all' }),
             utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' }),
         ]);
+        // The utils proxy root is stable; each `utils.chat.x` access is a fresh
+        // object, so depending on paths would rebuild this every render.
     }, [serverId, utils]);
 
     const catchUp = React.useCallback(async () => {
@@ -87,7 +111,7 @@ export function useChatEvents(serverId: string | undefined) {
             afterCursor: current.cursor,
             fetchPage: async (afterCursor, limit) =>
                 await utils.chat.events.fetch({ afterCursor, limit, serverId }),
-            onTargets: invalidateTargets,
+            onEvents: dispatchEvents,
         });
 
         if (eventStateRef.current.serverId === serverId) {
@@ -96,7 +120,7 @@ export function useChatEvents(serverId: string | undefined) {
                 walkedCursor
             );
         }
-    }, [invalidateTargets, refetchServerChatSnapshot, serverId, utils]);
+    }, [dispatchEvents, refetchServerChatSnapshot, serverId, utils]);
 
     // A pending burst belongs to the Server it arrived on, so leaving that
     // Server — or the app — flushes it instead of dropping it.
@@ -120,60 +144,45 @@ export function useChatEvents(serverId: string | undefined) {
             onStarted: () => void catchUp(),
         }
     );
+
+    return (
+        <ChatEventStreamContext.Provider value={registry}>
+            {children}
+        </ChatEventStreamContext.Provider>
+    );
 }
 
 /**
- * The single owner of what one Chat event pass invalidates. Kept outside the
- * hook so the mapping from targets to exact queries is directly testable.
+ * Registers this listener for one Chat event type — or for the few types one
+ * lane owns together, which then arrive in a single call. The handler is read
+ * through a ref, so registration happens once per mount and a re-render never
+ * churns the registry.
  */
-export function createChatEventInvalidator({
-    queryClient,
-    serverId,
-    utils,
-}: {
-    queryClient: QueryClient;
-    serverId: string;
-    utils: ReturnType<typeof grottoTrpc.useUtils>;
-}) {
-    return async (targets: ChatEventTargets) => {
-        const invalidations: Promise<unknown>[] = [];
+export function useChatEvent<Type extends ChatEventType>(
+    types: Type | readonly Type[],
+    handler: ChatEventHandler<Type>
+) {
+    const registry = React.useContext(ChatEventStreamContext);
 
-        if (targets.invalidateChatList) {
-            invalidations.push(utils.chat.list.invalidate({ serverId }));
-        }
-        if (targets.invalidateAgentChats) {
-            invalidations.push(utils.agent.chats.invalidate({ serverId }));
-        }
-        if (targets.lifecycleChatIds.length > 0) {
-            invalidations.push(
-                utils.chat.listArchived.invalidate({ serverId }),
-                ...targets.lifecycleChatIds.map((chatId) =>
-                    utils.chat.get.invalidate({ chatId, serverId })
-                )
-            );
-        }
-        if (targets.invalidateSearch) {
-            invalidations.push(utils.chat.search.invalidate({ serverId }));
-        }
-        if (targets.invalidateTasks) {
-            invalidations.push(utils.task.list.invalidate({ serverId }, { refetchType: 'all' }));
-        }
-        if (targets.invalidateTaskLabels) {
-            invalidations.push(
-                utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' })
-            );
-        }
-        invalidations.push(
-            ...targets.messageChatIds.map((chatId) =>
-                utils.chat.messages.invalidate({ chatId, serverId })
+    if (!registry) {
+        throw new Error('useChatEvent must be used within ChatEventStreamProvider.');
+    }
+
+    const handlerRef = React.useRef(handler);
+
+    React.useEffect(() => {
+        handlerRef.current = handler;
+    });
+
+    // The joined key is what keeps an inline type array from re-registering
+    // every render; the split restores the same types the caller asked for.
+    const typeKey = typeof types === 'string' ? types : [...types].join(' ');
+
+    React.useEffect(
+        () =>
+            registry.register(typeKey.split(' ') as Type[], (events, eventServerId) =>
+                handlerRef.current(events, eventServerId)
             ),
-            ...targets.threadMessageChatIds.map((chatId) =>
-                queryClient.invalidateQueries({
-                    queryKey: threadMessagesQueryKey(serverId, chatId),
-                })
-            )
-        );
-
-        await Promise.all(invalidations);
-    };
+        [registry, typeKey]
+    );
 }

@@ -30,8 +30,8 @@ import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
+import { ChatEventListeners } from '../../hooks/servers/chat-events/chat-event-listeners.tsx';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
-import { useChatEvents } from '../../hooks/servers/use-chat-events.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
@@ -56,7 +56,6 @@ export function ServerLayout() {
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
     const [managingServers, setManagingServers] = React.useState(false);
 
-    useChatEvents(server.data?.id);
     React.useEffect(() => {
         if (currentServerSlug) {
             rememberLastServerSlug(currentServerSlug);
@@ -125,6 +124,7 @@ export function ServerLayout() {
         <SidePaneProvider>
             <TopbarProvider>
                 <AppShell className="w-full">
+                    <ChatEventListeners serverId={server.data.id} />
                     <SyncHumanIdentity serverId={server.data.id} />
                     <AppShellDragRegion />
                     <HostedCommandMenu server={server.data} />

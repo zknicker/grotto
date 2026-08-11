@@ -157,6 +157,12 @@ allowlists to make it pass.
 * Listeners branch per event type and invalidate only the queries whose
   rendered payload the event changes. Ground new branches in what the list
   procedure actually returns, not in what sounds related.
+* When an event names the record it changed, invalidate that record's detail
+  read exactly and keep the broad invalidation as the no-id fallback. A
+  `server.updated` event carrying `agentId` refreshes that Agent's detail and
+  delivery state; one carrying `memberId` refreshes that human's directory
+  record. A listener also refreshes only the Server detail it subscribes to,
+  never every cached slug. See [Realtime](../api/realtime.md).
 * Never set `refetchOnMount: false` on a query that unmounts with navigation.
   Invalidation marks inactive queries stale without refetching them, so the
   stale-gated mount refetch (the React Query default) is what delivers those

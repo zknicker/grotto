@@ -18,7 +18,7 @@ delivery is allowed to drop; clients recover through durable reads.
 
 | Component | Owner | Role |
 | --- | --- | --- |
-| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, and reminder changes |
+| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, Chat lifecycle, and reminder changes |
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
 | Hosted Agent lifecycle hub | Grotto Server | Volatile working/reading/sending/settled projection for presence and send composition |
@@ -32,6 +32,19 @@ delivery is allowed to drop; clients recover through durable reads.
 membership before the subscription starts, and delivers only that Server's
 events. See [Grotto Server](../internals/grotto-server.md).
 
+Its wire shape is `hostedServerUpdatedEventSchema` in `@tavern/api`. `scope`
+(`agent`, `computer`, `mcp`, or `server`) selects the family of reads a listener
+refreshes. `agentId` and `memberId` are optional precision: a mutation that
+changes exactly one Agent or one human names it, and the App invalidates that
+record's detail read instead of every cached detail read in the scope. Their
+absence is meaningful — it says the change is broad, so the whole scope
+refreshes. Every Server mutation that commits durable state announces after the
+commit, so the App never depends on a refetch-on-mount to notice a change made
+elsewhere: Agent create, configure, profile, start, stop, restart, reset, and
+delete; skill import, Computer update checks, update starts, and removal; and a
+human's profile edit or identity sync, which announces to every Server that
+human belongs to.
+
 App websocket events are not the durable event source. They can mirror Runtime
 events, but missed app notifications recover through Grotto API reads.
 
@@ -40,9 +53,9 @@ from durable `chat_events`.
 
 ## Hosted Server Realtime
 
-`chat.send`, an advancing `chat.markRead`, `thread.setFollow`, task mutations,
-and reminder mutations insert their durable event in the same PostgreSQL
-transaction as the owned row. `chat.events` lists accessible
+`chat.send`, an advancing `chat.markRead`, `thread.setFollow`, Chat lifecycle
+mutations, task mutations, and reminder mutations insert their durable event in
+the same PostgreSQL transaction as the owned row. `chat.events` lists accessible
 events after a cursor in ascending order. `chat.onEvent` does not replay; it
 notifies the App after commit. On subscription start or reconnect, the App
 seeds a new in-memory cursor from `chat.eventHead` and refetches the Server Chat
@@ -50,7 +63,12 @@ snapshot, or walks `chat.events` from its last cursor with a private catch-up
 cursor. Live delivery can advance in parallel without skipping the catch-up
 window. A catch-up walk accumulates the invalidation targets of every page and
 applies them in one pass after the walk, so a long reconnect gap costs a single
-refetch. Thread events carry the child Chat id and nullable parent Chat id.
+refetch. Live delivery coalesces the same way over a short window: the App
+collects an event burst for 150ms and then invalidates once, because one send
+lands as a message, a read, and a follow within a few frames. Cursor
+advancement stays immediate and exact regardless of that window, and a pending
+burst is flushed when the Server changes or the listener unmounts. Thread events
+carry the child Chat id and nullable parent Chat id.
 
 Each event invalidates only the reads it changes. `chat.list` renders Chat
 ordering, unread counts, and Thread attention, so only `message.created`,
@@ -62,12 +80,27 @@ summary and the Chat list, because parent unread counts include Thread
 attention. `task.created` and `task.updated` invalidate the Server task list
 and the affected Chat message snapshot, not the Chat list. `task.label.updated`
 invalidates the task-label catalog and the task list, whose rows embed label
-records. `reminder.changed` invalidates reminder lists and runs only; the
-Reminders page hook duplicates that invalidation while mounted and React Query
-dedupes it. `chat.lifecycle` carries `archived`, `unarchived`, or `deleted` plus
-the stable Chat id, and invalidates active and archived lists plus the focused
-Chat query. Unlike ordinary Chat events, its id is retained outside the live
-Chat foreign key so a delete notification survives the purge.
+records. The Chat lane ignores `reminder.changed` entirely: it is
+participant-gated on both live delivery and replay, so it cannot see every
+reminder the operator-scoped Reminders surface renders. The reminder lane
+(`reminder.onEvent` + `reminder.changes`) is that namespace's single
+invalidation owner. `chat.lifecycle` carries `created`, `updated`, `archived`,
+`unarchived`, or `deleted` plus the stable Chat id, and invalidates active and
+archived lists, the focused Chat query, and the Server's Agent chat lists, whose
+rows are the viewer's visible Chats filtered by Agent membership. Unlike
+ordinary Chat events, its id is retained outside the live Chat foreign key so a
+delete notification survives the purge.
+
+Every Chat lifecycle mutation emits one: `chat.createChannel` emits `created`,
+`chat.updateChannel` emits `updated` when the save changes the name or the Agent
+participant set, `chat.ensureDm` emits `created` for a DM's first resolution and
+nothing for an idempotent reopen, and archive, unarchive, and delete emit their
+own action. Audience is the Chat's own membership rather than an explicit
+recipient: lifecycle events are announced Server-wide and narrowed by the
+per-delivery Chat access check, which reaches both DM members and no one else.
+Replay applies the same rule — a member walks a lifecycle event while the Chat
+is still visible to them, or once the Chat row is gone because a delete purged
+it.
 
 `chat.markRead` does not invalidate anything from its mutation result. Its
 durable `chat.read` event reaches the reader's own subscription and owns the

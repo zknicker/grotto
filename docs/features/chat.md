@@ -32,8 +32,10 @@ and [Agent Inbox](../../specs/inbox.md).
   app-local pending row carries the text at the tail of the transcript until
   the durable message arrives. Rapid sends queue as separate pending rows,
   each matched to its durable message by send nonce; a failed send drops its
-  row and restores the whole draft, attachments included. Pending rows are
-  never written into durable chat history.
+  row and restores the whole draft, attachments included. Thread replies send
+  the same way, including the first reply, whose pending row belongs to the
+  anchor message until the Thread it creates exists. Pending rows are never
+  written into durable chat history.
 * **Composition bubble.** While an agent's send is in flight, a provisional
   bubble renders at the target chat, swapped for the durable message once it
   commits, retracted on a freshness hold, and TTL-faded if the send is

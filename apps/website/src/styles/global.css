@@ -28,6 +28,14 @@
         -moz-osx-font-smoothing: grayscale;
     }
 
+    /* Tooltips are read-only labels app-wide: never let one capture the
+       pointer. React Aria otherwise holds a hovered tooltip open after its
+       trigger surface (e.g. the message actions bar) has already hidden,
+       stranding an orphaned tooltip on screen. */
+    [role='tooltip'] {
+        pointer-events: none;
+    }
+
     input,
     textarea,
     pre,

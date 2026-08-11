@@ -8,6 +8,7 @@ import { SelectionQuoteContainer } from '../../components/quote/selection-quote.
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { queryPolicy } from '../../lib/query-policy.ts';
 import { trpc } from '../../lib/trpc.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { formatTavernResourceLink, type TavernResourceTarget } from './tavern-resource-link.ts';
@@ -25,11 +26,11 @@ export function WorkspaceArtifactContent({
 }) {
     const localFileQuery = trpc.agent.workspaceReadableFile.useQuery(
         { agentId, includeHidden, path: target.path },
-        { enabled: agentId.length > 0 && !serverId }
+        { ...queryPolicy.agentRuntimeSnapshot, enabled: agentId.length > 0 && !serverId }
     );
     const hostedFileQuery = grottoTrpc.agent.workspaceFile.useQuery(
         { agentId, includeHidden, path: target.path, serverId: serverId ?? '' },
-        { enabled: agentId.length > 0 && Boolean(serverId) }
+        { ...queryPolicy.agentRuntimeSnapshot, enabled: agentId.length > 0 && Boolean(serverId) }
     );
     const fileQuery = serverId ? hostedFileQuery : localFileQuery;
     const [rawPath, setRawPath] = useState<string | null>(null);

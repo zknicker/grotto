@@ -1,6 +1,6 @@
 import type { HostedAgent } from '@tavern/api';
-import { useConnections } from '../../../hooks/members/use-connections.ts';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
+import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { HostedAgentTools } from '../../../routes/app/hosted-agent-tools.tsx';
 import { SettingsPage, SettingsSection } from '../../settings/layout/settings-page.tsx';

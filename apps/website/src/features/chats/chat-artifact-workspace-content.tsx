@@ -4,6 +4,7 @@ import {
     useResizablePaneWidth,
 } from '../../components/ui/resizable-pane-rail.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { queryPolicy } from '../../lib/query-policy.ts';
 import { trpc } from '../../lib/trpc.tsx';
 import {
     buildWorkspaceTreePaths,
@@ -64,11 +65,11 @@ export function WorkspaceBrowserContent({
     });
     const localFilesQuery = trpc.agent.workspaceFiles.useQuery(
         { agentId, includeHidden, path: '' },
-        { enabled: agentId.length > 0 && !serverId }
+        { ...queryPolicy.agentRuntimeSnapshot, enabled: agentId.length > 0 && !serverId }
     );
     const hostedFilesQuery = grottoTrpc.agent.workspaceFiles.useQuery(
         { agentId, includeHidden, path: '', serverId: serverId ?? '' },
-        { enabled: agentId.length > 0 && Boolean(serverId) }
+        { ...queryPolicy.agentRuntimeSnapshot, enabled: agentId.length > 0 && Boolean(serverId) }
     );
     const filesQuery = serverId ? hostedFilesQuery : localFilesQuery;
     const entriesByDirectory = React.useMemo(

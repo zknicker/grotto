@@ -40,7 +40,7 @@ export function CreateAgentDialog({
     open,
     serverId,
 }: CreateAgentDialogProps) {
-    const computers = useComputers(serverId, { enabled: open, staleTime: 30_000 });
+    const computers = useComputers(serverId, { enabled: open });
     const reported: ReportedComputer[] = (computers.data ?? [])
         .filter((computer) => (computer.reportedInventory?.runtimes.length ?? 0) > 0)
         .map((computer) => ({

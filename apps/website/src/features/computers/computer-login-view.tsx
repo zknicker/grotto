@@ -47,6 +47,9 @@ export function ComputerLoginApproval({
         {
             enabled: userCode.length > 0,
             refetchInterval: (query) => (query.state.data?.status === 'approved' ? 1000 : false),
+            // A login code's standing is only ever true at the moment it is
+            // read, so this one opts below the app-wide staleness floor.
+            staleTime: 0,
         }
     );
     const utils = grottoTrpc.useUtils();

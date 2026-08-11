@@ -30,7 +30,6 @@ export function useThreadMessages(serverId: string | undefined, threadChatId: st
                 ...(pageParam === undefined ? {} : { beforeSequence: pageParam }),
             }),
         queryKey,
-        refetchOnMount: true,
     });
     const messages = React.useMemo(
         () => mergeThreadMessagePages(query.data?.pages),

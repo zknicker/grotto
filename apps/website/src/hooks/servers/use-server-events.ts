@@ -1,3 +1,4 @@
+import type { HostedServerUpdatedEvent } from '@tavern/api';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { cachesClearedOnMembershipLoss } from './hosted-membership-caches.ts';
 import { isMembershipLoss } from './membership-loss.ts';
@@ -12,14 +13,14 @@ import { isMembershipLoss } from './membership-loss.ts';
  * subscription errors instead of quietly going silent, and the surrounding
  * route falls back to its unavailable state.
  */
-export function useServerEvents(serverId: string | undefined) {
+export function useServerEvents(serverId: string | undefined, slug: string | undefined) {
     const utils = grottoTrpc.useUtils();
 
     grottoTrpc.server.onUpdate.useSubscription(
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,
-            onData: createServerUpdateHandler(utils, serverId),
+            onData: createServerUpdateHandler(utils, serverId, slug),
             onError: (error) => {
                 if (!isMembershipLoss(error)) {
                     return;
@@ -42,19 +43,35 @@ export function useServerEvents(serverId: string | undefined) {
 
 type ServerEventUtils = ReturnType<typeof grottoTrpc.useUtils>;
 
-export function createServerUpdateHandler(utils: ServerEventUtils, serverId: string | undefined) {
-    return (event: { scope: string }) => {
+/**
+ * One Server's realtime notice, as this listener reads it. The ids are the
+ * event's own precision: present when the change belongs to one Agent or one
+ * human, absent when it is broad enough that the whole scope must refresh.
+ */
+type ServerUpdateNotice = Pick<HostedServerUpdatedEvent, 'agentId' | 'memberId' | 'scope'>;
+
+/**
+ * Each subscription watches one Server, so `slug` names the only Server detail
+ * this listener may invalidate — a change on one Server must not refetch every
+ * other open Server's detail read.
+ */
+export function createServerUpdateHandler(
+    utils: ServerEventUtils,
+    serverId: string | undefined,
+    slug: string | undefined
+) {
+    return (event: ServerUpdateNotice) => {
         if (event.scope === 'agent') {
-            void utils.server.bySlug.invalidate();
-            void utils.agent.get.invalidate(undefined, { exact: false });
+            invalidateServerDetail(utils, slug);
+            invalidateAgentDetail(utils, serverId, event.agentId);
             void utils.agent.list.invalidate({ serverId });
             void utils.chat.list.invalidate({ serverId });
             return;
         }
         if (event.scope === 'computer') {
-            void utils.server.bySlug.invalidate();
+            invalidateServerDetail(utils, slug);
             void utils.computer.list.invalidate({ serverId });
-            void utils.agent.get.invalidate(undefined, { exact: false });
+            invalidateAgentDetail(utils, serverId, event.agentId);
             void utils.agent.list.invalidate({ serverId });
             void utils.agent.skillFile.invalidate();
             void utils.agent.workspaceFile.invalidate();
@@ -67,10 +84,45 @@ export function createServerUpdateHandler(utils: ServerEventUtils, serverId: str
             return;
         }
 
-        void utils.server.bySlug.invalidate();
+        invalidateServerDetail(utils, slug);
         void utils.server.list.invalidate();
-        void utils.member.get.invalidate(undefined, { exact: false });
+        invalidateMemberDetail(utils, serverId, event.memberId);
         void utils.member.list.invalidate({ serverId });
         void utils.invitation.list.invalidate({ serverId });
     };
+}
+
+/** Without a known slug the detail read cannot be named, so every one refreshes. */
+function invalidateServerDetail(utils: ServerEventUtils, slug: string | undefined) {
+    void (slug ? utils.server.bySlug.invalidate({ slug }) : utils.server.bySlug.invalidate());
+}
+
+/**
+ * A named Agent refreshes its own detail and delivery state; delivery state is
+ * what Start, Stop, Restart, and Reset actually change. An unnamed one means the
+ * roster moved, so every cached Agent detail is stale.
+ */
+function invalidateAgentDetail(
+    utils: ServerEventUtils,
+    serverId: string | undefined,
+    agentId: string | undefined
+) {
+    if (!agentId) {
+        void utils.agent.get.invalidate(undefined, { exact: false });
+        return;
+    }
+
+    void utils.agent.get.invalidate({ agentId, serverId });
+    void utils.agent.deliveryState.invalidate({ agentId, serverId });
+}
+
+/** A named human refreshes only their own directory record. */
+function invalidateMemberDetail(
+    utils: ServerEventUtils,
+    serverId: string | undefined,
+    memberId: string | undefined
+) {
+    void (memberId
+        ? utils.member.get.invalidate({ serverId, userId: memberId })
+        : utils.member.get.invalidate(undefined, { exact: false }));
 }

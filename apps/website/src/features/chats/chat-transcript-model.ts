@@ -427,31 +427,6 @@ export function isActivityBackedMessageRow(row: TranscriptRow) {
     return row.kind === 'message' && row.id.startsWith('act_');
 }
 
-/**
- * Runs whose final reply is already in the transcript — from a durable agent
- * message. Narration for these runs has been superseded and stays out of the
- * chat pane.
- */
-export function getRepliedRunIds(rows: TranscriptRow[]): ReadonlySet<string> {
-    const runIds = new Set<string>();
-
-    for (const row of rows) {
-        if (
-            row.kind === 'message' &&
-            row.message.senderType === 'agent' &&
-            !isActivityBackedMessageRow(row)
-        ) {
-            const runId = getItemRunId({ kind: 'row', row });
-
-            if (runId) {
-                runIds.add(runId);
-            }
-        }
-    }
-
-    return runIds;
-}
-
 function getItemParticipant(item: TranscriptItem): 'agent' | 'system' | 'user' {
     if (item.kind === 'activeReply' || item.kind === 'activeStatus') {
         return 'agent';

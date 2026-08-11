@@ -53,17 +53,6 @@ export interface TranscriptRenderContextValue {
     turnEvidenceSource?: 'embedded' | 'runtime';
 }
 
-export function resolveTranscriptInteractionHosts(input: {
-    chatId?: string;
-    composerId?: string;
-    profilePaneChatId?: string;
-}) {
-    return {
-        composerId: input.composerId ?? input.chatId,
-        profilePaneChatId: input.profilePaneChatId ?? input.chatId,
-    };
-}
-
 const TranscriptRenderContext = React.createContext<TranscriptRenderContextValue | null>(null);
 
 export function TranscriptRenderProvider({

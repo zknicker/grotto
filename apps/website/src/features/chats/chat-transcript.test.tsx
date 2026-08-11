@@ -15,7 +15,7 @@ import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import { type ChatLogOutput, trpc } from '../../lib/trpc.tsx';
 import { ArtifactLogEntry } from '../sessions/log/event-entry/artifact-entry.tsx';
 import { ToolDrawerBody } from '../sessions/tools/tool-drawer-body.tsx';
-import { ChatTranscript, ChatTranscriptPresentation } from './chat-transcript.tsx';
+import { ChatTranscriptPresentation } from './chat-transcript.tsx';
 import { groupAgentItems } from './chat-transcript-item-utils.ts';
 import type { TranscriptItem } from './chat-transcript-model.ts';
 import type { TranscriptRenderContextValue } from './chat-transcript-render-context.tsx';
@@ -95,7 +95,10 @@ test('ChatTranscript mutes deleted authors and labels their historical messages'
             },
         },
     ];
-    const markup = renderTranscriptPresentation(rows, {
+    const markup = renderTranscript(rows, {
+        chatId: 'chat-history',
+        composerId: 'chat-history',
+        disableAgentHoverCard: true,
         resolveActorProfile: (actor) =>
             actor?.kind === 'agent'
                 ? {
@@ -1966,65 +1969,24 @@ function narrationMessageRow(id: string, content: string, timestampMs: number): 
 
 type ChatRow = NonNullable<ChatLogOutput>['rows'][number];
 
-function renderTranscript(
-    rows: ChatRow[],
-    options: {
-        canRequestMention?: boolean;
-        chatId?: string;
-        defaultOpenWorkGroups?: boolean;
-    } = {}
-) {
-    const queryClient = new QueryClient({
-        defaultOptions: {
-            queries: {
-                retry: false,
-            },
-        },
-    });
-    const client = trpc.createClient({
-        links: [
-            httpLink({
-                url: 'http://127.0.0.1:1/trpc',
-            }),
-        ],
-    });
-
-    return renderToStaticMarkup(
-        <trpc.Provider client={client} queryClient={queryClient}>
-            <QueryClientProvider client={queryClient}>
-                <MemoryRouter>
-                    <DevModeProvider>
-                        <ChatTranscript
-                            canRequestMention={options.canRequestMention}
-                            chatId={options.chatId}
-                            defaultOpenWorkGroups={options.defaultOpenWorkGroups}
-                            rows={rows}
-                        />
-                    </DevModeProvider>
-                </MemoryRouter>
-            </QueryClientProvider>
-        </trpc.Provider>
-    );
-}
-
-function renderTranscriptPresentation(
-    rows: ChatRow[],
-    overrides: Partial<TranscriptRenderContextValue>
-) {
+/**
+ * Renders the transcript the way a host does: project rows into entries and
+ * hand the presentation a render context, mirroring the hosted
+ * `useChatTranscript` wiring in features/servers/chat.
+ */
+function renderTranscript(rows: ChatRow[], overrides: Partial<TranscriptRenderContextValue> = {}) {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const client = trpc.createClient({
         links: [httpLink({ url: 'http://127.0.0.1:1/trpc' })],
     });
     const context: TranscriptRenderContextValue = {
         canRequestMention: true,
-        chatId: 'chat-history',
-        composerId: 'chat-history',
         conversationLayout: { showAgentIdentity: true, showHumanIdentity: true },
         defaultOpenWorkGroups: false,
-        disableAgentHoverCard: true,
         flashMessageId: null,
         hiddenCount: 0,
         onOpenThread: () => undefined,
+        onToggleReaction: () => undefined,
         onUnfollowThread: () => undefined,
         repliedRunIds: new Set(),
         shouldAnimateItemEnter: () => false,

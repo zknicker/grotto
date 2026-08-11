@@ -61,14 +61,20 @@ notifies the App after commit. On subscription start or reconnect, the App
 seeds a new in-memory cursor from `chat.eventHead` and refetches the Server Chat
 snapshot, or walks `chat.events` from its last cursor with a private catch-up
 cursor. Live delivery can advance in parallel without skipping the catch-up
-window. A catch-up walk accumulates the invalidation targets of every page and
-applies them in one pass after the walk, so a long reconnect gap costs a single
-refetch. Live delivery coalesces the same way over a short window: the App
-collects an event burst for 150ms and then invalidates once, because one send
-lands as a message, a read, and a follow within a few frames. Cursor
-advancement stays immediate and exact regardless of that window, and a pending
-burst is flushed when the Server changes or the listener unmounts. Thread events
-carry the child Chat id and nullable parent Chat id.
+window. A catch-up walk accumulates every page's events and dispatches them in
+one pass after the walk, so a long reconnect gap costs a single refetch. Live
+delivery coalesces the same way over a short window: the App collects an event
+burst for 150ms and then invalidates once, because one send lands as a message,
+a read, and a follow within a few frames. Cursor advancement stays immediate and
+exact regardless of that window, and a pending burst is flushed against the
+Server it arrived on when the Server changes or the listener unmounts. Thread
+events carry the child Chat id and nullable parent Chat id.
+
+App-side, one transport owns the subscription, the cursor, the burst window, and
+catch-up; it maps no event to a query. Each event type has its own listener hook
+that registers with that transport and receives its events — one call per pass,
+so a burst of thirty messages is one invalidation pass. Task creation and update
+are one lane and register together.
 
 Each event invalidates only the reads it changes. `chat.list` renders Chat
 ordering, unread counts, and Thread attention, so only `message.created`,
@@ -80,7 +86,7 @@ summary and the Chat list, because parent unread counts include Thread
 attention. `task.created` and `task.updated` invalidate the Server task list
 and the affected Chat message snapshot, not the Chat list. `task.label.updated`
 invalidates the task-label catalog and the task list, whose rows embed label
-records. The Chat lane ignores `reminder.changed` entirely: it is
+records. The Chat lane registers no `reminder.changed` listener at all: it is
 participant-gated on both live delivery and replay, so it cannot see every
 reminder the operator-scoped Reminders surface renders. The reminder lane
 (`reminder.onEvent` + `reminder.changes`) is that namespace's single

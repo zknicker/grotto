@@ -157,6 +157,16 @@ allowlists to make it pass.
 * Listeners branch per event type and invalidate only the queries whose
   rendered payload the event changes. Ground new branches in what the list
   procedure actually returns, not in what sounds related.
+* One listener hook per event type owns that event's invalidation, and those
+  hooks mount together behind their stream's transport. The transport owns the
+  subscription, the cursor, the burst window, and reconnect catch-up, and hands
+  each listener its own events; it maps nothing to a query itself. Adding an
+  event type means adding its listener hook, not another branch in a shared
+  switch. See `hooks/servers/chat-events/`.
+* Open a second wire stream only when the audience or authority differs, never
+  to separate concerns. Reminders have their own stream because that lane is
+  operator-scoped, and the participant-gated Chat lane cannot see every
+  reminder the Reminders page renders. See [Realtime](../api/realtime.md).
 * When an event names the record it changed, invalidate that record's detail
   read exactly and keep the broad invalidation as the no-id fallback. A
   `server.updated` event carrying `agentId` refreshes that Agent's detail and

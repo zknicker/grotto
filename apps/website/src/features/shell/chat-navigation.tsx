@@ -31,20 +31,7 @@ export function ChatNavigation({
 
     return (
         <ShellSidebarPageContent
-            band={
-                <div className="flex w-full items-center justify-between pe-1">
-                    <Sidebar.GroupLabel>Channels</Sidebar.GroupLabel>
-                    <Button
-                        aria-label="New channel"
-                        isIconOnly
-                        onPress={onCreateChannel}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        <Icon aria-hidden="true" icon={Plus} size={16} />
-                    </Button>
-                </div>
-            }
+            band={<ChatNavigationBand onCreateChannel={onCreateChannel} />}
             footer={<SidebarAccount />}
         >
             <ChatGroup
@@ -78,6 +65,23 @@ export function ChatNavigation({
                 </Sidebar.MenuItem>
             </Sidebar.Menu>
         </ShellSidebarPageContent>
+    );
+}
+
+function ChatNavigationBand({ onCreateChannel }: { onCreateChannel: () => void }) {
+    return (
+        <div className="flex w-full items-center justify-between pe-1">
+            <Sidebar.GroupLabel>Channels</Sidebar.GroupLabel>
+            <Button
+                aria-label="New channel"
+                isIconOnly
+                onPress={onCreateChannel}
+                size="sm"
+                variant="ghost"
+            >
+                <Icon aria-hidden="true" icon={Plus} size={16} />
+            </Button>
+        </div>
     );
 }
 

@@ -56,6 +56,16 @@ a product owner exists. Prefer short names scoped by folders.
 
 ## Routes
 
+### Loading and navigation
+
+Keep the destination shell mounted while its first snapshot resolves. An unresolved query is not
+an empty collection: reserve a neutral data region until the query settles, and show an empty state
+only after a successful empty result. Keep surrounding navigation and page structure mounted, but
+do not add loading decoration for ordinary fast reads. When cached data exists, keep it visible
+through background refreshes instead of replacing the page with a loading state. Durable synced
+queries should use the shared synced-snapshot query policy so ordinary back-and-forth navigation
+reuses the latest local snapshot while realtime invalidations refresh it.
+
 * Keep route files thin.
 * Let route/page boundaries own `Suspense`, skeletons, and error boundaries.
 * Keep primary page content mounted during background refreshes.

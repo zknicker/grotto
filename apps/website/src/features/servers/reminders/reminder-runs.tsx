@@ -35,7 +35,9 @@ export function ReminderRuns({
             </header>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
                 {runs.isPending ? (
-                    <p className="text-muted text-sm">Loading fire log…</p>
+                    <div aria-busy="true" className="min-h-full">
+                        <span className="sr-only">Loading fire log</span>
+                    </div>
                 ) : runs.error ? (
                     <p className="text-danger text-sm" role="alert">
                         {runs.error.message}

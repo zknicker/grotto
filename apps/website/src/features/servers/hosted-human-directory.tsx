@@ -33,7 +33,11 @@ export function HostedHumanDirectory({
     const [pending, setPending] = React.useState<PendingMemberChange | null>(null);
 
     if (!directory) {
-        return null;
+        return (
+            <div aria-busy="true" className="min-w-0 flex-1 overflow-y-auto">
+                <span className="sr-only">Loading humans</span>
+            </div>
+        );
     }
 
     const openChange = (member: ServerMember, action: ServerMemberRowAction) =>
@@ -66,10 +70,20 @@ export function HostedHumanDirectory({
                                     <InviteMemberForm serverId={serverId} />
                                 </SettingsItem>
                                 <Separator />
-                                <ServerInvitationList
-                                    invitations={invitations.data ?? []}
-                                    serverId={serverId}
-                                />
+                                {!invitations.data && invitations.isPending ? (
+                                    <div aria-busy="true" className="min-h-20">
+                                        <span className="sr-only">Loading invitations</span>
+                                    </div>
+                                ) : invitations.error ? (
+                                    <p className="px-5 py-3.5 text-danger text-sm" role="alert">
+                                        {invitations.error.message}
+                                    </p>
+                                ) : (
+                                    <ServerInvitationList
+                                        invitations={invitations.data ?? []}
+                                        serverId={serverId}
+                                    />
+                                )}
                             </SettingsGroup>
                         </SettingsSection>
                     ) : null}

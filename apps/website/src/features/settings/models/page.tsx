@@ -1,4 +1,4 @@
-import { Card, Chip, SearchField } from '@heroui/react';
+import { Alert, Card, Chip, SearchField } from '@heroui/react';
 import * as React from 'react';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import {
@@ -25,6 +25,24 @@ export function ModelsSettings({ serverId }: { serverId: string }) {
             model.runtimes.some((runtime) => runtime.toLowerCase().includes(normalizedQuery))
     );
 
+    if (computers.error && !computers.data) {
+        return (
+            <SettingsPage>
+                <SettingsPageHeader
+                    description="Models reported by runtimes detected on your Computers."
+                    title="Models"
+                />
+                <Alert role="alert" status="danger">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                        <Alert.Title>Computer inventory unavailable</Alert.Title>
+                        <Alert.Description>{computers.error.message}</Alert.Description>
+                    </Alert.Content>
+                </Alert>
+            </SettingsPage>
+        );
+    }
+
     return (
         <SettingsPage>
             <SettingsPageHeader
@@ -33,40 +51,50 @@ export function ModelsSettings({ serverId }: { serverId: string }) {
             />
 
             <SettingsSection title="Detected Runtimes">
-                <SettingsGroup>
-                    {access.length > 0 ? (
-                        access.map(({ computer, computerId, runtime }) => (
+                {!computers.data && computers.isPending ? (
+                    <SettingsGroup aria-busy="true">
+                        <div className="min-h-24">
+                            <span className="sr-only">Loading detected runtimes</span>
+                        </div>
+                    </SettingsGroup>
+                ) : (
+                    <SettingsGroup>
+                        {access.length > 0 ? (
+                            access.map(({ computer, computerId, runtime }) => (
+                                <SettingsRow
+                                    description={`${computer} · ${
+                                        runtime.models.map((model) => model.label).join(', ') ||
+                                        'No models reported'
+                                    }`}
+                                    key={`${computerId}:${runtime.id}`}
+                                    title={runtime.label}
+                                >
+                                    <SettingsValue>
+                                        <Chip color="success" size="sm" variant="soft">
+                                            Detected
+                                        </Chip>
+                                    </SettingsValue>
+                                </SettingsRow>
+                            ))
+                        ) : (
                             <SettingsRow
-                                description={`${computer} · ${
-                                    runtime.models.map((model) => model.label).join(', ') ||
-                                    'No models reported'
-                                }`}
-                                key={`${computerId}:${runtime.id}`}
-                                title={runtime.label}
+                                description="Attach a Computer with a detected runtime."
+                                title="No runtimes detected"
                             >
-                                <SettingsValue>
-                                    <Chip color="success" size="sm" variant="soft">
-                                        Detected
-                                    </Chip>
-                                </SettingsValue>
+                                <SettingsValue>Waiting for a Computer</SettingsValue>
                             </SettingsRow>
-                        ))
-                    ) : (
-                        <SettingsRow
-                            description="Attach a Computer with a detected runtime."
-                            title="No runtimes detected"
-                        >
-                            <SettingsValue>Waiting for a Computer</SettingsValue>
-                        </SettingsRow>
-                    )}
-                </SettingsGroup>
+                        )}
+                    </SettingsGroup>
+                )}
             </SettingsSection>
 
             <SettingsSection
                 action={
-                    <Chip size="sm" variant="soft">
-                        {models.length}
-                    </Chip>
+                    computers.data ? (
+                        <Chip size="sm" variant="soft">
+                            {models.length}
+                        </Chip>
+                    ) : null
                 }
                 title="Reported Models"
             >
@@ -77,7 +105,11 @@ export function ModelsSettings({ serverId }: { serverId: string }) {
                         <SearchField.ClearButton />
                     </SearchField.Group>
                 </SearchField>
-                {models.length > 0 ? (
+                {!computers.data && computers.isPending ? (
+                    <div aria-busy="true" className="min-h-48">
+                        <span className="sr-only">Loading reported models</span>
+                    </div>
+                ) : models.length > 0 ? (
                     <div className="grid gap-3 sm:grid-cols-2">
                         {models.map((model) => (
                             <Card key={model.id}>

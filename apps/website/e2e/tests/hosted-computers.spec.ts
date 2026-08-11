@@ -2,6 +2,30 @@ import { computerProtocolVersion } from '@tavern/api';
 import { attachHostedComputer, createHostedTestServer } from '../support/hosted-server.ts';
 import { expect, test } from '../support/test.ts';
 
+test('a populated Computer page never presents its attach flow while inventory loads', async ({
+    page,
+}) => {
+    const { client: owner } = await createHostedTestServer(page, {
+        displayName: 'Loading Computer HQ',
+        slug: 'loading-computer-hq',
+    });
+    await attachHostedComputer(owner, {
+        credential: 'computer-loading-test-credential-1234',
+        slug: 'loading-computer-hq',
+    });
+    await page.route('**/trpc/computer.list', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await route.continue();
+    });
+
+    await page.goto('/s/loading-computer-hq/computers');
+
+    await expect(page.getByText('Loading Computers')).toHaveCount(2);
+    await expect(page.getByText('Attach a Computer')).toHaveCount(0);
+    await expect(page.getByText('Attached · 1', { exact: true })).toBeVisible();
+    await expect(page.getByText('Attach a Computer')).toHaveCount(0);
+});
+
 test('an Owner updates one Computer from Settings through isolated progress', async ({ page }) => {
     const { client: owner } = await createHostedTestServer(page, {
         displayName: 'Computer HQ',

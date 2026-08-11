@@ -54,7 +54,9 @@ export function MembersSidebar({ isActive, server }: { isActive: boolean; server
         >
             <Sidebar.Group>
                 {agents.isPending ? (
-                    <p className="px-2 py-1 text-muted text-sm">Loading Agents…</p>
+                    <div aria-busy="true">
+                        <span className="sr-only">Loading Agents</span>
+                    </div>
                 ) : agents.error ? (
                     <p className="px-2 py-1 text-muted text-sm" role="alert">
                         Couldn’t load Agents
@@ -84,29 +86,37 @@ export function MembersSidebar({ isActive, server }: { isActive: boolean; server
                 <Sidebar.GroupLabel>
                     Humans{directory.data ? ` · ${humans.length}` : ''}
                 </Sidebar.GroupLabel>
-                <Sidebar.Menu aria-label="Humans">
-                    {humans.map((member) => (
-                        <Sidebar.MenuItem
-                            href={humanRoute(server.slug, member.userId)}
-                            id={member.userId}
-                            isCurrent={selectedHumanId === member.userId}
-                            key={member.userId}
-                            textValue={humanDisplayName(member)}
-                        >
-                            <Sidebar.MenuIcon>
-                                <EntityAvatar
-                                    name={humanDisplayName(member)}
-                                    size={20}
-                                    src={member.avatarUrl}
-                                />
-                            </Sidebar.MenuIcon>
-                            <Sidebar.MenuItemContent>
-                                <Sidebar.MenuLabel>{humanDisplayName(member)}</Sidebar.MenuLabel>
-                                <Sidebar.MenuChip>{member.role}</Sidebar.MenuChip>
-                            </Sidebar.MenuItemContent>
-                        </Sidebar.MenuItem>
-                    ))}
-                </Sidebar.Menu>
+                {!directory.data && directory.isPending ? (
+                    <div aria-busy="true">
+                        <span className="sr-only">Loading humans</span>
+                    </div>
+                ) : (
+                    <Sidebar.Menu aria-label="Humans">
+                        {humans.map((member) => (
+                            <Sidebar.MenuItem
+                                href={humanRoute(server.slug, member.userId)}
+                                id={member.userId}
+                                isCurrent={selectedHumanId === member.userId}
+                                key={member.userId}
+                                textValue={humanDisplayName(member)}
+                            >
+                                <Sidebar.MenuIcon>
+                                    <EntityAvatar
+                                        name={humanDisplayName(member)}
+                                        size={20}
+                                        src={member.avatarUrl}
+                                    />
+                                </Sidebar.MenuIcon>
+                                <Sidebar.MenuItemContent>
+                                    <Sidebar.MenuLabel>
+                                        {humanDisplayName(member)}
+                                    </Sidebar.MenuLabel>
+                                    <Sidebar.MenuChip>{member.role}</Sidebar.MenuChip>
+                                </Sidebar.MenuItemContent>
+                            </Sidebar.MenuItem>
+                        ))}
+                    </Sidebar.Menu>
+                )}
             </Sidebar.Group>
             <CreateAgentDialog
                 agents={agentItems}

@@ -1,9 +1,10 @@
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { queryPolicy } from '../../lib/query-policy.ts';
 
 /** One human's current Server profile. */
 export function useMember(serverId: string, userId: string | undefined) {
     return grottoTrpc.member.get.useQuery(
         { serverId, userId: userId ?? '' },
-        { enabled: userId !== undefined }
+        { ...queryPolicy.syncedSnapshot, enabled: userId !== undefined }
     );
 }

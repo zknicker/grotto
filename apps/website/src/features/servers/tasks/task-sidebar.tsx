@@ -73,7 +73,7 @@ export function TaskSidebar({
                             <Sidebar.MenuItemContent>
                                 <Sidebar.MenuLabel>{view.label}</Sidebar.MenuLabel>
                                 <Sidebar.MenuChip>
-                                    {countForView(tasks, view.value)}
+                                    {tasksQuery.data ? countForView(tasks, view.value) : null}
                                 </Sidebar.MenuChip>
                             </Sidebar.MenuItemContent>
                         </Sidebar.MenuItem>

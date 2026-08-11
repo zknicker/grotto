@@ -7,6 +7,7 @@ import {
 import { useChatSidePane } from '../../hooks/pane/use-chat-side-pane.ts';
 import type { ServerDetail } from '../../lib/grotto-server.tsx';
 import { ChatSidePaneShell } from '../chats/chat-side-pane-shell.tsx';
+import { AgentLoading } from '../members/agent-profile/agent-loading.tsx';
 import { AgentProfilePane } from '../members/agent-profile/agent-profile.tsx';
 
 export function AgentProfilePanel({
@@ -62,7 +63,9 @@ export function AgentProfilePanel({
                         />
                     </div>
                 ) : (
-                    <p className="m-auto text-muted text-sm">Loading Agent…</p>
+                    <div className="m-auto w-full px-5" style={{ width: width ?? undefined }}>
+                        <AgentLoading label="Loading Agent" />
+                    </div>
                 )
             }
         </ChatSidePaneShell>

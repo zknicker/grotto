@@ -23,7 +23,11 @@ export function ArchivedChatsPage({ server }: { server: ServerDetail }) {
                 <SectionHeader title="Archived" />
             </PageTopbar>
             <div className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto p-6 pt-8">
-                {items.length === 0 && !chats.isPending ? (
+                {chats.isPending ? (
+                    <div aria-busy="true" className="min-h-full">
+                        <span className="sr-only">Loading archived channels</span>
+                    </div>
+                ) : items.length === 0 ? (
                     <EmptyState>
                         <EmptyState.Header>
                             <EmptyState.Media variant="icon">

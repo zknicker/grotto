@@ -82,6 +82,35 @@ export function SkillsBrowser({ sources }: { sources: SkillSource[] }) {
     );
 }
 
+export function SkillsBrowserPending() {
+    return (
+        <div
+            aria-busy="true"
+            className="grid h-full min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] overflow-hidden bg-background"
+        >
+            <span className="sr-only">Loading Skills</span>
+            <aside className="border-separator border-e bg-surface" />
+            <section />
+        </div>
+    );
+}
+
+export function SkillsBrowserUnavailable() {
+    return (
+        <div className="flex h-full min-h-0 flex-1 items-center justify-center bg-background p-6">
+            <EmptyState>
+                <EmptyState.Header>
+                    <EmptyState.Title>Skills unavailable</EmptyState.Title>
+                    <EmptyState.Description>
+                        Grotto couldn’t load the Computer skill inventory. Try opening this page
+                        again.
+                    </EmptyState.Description>
+                </EmptyState.Header>
+            </EmptyState>
+        </div>
+    );
+}
+
 function SkillPreview({ source }: { source: SkillSource | null }) {
     if (!source) {
         return (

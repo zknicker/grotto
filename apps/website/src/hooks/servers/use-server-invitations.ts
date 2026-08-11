@@ -1,10 +1,11 @@
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { queryPolicy } from '../../lib/query-policy.ts';
 
 /** Invitations an Owner or Admin may see. Never includes a token. */
 export function useServerInvitations(serverId: string | undefined, enabled: boolean) {
     return grottoTrpc.invitation.list.useQuery(
         { serverId: serverId ?? '' },
-        { enabled: enabled && serverId !== undefined }
+        { ...queryPolicy.syncedSnapshot, enabled: enabled && serverId !== undefined }
     );
 }
 

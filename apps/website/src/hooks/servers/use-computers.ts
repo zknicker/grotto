@@ -1,4 +1,5 @@
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { queryPolicy } from '../../lib/query-policy.ts';
 
 export function useComputers(
     serverId: string,
@@ -6,6 +7,10 @@ export function useComputers(
 ) {
     return grottoTrpc.computer.list.useQuery(
         { serverId },
-        { enabled: options.enabled, staleTime: options.staleTime }
+        {
+            ...queryPolicy.syncedSnapshot,
+            enabled: options.enabled,
+            staleTime: options.staleTime ?? queryPolicy.syncedSnapshot.staleTime,
+        }
     );
 }

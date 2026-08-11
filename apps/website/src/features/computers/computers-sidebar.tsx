@@ -51,7 +51,15 @@ export function ComputersSidebar({
             }
         >
             <Sidebar.Group>
-                {items.length === 0 ? (
+                {!computers.data && computers.isPending ? (
+                    <div aria-busy="true">
+                        <span className="sr-only">Loading Computers</span>
+                    </div>
+                ) : computers.error && !computers.data ? (
+                    <p className="px-2 py-1 text-muted text-sm" role="alert">
+                        Couldn’t load Computers
+                    </p>
+                ) : items.length === 0 ? (
                     <p className="px-2 py-1 text-muted text-sm">No Computers attached.</p>
                 ) : (
                     <Sidebar.Menu aria-label="Computers">

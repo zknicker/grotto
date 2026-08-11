@@ -31,9 +31,13 @@ export function ComputerAgents({
         <section className="grid gap-4 py-5">
             <h2 className="font-medium text-muted text-sm">
                 Agents on This Computer
-                <span className="ms-2 tabular-nums">{items.length}</span>
+                {agents.data ? <span className="ms-2 tabular-nums">{items.length}</span> : null}
             </h2>
-            {items.length > 0 ? (
+            {!agents.data && agents.isPending ? (
+                <div aria-busy="true" className="min-h-14">
+                    <span className="sr-only">Loading Agents on this Computer</span>
+                </div>
+            ) : items.length > 0 ? (
                 <div className="grid">
                     {items.map((agent) => (
                         <AgentRow

@@ -133,7 +133,9 @@ pickers. Agent pages use `agent.chats.list` when they need the combined Grotto
 and external runtime chat inventory.
 `chat.get` is the focused detail read for a single chat. Timeline rows come
 from `chat.log.list` — durable messages and artifacts, paged by message
-sequence.
+sequence. When a user opens a Chat from the sidebar, the route renders that
+selected `chat.list` record immediately while `chat.get` loads, so the Chat
+surface never drops out between selections.
 
 ## Chat Appearance
 

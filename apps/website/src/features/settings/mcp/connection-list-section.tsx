@@ -26,23 +26,35 @@ export function ConnectionListSection({
             <div className="px-1">
                 <ConnectionFilters filter={filter} onChange={setFilter} />
             </div>
-            <SettingsGroup>
-                <div className="grid grid-cols-[minmax(0,1fr)_7rem_8rem] border-separator border-b bg-surface-secondary px-5 py-2 text-muted text-xs">
-                    <span>Connection</span>
-                    <span>Type</span>
-                    <span>Status</span>
-                </div>
-                {visibleConnections(items, filter).map((connection) => (
-                    <ConnectionRow
-                        connection={connection}
-                        key={connection.id}
-                        onSelect={() => onSelect(connection.id)}
-                    />
-                ))}
-                {!connections.isPending && items.length === 0 ? (
-                    <p className="px-5 py-8 text-center text-muted text-sm">No connections.</p>
-                ) : null}
-            </SettingsGroup>
+            {connections.isPending && !connections.data ? (
+                <SettingsGroup aria-busy="true">
+                    <div className="min-h-32">
+                        <span className="sr-only">Loading MCP connections</span>
+                    </div>
+                </SettingsGroup>
+            ) : (
+                <SettingsGroup>
+                    <div className="grid grid-cols-[minmax(0,1fr)_7rem_8rem] border-separator border-b bg-surface-secondary px-5 py-2 text-muted text-xs">
+                        <span>Connection</span>
+                        <span>Type</span>
+                        <span>Status</span>
+                    </div>
+                    {visibleConnections(items, filter).map((connection) => (
+                        <ConnectionRow
+                            connection={connection}
+                            key={connection.id}
+                            onSelect={() => onSelect(connection.id)}
+                        />
+                    ))}
+                    {connections.error && !connections.data ? (
+                        <p className="px-5 py-8 text-center text-danger text-sm" role="alert">
+                            {connections.error.message}
+                        </p>
+                    ) : !connections.isPending && items.length === 0 ? (
+                        <p className="px-5 py-8 text-center text-muted text-sm">No connections.</p>
+                    ) : null}
+                </SettingsGroup>
+            )}
         </SettingsSection>
     );
 }

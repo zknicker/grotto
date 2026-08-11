@@ -1,5 +1,9 @@
 import { useComputers } from '../../hooks/servers/use-computers.ts';
-import { SkillsBrowser } from './skills-browser.tsx';
+import {
+    SkillsBrowser,
+    SkillsBrowserPending,
+    SkillsBrowserUnavailable,
+} from './skills-browser.tsx';
 
 export function SkillsSettings({ serverId }: { serverId: string }) {
     const computers = useComputers(serverId);
@@ -10,5 +14,8 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
         }))
     );
 
-    return <SkillsBrowser sources={sources} />;
+    if (computers.error && !computers.data) {
+        return <SkillsBrowserUnavailable />;
+    }
+    return computers.data ? <SkillsBrowser sources={sources} /> : <SkillsBrowserPending />;
 }

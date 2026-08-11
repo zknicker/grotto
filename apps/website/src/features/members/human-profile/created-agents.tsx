@@ -25,16 +25,20 @@ export function CreatedAgents({
     return (
         <SettingsSection
             action={
-                <Chip size="sm" variant="soft">
-                    <Chip.Label>{created.length}</Chip.Label>
-                </Chip>
+                agents.data ? (
+                    <Chip size="sm" variant="soft">
+                        <Chip.Label>{created.length}</Chip.Label>
+                    </Chip>
+                ) : null
             }
             title="Created Agents"
         >
-            {created.length === 0 ? (
-                <p className="px-1 text-muted text-sm">
-                    {agents.isPending ? 'Loading Agents…' : 'No Agents created by this human yet.'}
-                </p>
+            {!agents.data && agents.isPending ? (
+                <div aria-busy="true" className="min-h-24">
+                    <span className="sr-only">Loading created Agents</span>
+                </div>
+            ) : created.length === 0 ? (
+                <p className="px-1 text-muted text-sm">No Agents created by this human yet.</p>
             ) : (
                 <SettingsGroup>
                     {created.map((agent, index) => (

@@ -29,16 +29,17 @@ export function AppSidebar({
         id: agent.id,
         name: agent.displayName,
     }));
+    const openCreateChannel = () => {
+        createChannel.reset();
+        setCreatingChannel(true);
+    };
 
     return (
         <>
             <ChatNavigation
                 agents={agentItems}
                 chats={chatItems}
-                onCreateChannel={() => {
-                    createChannel.reset();
-                    setCreatingChannel(true);
-                }}
+                onCreateChannel={openCreateChannel}
                 selectedChatId={selectedChatId}
                 slug={slug}
             />

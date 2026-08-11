@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
+import { AgentLoading } from '../../features/members/agent-profile/agent-loading.tsx';
 import { AgentProfilePage } from '../../features/members/agent-profile/agent-profile.tsx';
 import { isAgentTab } from '../../features/members/agent-profile/agent-tabs.ts';
 import { HumanProfile } from '../../features/members/human-profile/human-profile.tsx';
@@ -34,7 +35,11 @@ export function AgentPage() {
         return <Navigate replace to={agentRoute(server.slug, agentId)} />;
     }
     if (agent.isPending) {
-        return <p className="m-auto text-muted text-sm">Loading Agent…</p>;
+        return (
+            <div className="m-auto w-full max-w-3xl px-6">
+                <AgentLoading label="Loading Agent" />
+            </div>
+        );
     }
     if (!agent.data) {
         return <p className="m-auto text-muted text-sm">Agent unavailable</p>;
@@ -55,6 +60,9 @@ export function AgentPage() {
 export function HumanDirectoryPage() {
     const { server } = useHostedServerContext();
     const directory = useMembers(server.id);
+    if (directory.error && !directory.data) {
+        return <p className="m-auto text-danger text-sm">Couldn’t load humans.</p>;
+    }
     return (
         <HostedHumanDirectory
             directory={directory.data}
@@ -70,7 +78,11 @@ export function HumanPage() {
     const member = useMember(server.id, userId);
 
     if (member.isPending) {
-        return <p className="m-auto text-muted text-sm">Loading member…</p>;
+        return (
+            <div className="m-auto w-full max-w-3xl px-6">
+                <AgentLoading label="Loading member" />
+            </div>
+        );
     }
     if (!member.data) {
         return <p className="m-auto text-muted text-sm">Member unavailable</p>;

@@ -15,6 +15,7 @@ import {
     SettingsPage,
     SettingsSection,
 } from '../../settings/layout/settings-page.tsx';
+import { AgentLoading } from './agent-loading.tsx';
 import { AgentOverview } from './agent-overview.tsx';
 
 export { AgentActivity } from './agent-activity.tsx';
@@ -24,6 +25,13 @@ export { AgentTools } from './agent-tools.tsx';
 export function AgentReminders({ agent, server }: { agent: HostedAgent; server: ServerDetail }) {
     const reminders = useAgentReminders(server.id, agent.id, server.role !== 'member');
     const rows = reminders.data ?? [];
+    if (server.role !== 'member' && reminders.isPending) {
+        return (
+            <div className="px-5 py-6 sm:px-7">
+                <AgentLoading label="Loading reminders" />
+            </div>
+        );
+    }
     if (server.role === 'member' || rows.length === 0) {
         return (
             <TabEmptyState

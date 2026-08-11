@@ -32,7 +32,9 @@ export function ReminderList({
             ) : null}
             <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
                 {reminders.isPending ? (
-                    <p className="text-muted text-sm">Loading reminders…</p>
+                    <div aria-busy="true" className="min-h-full">
+                        <span className="sr-only">Loading reminders</span>
+                    </div>
                 ) : (
                     <ReminderItems items={items} onCancel={onCancel} onOpenRuns={onOpenRuns} />
                 )}

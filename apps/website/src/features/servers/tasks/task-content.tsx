@@ -40,7 +40,11 @@ export function TaskContent({
         );
     }
     if (!tasksQuery.data) {
-        return <TaskState description="Fetching the task snapshot." title="Loading tasks" />;
+        return (
+            <div aria-busy="true" className="min-h-0 flex-1">
+                <span className="sr-only">Loading tasks</span>
+            </div>
+        );
     }
     if (tasks.length === 0) {
         return (

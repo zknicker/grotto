@@ -7,6 +7,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
 import { ComputerDetail } from './computer-detail.tsx';
+import { resolveComputerPageState } from './computer-page-state.ts';
 import { ComputerRemoveDialog } from './computer-remove-dialog.tsx';
 
 export function ComputerPage({ serverId, serverSlug }: { serverId: string; serverSlug: string }) {
@@ -14,18 +15,22 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
     const [searchParams] = useSearchParams();
     const [adding, setAdding] = React.useState(false);
     const [removingId, setRemovingId] = React.useState<string | null>(null);
-    const items = computers.data ?? [];
-    const requestedId = searchParams.get('computer');
-    const selectedId =
-        items.find((computer) => computer.id === requestedId)?.id ?? items[0]?.id ?? null;
+    const state = resolveComputerPageState({
+        computers: computers.data,
+        requestedId: searchParams.get('computer'),
+    });
 
     return (
         <div className="flex h-full min-h-0 w-full">
             <main className="min-w-0 flex-1 overflow-y-auto">
-                {selectedId ? (
+                {computers.error && !computers.data ? (
+                    <ComputerUnavailable />
+                ) : state.status === 'loading' ? (
+                    <ComputerPending />
+                ) : state.status === 'ready' ? (
                     <ComputerDetail
-                        computerId={selectedId}
-                        onRemove={() => setRemovingId(selectedId)}
+                        computerId={state.computerId}
+                        onRemove={() => setRemovingId(state.computerId)}
                         serverId={serverId}
                         serverSlug={serverSlug}
                     />
@@ -41,6 +46,25 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
                     serverId={serverId}
                 />
             ) : null}
+        </div>
+    );
+}
+
+function ComputerPending() {
+    return (
+        <div aria-busy="true" className="min-h-full">
+            <span className="sr-only">Loading Computers</span>
+        </div>
+    );
+}
+
+function ComputerUnavailable() {
+    return (
+        <div className="flex min-h-full items-center justify-center p-6 text-center">
+            <div>
+                <h2 className="font-medium text-foreground text-sm">Computers unavailable</h2>
+                <p className="mt-1 text-muted text-sm">Try opening this page again.</p>
+            </div>
         </div>
     );
 }

@@ -146,19 +146,12 @@ function ChannelParticipants({
             </Tooltip>
             {canManage ? (
                 <Dropdown>
-                    <Dropdown.Trigger>
-                        <Tooltip>
-                            <Button
-                                aria-label="Channel actions"
-                                isIconOnly
-                                size="sm"
-                                variant="ghost"
-                            >
-                                <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={18} />
-                            </Button>
-                            <Tooltip.Content>Channel actions</Tooltip.Content>
-                        </Tooltip>
-                    </Dropdown.Trigger>
+                    <Tooltip>
+                        <Button aria-label="Channel actions" isIconOnly size="sm" variant="ghost">
+                            <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={18} />
+                        </Button>
+                        <Tooltip.Content>Channel actions</Tooltip.Content>
+                    </Tooltip>
                     <Dropdown.Popover placement="bottom end">
                         <Dropdown.Menu onAction={runLifecycleAction}>
                             <Dropdown.Item

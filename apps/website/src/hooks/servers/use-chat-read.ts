@@ -7,10 +7,8 @@ export function useChatRead(input: {
     sequence: number | undefined;
     serverId: string | undefined;
 }) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.chat.markRead.useMutation({
-        onSuccess: (_, variables) => utils.chat.list.invalidate({ serverId: variables.serverId }),
-    });
+    // The durable `chat.read` event owns unread-count invalidation; see useChatEvents.
+    const mutation = grottoTrpc.chat.markRead.useMutation();
     const mutate = mutation.mutate;
     const lastMarkedRef = React.useRef<string | null>(null);
     const viewKey =

@@ -2,7 +2,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { HostedDurableEvent } from '@tavern/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
-import { eventRefetchTargets, laterEventCursor, walkEventCatchUp } from './chat-event-cursor.ts';
+import {
+    type ChatEventTargets,
+    eventRefetchTargets,
+    laterEventCursor,
+    walkEventCatchUp,
+} from './chat-event-cursor.ts';
 import { threadMessagesQueryKey } from './use-thread-messages.ts';
 
 export function useChatEvents(serverId: string | undefined) {
@@ -14,15 +19,17 @@ export function useChatEvents(serverId: string | undefined) {
         eventStateRef.current = { cursor: '0', serverId };
     }
 
-    const refetchEventTargets = React.useCallback(
-        async (events: HostedDurableEvent[]) => {
-            if (events.length === 0 || serverId === undefined) {
+    const invalidateTargets = React.useCallback(
+        async (targets: ChatEventTargets) => {
+            if (serverId === undefined) {
                 return;
             }
 
-            const targets = eventRefetchTargets(events);
-            const invalidations: Promise<unknown>[] = [utils.chat.list.invalidate({ serverId })];
+            const invalidations: Promise<unknown>[] = [];
 
+            if (targets.invalidateChatList) {
+                invalidations.push(utils.chat.list.invalidate({ serverId }));
+            }
             if (targets.lifecycleChatIds.length > 0) {
                 invalidations.push(
                     utils.chat.listArchived.invalidate({ serverId }),
@@ -31,7 +38,6 @@ export function useChatEvents(serverId: string | undefined) {
                     )
                 );
             }
-
             if (targets.invalidateSearch) {
                 invalidations.push(utils.chat.search.invalidate({ serverId }));
             }
@@ -45,11 +51,17 @@ export function useChatEvents(serverId: string | undefined) {
                     utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' })
                 );
             }
+            if (targets.invalidateReminders) {
+                invalidations.push(
+                    utils.reminder.list.invalidate({ serverId }),
+                    utils.reminder.runs.invalidate({ serverId })
+                );
+            }
             invalidations.push(
-                ...[...new Set([...targets.messageChatIds, ...targets.parentChatIds])].map(
-                    (chatId) => utils.chat.messages.invalidate({ chatId, serverId })
-                ),
                 ...targets.messageChatIds.map((chatId) =>
+                    utils.chat.messages.invalidate({ chatId, serverId })
+                ),
+                ...targets.threadMessageChatIds.map((chatId) =>
                     queryClient.invalidateQueries({
                         queryKey: threadMessagesQueryKey(serverId, chatId),
                     })
@@ -66,9 +78,22 @@ export function useChatEvents(serverId: string | undefined) {
             utils.chat.listArchived,
             utils.chat.messages,
             utils.chat.search,
+            utils.reminder.list,
+            utils.reminder.runs,
             utils.task.list,
             utils.taskLabel.list,
         ]
+    );
+
+    const refetchEventTargets = React.useCallback(
+        async (events: HostedDurableEvent[]) => {
+            if (events.length === 0) {
+                return;
+            }
+
+            await invalidateTargets(eventRefetchTargets(events));
+        },
+        [invalidateTargets]
     );
 
     const refetchServerChatSnapshot = React.useCallback(async () => {
@@ -121,7 +146,7 @@ export function useChatEvents(serverId: string | undefined) {
             afterCursor: current.cursor,
             fetchPage: async (afterCursor, limit) =>
                 await utils.chat.events.fetch({ afterCursor, limit, serverId }),
-            onEvents: refetchEventTargets,
+            onTargets: invalidateTargets,
         });
 
         if (eventStateRef.current.serverId === serverId) {
@@ -131,7 +156,7 @@ export function useChatEvents(serverId: string | undefined) {
             );
         }
     }, [
-        refetchEventTargets,
+        invalidateTargets,
         refetchServerChatSnapshot,
         serverId,
         utils.chat.eventHead,

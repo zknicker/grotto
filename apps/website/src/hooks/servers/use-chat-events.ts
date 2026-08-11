@@ -1,10 +1,10 @@
-import { useQueryClient } from '@tanstack/react-query';
-import type { HostedDurableEvent } from '@tavern/api';
+import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import {
     type ChatEventTargets,
-    eventRefetchTargets,
+    chatEventBatchWindowMs,
+    createChatEventBatch,
     laterEventCursor,
     walkEventCatchUp,
 } from './chat-event-cursor.ts';
@@ -14,6 +14,8 @@ export function useChatEvents(serverId: string | undefined) {
     const utils = grottoTrpc.useUtils();
     const queryClient = useQueryClient();
     const eventStateRef = React.useRef({ cursor: '0', serverId });
+    const batchRef = React.useRef(createChatEventBatch());
+    const batchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     if (eventStateRef.current.serverId !== serverId) {
         eventStateRef.current = { cursor: '0', serverId };
@@ -25,76 +27,24 @@ export function useChatEvents(serverId: string | undefined) {
                 return;
             }
 
-            const invalidations: Promise<unknown>[] = [];
-
-            if (targets.invalidateChatList) {
-                invalidations.push(utils.chat.list.invalidate({ serverId }));
-            }
-            if (targets.lifecycleChatIds.length > 0) {
-                invalidations.push(
-                    utils.chat.listArchived.invalidate({ serverId }),
-                    ...targets.lifecycleChatIds.map((chatId) =>
-                        utils.chat.get.invalidate({ chatId, serverId })
-                    )
-                );
-            }
-            if (targets.invalidateSearch) {
-                invalidations.push(utils.chat.search.invalidate({ serverId }));
-            }
-            if (targets.invalidateTasks) {
-                invalidations.push(
-                    utils.task.list.invalidate({ serverId }, { refetchType: 'all' })
-                );
-            }
-            if (targets.invalidateTaskLabels) {
-                invalidations.push(
-                    utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' })
-                );
-            }
-            if (targets.invalidateReminders) {
-                invalidations.push(
-                    utils.reminder.list.invalidate({ serverId }),
-                    utils.reminder.runs.invalidate({ serverId })
-                );
-            }
-            invalidations.push(
-                ...targets.messageChatIds.map((chatId) =>
-                    utils.chat.messages.invalidate({ chatId, serverId })
-                ),
-                ...targets.threadMessageChatIds.map((chatId) =>
-                    queryClient.invalidateQueries({
-                        queryKey: threadMessagesQueryKey(serverId, chatId),
-                    })
-                )
-            );
-
-            await Promise.all(invalidations);
+            await createChatEventInvalidator({ queryClient, serverId, utils })(targets);
         },
-        [
-            serverId,
-            queryClient,
-            utils.chat.get,
-            utils.chat.list,
-            utils.chat.listArchived,
-            utils.chat.messages,
-            utils.chat.search,
-            utils.reminder.list,
-            utils.reminder.runs,
-            utils.task.list,
-            utils.taskLabel.list,
-        ]
+        // The utils proxy root is stable; each `utils.chat.x` access is a fresh
+        // object, so depending on paths would rebuild this every render.
+        [queryClient, serverId, utils]
     );
 
-    const refetchEventTargets = React.useCallback(
-        async (events: HostedDurableEvent[]) => {
-            if (events.length === 0) {
-                return;
-            }
+    const flushEventBatch = React.useCallback(() => {
+        if (batchTimerRef.current !== null) {
+            clearTimeout(batchTimerRef.current);
+            batchTimerRef.current = null;
+        }
 
-            await invalidateTargets(eventRefetchTargets(events));
-        },
-        [invalidateTargets]
-    );
+        const targets = batchRef.current.drain();
+        if (targets) {
+            void invalidateTargets(targets);
+        }
+    }, [invalidateTargets]);
 
     const refetchServerChatSnapshot = React.useCallback(async () => {
         if (serverId === undefined) {
@@ -110,16 +60,7 @@ export function useChatEvents(serverId: string | undefined) {
             utils.task.list.invalidate({ serverId }, { refetchType: 'all' }),
             utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' }),
         ]);
-    }, [
-        serverId,
-        utils.chat.list,
-        utils.chat.listArchived,
-        utils.chat.get,
-        utils.chat.messages,
-        utils.chat.search,
-        utils.task.list,
-        utils.taskLabel.list,
-    ]);
+    }, [serverId, utils]);
 
     const catchUp = React.useCallback(async () => {
         if (serverId === undefined) {
@@ -155,13 +96,11 @@ export function useChatEvents(serverId: string | undefined) {
                 walkedCursor
             );
         }
-    }, [
-        invalidateTargets,
-        refetchServerChatSnapshot,
-        serverId,
-        utils.chat.eventHead,
-        utils.chat.events,
-    ]);
+    }, [invalidateTargets, refetchServerChatSnapshot, serverId, utils]);
+
+    // A pending burst belongs to the Server it arrived on, so leaving that
+    // Server — or the app — flushes it instead of dropping it.
+    React.useEffect(() => flushEventBatch, [flushEventBatch]);
 
     grottoTrpc.chat.onEvent.useSubscription(
         { serverId: serverId ?? '' },
@@ -174,9 +113,67 @@ export function useChatEvents(serverId: string | undefined) {
                         event.cursor
                     );
                 }
-                void refetchEventTargets([event]);
+                if (batchRef.current.add(event)) {
+                    batchTimerRef.current = setTimeout(flushEventBatch, chatEventBatchWindowMs);
+                }
             },
             onStarted: () => void catchUp(),
         }
     );
+}
+
+/**
+ * The single owner of what one Chat event pass invalidates. Kept outside the
+ * hook so the mapping from targets to exact queries is directly testable.
+ */
+export function createChatEventInvalidator({
+    queryClient,
+    serverId,
+    utils,
+}: {
+    queryClient: QueryClient;
+    serverId: string;
+    utils: ReturnType<typeof grottoTrpc.useUtils>;
+}) {
+    return async (targets: ChatEventTargets) => {
+        const invalidations: Promise<unknown>[] = [];
+
+        if (targets.invalidateChatList) {
+            invalidations.push(utils.chat.list.invalidate({ serverId }));
+        }
+        if (targets.invalidateAgentChats) {
+            invalidations.push(utils.agent.chats.invalidate({ serverId }));
+        }
+        if (targets.lifecycleChatIds.length > 0) {
+            invalidations.push(
+                utils.chat.listArchived.invalidate({ serverId }),
+                ...targets.lifecycleChatIds.map((chatId) =>
+                    utils.chat.get.invalidate({ chatId, serverId })
+                )
+            );
+        }
+        if (targets.invalidateSearch) {
+            invalidations.push(utils.chat.search.invalidate({ serverId }));
+        }
+        if (targets.invalidateTasks) {
+            invalidations.push(utils.task.list.invalidate({ serverId }, { refetchType: 'all' }));
+        }
+        if (targets.invalidateTaskLabels) {
+            invalidations.push(
+                utils.taskLabel.list.invalidate({ serverId }, { refetchType: 'all' })
+            );
+        }
+        invalidations.push(
+            ...targets.messageChatIds.map((chatId) =>
+                utils.chat.messages.invalidate({ chatId, serverId })
+            ),
+            ...targets.threadMessageChatIds.map((chatId) =>
+                queryClient.invalidateQueries({
+                    queryKey: threadMessagesQueryKey(serverId, chatId),
+                })
+            )
+        );
+
+        await Promise.all(invalidations);
+    };
 }

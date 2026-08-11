@@ -27,8 +27,6 @@ const defaultFloorAllowlist: Record<string, string> = {
     'hooks/connections/use-poll-model-provider-oauth.ts':
         'interval-driven OAuth poll; refetchInterval bypasses staleness',
     'hooks/desktop/use-tavern-update.ts': 'desktop update check; interval-driven',
-    'hooks/members/use-agent-chats.ts':
-        'no server event covers agent chat membership yet; the floor is the freshness source',
     'hooks/pane/use-chat-pane-state.ts': 'pane-local presentation state',
     'hooks/servers/use-accept-invitation.ts':
         'invitation preview answers "is this token good right now"; mount refetch is correctness',

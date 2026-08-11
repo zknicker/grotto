@@ -1,11 +1,12 @@
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
- * Which Chats one Agent is in. Deliberately unpoliced: nothing invalidates this
- * read, because Chat membership changes do not raise a Server update event. It
- * relies on the app-wide staleness floor so reopening the profile after that
- * window refetches, which a `syncedSnapshot` policy would suppress forever.
+ * Which Chats one Agent is in. Chat membership is event-covered: `chat.lifecycle`
+ * fires when a Chat is created, renamed, has its Agent participants replaced, or
+ * is archived, unarchived, or deleted, and the Chat event hook invalidates this
+ * read for the whole Server.
  */
 export function useAgentChats(serverId: string, agentId: string) {
-    return grottoTrpc.agent.chats.useQuery({ agentId, serverId });
+    return grottoTrpc.agent.chats.useQuery({ agentId, serverId }, queryPolicy.syncedSnapshot);
 }

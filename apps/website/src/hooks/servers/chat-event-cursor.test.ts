@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import type { HostedDurableEvent } from '@tavern/api';
 import {
     type ChatEventTargets,
+    createChatEventBatch,
     emptyChatEventTargets,
     eventRefetchTargets,
     laterEventCursor,
@@ -81,8 +82,8 @@ test('an empty catch-up walk invalidates nothing', async () => {
 
 test('message events refetch the chat list, search, and both transcript reads', () => {
     expect(eventRefetchTargets([messageEvent('2', 'chat_thread', 'chat_parent')])).toEqual({
+        invalidateAgentChats: false,
         invalidateChatList: true,
-        invalidateReminders: false,
         invalidateSearch: true,
         invalidateTaskLabels: false,
         invalidateTasks: false,
@@ -165,7 +166,7 @@ test('task label events refetch the task catalog and task list only', () => {
     });
 });
 
-test('reminder events refetch reminder state without the chat list', () => {
+test('reminder events are ignored; the operator reminder lane owns that namespace', () => {
     expect(
         eventRefetchTargets([
             {
@@ -181,29 +182,69 @@ test('reminder events refetch reminder state without the chat list', () => {
                 type: 'reminder.changed',
             },
         ])
-    ).toEqual({ ...emptyChatEventTargets(), invalidateReminders: true });
+    ).toEqual(emptyChatEventTargets());
 });
 
 test('channel lifecycle events target the changed channel snapshot and the chat list', () => {
-    expect(
-        eventRefetchTargets([
-            {
-                action: 'archived',
-                chatId: 'chat_one',
-                createdAt: '2026-08-10T12:00:00.000Z',
-                cursor: '5',
-                id: 'event_5',
-                parentChatId: null,
-                sequence: 0,
-                serverId: 'server_one',
-                type: 'chat.lifecycle',
-            },
-        ])
-    ).toEqual({
+    expect(eventRefetchTargets([lifecycleEvent('5', 'chat_one', 'archived')])).toEqual({
         ...emptyChatEventTargets(),
+        invalidateAgentChats: true,
         invalidateChatList: true,
         lifecycleChatIds: ['chat_one'],
     });
+});
+
+test('a created channel and a created DM invalidate agent chat membership', () => {
+    expect(
+        eventRefetchTargets([
+            lifecycleEvent('6', 'chat_new_channel', 'created'),
+            lifecycleEvent('7', 'chat_new_dm', 'created'),
+        ])
+    ).toEqual({
+        ...emptyChatEventTargets(),
+        invalidateAgentChats: true,
+        invalidateChatList: true,
+        lifecycleChatIds: ['chat_new_channel', 'chat_new_dm'],
+    });
+});
+
+test('a renamed channel targets its own snapshot plus agent chat membership', () => {
+    expect(eventRefetchTargets([lifecycleEvent('8', 'chat_one', 'updated')])).toEqual({
+        ...emptyChatEventTargets(),
+        invalidateAgentChats: true,
+        invalidateChatList: true,
+        lifecycleChatIds: ['chat_one'],
+    });
+});
+
+test('a batch drains its whole burst as one merged target set', () => {
+    const batch = createChatEventBatch();
+
+    expect(batch.add(messageEvent('2', 'chat_one'))).toBe(true);
+    expect(batch.add(readEvent('3', 'chat_one'))).toBe(false);
+    expect(batch.add(lifecycleEvent('4', 'chat_two', 'created'))).toBe(false);
+
+    expect(batch.drain()).toEqual({
+        ...emptyChatEventTargets(),
+        invalidateAgentChats: true,
+        invalidateChatList: true,
+        invalidateSearch: true,
+        lifecycleChatIds: ['chat_two'],
+        messageChatIds: ['chat_one'],
+        threadMessageChatIds: ['chat_one'],
+    });
+});
+
+test('a drained batch opens a fresh window and an empty batch invalidates nothing', () => {
+    const batch = createChatEventBatch();
+
+    expect(batch.drain()).toBeNull();
+    batch.add(messageEvent('2', 'chat_one'));
+    batch.drain();
+
+    expect(batch.drain()).toBeNull();
+    expect(batch.add(readEvent('3', 'chat_two'))).toBe(true);
+    expect(batch.drain()).toEqual({ ...emptyChatEventTargets(), invalidateChatList: true });
 });
 
 test('merging targets unions flags and dedupes chat ids', () => {
@@ -236,6 +277,24 @@ function messageEvent(
         sequence: Number(cursor),
         serverId: 'server_one',
         type: 'message.created',
+    };
+}
+
+function lifecycleEvent(
+    cursor: string,
+    chatId: string,
+    action: 'archived' | 'created' | 'updated'
+): HostedDurableEvent {
+    return {
+        action,
+        chatId,
+        createdAt: '2026-08-10T12:00:00.000Z',
+        cursor,
+        id: `event_${cursor}`,
+        parentChatId: null,
+        sequence: 0,
+        serverId: 'server_one',
+        type: 'chat.lifecycle',
     };
 }
 

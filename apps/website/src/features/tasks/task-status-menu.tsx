@@ -7,10 +7,12 @@ import {
     taskStatusLabels,
     taskStatusOrder,
 } from './task-presentation.ts';
+import { TaskStatusDisc } from './task-status-disc.tsx';
 
 export function TaskStatusPill({ status }: { status: TaskStatus }) {
     return (
         <Chip className={taskStatusClasses[status]} size="sm" variant="soft">
+            <TaskStatusDisc className="size-3.5" status={status} />
             {taskStatusLabels[status]}
         </Chip>
     );

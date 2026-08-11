@@ -1,11 +1,3 @@
-import type { IconSvgElement } from '@hugeicons/react';
-import {
-    CancelCircleIcon,
-    CheckmarkCircle02Icon,
-    CircleIcon,
-    Loading03Icon,
-    ViewIcon,
-} from '@hugeicons-pro/core-stroke-rounded';
 import type { LabelRecord, TaskListItem } from '../../lib/trpc.tsx';
 
 export type TaskView = 'all' | 'active' | 'mine';
@@ -68,33 +60,24 @@ export const taskStatusLabels: Record<TaskStatus, string> = {
     todo: 'Todo',
 };
 
-export const taskStatusIcons: Record<TaskStatus, IconSvgElement> = {
-    closed: CancelCircleIcon,
-    done: CheckmarkCircle02Icon,
-    in_progress: Loading03Icon,
-    in_review: ViewIcon,
-    todo: CircleIcon,
-};
-
-export const taskStatusBadgeVariants: Record<
-    TaskStatus,
-    'error' | 'info' | 'subtle' | 'success' | 'warning'
-> = {
-    closed: 'subtle',
-    done: 'success',
-    in_progress: 'info',
-    in_review: 'info',
-    todo: 'warning',
-};
-
-// Status-colored chip fills for the transcript task chip (WS5): the Raft chip
-// palette rides the shared label tokens rather than the badge variants.
+// Status-colored chip fills for the transcript task chip and status pills:
+// the Raft chip palette rides the shared label tokens.
 export const taskStatusClasses: Record<TaskStatus, string> = {
     closed: 'bg-[var(--label-gray-bg)] text-[var(--label-gray-fg)]',
     done: 'bg-[var(--label-green-bg)] text-[var(--label-green-fg)]',
     in_progress: 'bg-[var(--label-blue-bg)] text-[var(--label-blue-fg)]',
     in_review: 'bg-[var(--label-purple-bg)] text-[var(--label-purple-fg)]',
     todo: 'bg-[var(--label-orange-bg)] text-[var(--label-orange-fg)]',
+};
+
+// Status hue for the TaskStatusDisc on neutral surfaces (board headers,
+// list groups) where there is no chip fill to carry the color.
+export const taskStatusDiscClasses: Record<TaskStatus, string> = {
+    closed: 'text-[var(--label-gray-fg)]',
+    done: 'text-[var(--label-green-fg)]',
+    in_progress: 'text-[var(--label-blue-fg)]',
+    in_review: 'text-[var(--label-purple-fg)]',
+    todo: 'text-[var(--label-orange-fg)]',
 };
 
 export const taskPriorityOrder: TaskPriority[] = ['none', 'urgent', 'high', 'medium', 'low'];

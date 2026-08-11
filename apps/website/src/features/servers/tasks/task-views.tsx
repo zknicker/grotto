@@ -4,11 +4,8 @@ import * as React from 'react';
 import { RelativeTime } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { LabelChip } from '../../tasks/label-chip.tsx';
-import {
-    taskPriorityLabels,
-    taskStatusIcons,
-    taskStatusLabels,
-} from '../../tasks/task-presentation.ts';
+import { taskPriorityLabels, taskStatusLabels } from '../../tasks/task-presentation.ts';
+import { TaskStatusDisc } from '../../tasks/task-status-disc.tsx';
 import { TaskActions } from './task-actions.tsx';
 import { groupTasks, type TaskItem } from './task-model.ts';
 
@@ -27,7 +24,7 @@ export function TaskBoard({ onOpenTask, tasks }: TaskViewProps) {
                     <Kanban.Column key={group.status}>
                         <Kanban.ColumnHeader>
                             <Kanban.ColumnIndicator>
-                                <Icon icon={taskStatusIcons[group.status]} />
+                                <TaskStatusDisc className="size-4" status={group.status} />
                             </Kanban.ColumnIndicator>
                             <Kanban.ColumnTitle>
                                 {taskStatusLabels[group.status]}
@@ -112,11 +109,7 @@ function TaskListGroup({
                         icon={ArrowRight01Icon}
                         style={{ transform: open ? 'rotate(90deg)' : 'none' }}
                     />
-                    <Icon
-                        aria-hidden="true"
-                        className="size-4 shrink-0 text-muted"
-                        icon={taskStatusIcons[status]}
-                    />
+                    <TaskStatusDisc className="size-4" status={status} />
                     <span className="font-semibold text-foreground text-sm">
                         {taskStatusLabels[status]}
                     </span>

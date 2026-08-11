@@ -1,11 +1,6 @@
-import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
-import {
-    formatTaskNumber,
-    type TaskStatus,
-    taskStatusClasses,
-    taskStatusIcons,
-} from './task-presentation.ts';
+import { formatTaskNumber, type TaskStatus, taskStatusClasses } from './task-presentation.ts';
+import { TaskStatusDisc } from './task-status-disc.tsx';
 
 export interface MessageTask {
     assignee: {
@@ -20,17 +15,19 @@ export interface MessageTask {
 export function MessageTaskChip({ task }: { task: MessageTask }) {
     const assigneeLabel = messageTaskAssigneeLabel(task);
 
+    // Tinted fill frames the status hue (the label fg tokens read too heavy
+    // floating on a neutral chip); the disc inherits the same hue.
     return (
         <span
             className={cn(
-                'inline-flex h-6 items-center gap-1 rounded-sm px-2 font-mono text-xs',
+                'inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-xs',
                 taskStatusClasses[task.status]
             )}
             data-testid="message-task-badge"
         >
-            <Icon className="size-3.5" icon={taskStatusIcons[task.status]} />
-            {formatTaskNumber(task)}
-            {assigneeLabel ? ` ${assigneeLabel}` : ''}
+            <TaskStatusDisc className="size-3.5" status={task.status} />
+            <span className="font-medium tabular-nums">{formatTaskNumber(task)}</span>
+            {assigneeLabel ? <span className="opacity-80">{assigneeLabel}</span> : null}
         </span>
     );
 }

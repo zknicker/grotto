@@ -142,20 +142,24 @@ function ChannelDialogForm({
     });
 
     return (
-        <Form onSubmit={handleSubmit}>
+        <>
             <Modal.Header>
                 <Modal.Icon>
                     <Icon icon={HashtagIcon} />
                 </Modal.Icon>
                 <Modal.Heading>{title}</Modal.Heading>
-                <p className="text-muted text-sm leading-5">
+                <p className="mt-1.5 text-muted text-sm leading-5">
                     {showDisplayName
                         ? 'Name the channel and choose its agents.'
                         : 'Choose the agents in this channel.'}
                 </p>
             </Modal.Header>
             <Modal.Body>
-                <div className="flex flex-col gap-5 pt-2">
+                <Form
+                    className="flex flex-col gap-5"
+                    id="channel-dialog-form"
+                    onSubmit={handleSubmit}
+                >
                     {showDisplayName ? (
                         <TextField
                             fullWidth
@@ -186,17 +190,22 @@ function ChannelDialogForm({
                             </Alert.Content>
                         </Alert>
                     ) : null}
-                </div>
+                </Form>
             </Modal.Body>
             <Modal.Footer>
                 <Button slot="close" type="button" variant="secondary">
                     Cancel
                 </Button>
-                <Button isDisabled={!canSubmit} isPending={isPending} type="submit">
+                <Button
+                    form="channel-dialog-form"
+                    isDisabled={!canSubmit}
+                    isPending={isPending}
+                    type="submit"
+                >
                     {submitLabel}
                 </Button>
             </Modal.Footer>
-        </Form>
+        </>
     );
 }
 
@@ -218,6 +227,7 @@ function AgentButtonGroup({
     const visibleAgents = trimmedQuery
         ? agents.filter((agent) => agent.name.toLowerCase().includes(trimmedQuery))
         : agents;
+    const missingSelection = !agentsPending && agents.length > 0 && selectedAgentIds.length === 0;
 
     return (
         <div className="flex flex-col gap-2">
@@ -236,10 +246,11 @@ function AgentButtonGroup({
                     </SearchField.Group>
                 </SearchField>
             ) : null}
-            {visibleAgents.length > 0 ? (
+            {agents.length > 0 ? (
                 <CheckboxButtonGroup
                     className="w-full grid-cols-3"
                     isDisabled={disabled}
+                    isInvalid={missingSelection}
                     layout="grid"
                     onChange={(nextAgentIds) =>
                         onSelectedAgentIdsChange(normalizeChannelAgentIds(nextAgentIds))
@@ -248,15 +259,7 @@ function AgentButtonGroup({
                     variant="secondary"
                 >
                     {visibleAgents.map((agent) => (
-                        <CheckboxButtonGroup.Item
-                            className="flex-row items-center gap-2 rounded-full px-3 py-1.5 data-[selected=true]:border-border data-[selected=true]:bg-accent/20 data-[selected=true]:ring-0"
-                            key={agent.id}
-                            value={agent.id}
-                        >
-                            {/* Relative (not static) keeps the checkbox in flow
-                                on the left while its selected-state fill stays
-                                anchored to the control itself. */}
-                            <CheckboxButtonGroup.Indicator className="relative end-auto top-auto" />
+                        <CheckboxButtonGroup.Item key={agent.id} value={agent.id}>
                             <CheckboxButtonGroup.ItemContent className="flex-row items-center gap-2">
                                 <CheckboxButtonGroup.ItemIcon>
                                     <EntityAvatar
@@ -269,6 +272,7 @@ function AgentButtonGroup({
                             </CheckboxButtonGroup.ItemContent>
                         </CheckboxButtonGroup.Item>
                     ))}
+                    <FieldError className="col-span-full">Choose at least one Agent.</FieldError>
                 </CheckboxButtonGroup>
             ) : null}
             {!agentsPending && agents.length > 0 && visibleAgents.length === 0 ? (
@@ -283,9 +287,7 @@ function AgentButtonGroup({
             {!agentsPending && agents.length === 0 ? (
                 <Description>No agents available.</Description>
             ) : null}
-            {!agentsPending && agents.length > 0 && selectedAgentIds.length === 0 ? (
-                <Description className="text-danger">Choose at least one Agent.</Description>
-            ) : (
+            {missingSelection ? null : (
                 <Description>A channel keeps at least one Agent.</Description>
             )}
         </div>

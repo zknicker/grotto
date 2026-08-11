@@ -27,6 +27,7 @@ export function RuntimeDialog({
             <Modal.Backdrop isDismissable>
                 <Modal.Container size="md">
                     <Modal.Dialog>
+                        <Modal.CloseTrigger />
                         <RuntimeConfigForm
                             agent={agent}
                             error={error}
@@ -71,24 +72,24 @@ function RuntimeConfigForm({
     }
 
     return (
-        <Form
-            onSubmit={(event) => {
-                event.preventDefault();
-                if (canSave) {
-                    void onSave(draft).catch(() => undefined);
-                }
-            }}
-        >
+        <>
             <Modal.Header>
-                <div className="min-w-0 flex-1">
-                    <Modal.Heading>Runtime Config</Modal.Heading>
-                    <p className="mt-1 text-muted text-sm">
-                        Choose the installed runtime and model this Agent uses.
-                    </p>
-                </div>
+                <Modal.Heading>Runtime Config</Modal.Heading>
+                <p className="mt-1.5 text-muted text-sm leading-5">
+                    Choose the installed runtime and model this Agent uses.
+                </p>
             </Modal.Header>
             <Modal.Body>
-                <div className="grid gap-4">
+                <Form
+                    className="grid gap-4"
+                    id="runtime-config-form"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        if (canSave) {
+                            void onSave(draft).catch(() => undefined);
+                        }
+                    }}
+                >
                     <Select
                         disabledKeys={disabledRuntimeKeys}
                         fullWidth
@@ -171,21 +172,27 @@ function RuntimeConfigForm({
                     </Select>
                     {error ? (
                         <Alert status="danger">
+                            <Alert.Indicator />
                             <Alert.Content>
                                 <Alert.Description>{error}</Alert.Description>
                             </Alert.Content>
                         </Alert>
                     ) : null}
-                </div>
+                </Form>
             </Modal.Body>
             <Modal.Footer>
                 <Button isDisabled={pending} slot="close" type="button" variant="secondary">
                     Cancel
                 </Button>
-                <Button isDisabled={!canSave} isPending={pending} type="submit">
+                <Button
+                    form="runtime-config-form"
+                    isDisabled={!canSave}
+                    isPending={pending}
+                    type="submit"
+                >
                     Save
                 </Button>
             </Modal.Footer>
-        </Form>
+        </>
     );
 }

@@ -1,4 +1,4 @@
-import { Button, Form, Input, Modal, TextField } from '@heroui/react';
+import { Alert, Button, Form, Input, Modal, TextField } from '@heroui/react';
 import type { HostedTaskLabel } from '@tavern/api';
 import * as React from 'react';
 import { useTaskLabelCreate } from '../../../hooks/servers/use-task-label-create.ts';
@@ -37,13 +37,12 @@ export function TaskLabelsDialog({
             <Modal.Backdrop isDismissable>
                 <Modal.Container scroll="outside" size="lg">
                     <Modal.Dialog>
+                        <Modal.CloseTrigger />
                         <Modal.Header>
-                            <div className="min-w-0 flex-1">
-                                <Modal.Heading>Task Labels</Modal.Heading>
-                                <p className="mt-1 text-muted text-sm">
-                                    Labels are shared across this task board.
-                                </p>
-                            </div>
+                            <Modal.Heading>Task Labels</Modal.Heading>
+                            <p className="mt-1.5 text-muted text-sm leading-5">
+                                Labels are shared across this task board.
+                            </p>
                         </Modal.Header>
                         <Modal.Body>
                             <div className="grid gap-4">
@@ -66,9 +65,14 @@ export function TaskLabelsDialog({
                                     </Button>
                                 </Form>
                                 {create.error ? (
-                                    <p className="text-danger text-sm" role="alert">
-                                        {create.error.message}
-                                    </p>
+                                    <Alert role="alert" status="danger">
+                                        <Alert.Indicator />
+                                        <Alert.Content>
+                                            <Alert.Description>
+                                                {create.error.message}
+                                            </Alert.Description>
+                                        </Alert.Content>
+                                    </Alert>
                                 ) : null}
                                 {labels.length === 0 ? (
                                     <p className="py-4 text-center text-muted text-sm">

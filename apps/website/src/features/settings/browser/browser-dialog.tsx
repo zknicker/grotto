@@ -16,6 +16,9 @@ import { Icon } from '../../../components/ui/icon.tsx';
 
 // Reusable shell + field composition for Browser config dialogs.
 
+// Footer submit buttons live outside the form; associate them via form={BROWSER_DIALOG_FORM_ID}.
+export const BROWSER_DIALOG_FORM_ID = 'browser-dialog-form';
+
 export function BrowserDialog({
     children,
     description,
@@ -44,39 +47,40 @@ export function BrowserDialog({
             <Modal.Backdrop isDismissable>
                 <Modal.Container scroll="outside" size="lg">
                     <Modal.Dialog>
-                        <Form
-                            onSubmit={(event) => {
-                                event.preventDefault();
-                                onSubmit();
-                            }}
-                        >
-                            <Modal.Header>
-                                <Modal.Icon>
-                                    <Icon icon={icon} />
-                                </Modal.Icon>
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-3">
-                                        <Modal.Heading>
-                                            {title}
-                                            {titleSuffix ? ` ${titleSuffix}` : null}
-                                        </Modal.Heading>
-                                        {headerAction ? (
-                                            <span className="ms-auto shrink-0">{headerAction}</span>
-                                        ) : null}
-                                    </div>
-                                    {description ? (
-                                        <p className="mt-1 text-muted text-sm">{description}</p>
-                                    ) : null}
-                                </div>
-                            </Modal.Header>
-                            <Modal.Body>{children}</Modal.Body>
-                            <Modal.Footer>
-                                <Button slot="close" type="button" variant="secondary">
-                                    Cancel
-                                </Button>
-                                {footer}
-                            </Modal.Footer>
-                        </Form>
+                        <Modal.Header>
+                            <Modal.Icon>
+                                <Icon icon={icon} />
+                            </Modal.Icon>
+                            <div className="flex items-center gap-3">
+                                <Modal.Heading>
+                                    {title}
+                                    {titleSuffix ? ` ${titleSuffix}` : null}
+                                </Modal.Heading>
+                                {headerAction ? (
+                                    <span className="ms-auto shrink-0">{headerAction}</span>
+                                ) : null}
+                            </div>
+                            {description ? (
+                                <p className="mt-1.5 text-muted text-sm leading-5">{description}</p>
+                            ) : null}
+                        </Modal.Header>
+                        <Modal.Body>
+                            <Form
+                                id={BROWSER_DIALOG_FORM_ID}
+                                onSubmit={(event) => {
+                                    event.preventDefault();
+                                    onSubmit();
+                                }}
+                            >
+                                {children}
+                            </Form>
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button slot="close" type="button" variant="secondary">
+                                Cancel
+                            </Button>
+                            {footer}
+                        </Modal.Footer>
                     </Modal.Dialog>
                 </Modal.Container>
             </Modal.Backdrop>

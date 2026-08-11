@@ -1,4 +1,4 @@
-import { AlertDialog, Button, Modal, TextArea } from '@heroui/react';
+import { Alert, AlertDialog, Button, Modal, TextArea } from '@heroui/react';
 import type { HostedAgent, HostedAgentSkillMetadata } from '@tavern/api';
 import * as React from 'react';
 import { useSkillDelete } from '../../../hooks/members/use-skill-delete.ts';
@@ -45,14 +45,13 @@ export function SkillDialog({
                 <Modal.Backdrop isDismissable>
                     <Modal.Container scroll="outside" size="lg">
                         <Modal.Dialog>
+                            <Modal.CloseTrigger />
                             <Modal.Header>
-                                <div className="min-w-0 flex-1">
-                                    <Modal.Heading>{skill?.name ?? 'Agent Skill'}</Modal.Heading>
-                                    <p className="mt-1 text-muted text-sm">
-                                        Edit this Agent’s independent SKILL.md copy. Other support
-                                        files stay unchanged.
-                                    </p>
-                                </div>
+                                <Modal.Heading>{skill?.name ?? 'Agent Skill'}</Modal.Heading>
+                                <p className="mt-1.5 text-muted text-sm leading-5">
+                                    Edit this Agent’s independent SKILL.md copy. Other support files
+                                    stay unchanged.
+                                </p>
                             </Modal.Header>
                             <Modal.Body>
                                 <div className="grid gap-3">
@@ -69,7 +68,14 @@ export function SkillDialog({
                                             variant="secondary"
                                         />
                                     )}
-                                    {error ? <p className="text-danger text-sm">{error}</p> : null}
+                                    {error ? (
+                                        <Alert role="alert" status="danger">
+                                            <Alert.Indicator />
+                                            <Alert.Content>
+                                                <Alert.Description>{error}</Alert.Description>
+                                            </Alert.Content>
+                                        </Alert>
+                                    ) : null}
                                 </div>
                             </Modal.Body>
                             <Modal.Footer>
@@ -85,7 +91,7 @@ export function SkillDialog({
                                 </Button>
                                 <Button
                                     isDisabled={update.isPending || remove.isPending}
-                                    onPress={() => onOpenChange(false)}
+                                    slot="close"
                                     type="button"
                                     variant="secondary"
                                 >

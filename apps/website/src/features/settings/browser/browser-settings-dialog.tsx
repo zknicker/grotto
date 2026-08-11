@@ -4,7 +4,12 @@ import type { AgentRuntimeBrowserState } from '@tavern/api';
 import type { Dispatch, SetStateAction } from 'react';
 import type { BrowserSettingsOutput } from '../../../lib/trpc.tsx';
 import { type BrowserConfigField, BrowserConfigFields } from './browser-config-fields.tsx';
-import { BrowserDialog, BrowserLockSwitch, BrowserNotice } from './browser-dialog.tsx';
+import {
+    BROWSER_DIALOG_FORM_ID,
+    BrowserDialog,
+    BrowserLockSwitch,
+    BrowserNotice,
+} from './browser-dialog.tsx';
 import { BrowserSection, BrowserSectionStack } from './browser-service-fields.tsx';
 import type { BrowserSettingsDraft } from './browser-settings-model.ts';
 
@@ -43,7 +48,12 @@ export function BrowserSettingsDialog({
         <BrowserDialog
             description="Let agents use a managed Chrome profile for browser automation."
             footer={
-                <Button isDisabled={!canSave || isSaving} isPending={isSaving} type="submit">
+                <Button
+                    form={BROWSER_DIALOG_FORM_ID}
+                    isDisabled={!canSave || isSaving}
+                    isPending={isSaving}
+                    type="submit"
+                >
                     Save
                 </Button>
             }

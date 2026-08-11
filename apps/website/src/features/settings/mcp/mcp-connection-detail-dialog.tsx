@@ -1,5 +1,5 @@
-import { Button, Modal, Spinner } from '@heroui/react';
-import { useState } from 'react';
+import { Alert, Button, Modal, Separator, Spinner, Surface } from '@heroui/react';
+import { Fragment, useState } from 'react';
 import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import {
     ConnectionDestructiveDialog,
@@ -59,13 +59,13 @@ export function McpConnectionDetailDialog({
                         <Modal.Dialog>
                             <Modal.CloseTrigger />
                             <Modal.Header>
-                                <div className="flex min-w-0 flex-1 items-start gap-3">
-                                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-secondary font-semibold text-foreground">
-                                        {connection.name.slice(0, 1).toUpperCase()}
-                                    </span>
-                                    <div className="min-w-0 flex-1">
+                                <Modal.Icon className="bg-default text-foreground">
+                                    {connection.name.slice(0, 1).toUpperCase()}
+                                </Modal.Icon>
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
                                         <Modal.Heading>{connection.name}</Modal.Heading>
-                                        <p className="mt-1 text-muted text-sm">
+                                        <p className="mt-1.5 text-muted text-sm leading-5">
                                             {connection.accountLabel ??
                                                 (connection.builtIn
                                                     ? 'Built-in MCP connection'
@@ -86,7 +86,10 @@ export function McpConnectionDetailDialog({
                             </Modal.Header>
                             <Modal.Body>
                                 <div className="grid gap-6">
-                                    <div className="flex items-center justify-between gap-4 rounded-2xl bg-surface-secondary p-4">
+                                    <Surface
+                                        className="flex items-center justify-between gap-4 rounded-2xl p-4"
+                                        variant="secondary"
+                                    >
                                         <div className="min-w-0">
                                             <p className="truncate font-mono text-muted text-xs">
                                                 {connectionSummary(connection)}
@@ -127,7 +130,7 @@ export function McpConnectionDetailDialog({
                                                     : 'Connect'}
                                             </Button>
                                         ) : null}
-                                    </div>
+                                    </Surface>
 
                                     <section className="grid gap-2">
                                         <div className="flex items-center justify-between">
@@ -141,14 +144,17 @@ export function McpConnectionDetailDialog({
                                             </div>
                                             {toolsPending ? <Spinner size="sm" /> : null}
                                         </div>
-                                        <div className="overflow-hidden rounded-2xl bg-surface-secondary">
+                                        <Surface
+                                            className="overflow-hidden rounded-2xl"
+                                            variant="secondary"
+                                        >
                                             <ToolList
                                                 connection={connection}
                                                 error={toolsError}
                                                 pending={toolsPending}
                                                 tools={tools}
                                             />
-                                        </div>
+                                        </Surface>
                                     </section>
 
                                     <section className="grid gap-2">
@@ -159,22 +165,27 @@ export function McpConnectionDetailDialog({
                                                 profile.
                                             </p>
                                         </div>
-                                        <div className="overflow-hidden rounded-2xl bg-surface-secondary">
+                                        <Surface
+                                            className="overflow-hidden rounded-2xl"
+                                            variant="secondary"
+                                        >
                                             {connection.affectedAgents.length > 0 ? (
-                                                connection.affectedAgents.map((agent) => (
-                                                    <div
-                                                        className="border-separator border-b px-4 py-3 text-sm last:border-b-0"
-                                                        key={agent.id}
-                                                    >
-                                                        {agent.name}
-                                                    </div>
+                                                connection.affectedAgents.map((agent, index) => (
+                                                    <Fragment key={agent.id}>
+                                                        {index > 0 ? (
+                                                            <Separator variant="secondary" />
+                                                        ) : null}
+                                                        <div className="px-4 py-3 text-sm">
+                                                            {agent.name}
+                                                        </div>
+                                                    </Fragment>
                                                 ))
                                             ) : (
                                                 <p className="px-4 py-4 text-muted text-sm">
                                                     No agents have access yet.
                                                 </p>
                                             )}
-                                        </div>
+                                        </Surface>
                                     </section>
                                 </div>
                             </Modal.Body>
@@ -247,15 +258,25 @@ function ToolList({
         return <p className="px-4 py-4 text-muted text-sm">Loading tools…</p>;
     }
     if (error) {
-        return <p className="px-4 py-4 text-danger text-sm">{error}</p>;
+        return (
+            <Alert status="danger">
+                <Alert.Indicator />
+                <Alert.Content>
+                    <Alert.Description>{error}</Alert.Description>
+                </Alert.Content>
+            </Alert>
+        );
     }
     if (!tools || tools.length === 0) {
         return <p className="px-4 py-4 text-muted text-sm">No tools reported.</p>;
     }
-    return tools.map((tool) => (
-        <div className="border-separator border-b px-4 py-3 last:border-b-0" key={tool.name}>
-            <p className="font-medium text-sm">{tool.title ?? tool.name}</p>
-            <p className="truncate text-muted text-xs">{tool.description}</p>
-        </div>
+    return tools.map((tool, index) => (
+        <Fragment key={tool.name}>
+            {index > 0 ? <Separator variant="secondary" /> : null}
+            <div className="px-4 py-3">
+                <p className="font-medium text-sm">{tool.title ?? tool.name}</p>
+                <p className="truncate text-muted text-xs">{tool.description}</p>
+            </div>
+        </Fragment>
     ));
 }

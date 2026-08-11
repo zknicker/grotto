@@ -26,6 +26,7 @@ export function McpHeaderCredentialsDialog({
             <Modal.Backdrop isDismissable>
                 <Modal.Container size="md">
                     <Modal.Dialog>
+                        <Modal.CloseTrigger />
                         {open ? (
                             <HeaderCredentialsForm
                                 connection={connection}
@@ -66,39 +67,45 @@ function HeaderCredentialsForm({
         headers.every((entry) => entry.name.trim().length === 0 || entry.value.length > 0);
 
     return (
-        <Form
-            onSubmit={(event) => {
-                event.preventDefault();
-                if (canSave) {
-                    void onSave(values).catch(() => undefined);
-                }
-            }}
-        >
+        <>
             <Modal.Header>
-                <div>
-                    <Modal.Heading>Connect {connection.name}</Modal.Heading>
-                    <p className="mt-1 text-muted text-sm">
-                        Enter the request headers this server uses for authentication. Existing
-                        values are never shown.
-                    </p>
-                </div>
+                <Modal.Heading>Connect {connection.name}</Modal.Heading>
+                <p className="mt-1.5 text-muted text-sm leading-5">
+                    Enter the request headers this server uses for authentication. Existing values
+                    are never shown.
+                </p>
             </Modal.Header>
             <Modal.Body>
-                <SecretFieldsEditor
-                    addLabel="Add Header"
-                    entries={headers}
-                    onChange={setHeaders}
-                    title="Headers"
-                />
+                <Form
+                    id="mcp-header-credentials-form"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        if (canSave) {
+                            void onSave(values).catch(() => undefined);
+                        }
+                    }}
+                >
+                    <SecretFieldsEditor
+                        addLabel="Add Header"
+                        entries={headers}
+                        onChange={setHeaders}
+                        title="Headers"
+                    />
+                </Form>
             </Modal.Body>
             <Modal.Footer>
-                <Button onPress={onCancel} type="button" variant="secondary">
+                <Button onPress={onCancel} slot="close" type="button" variant="secondary">
                     Cancel
                 </Button>
-                <Button isDisabled={!canSave} isPending={saving} type="submit">
+                <Button
+                    form="mcp-header-credentials-form"
+                    isDisabled={!canSave}
+                    isPending={saving}
+                    type="submit"
+                >
                     Save Credentials
                 </Button>
             </Modal.Footer>
-        </Form>
+        </>
     );
 }

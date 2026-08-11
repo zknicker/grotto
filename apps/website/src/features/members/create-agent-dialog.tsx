@@ -57,7 +57,7 @@ export function CreateAgentDialog({
                         <Modal.CloseTrigger />
                         <Modal.Header>
                             <Modal.Heading>Create Agent</Modal.Heading>
-                            <p className="text-muted text-sm leading-5">
+                            <p className="mt-1.5 text-muted text-sm leading-5">
                                 Choose where this Agent runs and what role it should take on.
                             </p>
                         </Modal.Header>
@@ -127,9 +127,9 @@ function CreateHostedAgentForm({
     });
 
     return (
-        <Form onSubmit={handleSubmit}>
+        <>
             <Modal.Body>
-                <div className="grid gap-4 pt-2">
+                <Form className="grid gap-4" id="create-agent-form" onSubmit={handleSubmit}>
                     <InventorySelect
                         description={
                             reported.length === 0
@@ -196,22 +196,28 @@ function CreateHostedAgentForm({
                     />
                     {create.error ? (
                         <Alert status="danger">
+                            <Alert.Indicator />
                             <Alert.Content>
                                 <Alert.Description>{create.error.message}</Alert.Description>
                             </Alert.Content>
                         </Alert>
                     ) : null}
-                </div>
+                </Form>
             </Modal.Body>
             <Modal.Footer>
                 <Button slot="close" type="button" variant="secondary">
                     Cancel
                 </Button>
-                <Button isDisabled={!canSubmit} isPending={create.isPending} type="submit">
+                <Button
+                    form="create-agent-form"
+                    isDisabled={!canSubmit}
+                    isPending={create.isPending}
+                    type="submit"
+                >
                     Create Agent
                 </Button>
             </Modal.Footer>
-        </Form>
+        </>
     );
 }
 

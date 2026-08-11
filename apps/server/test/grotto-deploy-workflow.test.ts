@@ -132,7 +132,7 @@ test('documents version publication as the only hosted production promotion', ()
     );
 
     expect(releaseDocs).toContain('A push to `main` does not');
-    expect(releaseDocs).toContain('there is no separate\nServer SemVer');
+    expect(releaseDocs).toContain('one atomic production artifact with one Server SemVer');
     expect(releaseDocs).toContain('`activate`: verify and switch');
     expect(deployDocs).toContain('/Users/zknicker/srv/grotto');
     expect(deployDocs).toContain('never run `git clean`');

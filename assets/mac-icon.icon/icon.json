@@ -1,4 +1,7 @@
 {
+  "features" : [
+    "refractivity"
+  ],
   "fill" : {
     "linear-gradient" : [
       "display-p3:0.02540,0.23240,0.65473,1.00000",
@@ -40,6 +43,7 @@
           "glass" : true,
           "image-name" : "Untitled Project - Vector.svg",
           "name" : "Untitled Project - Vector",
+          "opacity" : 0.97,
           "position" : {
             "scale" : 1.13,
             "translation-in-points" : [
@@ -50,8 +54,13 @@
         }
       ],
       "lighting" : "individual",
+      "refractivity" : {
+        "depth" : 0,
+        "enabled" : true,
+        "strength" : 1
+      },
       "shadow" : {
-        "kind" : "none",
+        "kind" : "neutral",
         "opacity" : 0.5
       },
       "specular" : true,
@@ -59,7 +68,7 @@
         {
           "value" : {
             "enabled" : true,
-            "value" : 0.54
+            "value" : 0.66
           }
         },
         {

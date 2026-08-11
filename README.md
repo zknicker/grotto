@@ -44,8 +44,13 @@ shape instead of a second protocol package.
 Install dependencies:
 
 ```bash
-bun install --frozen-lockfile
+bun run setup:worktree
 ```
+
+The setup keeps lifecycle scripts disabled, installs the frozen Bun dependency
+graph, and explicitly downloads the pinned HeroUI React Pro artifacts. Local
+development uses `bunx heroui-pro@latest login` credentials from the system
+keychain; non-interactive environments provide `HEROUI_AUTH_TOKEN`.
 
 Run the full local stack:
 

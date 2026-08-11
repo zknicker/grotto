@@ -7,6 +7,21 @@ read_when:
 
 # Development
 
+## Worktree Setup
+
+Run the checked-in setup command in every fresh checkout or worktree:
+
+```bash
+bun run setup:worktree
+```
+
+It installs the frozen Bun dependency graph with lifecycle scripts still
+disabled, then explicitly runs only the pinned HeroUI React Pro downloader.
+Local authentication comes from `bunx heroui-pro@latest login` and the system
+keychain. CI or another non-interactive environment must provide
+`HEROUI_AUTH_TOKEN`. Codex worktrees run this command through their environment
+setup hook, and Claude Code runs it from the repository's `SessionStart` hook.
+
 ## Local Stack
 
 Run the managed development stack:

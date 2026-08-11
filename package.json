@@ -26,6 +26,7 @@
     "deploy:grotto-server": "bun scripts/deploy-grotto-server.ts",
     "release:publish-homebrew-formula": "node scripts/release/publish-homebrew-formula.mjs",
     "release:publish": "node scripts/release/publish-release.mjs",
+    "setup:worktree": "node scripts/setup-worktree.mjs",
     "computer:release": "node scripts/release/publish-computer.mjs",
     "test:e2e": "bun run --filter @tavern/website test:e2e",
     "test:e2e:debug": "bun run --filter @tavern/website test:e2e:debug",

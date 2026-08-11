@@ -5,6 +5,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun run setup:worktree",
+            "timeout": 120
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "node scripts/generate-claude-launch.mjs"
           }
         ]

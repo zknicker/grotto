@@ -8,7 +8,7 @@ repo_root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 if [ "$repo_root/.env" != "$PWD/.env" ]; then
   cp "$repo_root/.env" .env
 fi
-bun install'''
+bun run setup:worktree'''
 
 [[actions]]
 name = "dev"

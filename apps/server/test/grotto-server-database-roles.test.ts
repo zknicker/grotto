@@ -98,7 +98,7 @@ test('keeps product tables and migration history readable by backups', async () 
             SELECT (SELECT count(*) FROM servers)::int AS servers,
                    (SELECT count(*) FROM drizzle.__drizzle_migrations)::int AS migrations
         `) as { migrations: number; servers: number }[];
-        expect(tables).toEqual([{ migrations: 2, servers: 0 }]);
+        expect(tables).toEqual([{ migrations: 3, servers: 0 }]);
     } finally {
         await backup.close();
     }

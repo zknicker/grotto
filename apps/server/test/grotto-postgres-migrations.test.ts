@@ -32,7 +32,7 @@ test('creates the baseline once and keeps repeated deploys idempotent', async ()
             total: number;
         }[];
 
-        expect(rows).toEqual([{ total: 2 }]);
+        expect(rows).toEqual([{ total: 3 }]);
         expect(servers).toEqual([{ total: 0 }]);
     } finally {
         await database.close();

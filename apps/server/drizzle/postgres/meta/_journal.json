@@ -15,6 +15,13 @@
       "when": 1786386062011,
       "tag": "0001_chat-anchor-fk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786410715795,
+      "tag": "0002_defer-server-purge-constraints",
+      "breakpoints": true
     }
   ]
 }

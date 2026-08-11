@@ -65,11 +65,52 @@ test('rechecks current Owner authority and the exact immutable slug', async () =
     ).rejects.toThrow(/Owner/i);
 });
 
+test('defers every internal foreign key in the Server cascade', async () => {
+    const immediateCrossLinks = await harness.sql`
+        with recursive cascaded(oid) as (
+            select 'servers'::regclass::oid
+            union
+            select constraint_row.conrelid
+            from pg_constraint constraint_row
+            join cascaded parent on constraint_row.confrelid = parent.oid
+            where constraint_row.contype = 'f' and constraint_row.confdeltype = 'c'
+        )
+        select constraint_row.conname
+        from pg_constraint constraint_row
+        where constraint_row.contype = 'f'
+          and constraint_row.confrelid in (select oid from cascaded)
+          and constraint_row.conrelid in (select oid from cascaded)
+          and constraint_row.confdeltype in ('a', 'r')
+          and not constraint_row.condeferrable
+        order by constraint_row.conname
+    `;
+
+    expect(immediateCrossLinks).toEqual([]);
+});
+
 test('revokes immediately, never waits for an offline Computer, and asynchronously cascades', async () => {
     const invitation = await owner.trpc.invitation.create.mutate({
         email: 'future-member@grotto.test',
         serverId,
     });
+    const [allChannel] = (await harness.sql`
+        select id from chats where server_id = ${serverId} and is_all = true
+    `) as { id: string }[];
+    await harness.sql`
+        insert into agents (id, server_id, handle, display_name, home_timezone, role)
+        values ('agt_deleteauthor000', ${serverId}, 'delete-author', 'Delete Author', 'UTC', 'member')
+    `;
+    await harness.sql`
+        update chats set last_message_sequence = 1 where id = ${allChannel.id}
+    `;
+    await harness.sql`
+        insert into chat_messages (
+            id, server_id, chat_id, sequence, nonce, author_agent_id, content
+        ) values (
+            'msg_deleteauthored00', ${serverId}, ${allChannel.id}, 1,
+            'delete-authored-message', 'agt_deleteauthor000', 'Delete me with the Server.'
+        )
+    `;
     await harness.sql`
         insert into computers (
             id, server_id, attached_by_user_id, credential_hash
@@ -128,6 +169,9 @@ test('revokes immediately, never waits for an offline Computer, and asynchronous
     await expect(lstat(serverAttachmentPath)).rejects.toMatchObject({ code: 'ENOENT' });
     expect(invitation.invitation.id).toBeTruthy();
     await expect(owner.trpc.server.bySlug.query({ slug })).rejects.toThrow();
+    await expect(
+        owner.trpc.server.create.mutate({ displayName: 'Vanishing HQ Again', slug })
+    ).resolves.toMatchObject({ slug });
 });
 
 test('sends cleanup only to online Computers for the deleted Server and does not wait', () => {

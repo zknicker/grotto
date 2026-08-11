@@ -412,6 +412,13 @@ participates in both Channels. It creates no Computer, Agent, or execution
 configuration. A taken slug is refused as `CONFLICT`, and the whole transaction
 rolls back — including a first-time creator's User and onboarding rows.
 
+Server deletion tombstones the Server and revokes its authority immediately, then asynchronously
+purges its attachment partition and Server-owned PostgreSQL rows. The immutable slug remains taken
+until that purge completes, after which a new opaque Server may reuse it. Internal foreign keys
+between Server-owned descendants are deferred until transaction completion so PostgreSQL can settle
+the entire root cascade atomically without depending on constraint-trigger order. Failed purges
+remain observable and startup retries every tombstoned Server idempotently.
+
 Onboarding starts at `awaiting-computer`. A compatible Computer handshake records
 the candidate Computer without advancing. Empty or invalid inventory and
 incompatible or disconnected Computers retain the owning phase plus actionable

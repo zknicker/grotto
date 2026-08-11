@@ -1,17 +1,17 @@
 {
-  "targetVersion": "1.8.16",
+  "targetVersion": "1.8.17",
   "surfaces": {
     "server": {
       "action": "publish",
-      "version": "1.8.16"
+      "version": "1.8.17"
     },
     "app": {
-      "action": "unchanged",
-      "version": null
+      "action": "publish",
+      "version": "1.8.17"
     },
     "computer": {
-      "action": "unchanged",
-      "version": null
+      "action": "publish",
+      "version": "1.4.4"
     },
     "runtime": {
       "action": "unchanged",

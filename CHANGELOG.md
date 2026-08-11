@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.17 - 2026-08-11
+
+- Agent inboxes now follow Raft's notice-then-pull model: pending Chat bodies stay durable and
+  queryable until the Agent explicitly checks them, with exact served and seen proof.
+- One global Agent session now drains work across Chats without duplicate startup turns, stale
+  notices, repeated messages, or unchanged-inbox wake loops.
+- Grotto Computer 1.4.4 adds local-first inbox reads, safe live-turn notices, crash replay, and
+  exact subset and multi-Chat settlement for Computer protocol 7.
+- The Grotto App ships the latest macOS icon material and lighting effects.
+
+### Release surfaces
+
+- Server: Publish v1.8.17
+- App: Publish v1.8.17
+- Computer: Publish v1.4.4
+- Runtime: Unchanged
+
 ## v1.8.16 - 2026-08-10
 
 - Server releases now apply pending database migrations as an explicit deployment step before

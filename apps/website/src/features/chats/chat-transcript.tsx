@@ -7,9 +7,8 @@ import {
     MessageScrollerViewport,
 } from '../../components/chats/message-scroller.tsx';
 import { useChatReaction } from '../../hooks/chats/use-chat-reaction.ts';
-import { useChatSidePane } from '../../hooks/pane/use-chat-side-pane.ts';
 import { useMessageFlash } from '../../hooks/threads/use-message-flash.ts';
-import { openThreadPane, useThreadPane } from '../../hooks/threads/use-thread-pane.ts';
+import { openThreadPane } from '../../hooks/threads/use-thread-pane.ts';
 import { markChatTiming } from '../../lib/chat-timing.ts';
 import { trpc } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
@@ -74,8 +73,6 @@ export function ChatTranscript({
     threadActionsEnabled?: boolean;
     viewportClassName?: string;
 }) {
-    const threadPane = useThreadPane(chatId ?? '');
-    const activeSidePane = useChatSidePane(chatId ?? '');
     const flashMessageId = useMessageFlash(chatId ?? '');
     const unfollowThread = trpc.thread.setFollow.useMutation();
     const interactionHosts = resolveTranscriptInteractionHosts({
@@ -135,8 +132,6 @@ export function ChatTranscript({
                 canRequestMention,
                 chatId,
                 composerId: interactionHosts.composerId,
-                activeThreadAnchorId:
-                    activeSidePane === 'thread' ? (threadPane?.anchorMessageId ?? null) : null,
                 conversationLayout,
                 currentSessionKey,
                 defaultOpenWorkGroups,
@@ -154,8 +149,6 @@ export function ChatTranscript({
             canRequestMention,
             chatId,
             interactionHosts.composerId,
-            activeSidePane,
-            threadPane?.anchorMessageId,
             conversationLayout,
             currentSessionKey,
             defaultOpenWorkGroups,

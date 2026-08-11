@@ -54,7 +54,6 @@ function RuntimeThreadMessageSurface({
     const durable = isThreadAnchorRow(row);
     const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
     const thread = getTranscriptMessageThread(row);
-    const active = context?.activeThreadAnchorId === row.message.id;
     const flashing = context?.flashMessageId === row.message.id;
     const openThread = () => context?.onOpenThread(row);
     const menuActions: Record<string, () => void> = {
@@ -75,7 +74,6 @@ function RuntimeThreadMessageSurface({
             <ContextMenu.Trigger
                 className={cn(
                     'group/message-row relative block min-w-0 rounded-lg',
-                    active && 'bg-accent-soft ring-1 ring-focus',
                     flashing && 'chat-thread-flash'
                 )}
             >
@@ -142,7 +140,6 @@ function EmbeddedThreadMessageSurface({
     const context = useTranscriptRenderContextOptional();
     const durable = isThreadAnchorRow(row);
     const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
-    const active = context?.activeThreadAnchorId === row.message.id;
     const flashing = context?.flashMessageId === row.message.id;
     const openThread = () => context?.onOpenThread(row);
     const taskAssigneeLabel = row.message.task ? messageTaskAssigneeLabel(row.message.task) : null;
@@ -151,7 +148,6 @@ function EmbeddedThreadMessageSurface({
         <div
             className={cn(
                 'group/message-row relative block min-w-0 rounded-lg',
-                active && 'bg-accent-soft ring-1 ring-focus',
                 flashing && 'chat-thread-flash'
             )}
             data-message-id={row.message.id}

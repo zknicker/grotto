@@ -279,9 +279,6 @@ export function ChatView({
                 rows={transcriptRows}
                 timelineContent={(scrollContentRef) => (
                     <ChatTranscript
-                        activeThreadAnchorId={
-                            activeSidePane === 'thread' ? threadSelection?.anchor.id : undefined
-                        }
                         chatId={chat.id}
                         composition={
                             <ChatAgentComposition chatId={chat.id} serverId={chat.serverId} />

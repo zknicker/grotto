@@ -27,7 +27,6 @@ const conversationLayout = {
 } as const;
 
 interface ChatTranscriptInput {
-    activeThreadAnchorId?: string;
     chatId: string;
     messages: HostedChatMessage[] | undefined;
     onOpenArtifact: (target: TavernResourceTarget) => void;
@@ -73,7 +72,6 @@ export function ChatTranscript({
  * exactly the same rows as the main chat.
  */
 export function useChatTranscript({
-    activeThreadAnchorId,
     chatId,
     messages,
     onOpenArtifact,
@@ -202,7 +200,6 @@ export function useChatTranscript({
     const renderContext = React.useMemo(
         () =>
             ({
-                activeThreadAnchorId: activeThreadAnchorId ?? null,
                 canRequestMention: true,
                 chatId,
                 conversationLayout,
@@ -252,7 +249,6 @@ export function useChatTranscript({
                 turnEvidenceSource: 'embedded',
             }) satisfies TranscriptRenderContextValue,
         [
-            activeThreadAnchorId,
             agentsById,
             chatId,
             handleOpenThread,

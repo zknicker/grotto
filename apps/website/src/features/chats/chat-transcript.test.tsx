@@ -2016,7 +2016,6 @@ function renderTranscriptPresentation(
         links: [httpLink({ url: 'http://127.0.0.1:1/trpc' })],
     });
     const context: TranscriptRenderContextValue = {
-        activeThreadAnchorId: null,
         canRequestMention: true,
         chatId: 'chat-history',
         composerId: 'chat-history',

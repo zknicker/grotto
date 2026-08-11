@@ -4,14 +4,13 @@ export function useChannelUpdate() {
     const utils = grottoTrpc.useUtils();
 
     return grottoTrpc.chat.updateChannel.useMutation({
-        onSuccess: async (channel) => {
-            await Promise.all([
-                utils.chat.list.invalidate({ serverId: channel.serverId }),
-                utils.chat.mentionOptions.invalidate({
-                    chatId: channel.id,
-                    serverId: channel.serverId,
-                }),
-            ]);
+        // The chat.lifecycle `updated` event owns list invalidation. Mention
+        // options have no event coverage, so this mutation stays their owner.
+        onSuccess: (channel) => {
+            void utils.chat.mentionOptions.invalidate({
+                chatId: channel.id,
+                serverId: channel.serverId,
+            });
         },
     });
 }

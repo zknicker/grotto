@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'bun:test';
-import type { ActiveMentionQuery, MentionOption } from './mention-types.ts';
+import type { ActiveMentionQuery, Mention, MentionOption } from './mention-types.ts';
 import { selectVisibleOptions } from './mention-visible-options.ts';
-import { resolveSkillScopeAgentIds } from './use-mention-composer.tsx';
+import {
+    resolveSkillScopeAgentIds,
+    resolveSkillScopeAgentIdsKey,
+} from './use-mention-composer.tsx';
 
 describe('selectVisibleOptions', () => {
     it('uses @ only for agent mentions', () => {
@@ -93,6 +96,65 @@ describe('resolveSkillScopeAgentIds', () => {
         ).toEqual(['agent:primary']);
     });
 });
+
+describe('resolveSkillScopeAgentIdsKey', () => {
+    // The editor rebuilds its mentions array on every keystroke. The scope key
+    // must stay equal across those renders, or the memoized query input and the
+    // prefetch callback change identity and fire one prefetch per keystroke.
+    it('is unchanged when only the mentions array identity changes', () => {
+        const first = resolveSkillScopeAgentIdsKey({
+            agentId: 'agent:primary',
+            mentionableAgentIds: ['agent:planner'],
+            mentions: [plannerMention()],
+        });
+        const second = resolveSkillScopeAgentIdsKey({
+            agentId: 'agent:primary',
+            mentionableAgentIds: ['agent:planner'],
+            mentions: [plannerMention()],
+        });
+
+        expect(second).toBe(first);
+    });
+
+    it('changes when the resolved scope changes', () => {
+        const scoped = resolveSkillScopeAgentIdsKey({
+            agentId: 'agent:primary',
+            mentionableAgentIds: ['agent:planner', 'agent:builder'],
+            mentions: [plannerMention()],
+        });
+        const unscoped = resolveSkillScopeAgentIdsKey({
+            agentId: 'agent:primary',
+            mentionableAgentIds: ['agent:planner', 'agent:builder'],
+            mentions: [],
+        });
+
+        expect(scoped).not.toBe(unscoped);
+    });
+
+    it('round-trips back to the resolved agent ids', () => {
+        const params = {
+            agentId: 'agent:primary',
+            mentionableAgentIds: ['agent:planner', 'agent:builder'],
+            mentions: [],
+        };
+
+        expect(resolveSkillScopeAgentIdsKey(params).split('\n')).toEqual(
+            resolveSkillScopeAgentIds(params)
+        );
+    });
+});
+
+function plannerMention(): Mention {
+    return {
+        end: 8,
+        id: 'agent://agent%3Aplanner',
+        kind: 'agent',
+        label: 'Planner',
+        projection: 'agent-reference',
+        start: 0,
+        text: '@Planner',
+    };
+}
 
 function createQuery(trigger: '@' | '$'): ActiveMentionQuery {
     return {

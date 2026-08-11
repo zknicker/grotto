@@ -152,8 +152,11 @@ export function useHostedMentionComposer({
         [mentionAgents, optionsQuery.data?.options, scaffold.activeQuery?.query]
     );
     const prefetchMentionOptions = React.useCallback(() => {
-        void utils.chat.mentionOptions.prefetch(input);
-    }, [input, utils.chat.mentionOptions]);
+        // Depend on the memoized `utils` root, never on a `utils.chat.mentionOptions`
+        // proxy path: tRPC rebuilds that path object on every access, so depending on
+        // it re-created this callback each render and prefetched once per keystroke.
+        void utils.chat.mentionOptions.prefetch(input, queryPolicy.syncedSnapshot);
+    }, [input, utils]);
 
     return useMentionComposerController({
         content,
@@ -188,14 +191,19 @@ function useMentionComposerScaffold({
 }): MentionComposerScaffold {
     const [mentions, setMentions] = React.useState<Mention[]>([]);
     const [activeQuery, setActiveQuery] = React.useState<ActiveMentionQuery | null>(null);
+    // The editor emits a fresh `mentions` array on every keystroke, so an
+    // identity-keyed memo here produces a new scope array per render and
+    // invalidates every downstream query input and prefetch callback. Key the
+    // memo on the resolved scope value instead.
+    const skillScopeAgentIdsKey = resolveSkillScopeAgentIdsKey({
+        agentId,
+        mentionableAgentIds,
+        mentions,
+    });
     const skillScopeAgentIds = React.useMemo(
         () =>
-            resolveSkillScopeAgentIds({
-                agentId,
-                mentionableAgentIds,
-                mentions,
-            }),
-        [agentId, mentionableAgentIds, mentions]
+            skillScopeAgentIdsKey === '' ? [] : skillScopeAgentIdsKey.split(SCOPE_KEY_SEPARATOR),
+        [skillScopeAgentIdsKey]
     );
 
     return {
@@ -416,6 +424,21 @@ export function resolveSkillScopeAgentIds({
     const scopedAgentIds = taggedAgentIds.length > 0 ? taggedAgentIds : fallbackAgentIds;
 
     return [...new Set(scopedAgentIds.map((id) => id.trim()).filter(Boolean))];
+}
+
+const SCOPE_KEY_SEPARATOR = '\n';
+
+/**
+ * Value key for the resolved skill scope. Two renders that resolve the same
+ * agent ids produce the same key, which keeps the scope array, query inputs,
+ * and prefetch callbacks referentially stable across unrelated re-renders.
+ */
+export function resolveSkillScopeAgentIdsKey(params: {
+    agentId: string;
+    mentionableAgentIds?: readonly string[];
+    mentions: readonly Mention[];
+}) {
+    return resolveSkillScopeAgentIds(params).join(SCOPE_KEY_SEPARATOR);
 }
 
 function isSameMentionQuery(left: ActiveMentionQuery, right: ActiveMentionQuery | null) {

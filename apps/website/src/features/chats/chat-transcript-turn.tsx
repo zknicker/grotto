@@ -1,6 +1,6 @@
 import { Chip, Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
-import { AlertCircleIcon, ListViewIcon } from '@hugeicons/core-free-icons';
+import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { splitVisualFences } from '@tavern/api/widgets/visual';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
@@ -68,20 +68,34 @@ import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
 // Raft-style geometry: the name line plus the first message line read as one
 // tight block the avatar sits centered against. Rows wash on hover so the
 // hovered message reads as one unit (Discord-style); the bleed margins let
-// the wash span the full chat width past the viewport's px-5 gutter.
+// the wash span the full chat width past the viewport's px-5 gutter. The
+// wash also holds while a bar-owned popover (the emoji picker) is open, so
+// moving the pointer into the portaled popover doesn't unwash the row.
 const turnRowClassName =
-    'group/turn -mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2 hover:bg-surface-hover';
+    'group/turn -mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2 hover:bg-surface-hover has-[[data-turn-actions]_[aria-expanded=true]]:bg-surface-hover';
 const turnBodyClassName = 'gap-0';
 const turnAvatarOffsetClassName = 'mt-1.5';
 // Stock action buttons are composer-sized; transcript rows want the compact
 // footprint with slightly smaller glyphs.
-const turnActionClassName = 'size-7 [&_svg]:size-3.5';
+const turnActionClassName = 'size-7 [&_svg]:size-4';
 // The actions bar is a floating pill straddling the hovered message's top
-// edge (Discord-style): elevated surface, hover/focus reveal (instant, so it
-// tracks the row wash), and inert while hidden so it never intercepts clicks
-// meant for the row above.
-const turnActionsClassName =
-    'pointer-events-none absolute -top-4 right-4 z-10 gap-0.5 rounded-xl border border-border bg-overlay p-0.5 opacity-0 shadow-overlay transition-none focus-within:pointer-events-auto focus-within:opacity-100 group-hover/turn:pointer-events-auto group-hover/turn:opacity-100';
+// edge (Discord-style): elevated surface, instant reveal so it tracks the
+// row wash, and inert while hidden so it never intercepts clicks meant for
+// the row above. It stays open only for keyboard focus (data-focus-visible)
+// and while its emoji picker popover is open (aria-expanded) — plain focus
+// left behind by a click must not hold it, or the bar sticks after the
+// pointer leaves.
+const turnActionsClassName = cn(
+    // Deliberately quiet: a bright overlay bg or a drop shadow pops far too
+    // loud in light mode, and surface-secondary reads too grey there — the
+    // background token splits the difference. Dark keeps surface-secondary
+    // (its background token is near-black and would read as a hole). The
+    // border alone defines the edge.
+    'pointer-events-none absolute -top-4 right-5 z-10 items-center gap-px rounded-full border border-border bg-background p-0.5 opacity-0 transition-none dark:bg-surface-secondary',
+    'group-hover/turn:pointer-events-auto group-hover/turn:opacity-100',
+    'has-[[data-focus-visible]]:pointer-events-auto has-[[data-focus-visible]]:opacity-100',
+    'has-[[aria-expanded=true]]:pointer-events-auto has-[[aria-expanded=true]]:opacity-100'
+);
 
 export function TranscriptEntryView({
     activeReply,
@@ -228,13 +242,13 @@ function UserTurnPresentation({
                     <UserTurnItem from="user" item={item} key={getTranscriptItemKey(item)} />
                 ))}
                 {lastMessageRow ? (
-                    <ChatMessageActions className={turnActionsClassName}>
+                    <ChatMessageActions className={turnActionsClassName} data-turn-actions="">
                         <MessageReactionActions
                             className={turnActionClassName}
                             row={lastMessageRow}
                         />
                         {context?.onToggleReaction ? (
-                            <Separator className="mx-0.5 h-4" orientation="vertical" />
+                            <Separator className="h-4 self-center" orientation="vertical" />
                         ) : null}
                         <TranscriptMessageActions value={lastMessageRow.message.content} />
                         <ThreadMessageActions
@@ -471,7 +485,7 @@ function AgentTurnPresentation({
                 <MessageReactionActions className={turnActionClassName} row={lastMessageRow} />
             ) : null}
             {lastMessageRow && onToggleReaction ? (
-                <Separator className="mx-0.5 h-4" orientation="vertical" />
+                <Separator className="h-4 self-center" orientation="vertical" />
             ) : null}
             {lastMessage ? (
                 <TranscriptMessageActions value={lastMessage.content} />
@@ -490,7 +504,7 @@ function AgentTurnPresentation({
                         setInspectOpen(true);
                     }}
                 >
-                    <Icon icon={ListViewIcon} strokeWidth={2} />
+                    <Icon icon={Activity01Icon} strokeWidth={2} />
                 </ChatMessage.Action>
             </ActionTooltip>
             {sessionNotice ? <SessionNoticeAction row={sessionNotice} /> : null}
@@ -575,7 +589,7 @@ function AgentTurnPresentation({
                         turnStopped={turnStopped}
                     />
                 ))}
-                <ChatMessageActions className={turnActionsClassName}>
+                <ChatMessageActions className={turnActionsClassName} data-turn-actions="">
                     {turnActions}
                 </ChatMessageActions>
             </ChatMessage.Body>

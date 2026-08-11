@@ -11,8 +11,8 @@ import {
 
 export const quickReactionEmoji = ['👍', '❤️', '🎉', '👀', '🔥', '😂', '✅'] as const;
 
-// The two standard reactions offered directly in the hover actions bar.
-const actionBarEmoji = ['👍', '❤️'] as const;
+// The standard quick reactions offered directly in the hover actions bar.
+const actionBarEmoji = ['👍', '❤️', '😂', '💯'] as const;
 
 /** Existing reactions as stock pills below the message, Discord-style. */
 export function MessageReactionPills({ row }: { row: TranscriptMessageRow }) {
@@ -54,7 +54,10 @@ export function MessageReactionPills({ row }: { row: TranscriptMessageRow }) {
             })}
             <MessageReactionPicker
                 row={row}
-                triggerClassName="opacity-0 focus-visible:opacity-100 group-hover/message-row:opacity-100"
+                // aria-expanded holds the trigger visible while its popover is
+                // open — the popover is portaled, so the row loses :hover the
+                // moment the pointer moves into it.
+                triggerClassName="opacity-0 focus-visible:opacity-100 aria-expanded:opacity-100 group-hover/message-row:opacity-100"
             />
         </>
     );
@@ -90,7 +93,11 @@ export function MessageReactionActions({
                             })
                         }
                     >
-                        <span className="text-sm leading-none">{emoji}</span>
+                        {/* 17px splits text-base and text-lg: emoji ink doesn't
+                            fill its em-box the way the stroke icons fill their
+                            viewbox, so 16px reads too small next to the icons
+                            and 18px reads too big. */}
+                        <span className="text-[17px] leading-none">{emoji}</span>
                     </ChatMessage.Action>
                 </ActionTooltip>
             ))}
@@ -132,9 +139,10 @@ export function MessageReactionPicker({
                 <EmojiPicker.Trigger
                     aria-label="Add reaction"
                     className={cn(
-                        // Match the compact ChatMessage.Action footprint; the
-                        // stock trigger ships unstyled by design.
-                        'inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-muted outline-none transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus [&_svg]:size-3.5',
+                        // The stock trigger ships unstyled by design; these
+                        // documented HeroUI button classes make it identical
+                        // to its ChatMessage.Action siblings in the bar.
+                        'button button--icon-only button--sm button--ghost chat-message__action size-7 shrink-0 [&_svg]:size-4',
                         triggerClassName
                     )}
                 >

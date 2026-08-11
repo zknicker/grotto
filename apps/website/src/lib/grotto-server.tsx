@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
 import {
     createWSClient,
-    httpLink,
+    httpBatchLink,
     splitLink,
     type TRPCWebSocketClient,
     wsLink,
@@ -165,7 +165,9 @@ function createGrottoConnection(
             links: [
                 splitLink({
                     condition: (operation) => operation.type === 'subscription',
-                    false: httpLink({
+                    // Batched: a screen's concurrent queries share one POST, so
+                    // a cold chat open costs one round trip, not five.
+                    false: httpBatchLink({
                         headers: async () => {
                             const token = await getClerkSessionToken();
                             return {

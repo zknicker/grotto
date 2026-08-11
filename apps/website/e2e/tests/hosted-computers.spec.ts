@@ -13,7 +13,10 @@ test('a populated Computer page never presents its attach flow while inventory l
         credential: 'computer-loading-test-credential-1234',
         slug: 'loading-computer-hq',
     });
-    await page.route('**/trpc/computer.list', async (route) => {
+    // Matches the batched form too: httpBatchLink joins concurrent procedures
+    // into one `/trpc/a,b?batch=1` request, so the single-procedure path alone
+    // would never intercept — and the skeletons would resolve unobserved.
+    await page.route('**/trpc/*computer.list*', async (route) => {
         await new Promise((resolve) => setTimeout(resolve, 500));
         await route.continue();
     });

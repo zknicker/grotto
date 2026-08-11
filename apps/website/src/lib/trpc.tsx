@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createWSClient, httpLink, loggerLink, splitLink, wsLink } from '@trpc/client';
+import { createWSClient, httpBatchLink, loggerLink, splitLink, wsLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import * as React from 'react';
@@ -169,7 +169,8 @@ function createTrpcClient(serverOrigin: string | null, queryClient: QueryClient)
                 }),
                 splitLink({
                     condition: (operation) => operation.type === 'subscription',
-                    false: httpLink({
+                    // Batched: concurrent queries share one POST per tick.
+                    false: httpBatchLink({
                         headers: async () => {
                             const token = await getClerkSessionToken();
                             return token ? { authorization: `Bearer ${token}` } : {};

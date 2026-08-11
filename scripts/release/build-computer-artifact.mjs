@@ -42,6 +42,9 @@ export async function buildComputerArtifact(input) {
             GROTTO_COMPUTER_BUILD_VERSION: input.version,
         }
     );
+    // Bun's linker signature can be stale after embedding a large compiled payload.
+    // Normalize it before executing release checks; production signing replaces it later.
+    run('/usr/bin/codesign', ['--force', '--sign', '-', artifactPath]);
     await verifyComputerIdentity(artifactPath, input);
     verifyComputerReleaseAssets(artifactPath);
     return { artifactPath, publicKey };

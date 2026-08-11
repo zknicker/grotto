@@ -487,7 +487,7 @@ Rules:
 - Message creation is durable before model work starts.
 - A durable message never starts a turn directly. Inbox delivery planning
   queues it per attention rules for every joined/following agent regardless
-  of mentions, and an idle agent's next drain turn picks it up
+  of mentions, and an idle agent's next notice turn offers it
   (specs/inbox.md).
 - An agent DM addresses its one agent participant implicitly.
 - Sequence is assigned in the message insert transaction.
@@ -802,11 +802,11 @@ Rules:
 
 - An agent has at most one `active` session; the current session is the
   active row, not a participant pointer.
-- Sessions never rotate on a schedule. A fresh session starts only on a
-  model switch (lazy rotation at the next turn when the active session's
-  `effective_model_json` no longer matches the agent's configured model), a
-  manual reset from agent settings, or after ~7 fully idle days
-  (`last_turn_at`).
+- Sessions never rotate on a schedule or because of idleness. A fresh session
+  starts only on a model switch (lazy rotation at the next turn when the
+  active session's `effective_model_json` no longer matches the agent's
+  configured model), a manual reset from agent settings, or automatic
+  recovery from rejected native resume state.
 - Starting a new session archives previous active sessions for that agent.
 - Sessions are archived, never deleted.
 
@@ -823,8 +823,9 @@ chat)` tracking what the inbox has queued (`delivered`) versus what is
 provably model-visible (`seen`). `delivered` is transport state — muted
 targets never advance it. `seen` is the sole model-seen authority for
 freshness holds and catch-up: prompt-embedded envelopes advance it at turn
-settle, pull outputs advance it when the tool result commits, hold catch-up
-rows advance it when shown. Notices and wakes advance neither.
+settle, exact pull identities advance it when their active turn settles, and
+hold catch-up rows advance it through their visibility proof. Pulls advance
+the separate `served` horizon immediately. Notices and wakes advance neither.
 
 ```text
 agent_inbox_cursors

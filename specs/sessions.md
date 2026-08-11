@@ -22,14 +22,17 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
 
 - One turn at a time per agent, across all chats. A seat is busy exactly
   when its agent is busy.
-- An idle agent's wake claims one drain turn delivering ALL pending targets
-  batched; a busy agent sees only content-free notices. Chain budgets bound
-  agent-to-agent drains ([inbox.md](inbox.md)).
-- A fresh session's first turn is the bare `Start.` message; after a reset
-  the fresh-session line rides it.
+- An idle wake starts one notice-only turn; a busy Agent receives the same
+  content-free notice in its live turn. Bodies remain Computer-local until an
+  explicit pull. Chain budgets follow model-visible Agent traffic
+  ([inbox.md](inbox.md)).
+- A fresh session with no pending delivery starts with bare `Start.`. After a
+  reset, the recovery line precedes either `Start.` or the pending notice/typed
+  attention that becomes the first prompt. Startup never races a second
+  mid-turn delivery.
 - Stop interrupts the live turn and persists the Agent's stopped lifecycle state. New messages and
   reminders continue to accumulate in its inbox but cannot wake it. A human Start resumes the
-  current session and drains pending work.
+  current session and offers pending work again.
 
 ## Cursors
 

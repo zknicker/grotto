@@ -25,8 +25,9 @@ model session. Per-turn message delivery is an inbox concern; see
 - A fresh session starts only for initial creation, a runtime or model switch,
   manual session reset, or one automatic recovery after the harness rejects a
   stored resume state.
-- The first delivery to a fresh session begins with `Start.`. Later deliveries
-  resume the same session without replaying that marker.
+- A fresh session with pending work uses its notice or typed attention as the
+  first prompt. `Start.` is used only when no delivery is pending. Later
+  deliveries resume the same session without replaying that marker.
 - Restart recreates the Agent runner and resumes the same native conversation.
   Its next delivery applies the latest composed instructions once without
   rotating the session generation or replaying `Start.`.

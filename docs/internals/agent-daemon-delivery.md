@@ -33,10 +33,11 @@ the Server and Computer implementation.
 
 ```text
 Server queued work
-  -> typed structured inbox
-  -> Computer atomic run inbox
+  -> full envelope in Computer-local pending inbox
   -> accepted ACK
-  -> model-visible drain
+  -> content-free notice
+  -> Agent-chosen local message check
+  -> exact visibility receipt
   -> settled proof
   -> Server seen cursor + consumption
 ```
@@ -46,13 +47,14 @@ model-seen proof. An accepted run that loses its process before settlement is
 replayed at least once. Duplicate effects are preferable to silently dropping
 unseen human work.
 
-`seen` is the only consumption authority. A CLI pull during an accepted run
-attaches the returned rows to that run and advances `served` for freshness
-holds. Settlement advances `seen` for both the original drain and those pulled
-rows, so already-handled work does not start a redundant turn. If the process
-crashes first, the attached rows remain durable under the unsettled run and
-replay with it. A failed turn advances `seen` only when a durable Agent send
-proves the model handled that prompt.
+`seen` is the only consumption authority. A CLI pull serves Computer-local
+bodies first, attaches exact identities to that run, and advances `served` for
+freshness holds. Settlement advances `seen` for exact pulled identities and
+for concrete typed-attention or replay identities proven visible in that turn,
+so already-handled work does not start a redundant turn. If the process crashes
+first, the attached rows remain durable under the unsettled run and replay with
+it. A failed turn advances `seen` only when a durable Agent send proves the
+model handled that prompt.
 
 ## Model Projection
 
@@ -61,10 +63,19 @@ Computer renders the exact target, short message id, home-timezone timestamp,
 sender type, sender handle, optional sender description, and body defined by
 the turn-shape spec.
 
-A fresh session receives `Start.` before its first inbox drain. A busy Agent's
-Computer durably receives full new envelopes but injects only the content-free
-target/count/id/sender notice. Message bodies enter the model only through a
-drain or explicit `grotto message check`.
+A fresh session uses its initial content-free notice as the first prompt;
+`Start.` is used only when no delivery is pending. A reset recovery line
+precedes whichever first prompt applies. A different notice arriving during
+cold startup remains durable and is offered after that turn instead of racing
+a mid-turn injection. Idle and busy Agents durably receive full envelopes but
+project only target/count/id/sender metadata. Message bodies enter the model
+only through explicit `grotto message check`, history/hold context, or the
+typed non-Chat system-attention lane.
+
+Busy notices queue behind the active turn and inject only after a completed
+tool boundary. Computer acknowledges the notice after that injection succeeds;
+when no safe boundary remains, the durable notice is left unacknowledged for
+the next turn instead of being accepted too late for the model to observe it.
 
 Computer reconciles every model-visible message through one exact-identity
 consume point. Accepted run inboxes and successful Agent API responses
@@ -73,8 +84,10 @@ the local pending projection. Snapshot replacement and live notice injection
 use the same serialized write boundary. Consumed identities remain attached for
 the session generation because each notice carries only a bounded pending
 window, preventing omitted or older in-flight rows from resurrecting a stale
-notice. A session reset clears this projection. This local state never replaces
-Server `served` or `seen` authority.
+notice. A session reset clears this projection. Local pulls also write
+run-scoped visibility evidence: Computer attempts an immediate Server receipt
+for freshness and repeats the identities in the turn summary. Server remains
+canonical and advances `seen` only on settlement.
 
 System attention that is not itself a Chat message, including Cove's one-shot
 first-greeting request, uses the same structured run inbox and exact-identity
@@ -163,13 +176,13 @@ presentation plumbing.
 
 | Principle | Smallest proving lane |
 | --- | --- |
-| One persistent session; cold `Start.` then resume | `apps/computer/src/harness/executor.test.ts` |
+| One persistent session; pending delivery or cold `Start.`, then resume | `apps/computer/src/harness/executor.test.ts` |
 | Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
 | Tool names become bounded safe Activity evidence | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
-| Exact structured drain and content-free busy notice | `apps/computer/src/inbox-format.test.ts` |
+| Exact message envelopes and content-free notices | `apps/computer/src/inbox-format.test.ts` |
 | Every model-visible identity consumes one local notice contribution | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/proxy.test.ts` |
 | Live notice injection cannot race accepted-run consumption | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | Pipe and redirected-file input reach the managed Agent CLI | `apps/computer/src/agent-cli/stdin.test.ts` |

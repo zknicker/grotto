@@ -247,11 +247,14 @@ reuse the same `run_id`, so duplicate delivery is idempotent: the Computer
 reserves a run synchronously before any marker I/O and dedupes against a
 restart-durable per-run marker under `~/.grotto/computer`, replaying a settled
 run's stored summary instead of re-running it. A busy Agent accumulates queued
-work and receives a content-free `notice` (a count only), recorded in the running
-turn's runtime directory; that work becomes model-visible only at the next safe
-boundary, when the turn settles and the Server drains it into a fresh run. A
-completed turn deletes its claimed rows; a failed or Stopped turn requeues them,
-so nothing is lost. A failed turn does not re-drive immediately — repeated
+work and receives a content-free `notice`, recorded in the running turn's runtime
+directory. Idle ordinary work also starts with a notice; full envelopes stay in
+Computer-local pending state until `grotto message check` returns them. The
+Computer records those exact visible identities against the active run, and the
+Server advances `seen` only at settlement. Unread identities stay pending but an
+unchanged offered set does not start another turn; a new identity wakes the Agent
+again. A failed or Stopped turn requeues visible work when no durable output proves
+handling, so nothing is lost. A failed turn does not re-drive immediately — repeated
 failures back off (`retry_after`) and then degrade (`consecutive_failures`
 reaches its cap), so a broken runtime cannot tight-loop; fresh human intent
 (a new message or Start) clears the backoff.

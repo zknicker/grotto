@@ -55,13 +55,13 @@ backs every chat that agent sits in. Turns float on the session rather than
 anchoring to a chat (ADR 0014); a two-cursor inbox ledger per (session,
 target) tracks what has been delivered and what is provably model-visible
 (`specs/inbox.md`). A fresh session starts only on a model switch, a manual
-reset from agent settings, or after ~7 fully idle days; starting one archives
-the previous active session.
+reset from agent settings, or automatic recovery from rejected native resume
+state.
 
 A channel with multiple agents is not one engine session. Each agent runs
 its own global session. A durable message never invokes an agent directly —
 Runtime's delivery planner queues it per attention rules, and an idle
-agent's next drain turn (or a busy agent's content-free notice) is how it
+agent's next content-free notice turn (or a notice in its live turn) is how it
 reaches execution (`specs/inbox.md`).
 
 ## Execution
@@ -88,27 +88,24 @@ settles, the executor stores the opaque Harness resume state and detaches the
 local handle, parking the underlying Agent execution host for the next
 delivery. Reset or retirement destroys that host.
 
-A fresh session's first turn is a bare `Start.` turn. After that, an idle
-agent's next turn is a drain: it batches every pending inbox target — every
-row between that target's `seen` and `delivered` cursor, plus any pierce rows
-— as labeled envelopes closed by a verbatim trailer telling the agent to
-respond as appropriate (`specs/inbox.md`). The prompt does not replay the
-prior user-agent transcript, because the harness session owns that history;
-it carries only the batch of envelopes plus a chain-budget note when the
-drain is all agent-authored.
-Each turn prompt is time-anchored with the current time, and every included
-message carries its send time — weekday-prefixed home-timezone wall clock,
-e.g. `Sun 2026-07-05T13:22:42-04:00` (`apps/runtime/src/tavern/harness-prompt.ts`,
-timezone from `resolveHomeTimezone()`). Static per-session guidance — the home
-timezone, the staleness policy, and Grotto CLI guidance — lives in the
-composed agent instructions, not the per-turn prompt, so long sessions carry
-one copy instead of one per turn.
+A fresh session uses its pending notice or typed attention as the first prompt;
+bare `Start.` is used only when no delivery is pending. Startup and first
+delivery therefore cannot race two inputs or produce two independent replies.
+Every later ordinary wake is also notice-only. Full envelopes remain in
+Computer-local pending state until the Agent chooses `grotto message check`;
+the prompt never pushes Chat bodies or replays prior transcript because the
+harness session owns that history. Per-turn prompts do not inject the current
+time. A model-visible envelope carries the message's send time as home-timezone
+wall clock without weekday or timezone suffix, for example
+`2026-07-05 13:22:42`. Static per-session guidance — the home timezone,
+staleness policy, and Grotto CLI guidance — lives in the composed agent
+instructions, so long sessions carry one copy instead of one per turn.
 The composed instructions are agent-global — no chat-specific content — and
 append model-family operational guidance (`apps/runtime/src/tavern/model-instructions.ts`): tool-use
 enforcement and execution discipline for gpt/codex-class models, Google
 directives for gemini/gemma, nothing for Claude models.
-When a drain's envelopes are shown, Runtime advances each embedded target's
-`seen` cursor to the sequence shown at turn settle.
+When exact envelopes become model-visible, Computer records their identities
+against the active turn. Runtime advances `seen` only at turn settlement.
 Each turn also records prompt evidence — the composed instructions and the
 per-turn prompt — in `agent_turns` metadata at turn start, served on demand
 at `GET /api/turns/{run_id}/prompt`. Dev mode (desktop Developer menu) adds

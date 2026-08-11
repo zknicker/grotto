@@ -22,7 +22,7 @@ gate lives on the send path exactly once; one prompt works on every runtime beca
 only a shell; every capability arrives as a CLI verb, not a tool-schema change.
 
 We had already independently converged on much of the substrate: one global session per agent
-(ADR 0011), full serialization + auto-drain, seen-ledger discipline, freshness holds,
+(ADR 0011), full serialization + offer-once notices, seen-ledger discipline, freshness holds,
 busy-delivery notices. Those survive in revised form (turns float on the session per I1; the
 ledger becomes two per-target cursors per I3). This program swaps the surface the agent touches
 — and, per the decisions below, deletes several Grotto subsystems in favor of Raft's
@@ -380,13 +380,14 @@ inbox. Human **Start** resumes the current session and drains that work.
   `cursorAuthority: "model_seen_only"` is Raft's own literal). Per (session, target):
   `delivered` (inbox/transport state; muted targets never advance it) and `seen` (sole
   authority for freshness holds and catch-up). `seen` advances only on proof: prompt-embedded
-  envelopes → turn settle; CLI pull outputs → when the tool result is committed back into the
-  session stream (we observe this directly — stricter than Raft's show-and-hope, which papers
-  the gap with the `recurring-recovery` recipe). Raft's "read" cursor is a disposable local
-  continuation hint (a tmpdir JSON), not schema — ours is in-memory turn state. Notices and
+  envelopes and exact CLI pull identities → turn settle. Pulls advance Grotto's durable
+  `served` horizon immediately so a pull-then-send does not spuriously hold; `served` never
+  replaces `seen` for catch-up or consumption. This settlement requirement is Grotto's stricter
+  proof contract; current Raft Computer behavior is observable, but Raft Server cursor
+  reconciliation is not. Notices and
   wakes advance nothing, ever (their wake proofs stamp `cursorImpact: {deliveryAck: false,
   modelSeen: false, read: false}` — adopted as a contract test). A turn that pulled and died
-  leaves `read > seen` in effect; catch-up re-delivers from `seen`.
+  leaves `served > seen`; catch-up re-delivers from `seen`.
 - **W1 — WS1 wire-contract gate rulings (2026-07-21; managed transport corrected
   2026-07-25 against `raft-computer` 1.0.13).** (a) Freshness-hold drafts are
   **server-held** — approved divergence from shipped Raft's client-local tmpdir drafts (found in
@@ -470,7 +471,7 @@ section; `## Chat History` tool teaching; all prompt-taught tool catalogs.
 
 | Surface | End-state |
 | --- | --- |
-| First session turn | `Start.` (+ one fresh-session line after resets) |
+| First session turn | Pending notice/attention when present; otherwise `Start.` (+ one fresh-session line after resets) |
 | Trigger delivery | `New message received:` + envelopes + Raft's two-line trailer; unseen rows of the triggering chat ride along as additional envelopes |
 | Envelope | `[target=… msg=… time=… type=…] @sender — <description>: …` (+ `[task #N status=… assignee=…]`, attachment suffix) |
 | Mid-turn traffic | Content-free inbox notices, Raft row format (first/latest msg, sender, `· task/thread/dm/mention` tags) |

@@ -8,7 +8,7 @@ them, investigate the discrepancy and update the stale material.
 - **Chat**: durable conversation and routing surface. Channels, DMs, and Threads are Chats.
 - **Agent session**: one Agent's continuous global execution context across every Chat it joins.
 - **Turn**: one execution inside that global session.
-- **Tavern Runtime / Server**: canonical Chats, messages, participants, pending delivery, cursors,
+- **Grotto Runtime / Server**: canonical Chats, messages, participants, pending delivery, cursors,
   reads, events, and Agent-presence routing.
 - **Computer**: Agent runtime, session process, local inbox projection, delivery notices, and the
   prompt/input surface.
@@ -20,18 +20,18 @@ would erase continuity and violate the current architecture.
 ## Core Invariants
 
 1. One Agent has one persistent session and runs at most one turn at a time across all Chats.
-2. A concrete delivery carries its exact target, message identity, timestamp, sender, and body.
-3. The current turn must ground itself in concrete request envelopes even though prior cross-Chat
-   state remains in session context.
+2. A pulled envelope carries its exact target, message identity, timestamp, sender, and body.
+3. When an Agent chooses to handle a notice, the turn must ground itself in those pulled envelopes
+   even though prior cross-Chat state remains in session context.
 4. Content-free notices are wake signals, not user requests and not message bodies.
 5. An identity already made model-visible by delivery or an explicit read must not re-enter later as
    stale current work.
 6. Delivery, model visibility, and freshness are distinct states. The seen ledger is the authority
    for what has reached the model; transport delivery alone is insufficient.
-7. Idle draining may batch all pending targets, but each target stays independently addressable.
-8. Agents speak through the Tavern messaging tool. A floating runtime turn anchors to the Agent
+7. A pull may batch pending targets, but each target stays independently addressable.
+8. Agents speak through the Grotto CLI. A floating Runtime turn anchors to the Agent
    session, not an arbitrary Chat.
-9. Canonical Chat history remains in Tavern and is recoverable through read/search/check tools.
+9. Canonical Chat history remains in Grotto Runtime and is recoverable through read/search/check tools.
    Session continuity does not require replaying every Chat transcript on each turn.
 10. Sends resolve a Runtime-owned Agent presence and its current session binding. Frontends do not
     invent routing ids.
@@ -69,16 +69,17 @@ presented exactly once as the current request. A deterministic test proves input
 ordering; a separate behavioral eval may prove the turn acts on B rather than volunteering A's task
 status.
 
-### Busy wake followed by idle drain
+### Busy wake followed by deferred pull
 
-While the Agent is busy, pending messages generate only content-free notices. When it becomes idle,
-the canonical pending messages are delivered concretely. The notice advances no delivery or seen
-cursor and cannot become a phantom request. Record the resumed Harness inputs too: cleaning a
-persisted notice is insufficient if the live runtime already accepted it.
+While the Agent is busy, pending messages generate only content-free notices at a safe tool
+boundary. If the turn ends first, the notice stays durable and starts the next turn. Idle wakes are
+notice-only too: canonical bodies remain Computer-local until the Agent pulls them. A notice
+advances no cursor and cannot become a phantom request. Record the resumed Harness inputs too:
+cleaning a persisted notice is insufficient if the live runtime already accepted it.
 
 ### Multi-target batch
 
-Messages pending in Chats A and B are drained together. Each retains its own target and identity;
+Messages pending in Chats A and B are pulled together. Each retains its own target and identity;
 reading or responding to one cannot consume, redirect, or mark visible the other.
 
 ## Common False Fixes

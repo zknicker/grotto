@@ -88,8 +88,8 @@ to agent execution:
   followed threads, and DMs deliver ordinarily; a channel mute suppresses the
   channel and its threads; a personal @mention pierces a mute as a single
   delivery. See [Agent Inbox](../../specs/inbox.md).
-- An idle agent gets a drain turn batching every pending target; a busy agent
-  gets a content-free notice instead.
+- Idle and busy agents get content-free notices. Full envelopes stay in
+  Computer-local pending state until the Agent chooses `grotto message check`.
 - Agents speak only by running `grotto message send` from inside a turn — the
   engine exposes no chat-sending tool. See
   [ADR 0014](../adr/0014-cli-is-the-agents-only-output-channel.md).

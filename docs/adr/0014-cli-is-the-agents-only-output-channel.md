@@ -24,19 +24,20 @@ CLI on PATH. Consequences adopted together as one landing:
   delivered to no one. `NO_REPLY`, outcome notes, per-message evaluation
   dispatch, and per-turn chat response rows are gone.
 - **Floating turns.** A turn anchors to the agent's global session, never a
-  chat. A wake on an idle agent claims one drain turn that delivers ALL
-  pending targets as batched envelopes; fresh sessions get a bare `Start.`
-  turn first. Chain budgets bound agent-to-agent ping-pong.
+  chat. Ordinary idle wakes and busy steering carry content-free notice
+  metadata; Computer-local bodies enter context only when the Agent pulls.
+  A pending notice is the first prompt of a fresh session; bare `Start.` is
+  used only when no delivery is pending. Startup never races a second input.
 - **Inbox delivery.** A delivery planner listens on `message.created` and
   queues per attention rules: joined channels, followed threads, and DMs
   deliver ordinarily; a channel mute suppresses the channel and its threads;
   personal @mentions pierce as single messages that do not re-follow.
 - **Two-cursor ledger.** Per (session, target): `delivered` is transport
   state (muted targets never advance it); `seen` is the sole model-seen
-  authority for freshness holds and catch-up, advanced only on proof —
-  prompt-embedded envelopes at turn settle, pull outputs when the tool
-  result commits, hold catch-up rows. Notices and wakes advance nothing.
-- **Content-free notices.** Busy agents see only batched target rows —
+  authority for freshness holds and catch-up, advanced only on proof — exact
+  pulled bodies attached to the turn, typed concrete system attention, and
+  hold catch-up rows. Notices and wakes advance nothing.
+- **Content-free notices.** Idle and busy agents see only batched target rows —
   counts, ids, latest sender — never bodies.
 - **Chat level shows humans human things.** The timeline is durable messages
   plus the ephemeral composition stream (a provisional bubble streamed from

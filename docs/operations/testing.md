@@ -274,7 +274,7 @@ See AGENTS.md ("Agent System Prompt Changes").
 
 `bun run eval:sessions` uses the same hosted lane and checks the public
 agent-global session contract end-to-end (`specs/sessions.md`): cross-chat
-continuity, full serialization with auto-drain, mid-turn freshness, accepting
+continuity, full serialization with offer-once notices, mid-turn freshness, accepting
 the next delivery after a session reset, and exact model-switch application.
 It restores changed Agent configuration afterward. Internal generation and
 resume bookkeeping remain covered by deterministic Computer tests; this live

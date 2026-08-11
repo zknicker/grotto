@@ -50,9 +50,10 @@ likely multi-human future.
 - **Full serialization.** One turn at a time per agent, across all chats.
   Mid-turn traffic reaches the live turn through busy delivery; dedicated
   turns queue. Parallelism is achieved with more agents, not forked context.
-- **Auto-drain.** A turn ending with pending unseen traffic immediately
-  starts the agent's next turn. The inbox is the queue; there is no
-  priority scheduler.
+- **Offer once per pending set.** Ordinary pending traffic starts or steers a
+  turn with a content-free notice. Unpulled rows remain queryable but do not
+  immediately start another turn for the unchanged set. A new identity, Human
+  Start/Restart, or session reset offers the pending set again.
 - **Seen ledger + action gating.** Runtime keeps a durable per-(session,
   chat) record of what has provably been model-visible. Outbound actions
   against a stale chat are held with the unseen rows embedded

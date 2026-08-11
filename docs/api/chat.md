@@ -285,8 +285,9 @@ Sending a message never starts a turn directly. A durable `message.created`
 event is planned by Runtime's inbox delivery: every joined agent in a channel
 (and the one agent in a DM) is queued the message regardless of mentions; a
 channel mute suppresses delivery except for a personal @mention, which pierces
-as a single delivery. An idle agent wakes on a drain turn; a busy agent gets a
-content-free notice. See [Agent Inbox](../../specs/inbox.md).
+as a single delivery. Idle and busy agents receive a content-free notice;
+message bodies become visible only when the agent checks messages. See
+[Agent Inbox](../../specs/inbox.md).
 
 `chat.send` returns no turns — just the durable message's acceptance receipt
 (`acceptedAt`, `chatId`, `clientMessageId`, `status`, `threadChatId`). Turns
@@ -408,10 +409,10 @@ single chat's turn. It does not delete the triggering message or any
 previously delivered output.
 
 There is no steer mutation and no composer queue: sending while an agent is
-mid-turn is a normal message send. Runtime attempts busy delivery of the new
-message into the agent's running turn; when it cannot, the message reaches
-the agent through its next drain's catch-up instead (see
-[Agent Inbox](../../specs/inbox.md)). Model changes are Runtime session
+mid-turn is a normal message send. Runtime caches the new message on the
+Computer and attempts to inject a content-free notice into the running turn.
+If that safe-boundary injection fails, the unchanged pending identity remains
+eligible for a later notice (see [Agent Inbox](../../specs/inbox.md)). Model changes are Runtime session
 controls, not message composer payloads.
 
 ## Messages

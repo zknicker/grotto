@@ -207,7 +207,7 @@ production stream. Its latest descriptor is a JSON document at
 {
   "release": {
     "artifactUrl": "https://releases.grotto.sh/computer/X.Y.Z/grotto-computer-aarch64-apple-darwin",
-    "protocolVersion": 6,
+    "protocolVersion": 7,
     "sha256": "<lowercase artifact sha256>",
     "sourceRevision": "<full lowercase git sha>",
     "version": "X.Y.Z"

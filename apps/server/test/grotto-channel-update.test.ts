@@ -108,7 +108,9 @@ test('keeping an existing Agent while adding another preserves both', async () =
         name: 'both-agents',
         serverId,
     });
-    expect(updated.participantAgentIds).toEqual([firstAgentId, secondAgentId].sort());
+    // Sort both sides: the server orders participants under the database
+    // collation, which disagrees with JS byte order for mixed-case ids.
+    expect([...updated.participantAgentIds].sort()).toEqual([firstAgentId, secondAgentId].sort());
 });
 
 test('creating and changing a channel each emit one durable lifecycle event', async () => {

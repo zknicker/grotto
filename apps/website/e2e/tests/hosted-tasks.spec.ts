@@ -18,6 +18,11 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     await page.goto('/s/hosted-tasks/tasks');
 
     await page.getByRole('button', { name: 'New task' }).click();
+    // Pin the anchor Chat: the dialog defaults to the most recently active
+    // chat, which on a fresh Server is Cove's onboarding channel once its
+    // first message lands — a race this test must not depend on.
+    await page.getByRole('button', { name: /Chat/u }).click();
+    await page.getByRole('option', { name: '#all' }).click();
     await page.getByPlaceholder('What needs to be done?').fill('Prove the hosted task flow');
     await page.getByRole('button', { name: 'Create task' }).click();
 

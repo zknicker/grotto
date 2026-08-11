@@ -111,8 +111,8 @@ When updates are required, list only those actionable updates:
 - ✨ **What changed**: `one to three user-facing sentences`.
 - ✅ **Verification**: `release checks, focused tests, artifact checks, deployment,
   and public health evidence`.
-- 🗄️ **Data operations**: `none | exact migration, reset, or backfill performed |
-  exact operator action still required`.
+- 🗄️ **Database**: `✅ No migration required | ✅ Applied exact migration |
+  ❌ exact failed or pending operation`.
 - ➡️ **Next**: `what the operator can test now or must do before testing`.
 
 Put required updates immediately after the release outcome and before the version
@@ -174,11 +174,13 @@ surface. It accepts an exact existing published, non-draft, non-prerelease
 * `activate`: verify and switch to that already installed release without a
   download or rebuild
 
-Both paths invoke the root-owned activation helper. It applies the candidate
-release's pending checked-in PostgreSQL migrations before switching `current`.
-A migration failure leaves the running release untouched. Database migrations
-are not rolled back when application health rollback restores an older release,
-so every migration must remain compatible with that older release.
+Both paths run the candidate release's compiled migration program with the
+workflow-held database credential, then invoke the root-owned activation helper.
+The workflow records the exact applied migration and success state in its job
+summary. A migration failure leaves the running release untouched. Database
+migrations are not rolled back when application health rollback restores an
+older release, so every migration must remain compatible with that older
+release.
 
 `activate` validates the published tag and the already-installed release; it
 does not require release assets. This preserves rollback to an installed

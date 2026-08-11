@@ -124,7 +124,7 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 * Effects are for external synchronization, not derived state.
 * Chat hooks keep messages, lists, reads, and search in React Query.
   Durable reconnect events trigger cursor catch-up plus exact invalidation;
-  composition events stay component-local and are discarded on unmount.
+  typing events stay component-local and are discarded on unmount.
   Selected attachment `File` objects stay composer-local; durable messages
   retain only attachment metadata, and authenticated byte transfer stays in
   focused attachment hooks.

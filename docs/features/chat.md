@@ -107,8 +107,9 @@ and [Agent Inbox](../../specs/inbox.md).
   resets stay agent-wide in Agent settings (specs/sessions.md); their durable
   new-session notice attaches to the agent's next turn as a header-action
   hover affordance instead of rendering standalone. Execution evidence (turn
-  status, activity feed, prompt and file-change trace) lives entirely on the
-  profile, not in the chat pane — see [Agent Activity](../../specs/agent-activity.md).
+  status and Activity History) lives on the profile. An Agent message's Turn Details drawer may
+  show its Server summary and, for Owners/Admins with an online Computer, relay the detailed local
+  execution journal — see [Agent Activity](../../specs/agent-activity.md).
 * **Stop.** Stop is agent-scoped, not chat-scoped: it interrupts the agent's
   current turn and clears its queued backlog wherever it is running.
 * **Dismissal.** Failed-turn banners can be dismissed with a hover X. The

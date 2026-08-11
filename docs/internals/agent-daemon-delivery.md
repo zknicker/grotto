@@ -152,25 +152,27 @@ policy. A human Restart clears the failure hold and redrives queued work without
 rotating the Agent's session. Raw failure evidence remains Computer-local; the
 compact failure kind crosses the Server boundary.
 
-## App Lifecycle Projection
+## App Work Projection
 
-Delivery state is durable; its live App projection is not. The Server emits
-four semantic lifecycle phases from product boundaries:
+Delivery state is durable; its live App projection is not. The Server emits three coarse lifecycle
+phases from product boundaries:
 
 | Phase | Projection point | App meaning |
 | --- | --- | --- |
 | `working` | A start command reaches the assigned Computer | Agent availability becomes busy |
 | `reading` | The Computer accepts the run, or an Agent send finishes | Agent remains coarsely busy |
-| `sending` | The Agent message-send request is recording its durable message | Show one provisional bubble at that exact Chat or thread |
 | `settled` | The active run completes, fails, or is stopped | Reconcile Agent availability, delivery state, and durable Activity |
 
-These events carry no reasoning or tool transcript and are neither stored nor
-replayed. The Agent profile's Activity tab remains the durable, turn-grained
-execution evidence surface. Its compact turn summary may include a bounded set
-of tool names observed in the harness stream, but never arguments, command
-contents, model reasoning, or private file contents. Chat receives only the
-short-lived `sending` composition bubble; every other lifecycle phase is
-presentation plumbing.
+Lifecycle remains the coarse availability projection. ADR 0023 adds a separate semantic Agent
+activity journal: Computer maps known Harness and product boundaries into safe categories, Server
+persists them, and the sidebar strip projects the latest category for each unsettled Agent. Unknown
+and MCP tools remain generic. Neither lifecycle nor semantic activity carries arguments, command
+contents, model reasoning, draft messages, tool outputs, or private file contents.
+
+Computer separately records a detailed execution journal keyed by run. Owner/Admin inspection uses
+an authorized live relay; Server never persists that response. Chat receives only the ephemeral
+typing indicator described by `specs/typing-indicators.md`, backed for Agents by run-attached inbox
+work. The old `sending` composition bubble and compositionId handoff are removed.
 
 ## Invariant Tests
 
@@ -178,7 +180,7 @@ presentation plumbing.
 | --- | --- |
 | One persistent session; pending delivery or cold `Start.`, then resume | `apps/computer/src/harness/executor.test.ts` |
 | Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
-| Tool names become bounded safe Activity evidence | `apps/computer/src/harness/executor.test.ts` |
+| Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
@@ -194,7 +196,7 @@ presentation plumbing.
 | Chain ceiling preserves rows and human input releases it | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
-| Agent sends project a target-scoped provisional composition | `apps/server/test/grotto-agent-run.test.ts`, `apps/website/src/features/servers/hosted-agent-composition-bubble.test.tsx` |
+| Agent Chat engagement starts from accepted run-attached inbox work and clears at every terminal path | `apps/server/test/agent-delivery.test.ts`, `apps/server/test/grotto-agent-run.test.ts` |
 | `As Task` enters the inbox with canonical task metadata | `apps/server/test/grotto-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
 | Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/grotto-agent-run.test.ts` |
 | Mute/unfollow purge ordinary work; mentions pierce without changing attention state | `apps/server/test/grotto-agent-run.test.ts` |

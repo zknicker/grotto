@@ -39,11 +39,10 @@ CLI on PATH. Consequences adopted together as one landing:
   hold catch-up rows. Notices and wakes advance nothing.
 - **Content-free notices.** Idle and busy agents see only batched target rows —
   counts, ids, latest sender — never bodies.
-- **Chat level shows humans human things.** The timeline is durable messages
-  plus the ephemeral composition stream (a provisional bubble streamed from
-  an in-flight send, committed by the `message.created` compositionId echo,
-  retracted on a freshness hold). Execution evidence lives at agent level:
-  status dot, activity feed, prompt and file-change trace.
+- **Chat level shows humans human things.** The timeline contains durable messages only. ADR 0023
+  supersedes the provisional composition bubble with a near-composer typing indicator: human
+  composition plus Agent Chat engagement derived from accepted run-attached inbox work. Execution
+  evidence remains separate Agent-level state.
 
 The same landing retires the systems the CLI-only model replaces: the memory
 pipeline (extraction, dreaming, core-memory injection), the Wiki, the cron

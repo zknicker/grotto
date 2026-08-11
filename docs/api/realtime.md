@@ -20,6 +20,7 @@ clients recover through durable reads.
 | Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, Chat lifecycle, and reminder changes |
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
+| Hosted Agent activity journal | Grotto Server | Durable semantic execution metadata plus live current-state projection |
 | Hosted Agent lifecycle hub | Grotto Server | Volatile working/reading/sending/settled projection for presence and send composition |
 | App subscriptions | Grotto App | tRPC notification transport, catch-up cursors, and focused query invalidation |
 
@@ -136,6 +137,11 @@ The App maps every active phase to coarse Agent `working` availability. Only
 exact target Chat renders it. Settlement invalidates the durable Agent list,
 delivery state, and activity reads. Reconnect recovers from those reads rather
 than replaying lifecycle events.
+
+Semantic Agent activity is written before broadcast. Computer frames carry a narrow category,
+phase, run id, per-run sequence, timestamp, and optional canonical safe tool reference. They never
+carry reasoning, drafts, commands, paths, inputs, or outputs. Reconnect reads durable Activity
+History plus the current unsettled-Agent snapshot before applying later live updates.
 
 Hosted durable event kinds are `message.created`, `chat.read`, `chat.lifecycle`, the
 reader-private `thread.follow.updated`, `task.created`, `task.updated`, and

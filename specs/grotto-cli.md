@@ -270,15 +270,10 @@ Flow for `message send --target <t>`:
 in a tmpdir. We hold them server-side because the server is the record (I3),
 agent shells are ephemeral, and grotto.sh must survive machine hops.
 
-**compositionId handoff (I1).** The harness observer mints a composition id
-when it sees a `message send` streaming in tool-call args and injects it as
-`GROTTO_COMPOSITION_ID` into that tool call's shell env. WS1 ships only the
-plumbing (env forwarding, wire field, metadata echo); the observer that mints
-the id lands with WS2's streaming UX. The CLI forwards it in
-the send body; `message.created` echoes it in metadata so the app swaps the
-provisional bubble for the durable message. Absent env → field omitted; the
-send is unaffected. A held send never publishes the composition commit — the
-bubble retracts (freshness hold path).
+**Typing is not a CLI handoff (ADR 0023).** Agent typing projects from accepted run-attached inbox
+work, not from partial `message send` arguments. The CLI sends no composition identity, and durable
+messages need no provisional-row reconciliation. Human typing and Agent Chat engagement use the
+separate ephemeral Chat typing contract.
 
 ## 7. Verb surface and ownership
 
@@ -320,7 +315,7 @@ it unchanged.
 
 ```http
 POST /api/agent/messages/send      { target, content, attachmentIds?, sendDraft?,
-                                     continueAnyway?, compositionId?, nonce? }
+                                     continueAnyway?, nonce? }
                                    → { state: "sent", message,
                                        recentUnread: [{ target, message }] }
                                    | { state: "held", newMessageCount, shownMessages[],
@@ -379,7 +374,7 @@ All approved by operator ruling W1 (program contract, 2026-07-21).
 | Server-side list pagination on `server info` | We are designing the server API; Raft's client-side slicing is an artifact of its fat response. |
 | Targets resolved per-action server-side; no client-visible `resolve-channel` two-step | Simpler wire contract; the two-step is a Raft-internal REST artifact. |
 | `GROTTOMSG` delimiter | Naming parity with `RAFTMSG` (current npm), ours. |
-| compositionId on sends | Grotto enhancement (I1); Raft has no in-chat typing signal at all. |
+| Chat typing outside message sends | Grotto uses human composition pulses and Agent Chat engagement; no CLI composition id. |
 | `attachment upload` takes no `--target` (Raft's does) | Upload is decoupled from posting; the message send carries `--attachment-id`, so an upload never implies a visible post (WS5). |
 | `reminder schedule` has no `--channel` anchor variant | The prompt teaches message anchors explicitly (anchorless reminders lose their context); Raft's `--channel` flag semantics are unverified in the wire layer (WS5). |
 | `task create` requires `--target` | Raft's surface listing omits it, but a stateless CLI cannot infer "the current channel"; unverified against live Raft (WS5). |

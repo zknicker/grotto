@@ -48,7 +48,11 @@ export function ChatComposer({
     chatName: string;
     compositionChatId: string | undefined;
     onThreadCreated?: (threadChatId: string) => void;
-    /** The transcript that shows this composer's sends while they are in flight. */
+    /**
+     * The transcript that shows this composer's sends while they are in flight.
+     * A chat renders its own id; a Thread renders an anchor-owned key, because
+     * a first reply has no Thread chat id until its receipt returns.
+     */
     pendingChatId?: string;
     placeholder?: string;
     serverId: string;

@@ -3,6 +3,7 @@ import type { HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern
 import * as React from 'react';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
+import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { useThreadFollow } from '../../../hooks/servers/use-thread-follow.ts';
 import { useThreadMessages } from '../../../hooks/servers/use-thread-messages.ts';
 import { ChatSidePaneShell } from '../../chats/chat-side-pane-shell.tsx';
@@ -14,6 +15,8 @@ import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
 import { ChatAgentComposition } from '../chat/agent-composition.tsx';
 import { ChatComposer } from '../chat/chat-composer.tsx';
 import { useChatTranscript } from '../chat/chat-transcript.tsx';
+import { PendingChatMessages } from '../chat/pending-messages.tsx';
+import { pendingThreadReplyKey, usePendingChatMessages } from '../chat/use-pending-messages.ts';
 import { threadTitles } from './thread-target.ts';
 
 export function ThreadPanel({
@@ -103,7 +106,12 @@ function ThreadContent({
     const replyCount = Math.max(summary?.replyCount ?? 0, replies.length);
     const follow = useThreadFollow(chat.id);
     const humans = useHumanDirectory(chat.serverId);
+    const viewerUserId = useMembers(chat.serverId).data?.viewerUserId;
     const titles = threadTitles(chat, anchor.id, humans);
+    // Replies show as pending rows the instant they are sent, under a key the
+    // anchor owns, so the very first reply — which has no Thread chat id until
+    // its receipt lands — is carried the same way every later one is.
+    const pendingReplies = usePendingChatMessages(pendingThreadReplyKey(anchor.id), replies);
     // The thread renders through the same hosted transcript wiring as the
     // main chat, so anchor and replies look and feel like channel rows.
     const threadMessages = React.useMemo(() => [anchor, ...replies], [anchor, replies]);
@@ -190,6 +198,13 @@ function ThreadContent({
                                 key={entry.id}
                             />
                         ))}
+                        {viewerUserId ? (
+                            <PendingChatMessages
+                                messages={pendingReplies}
+                                serverId={chat.serverId}
+                                viewerUserId={viewerUserId}
+                            />
+                        ) : null}
                         <ChatAgentComposition chatId={threadChatId} serverId={chat.serverId} />
                     </div>
                 </div>
@@ -204,6 +219,7 @@ function ThreadContent({
                     chatName={titles.header}
                     compositionChatId={threadChatId}
                     onThreadCreated={setCreatedThreadChatId}
+                    pendingChatId={pendingThreadReplyKey(anchor.id)}
                     placeholder="Add a reply…"
                     serverId={chat.serverId}
                     thread={{ anchorMessageId: anchor.id }}

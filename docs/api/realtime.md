@@ -48,16 +48,30 @@ notifies the App after commit. On subscription start or reconnect, the App
 seeds a new in-memory cursor from `chat.eventHead` and refetches the Server Chat
 snapshot, or walks `chat.events` from its last cursor with a private catch-up
 cursor. Live delivery can advance in parallel without skipping the catch-up
-window. Thread events carry the child Chat id and nullable parent Chat id.
-Message events invalidate the exact message query, its parent summary when
-present, the Chat list, and Server search; read/follow events invalidate the
-parent summary and Chat list. `task.created` and `task.updated` invalidate the
-Server task list and affected parent-Chat message snapshot.
-`task.label.updated` invalidates the task-label catalog and task list.
-`chat.lifecycle` carries `archived`, `unarchived`, or `deleted` plus the stable
-Chat id. It invalidates active and archived lists, the focused Chat query,
-search, messages, and tasks. Unlike ordinary Chat events, its id is retained
-outside the live Chat foreign key so a delete notification survives the purge.
+window. A catch-up walk accumulates the invalidation targets of every page and
+applies them in one pass after the walk, so a long reconnect gap costs a single
+refetch. Thread events carry the child Chat id and nullable parent Chat id.
+
+Each event invalidates only the reads it changes. `chat.list` renders Chat
+ordering, unread counts, and Thread attention, so only `message.created`,
+`chat.read`, `thread.follow.updated`, and `chat.lifecycle` target it.
+`message.created` invalidates the exact message query and Thread transcript,
+its parent summary when present, the Chat list, and Server search. `chat.read`
+invalidates the Chat list alone. `thread.follow.updated` invalidates the parent
+summary and the Chat list, because parent unread counts include Thread
+attention. `task.created` and `task.updated` invalidate the Server task list
+and the affected Chat message snapshot, not the Chat list. `task.label.updated`
+invalidates the task-label catalog and the task list, whose rows embed label
+records. `reminder.changed` invalidates reminder lists and runs only; the
+Reminders page hook duplicates that invalidation while mounted and React Query
+dedupes it. `chat.lifecycle` carries `archived`, `unarchived`, or `deleted` plus
+the stable Chat id, and invalidates active and archived lists plus the focused
+Chat query. Unlike ordinary Chat events, its id is retained outside the live
+Chat foreign key so a delete notification survives the purge.
+
+`chat.markRead` does not invalidate anything from its mutation result. Its
+durable `chat.read` event reaches the reader's own subscription and owns the
+Chat list refresh.
 
 The Server row owns the next durable cursor. Event transactions increment that
 counter while holding the Server row lock, then insert `chat_events` before

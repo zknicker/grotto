@@ -231,7 +231,8 @@ persistent human Stop without losing or duplicating model-visible work. A human
 DM message enqueues one `agent_pending_work` row **inside the same transaction
 that commits the message**, so a committed message can never leave its wake
 unqueued; the send never dispatches a turn itself, and the wire nudge afterwards
-is best-effort because the retry sweep and reconnect recover it. `agent_delivery`
+is fire-and-forget — the send's response never waits on it — because the retry
+sweep and reconnect recover it. `agent_delivery`
 holds one row per Agent — the Stop flag plus the single in-flight run — and is
 the serialization boundary: one Agent runs one turn at a time while different
 Agents on one Computer dispatch concurrently, with no Computer-wide queue.

@@ -140,6 +140,33 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 * Invalidate list reads for membership or ordering changes.
 * Invalidate detail reads for single-record changes.
 
+### Query Policy
+
+Server events own cache invalidation; `staleTime` is only the fallback floor.
+The contract is executable in
+`apps/website/src/lib/query-policy-contract.test.ts` — do not widen its
+allowlists to make it pass.
+
+* Every `useQuery` declares a named `queryPolicy` preset from
+  `lib/query-policy.ts` (or an explicit `staleTime` with a stated reason).
+  Both tRPC clients share a 30s default `staleTime` floor so an unpoliced
+  one-off query cannot refetch on every mount.
+* Event listener hooks are the single invalidation owner for their namespace.
+  Mutations do not re-invalidate what a durable event already covers; at most
+  they keep one narrow un-awaited invalidate as an ack fallback.
+* Listeners branch per event type and invalidate only the queries whose
+  rendered payload the event changes. Ground new branches in what the list
+  procedure actually returns, not in what sounds related.
+* Never set `refetchOnMount: false` on a query that unmounts with navigation.
+  Invalidation marks inactive queries stale without refetching them, so the
+  stale-gated mount refetch (the React Query default) is what delivers those
+  changes on remount.
+* Never put a tRPC utils proxy path (`utils.chat.x`) in a dependency array —
+  each property access is a fresh object. Depend on the stable `utils` root
+  and the memoized input value instead.
+* Show user-authored sends as app-local pending rows immediately; do not block
+  the composer on server acks or awaited invalidation fan-outs.
+
 ## Components
 
 * Keep files small and focused.

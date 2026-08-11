@@ -27,6 +27,13 @@ and [Agent Inbox](../../specs/inbox.md).
   downloads through an authenticated Server request. Attachment bytes never
   ride message-list payloads and never pass through a Computer or Agent
   workspace. Hosted attachments are not Chat artifacts.
+* **Sending.** A human send is instant. The draft leaves the composer the
+  moment it is sent, the composer stays enabled for the next message, and an
+  app-local pending row carries the text at the tail of the transcript until
+  the durable message arrives. Rapid sends queue as separate pending rows,
+  each matched to its durable message by send nonce; a failed send drops its
+  row and restores the whole draft, attachments included. Pending rows are
+  never written into durable chat history.
 * **Composition bubble.** While an agent's send is in flight, a provisional
   bubble renders at the target chat, swapped for the durable message once it
   commits, retracted on a freshness hold, and TTL-faded if the send is

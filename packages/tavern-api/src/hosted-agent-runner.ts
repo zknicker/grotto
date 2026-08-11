@@ -16,6 +16,8 @@ export const hostedAgentInboxItemSchema = z
         content: z.string().max(32_000),
         createdAt: hostedTimestampSchema,
         id: hostedIdSchema,
+        /** Canonical Agent API shape cached for Computer-local message checks. */
+        message: z.record(z.string(), z.unknown()).optional(),
         mentioned: z.boolean().optional(),
         senderDescription: z.string().trim().max(500).optional(),
         senderHandle: z.string().trim().min(1).max(128),
@@ -42,10 +44,13 @@ export const hostedAgentStartCommandSchema = z
         chatId: hostedIdSchema,
         homeTimezone: z.string().trim().min(1).max(128).optional(),
         inbox: z.array(hostedAgentInboxItemSchema).max(100).default([]),
+        /** Bodies are projected only for typed system attention or crash replay. */
+        inboxDelivery: z.enum(['concrete', 'notice']),
         modelId: z.string().trim().min(1).max(128),
         runId: hostedIdSchema,
         runtimeId: z.string().trim().min(1).max(64),
         sessionGeneration: z.number().int().positive(),
+        totalPending: z.number().int().nonnegative(),
         type: z.literal('start'),
         webAccess: z.enum(['fetch-only', 'search', 'search-only']).optional(),
     })
@@ -406,6 +411,18 @@ export const hostedAgentDeliveryAckSchema = z
 
 export type HostedAgentDeliveryAck = z.infer<typeof hostedAgentDeliveryAckSchema>;
 
+/** Computer proof that exact busy-turn notices were durably cached and injected. */
+export const hostedAgentNoticeAckSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        messageIds: z.array(hostedIdSchema).min(1).max(100),
+        runId: hostedIdSchema,
+        type: z.literal('notice-ack'),
+    })
+    .strict();
+
+export type HostedAgentNoticeAck = z.infer<typeof hostedAgentNoticeAckSchema>;
+
 /** Durable Computer acknowledgement for the dedicated Cove factory operation. */
 export const hostedCoveApplyResultSchema = z.discriminatedUnion('status', [
     z
@@ -639,6 +656,16 @@ export const hostedAgentTurnSummarySchema = z
         status: hostedAgentTurnStatusSchema,
         summary: z.string().max(2000),
         type: z.literal('turn'),
+        visibleMessages: z
+            .array(
+                z.object({
+                    chatId: hostedIdSchema,
+                    id: hostedIdSchema,
+                    sequence: z.number().int().positive(),
+                })
+            )
+            .max(10_000)
+            .default([]),
     })
     .strict();
 

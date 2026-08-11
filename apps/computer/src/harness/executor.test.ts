@@ -3,6 +3,7 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promise
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
+import { composeInboxNotice } from '../inbox-format.ts';
 import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
 import {
     AgentSessionResumeRejectedError,
@@ -23,20 +24,24 @@ interface CreateSessionCall {
 }
 
 let agentRoot: string;
+let acceptsUserMessages: boolean;
 let createSessionCalls: CreateSessionCall[];
 let restore: () => void;
 let rejectResume: boolean;
 let sentUserMessages: string[];
 let stoppedSessions: number;
+let streamIncludesToolBoundary: boolean;
 let streamedPrompts: string[];
 let streamToolNames: string[];
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'grotto-harness-'));
+    acceptsUserMessages = true;
     createSessionCalls = [];
     rejectResume = false;
     sentUserMessages = [];
     stoppedSessions = 0;
+    streamIncludesToolBoundary = false;
     streamedPrompts = [];
     streamToolNames = [];
     restore = setHarnessAgentFactoryForTesting((_input, _options) => fakeAgent());
@@ -64,7 +69,7 @@ function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
                 isResume: Boolean(options.resumeFrom),
                 sendUserMessage: async (message: string) => {
                     sentUserMessages.push(message);
-                    return true;
+                    return acceptsUserMessages;
                 },
                 sessionId: 'engine_session_1',
                 stop: async () => {
@@ -83,6 +88,9 @@ function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
                 fullStream: (async function* () {
                     for (const toolName of streamToolNames) {
                         yield { toolName, type: 'tool-call' };
+                    }
+                    if (streamIncludesToolBoundary) {
+                        yield { type: 'tool-result' };
                     }
                     yield {
                         type: 'finish-step',
@@ -128,10 +136,12 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
                 target: 'dm:@operator',
             },
         ],
+        inboxDelivery: 'concrete',
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
         sessionGeneration: 1,
         skillsDir: join(agentRoot, 'skills'),
+        totalPending: 1,
         webAccess: null,
         workspaceDir: join(agentRoot, 'workspace'),
         ...overrides,
@@ -154,10 +164,11 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     expect(afterFirst.generation).toBe(1);
     expect(afterFirst.runtimeSessionId).toBe('engine_session_1');
     expect(afterFirst.resumeState).toMatchObject({ type: 'resume-session' });
-    expect(streamedPrompts[0]).toContain('Start.');
-    expect(streamedPrompts[1]).toContain(
+    expect(streamedPrompts[0]).toContain(
         '[target=dm:@operator msg=test time=2026-07-27 00:00:00 type=human] @operator: Hello Cove'
     );
+    expect(streamedPrompts).toHaveLength(1);
+    expect(sentUserMessages).toEqual([]);
 
     await runHarnessTurn(turnInput());
     // Second turn resumes: the stored resume state is handed back to the engine.
@@ -189,6 +200,61 @@ test('returns bounded unique tool names as safe turn evidence', async () => {
     ]);
 });
 
+test('uses a concrete cold inbox as the first prompt without mid-turn injection', async () => {
+    acceptsUserMessages = false;
+
+    await runHarnessTurn(turnInput());
+
+    expect(streamedPrompts[0]).toContain('Hello Cove');
+    expect(sentUserMessages).toEqual([]);
+});
+
+test('cold-starts ordinary Chat work with a content-free notice in the same task', async () => {
+    const input = turnInput({ inboxDelivery: 'notice' });
+    const runtimeDir = join(agentRoot, 'runtime');
+    await mkdir(runtimeDir, { recursive: true });
+    await writeFile(
+        join(runtimeDir, 'pending-notice.json'),
+        JSON.stringify({ notice: composeInboxNotice(input.inbox, input.totalPending) })
+    );
+    await runHarnessTurn(input);
+
+    expect(streamedPrompts).toHaveLength(1);
+    expect(streamedPrompts[0]).toContain('Grotto inbox notice');
+    expect(streamedPrompts[0]).toContain('dm:@operator  pending: 1 message');
+    expect(streamedPrompts[0]).not.toContain('Hello Cove');
+    expect(sentUserMessages).toEqual([]);
+});
+
+test('a warm notice prompt is not injected a second time from durable storage', async () => {
+    await runHarnessTurn(turnInput());
+    sentUserMessages = [];
+    streamedPrompts = [];
+    const input = turnInput({ inboxDelivery: 'notice' });
+    const notice = composeInboxNotice(input.inbox, input.totalPending);
+    if (!notice) {
+        throw new Error('Expected a notice.');
+    }
+    const runtimeDir = join(agentRoot, 'runtime');
+    await mkdir(runtimeDir, { recursive: true });
+    await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ notice }));
+
+    await runHarnessTurn(input);
+
+    expect(streamedPrompts).toEqual([notice]);
+    expect(sentUserMessages).toEqual([]);
+    await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
+});
+
+test('an empty warm replay resumes without fabricating an inbox notice', async () => {
+    await runHarnessTurn(turnInput());
+    streamedPrompts = [];
+
+    await runHarnessTurn(turnInput({ inbox: [], inboxDelivery: 'notice', totalPending: 0 }));
+
+    expect(streamedPrompts).toEqual(['Resume the interrupted turn.']);
+});
+
 test('a cold start removes only its stale unresumable harness run', async () => {
     const staleRun = join(agentRoot, '.agent-runs', 'agt_test-1');
     await mkdir(staleRun, { recursive: true });
@@ -216,6 +282,10 @@ test('a Server generation change cold-starts the assigned runtime and model', as
         modelId: 'claude-opus-4-8',
         runtimeId: 'claude-code',
     });
+    expect(streamedPrompts[1]).toContain(
+        'Fresh session: your previous conversation context is gone.'
+    );
+    expect(streamedPrompts[1]).toContain('Hello Cove');
 });
 
 test('Restart resumes the same session and refreshes its current instructions once', async () => {
@@ -261,16 +331,20 @@ test('a rejected resume returns control to the Server without local rotation', a
 });
 
 test('delivers a pending busy notice into the live harness turn', async () => {
+    await runHarnessTurn(turnInput());
+    sentUserMessages = [];
+    streamIncludesToolBoundary = true;
     const runtimeDir = join(agentRoot, 'runtime');
     await mkdir(runtimeDir, { recursive: true });
     const notice =
-        '[Grotto inbox notice:\nInbox update: 3 unread messages total; 1 changed target(s)\ndm:@operator pending: 3 message(s)\n]';
+        '[Grotto inbox notice:\nInbox update: 3 unread messages total; 1 changed target\ndm:@operator  pending: 3 messages\n]';
     await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ notice }));
     let registeredSink: ((notice: string) => Promise<boolean>) | undefined;
     let unregistered = false;
 
     await runHarnessTurn(
         turnInput({
+            inbox: [],
             registerNoticeSink: (sink) => {
                 registeredSink = sink;
                 return () => {
@@ -283,6 +357,82 @@ test('delivers a pending busy notice into the live harness turn', async () => {
     expect(registeredSink).toBeDefined();
     expect(sentUserMessages).toEqual([notice]);
     expect(unregistered).toBe(true);
+    await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
+});
+
+test('reports a busy notice delivered after the start ack and before sink registration', async () => {
+    await runHarnessTurn(turnInput());
+    sentUserMessages = [];
+    streamIncludesToolBoundary = true;
+    const runtimeDir = join(agentRoot, 'runtime');
+    await mkdir(runtimeDir, { recursive: true });
+    const notice = '[Grotto inbox notice:\nInbox update: 1 unread messages total\n]';
+    await writeFile(
+        join(runtimeDir, 'pending-notice.json'),
+        JSON.stringify({
+            notice,
+            receipt: { messageIds: ['msg_late'], runId: 'run_active' },
+        })
+    );
+    const receipts: Array<{ messageIds: string[]; runId: string }> = [];
+
+    await runHarnessTurn(
+        turnInput({
+            inbox: [],
+            onStoredNoticeDelivered: (receipt) => receipts.push(receipt),
+            totalPending: 0,
+        })
+    );
+
+    expect(sentUserMessages).toEqual([notice]);
+    expect(receipts).toEqual([{ messageIds: ['msg_late'], runId: 'run_active' }]);
+});
+
+test('leaves a late busy notice unacknowledged when no safe tool boundary remains', async () => {
+    await runHarnessTurn(turnInput());
+    sentUserMessages = [];
+    const runtimeDir = join(agentRoot, 'runtime');
+    await mkdir(runtimeDir, { recursive: true });
+    const notice = '[Grotto inbox notice:\nInbox update: 1 unread message total\n]';
+    await writeFile(
+        join(runtimeDir, 'pending-notice.json'),
+        JSON.stringify({
+            notice,
+            receipt: { messageIds: ['msg_late'], runId: 'run_active' },
+        })
+    );
+    const receipts: Array<{ messageIds: string[]; runId: string }> = [];
+
+    await runHarnessTurn(
+        turnInput({
+            inbox: [],
+            onStoredNoticeDelivered: (receipt) => receipts.push(receipt),
+            totalPending: 0,
+        })
+    );
+
+    expect(sentUserMessages).toEqual([]);
+    expect(receipts).toEqual([]);
+    await expect(access(join(runtimeDir, 'pending-notice.json'))).resolves.toBeNull();
+});
+
+test('defers a stored follow-up notice until the cold turn has a safe live boundary', async () => {
+    const runtimeDir = join(agentRoot, 'runtime');
+    await mkdir(runtimeDir, { recursive: true });
+    const notice =
+        '[Grotto inbox notice:\nInbox update: 1 unread message total; 1 changed target\n#product  pending: 1 message\n]';
+    await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ notice }));
+
+    await runHarnessTurn(turnInput());
+
+    expect(streamedPrompts[0]).toContain('Hello Cove');
+    expect(sentUserMessages).toEqual([]);
+    await expect(access(join(runtimeDir, 'pending-notice.json'))).resolves.toBeNull();
+
+    streamIncludesToolBoundary = true;
+    await runHarnessTurn(turnInput({ inbox: [], inboxDelivery: 'notice', totalPending: 0 }));
+
+    expect(sentUserMessages).toEqual([notice]);
     await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
 });
 
@@ -313,6 +463,7 @@ test('a resumed DM greeting is not followed by its stale notice from prior task 
             },
         ])
     );
+    sentUserMessages = [];
     const greeting = {
         chatId: 'cht_dm',
         content: 'Hey Blippy!',

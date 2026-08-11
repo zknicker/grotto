@@ -136,7 +136,9 @@ export async function runCheck(deps: MessageDeps): Promise<number> {
     const lines = response.messages.map((row) => formatDeliveryEnvelope(row.target, row.message));
     const trailer = response.more
         ? 'More messages are pending — run grotto message check again.'
-        : 'No more new messages.';
+        : response.messages.length === 0
+          ? 'No new messages.'
+          : 'No more new messages.';
     deps.write(`${[...lines, trailer].join('\n')}\n`);
     return 0;
 }

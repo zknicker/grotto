@@ -5,7 +5,7 @@ import { createServer, type Server as NetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Server } from 'bun';
-import { readPendingInbox, replacePendingInbox } from './inbox-store.ts';
+import { readPendingInbox, readRunVisibleMessages, replacePendingInbox } from './inbox-store.ts';
 import type { HostedAgentInboxItem } from './launch.ts';
 import { startLoopbackProxy } from './proxy.ts';
 
@@ -93,16 +93,124 @@ test('the loopback proxy preserves Agent API query parameters', async () => {
     }
 });
 
+test('serves cached message bodies locally when the Server fetch is unavailable', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-local-first-'));
+    const location = { agentId: 'agt_local', dataRoot, serverId: 'srv_local' };
+    const cached = inboxItem('msg_cached', 1);
+    cached.message = agentMessage(cached);
+    await replacePendingInbox(location, [cached]);
+    const proxy = startLoopbackProxy({
+        ...location,
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        runId: 'run_local',
+        serverOrigin: 'http://127.0.0.1:1',
+    });
+    try {
+        const response = await fetch(`${proxy.url}/api/agent/events`, {
+            headers: { authorization: 'Bearer local-token' },
+        });
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({
+            messages: [{ message: { content: 'msg_cached', id: 'msg_cached' } }],
+        });
+        expect(await readPendingInbox(location)).toEqual([]);
+        expect(await readRunVisibleMessages(location, 'run_local')).toEqual([
+            { chatId: cached.chatId, id: cached.id, sequence: cached.sequence },
+        ]);
+    } finally {
+        proxy.close();
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('local pulls preserve the canonical more signal beyond the cached window', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-window-'));
+    const location = { agentId: 'agt_window', dataRoot, serverId: 'srv_window' };
+    const cached = Array.from({ length: 50 }, (_, index) => {
+        const item = inboxItem(`msg_${index}`, index + 1);
+        item.message = agentMessage(item);
+        return item;
+    });
+    await replacePendingInbox(location, cached, 60);
+    const proxy = startLoopbackProxy({
+        ...location,
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        runId: 'run_window',
+        serverOrigin: 'http://127.0.0.1:1',
+    });
+    try {
+        const headers = { authorization: 'Bearer local-token' };
+        const first = await fetch(`${proxy.url}/api/agent/events`, { headers });
+        expect(await first.json()).toMatchObject({ more: true });
+        const second = await fetch(`${proxy.url}/api/agent/events`, { headers });
+        expect(await second.json()).toMatchObject({ more: true });
+    } finally {
+        proxy.close();
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('a reachable local visibility receipt lands before the pull response', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-attest-order-'));
+    const location = { agentId: 'agt_order', dataRoot, serverId: 'srv_order' };
+    const cached = inboxItem('msg_order', 1);
+    cached.message = agentMessage(cached);
+    await replacePendingInbox(location, [cached]);
+    let receiptCommitted = false;
+    const upstream = Bun.serve({
+        async fetch(request) {
+            if (new URL(request.url).pathname === '/api/agent/events/visible') {
+                await new Promise((resolve) => setTimeout(resolve, 25));
+                receiptCommitted = true;
+                return Response.json({ accepted: [cached.id] });
+            }
+            return Response.json({ messages: [], more: false });
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    servers.push(upstream);
+    const proxy = startLoopbackProxy({
+        ...location,
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        runId: 'run_order',
+        serverOrigin: `http://127.0.0.1:${upstream.port}`,
+    });
+    try {
+        const response = await fetch(`${proxy.url}/api/agent/events`, {
+            headers: { authorization: 'Bearer local-token' },
+        });
+        expect(response.status).toBe(200);
+        expect(receiptCommitted).toBe(true);
+    } finally {
+        proxy.close();
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
 test('consumes only messages made visible by Agent API responses', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-inbox-'));
     const location = { agentId: 'agt_proxy', dataRoot, serverId: 'srv_proxy' };
     const greeting = inboxItem('msg_greeting', 1);
+    greeting.message = agentMessage(greeting);
+    const oldHistory = inboxItem('msg_old', 1);
     const productTask = inboxItem('msg_product', 2);
     const heldContext = inboxItem('msg_held', 3);
     await replacePendingInbox(location, [greeting, productTask, heldContext]);
     const upstream = Bun.serve({
-        fetch(request) {
+        async fetch(request) {
             const pathname = new URL(request.url).pathname;
+            if (pathname === '/api/agent/events/visible') {
+                const body = (await request.json()) as { messages: Array<{ id: string }> };
+                return Response.json({
+                    accepted: body.messages
+                        .map((message) => message.id)
+                        .filter((id) => id !== oldHistory.id),
+                });
+            }
             if (pathname === '/api/agent/events') {
                 return Response.json({
                     messages: [{ message: agentMessage(greeting), target: greeting.target }],
@@ -115,7 +223,7 @@ test('consumes only messages made visible by Agent API responses', async () => {
                     has_newer: false,
                     has_older: false,
                     last_read: { after: 0, unread_after: -1 },
-                    messages: [agentMessage(productTask)],
+                    messages: [agentMessage(oldHistory), agentMessage(productTask)],
                     target: productTask.target,
                 });
             }
@@ -137,6 +245,7 @@ test('consumes only messages made visible by Agent API responses', async () => {
         ...location,
         proxyToken: 'local-token',
         runnerToken: 'runner-token',
+        runId: 'run_proxy',
         serverOrigin: `http://127.0.0.1:${upstream.port}`,
     });
     try {
@@ -160,6 +269,64 @@ test('consumes only messages made visible by Agent API responses', async () => {
             method: 'POST',
         });
         expect(await readPendingInbox(location)).toEqual([]);
+        expect(await readRunVisibleMessages(location, 'run_proxy')).toEqual([
+            { chatId: greeting.chatId, id: greeting.id, sequence: greeting.sequence },
+            { chatId: oldHistory.chatId, id: oldHistory.id, sequence: oldHistory.sequence },
+            { chatId: productTask.chatId, id: productTask.id, sequence: productTask.sequence },
+            { chatId: heldContext.chatId, id: heldContext.id, sequence: heldContext.sequence },
+        ]);
+    } finally {
+        proxy.close();
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('returns a committed send when its visibility receipt is unavailable', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-send-receipt-'));
+    const location = { agentId: 'agt_proxy', dataRoot, serverId: 'srv_proxy' };
+    const shown = inboxItem('msg_shown', 1);
+    await replacePendingInbox(location, [shown]);
+    const upstream = Bun.serve({
+        fetch(request) {
+            if (new URL(request.url).pathname === '/api/agent/events/visible') {
+                return Response.json({ code: 'UNAVAILABLE' }, { status: 409 });
+            }
+            return Response.json({
+                continueAnywaySuggested: false,
+                formalMentionCount: 0,
+                newMessageCount: 1,
+                omittedMessageCount: 0,
+                reholdCount: 1,
+                shownMessages: [agentMessage(shown)],
+                state: 'held',
+            });
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    servers.push(upstream);
+    const proxy = startLoopbackProxy({
+        ...location,
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        runId: 'run_send',
+        serverOrigin: `http://127.0.0.1:${upstream.port}`,
+    });
+    try {
+        const response = await fetch(`${proxy.url}/api/agent/messages/send`, {
+            body: '{}',
+            headers: {
+                authorization: 'Bearer local-token',
+                'content-type': 'application/json',
+            },
+            method: 'POST',
+        });
+        expect(response.status).toBe(200);
+        expect((await response.json()) as { state: string }).toMatchObject({ state: 'held' });
+        expect(await readPendingInbox(location)).toEqual([]);
+        expect(await readRunVisibleMessages(location, 'run_send')).toEqual([
+            { chatId: shown.chatId, id: shown.id, sequence: shown.sequence },
+        ]);
     } finally {
         proxy.close();
         await rm(dataRoot, { force: true, recursive: true });

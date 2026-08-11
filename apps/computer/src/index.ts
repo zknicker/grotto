@@ -69,7 +69,13 @@ import {
     listImportableSkills,
     parseAgentSkillImportCommand,
 } from './host-skills.ts';
-import { acceptRunInbox, replacePendingInbox } from './inbox-store.ts';
+import {
+    acceptRunInbox,
+    clearRunVisibleMessages,
+    prepareRunReplay,
+    reofferPendingMessages,
+    replacePendingInbox,
+} from './inbox-store.ts';
 import { detectInventory } from './inventory.ts';
 import {
     type Attachment,
@@ -1395,6 +1401,7 @@ async function connect(attachment: Attachment) {
                     dataRoot,
                     serverId: attachment.serverId,
                 };
+                let injected = false;
                 void trackWriter(
                     replacePendingInbox(
                         location,
@@ -1403,12 +1410,26 @@ async function connect(attachment: Attachment) {
                         async (projected) => {
                             const sink = noticeSinks.get(notice.agentId);
                             if (sink?.runId === notice.runId) {
-                                await sink.deliver(projected);
+                                injected = await sink.deliver(projected);
                             }
-                        }
-                    ).catch((error) => {
-                        console.error(error instanceof Error ? error.message : error);
-                    })
+                        },
+                        { messageIds: notice.inbox.map((item) => item.id), runId: notice.runId }
+                    )
+                        .then(() => {
+                            if (injected) {
+                                socket.send(
+                                    JSON.stringify({
+                                        agentId: notice.agentId,
+                                        messageIds: notice.inbox.map((item) => item.id),
+                                        runId: notice.runId,
+                                        type: 'notice-ack',
+                                    })
+                                );
+                            }
+                        })
+                        .catch((error) => {
+                            console.error(error instanceof Error ? error.message : error);
+                        })
                 );
                 return;
             }
@@ -1491,6 +1512,10 @@ async function handleStartCommand(input: {
             runId: command.runId,
             serverId: attachment.serverId,
         });
+        await clearRunVisibleMessages(
+            { agentId: command.agentId, dataRoot, serverId: attachment.serverId },
+            command.runId
+        );
     };
 
     try {
@@ -1501,6 +1526,12 @@ async function handleStartCommand(input: {
             send(decision.summary);
             return;
         }
+        if (marker?.status === 'accepted') {
+            await prepareRunReplay(
+                { agentId: command.agentId, dataRoot, serverId: attachment.serverId },
+                command.runId
+            );
+        }
         let summary: HostedAgentTurnFrame;
         try {
             summary = await runAgentLaunch({
@@ -1508,21 +1539,34 @@ async function handleStartCommand(input: {
                 command,
                 dataRoot,
                 onRuntimeReady: async () => {
-                    await acceptRunInbox(
-                        {
-                            agentId: command.agentId,
-                            dataRoot,
-                            serverId: attachment.serverId,
-                        },
-                        command.runId,
-                        command.inbox ?? []
-                    );
+                    const location = {
+                        agentId: command.agentId,
+                        dataRoot,
+                        serverId: attachment.serverId,
+                    };
+                    if (command.inboxDelivery === 'notice') {
+                        await reofferPendingMessages(location, command.inbox ?? []);
+                        await replacePendingInbox(
+                            location,
+                            command.inbox ?? [],
+                            command.totalPending
+                        );
+                    } else {
+                        await acceptRunInbox(location, command.runId, command.inbox ?? []);
+                    }
                     await writeRunMarker(dataRoot, {
                         marker: { status: 'accepted' },
                         runId: command.runId,
                         serverId: attachment.serverId,
                     });
                     ack();
+                },
+                onStoredNoticeDelivered: (receipt) => {
+                    send({
+                        agentId: command.agentId,
+                        ...receipt,
+                        type: 'notice-ack',
+                    });
                 },
                 registerNoticeSink: (deliver) => {
                     const sink = { deliver, runId: command.runId };
@@ -1550,6 +1594,10 @@ async function handleStartCommand(input: {
             runId: command.runId,
             serverId: attachment.serverId,
         });
+        await clearRunVisibleMessages(
+            { agentId: command.agentId, dataRoot, serverId: attachment.serverId },
+            command.runId
+        );
         await sendComputerReport(socket, attachment.serverId, computerName).catch(reportStateError);
     } finally {
         await clearActiveRun();
@@ -1603,6 +1651,7 @@ function launchCrashTurn(
         status: 'failed',
         summary: `The Agent launch failed: ${error instanceof Error ? error.message : String(error)}`,
         type: 'turn',
+        visibleMessages: [],
     };
 }
 

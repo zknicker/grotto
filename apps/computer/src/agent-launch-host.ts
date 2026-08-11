@@ -12,6 +12,7 @@ export function acquireAgentLaunchHost(input: {
     agentId: string;
     dataRoot: string;
     runnerToken: string;
+    runId: string;
     serverId: string;
     serverOrigin: string;
     skillsDir: string;
@@ -20,6 +21,7 @@ export function acquireAgentLaunchHost(input: {
     const current = launchHosts.get(key);
     if (current) {
         current.proxy.setRunnerToken(input.runnerToken);
+        current.proxy.setRunId(input.runId);
         current.proxy.resetSendCount();
         return current;
     }
@@ -30,6 +32,7 @@ export function acquireAgentLaunchHost(input: {
             dataRoot: input.dataRoot,
             proxyToken,
             runnerToken: input.runnerToken,
+            runId: input.runId,
             serverId: input.serverId,
             serverOrigin: input.serverOrigin,
             skillsDir: input.skillsDir,

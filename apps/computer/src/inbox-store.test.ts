@@ -6,7 +6,11 @@ import { noticePath, writePendingNotice } from './delivery.ts';
 import {
     acceptRunInbox,
     consumeVisibleMessages,
+    prepareRunReplay,
     readPendingInbox,
+    readRunVisibleMessages,
+    recordRunVisibleMessages,
+    reofferPendingMessages,
     replacePendingInbox,
 } from './inbox-store.ts';
 import type { HostedAgentInboxItem } from './launch.ts';
@@ -52,7 +56,7 @@ test('accepting a DM greeting removes its stale busy notice before the resumed t
     await replacePendingInbox(location(), [greeting]);
     await writePendingNotice(dataRoot, {
         agentId: location().agentId,
-        notice: '[Grotto inbox notice:\nInbox update: 1 unread messages total; 1 changed target(s)\ndm:@operator pending: 1 message(s)\n]',
+        notice: '[Grotto inbox notice:\nInbox update: 1 unread message total; 1 changed target\ndm:@operator  pending: 1 message\n]',
         serverId: location().serverId,
     });
 
@@ -78,7 +82,7 @@ test('consuming exact visible identities preserves unrelated pending work', asyn
                 serverId: location().serverId,
             })
         ).json()
-    ).toMatchObject({ notice: expect.stringContaining('#product pending: 1 message(s)') });
+    ).toMatchObject({ notice: expect.stringContaining('#product  pending: 1 message') });
 });
 
 test('does not resurrect a consumed identity from a stale notice snapshot', async () => {
@@ -104,7 +108,36 @@ test('retains a visible identity omitted from a bounded notice window', async ()
     expect(await readPendingInbox(location())).toEqual([]);
 });
 
-test('serializes live notice delivery with accepted-run consumption', async () => {
+test('re-exposes a locally pulled body and clears stale visibility before crash replay', async () => {
+    const message = item('msg_replay', '#product', 1);
+    await replacePendingInbox(location(), [message]);
+    await recordRunVisibleMessages(location(), 'run_replay', [
+        { chatId: message.chatId, id: message.id, sequence: message.sequence },
+    ]);
+    await consumeVisibleMessages(location(), [message]);
+    expect(await readPendingInbox(location())).toEqual([]);
+
+    await prepareRunReplay(location(), 'run_replay');
+    await replacePendingInbox(location(), [message]);
+
+    expect(await readPendingInbox(location())).toEqual([message]);
+    expect(await readRunVisibleMessages(location(), 'run_replay')).toEqual([]);
+});
+
+test('re-exposes a consumed identity when Server offers it in a new turn', async () => {
+    const message = item('msg_reoffered', '#product', 1);
+    await replacePendingInbox(location(), [message]);
+    await consumeVisibleMessages(location(), [message]);
+    await replacePendingInbox(location(), [message]);
+    expect(await readPendingInbox(location())).toEqual([]);
+
+    await reofferPendingMessages(location(), [message]);
+    await replacePendingInbox(location(), [message]);
+
+    expect(await readPendingInbox(location())).toEqual([message]);
+});
+
+test('does not hold the inbox lock while live notice delivery waits', async () => {
     const greeting = item('msg_greeting', 'dm:@operator', 2);
     let releaseDelivery: (() => void) | undefined;
     const deliveryStarted = Promise.withResolvers<void>();
@@ -121,11 +154,10 @@ test('serializes live notice delivery with accepted-run consumption', async () =
     await deliveryStarted.promise;
     const acceptance = acceptRunInbox(location(), 'run_greeting', [greeting]);
 
-    expect(
-        await Promise.race([acceptance.then(() => 'accepted'), Promise.resolve('waiting')])
-    ).toBe('waiting');
+    await acceptance;
+    expect(await readPendingInbox(location())).toEqual([]);
     releaseDelivery?.();
-    await Promise.all([replacement, acceptance]);
+    await replacement;
 
     expect(delivered).toHaveLength(1);
     expect(await readPendingInbox(location())).toEqual([]);

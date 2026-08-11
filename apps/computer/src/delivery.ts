@@ -15,6 +15,11 @@ export interface RunMarker {
     summary?: HostedAgentTurnFrame;
 }
 
+export interface StoredNoticeReceipt {
+    messageIds: string[];
+    runId: string;
+}
+
 export type StartDecision = { kind: 'replay'; summary: HostedAgentTurnFrame } | { kind: 'run' };
 
 export async function purgeServerPartition(
@@ -119,13 +124,17 @@ function markerPath(dataRoot: string, serverId: string, runId: string): string {
 
 /**
  * Records a content-free notice for a busy Agent in its runtime directory, where
- * a running turn can read it at a safe boundary. The notice carries only a count,
- * never message content — the queued work itself becomes model-visible when the
- * Server drains it into the next turn.
+ * a running turn can read it at a safe boundary. The notice never carries message
+ * content; bodies become model-visible only when the Agent checks messages.
  */
 export async function writePendingNotice(
     dataRoot: string,
-    input: { agentId: string; notice: string; serverId: string }
+    input: {
+        agentId: string;
+        notice: string;
+        receipt?: StoredNoticeReceipt;
+        serverId: string;
+    }
 ): Promise<void> {
     const runtimeDir = join(
         dataRoot,
@@ -138,7 +147,11 @@ export async function writePendingNotice(
     await mkdir(runtimeDir, { mode: 0o700, recursive: true });
     const destination = join(runtimeDir, 'pending-notice.json');
     const temporary = `${destination}.${randomBytes(8).toString('hex')}.tmp`;
-    await writeFile(temporary, `${JSON.stringify({ notice: input.notice })}\n`, { mode: 0o600 });
+    await writeFile(
+        temporary,
+        `${JSON.stringify({ notice: input.notice, receipt: input.receipt })}\n`,
+        { mode: 0o600 }
+    );
     await rename(temporary, destination);
 }
 

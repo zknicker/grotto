@@ -10,12 +10,14 @@ import {
 import { readAgentSeedConfiguration } from './agent-configuration.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { computerEntrypoint } from './build-identity.ts';
+import type { StoredNoticeReceipt } from './delivery.ts';
 import {
     AgentSessionResumeRejectedError,
     type NoticeSinkRegistrar,
     runHarnessTurn,
 } from './harness/executor.ts';
 import { composeInboxDrain } from './inbox-format.ts';
+import { readRunVisibleMessages } from './inbox-store.ts';
 import { resolveRuntimeExecutable, runtimeSearchPath } from './runtime-discovery.ts';
 import { classifyRuntimeFailure, type RuntimeFailureKind } from './runtime-failure.ts';
 import { createServerMcpTools } from './server-mcp-tools.ts';
@@ -42,10 +44,12 @@ export interface HostedAgentStartCommand {
     chatId: string;
     homeTimezone?: string;
     inbox?: HostedAgentInboxItem[];
+    inboxDelivery: 'concrete' | 'notice';
     modelId: string;
     runId: string;
     runtimeId: string;
     sessionGeneration: number;
+    totalPending: number;
     type: 'start';
     webAccess?: 'fetch-only' | 'search' | 'search-only';
 }
@@ -56,6 +60,7 @@ export interface HostedAgentInboxItem {
     createdAt: string;
     id: string;
     mentioned?: boolean;
+    message?: Record<string, unknown>;
     senderDescription?: string;
     senderHandle: string;
     senderType: 'agent' | 'human' | 'system';
@@ -119,6 +124,7 @@ export interface HostedAgentTurnFrame {
     status: 'completed' | 'failed';
     summary: string;
     type: 'turn';
+    visibleMessages: Array<{ chatId: string; id: string; sequence: number }>;
 }
 
 export interface RunAgentLaunchOptions {
@@ -127,6 +133,8 @@ export interface RunAgentLaunchOptions {
     dataRoot: string;
     /** Commits the Server ack immediately before the runtime accepts the prompt. */
     onRuntimeReady?(): Promise<void>;
+    /** Reports a persisted busy notice that was injected after sink registration. */
+    onStoredNoticeDelivered?(receipt: StoredNoticeReceipt): void;
     /** Registers the live harness input used for content-free busy notices. */
     registerNoticeSink?: NoticeSinkRegistrar;
     /** Pushes the compact turn summary up the attachment socket. */
@@ -198,6 +206,7 @@ export async function runAgentLaunch(
         agentId: command.agentId,
         dataRoot: options.dataRoot,
         runnerToken: runner.runnerToken,
+        runId: command.runId,
         serverId: options.attachment.serverId,
         serverOrigin: options.serverOrigin,
         skillsDir: dirs.skills,
@@ -259,6 +268,7 @@ export async function runAgentLaunch(
                       agentRoot,
                       command,
                       dirs,
+                      onStoredNoticeDelivered: options.onStoredNoticeDelivered,
                       registerNoticeSink: options.registerNoticeSink,
                       tools: await createServerMcpTools({
                           proxyToken,
@@ -279,6 +289,14 @@ export async function runAgentLaunch(
             result.status === 'completed'
                 ? completedTurnSummary(proxy.sendCount(), result.toolNames ?? [])
                 : `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`,
+        visibleMessages: await readRunVisibleMessages(
+            {
+                agentId: command.agentId,
+                dataRoot: options.dataRoot,
+                serverId: options.attachment.serverId,
+            },
+            command.runId
+        ),
     });
 }
 
@@ -341,6 +359,14 @@ export function parseStartCommand(frame: unknown): HostedAgentStartCommand | nul
     ) {
         return null;
     }
+    if (
+        !['concrete', 'notice'].includes(frame.inboxDelivery as string) ||
+        typeof frame.totalPending !== 'number' ||
+        !Number.isInteger(frame.totalPending) ||
+        frame.totalPending < 0
+    ) {
+        return null;
+    }
     for (const field of ['agentDescription', 'agentName', 'homeTimezone'] as const) {
         if (frame[field] !== undefined && typeof frame[field] !== 'string') {
             return null;
@@ -358,10 +384,12 @@ export function parseStartCommand(frame: unknown): HostedAgentStartCommand | nul
         chatId: frame.chatId as string,
         ...(typeof frame.homeTimezone === 'string' ? { homeTimezone: frame.homeTimezone } : {}),
         inbox,
+        inboxDelivery: frame.inboxDelivery as 'concrete' | 'notice',
         modelId: frame.modelId as string,
         runId: frame.runId as string,
         runtimeId: frame.runtimeId as string,
         sessionGeneration: frame.sessionGeneration,
+        totalPending: frame.totalPending,
         type: 'start',
         ...(webAccess ? { webAccess } : {}),
     };
@@ -493,6 +521,7 @@ function parseInbox(value: unknown): HostedAgentInboxItem[] | null {
                 ) &&
                 (item.senderDescription === undefined ||
                     typeof item.senderDescription === 'string') &&
+                (item.message === undefined || isRecord(item.message)) &&
                 ['agent', 'human', 'system'].includes(item.senderType as string)
             ) ||
             typeof item.sequence !== 'number' ||
@@ -524,6 +553,7 @@ function reportTurn(
         startedAt: string;
         status: 'completed' | 'failed';
         summary: string;
+        visibleMessages?: Array<{ chatId: string; id: string; sequence: number }>;
     }
 ): HostedAgentTurnFrame {
     const frame: HostedAgentTurnFrame = {
@@ -537,6 +567,7 @@ function reportTurn(
         status: input.status,
         summary: input.summary,
         type: 'turn',
+        visibleMessages: input.visibleMessages ?? [],
     };
     options.sendFrame(frame);
     return frame;
@@ -546,6 +577,7 @@ interface RuntimeExecutionInput {
     agentEnv: Record<string, string>;
     command: HostedAgentStartCommand;
     dirs: { home: string; runtime: string; skills: string; workspace: string };
+    onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     registerNoticeSink?: NoticeSinkRegistrar;
     signal?: AbortSignal;
 }
@@ -610,11 +642,14 @@ async function runRealRuntime(
             initialRole: command.agentDescription ?? null,
             modelId: command.modelId,
             inbox: command.inbox ?? [],
+            inboxDelivery: command.inboxDelivery,
+            onStoredNoticeDelivered: input.onStoredNoticeDelivered,
             registerNoticeSink: input.registerNoticeSink,
             runtimeId: command.runtimeId,
             sessionGeneration: command.sessionGeneration,
             signal: input.signal,
             skillsDir: input.dirs.skills,
+            totalPending: command.totalPending,
             webAccess: command.webAccess ?? null,
             workspaceDir: input.dirs.workspace,
             tools: input.tools,

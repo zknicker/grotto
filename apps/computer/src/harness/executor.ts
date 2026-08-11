@@ -11,7 +11,8 @@ import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { createCodex } from '@ai-sdk/harness-codex';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { composeInboxDrain } from '../inbox-format.ts';
+import type { StoredNoticeReceipt } from '../delivery.ts';
+import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import type { HostedAgentInboxItem } from '../launch.ts';
 import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 import { composeAgentInstructions } from './instructions.ts';
@@ -51,9 +52,11 @@ export interface HarnessTurnInput {
     homeTimezone: string;
     /** Structured Server-owned inbox rows. Computer owns their model projection. */
     inbox: HostedAgentInboxItem[];
+    inboxDelivery: 'concrete' | 'notice';
     /** The Agent's description — the personality surface (ruling W2). */
     initialRole: string | null;
     modelId: string;
+    onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     registerNoticeSink?: NoticeSinkRegistrar;
     runtimeId: string;
     sessionGeneration: number;
@@ -61,6 +64,7 @@ export interface HarnessTurnInput {
     skillsDir: string;
     /** Runtime's grant-filtered MCP tools, now composed by Computer. */
     tools: ToolSet;
+    totalPending: number;
     /** Resolved web-access variant, or null when off. */
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspaceDir: string;
@@ -163,36 +167,62 @@ async function executeHarnessTurn(
             throw new AgentSessionResumeRejectedError(input.agentId, { cause: error });
         }
 
-        if (!live.isResume) {
-            await runTurn(
-                agent,
-                live,
-                projectHostedMessageForAgent({
-                    content:
-                        session.generation === 1
-                            ? 'Start.'
-                            : 'Start.\nFresh session: your previous conversation context is gone. Your workspace and MEMORY.md are intact — MEMORY.md is your recovery point.',
-                    enabledSkillIds: skills.map((skill) => skill.name),
-                }),
-                input.signal
-            );
-        }
+        const isColdStart = !live.isResume;
+        const coldInbox = isColdStart
+            ? input.inboxDelivery === 'concrete'
+                ? composeInboxDrain(input.inbox, input.homeTimezone)
+                : composeInboxNotice(input.inbox, input.totalPending)
+            : null;
+        const warmNotice =
+            !isColdStart && input.inboxDelivery === 'notice'
+                ? composeInboxNotice(input.inbox, input.totalPending)
+                : null;
+        const resetContext =
+            session.generation === 1
+                ? null
+                : 'Fresh session: your previous conversation context is gone. Your workspace and MEMORY.md are intact — MEMORY.md is your recovery point.';
+        const coldStart = resetContext ? `Start.\n${resetContext}` : 'Start.';
         const turn = await agent.stream({
             abortSignal: input.signal,
             prompt: projectHostedMessageForAgent({
-                content: composeInboxDrain(input.inbox, input.homeTimezone),
+                content: isColdStart
+                    ? coldInbox
+                        ? [resetContext, coldInbox].filter(Boolean).join('\n\n')
+                        : coldStart
+                    : input.inboxDelivery === 'concrete'
+                      ? composeInboxDrain(input.inbox, input.homeTimezone)
+                      : (warmNotice ?? 'Resume the interrupted turn.'),
                 enabledSkillIds: skills.map((skill) => skill.name),
             }),
             session: live,
         });
-        const deliverNotice = createNoticeDelivery(live, input.agentRoot);
-        const unregisterNoticeSink = input.registerNoticeSink?.(deliverNotice);
+        const deliverNotice = createNoticeDelivery(
+            live,
+            input.agentRoot,
+            warmNotice ?? (input.inboxDelivery === 'notice' ? coldInbox : null)
+        );
+        const noticeCoordinator = createNoticeCoordinator(deliverNotice);
+        const primaryNotice = warmNotice ?? (input.inboxDelivery === 'notice' ? coldInbox : null);
+        const deliverAtSafeBoundary = async (notice: string) =>
+            notice === primaryNotice
+                ? await deliverNotice(notice)
+                : await noticeCoordinator.enqueue(notice);
+        const unregisterNoticeSink = input.registerNoticeSink?.(deliverAtSafeBoundary);
+        const storedNoticeReady = Promise.withResolvers<void>();
+        const storedNoticeDelivery = deliverStoredNotice(
+            input.agentRoot,
+            deliverAtSafeBoundary,
+            input.onStoredNoticeDelivered,
+            () => storedNoticeReady.resolve()
+        );
         let observation: HarnessTurnResult;
         try {
-            await deliverStoredNotice(input.agentRoot, deliverNotice);
-            observation = await observeTurnStream(turn.fullStream);
+            await storedNoticeReady.promise;
+            observation = await observeTurnStream(turn.fullStream, noticeCoordinator.flush);
         } finally {
             unregisterNoticeSink?.();
+            noticeCoordinator.close();
+            await storedNoticeDelivery;
         }
         // Detach parks the Harness session while leaving its underlying runtime
         // process alive. The next delivery reattaches to this same per-Agent
@@ -223,31 +253,48 @@ function withInstructionRefresh(
     };
 }
 
-function createNoticeDelivery(session: HarnessAgentSession, agentRoot: string) {
-    let lastDelivered: string | null = null;
+function createNoticeDelivery(
+    session: HarnessAgentSession,
+    agentRoot: string,
+    alreadyVisible: string | null = null
+) {
+    let lastDelivered: string | null = alreadyVisible;
     return async (notice: string) => {
         if (!notice.trim()) {
+            return false;
+        }
+        if (notice !== lastDelivered && !(await storedNoticeMatches(agentRoot, notice))) {
             return false;
         }
         const accepted = notice === lastDelivered || (await session.sendUserMessage(notice));
         if (accepted) {
             lastDelivered = notice;
-            await rm(pendingNoticePath(agentRoot), { force: true });
+            await clearStoredNoticeIfMatching(agentRoot, notice);
         }
         return accepted;
     };
 }
 
-async function deliverStoredNotice(
-    agentRoot: string,
-    deliver: (notice: string) => Promise<boolean>
-) {
+async function storedNoticeMatches(agentRoot: string, notice: string): Promise<boolean> {
     try {
         const value = JSON.parse(await readFile(pendingNoticePath(agentRoot), 'utf8')) as {
             notice?: unknown;
         };
-        if (typeof value.notice === 'string') {
-            await deliver(value.notice);
+        return value.notice === notice;
+    } catch (cause) {
+        if (isRecord(cause) && cause.code === 'ENOENT') {
+            return false;
+        }
+        throw cause;
+    }
+}
+
+async function clearStoredNoticeIfMatching(agentRoot: string, notice: string) {
+    const path = pendingNoticePath(agentRoot);
+    try {
+        const value = JSON.parse(await readFile(path, 'utf8')) as { notice?: unknown };
+        if (value.notice === notice) {
+            await rm(path, { force: true });
         }
     } catch (cause) {
         if (!(isRecord(cause) && cause.code === 'ENOENT')) {
@@ -256,14 +303,81 @@ async function deliverStoredNotice(
     }
 }
 
-async function runTurn(
-    agent: Pick<HarnessAgent, 'stream'>,
-    session: HarnessAgentSession,
-    prompt: string,
-    signal?: AbortSignal
-): Promise<void> {
-    const turn = await agent.stream({ abortSignal: signal, prompt, session });
-    await observeTurnStream(turn.fullStream);
+async function deliverStoredNotice(
+    agentRoot: string,
+    deliver: (notice: string) => Promise<boolean>,
+    onDelivered?: (receipt: StoredNoticeReceipt) => void,
+    onReady?: () => void
+) {
+    try {
+        const value = JSON.parse(await readFile(pendingNoticePath(agentRoot), 'utf8')) as {
+            notice?: unknown;
+            receipt?: unknown;
+        };
+        if (typeof value.notice === 'string') {
+            const accepted = deliver(value.notice);
+            onReady?.();
+            if (!(await accepted)) {
+                return;
+            }
+            const receipt = parseStoredNoticeReceipt(value.receipt);
+            if (receipt) {
+                onDelivered?.(receipt);
+            }
+        }
+    } catch (cause) {
+        if (!(isRecord(cause) && cause.code === 'ENOENT')) {
+            throw cause;
+        }
+    } finally {
+        onReady?.();
+    }
+}
+
+function createNoticeCoordinator(deliver: (notice: string) => Promise<boolean>) {
+    const pending: Array<{
+        notice: string;
+        resolve: (accepted: boolean) => void;
+    }> = [];
+    let closed = false;
+    return {
+        close() {
+            closed = true;
+            for (const entry of pending.splice(0)) {
+                entry.resolve(false);
+            }
+        },
+        enqueue(notice: string): Promise<boolean> {
+            if (closed) {
+                return Promise.resolve(false);
+            }
+            return new Promise((resolve) => pending.push({ notice, resolve }));
+        },
+        async flush() {
+            const entries = pending.splice(0);
+            for (const [index, entry] of entries.entries()) {
+                try {
+                    entry.resolve(await deliver(entry.notice));
+                } catch (error) {
+                    entry.resolve(false);
+                    for (const remaining of entries.slice(index + 1)) {
+                        remaining.resolve(false);
+                    }
+                    throw error;
+                }
+            }
+        },
+    };
+}
+
+function parseStoredNoticeReceipt(value: unknown): StoredNoticeReceipt | null {
+    if (!(isRecord(value) && typeof value.runId === 'string' && Array.isArray(value.messageIds))) {
+        return null;
+    }
+    const messageIds = value.messageIds.filter((id): id is string => typeof id === 'string');
+    return messageIds.length === value.messageIds.length
+        ? { messageIds, runId: value.runId }
+        : null;
 }
 
 function pendingNoticePath(agentRoot: string) {
@@ -276,7 +390,10 @@ function pendingNoticePath(agentRoot: string) {
  * durable reply left through `grotto message send`. A simplified port of
  * Runtime's `harness-stream-observer.ts` with the composition wiring dropped.
  */
-async function observeTurnStream(stream: AsyncIterable<unknown>): Promise<HarnessTurnResult> {
+async function observeTurnStream(
+    stream: AsyncIterable<unknown>,
+    onToolBoundary?: () => Promise<void>
+): Promise<HarnessTurnResult> {
     let contextTokens: number | null = null;
     let streamError: unknown;
     let aborted = false;
@@ -290,6 +407,9 @@ async function observeTurnStream(stream: AsyncIterable<unknown>): Promise<Harnes
                 if (typeof part.toolName === 'string' && toolNames.size < 6) {
                     toolNames.add(part.toolName.slice(0, 128));
                 }
+                break;
+            case 'tool-result':
+                await onToolBoundary?.();
                 break;
             case 'finish-step':
                 contextTokens = usageContextTokens(part.usage) ?? contextTokens;

@@ -6,6 +6,7 @@ import {
     computerUpdateProgressFrameSchema,
     hostedAgentDeliveryAckSchema,
     hostedAgentEffectiveStateSchema,
+    hostedAgentNoticeAckSchema,
     hostedAgentSkillFileResultSchema,
     hostedAgentSkillImportResultSchema,
     hostedAgentTurnSummarySchema,
@@ -188,6 +189,11 @@ async function ingestReport(
     const ack = hostedAgentDeliveryAckSchema.safeParse(frame);
     if (ack.success) {
         await delivery.onAck(ack.data);
+        return;
+    }
+    const noticeAck = hostedAgentNoticeAckSchema.safeParse(frame);
+    if (noticeAck.success) {
+        await delivery.onNoticeAck(noticeAck.data);
         return;
     }
 

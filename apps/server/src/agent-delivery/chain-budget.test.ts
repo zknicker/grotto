@@ -16,3 +16,7 @@ test('human work resets the chain and remains dispatchable at the ceiling', () =
 test('completed agent-authored drains spend one chain turn', () => {
     expect(nextAgentChainTurns([{ source: 'agent:wren' }], 7)).toBe(8);
 });
+
+test('notice-only turns leave the current chain budget unchanged at the settlement boundary', () => {
+    expect(nextAgentChainTurns([], 7)).toBe(7);
+});

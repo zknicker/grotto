@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentDeliveryTable, agentPendingWorkTable, agentsTable } from '../postgres/schema.ts';
@@ -24,6 +24,7 @@ export interface PendingWorkRow {
     createdAt: Date;
     dedupeKey: string;
     id: string;
+    noticeRunId: string | null;
     pierced: boolean;
     serverId: string;
     source: string;
@@ -156,59 +157,21 @@ export async function countQueuedPending(db: GrottoDatabase, agentId: string): P
     return row?.total ?? 0;
 }
 
-/**
- * Claims the Agent's next bounded inbox drain across every target. The oldest
- * queued rows are claimed up to `maxRows` and `maxChars` (always at least one),
- * preserving the floating-session contract instead of hiding work behind one
- * launch chat.
- */
-export async function claimQueuedPending(
+export async function countQueuedMessagePending(
     db: GrottoDatabase,
-    input: { agentId: string; maxChars: number; maxRows: number; runId: string }
-): Promise<PendingWorkRow[]> {
-    const candidates = await db
-        .select({
-            chatId: agentPendingWorkTable.chatId,
-            content: agentPendingWorkTable.content,
-            createdAt: agentPendingWorkTable.createdAt,
-            dedupeKey: agentPendingWorkTable.dedupeKey,
-            id: agentPendingWorkTable.id,
-            pierced: agentPendingWorkTable.pierced,
-            serverId: agentPendingWorkTable.serverId,
-            source: agentPendingWorkTable.source,
-        })
+    agentId: string
+): Promise<number> {
+    const [row] = await db
+        .select({ total: sql<number>`count(*)::int` })
         .from(agentPendingWorkTable)
         .where(
             and(
-                eq(agentPendingWorkTable.agentId, input.agentId),
-                isNull(agentPendingWorkTable.runId)
-            )
-        )
-        .orderBy(agentPendingWorkTable.createdAt);
-
-    const chosen: PendingWorkRow[] = [];
-    let chars = 0;
-    for (const row of candidates) {
-        const nextChars = chars + row.content.length;
-        if (chosen.length > 0 && (chosen.length >= input.maxRows || nextChars > input.maxChars)) {
-            break;
-        }
-        chosen.push(row);
-        chars = nextChars;
-    }
-    await db
-        .update(agentPendingWorkTable)
-        .set({ runId: input.runId })
-        .where(
-            and(
-                eq(agentPendingWorkTable.agentId, input.agentId),
-                inArray(
-                    agentPendingWorkTable.id,
-                    chosen.map((row) => row.id)
-                )
+                eq(agentPendingWorkTable.agentId, agentId),
+                isNull(agentPendingWorkTable.runId),
+                ne(agentPendingWorkTable.source, 'onboarding')
             )
         );
-    return chosen;
+    return row?.total ?? 0;
 }
 
 /**
@@ -246,6 +209,7 @@ export async function listPendingForRun(
             createdAt: agentPendingWorkTable.createdAt,
             dedupeKey: agentPendingWorkTable.dedupeKey,
             id: agentPendingWorkTable.id,
+            noticeRunId: agentPendingWorkTable.noticeRunId,
             pierced: agentPendingWorkTable.pierced,
             serverId: agentPendingWorkTable.serverId,
             source: agentPendingWorkTable.source,
@@ -272,12 +236,197 @@ export async function listQueuedPending(
             createdAt: agentPendingWorkTable.createdAt,
             dedupeKey: agentPendingWorkTable.dedupeKey,
             id: agentPendingWorkTable.id,
+            noticeRunId: agentPendingWorkTable.noticeRunId,
             pierced: agentPendingWorkTable.pierced,
             serverId: agentPendingWorkTable.serverId,
             source: agentPendingWorkTable.source,
         })
         .from(agentPendingWorkTable)
         .where(and(eq(agentPendingWorkTable.agentId, agentId), isNull(agentPendingWorkTable.runId)))
+        .orderBy(agentPendingWorkTable.createdAt)
+        .limit(limit);
+}
+
+export async function listPendingNoticedForRun(
+    db: GrottoDatabase,
+    input: { agentId: string; runId: string }
+): Promise<PendingWorkRow[]> {
+    return await db
+        .select({
+            chatId: agentPendingWorkTable.chatId,
+            content: agentPendingWorkTable.content,
+            createdAt: agentPendingWorkTable.createdAt,
+            dedupeKey: agentPendingWorkTable.dedupeKey,
+            id: agentPendingWorkTable.id,
+            noticeRunId: agentPendingWorkTable.noticeRunId,
+            pierced: agentPendingWorkTable.pierced,
+            serverId: agentPendingWorkTable.serverId,
+            source: agentPendingWorkTable.source,
+        })
+        .from(agentPendingWorkTable)
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                eq(agentPendingWorkTable.startNoticeRunId, input.runId),
+                isNull(agentPendingWorkTable.runId)
+            )
+        )
+        .orderBy(agentPendingWorkTable.createdAt);
+}
+
+export async function listPendingOfferedForRun(
+    db: GrottoDatabase,
+    input: { agentId: string; runId: string }
+): Promise<PendingWorkRow[]> {
+    return await db
+        .select({
+            chatId: agentPendingWorkTable.chatId,
+            content: agentPendingWorkTable.content,
+            createdAt: agentPendingWorkTable.createdAt,
+            dedupeKey: agentPendingWorkTable.dedupeKey,
+            id: agentPendingWorkTable.id,
+            noticeRunId: agentPendingWorkTable.noticeRunId,
+            pierced: agentPendingWorkTable.pierced,
+            serverId: agentPendingWorkTable.serverId,
+            source: agentPendingWorkTable.source,
+        })
+        .from(agentPendingWorkTable)
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                eq(agentPendingWorkTable.noticeRunId, input.runId),
+                isNull(agentPendingWorkTable.runId)
+            )
+        )
+        .orderBy(agentPendingWorkTable.createdAt);
+}
+
+export async function listPendingByDedupeKeys(
+    db: GrottoDatabase,
+    input: { agentId: string; dedupeKeys: string[]; runId: string }
+): Promise<PendingWorkRow[]> {
+    if (input.dedupeKeys.length === 0) {
+        return [];
+    }
+    return await db
+        .select({
+            chatId: agentPendingWorkTable.chatId,
+            content: agentPendingWorkTable.content,
+            createdAt: agentPendingWorkTable.createdAt,
+            dedupeKey: agentPendingWorkTable.dedupeKey,
+            id: agentPendingWorkTable.id,
+            noticeRunId: agentPendingWorkTable.noticeRunId,
+            pierced: agentPendingWorkTable.pierced,
+            serverId: agentPendingWorkTable.serverId,
+            source: agentPendingWorkTable.source,
+        })
+        .from(agentPendingWorkTable)
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                inArray(agentPendingWorkTable.dedupeKey, input.dedupeKeys),
+                or(
+                    isNull(agentPendingWorkTable.runId),
+                    eq(agentPendingWorkTable.runId, input.runId)
+                )
+            )
+        );
+}
+
+/** Ordinary Chat rows queryable through the Agent message surfaces. */
+export async function listQueuedMessagePending(
+    db: GrottoDatabase,
+    agentId: string,
+    limit: number
+): Promise<PendingWorkRow[]> {
+    return await db
+        .select({
+            chatId: agentPendingWorkTable.chatId,
+            content: agentPendingWorkTable.content,
+            createdAt: agentPendingWorkTable.createdAt,
+            dedupeKey: agentPendingWorkTable.dedupeKey,
+            id: agentPendingWorkTable.id,
+            noticeRunId: agentPendingWorkTable.noticeRunId,
+            pierced: agentPendingWorkTable.pierced,
+            serverId: agentPendingWorkTable.serverId,
+            source: agentPendingWorkTable.source,
+        })
+        .from(agentPendingWorkTable)
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, agentId),
+                isNull(agentPendingWorkTable.runId),
+                ne(agentPendingWorkTable.source, 'onboarding')
+            )
+        )
+        .orderBy(agentPendingWorkTable.createdAt)
+        .limit(limit);
+}
+
+/** Marks exact queued identities as offered to the current turn, without making bodies visible. */
+export async function markPendingNoticed(
+    db: GrottoDatabase,
+    input: { agentId: string; initial?: boolean; pendingIds: string[]; runId: string }
+): Promise<void> {
+    if (input.pendingIds.length === 0) {
+        return;
+    }
+    await db
+        .update(agentPendingWorkTable)
+        .set({
+            noticeRunId: input.runId,
+            ...(input.initial ? { startNoticeRunId: input.runId } : {}),
+        })
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                isNull(agentPendingWorkTable.runId),
+                inArray(agentPendingWorkTable.id, input.pendingIds)
+            )
+        );
+}
+
+export async function clearPendingNotices(
+    db: GrottoDatabase,
+    input: { agentId: string; runId?: string }
+): Promise<void> {
+    await db
+        .update(agentPendingWorkTable)
+        .set({ noticeRunId: null, startNoticeRunId: null })
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                isNull(agentPendingWorkTable.runId),
+                input.runId ? eq(agentPendingWorkTable.noticeRunId, input.runId) : undefined
+            )
+        );
+}
+
+export async function listUnnoticedQueuedPending(
+    db: GrottoDatabase,
+    agentId: string,
+    limit: number
+): Promise<PendingWorkRow[]> {
+    return await db
+        .select({
+            chatId: agentPendingWorkTable.chatId,
+            content: agentPendingWorkTable.content,
+            createdAt: agentPendingWorkTable.createdAt,
+            dedupeKey: agentPendingWorkTable.dedupeKey,
+            id: agentPendingWorkTable.id,
+            noticeRunId: agentPendingWorkTable.noticeRunId,
+            pierced: agentPendingWorkTable.pierced,
+            serverId: agentPendingWorkTable.serverId,
+            source: agentPendingWorkTable.source,
+        })
+        .from(agentPendingWorkTable)
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, agentId),
+                isNull(agentPendingWorkTable.runId),
+                isNull(agentPendingWorkTable.noticeRunId)
+            )
+        )
         .orderBy(agentPendingWorkTable.createdAt)
         .limit(limit);
 }

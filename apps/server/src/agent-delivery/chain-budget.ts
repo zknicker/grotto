@@ -13,6 +13,9 @@ export function canBeginAgentDrain(rows: AuthoredWork[], currentTurns: number): 
 }
 
 export function nextAgentChainTurns(rows: AuthoredWork[], currentTurns: number): number {
+    if (rows.length === 0) {
+        return currentTurns;
+    }
     return isPureAgentDrain(rows) ? currentTurns + 1 : 0;
 }
 

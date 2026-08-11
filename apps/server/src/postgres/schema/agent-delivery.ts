@@ -71,11 +71,11 @@ export const agentDeliveryTable = pgTable(
 );
 
 /**
- * The durable pending inbox. Each row is one unit of model-visible work waiting
- * for a turn. A queued row has a null `runId`; a drain claims queued rows into
- * one run by stamping its `runId`. A settled run deletes its claimed rows (the
- * model saw them); a failed or stopped run clears the stamp to requeue them, so
- * work is never lost or shown twice.
+ * The durable pending inbox. A queued row has a null `runId`. `noticeRunId`
+ * records that an ordinary identity was offered without exposing its body;
+ * an exact pull attaches the row to the active run. Settlement deletes only
+ * rows proven model-visible. A failed turn without durable output clears the
+ * run stamp so pulled work can replay.
  */
 export const agentPendingWorkTable = pgTable(
     'agent_pending_work',
@@ -86,6 +86,10 @@ export const agentPendingWorkTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         dedupeKey: text('dedupe_key').notNull(),
         id: text('id').primaryKey(),
+        /** The Agent turn that was offered this identity without exposing its body. */
+        noticeRunId: text('notice_run_id'),
+        /** The notice-only turn whose first prompt contained this identity. */
+        startNoticeRunId: text('start_notice_run_id'),
         pierced: boolean('pierced').notNull().default(false),
         runId: text('run_id'),
         serverId: text('server_id')

@@ -37,6 +37,7 @@ const summary: HostedAgentTurnFrame = {
     status: 'completed',
     summary: 'done',
     type: 'turn',
+    visibleMessages: [],
 };
 
 test('a fresh run with no marker launches', () => {

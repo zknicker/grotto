@@ -2,7 +2,11 @@ import * as z from 'zod';
 import {
     agentHistoryResponseSchema,
     agentMessageCheckResponseSchema,
+    agentMessageSchema,
+    agentReactionResponseSchema,
+    agentSearchResponseSchema,
     agentSendResponseSchema,
+    resolvedAgentMessageSchema,
 } from './agent-cli/agent-api-schemas.ts';
 import {
     createLocalAgentSkill,
@@ -15,6 +19,8 @@ import {
 import {
     type AgentInboxLocation,
     consumeVisibleMessages,
+    readPendingInboxState,
+    recordRunVisibleMessages,
     type VisibleMessageIdentity,
 } from './inbox-store.ts';
 
@@ -40,6 +46,7 @@ export interface LoopbackProxy {
     close(): void;
     resetSendCount(): void;
     sendCount(): number;
+    setRunId(runId: string): void;
     setRunnerToken(token: string): void;
     url: string;
 }
@@ -55,12 +62,14 @@ export function startLoopbackProxy(input: {
     dataRoot?: string;
     proxyToken: string;
     runnerToken: string;
+    runId?: string;
     serverId?: string;
     serverOrigin: string;
     skillsDir?: string;
 }): LoopbackProxy {
     let sends = 0;
     let runnerToken: string | null = input.runnerToken;
+    let runId: string | null = input.runId ?? null;
     const server = Bun.serve({
         fetch: async (request) => {
             const url = new URL(request.url);
@@ -80,10 +89,31 @@ export function startLoopbackProxy(input: {
                     { status: 409 }
                 );
             }
+            const location = agentInboxLocation(input);
+            if (request.method === 'GET' && url.pathname === '/api/agent/events' && location) {
+                const local = await localAgentEvents(location);
+                if (local) {
+                    if (!runId) {
+                        return Response.json(
+                            { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
+                            { status: 409 }
+                        );
+                    }
+                    await recordRunVisibleMessages(location, runId, local.identities);
+                    await awaitBestEffortAttestation(
+                        input.serverOrigin,
+                        runnerToken,
+                        local.identities
+                    );
+                    await consumeVisibleMessages(location, local.identities);
+                    return Response.json({ messages: local.messages, more: local.more });
+                }
+            }
             const body = await request.text();
             const upstreamUrl = new URL(url.pathname, input.serverOrigin);
             upstreamUrl.search = url.search;
             const isMessageSend = url.pathname === '/api/agent/messages/send';
+            const isMessageMutation = isMessageSend || url.pathname === '/api/agent/messages/react';
             let upstream: Response;
             try {
                 upstream = await fetch(upstreamUrl, {
@@ -115,14 +145,39 @@ export function startLoopbackProxy(input: {
             if (upstream.ok && isMessageSend && isCommittedSend(responseBody)) {
                 sends += 1;
             }
-            const location = agentInboxLocation(input);
             const visibleMessageIds = upstream.ok
                 ? extractVisibleMessageIds(url.pathname, responseBody)
                 : [];
             if (location && visibleMessageIds.length > 0) {
                 try {
-                    await consumeVisibleMessages(location, visibleMessageIds);
+                    const activeRunId = runId;
+                    if (activeRunId) {
+                        await recordRunVisibleMessages(location, activeRunId, visibleMessageIds);
+                    }
+                    const attested = activeRunId
+                        ? await attestLocalEvents(
+                              input.serverOrigin,
+                              runnerToken,
+                              visibleMessageIds
+                          )
+                        : null;
+                    if (!((activeRunId && attested) || isMessageMutation)) {
+                        return Response.json(
+                            {
+                                code: 'VISIBILITY_RECEIPT_UNAVAILABLE',
+                                message: 'The Server could not record visible messages.',
+                            },
+                            { status: 502 }
+                        );
+                    }
+                    await consumeVisibleMessages(location, attested ?? visibleMessageIds);
                 } catch {
+                    if (isMessageMutation) {
+                        return new Response(responseBody, {
+                            headers: { 'content-type': 'application/json' },
+                            status: upstream.status,
+                        });
+                    }
                     return Response.json(
                         {
                             code: 'LOCAL_INBOX_UNAVAILABLE',
@@ -149,11 +204,68 @@ export function startLoopbackProxy(input: {
             sends = 0;
         },
         sendCount: () => sends,
+        setRunId: (value) => {
+            runId = value;
+        },
         setRunnerToken: (token) => {
             runnerToken = token;
         },
         url: `http://127.0.0.1:${server.port}`,
     };
+}
+
+async function localAgentEvents(location: AgentInboxLocation) {
+    const pending = await readPendingInboxState(location);
+    const visible = pending.items
+        .map((item) => {
+            const message = agentMessageSchema.safeParse(item.message);
+            return message.success ? { item, message: message.data } : null;
+        })
+        .filter((row): row is NonNullable<typeof row> => row !== null);
+    if (visible.length === 0) {
+        return null;
+    }
+    const selected = visible.slice(0, 40);
+    return {
+        identities: selected.map(({ message }) => identity(message)),
+        messages: selected.map(({ item, message }) => ({ message, target: item.target })),
+        more: pending.totalPending > selected.length,
+    };
+}
+
+async function attestLocalEvents(
+    serverOrigin: string,
+    runnerToken: string,
+    messages: VisibleMessageIdentity[]
+): Promise<VisibleMessageIdentity[] | null> {
+    const response = await fetch(new URL('/api/agent/events/visible', serverOrigin), {
+        body: JSON.stringify({ messages }),
+        headers: {
+            authorization: `Bearer ${runnerToken}`,
+            'content-type': 'application/json',
+        },
+        method: 'POST',
+    }).catch(() => null);
+    if (!response?.ok) {
+        return null;
+    }
+    const body = (await response.json().catch(() => null)) as { accepted?: unknown } | null;
+    if (!Array.isArray(body?.accepted)) {
+        return null;
+    }
+    const accepted = new Set(body.accepted.filter((id): id is string => typeof id === 'string'));
+    return messages.filter((message) => accepted.has(message.id));
+}
+
+async function awaitBestEffortAttestation(
+    serverOrigin: string,
+    runnerToken: string,
+    messages: VisibleMessageIdentity[]
+): Promise<void> {
+    await Promise.race([
+        attestLocalEvents(serverOrigin, runnerToken, messages),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 250)),
+    ]);
 }
 
 function agentInboxLocation(input: {
@@ -187,6 +299,14 @@ function extractVisibleMessageIds(
         const parsed = agentHistoryResponseSchema.safeParse(body);
         return parsed.success ? parsed.data.messages.map(identity) : [];
     }
+    if (pathname === '/api/agent/messages/search') {
+        const parsed = agentSearchResponseSchema.safeParse(body);
+        return parsed.success ? parsed.data.messages.map(identity) : [];
+    }
+    if (pathname === '/api/agent/messages/react') {
+        const parsed = agentReactionResponseSchema.safeParse(body);
+        return parsed.success ? [identity(parsed.data.message)] : [];
+    }
     if (pathname === '/api/agent/messages/send') {
         const parsed = agentSendResponseSchema.safeParse(body);
         if (!parsed.success) {
@@ -195,6 +315,10 @@ function extractVisibleMessageIds(
         return parsed.data.state === 'held'
             ? parsed.data.shownMessages.map(identity)
             : parsed.data.recentUnread.map((row) => identity(row.message));
+    }
+    if (/^\/api\/agent\/messages\/[^/]+$/u.test(pathname)) {
+        const parsed = resolvedAgentMessageSchema.safeParse(body);
+        return parsed.success ? [identity(parsed.data.message)] : [];
     }
     return [];
 }

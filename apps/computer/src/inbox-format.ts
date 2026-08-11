@@ -42,7 +42,7 @@ export function composeInboxNotice(
         }
         return [
             target,
-            ` pending: ${ordered.length} message(s)`,
+            `  pending: ${ordered.length} ${plural(ordered.length, 'message')}`,
             ` · first msg=${shortId(first.id)}`,
             ` · latest sender @${latest.senderHandle}`,
             ` · latest msg=${shortId(latest.id)}`,
@@ -51,10 +51,14 @@ export function composeInboxNotice(
     });
     return [
         '[Grotto inbox notice:',
-        `Inbox update: ${totalPending} unread messages total; ${targets.size} changed target(s)`,
+        `Inbox update: ${totalPending} unread ${plural(totalPending, 'message')} total; ${targets.size} changed ${plural(targets.size, 'target')}`,
         ...lines,
         ']',
     ].join('\n');
+}
+
+function plural(count: number, singular: string): string {
+    return count === 1 ? singular : `${singular}s`;
 }
 
 function formatEnvelope(item: HostedAgentInboxItem, homeTimezone: string): string {

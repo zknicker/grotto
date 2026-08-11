@@ -69,7 +69,7 @@ Onboarding Assistant for this Grotto Server. Help the owner reach useful work wi
 
 ## Active Context
 
-- Fresh onboarding is complete when the Computer applies this factory workspace. The first greeting is a separate Agent turn.
+- Fresh onboarding is complete when the Computer applies this factory workspace. Handle the first delivery in the live startup turn and send one greeting.
 `,
     'onboarding_knowledge_faq.md': `# Onboarding Knowledge FAQ
 

@@ -6,7 +6,8 @@ import type {
     HostedReminderScriptCommand,
     HostedReminderScriptResult,
 } from '@tavern/api';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { messageSelection, toAgentMessages } from '../agent-api/message-view.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HostedAgentConfigurationRotation } from '../hosted-agents/configure-agent.ts';
@@ -211,6 +212,7 @@ export class AgentDelivery {
             await lockServerRow(tx, input.serverId);
             await store.setStopped(tx, { ...input, stopped: false });
             await store.clearDeliveryFailures(tx, input.agentId);
+            await store.clearPendingNotices(tx, { agentId: input.agentId });
             return this.planDispatch(tx, input.agentId);
         });
         this.emit(plan);
@@ -251,6 +253,7 @@ export class AgentDelivery {
         const plan = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, input.serverId);
             await store.clearDeliveryFailures(tx, input.agentId);
+            await store.clearPendingNotices(tx, { agentId: input.agentId });
             return this.planDispatch(tx, input.agentId);
         });
         this.emit(plan);
@@ -273,6 +276,7 @@ export class AgentDelivery {
                 });
                 await store.clearActiveRun(tx, input.agentId);
             }
+            await store.clearPendingNotices(tx, { agentId: input.agentId });
             const [rotated] = await tx
                 .update(agentsTable)
                 .set({
@@ -338,8 +342,23 @@ export class AgentDelivery {
 
     /** The Computer accepted a delivery locally — stop retrying it. */
     async onAck(input: { agentId: string; runId: string }): Promise<void> {
-        await store.markAccepted(this.db, input);
-        const state = await store.readDeliveryState(this.db, input.agentId);
+        const stateAndPlan = await this.db.transaction(async (tx) => {
+            const serverId = await store.readAgentServerId(tx, input.agentId);
+            if (!serverId) {
+                return null;
+            }
+            await lockServerRow(tx, serverId);
+            await store.markAccepted(tx, input);
+            const state = await store.readDeliveryState(tx, input.agentId);
+            return {
+                plan:
+                    state?.activeRunId === input.runId
+                        ? await this.planDispatch(tx, input.agentId)
+                        : null,
+                state,
+            };
+        });
+        const state = stateAndPlan?.state;
         if (state?.activeRunId === input.runId && state.activeRunChatId) {
             publishAgentLifecycle({
                 agentId: input.agentId,
@@ -349,6 +368,29 @@ export class AgentDelivery {
                 serverId: state.serverId,
             });
         }
+        this.emit(stateAndPlan?.plan ?? null);
+    }
+
+    async onNoticeAck(input: { agentId: string; messageIds: string[]; runId: string }) {
+        const serverId = await store.readAgentServerId(this.db, input.agentId);
+        if (!serverId) {
+            return;
+        }
+        await this.db.transaction(async (tx) => {
+            await lockServerRow(tx, serverId);
+            const state = await store.readDeliveryState(tx, input.agentId);
+            if (state?.activeRunId !== input.runId || state.acceptedAt === null) {
+                return;
+            }
+            const queued = await store.listQueuedPending(tx, input.agentId, 1000);
+            await store.markPendingNoticed(tx, {
+                agentId: input.agentId,
+                pendingIds: queued
+                    .filter((row) => input.messageIds.includes(row.dedupeKey))
+                    .map((row) => row.id),
+                runId: input.runId,
+            });
+        });
     }
 
     /** A run settled on the Computer: consume or requeue its work, then drain next. */
@@ -371,6 +413,10 @@ export class AgentDelivery {
                     serverId,
                 });
                 await store.requeuePendingForRun(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                });
+                await store.clearPendingNotices(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                 });
@@ -443,11 +489,19 @@ export class AgentDelivery {
                 runId: summary.runId,
                 serverId,
             });
+            await attachSummaryVisibility(tx, state, summary.visibleMessages);
             if (summary.status === 'completed') {
                 const completedRows = await store.listPendingForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                 });
+                const budgetRows =
+                    completedRows.length > 0 || !summary.outputProduced
+                        ? completedRows
+                        : await store.listPendingOfferedForRun(tx, {
+                              agentId: summary.agentId,
+                              runId: summary.runId,
+                          });
                 await advanceSeenForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
@@ -460,7 +514,7 @@ export class AgentDelivery {
                 await store.clearDeliveryFailures(tx, summary.agentId);
                 await store.setAgentChainTurns(tx, {
                     agentId: summary.agentId,
-                    turns: nextAgentChainTurns(completedRows, state.agentChainTurns),
+                    turns: nextAgentChainTurns(budgetRows, state.agentChainTurns),
                 });
                 await store.clearActiveRun(tx, summary.agentId);
                 return { chatId, plan: await this.planDispatch(tx, summary.agentId) };
@@ -483,6 +537,10 @@ export class AgentDelivery {
                 });
             } else {
                 await store.requeuePendingForRun(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                });
+                await store.clearPendingNotices(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                 });
@@ -683,21 +741,38 @@ export class AgentDelivery {
                 // Resend the run exactly as first dispatched: the runtime and
                 // model were frozen onto the run, so a mid-flight reconfigure
                 // never changes what an in-flight run launches with.
+                const frame = await startFrame(tx, state, config);
+                if (
+                    frame.type === 'start' &&
+                    frame.inboxDelivery === 'notice' &&
+                    frame.inbox.length === 0
+                ) {
+                    await store.clearActiveRun(tx, agentId);
+                    return await this.planDispatch(tx, agentId);
+                }
                 return {
                     computerId: state.activeRunComputerId,
-                    frame: await startFrame(tx, state, config),
+                    frame,
                     serverId: state.serverId,
                 };
             }
-            const pending = await store.listQueuedPending(tx, agentId, maxDrainRows);
-            if (pending.length > 0) {
+            const unnoticed = (
+                await store.listUnnoticedQueuedPending(tx, agentId, maxDrainRows)
+            ).filter((row) => row.source !== 'onboarding');
+            if (unnoticed.length > 0) {
+                const pending = noticeWindow(
+                    (await store.listQueuedPending(tx, agentId, 1000)).filter(
+                        (row) => row.source !== 'onboarding'
+                    ),
+                    unnoticed
+                );
                 return {
                     computerId: state.activeRunComputerId,
                     frame: {
                         agentId,
                         inbox: await buildInboxItems(tx, pending),
                         runId: state.activeRunId,
-                        totalPending: await store.countQueuedPending(tx, agentId),
+                        totalPending: await store.countQueuedMessagePending(tx, agentId),
                         type: 'notice',
                     },
                     serverId: state.serverId,
@@ -708,20 +783,37 @@ export class AgentDelivery {
         if (isBackedOff(state)) {
             return null;
         }
-        const runId = createOpaqueId('run');
-        const claimed = await store.claimQueuedPending(tx, {
-            agentId,
-            maxChars: maxDrainChars,
-            maxRows: maxDrainRows,
-            runId,
-        });
-        const first = claimed[0];
+        const candidates = await store.listUnnoticedQueuedPending(tx, agentId, maxDrainRows);
+        const first = candidates.find((row) => row.source === 'onboarding') ?? candidates[0];
         if (!first) {
             return null;
         }
-        if (!canBeginAgentDrain(claimed, state.agentChainTurns)) {
-            await store.requeuePendingForRun(tx, { agentId, runId });
+        if (!canBeginAgentDrain(candidates, state.agentChainTurns)) {
             return null;
+        }
+        const runId = createOpaqueId('run');
+        const concrete = first.source === 'onboarding';
+        const selected = boundedCompatibleRows(candidates, concrete);
+        let noticeRows: store.PendingWorkRow[] = [];
+        if (concrete) {
+            await store.attachQueuedPendingToRun(tx, {
+                agentId,
+                pendingIds: selected.map((row) => row.id),
+                runId,
+            });
+        } else {
+            noticeRows = noticeWindow(
+                (await store.listQueuedPending(tx, agentId, 1000)).filter(
+                    (row) => row.source !== 'onboarding'
+                ),
+                selected
+            );
+            await store.markPendingNoticed(tx, {
+                agentId,
+                initial: true,
+                pendingIds: noticeRows.map((row) => row.id),
+                runId,
+            });
         }
         const chatId = first.chatId;
         // Freeze runtime/model onto the run so every resend uses these values.
@@ -741,11 +833,13 @@ export class AgentDelivery {
                 agentName: config.agentName,
                 chatId,
                 homeTimezone: config.homeTimezone,
-                inbox: await buildInboxItems(tx, claimed),
+                inbox: await buildInboxItems(tx, concrete ? selected : noticeRows),
+                inboxDelivery: concrete ? 'concrete' : 'notice',
                 modelId: config.desiredModelId,
                 runId,
                 runtimeId: config.desiredRuntimeId,
                 sessionGeneration: config.sessionGeneration,
+                totalPending: concrete ? 0 : await store.countQueuedMessagePending(tx, agentId),
                 type: 'start',
             },
             serverId: state.serverId,
@@ -850,27 +944,122 @@ async function startFrame(
         'agentDescription' | 'agentName' | 'homeTimezone' | 'sessionGeneration'
     >
 ): Promise<HostedAgentCommand> {
+    const runRows = state.activeRunId
+        ? await store.listPendingForRun(db, {
+              agentId: state.agentId,
+              runId: state.activeRunId,
+          })
+        : [];
+    const noticeRows =
+        runRows.length === 0 && state.activeRunId
+            ? (
+                  await store.listPendingNoticedForRun(db, {
+                      agentId: state.agentId,
+                      runId: state.activeRunId,
+                  })
+              ).filter((row) => row.source !== 'onboarding')
+            : [];
     return {
         agentId: state.agentId,
         ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
         agentName: config.agentName,
         chatId: state.activeRunChatId ?? '',
         homeTimezone: config.homeTimezone,
-        inbox: await buildInboxItems(
-            db,
-            state.activeRunId
-                ? await store.listPendingForRun(db, {
-                      agentId: state.agentId,
-                      runId: state.activeRunId,
-                  })
-                : []
-        ),
+        inbox: await buildInboxItems(db, runRows.length > 0 ? runRows : noticeRows),
+        inboxDelivery: runRows.length > 0 ? 'concrete' : 'notice',
         modelId: state.activeRunModelId ?? '',
         runId: state.activeRunId ?? '',
         runtimeId: state.activeRunRuntimeId ?? '',
         sessionGeneration: config.sessionGeneration,
+        totalPending:
+            runRows.length > 0 ? 0 : await store.countQueuedMessagePending(db, state.agentId),
         type: 'start',
     };
+}
+
+function boundedCompatibleRows(rows: store.PendingWorkRow[], concrete: boolean) {
+    const selected: store.PendingWorkRow[] = [];
+    let chars = 0;
+    for (const row of rows) {
+        if ((row.source === 'onboarding') !== concrete) {
+            continue;
+        }
+        const nextChars = chars + row.content.length;
+        if (selected.length > 0 && (selected.length >= maxDrainRows || nextChars > maxDrainChars)) {
+            break;
+        }
+        selected.push(row);
+        chars = nextChars;
+    }
+    return selected;
+}
+
+function noticeWindow(
+    queued: store.PendingWorkRow[],
+    mustInclude: store.PendingWorkRow[]
+): store.PendingWorkRow[] {
+    const selected = new Map(mustInclude.map((row) => [row.id, row]));
+    for (const row of queued) {
+        if (selected.size >= maxDrainRows) {
+            break;
+        }
+        selected.set(row.id, row);
+    }
+    return [...selected.values()].sort(
+        (left, right) => left.createdAt.getTime() - right.createdAt.getTime()
+    );
+}
+
+async function attachSummaryVisibility(
+    db: GrottoDatabase,
+    state: AgentDeliveryRow,
+    identities: HostedAgentTurnSummary['visibleMessages'] | undefined
+) {
+    if (!(state.activeRunId && identities && identities.length > 0)) {
+        return;
+    }
+    const rows = await store.listPendingByDedupeKeys(db, {
+        agentId: state.agentId,
+        dedupeKeys: identities.map((identity) => identity.id),
+        runId: state.activeRunId,
+    });
+    const byMessageId = new Map(rows.map((row) => [row.dedupeKey, row]));
+    const messages = await db
+        .select({
+            chatId: chatMessagesTable.chatId,
+            id: chatMessagesTable.id,
+            sequence: chatMessagesTable.sequence,
+        })
+        .from(chatMessagesTable)
+        .where(
+            and(
+                eq(chatMessagesTable.serverId, state.serverId),
+                inArray(
+                    chatMessagesTable.id,
+                    identities.map((identity) => identity.id)
+                )
+            )
+        );
+    const messageById = new Map(messages.map((message) => [message.id, message]));
+    const attachableIds: string[] = [];
+    for (const identity of identities) {
+        const row = byMessageId.get(identity.id);
+        const message = messageById.get(identity.id);
+        if (
+            message?.sequence !== identity.sequence ||
+            message.chatId !== identity.chatId ||
+            !row ||
+            row.chatId !== identity.chatId
+        ) {
+            continue;
+        }
+        attachableIds.push(row.id);
+    }
+    await store.attachQueuedPendingToRun(db, {
+        agentId: state.agentId,
+        pendingIds: attachableIds,
+        runId: state.activeRunId,
+    });
 }
 
 async function buildInboxItems(
@@ -878,6 +1067,21 @@ async function buildInboxItems(
     rows: store.PendingWorkRow[]
 ): Promise<HostedAgentInboxItem[]> {
     const serverId = rows[0]?.serverId;
+    const messageIds = rows.map((row) => row.dedupeKey).filter((id) => id.startsWith('msg_'));
+    const messageRows =
+        serverId && messageIds.length > 0
+            ? await db
+                  .select(messageSelection)
+                  .from(chatMessagesTable)
+                  .where(
+                      and(
+                          eq(chatMessagesTable.serverId, serverId),
+                          inArray(chatMessagesTable.id, messageIds)
+                      )
+                  )
+            : [];
+    const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
+    const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
     const taskByMessage = serverId
         ? await listHostedMessageTaskMap(
               db,
@@ -912,6 +1116,9 @@ async function buildInboxItems(
                 content: row.content,
                 createdAt: row.createdAt.toISOString(),
                 id: row.dedupeKey,
+                ...(apiMessageById.get(row.dedupeKey)
+                    ? { message: apiMessageById.get(row.dedupeKey) }
+                    : {}),
                 ...(row.pierced ? { mentioned: true } : {}),
                 ...(senderAgent?.description ? { senderDescription: senderAgent.description } : {}),
                 senderHandle: row.source === 'human' ? 'operator' : (agentHandle ?? row.source),

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import type { HostedAgentCommand, HostedAgentTurnSummary } from '@tavern/api';
 import { eq } from 'drizzle-orm';
-import { pullAgentEvents } from '../src/agent-api/inbox.ts';
+import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { deleteSeenQueuedWork, readAgentInboxCursor } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
@@ -137,6 +137,7 @@ function turnSummary(
         status,
         summary: 'ok',
         type: 'turn',
+        visibleMessages: [],
     };
 }
 
@@ -190,7 +191,7 @@ async function addDmChat(seed: Seed): Promise<string> {
     return chatId;
 }
 
-test('drains delivered work into one run, then settles it', async () => {
+test('offers ordinary Chat work as a notice and does not loop when it is deferred', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
@@ -212,6 +213,7 @@ test('drains delivered work into one run, then settles it', async () => {
     expect(starts[0]?.agentName).toBe(seed.agentHandle);
     expect(starts[0]?.homeTimezone).toBe('UTC');
     expect(starts[0]?.inbox.map((item) => item.content)).toEqual(['hello there']);
+    expect(starts[0]?.inboxDelivery).toBe('notice');
     const runId = starts[0]?.runId ?? '';
     expect(await working).toMatchObject({
         done: false,
@@ -235,7 +237,8 @@ test('drains delivered work into one run, then settles it', async () => {
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
     const settled = await readDeliveryState(connection.db, seed.agentId);
     expect(settled?.activeRunId).toBeNull();
-    expect(await countQueuedPending(connection.db, seed.agentId)).toBe(0);
+    expect(await countQueuedPending(connection.db, seed.agentId)).toBe(1);
+    expect(transport.framesOfType('start')).toHaveLength(1);
     expect(await completed).toMatchObject({
         done: false,
         value: {
@@ -246,6 +249,18 @@ test('drains delivered work into one run, then settles it', async () => {
             runId,
         },
     });
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'new identity',
+        dedupeKey: 'msg-2',
+        serverId: seed.serverId,
+    });
+    expect(transport.framesOfType('start')).toHaveLength(2);
+    expect(transport.framesOfType('start')[1]?.inbox.map((item) => item.content)).toEqual([
+        'hello there',
+        'new identity',
+    ]);
     lifecycleController.abort();
 });
 
@@ -333,6 +348,69 @@ test('pending Cove work cannot start before the durable factory acknowledgement'
 
     expect(transport.framesOfType('start')).toHaveLength(0);
     expect(await countQueuedPending(connection.db, seed.agentId)).toBe(1);
+});
+
+test('delivers non-Chat onboarding attention concretely without entering message check', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'Introduce yourself once.',
+        dedupeKey: createOpaqueId('app'),
+        serverId: seed.serverId,
+        source: 'onboarding',
+    });
+    const start = transport.framesOfType('start')[0];
+    expect(start?.inboxDelivery).toBe('concrete');
+    expect(start?.inbox[0]?.message).toBeUndefined();
+    await delivery.onAck({ agentId: seed.agentId, runId: start?.runId ?? '' });
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, start?.runId ?? '', 'completed')
+    );
+    expect(await countAllPending(seed.agentId)).toBe(0);
+});
+
+test('keeps onboarding attention out of message check while an ordinary turn is live', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const messageId = await insertHumanMessage(seed, 'ordinary', 1);
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'ordinary',
+        dedupeKey: messageId,
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'Introduce yourself once.',
+        dedupeKey: createOpaqueId('app'),
+        serverId: seed.serverId,
+        source: 'onboarding',
+    });
+
+    const pulled = await pullAgentEvents(connection.db, {
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        computerId: seed.computerId,
+        runId,
+        runnerId: createOpaqueId('arc'),
+        serverId: seed.serverId,
+    });
+    expect(pulled.messages.map((row) => row.message.id)).toEqual([messageId]);
+    await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
+    expect(transport.framesOfType('start')[1]?.inboxDelivery).toBe('concrete');
+    expect(transport.framesOfType('start')[1]?.inbox[0]?.senderType).toBe('system');
 });
 
 test('resends an unacknowledged delivery idempotently on the retry sweep', async () => {
@@ -455,18 +533,23 @@ test('queues work for a busy Agent and notices it, then drains at the boundary',
     expect(transport.framesOfType('start')).toHaveLength(1);
     const notices = transport.framesOfType('notice');
     expect(notices).toHaveLength(1);
-    expect(notices[0]?.inbox.map((item) => item.content)).toEqual(['second']);
-    expect(notices[0]?.totalPending).toBe(1);
+    expect(notices[0]?.inbox.map((item) => item.content)).toEqual(['first', 'second']);
+    expect(notices[0]?.totalPending).toBe(2);
     expect(transport.framesOfType('start')[0]?.inbox.map((item) => item.content)).toEqual([
         'first',
     ]);
+    await delivery.onNoticeAck({
+        agentId: seed.agentId,
+        messageIds: ['msg-1', 'msg-2'],
+        runId: firstRun,
+    });
 
-    // The safe boundary: the run settles and the queued work drains into a run.
+    // Both identities were offered to this live turn. Deferral must not create
+    // another turn for the unchanged pending set.
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, firstRun, 'completed'));
     const starts = transport.framesOfType('start');
-    expect(starts).toHaveLength(2);
-    expect(starts[1]?.runId).not.toBe(firstRun);
-    expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['second']);
+    expect(starts).toHaveLength(1);
+    expect(await countQueuedPending(connection.db, seed.agentId)).toBe(2);
 });
 
 test('settles explicitly pulled busy work with the active run without a second turn', async () => {
@@ -502,7 +585,7 @@ test('settles explicitly pulled busy work with the active run without a second t
         runnerId: createOpaqueId('arc'),
         serverId: seed.serverId,
     });
-    expect(pulled.messages.map((row) => row.message.content)).toEqual(['follow up']);
+    expect(pulled.messages.map((row) => row.message.content)).toEqual(['first', 'follow up']);
     expect(
         await readAgentInboxCursor(connection.db, {
             agentId: seed.agentId,
@@ -522,6 +605,164 @@ test('settles explicitly pulled busy work with the active run without a second t
             serverId: seed.serverId,
         })
     ).toMatchObject({ seen: 2, served: 2 });
+});
+
+test('settles exact Computer-local visibility carried by the turn summary', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const messageId = await insertHumanMessage(seed, 'local cache body', 1);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'local cache body',
+        dedupeKey: messageId,
+        sequence: 1,
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    await delivery.onTurnSettled(seed.computerId, {
+        ...turnSummary(seed.agentId, runId, 'completed'),
+        visibleMessages: [{ chatId: seed.chatId, id: messageId, sequence: 1 }],
+    });
+
+    expect(await countAllPending(seed.agentId)).toBe(0);
+    expect(
+        await readAgentInboxCursor(connection.db, {
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            serverId: seed.serverId,
+        })
+    ).toMatchObject({ seen: 1 });
+});
+
+test('settlement tolerates valid visibility whose pending row was already removed', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const messageId = await insertHumanMessage(seed, 'removed after visibility', 1);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'removed after visibility',
+        dedupeKey: messageId,
+        sequence: 1,
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    await connection.db
+        .delete(agentPendingWorkTable)
+        .where(eq(agentPendingWorkTable.agentId, seed.agentId));
+
+    await delivery.onTurnSettled(seed.computerId, {
+        ...turnSummary(seed.agentId, runId, 'completed'),
+        visibleMessages: [{ chatId: seed.chatId, id: messageId, sequence: 1 }],
+    });
+
+    expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
+});
+
+test('a bounded notice window always contains the newly unnoticed identity', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'initial',
+        dedupeKey: 'msg-initial',
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    for (let index = 0; index < 50; index += 1) {
+        await delivery.deliver({
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            content: `backlog ${index}`,
+            dedupeKey: `msg-backlog-${index}`,
+            serverId: seed.serverId,
+        });
+    }
+    const fullWindow = transport.framesOfType('notice').at(-1);
+    await delivery.onNoticeAck({
+        agentId: seed.agentId,
+        messageIds: fullWindow?.inbox.map((item) => item.id) ?? [],
+        runId,
+    });
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'newest',
+        dedupeKey: 'msg-newest',
+        serverId: seed.serverId,
+    });
+
+    expect(
+        transport
+            .framesOfType('notice')
+            .at(-1)
+            ?.inbox.map((item) => item.id)
+    ).toContain('msg-newest');
+
+    await delivery.onComputerReconnect(seed.computerId);
+    const resentStart = transport.framesOfType('start').at(-1);
+    expect(resentStart?.inbox.map((item) => item.id)).toEqual(['msg-initial']);
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    expect(
+        transport
+            .framesOfType('notice')
+            .at(-1)
+            ?.inbox.map((item) => item.id)
+    ).toContain('msg-newest');
+});
+
+test('accepts a repeated Computer-local visibility receipt after a committed receipt crash', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const messageId = await insertHumanMessage(seed, 'local cache retry', 1);
+    const oldHistoryId = await insertHumanMessage(seed, 'old history', 2);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'local cache retry',
+        dedupeKey: messageId,
+        sequence: 1,
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    const runner = {
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        computerId: seed.computerId,
+        runId,
+        runnerId: createOpaqueId('arc'),
+        serverId: seed.serverId,
+    };
+    const identities = [{ chatId: seed.chatId, id: messageId, sequence: 1 }];
+
+    await expect(
+        attestAgentEvents(connection.db, runner, [
+            ...identities,
+            { chatId: seed.chatId, id: oldHistoryId, sequence: 2 },
+        ])
+    ).resolves.toEqual({ accepted: [messageId] });
+    await expect(attestAgentEvents(connection.db, runner, identities)).resolves.toEqual({
+        accepted: [messageId],
+    });
 });
 
 test('reconnect replays busy work pulled by an unsettled active run', async () => {
@@ -681,6 +922,7 @@ test('repeated reconnects settle one durable result for one delivery', async () 
         content: 'buffered once',
         dedupeKey: 'msg-reconnect-once',
         serverId: seed.serverId,
+        source: 'onboarding',
     });
 
     transport.online.add(seed.computerId);
@@ -793,6 +1035,7 @@ test('an expired backoff redrives and settles the queued work once', async () =>
         content: 'retry me',
         dedupeKey: 'msg-backoff-expiry',
         serverId: seed.serverId,
+        source: 'onboarding',
     });
     const firstRunId = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: firstRunId });
@@ -959,6 +1202,7 @@ test('Stop revokes the run credential so it holds even without the socket', asyn
         content: 'work',
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
+        source: 'onboarding',
     });
     const runId = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
@@ -1189,6 +1433,7 @@ test('a failed turn that produced output does not requeue its work', async () =>
         content: 'do a thing',
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
+        source: 'onboarding',
     });
     const runId = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
@@ -1284,6 +1529,31 @@ test('agent-only chain ceiling preserves work until human intent arrives', async
     expect(transport.framesOfType('start')[0]?.inbox).toHaveLength(2);
 });
 
+test('an output sent from agent-authored notice metadata still spends chain budget', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'agent ping',
+        dedupeKey: 'msg-agent-notice-output',
+        serverId: seed.serverId,
+        source: 'agent:wren',
+    });
+
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, runId, 'completed', true)
+    );
+
+    expect((await readDeliveryState(connection.db, seed.agentId))?.agentChainTurns).toBe(1);
+    expect(await countAllPending(seed.agentId)).toBe(1);
+});
+
 test('a resent run stays frozen and the next delivery uses the changed runtime and model', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
@@ -1296,6 +1566,7 @@ test('a resent run stays frozen and the next delivery uses the changed runtime a
         content: 'work',
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
+        source: 'onboarding',
     });
     const first = transport.framesOfType('start')[0];
     expect(first).toMatchObject({ modelId: 'fake-model', runtimeId: 'fake' });
@@ -1322,6 +1593,7 @@ test('a resent run stays frozen and the next delivery uses the changed runtime a
         content: 'next work',
         dedupeKey: 'msg-2',
         serverId: seed.serverId,
+        source: 'onboarding',
     });
 
     const next = transport.framesOfType('start')[2];
@@ -1352,7 +1624,7 @@ test('bounds one drain and carries the overflow in a later run', async () => {
             dedupeKey: `msg-${index}`,
             id: createOpaqueId('apw'),
             serverId: seed.serverId,
-            source: 'human',
+            source: 'onboarding',
         });
     }
     await connection.db

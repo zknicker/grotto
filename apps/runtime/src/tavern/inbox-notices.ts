@@ -80,7 +80,7 @@ export function composeInboxNotice(
     const shown = changed.slice(0, maxNoticeRows);
     const text = [
         '[Grotto inbox notice:',
-        `Inbox update: ${totalPending} unread message${totalPending === 1 ? '' : 's'} total; ${shown.length} changed target(s)`,
+        `Inbox update: ${totalPending} unread message${totalPending === 1 ? '' : 's'} total; ${shown.length} changed target${shown.length === 1 ? '' : 's'}`,
         ...shown.map((row) => row.line),
         ']',
     ].join('\n');
@@ -166,7 +166,7 @@ export function formatInboxTargetRow(row: InboxTargetSummary) {
         ...(row.dm ? [' · dm'] : []),
         ...(row.mentioned ? [' · you were mentioned'] : []),
     ].join('');
-    return `${row.target}  pending: ${row.pendingCount} message(s) · first msg=${row.firstShortId} · latest sender @${row.latestSender} · latest msg=${row.latestShortId}${tags}`;
+    return `${row.target}  pending: ${row.pendingCount} message${row.pendingCount === 1 ? '' : 's'} · first msg=${row.firstShortId} · latest sender @${row.latestSender} · latest msg=${row.latestShortId}${tags}`;
 }
 
 function collectNoticeRows(agentId: string, db: Database): TargetNoticeRow[] {

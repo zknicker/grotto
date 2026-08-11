@@ -50,8 +50,8 @@ test('busy notices include target metadata but never message bodies', () => {
             target: 'dm:@zach',
         }),
     ]);
-    expect(notice).toContain('#general pending: 1 message(s) · first msg=first');
-    expect(notice).toContain('dm:@zach pending: 1 message(s) · first msg=latest');
+    expect(notice).toContain('#general  pending: 1 message · first msg=first');
+    expect(notice).toContain('dm:@zach  pending: 1 message · first msg=latest');
     expect(notice).toContain('· dm');
     expect(notice).not.toContain('Ship it');
     expect(notice).not.toContain('This must also stay hidden');

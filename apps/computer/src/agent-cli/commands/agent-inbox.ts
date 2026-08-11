@@ -31,7 +31,7 @@ export async function runInboxCheck(deps: InboxDeps): Promise<number> {
             ...(row.dm ? [' · dm'] : []),
             ...(row.mentioned ? [' · you were mentioned'] : []),
         ].join('');
-        return `${row.target}  pending: ${row.pendingCount} message(s) · first msg=${row.firstShortId} · latest sender @${row.latestSender} · latest msg=${row.latestShortId}${tags}`;
+        return `${row.target}  pending: ${row.pendingCount} message${row.pendingCount === 1 ? '' : 's'} · first msg=${row.firstShortId} · latest sender @${row.latestSender} · latest msg=${row.latestShortId}${tags}`;
     });
     lines.push('Read pending bodies with grotto message check.');
     deps.write(`${lines.join('\n')}\n`);

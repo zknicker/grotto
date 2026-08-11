@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { noticePath, writePendingNotice } from './delivery.ts';
+import { noticePath, type StoredNoticeReceipt, writePendingNotice } from './delivery.ts';
 import { composeInboxNotice } from './inbox-format.ts';
 import type { HostedAgentInboxItem } from './launch.ts';
 
@@ -17,7 +17,7 @@ export interface VisibleMessageIdentity {
     sequence: number;
 }
 
-interface PendingInboxState {
+export interface PendingInboxState {
     consumedMessageIds: string[];
     items: HostedAgentInboxItem[];
     totalPending: number;
@@ -44,9 +44,10 @@ export async function replacePendingInbox(
     location: AgentInboxLocation,
     items: HostedAgentInboxItem[],
     totalPending = items.length,
-    deliverNotice?: (notice: string) => Promise<void>
+    deliverNotice?: (notice: string) => Promise<void>,
+    receipt?: StoredNoticeReceipt
 ): Promise<string | null> {
-    return await withInboxWrite(location, async () => {
+    const notice = await withInboxWrite(location, async () => {
         const current = await readPendingState(location);
         const consumed = new Set(current.consumedMessageIds);
         const byId = new Map<string, HostedAgentInboxItem>();
@@ -70,11 +71,30 @@ export async function replacePendingInbox(
             items: pending,
             totalPending: nextTotal,
         });
-        const notice = await reconcilePendingNotice(location, pending, nextTotal);
-        if (notice && deliverNotice) {
-            await deliverNotice(notice);
+        return await reconcilePendingNotice(location, pending, nextTotal, receipt);
+    });
+    if (notice && deliverNotice) {
+        await deliverNotice(notice);
+    }
+    return notice;
+}
+
+/** Server re-offered these canonical identities in a new turn after a failed run. */
+export async function reofferPendingMessages(
+    location: AgentInboxLocation,
+    items: HostedAgentInboxItem[]
+): Promise<void> {
+    const offeredIds = new Set(items.map((item) => item.id));
+    if (offeredIds.size === 0) {
+        return;
+    }
+    await withInboxWrite(location, async () => {
+        const current = await readPendingState(location);
+        const consumedMessageIds = current.consumedMessageIds.filter((id) => !offeredIds.has(id));
+        if (consumedMessageIds.length === current.consumedMessageIds.length) {
+            return;
         }
-        return notice;
+        await writePendingState(location, { ...current, consumedMessageIds });
     });
 }
 
@@ -86,6 +106,12 @@ export async function readPendingInbox(
     } catch {
         return [];
     }
+}
+
+export async function readPendingInboxState(
+    location: AgentInboxLocation
+): Promise<PendingInboxState> {
+    return await readPendingState(location);
 }
 
 /**
@@ -102,6 +128,79 @@ export async function consumeVisibleMessages(
     }
     await withInboxWrite(location, async () => {
         await consumeVisibleMessagesLocked(location, visible);
+    });
+}
+
+/** Durable exact visibility evidence carried with the turn summary after local-first pulls. */
+export async function recordRunVisibleMessages(
+    location: AgentInboxLocation,
+    runId: string,
+    messages: VisibleMessageIdentity[]
+): Promise<void> {
+    if (messages.length === 0) {
+        return;
+    }
+    await withInboxWrite(location, async () => {
+        const path = runVisiblePath(location, runId);
+        let current: VisibleMessageIdentity[] = [];
+        try {
+            current = JSON.parse(await readFile(path, 'utf8')) as VisibleMessageIdentity[];
+        } catch (error) {
+            if (!isMissingFile(error)) {
+                throw error;
+            }
+        }
+        const byId = new Map(current.map((message) => [message.id, message]));
+        for (const message of messages) {
+            byId.set(message.id, message);
+        }
+        await writeJsonAtomic(path, [...byId.values()]);
+    });
+}
+
+export async function readRunVisibleMessages(
+    location: AgentInboxLocation,
+    runId: string
+): Promise<VisibleMessageIdentity[]> {
+    try {
+        return JSON.parse(await readFile(runVisiblePath(location, runId), 'utf8'));
+    } catch (error) {
+        if (isMissingFile(error)) {
+            return [];
+        }
+        throw error;
+    }
+}
+
+export async function clearRunVisibleMessages(
+    location: AgentInboxLocation,
+    runId: string
+): Promise<void> {
+    await withInboxWrite(location, async () => {
+        await rm(runVisiblePath(location, runId), { force: true });
+    });
+}
+
+/** Re-exposes locally pulled bodies before an accepted run is replayed after a crash. */
+export async function prepareRunReplay(location: AgentInboxLocation, runId: string): Promise<void> {
+    await withInboxWrite(location, async () => {
+        const path = runVisiblePath(location, runId);
+        let visible: VisibleMessageIdentity[];
+        try {
+            visible = JSON.parse(await readFile(path, 'utf8')) as VisibleMessageIdentity[];
+        } catch (error) {
+            if (isMissingFile(error)) {
+                return;
+            }
+            throw error;
+        }
+        const replayIds = new Set(visible.map((message) => message.id));
+        const current = await readPendingState(location);
+        await writePendingState(location, {
+            ...current,
+            consumedMessageIds: current.consumedMessageIds.filter((id) => !replayIds.has(id)),
+        });
+        await rm(path, { force: true });
     });
 }
 
@@ -186,10 +285,15 @@ function pendingPath(location: AgentInboxLocation) {
     return join(inboxRoot(location), 'pending.json');
 }
 
+function runVisiblePath(location: AgentInboxLocation, runId: string) {
+    return join(inboxRoot(location), 'runs', `${runId}-visible.json`);
+}
+
 async function reconcilePendingNotice(
     location: AgentInboxLocation,
     items: HostedAgentInboxItem[],
-    totalPending = items.length
+    totalPending = items.length,
+    receipt?: StoredNoticeReceipt
 ): Promise<string | null> {
     const notice = composeInboxNotice(items, totalPending);
     if (!notice) {
@@ -199,6 +303,7 @@ async function reconcilePendingNotice(
     await writePendingNotice(location.dataRoot, {
         agentId: location.agentId,
         notice,
+        receipt,
         serverId: location.serverId,
     });
     return notice;

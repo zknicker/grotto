@@ -239,8 +239,8 @@ describe('inbox delivery (I1/I2/I3)', () => {
 
         const notice = composeInboxNotice({ agentId: ottoId, runId: 'run_test' });
         expect(notice?.text).toContain('[Grotto inbox notice:');
-        expect(notice?.text).toContain('Inbox update: 1 unread message total; 1 changed target(s)');
-        expect(notice?.text).toContain('#general  pending: 1 message(s) · first msg=');
+        expect(notice?.text).toContain('Inbox update: 1 unread message total; 1 changed target');
+        expect(notice?.text).toContain('#general  pending: 1 message · first msg=');
         expect(notice?.text).not.toContain('secret body text');
 
         const after = readInboxCursor(otto.id, 'cht_general');
@@ -260,7 +260,7 @@ describe('inbox delivery (I1/I2/I3)', () => {
 
         const second = sendHuman('two');
         planMessageDelivery('cht_general', second);
-        expect(compose()?.text).toContain('pending: 2 message(s)');
+        expect(compose()?.text).toContain('pending: 2 messages');
     });
 
     it('message check serves envelopes, advances served only, and clears pierces', () => {

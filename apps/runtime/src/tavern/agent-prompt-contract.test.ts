@@ -172,6 +172,11 @@ const REQUIREMENTS: PromptRequirement[] = [
         prompt: 'full',
     },
     {
+        capability: 'explicit FYI messages settle silently',
+        expected: 'explicit FYI / no-response-needed messages should settle silently',
+        prompt: 'full',
+    },
+    {
         capability: 'MEMORY.md read at startup',
         expected: 'Read MEMORY.md (in your cwd)',
         prompt: 'full',
@@ -184,6 +189,11 @@ const REQUIREMENTS: PromptRequirement[] = [
     {
         capability: 'no-work never derived from a notice',
         expected: 'Never derive "no work" from a content-free notice alone',
+        prompt: 'full',
+    },
+    {
+        capability: 'notice is not a request',
+        expected: 'The notice is not itself a request',
         prompt: 'full',
     },
     {

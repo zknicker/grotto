@@ -207,6 +207,26 @@ allowlists to make it pass.
 * Composer `@`/`$` autocomplete and transcript reference rendering belong to
   the mentions capability. See [Rich References](../features/rich-references.md).
 
+### Render stability on synced surfaces
+
+A websocket-driven refetch replaces a whole query result, but a transcript
+typically changed one row. React Query's structural sharing hands back the same
+record objects for everything the server returned unchanged, so **source-object
+identity is the change signal** — hosted chat messages carry no version or
+`updatedAt` field to compare.
+
+* View-model projections over synced lists reuse their previous output objects
+  for unchanged source records, and return the previous array when nothing
+  moved. See `features/servers/chat/chat-message-projection.ts`.
+* A render context that reaches rows through React context must hold its
+  identity across those refetches, or every row re-renders regardless of how
+  stable its props are. Keep event-time lookups behind a latest-value ref, keep
+  derived maps content-stable, and give the context stable callbacks from the
+  owning feature root.
+* Expensive leaf rendering (markdown parsing) memoizes on value, not identity,
+  because callers re-derive props such as mentions from the message text on
+  every render.
+
 ## Styling
 
 * `styles/global.css` owns import order and document defaults only.

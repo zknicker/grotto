@@ -417,9 +417,15 @@ export const hostedReminderChangedEventSchema = z
 
 export type HostedReminderChangedEvent = z.infer<typeof hostedReminderChangedEventSchema>;
 
+/**
+ * One Chat's existence changing: `created` for a new Channel or the first
+ * resolution of a DM, `updated` for a Channel rename or Agent participant
+ * change, plus the archive lifecycle. Delivery is Chat-access scoped, so a DM
+ * `created` event reaches its two members and nobody else.
+ */
 export const hostedChatLifecycleEventSchema = z
     .object({
-        action: z.enum(['archived', 'deleted', 'unarchived']),
+        action: z.enum(['archived', 'created', 'deleted', 'unarchived', 'updated']),
         chatId: hostedIdSchema,
         createdAt: hostedTimestampSchema,
         cursor: z.string().regex(/^[1-9]\d*$/u),

@@ -18,7 +18,9 @@ export const chatEventsTable = pgTable(
     'chat_events',
     {
         chatId: text('chat_id'),
-        chatAction: text('chat_action').$type<'archived' | 'deleted' | 'unarchived'>(),
+        chatAction: text('chat_action').$type<
+            'archived' | 'created' | 'deleted' | 'unarchived' | 'updated'
+        >(),
         lifecycleChatId: text('lifecycle_chat_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         cursor: bigint('cursor', { mode: 'bigint' }).notNull(),
@@ -88,7 +90,9 @@ export const chatEventsTable = pgTable(
                 (${table.type} = 'chat.lifecycle'
                     AND ${table.chatId} IS NULL
                     AND ${table.lifecycleChatId} IS NOT NULL
-                    AND ${table.chatAction} IN ('archived', 'deleted', 'unarchived')
+                    AND ${table.chatAction} IN (
+                        'archived', 'created', 'deleted', 'unarchived', 'updated'
+                    )
                     AND ${table.messageId} IS NULL
                     AND ${table.labelId} IS NULL
                     AND ${table.readerUserId} IS NULL

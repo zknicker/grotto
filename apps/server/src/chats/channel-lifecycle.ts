@@ -6,13 +6,12 @@ import type {
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentPendingWorkTable, chatEventsTable, chatsTable } from '../postgres/schema.ts';
+import { agentPendingWorkTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
 import { purgeDeletedHostedChannel } from './channel-deletion.ts';
+import { insertHostedLifecycleEvent } from './lifecycle-events.ts';
 
 export { purgeDeletedHostedChannels } from './channel-deletion.ts';
 
@@ -61,7 +60,7 @@ export async function archiveHostedChannel(
             .set({ archivedAt, archivedByUserId: member?.id ?? null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         await discardQueuedChannelWork(tx, input);
-        const event = await insertLifecycleEvent(tx, input, 'archived', archivedAt);
+        const event = await insertHostedLifecycleEvent(tx, input, 'archived', archivedAt);
         return {
             event,
             receipt: {
@@ -94,7 +93,7 @@ export async function unarchiveHostedChannel(
             .update(chatsTable)
             .set({ archivedAt: null, archivedByUserId: null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
-        const event = await insertLifecycleEvent(tx, input, 'unarchived', changedAt);
+        const event = await insertHostedLifecycleEvent(tx, input, 'unarchived', changedAt);
         return {
             event,
             receipt: { archivedAt: null, chatId: channel.id, serverId: input.serverId },
@@ -125,7 +124,7 @@ export async function deleteHostedChannel(
             .set({ deletedAt, deletedByUserId: member?.id ?? null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         await discardQueuedChannelWork(tx, input);
-        return await insertLifecycleEvent(tx, input, 'deleted', deletedAt);
+        return await insertHostedLifecycleEvent(tx, input, 'deleted', deletedAt);
     });
 
     await purgeDeletedHostedChannel(db, attachmentRoot, input);
@@ -190,37 +189,4 @@ async function discardQueuedChannelWork(
             isNull(agentPendingWorkTable.runId)
         )
     );
-}
-
-async function insertLifecycleEvent(
-    db: GrottoDatabase,
-    input: { chatId: string; serverId: string },
-    action: 'archived' | 'deleted' | 'unarchived',
-    createdAt: Date
-): Promise<HostedDurableEvent> {
-    const cursor = await allocateHostedEventCursor(db, input.serverId);
-    const [event] = await db
-        .insert(chatEventsTable)
-        .values({
-            chatAction: action,
-            createdAt,
-            cursor,
-            id: createOpaqueId('evt'),
-            lifecycleChatId: input.chatId,
-            sequence: 0,
-            serverId: input.serverId,
-            type: 'chat.lifecycle',
-        })
-        .returning({ id: chatEventsTable.id });
-    return {
-        action,
-        chatId: input.chatId,
-        createdAt: createdAt.toISOString(),
-        cursor: cursor.toString(),
-        id: event.id,
-        parentChatId: null,
-        sequence: 0,
-        serverId: input.serverId,
-        type: 'chat.lifecycle',
-    };
 }

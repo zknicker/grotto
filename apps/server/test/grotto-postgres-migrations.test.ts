@@ -36,7 +36,7 @@ test('creates the baseline once and keeps repeated deploys idempotent', async ()
             total: number;
         }[];
 
-        expect(rows).toEqual([{ total: 3 }]);
+        expect(rows).toEqual([{ total: 5 }]);
         expect(servers).toEqual([{ total: 0 }]);
     } finally {
         await database.close();
@@ -57,6 +57,8 @@ test('reports the exact migrations applied to a fresh database', async () => {
             '0000_baseline',
             '0001_chat-anchor-fk',
             '0002_defer-server-purge-constraints',
+            '0003_inbox-notice-state',
+            '0004_lifecycle-created-updated',
         ]);
     } finally {
         await database.unsafe(`DROP DATABASE IF EXISTS ${databaseName}`);

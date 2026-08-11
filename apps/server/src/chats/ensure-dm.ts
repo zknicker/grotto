@@ -1,4 +1,4 @@
-import type { HostedChat } from '@tavern/api';
+import type { HostedChat, HostedDurableEvent } from '@tavern/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -6,6 +6,7 @@ import { chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import { insertHostedLifecycleEvent } from './lifecycle-events.ts';
 import { listHostedChats } from './list-chats.ts';
 
 export class DmPeerNotFoundError extends Error {
@@ -22,12 +23,18 @@ export class InvalidDmPeerError extends Error {
     }
 }
 
+export interface EnsuredHostedDm {
+    chat: HostedChat;
+    /** Null when the DM already existed; only its first resolution is a lifecycle change. */
+    event: HostedDurableEvent | null;
+}
+
 export async function ensureHostedDm(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { peerUserId: string; serverId: string }
-): Promise<HostedChat> {
-    const chatId = await db.transaction(async (tx) => {
+): Promise<EnsuredHostedDm> {
+    const ensured = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireServerMembership(tx, member, input.serverId);
 
@@ -59,7 +66,7 @@ export async function ensureHostedDm(
             left.userId < right.userId ? -1 : 1
         );
 
-        await tx
+        const inserted = await tx
             .insert(chatsTable)
             .values({
                 dmMemberOneStint: memberOne.stint,
@@ -70,7 +77,8 @@ export async function ensureHostedDm(
                 kind: 'dm',
                 serverId: input.serverId,
             })
-            .onConflictDoNothing();
+            .onConflictDoNothing()
+            .returning({ id: chatsTable.id });
 
         const [chat] = await tx
             .select({ id: chatsTable.id })
@@ -91,16 +99,26 @@ export async function ensureHostedDm(
             throw new Error('Failed to resolve the DM after creating it.');
         }
 
-        return chat.id;
+        const event =
+            inserted.length > 0
+                ? await insertHostedLifecycleEvent(
+                      tx,
+                      { chatId: chat.id, serverId: input.serverId },
+                      'created',
+                      new Date()
+                  )
+                : null;
+
+        return { chatId: chat.id, event };
     });
 
     const visibleChat = (await listHostedChats(db, member, input.serverId)).find(
-        (candidate) => candidate.id === chatId
+        (candidate) => candidate.id === ensured.chatId
     );
 
     if (!visibleChat) {
         throw new Error('Failed to open the DM after creating it.');
     }
 
-    return visibleChat;
+    return { chat: visibleChat, event: ensured.event };
 }

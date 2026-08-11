@@ -1,4 +1,4 @@
-import type { HostedChannelCreateInput, HostedChat } from '@tavern/api';
+import type { HostedChannelCreateInput, HostedChat, HostedDurableEvent } from '@tavern/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
@@ -12,6 +12,7 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import { insertHostedLifecycleEvent } from './lifecycle-events.ts';
 import { listHostedChats } from './list-chats.ts';
 
 export class ChannelAgentNotFoundError extends Error {
@@ -26,12 +27,17 @@ export class ChannelNameTakenError extends Error {
     }
 }
 
+export interface CreatedHostedChannel {
+    chat: HostedChat;
+    event: HostedDurableEvent;
+}
+
 export async function createHostedChannel(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: HostedChannelCreateInput
-): Promise<HostedChat> {
-    const chatId = await db.transaction(async (tx) => {
+): Promise<CreatedHostedChannel> {
+    const created = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireServerMembership(tx, member, input.serverId);
         if (!member) {
@@ -76,14 +82,20 @@ export async function createHostedChannel(
         await tx
             .insert(channelAgentParticipantsTable)
             .values(agentIds.map((agentId) => ({ agentId, chatId: id, serverId: input.serverId })));
-        return id;
+        const event = await insertHostedLifecycleEvent(
+            tx,
+            { chatId: id, serverId: input.serverId },
+            'created',
+            new Date()
+        );
+        return { chatId: id, event };
     });
 
     const channel = (await listHostedChats(db, member, input.serverId)).find(
-        (candidate) => candidate.id === chatId
+        (candidate) => candidate.id === created.chatId
     );
     if (!channel) {
         throw new Error('Failed to open the new channel.');
     }
-    return channel;
+    return { chat: channel, event: created.event };
 }

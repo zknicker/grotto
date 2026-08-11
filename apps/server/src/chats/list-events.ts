@@ -1,10 +1,11 @@
 import type { HostedDurableEvent } from '@tavern/api';
-import { and, eq, gt, or } from 'drizzle-orm';
+import { and, eq, gt, or, type SQL, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatEventsTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { visibleHostedChats } from './chat-visibility.ts';
+import type { HostedChatLifecycleAction } from './lifecycle-events.ts';
 
 export async function listHostedChatEvents(
     db: GrottoDatabase,
@@ -48,10 +49,15 @@ export async function listHostedChatEvents(
                 gt(chatEventsTable.cursor, BigInt(input.afterCursor)),
                 or(
                     eq(chatEventsTable.type, 'task.label.updated'),
-                    eq(chatEventsTable.type, 'chat.lifecycle'),
-                    eq(chatEventsTable.type, 'reminder.changed'),
+                    and(
+                        eq(chatEventsTable.type, 'chat.lifecycle'),
+                        replayableLifecycleChat(member.id)
+                    ),
                     and(
                         or(
+                            // Participant-gated like live delivery; the operator-scoped
+                            // reminder lane (reminder.changes) owns cross-chat replay.
+                            eq(chatEventsTable.type, 'reminder.changed'),
                             eq(chatEventsTable.type, 'message.created'),
                             eq(chatEventsTable.type, 'task.created'),
                             eq(chatEventsTable.type, 'task.updated'),
@@ -93,7 +99,7 @@ export async function listHostedChatEvents(
         if (event.type === 'chat.lifecycle') {
             return {
                 ...common,
-                action: event.chatAction as 'archived' | 'deleted' | 'unarchived',
+                action: event.chatAction as HostedChatLifecycleAction,
                 chatId: event.lifecycleChatId as string,
                 parentChatId: null,
                 sequence: 0 as const,
@@ -158,4 +164,28 @@ export async function listHostedChatEvents(
             type: 'thread.follow.updated' as const,
         };
     });
+}
+
+/**
+ * Lifecycle events keep their Chat id outside the live Chat foreign key, so
+ * replay checks visibility directly: a member replays one while the Chat is
+ * still visible to them, or once the row is gone because a delete purged it.
+ * Without this a private DM's `created` event would replay to every member.
+ */
+function replayableLifecycleChat(userId: string): SQL {
+    return sql`(
+        not exists (
+            select 1
+            from chats lifecycle_chat
+            where lifecycle_chat.server_id = ${chatEventsTable.serverId}
+                and lifecycle_chat.id = ${chatEventsTable.lifecycleChatId}
+        )
+        or exists (
+            select 1
+            from chats
+            where ${chatsTable.serverId} = ${chatEventsTable.serverId}
+                and ${chatsTable.id} = ${chatEventsTable.lifecycleChatId}
+                and ${visibleHostedChats(userId)}
+        )
+    )`;
 }

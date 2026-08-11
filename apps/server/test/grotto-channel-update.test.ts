@@ -111,6 +111,47 @@ test('keeping an existing Agent while adding another preserves both', async () =
     expect(updated.participantAgentIds).toEqual([firstAgentId, secondAgentId].sort());
 });
 
+test('creating and changing a channel each emit one durable lifecycle event', async () => {
+    const beforeCreate = await owner.trpc.chat.eventHead.query({ serverId });
+    const channel = await owner.trpc.chat.createChannel.mutate({
+        agentIds: [firstAgentId],
+        name: 'lifecycle-events',
+        serverId,
+    });
+
+    await expect(
+        owner.trpc.chat.events.query({ afterCursor: beforeCreate.cursor, serverId })
+    ).resolves.toEqual([
+        expect.objectContaining({ action: 'created', chatId: channel.id, type: 'chat.lifecycle' }),
+    ]);
+
+    const beforeRename = await owner.trpc.chat.eventHead.query({ serverId });
+    await owner.trpc.chat.updateChannel.mutate({
+        agentIds: [secondAgentId],
+        chatId: channel.id,
+        name: 'lifecycle-events-renamed',
+        serverId,
+    });
+
+    await expect(
+        owner.trpc.chat.events.query({ afterCursor: beforeRename.cursor, serverId })
+    ).resolves.toEqual([
+        expect.objectContaining({ action: 'updated', chatId: channel.id, type: 'chat.lifecycle' }),
+    ]);
+
+    const beforeNoop = await owner.trpc.chat.eventHead.query({ serverId });
+    await owner.trpc.chat.updateChannel.mutate({
+        agentIds: [secondAgentId],
+        chatId: channel.id,
+        name: 'lifecycle-events-renamed',
+        serverId,
+    });
+
+    await expect(
+        owner.trpc.chat.events.query({ afterCursor: beforeNoop.cursor, serverId })
+    ).resolves.toEqual([]);
+});
+
 test('rejects Agents that do not belong to the Server', async () => {
     const channel = await owner.trpc.chat.createChannel.mutate({
         agentIds: [firstAgentId],

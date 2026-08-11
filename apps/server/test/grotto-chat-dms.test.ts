@@ -44,6 +44,37 @@ afterAll(async () => {
     await harness.close();
 });
 
+// Runs first so it observes the owner/peer DM's first resolution rather than
+// opening a second pair.
+test('a first DM resolution emits one lifecycle event scoped to its two members', async () => {
+    const before = await owner.trpc.chat.eventHead.query({ serverId: ownerServerId });
+    const dm = await owner.trpc.chat.ensureDm.mutate({ peerUserId, serverId: ownerServerId });
+    const created = expect.objectContaining({
+        action: 'created',
+        chatId: dm.id,
+        type: 'chat.lifecycle',
+    });
+
+    await expect(
+        owner.trpc.chat.events.query({ afterCursor: before.cursor, serverId: ownerServerId })
+    ).resolves.toEqual([created]);
+    await expect(
+        peer.trpc.chat.events.query({ afterCursor: before.cursor, serverId: ownerServerId })
+    ).resolves.toEqual([created]);
+    await expect(
+        outsider.trpc.chat.events.query({ afterCursor: before.cursor, serverId: ownerServerId })
+    ).resolves.toEqual([]);
+
+    const beforeReopen = await owner.trpc.chat.eventHead.query({ serverId: ownerServerId });
+    const ownerUserId = await readUserId('user_dm_owner');
+    await expect(
+        peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId: ownerServerId })
+    ).resolves.toMatchObject({ id: dm.id });
+    await expect(
+        owner.trpc.chat.events.query({ afterCursor: beforeReopen.cursor, serverId: ownerServerId })
+    ).resolves.toEqual([]);
+});
+
 test('DM access and rows fail closed across participants and Servers', async () => {
     const ownerUserId = await readUserId('user_dm_owner');
     const dm = await owner.trpc.chat.ensureDm.mutate({

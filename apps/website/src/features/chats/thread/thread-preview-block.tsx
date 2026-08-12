@@ -78,7 +78,7 @@ function ThreadPreviewReply({
           ? { id: reply.authorUserId, kind: 'participant' }
           : null;
     const profile = actor ? resolveActorProfile?.(actor) : null;
-    const name = profile?.name ?? 'Reminder';
+    const name = threadPreviewAuthorName(profile);
 
     return (
         <span className="flex min-w-0 items-center gap-1.5 text-xs leading-tight">
@@ -104,6 +104,10 @@ function ThreadPreviewReply({
             </span>
         </span>
     );
+}
+
+export function threadPreviewAuthorName(profile: { name: string } | null | undefined) {
+    return profile?.name ?? 'Unknown';
 }
 
 function replyLabel(replyCount: number) {

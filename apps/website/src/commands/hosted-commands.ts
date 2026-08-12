@@ -218,16 +218,13 @@ function buildHostedCurrentChatGroup(
 
 function buildHostedSettingsGroup(context: HostedCommandContext): AppCommandGroup {
     return {
-        commands: staticSettingsNavItems
-            .filter((item) => item.id !== 'agent-runtime')
-            .map((item) => ({
-                icon: item.icon,
-                id: `settings.${item.id}`,
-                keywords: ['settings', 'preferences', item.id, item.label],
-                run: () =>
-                    context.navigate(serverSettingsSectionRoute(context.serverSlug, item.id)),
-                title: item.label,
-            })),
+        commands: staticSettingsNavItems.map((item) => ({
+            icon: item.icon,
+            id: `settings.${item.id}`,
+            keywords: ['settings', 'preferences', item.id, item.label],
+            run: () => context.navigate(serverSettingsSectionRoute(context.serverSlug, item.id)),
+            title: item.label,
+        })),
         id: 'settings',
         title: 'Settings',
     };

@@ -24,7 +24,6 @@ export function createDevStackEnvironment({
 
     return {
         ...baseEnvironment,
-        DATABASE_PATH: baseEnvironment.DATABASE_PATH ?? statePaths.databasePath,
         GROTTO_ATTACHMENT_ROOT:
             baseEnvironment.GROTTO_ATTACHMENT_ROOT ?? statePaths.hostedAttachmentRoot,
         GROTTO_COMPUTER_DATA_ROOT:
@@ -37,7 +36,6 @@ export function createDevStackEnvironment({
         GROTTO_SERVER_ORIGIN:
             baseEnvironment.GROTTO_SERVER_ORIGIN ?? `http://127.0.0.1:${resolvedPorts.grottoPort}`,
         TAVERN_DEV_STACK: baseEnvironment.TAVERN_DEV_STACK ?? '1',
-        TAVERN_SERVER_PORT: baseEnvironment.TAVERN_SERVER_PORT ?? resolvedPorts.serverPort,
         TAVERN_WEBSITE_PORT: baseEnvironment.TAVERN_WEBSITE_PORT ?? resolvedPorts.websitePort,
     };
 }
@@ -50,19 +48,13 @@ export function createDevStackConfig({
 }) {
     const isDesktop = isDesktopMode(mode);
     const devEnvironment = createDevStackEnvironment({ baseEnvironment, ports, repositoryRoot });
-    const databasePath = resolveHomePath(devEnvironment.DATABASE_PATH);
-
     return {
         appOrigin: devEnvironment.APP_ORIGIN ?? `http://localhost:${ports.websitePort}`,
-        databasePath: shortenHomePath(databasePath),
         desktopEnabled: isDesktop,
-        jobsDatabasePath: shortenHomePath(deriveJobsDatabasePath(databasePath)),
         grottoServerUrl: `http://localhost:${ports.grottoPort}`,
         postgresDataPath: shortenHomePath(devEnvironment.GROTTO_POSTGRES_DATA_ROOT),
-        serverUrl: `http://localhost:${ports.serverPort}`,
-        trigger: `@${devEnvironment.ASSISTANT_NAME ?? 'Otto'}`,
         websiteUrl: `http://localhost:${ports.websitePort}`,
-        wsUrl: `ws://localhost:${ports.serverPort}/trpc`,
+        wsUrl: `ws://localhost:${ports.grottoPort}/trpc`,
     };
 }
 
@@ -119,11 +111,6 @@ export function assertDevStackPortsAvailable({ ports, repositoryRoot }) {
         },
         {
             enabled: true,
-            label: 'server',
-            port: Number(ports.serverPort),
-        },
-        {
-            enabled: true,
             label: 'website',
             port: Number(ports.websitePort),
         },
@@ -148,19 +135,11 @@ export function assertDevStackPortsAvailable({ ports, repositoryRoot }) {
 }
 
 export function cleanupStaleProcesses({
-    mode,
     ports,
     processTools = defaultProcessTools,
     repositoryRoot,
 }) {
-    const isDesktop = isDesktopMode(mode);
     const definitions = [
-        {
-            commandPattern: 'bun --watch src/index.ts',
-            cwd: path.join(repositoryRoot, 'apps', 'server'),
-            enabled: true,
-            port: Number(ports.serverPort),
-        },
         {
             commandPattern: 'bun --watch src/grotto-server.ts',
             cwd: path.join(repositoryRoot, 'apps', 'server'),
@@ -172,17 +151,6 @@ export function cleanupStaleProcesses({
             cwd: path.join(repositoryRoot, 'apps', 'website'),
             enabled: true,
             port: Number(ports.websitePort),
-        },
-        {
-            commandPattern: null,
-            cwd: null,
-            enabled: isDesktop,
-            getProcessIds: (pid) =>
-                [pid, processTools.readProcessParentId(pid)].filter(
-                    (value) => Number.isInteger(value) && value > 1
-                ),
-            matches: (pid) => isStaleTauriDesktopSidecar(processTools.readProcessCommand(pid)),
-            port: 3180,
         },
     ];
 
@@ -257,16 +225,6 @@ export function stripAnsi(value) {
     return value.replace(ansiPattern, '');
 }
 
-function resolveHomePath(value) {
-    if (value === '~') {
-        return os.homedir();
-    }
-    if (value.startsWith('~/')) {
-        return path.join(os.homedir(), value.slice(2));
-    }
-    return path.resolve(value);
-}
-
 export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
     const stackId =
         baseEnvironment.TAVERN_DEV_STACK_ID ??
@@ -276,7 +234,6 @@ export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
     return {
         appStateRoot,
         computerDataRoot: path.join(appStateRoot, 'computer'),
-        databasePath: path.join(appStateRoot, 'tavern.sqlite'),
         hostedAttachmentRoot: path.join(appStateRoot, 'server', 'attachments'),
         postgresDataRoot: path.join(appStateRoot, 'postgres'),
         postgresSocketRoot: path.join(appStateRoot, 'postgres-socket'),
@@ -295,17 +252,6 @@ function shortenRepositoryPath(value, repositoryRoot) {
         return `.${path.sep}${path.relative(repositoryRoot, value)}`;
     }
     return shortenHomePath(value);
-}
-
-function deriveJobsDatabasePath(databasePath) {
-    const extension = path.extname(databasePath);
-
-    if (extension.length === 0) {
-        return `${databasePath}.jobs.sqlite`;
-    }
-
-    const parsed = path.parse(databasePath);
-    return path.join(parsed.dir, `${parsed.name}.jobs${extension}`);
 }
 
 function hashString(value) {
@@ -361,25 +307,6 @@ function readProcessCommand(pid) {
     return typeof result.stdout === 'string' ? result.stdout.trim() : '';
 }
 
-function readProcessParentId(pid) {
-    const result = spawnSync('ps', ['-p', String(pid), '-o', 'ppid='], {
-        encoding: 'utf8',
-    });
-    const value = Number.parseInt(
-        typeof result.stdout === 'string' ? result.stdout.trim() : '',
-        10
-    );
-
-    return Number.isInteger(value) ? value : null;
-}
-
-function isStaleTauriDesktopSidecar(command) {
-    return (
-        command.includes('/Applications/Grotto.app/Contents/MacOS/grotto-server') &&
-        command.includes('--app-origin tauri://localhost')
-    );
-}
-
 function waitForProcessExit(processIds) {
     if (processIds.length === 0) {
         return;
@@ -417,7 +344,6 @@ const defaultProcessTools = {
     killProcess: (pid, signal) => process.kill(pid, signal),
     listListeningProcessIds,
     readProcessCommand,
-    readProcessParentId,
     readProcessWorkingDirectory,
     waitForProcessExit,
 };

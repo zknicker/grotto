@@ -1,6 +1,6 @@
 # Participants
 
-Grotto stores runtime-observed participants as source provenance. The app does not ask users to
+Grotto stores source-observed participants as provenance. The App does not ask users to
 manage an identity directory or reconcile external accounts.
 
 This keeps provider details available for audit and routing while avoiding fragile automatic merges
@@ -9,7 +9,7 @@ across Discord, Slack, iMessage, Telegram, or local agent executors.
 ## Model
 
 - The self actor may use `profile:self` for Grotto-authored local messages.
-- A `participant` is one observed source identity from one runtime/provider/account/external id.
+- A `participant` is one observed source identity from one provider/account/external id.
 - A participant is not "self" and does not carry an `is_self` flag.
 - A `participant label` is an observed display label for that participant.
 - Grotto does not expose a Profile settings page or an Observed Identities linking workflow.
@@ -20,7 +20,7 @@ across Discord, Slack, iMessage, Telegram, or local agent executors.
   current observed name.
 - `participant_labels`: observed labels for one participant.
 
-Runtime ingestion owns participant observation. App settings do not own participant identity.
+Server ingestion owns participant observation. App settings do not own participant identity.
 
 ## Identity Rules
 
@@ -45,7 +45,7 @@ Examples:
 | Telegram user id `123456` | `provider=telegram`, `external_id=123456` |
 | iMessage address `+15551234567` | `provider=imessage`, `external_id=+15551234567` |
 
-Provider-specific parsing belongs in the runtime adapter package. Grotto Runtime API receives
+Provider-specific parsing belongs at the relevant ingestion boundary. Grotto Server receives
 normalized participants and labels.
 
 ## Rendering

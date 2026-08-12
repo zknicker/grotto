@@ -1,25 +1,23 @@
 ---
-summary: Internals index for Grotto architecture, app/runtime ownership, data model, React conventions, and agent-engine behavior.
+summary: Internals index for Server, App, Computer, data, React, and presentation architecture.
 read_when:
   - changing Grotto architecture, ownership boundaries, or implementation layout
-  - looking for app, runtime, data model, frontend, or agent-engine internals
+  - looking for Server, App, Computer, data, or frontend internals
 ---
 
 # Internals
 
-Internals docs explain how Grotto is built. Product-facing behavior belongs in
-[features](../features/), and code-facing app contracts belong in [api](../api/).
-
 | Topic | Doc |
 | --- | --- |
-| Architecture overview | [Architecture Overview](architecture-overview.md) |
-| Grotto Server | [Grotto Server](grotto-server.md) |
-| Grotto App | [Grotto App](app.md) |
-| Runtime boundary | [Grotto Runtime](runtime.md) |
-| Runtime Doctor | [Runtime Doctor](runtime-doctor.md) |
-| Data model | [Data Model](data-model.md) |
+| System ownership | [Architecture Overview](architecture-overview.md) |
+| Hosted collaboration | [Grotto Server](grotto-server.md) |
+| App data flow | [Grotto App](app.md) |
+| PostgreSQL model | [Data Model](data-model.md) |
 | React conventions | [React Conventions](react.md) |
-| Chat demos | [Chat Demos](chat-demos.md) |
-| Tool presentation | [Tool Presentation](tool-presentation.md) |
+| Browser control | [Browser](browser.md) |
+| Artifacts | [Artifacts](artifacts.md) |
 | Widgets | [Widgets](widgets.md) |
-| Agent engine runtime | [Agent Engine Runtime](agent-engine-runtime.md) |
+
+Computer's execution ownership is defined by
+[ADR 0019](../adr/0019-servers-own-collaboration-computers-own-execution.md); its current
+implementation lives under `apps/computer/src/`.

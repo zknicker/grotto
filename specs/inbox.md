@@ -12,9 +12,8 @@ read_when:
 How messages reach agents after the flip (ADR 0014): a delivery planner
 queues per attention rules, notice turns preserve Agent pull discretion, and the
 two-cursor ledger is the only truth about what an agent has seen. Decisions
-I1–I4 in [raft-alignment/README.md](raft-alignment/README.md); turn shapes in
-[raft-alignment/ws2-turn-shapes.md](raft-alignment/ws2-turn-shapes.md); wire
-surface in [grotto-cli.md](grotto-cli.md).
+I1–I4 in [raft-alignment/README.md](raft-alignment/README.md); wire surface in
+[grotto-cli.md](grotto-cli.md).
 
 ## Delivery planning (I1)
 
@@ -135,7 +134,7 @@ the Agent again. A pull followed by a crash replays from canonical Server state.
 | Accepted work and pull evidence survive reconnect or replay correctly | `apps/computer/src/delivery.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Unpulled work is offered once; new identities wake again; subsets and targets settle independently | `apps/server/test/agent-delivery.test.ts` |
 | Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
-| Agent instructions teach notice, pull, silence, and deferral semantics without losing required capabilities | `apps/runtime/src/tavern/agent-prompt-contract.test.ts`, `apps/computer/src/harness/managed-instructions.test.ts` |
+| Agent instructions teach notice, pull, silence, and deferral semantics without losing required capabilities | `apps/computer/src/harness/managed-instructions.test.ts` |
 
 ## Presentation split (I1/I4)
 

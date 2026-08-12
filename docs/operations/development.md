@@ -30,7 +30,7 @@ Run the managed development stack:
 bun run dev
 ```
 
-This starts the local app backend, an isolated PostgreSQL cluster, Grotto Server,
+This starts an isolated PostgreSQL cluster, Grotto Server,
 Grotto Computer, and the website dev server. `bun run dev-app` runs the same
 stack inside the Electron desktop shell. Install the PostgreSQL 16 binaries once:
 
@@ -58,15 +58,14 @@ Seeding runs once per Server. To pick up changes to
 The dev stack uses worktree-isolated development state by default:
 
 ```txt
-~/.tavern/dev/<worktree-id>/tavern.sqlite
 ~/.tavern/dev/<worktree-id>/computer
 ~/.tavern/dev/<worktree-id>/postgres
 ~/.tavern/dev/<worktree-id>/server/attachments
 ```
 
-The stack derives a stable four-port group from the worktree path: website,
-local backend, a reserved legacy Runtime port, and hosted Server. Multiple
-worktrees can run without sharing local state.
+The stack reserves a stable four-port group from the worktree path. Grotto App uses the first port
+and Grotto Server uses the fourth; the middle ports remain reserved so existing worktrees keep their
+URLs. Multiple worktrees can run without sharing local state.
 
 To intentionally share one dev workspace across worktrees, run:
 
@@ -88,8 +87,8 @@ Set `TAVERN_DEV_STACK_ID` to choose the state directory name, or
 TAVERN_DEV_STACK_ID=agent-a TAVERN_DEV_PORT_BASE=43000 bun run dev
 ```
 
-That example uses ports `43000` through `43003`. Set `DATABASE_PATH`,
-`GROTTO_COMPUTER_DATA_ROOT`, or `GROTTO_DATABASE_URL` explicitly when a dev run
+That example uses ports `43000` through `43003`. Set `GROTTO_COMPUTER_DATA_ROOT`
+or `GROTTO_DATABASE_URL` explicitly when a dev run
 should use specific state.
 
 `.claude/launch.json` is gitignored and generated per checkout by a

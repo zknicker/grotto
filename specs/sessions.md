@@ -45,11 +45,11 @@ the freshness gate lives on the CLI send path exactly once
 
 Sessions never rotate because of age or idleness. A new session starts only on:
 
-1. **Runtime or model switch** — the agent's execution configuration is agent-scoped; a change takes
+1. **Execution runtime or model switch** — the Agent's execution configuration is Agent-scoped; a change takes
    effect on the next turn with a fresh session. Workspace, memory, and
    identity persist.
 2. **Resume recovery** — if the executor reports that its stored runtime session is missing or
-   replay is rejected, Runtime automatically starts a fresh Agent session generation. The recovery
+   replay is rejected, Computer automatically starts a fresh Agent session generation. The recovery
    is visible in activity and injected into the fresh context, directing the Agent to recover from
    Grotto history and local `MEMORY.md`/notes. If the cold start also fails, the Agent becomes
    offline with an error.

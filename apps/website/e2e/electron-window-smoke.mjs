@@ -46,7 +46,7 @@ const vite = spawn('bun', ['run', 'dev'], {
 
 // Electron must not inherit the dev-port vars or its quit-cleanup would kill our Vite.
 const electronEnv = { ...process.env, TAVERN_ELECTRON_DEV_URL: viteUrl };
-for (const key of ['TAVERN_WEBSITE_PORT', 'TAVERN_SERVER_PORT', 'TAVERN_RUNTIME_PORT']) {
+for (const key of ['TAVERN_WEBSITE_PORT']) {
     delete electronEnv[key];
 }
 

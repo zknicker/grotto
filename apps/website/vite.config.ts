@@ -7,12 +7,12 @@ import { defineConfig } from 'vite';
 
 const websiteRoot = path.dirname(fileURLToPath(import.meta.url));
 const websitePort = Number(process.env.TAVERN_WEBSITE_PORT ?? '3100');
-const serverPort = Number(process.env.TAVERN_SERVER_PORT ?? '8080');
-const serverOrigin = `http://localhost:${serverPort}`;
+const serverPort = Number(process.env.GROTTO_SERVER_PORT ?? '8090');
+const serverOrigin = process.env.VITE_GROTTO_SERVER_ORIGIN ?? `http://localhost:${serverPort}`;
 // Hosted avatar bytes are served by the Grotto Server, not the local API. In
-// production the Server UI shares that origin, so the stored avatar URL stays
+// production Grotto App shares that origin, so the stored avatar URL stays
 // relative; only the dev proxy has to be pointed at the Server explicitly.
-const grottoServerOrigin = process.env.VITE_GROTTO_SERVER_ORIGIN ?? serverOrigin;
+const grottoServerOrigin = serverOrigin;
 
 // The App's product version is provenance the App sends to the hosted Server.
 // It has one source of truth: this package's version.

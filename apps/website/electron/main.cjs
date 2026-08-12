@@ -361,7 +361,7 @@ function cleanupDevPortsOnce() {
         return;
     }
 
-    for (const key of ['TAVERN_WEBSITE_PORT', 'TAVERN_SERVER_PORT']) {
+    for (const key of ['TAVERN_WEBSITE_PORT']) {
         const port = readPort(key);
         if (port) {
             killProcessesListeningOnPort(port);

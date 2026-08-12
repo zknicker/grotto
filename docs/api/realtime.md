@@ -10,9 +10,8 @@ read_when:
 
 Realtime is notification plus recovery.
 
-PostgreSQL is the source of truth for hosted Server collaboration. Runtime
-SQLite remains the pre-cutover source for local execution chat. WebSocket
-delivery is allowed to drop; clients recover through durable reads.
+PostgreSQL is the source of truth for Server collaboration. WebSocket delivery is allowed to drop;
+clients recover through durable reads.
 
 ## Components
 
@@ -22,11 +21,7 @@ delivery is allowed to drop; clients recover through durable reads.
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
 | Hosted Agent lifecycle hub | Grotto Server | Volatile working/reading/sending/settled projection for presence and send composition |
-| `chat_events` | Grotto Runtime | Durable cursor-backed event log |
-| `chat_responses` / `chat_response_activity` | Grotto Runtime | Durable response/activity rows (real agent turns no longer populate them — see [Chat API](chat.md)) |
-| `chat_artifacts` | Grotto Runtime | Durable renderable outputs |
-| Event list | Grotto Runtime | Inspectable recent events derived from `chat_events` |
-| App websocket | Grotto App | UI invalidation and client notifications (`agent.updated`, `chat.updated`, `chat.log.updated`, `model.updated`, `server.updated`, `session.updated`, `skill.updated`, `pane.updated`, `agent-runtime.updated`, `agent-runtime-capability.updated`, `engine-restart.updated`, and similar) |
+| App subscriptions | Grotto App | tRPC notification transport, catch-up cursors, and focused query invalidation |
 
 `server.updated` is Server-scoped: `server.onUpdate` takes a Server id, checks
 membership before the subscription starts, and delivers only that Server's
@@ -45,8 +40,8 @@ delete; skill import, Computer update checks, update starts, and removal; and a
 human's profile edit or identity sync, which announces to every Server that
 human belongs to.
 
-App websocket events are not the durable event source. They can mirror Runtime
-events, but missed app notifications recover through Grotto API reads.
+App websocket events are not the durable event source. Missed App notifications
+recover through focused Grotto Server reads.
 
 The event list does not own a second event log. App notifications are derived
 from durable `chat_events`.
@@ -158,77 +153,6 @@ invalidations. On start or reconnect it merges durable catch-up with live
 delivery using a monotonic in-memory cursor, so a newer live event cannot be
 overwritten by an older catch-up page.
 
-## Endpoints
-
-```http
-GET /api/events?recipient_id=&limit=
-GET /api/events/ws?recipient_id=
-```
-
-`GET /api/events` returns recent durable events ordered by cursor ascending. The
-server clamps `limit`.
-
-`GET /api/events/ws` upgrades to a WebSocket and streams live notifications
-until disconnect. It does not backfill missed events.
-
-Private events are delivered only when `recipient_id` matches an event
-recipient. Without a matching `recipient_id`, event list and websocket delivery
-include public events only.
-
-## Event Shape
-
-```jsonc
-{
-  "id": "evt_...",
-  "cursor": "101",
-  "type": "message.created",
-  "chat_id": "cht_...",
-  "created_at": "2026-05-17T00:00:00.000Z",
-  "private": false,
-  "recipients": [],
-  "message": {}
-}
-```
-
-Events carry stable identity and enough cursor data to reconcile or refetch.
-Large records live in resource reads, not event payloads.
-
-## Durable Events
-
-Durable events are inserted in the same Runtime transaction as the mutation they
-describe.
-
-Chat events:
-
-* `message.created`
-* `message.delivered`
-* `message.updated`
-* `response.created`
-* `response.updated`
-* `response.completed`
-* `response.failed`
-* `activity.created`
-* `activity.updated`
-* `activity.completed`
-* `activity.failed`
-* `artifact.created`
-* `chat.read`
-
-Automation, skill, and stats events use the same durable event log when they
-affect client-visible Runtime state.
-
-These chat-level events (`message.*`, `response.*`, `activity.*`,
-`artifact.created`) are separate from the tRPC invalidation events the app
-websocket carries (`agent.updated`, `chat.updated`, `session.updated`, and so
-on) — see [Components](#components). Live in-chat turn progress does not ride
-this event log: the chat timeline carries durable messages only, and
-execution evidence surfaces on the agent profile instead (see
-[chat-timeline](../../specs/chat-timeline.md) and
-[agent-activity](../../specs/agent-activity.md)).
-
-Read events are private to the reader. Private events use `private` plus
-`recipients`, and Runtime filters them during event list and websocket delivery.
-
 ## Ephemeral Notifications
 
 Ephemeral notifications are best-effort presentation hints. They can be dropped
@@ -249,7 +173,7 @@ Examples:
 Clients do not rebuild state from missed websocket events. They refetch durable
 resources and let React Query reconcile active views.
 
-The Server UI keeps one tRPC client and React provider mounted for the signed-in
+The Grotto App keeps one tRPC client and React provider mounted for the signed-in
 human. Clerk token rotation reconnects only that client's websocket; the reconnect
 reads fresh connection parameters and resumes its pending subscriptions. Credential
 rotation must not replace the tRPC provider, remount the Server shell, clear composer
@@ -260,9 +184,9 @@ observes the previous identity's cache or local presentation state.
 Reconnect flow:
 
 1. Keep rendering cached query data while the socket reconnects.
-2. When the websocket reconnects, invalidate active Runtime-backed queries.
-3. Refetch chat history, artifacts, agents, presence, activity, sessions,
-   skills, stats, or other visible resources through their normal API reads.
+2. When the websocket reconnects, invalidate active Server-backed queries.
+3. Refetch Chat history, Agents, activity, Computers, reminders, and other visible resources
+   through their normal API reads.
 4. Resume applying live notifications.
 
 Hosted Reminders use the same principle with a narrower lane: keep the last
@@ -279,7 +203,6 @@ resource.
 * Hosted `chat_events.cursor` is monotonic and commit-ordered within one Server.
 * Hosted message order is the transactional positive per-Chat sequence.
 * A fire's `message.created` cursor precedes its `reminder.changed` cursor.
-* `chat_events.cursor` is monotonic inside Runtime SQLite.
 * Message timeline order is `chat_messages.sequence`, not event cursor.
 * Event cursor order records mutation order for inspection.
 * Sequence order tells clients how to render chat history.
@@ -290,12 +213,8 @@ resource.
 Grotto App can expose its own websocket or tRPC subscriptions for UI
 invalidation. Those subscriptions are app notifications.
 
-Product state still comes from:
-
-* `GET /api/chats/{chat_id}/messages`
-* artifact reads for the chat timeline
-* focused resource reads for automations, skills, and stats
-* the agent activity feed, presence, and inbox reads for execution evidence
+Product state still comes from focused Server tRPC reads for Chats, Agents, Computers, reminders,
+activity, and execution evidence.
 
 ## What Is Intentionally Missing
 
@@ -303,10 +222,10 @@ Product state still comes from:
 * Message history stored only in event payloads.
 * Response activity created from app-local UI state.
 * Hidden chain-of-thought in realtime events.
-* Runtime session sequence as an event cursor.
+* Execution-runtime session sequence as a Server event cursor.
 
 ## Related Docs
 
 * [API overview](overview.md)
-* [Chat API](chat.md)
+* [Chats](../../specs/chats.md)
 * [Data model](../internals/data-model.md)

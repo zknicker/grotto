@@ -86,7 +86,7 @@ Before every Grotto release, the release instructions require an explicit surfac
 
 | Surface | Publish when |
 | --- | --- |
-| Server | Server UI, hosted API, persistence, or Server behavior changes |
+| Server | Grotto App React UI, hosted API, persistence, or Server behavior changes |
 | App | The Electron shell or installed desktop artifact changes |
 | Computer | Computer execution, lifecycle, local CLI, updater, embedded managed CLI, bootstrap or ordinary protocol, or required shared Computer dependencies change |
 

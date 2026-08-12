@@ -19,11 +19,9 @@ const healthyCapability: CapabilityView = {
 
 function createContext(overrides: Partial<AppCommandBuildContext> = {}): AppCommandBuildContext {
     return {
-        checkRuntimeHealth: () => undefined,
         chats: [],
         currentChat: null,
         devMode: false,
-        isCheckingRuntimeHealth: false,
         navigate: () => undefined,
         pathname: '/activity',
         resolveCapability: () => healthyCapability,
@@ -48,10 +46,8 @@ test('global command groups expose the first slice of Grotto actions', () => {
     assert.ok(commandTitles.includes('Search'));
     assert.ok(commandTitles.includes('Chat'));
     assert.ok(commandTitles.includes('Activity'));
-    assert.ok(commandTitles.includes('Grotto Runtime'));
     assert.ok(commandTitles.includes('Members'));
     assert.ok(commandTitles.includes('Turn Dev Mode On'));
-    assert.ok(commandTitles.includes('Check Runtime Health'));
 });
 
 test('chat navigation commands expose channels and direct messages', () => {

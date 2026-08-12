@@ -8,8 +8,6 @@ import {
 } from '../settings/layout/navigation.ts';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
 
-const hostedHiddenSettings: ReadonlySet<string> = new Set(['agent-runtime']);
-
 /** Settings navigation sidebar for the hosted server settings routes. */
 export function SettingsSidebar({
     currentSection,
@@ -23,7 +21,6 @@ export function SettingsSidebar({
         <ShellSidebarPageContent band={<Sidebar.GroupLabel>General</Sidebar.GroupLabel>}>
             {settingsNavSections.map((section) => {
                 const items = section.itemIds
-                    .filter((id) => !hostedHiddenSettings.has(id))
                     .map((id) => itemById.get(id))
                     .filter((item) => item !== undefined);
                 if (items.length === 0) {

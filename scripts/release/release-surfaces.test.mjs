@@ -6,7 +6,7 @@ import {
     resetReleaseSurfaceDecision,
 } from './release-surfaces.mjs';
 
-test('release bump starts an incomplete four-surface decision', () => {
+test('release bump starts an incomplete three-surface decision', () => {
     const decision = resetReleaseSurfaceDecision('1.2.3');
     expect(() => assertReleaseSurfaceDecision(decision, { targetVersion: '1.2.3' })).toThrow(
         'App has no explicit'
@@ -20,7 +20,6 @@ test('release check accepts and formats one explicit decision per surface', () =
             server: { action: 'publish', version: '1.2.3' },
             computer: { action: 'publish', version: '2.0.0' },
             app: { action: 'unchanged', version: null },
-            runtime: { action: 'unchanged', version: null },
         },
     };
     expect(assertReleaseSurfaceDecision(decision, { targetVersion: '1.2.3' }).complete).toBe(true);
@@ -39,7 +38,6 @@ test('Computer-only repairs explicitly leave every other surface unchanged', () 
             server: { action: 'unchanged', version: null },
             computer: { action: 'publish', version: '2.0.1' },
             app: { action: 'unchanged', version: null },
-            runtime: { action: 'unchanged', version: null },
         },
     };
     expect(assertReleaseSurfaceDecision(decision, { requireDecision: true }).complete).toBe(true);

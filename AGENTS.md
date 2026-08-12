@@ -12,17 +12,15 @@ Always-on Grotto guidance for AI coding assistants.
 
 ## Architecture Map
 
-Grotto has four first-party layers plus an internal agent engine. Grotto is the product.
-Grotto Runtime manages the engine dependency — users install only Grotto and experience
-the engine's abilities as the assistant's abilities, never its plumbing.
+Grotto has three first-party product surfaces. Grotto is the product; execution runtimes are
+Computer-local implementation choices.
 
 | Layer | Owns |
 | --- | --- |
-| Grotto Server | The hosted Server UI, collaboration API, persistence, and shared Server behavior. |
-| Grotto Runtime | Canonical chats, messages, participants, events, reads, automations, deliveries, runtime activity, Memory reads, agent execution, and Grotto tools. |
-| Grotto App | The installed Electron desktop application: native shell, preload bridge, local presentation, app cache, app settings, optimistic UI, and tRPC client behavior. It loads the Server UI. |
-| Grotto API / SDK | Stable contracts for chats, realtime, admin/runtime control, automations, Memory, skills, stats, and external clients. |
-| Agent engine | Agent execution: instructions, turns, tools, model calls, and projected activity. |
+| Grotto Server | Canonical collaboration state, identity, authorization, chats, messages, tasks, reminders, connections, and Computer coordination. |
+| Grotto App | The React product surface, Electron shell, local presentation, app cache, settings, optimistic UI, and tRPC client behavior. |
+| Grotto Computer | Machine attachment state, Agent workspaces, delivery queues, execution-runtime discovery, and Agent execution. |
+| Grotto API | Stable first-party contracts shared by Server, App, Computer, and the Agent CLI. |
 
 Use product nouns directly:
 
@@ -30,20 +28,17 @@ Use product nouns directly:
 - A `session` is one agent's single ongoing global execution context spanning
   every chat it participates in (specs/sessions.md).
 - A `turn` is one execution inside a session.
-- Grotto chat history is canonical Grotto Runtime state.
+- Grotto chat history is canonical Grotto Server state.
 - Agent execution traces are execution evidence, not the product timeline.
-- Memory is Grotto's durable knowledge surface.
-- Use Server for the hosted deployment and Server UI for its web surface. Use App only for the
-  installed desktop application.
 
 ## Docs Routing
 
 - `docs/README.md` is the human docs front door.
 - `docs/features/` describes user-facing capabilities.
-- `docs/api/` describes API and SDK contracts.
-- `docs/internals/` describes architecture, ownership, app/runtime boundaries, frontend structure,
+- `docs/api/` describes first-party API contracts.
+- `docs/internals/` describes architecture, ownership, App/Server/Computer boundaries, frontend structure,
   and data model.
-- `docs/operations/` describes development, testing, releases, and runtime operations.
+- `docs/operations/` describes development, testing, releases, and deployment.
 - `specs/` holds deeper product contracts and normative design.
 
 Do not maintain a hand-written doc index here. Add or update `summary` and `read_when` frontmatter
@@ -85,26 +80,23 @@ so `docs:list` routes future agents correctly.
 - App event hooks should own their tRPC subscription and the exact React Query invalidation or cache
   update.
 
-## Grotto Server UI And App
+## Grotto App UI
 
 - React structure, behavior, data flow, or state: before editing, use
   `architect-react-features` and read `docs/internals/react.md`. Also use
   `vercel-composition-patterns` when changing component APIs, props, providers, context, shared
   state, or reusable UI. Before verification, apply the relevant skill audits again to the
   completed diff.
-- The app is sync-first. Render the best synced data we have even when Runtime is offline or
+- The app is sync-first. Render the best Server data we have while a Computer is offline or
   reconnecting.
-- Runtime connection state belongs in a focused hook or small UI surface such as a badge. Avoid
-  full-page runtime loading gates except for real setup/onboarding boundaries.
+- Computer connection state belongs in a focused hook or small UI surface. Avoid full-page
+  connection gates except for real setup or onboarding boundaries.
 - Keep persistent synced data separate from volatile runtime state. Do not attach high-churn fields
   to shared records when a focused query can expose that activity.
 - Keep optimistic chat rows app-local. Do not patch durable chat history to show optimistic rows.
 - Keep hooks granular and capability-first under `apps/website/src/hooks/<capability>`.
-- Runtime and agent-engine feature gates must use Runtime capabilities as the singular
-  readiness contract. Do not gate app behavior on app-local connection `lastError`, sync
-  timestamps, process guesses, or cached engine state. Add a Runtime capability when the
-  requirement is not represented. Prefer primitive capability gates such as `gateway` over
-  umbrella feature names.
+- Computer-dependent feature gates must use Server-reported Computer state and capabilities. Do
+  not gate behavior on app-local process guesses or direct machine probes.
 - The UI system is HeroUI v3 (`@heroui/react` + `@heroui-pro/react`). Do not add Base UI, COSS,
   shadcn, or Radix usage. The few components under `components/ui` are product-specific adapters,
   not a general-purpose component kit.
@@ -125,23 +117,19 @@ so `docs:list` routes future agents correctly.
   https://www.fluidfunctionalism.com/docs/motion and
   https://www.fluidfunctionalism.com/docs/thinking-indicator.
 
-## Runtime And Data
+## Server, Computer, And Data
 
-- Runtime owns canonical chat records, durable events, activity state, Memory reads, agent
-  execution, and runtime tools.
-- App storage is cache, settings, local presentation state, and runtime evidence views.
-- Runtime adapters project Grotto primitives plus source facts. They must not author final Grotto
-  presentation such as display names or fake chat workspace folders.
+- Server owns canonical collaboration records. Computer owns machine-local Agent workspaces,
+  queues, execution state, and execution-runtime access. App storage is cache, settings, and local
+  presentation state.
 - Preserve participant source labels as observed labels. Do not merge participants by display name
   or reintroduce observed-identity linking without a current product spec.
-- Message sends to agents must resolve a Runtime-owned agent presence for the selected
-  frontend conversation and agent, then use that presence's current session binding.
-  Do not let apps or external frontends invent routing ids from Discord channels, DMs,
-  Grotto chat ids, or opaque engine session ids.
-- If a runtime record is missing a required stable id, timestamp, schedule, file content, or actor,
-  fail the mapping or mark the capability degraded instead of inventing a value.
-- Treat `apps/server/src/db/bootstrap.ts` as fresh-schema setup only. For local SQLite migrations,
-  directly edit the local database after operator approval instead of adding migration code.
+- Message delivery to an Agent flows Server → assigned Computer → Agent session. App and external
+  clients must not invent Computer, session, or execution-runtime routing ids.
+- If a Server or Computer record lacks a required stable id, timestamp, file, or actor, fail the
+  mapping or mark the capability degraded instead of inventing a value.
+- Treat `apps/server/src/postgres/bootstrap.ts` as fresh-schema setup only. Schema changes use the
+  checked-in PostgreSQL migrations.
 
 ## Testing And Smoke
 
@@ -157,7 +145,7 @@ so `docs:list` routes future agents correctly.
   do not wait for a second call site when ownership is clear.
 - Do not add extension points, abstractions, compatibility branches, or schema-normalization paths
   unless they are needed now.
-- For cross-boundary runtime, admin, or product contract changes, update `packages/tavern-api`
+- For cross-boundary Server, Computer, App, or Agent API changes, update `packages/tavern-api`
   directly for the current first-party contract.
 - Keep docs current when API shape, storage models, frontend structure, or runtime assumptions
   change.
@@ -166,45 +154,26 @@ so `docs:list` routes future agents correctly.
 - Update `.env.example` when environment variables change.
 - If requirements are unclear, update the relevant spec and ask.
 
-## Agent Engine Work
+## Agent Execution Work
 
-- Grotto Runtime owns model config, capability checks, instruction composition, tool exposure,
-  and the Grotto chat-to-agent turn runner. The engine dependency is internal and not a
-  user-facing product surface; see Coding Rule 11 for the product-language boundary.
-- The current implementation lives under `apps/runtime/src/agent-engine/`. That module may use
-  AI SDK, ACP, or other implementation dependencies internally, but public ids, env vars, docs,
-  app copy, API metadata, and inspectable runtime records must use Grotto or agent-engine naming.
-- Runtime executes turns with local AI SDK `LanguageModel` instances. It does not run Vercel
-  Gateway infrastructure or a managed external engine process.
-- After a coherent agent-engine change, select deterministic and live verification from
+- Grotto Computer owns runtime discovery, model inventory, instruction composition, tools, and the
+  chat-to-Agent turn runner under `apps/computer/src/`.
+- Codex, Claude Code, and Pi are execution runtimes inside Computer. Do not use “Grotto Runtime” as
+  a product, service, release, compatibility, or ownership term.
+- After a coherent execution change, select deterministic and live verification from
   [Change Routing](docs/operations/testing.md#change-routing).
 
 ## Agent System Prompt Changes
 
-The composed agent system prompt is a guarded contract. Its sources are
-`apps/runtime/src/workspace/managed-instructions.ts`,
-`apps/runtime/src/tavern/agent-instructions.ts`,
-`apps/runtime/src/tavern/model-instructions.ts`, and
-`apps/runtime/src/agent-engine/instructions.ts`; its executable requirements,
-reviewable snapshots, and character budgets live in
-`apps/runtime/src/tavern/agent-prompt-contract.test.ts`.
+The composed agent system prompt is a guarded contract. Its sources live under
+`apps/computer/src/harness/`, with focused coverage in `instructions.test.ts`.
 
 When changing prompt text or that contract test:
 
-1. Run the contract suite and read the snapshot diff; include the diff in what
-   you show the operator.
-2. Never delete or weaken a requirement, raise a budget, or rewrite a snapshot
-   just to make the suite pass. A failing requirement means a capability left
-   the prompt — stop and get explicit operator confirmation that the removal
-   is intentional.
-3. Adding a prompt-taught capability requires adding its requirement in the
-   same change; removing one requires removing its requirement, named
-   explicitly in your summary to the operator.
-4. Budget raises are deliberate token-spend decisions. Propose the new number
-   and why; do not silently bump.
-5. After meaningful prompt-text changes, run the behavioral evals against a
-   running dev stack: `bun run eval:prompt` (real model turns; see
-   [Testing](docs/operations/testing.md#prompt-behavior-evals)).
+1. Run the focused Computer harness tests and inspect the rendered prompt change.
+2. Never delete or weaken a requirement merely to make tests pass. Name intentional capability
+   removals explicitly to the operator.
+3. Add or update executable coverage with every prompt-taught capability change.
 
 ## Agent skills
 

@@ -91,28 +91,6 @@ export const compareVersions = (left, right) => {
     return 0;
 };
 
-export const isRuntimeVersionAcceptedByApp = ({ appVersion, minimumVersion, runtimeVersion }) => {
-    const app = parseVersion(appVersion);
-    const runtime = parseVersion(runtimeVersion);
-    const minimum = parseVersion(minimumVersion);
-    if (!(app && runtime && minimum)) {
-        return false;
-    }
-
-    const appSharesMinimumEpoch = app.major === minimum.major && app.minor === minimum.minor;
-    const inAppEpoch =
-        runtime.major === app.major &&
-        runtime.minor === app.minor &&
-        compareVersions(runtimeVersion, appVersion) <= 0 &&
-        (!appSharesMinimumEpoch || compareVersions(runtimeVersion, minimumVersion) >= 0);
-    const inMinimumEpoch =
-        runtime.major === minimum.major &&
-        runtime.minor === minimum.minor &&
-        compareVersions(runtimeVersion, minimumVersion) >= 0;
-
-    return inAppEpoch || inMinimumEpoch;
-};
-
 export const todayDateString = () => new Date().toISOString().slice(0, 10);
 
 export const runGit = async (args) => {

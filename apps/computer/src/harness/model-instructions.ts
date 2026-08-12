@@ -1,11 +1,9 @@
 /**
- * Model-family operational guidance — a faithful port of Runtime's
- * `apps/runtime/src/tavern/model-instructions.ts`. Composed into the system
+ * Model-family operational guidance, retained from the retired standalone product. Composed into the system
  * prompt when the assigned model belongs to a family that needs explicit
  * steering. Claude-family models get none. Copy stays tool-agnostic because
  * harness tool names differ per provider.
  *
- * Boundary adaptation: Runtime matched on `AgentRuntimeModelName.model`; the
  * Computer has the assigned model id string directly, so it matches on that.
  *
  * PROMPT CONTRACT: text changes must stay in lockstep with Runtime's copy and

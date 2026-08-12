@@ -92,7 +92,7 @@ and [Agent Inbox](../../specs/inbox.md).
   There is no separate pinned-chat state.
 * **Chat appearance and instructions.** Grotto chats can carry durable channel
   color and trusted chat-specific agent instructions.
-* **Offline catch-up.** Grotto Runtime keeps chat history while the app is
+* **Offline catch-up.** Grotto Server keeps chat history while the App is
   closed; the app reloads from durable rows and refetches on reconnect.
 * **Attention.** Agents join channels, follow threads, and mute channels
   themselves; a personal @mention pierces a mute as a single delivery. Humans
@@ -112,7 +112,7 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Stop.** Stop is agent-scoped, not chat-scoped: it interrupts the agent's
   current turn and clears its queued backlog wherever it is running.
 * **Dismissal.** Failed-turn banners can be dismissed with a hover X. The
-  dismissal soft-deletes the durable row in Grotto Runtime — sequence slots
+  dismissal soft-deletes the durable Server row — sequence slots
   and history records are retained, and the result syncs to every client.
 
 ## Timeline inputs
@@ -121,10 +121,10 @@ The timeline combines three inputs:
 
 | Input | Owner | Role |
 | --- | --- | --- |
-| Durable messages | Grotto Runtime | Canonical timeline rows |
-| Artifacts | Grotto Runtime | Rich renderable outputs |
-| Composition bubbles | Server UI (ephemeral) | In-flight agent send preview |
-| Optimistic local rows | Server UI | One-frame accepted-message handoff |
+| Durable messages | Grotto Server | Canonical timeline rows |
+| Artifacts | Grotto Server | Rich renderable outputs |
+| Composition bubbles | Grotto App (ephemeral) | In-flight agent send preview |
+| Optimistic local rows | Grotto App | One-frame accepted-message handoff |
 
 Rendering rules:
 
@@ -132,7 +132,7 @@ Rendering rules:
 * key artifacts by artifact id
 * replace optimistic rows and composition bubbles by durable message id
   (matched on `compositionId`)
-* recover reloads from Runtime messages and artifacts
+* recover reloads from Server messages and artifacts
 
 ## App Data Flow
 
@@ -151,9 +151,13 @@ surface never drops out between selections.
 Channel color is durable Grotto chat metadata. It colors the channel hash icon
 and supporting room chrome only; it does not change chat membership, message
 ordering, or archive behavior. Grotto chats can also carry trusted system
-prompt text that Grotto passes through Runtime prompt composition for that
+prompt text that Grotto passes through Computer prompt composition for that
 chat.
+
+An offline Computer does not make Chat history unavailable. Pending work remains Server-owned until
+the assigned Computer can receive it. The App may show optimistic local rows while a send is in
+flight, but it never patches those rows into canonical history before acknowledgement.
 
 ## Contract
 
-The feature contract lives in [Chat API](../api/chat.md).
+The deeper product contract lives in [Chats](../../specs/chats.md).

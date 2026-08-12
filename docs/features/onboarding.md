@@ -13,7 +13,7 @@ No Computer, Agent, or execution configuration is created automatically.
 
 The first step gives the Owner two Server-specific commands: install Grotto Computer, then set it
 up for this Server. `grotto-computer setup /<slug>` reuses a valid Computer login or opens and
-prints a complete device URL plus a short code that can also be entered manually. The Server UI
+prints a complete device URL plus a short code that can also be entered manually. Grotto App
 keeps the code through Clerk sign-in, shows the current account with a **Use another account**
 path, and requires explicit approval. It then reports **Signed in — finishing the connection**
 until the CLI durably stores the Server attachment, followed by **Computer connected — you can
@@ -25,14 +25,14 @@ disconnection remain on the owning durable phase with a concrete repair
 message. Reload, Grotto App restart, Server restart, and reconnect therefore resume
 from Server state instead of reconstructing progress.
 
-The Server UI owns no onboarding authority. The `/s/:slug` route reads the Server's
+Grotto App owns no onboarding authority. The `/s/:slug` route reads the Server's
 onboarding record before mounting `ServerLayout`; while setup is incomplete,
 every nested destination renders the dedicated HeroUI onboarding feature
 instead of the rail, sidebar, Chats, Members, Tasks, Computers, or Settings.
 Computer events invalidate that focused Server read for immediate progress. While onboarding is
-incomplete, the Server UI also reconciles the durable record once per second so a missed or racing
+incomplete, Grotto App also reconciles the durable record once per second so a missed or racing
 realtime event cannot leave Computer connection or Cove application visibly stuck. This reads only
-the Server; the Server UI never connects to the Computer directly.
+the Server; Grotto App never connects to the Computer directly.
 
 At **Meet Cove**, the Owner chooses only a usable runtime and model from the
 pinned Computer's reported inventory. `server.createCove` is the one dedicated
@@ -53,14 +53,14 @@ isolated skill library, writes a durable local receipt, then returns a matching
 `applied` result for the reserved Agent, application, and Computer advances the
 Server to `complete`; effective-state reports and model messages do not.
 
-The Server UI collapses the internal pipeline at its presentation boundary. While
+Grotto App collapses the internal pipeline at its presentation boundary. While
 the durable phase is applying, the owner sees only a quiet “Getting Cove
 ready…” state—never creation, configuration, workspace, factory, command, or
 acknowledgement substeps. Failures become one plain retry or Computer-repair
 sentence; raw codes and diagnostics remain internal. Completion invalidates
 Server state and replaces the setup route with retained
 `#onboarding-owner`. The same Server transaction creates one durable system
-attention item for Cove in that Channel. The Server UI unlocks immediately; the
+attention item for Cove in that Channel. Grotto App unlocks immediately; the
 attention item runs through ordinary Agent delivery and Cove authors the first
 canonical message with Cove's identity. It is not a Server-authored greeting.
 Restart and reconnect may replay the same run until settlement, but application
@@ -71,7 +71,7 @@ failure, Start, and repair controls.
 Cove's product-owned identity and avatar cannot be edited through ordinary
 Agent controls. Once onboarding is complete, Cove otherwise follows the normal
 Agent lifecycle. An Owner or Admin may delete Cove through the confirmed Agent
-flow without changing the durable onboarding record, relocking the Server UI,
+flow without changing the durable onboarding record, relocking Grotto App,
 creating another onboarding Channel, or recreating Cove. A full reset restores
 Cove's exact factory workspace; a session reset preserves its workspace and
 skills.

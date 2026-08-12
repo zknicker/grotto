@@ -1,7 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
 const runId = process.env.TAVERN_E2E_RUN_ID ?? 'default';
-const serverPort = Number.parseInt(process.env.TAVERN_SERVER_PORT ?? '8081', 10);
 const grottoServerPort = Number.parseInt(process.env.GROTTO_SERVER_PORT ?? '8091', 10);
 const websitePort = Number.parseInt(process.env.TAVERN_WEBSITE_PORT ?? '3101', 10);
 
@@ -35,7 +34,7 @@ function buildWebServers() {
         {
             // VITE_CLERK_PUBLISHABLE_KEY is forced empty so e2e always runs the
             // keyless signed-out dev mode, even when .env.local has a key.
-            command: `VITE_CLERK_PUBLISHABLE_KEY= VITE_SERVER_ORIGIN=http://127.0.0.1:${serverPort} VITE_GROTTO_SERVER_ORIGIN=http://127.0.0.1:${grottoServerPort} TAVERN_WEBSITE_PORT=${websitePort} TAVERN_SERVER_PORT=${serverPort} bun run dev -- --host 127.0.0.1 --port ${websitePort}`,
+            command: `VITE_CLERK_PUBLISHABLE_KEY= VITE_GROTTO_SERVER_ORIGIN=http://127.0.0.1:${grottoServerPort} TAVERN_WEBSITE_PORT=${websitePort} bun run dev -- --host 127.0.0.1 --port ${websitePort}`,
             reuseExistingServer: false,
             stderr: 'pipe',
             stdout: 'pipe',

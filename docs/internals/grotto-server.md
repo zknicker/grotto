@@ -1,5 +1,5 @@
 ---
-summary: The hosted Grotto Server's Server UI, PostgreSQL collaboration, reminders, durable attention, local attachment bytes, recovery, and realtime behavior.
+summary: Grotto Server's hosted Grotto App, PostgreSQL collaboration, reminders, durable attention, attachment bytes, recovery, and realtime behavior.
 read_when:
   - changing Grotto Server creation, slugs, membership, roles, or Channels
   - changing hosted PostgreSQL schema or Server authorization
@@ -29,13 +29,13 @@ over tRPC HTTP and WebSocket.
 
 | Application | Entrypoint | Owns |
 | --- | --- | --- |
-| Grotto Server | `apps/server` and `apps/website` | Server UI, tRPC, collaboration, delivery, attachment bytes, and PostgreSQL |
-| Grotto App | `apps/website/electron*` | Installed Electron shell, native credentials, deep links, and updates |
+| Grotto Server | `apps/server` | tRPC, collaboration, delivery, attachment bytes, and PostgreSQL |
+| Grotto App | `apps/website` | React UI in browsers and Electron, plus native credentials, deep links, and updates |
 | Grotto Computer | `apps/computer` | Local Agent execution and one isolated attachment per Server |
 
-The Server UI and App call the Server. Each Computer opens an outbound attachment socket to
-the Server. App and Computer never connect directly. Legacy local-owner
-Runtime procedures are not part of the hosted transport.
+Grotto App calls the Server. Each Computer opens an outbound attachment socket to the Server. App
+and Computer never connect directly. Retired standalone Runtime procedures are not part of the
+hosted transport.
 
 ## Identity
 
@@ -54,13 +54,13 @@ transaction. Reads resolve an existing User or find none — asking never mints
 one, so an authenticated human who has done nothing leaves no row behind.
 
 `CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
-Server UI attaches the token as `Authorization: Bearer` on HTTP and as
+Grotto App attaches the token as `Authorization: Bearer` on HTTP and as
 `connectionParams.clerkSessionToken` on the WebSocket.
 
 ### Authorized party
 
 One Clerk instance signs tokens for every frontend attached to it, so a valid
-signature and issuer do not say a token was minted for this Server UI. The `azp`
+signature and issuer do not say a token was minted for this Grotto App origin. The `azp`
 claim names the frontend that asked for it, and the Server judges it after
 signature, configured issuer, expiry, and subject all pass:
 
@@ -350,7 +350,7 @@ while every membership gate fails closed.
 
 Humans hold Member, Admin, or Owner. A Server may have several Owners and must
 always keep one. One rule decides every change and is shared by the Server and
-the Server UI as `resolveServerMemberAuthority` in `@tavern/api`:
+Grotto App as `resolveServerMemberAuthority` in `@tavern/api`:
 
 - Owners and Admins issue and revoke invitations.
 - An Admin manages Members, including promoting one to Admin. An Admin never
@@ -364,7 +364,7 @@ Server's immutable slug: every elevation (Member to Admin, and Member or Admin
 to Owner), plus removal, leaving, and revoking Owner. Stepping an Admin down to
 Member is the one ordinary confirmation — it grants nothing and costs no
 access. The Server verifies that confirmation inside the same transaction; the
-Server UI's copy is presentation.
+Grotto App's copy is presentation.
 
 Every remove, demote, and leave locks the `servers` row before counting Owners,
 so two Owners racing to unseat each other serialize and exactly one commits.
@@ -428,7 +428,7 @@ the candidate Computer without advancing. Empty or invalid inventory and
 incompatible or disconnected Computers retain the owning phase plus actionable
 failure detail. Only a report containing at least one runtime with at least one
 model advances durably to `awaiting-cove`; reconnect clears transient failure
-without reconstructing progress from Agent presence. The Server UI reads this record
+without reconstructing progress from Agent presence. Grotto App reads this record
 before mounting the general Server shell.
 
 The dedicated Cove mutation takes the Server lock and turns `awaiting-cove`
@@ -464,21 +464,20 @@ Server query, mutation, and subscription resolves membership through it:
   Revoked Server membership ends delivery.
 
 A human without membership gets `FORBIDDEN`; an address with no Server gets
-`NOT_FOUND`. Server UI checks are presentation only.
+`NOT_FOUND`. Grotto App checks are presentation only.
 
-## Server UI
+## Grotto App routes
 
 - `/` signs the human in, then opens the last Server they used or their first
-  current membership. Server switching and creation live in the Server UI sidebar.
+  current membership. Server switching and creation live in the Grotto App sidebar.
 - `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, search,
   attachments, and the hosted task Board/List. It reserves and streams local
   files to the hosted Server, renders only attachment metadata in messages,
   and performs authenticated downloads.
   An author already visible in the transcript is the entry point for their DM.
-  A retired Agent's Owner DM stays listed and reachable by direct URL, keeps the
-  Agent's name, and is labeled Retired with closed Chat and Thread composers;
-  the retired Agent is absent from every other member control and receives no
-  new sends or task messages.
+  A retired Agent's Owner DM leaves active navigation and is not an App destination.
+  Canonical collaboration records remain durable Server history; the retired Agent is absent from
+  every member control and receives no new sends or task messages.
   Message replies open hidden child Threads in the resizable side pane; Threads
   never enter the hosted sidebar Chat list.
   Task rows open the canonical message's existing child Thread. Task controls
@@ -488,25 +487,25 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   the reported machine name, attachment health, reported runtimes/models,
   assigned Agents, update state, recovery commands, and removal. Computer
   reports invalidate this inventory and Agent availability through the Server
-  websocket; the Server UI does not poll a Computer or connect to one directly.
+  websocket; Grotto App does not poll a Computer or connect to one directly.
 - `/s/<slug>/settings/connections` manages MCP connections on one selected
   Computer attachment. Secrets relay over the Server's existing authenticated
-  Computer socket and never enter Server UI storage.
+  Computer socket and never enter App storage.
 - `/s/<slug>/settings/updates` owns only the thin desktop shell update.
-  Computer updates live on the selected Computer detail. The Server UI has no
-  Runtime URL, token, connection banner, or Runtime update flow.
+  Computer updates live on the selected Computer detail. Grotto App has no retired Runtime URL,
+  token, connection banner, or update flow.
 - `/invite/<token>` is where an invited human accepts. It sits outside the
   `/s/<slug>` branch because a Server address may itself be `invite` or `join`.
   Manual links use `VITE_GROTTO_APP_ORIGIN` when configured; that origin must
   match `APP_ORIGIN`.
-- `/privacy` serves the public privacy policy directly from the Server UI
-  artifact without loading the signed-in Server UI shell.
+- `/privacy` serves the public privacy policy directly from the Grotto App
+  artifact without loading the signed-in App shell.
 
-The Server UI uses `apps/website/src/lib/grotto-server.tsx`: the browser's same origin
+Grotto App uses `apps/website/src/lib/grotto-server.tsx`: the browser's same origin
 in production and `VITE_GROTTO_SERVER_ORIGIN` in development, with the Clerk
 session attached per request and per WebSocket connection. Product operations
-never use a local sidecar or Electron IPC. Grotto App loads this same Server UI
-and supplies native window, link, authentication-storage, and desktop-update
+never use a local sidecar or Electron IPC. Electron supplies native window, link,
+authentication-storage, and desktop-update
 behavior only. Hooks live in
 `apps/website/src/hooks/servers/`.
 
@@ -523,13 +522,13 @@ intentionally best-effort and disappears instead of replaying.
 
 Thread message and follow notifications retain the existing durable event row
 shape. The public event adds only `parentChatId`, nullable for top-level Chats,
-so the Server UI can refetch the child and its exact parent summary without carrying
+so Grotto App can refetch the child and its exact parent summary without carrying
 anchor or message content in the event.
 
 ## Production
 
 The single-node production Server listens on `127.0.0.1:18791` and serves the
-Server UI, tRPC HTTP, WebSocket, and `/healthz` from `https://grotto.sh`.
+Grotto App, tRPC HTTP, WebSocket, and `/healthz` from `https://grotto.sh`.
 Cloudflare owns DNS, TLS, named Tunnel ingress, and the `www`-to-apex Redirect
 Rule. PostgreSQL, attachment storage, and jobs remain local to the Mac mini.
 Vercel remains the registrar only and serves no production traffic. See [Grotto

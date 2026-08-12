@@ -57,9 +57,6 @@ verification gate, so this one lands first.
 - Root `package.json` — has `typecheck` and `lint` scripts but no `test`
   script. Package manager is `bun@1.3.5`.
 - Per-workspace test lanes (from each `package.json`):
-  - `apps/runtime`: `"test": "bunx --bun vitest run"` — MUST run via bun, not
-    node (vitest on `bun:sqlite`; running under node fakes ~18 file failures —
-    this is a known repo constraint).
   - `apps/server`: `"test": "node scripts/run-tests.mjs"` — walks `test/` and
     `src/`, runs `bun test <file>` per file.
   - `apps/website`: **no `test` script** — but `src/**/*.test.ts(x)` files
@@ -77,7 +74,6 @@ verification gate, so this one lands first.
 | Install   | `bun install --frozen-lockfile`          | exit 0              |
 | Typecheck | `bun run typecheck`                      | exit 0              |
 | Lint      | `bun run lint`                           | exit 0              |
-| Runtime tests | `bun run --filter @tavern/runtime test` | all pass        |
 | Server tests  | `bun run --filter @tavern/server test`  | all pass        |
 
 ## Scope
@@ -132,7 +128,7 @@ style (explicit filters, not `--filter '*'`, so ordering and inclusion are
 deliberate):
 
 ```json
-"test": "bun run --filter @tavern/api test && bun run --filter @tavern/sdk test && bun run --filter @tavern/claude-usage test && bun run --filter @tavern/codex-usage test && bun run --filter @tavern/runtime test && bun run --filter @tavern/server test && bun run --filter @tavern/website test"
+"test": "bun run --filter @tavern/api test && bun run --filter @tavern/sdk test && bun run --filter @tavern/claude-usage test && bun run --filter @tavern/codex-usage test && bun run --filter @tavern/server test && bun run --filter @tavern/website test"
 ```
 
 (Drop the website entry if step 2 deferred it.)

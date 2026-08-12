@@ -1,72 +1,27 @@
 ---
-summary: Grotto API architecture for typed chat/realtime contracts, Runtime admin contracts, SDK wrappers, and contract rules.
+summary: API ownership across hosted tRPC, Computer attachment protocol, and scoped Agent HTTP routes.
 read_when:
-  - changing tRPC routers, runtime HTTP routes, websocket behavior, or SDK methods
-  - adding MCP connections, bots, webhooks, automations, or external clients
+  - changing Server routers, Computer protocol, Agent HTTP routes, or shared API types
+  - adding a first-party cross-boundary capability
 ---
 
-# API Overview
-
-The Grotto API is the stable contract between Grotto App, Grotto Server,
-Runtime, SDK clients, bots, webhooks, automations, and local tools.
+# API overview
 
 ```text
-Grotto App, bot, webhook, automation, or local tool
-  -> TypeScript SDK or app backend proxy
-  -> Grotto API
-  -> Grotto Runtime
+App -- tRPC --> Server
+Computer -- attachment protocol --> Server
+Agent CLI -- localhost proxy --> Computer -- scoped HTTP --> Server
 ```
 
-Grotto's shape is:
+`packages/tavern-api/src/` owns shared Zod and TypeScript contracts. Server routers live under
+`apps/server/src/grotto-api/`. Computer protocol handling lives in `apps/computer/src/`. The
+OpenAPI document describes only the managed Agent HTTP surface and generates
+`src/generated/openapi.d.ts`.
 
-- **OpenAPI for chat and realtime.** `packages/tavern-api/openapi.yaml` defines
-  durable Chat messages, responses, activity, artifacts, receipts, events, and
-  errors.
-- **Typed Runtime admin contracts.** `packages/tavern-api/src/runtime/*` owns
-  health, status, agents, presence, activity, inbox, sessions, skills, models,
-  files, and bindings.
-- **Runtime handlers.** Grotto Runtime returns Grotto API-shaped payloads.
-- **SDK wrapper.** TypeScript clients should import the SDK instead of reading
-  app caches or Runtime tables directly.
+Server is authoritative for collaboration and authorization. Computer is authoritative for local
+execution facts and reports bounded state through typed protocol messages. Realtime notifications
+invalidate or update durable Server reads; clients recover after reconnect by refetching Server
+state.
 
-## Contract Rules
-
-- Product nouns come first: Chat, message, participant, Agent session, Agent
-  turn, model, tool, automation.
-- Runtime is the source of truth for values that affect execution.
-- Provider-specific execution details stay metadata unless the product needs a
-  stable cross-provider field.
-- App projections may choose labels, colors, icons, and layout, but must not
-  reconstruct model routes, provider availability, or session ids.
-- Do not add compatibility aliases for retired names in new contracts.
-
-## Source Map
-
-| Surface | Path | Owns |
-| --- | --- | --- |
-| OpenAPI contract | `packages/tavern-api/openapi.yaml` | Chat and realtime wire objects |
-| Generated API types | `packages/tavern-api/src/generated/openapi.d.ts` | Types generated from OpenAPI |
-| Runtime routes | `packages/tavern-api/src/runtime/routes.ts` | Runtime control route names |
-| Runtime schemas | `packages/tavern-api/src/runtime/contracts.ts` | Runtime-owned request and response schemas |
-| TypeScript SDK | `packages/tavern-sdk` | Client wrapper for App, bots, webhooks, automations, and tests |
-| Server app routers | `apps/server/src/api/` | First-party app wrapper/proxy for Grotto API |
-| Runtime handlers | `apps/runtime/src/` | Runtime-owned storage, execution, and projections |
-
-Implementation files can move. API contracts stay organized around Grotto
-capabilities.
-
-## Realtime
-
-Realtime events recover through durable Chat state. Browser streams are not the
-source of truth. If a client reconnects, it refetches durable Chat data and
-subscribes to active Runtime turn events.
-
-## Related Docs
-
-- [Chat API](chat.md)
-- [Realtime](realtime.md)
-- [Agents API](agents.md)
-- [Skills API](skills.md)
-- [Connections API](connections.md)
-- [Agent Engine Runtime](../internals/agent-engine-runtime.md)
-- [Architecture Overview](../internals/architecture-overview.md)
+Cross-boundary types use Grotto product nouns and narrow discriminated unions. Do not add aliases
+for the retired standalone Runtime or SDK surfaces.

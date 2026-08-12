@@ -1,38 +1,25 @@
 ---
-summary: Grotto API map for the @tavern/api contract, Runtime host, SDK wrapper, and capability docs.
+summary: First-party Grotto contracts shared by Server, App, Computer, and the Agent CLI.
 read_when:
   - looking for Grotto API capability contracts
-  - changing client-facing API docs
+  - changing client-facing API docs or shared wire types
 ---
 
 # Grotto API
 
-The Grotto API is `@tavern/api`-defined, Runtime-hosted, and SDK-wrapped.
-
-Grotto App, bots, webhooks, automations, local tools, and tests use this
-surface instead of reading app caches, runtime tables, or executor state.
-
-Grotto's shape is clear:
-
-* **`@tavern/api` defines the contract.** OpenAPI owns chat and realtime wire
-  shapes; typed runtime contracts own admin and control routes.
-* **Runtime serves the contract.** Grotto Runtime owns durable chat state,
-  responses, activity, artifacts, event cursors, and automation delivery.
-* **The SDK wraps the contract.** `@tavern/sdk` gives TypeScript clients a small
-  typed API over Grotto API types.
-* **Docs explain behavior.** Markdown covers ownership, ordering, durability,
-  recovery, and intentional omissions.
+`packages/tavern-api` defines the first-party contracts used by Grotto Server, App, Computer, and
+the managed Agent CLI. The App uses Server tRPC routers. Computer uses the authenticated attachment
+protocol plus scoped runner routes. Managed Agents call `/api/agent/*` through Computer's loopback
+proxy.
 
 | Area | Doc |
 | --- | --- |
-| Overview | [API Overview](overview.md) |
-| Auth | [Auth](auth.md) |
-| Realtime | [Realtime](realtime.md) |
-| Chat | [Chat API](chat.md) |
-| Admin | [Admin API](admin.md) |
-| Agents | [Agents API](agents.md) |
-| Skills | [Skills API](skills.md) |
-| Stats | [Stats API](stats.md) |
-| Connections | [Connections API](connections.md) |
+| Architecture | [Overview](overview.md) |
+| Authentication | [Auth](auth.md) |
+| Agent and Computer control | [Agents](agents.md) |
+| MCP connections | [Connections](connections.md) |
+| Agent manual | [Manual](manual.md) |
+| Agent skills | [Skills](skills.md) |
+| Usage and health | [Stats](stats.md) |
 
-The TypeScript client wrapper lives in [TypeScript SDK](../sdk.md).
+There is no standalone SDK package or Runtime-hosted API.

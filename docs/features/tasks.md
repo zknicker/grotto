@@ -3,7 +3,7 @@ summary: Hosted chat-first tasks — canonical messages with Server-owned lifecy
 read_when:
   - changing task promotion, claiming, assignment, statuses, priorities, or labels
   - changing hosted task authorization, events, or Thread work surfaces
-  - changing the Server UI task board/list or managed task CLI contract
+  - changing the Grotto App task board/list or managed task CLI contract
 ---
 
 # Tasks
@@ -35,7 +35,7 @@ uses the same centered system-message timeline presentation as other Server noti
 informational only: the canonical task message and its Thread remain the work surface.
 
 Every lifecycle mutation after creation carries `expectedVersion`. Stale assignment or metadata
-writes fail and the Server UI waits for Server state rather than inventing durable optimistic task
+writes fail and Grotto App waits for Server state rather than inventing durable optimistic task
 records.
 
 ## Work surface and authorization
@@ -44,10 +44,9 @@ Promotion creates or resolves the deterministic hosted child Thread anchored to 
 message. Opening a task opens that Thread. The Thread has no independent membership: Server
 membership and parent-Chat participation remain the sole access authority.
 
-Agents use the Task Thread for progress and execution discussion. They deliver the final result
-there unless a human names another final-delivery target. That exception applies only to the final
-result, which is delivered once to the exact requested target. `Here` always means the human
-instruction message's target, never the Task Thread the Agent moved into.
+Agents post Task progress and execution updates in the Task Thread. Claiming a Task does not change
+reply routing: an Agent reply reuses the exact target from the received message, whether that target
+is a Channel, DM, or Thread.
 
 Task lists, eligible assignees, messages with task projections, task events, and Thread reads all
 apply the same hosted Server and parent-Chat authorization. Revoked members and humans who lose
@@ -56,16 +55,16 @@ Removing a human member or retiring an Agent releases their claims and assignmen
 or reactivation does not restore those links or access to task Threads from the former membership
 stint.
 
-## Server UI and realtime
+## Grotto App and realtime
 
-The hosted `/s/<slug>` Server UI provides Board and List lenses with create, claim, unclaim,
+The hosted `/s/<slug>` Grotto App provides Board and List lenses with create, claim, unclaim,
 assignment, status, priority, and task-label controls. Loading, empty, filtered-empty, and
 authorization failures are explicit. The Tasks topbar owns search, layout, and creation controls;
 the contextual sidebar owns saved views and label filters. Opening a row returns to its message
 and Thread.
 
 Concrete durable events (`message.created` for the receipt, `task.created`, `task.updated`, and
-`task.label.updated`) notify the Server UI. The hosted realtime hook owns exact task-list, label-catalog,
+`task.label.updated`) notify Grotto App. The hosted realtime hook owns exact task-list, label-catalog,
 and affected-message invalidation; cursor catch-up applies the same invalidations after reconnect.
 
 There is no task calendar, due date, or `scheduledFor` field. Scheduling belongs to reminders, not

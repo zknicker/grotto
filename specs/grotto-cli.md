@@ -356,18 +356,16 @@ GET  /api/agent/inbox              (inbox check — WS4)
   routes; the runtime token never gains `/api/agent/*` shortcuts — one
   principal per surface.
 
-## 9. Landing map (existing code)
+## 9. Landing map
 
 | Piece | Lands in / builds on |
 | --- | --- |
-| CLI families | `apps/runtime/src/cli/registry.ts` + `subcommand.ts` pattern; new `commands/agent-*.ts` modules |
-| Wrapper injection | Turn-runner tool-shell spawn (`apps/runtime/src/agent-engine/`), per-agent bin dir under the runtime root |
-| Auth principal | `apps/runtime/src/tavern/server.ts` `resolveRuntimeRequestAuth` |
-| Routes | `apps/runtime/src/tavern/chat-api-router.ts` sibling router; store logic in `chat-api/` |
-| Freshness/drafts | Generalize `apps/runtime/src/tavern/freshness-gate.ts` + `seen-ledger.ts`; new draft table (additive `ensureColumn`-style schema) |
-| Handles | Unique-constraint field on `agents` + channel title rules; threaded through `agentRuntimeAgentSchema` and the `Participant` schema in `@tavern/api` |
-| Short ids | `msg_<uuid-hex>` minting + short-id resolution in `chat-api/messages.ts` |
-| Contracts | `packages/tavern-api` chat surface gains the `/api/agent/*` group (updated directly, no versioning shims) |
+| CLI families | `apps/computer/src/agent-cli.ts` and `apps/computer/src/agent-cli/commands/` |
+| Wrapper injection | Computer launch wiring and the Agent-local proxy |
+| Auth principal | Per-launch local proxy token; scoped runner credential remains inside Computer |
+| Routes | Server `/api/agent/*` handlers and Computer proxy routing |
+| Freshness and drafts | Server-owned delivery ledger plus Computer-local pending inbox state |
+| Contracts | `packages/tavern-api` OpenAPI and hosted Agent contracts |
 
 ## 10. Audited divergences from shipped Raft
 

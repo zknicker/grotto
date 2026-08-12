@@ -10,7 +10,7 @@ read_when:
 
 Reusable Computer login ships through three checkpoints: expanded Server, Computer, then final
 Server. Never activate the contracted Server before the new Computer is publicly available and
-the production Computer has upgraded. The Server UI and Server backend are one artifact, so the last
+the production Computer has upgraded. Grotto App and Server are one artifact, so the last
 checkpoint activates both together.
 
 Choose and record the three release versions plus the rollback Server version before starting:
@@ -99,7 +99,7 @@ curl --fail --silent --show-error \
   https://releases.grotto.sh/computer/latest.json
 ```
 
-Upgrade the production Computer through the Server UI or run `grotto-computer upgrade`. Verify the new
+Upgrade the production Computer through Grotto App or run `grotto-computer upgrade`. Verify the new
 version, every pre-existing Server attachment, and an existing Agent workspace before continuing:
 
 ```sh
@@ -130,7 +130,7 @@ bun run release:check
 bun run release:publish
 ```
 
-Confirm the published release deployed, `/healthz` is healthy, the Server UI loads, and the
+Confirm the published release deployed, `/healthz` is healthy, Grotto App loads, and the
 production Computer reconnects. Then run the clean-root smoke below.
 
 Rollback checkpoint: first reactivate the expanded Server release, then roll Computer back only if
@@ -157,7 +157,7 @@ Run this smoke from a dedicated macOS Unix account or separate host that does no
 Grotto Computer service. A temporary data root isolates Computer files, but `logout` intentionally
 stops the account-wide `com.grotto.computer` launchd service; running it as the production Computer
 account would take existing attachments offline. Prove the smoke account has no service plist and
-uses the published executable, then create a fresh Server in the production Server UI and record its exact
+uses the published executable, then create a fresh Server in the production Grotto App and record its exact
 slug and Server id:
 
 ```sh
@@ -172,9 +172,9 @@ GROTTO_COMPUTER_DATA_ROOT="$SMOKE_ROOT/computer" \
 ```
 
 In the browser, verify device code prefill, explicit account approval, **Signed in — finishing the
-connection**, then **Computer connected** only after the CLI stores the attachment. In the Server UI,
+connection**, then **Computer connected** only after the CLI stores the attachment. In Grotto App,
 verify the Server observes the Computer, onboarding advances only after runtime/model inventory,
-the Owner selects Cove's model, and the Server UI unlocks into the retained onboarding Channel. Verify
+the Owner selects Cove's model, and Grotto App unlocks into the retained onboarding Channel. Verify
 Cove's Owner DM is visible and Cove's first greeting is one canonical Agent-authored message.
 
 Record the Computer id, attachment path under the isolated root, Cove id, DM id, greeting message
@@ -189,6 +189,6 @@ GROTTO_COMPUTER_DATA_ROOT="$SMOKE_ROOT/computer" \
   $HOME/.local/bin/grotto-computer logout
 ```
 
-Delete only the recorded smoke Server through its confirmed Server UI flow if cleanup is authorized.
+Delete only the recorded smoke Server through its confirmed Grotto App flow if cleanup is authorized.
 Move the exact `SMOKE_ROOT` to Trash only after evidence is captured and Server cleanup succeeds.
 Never sweep Servers, Computers, attachments, or local roots by prefix or age.

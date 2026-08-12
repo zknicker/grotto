@@ -4,7 +4,6 @@ const surfaceLabels = {
     server: 'Server',
     app: 'App',
     computer: 'Computer',
-    runtime: 'Runtime',
 };
 const surfaceKeys = Object.keys(surfaceLabels);
 
@@ -35,7 +34,6 @@ export function assertReleaseSurfaceDecision(value, options = {}) {
         if (
             value.surfaces.server.action !== 'unchanged' ||
             value.surfaces.app.action !== 'unchanged' ||
-            value.surfaces.runtime.action !== 'unchanged' ||
             value.surfaces.computer.action !== 'publish'
         ) {
             throw new Error(

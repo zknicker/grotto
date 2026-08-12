@@ -70,20 +70,14 @@ test.beforeAll(async () => {
 test('a human messages in #all with only the hosted Server online', async ({ page }) => {
     test.setTimeout(60_000);
     const localProductRequests: string[] = [];
-    const localServerOrigin = `http://127.0.0.1:${process.env.TAVERN_SERVER_PORT}`;
-    const runtimeOrigin = `http://127.0.0.1:${process.env.TAVERN_RUNTIME_PORT}`;
+    const retiredLocalOrigins = ['http://127.0.0.1:8080', 'http://127.0.0.1:18790'];
 
     page.on('request', (request) => {
-        if (
-            request.url().startsWith(localServerOrigin) ||
-            request.url().startsWith(runtimeOrigin)
-        ) {
+        if (retiredLocalOrigins.some((origin) => request.url().startsWith(origin))) {
             localProductRequests.push(request.url());
         }
     });
 
-    await expect(fetch(`${localServerOrigin}/healthz`)).rejects.toThrow();
-    await expect(fetch(`${runtimeOrigin}/capabilities`)).rejects.toThrow();
     await signInAsClerkHuman(page);
     await page.goto('/s/hosted-messages');
     await openHostedChannel(page, 'all');
@@ -468,8 +462,8 @@ test('a signed-out human cannot read hosted messages', async ({ page }) => {
     await expect(page.getByText('First durable human message')).toHaveCount(0);
 });
 
-test('the direct Server UI never requests a retired local product endpoint', async ({ page }) => {
-    const localServerOrigin = `http://127.0.0.1:${process.env.TAVERN_SERVER_PORT}`;
+test('Grotto App never requests a retired local product endpoint', async ({ page }) => {
+    const localServerOrigin = 'http://127.0.0.1:8080';
     const localRequests: string[] = [];
 
     page.on('request', (request) => {

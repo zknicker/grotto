@@ -9,7 +9,7 @@ import { useDesktopOAuth } from './use-desktop-oauth.ts';
 /**
  * Mandatory sign-in (specs/identity.md): with Clerk configured, the app
  * renders only for a signed-in user. Keyless test builds skip the gate, but a
- * configured Server UI never falls through to authenticated Server routes
+ * configured Grotto App never falls through to authenticated Server routes
  * without a Clerk session.
  */
 export function SignInGate({ children }: { children: ReactNode }) {

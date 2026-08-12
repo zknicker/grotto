@@ -4,26 +4,24 @@ import {
     formatHeader,
     formatLogLine,
     formatReadyBlock,
-    formatStatusLine,
     getSnapshotChangeLines,
+    snapshotDigest,
 } from './dev-stack-log-format.mjs';
 
 function snapshot(overrides = {}) {
     return {
         config: {
-            databasePath: '~/.tavern/tavern.sqlite',
             desktopEnabled: true,
-            runtimeRoot: '~/.tavern',
-            runtimeUrl: 'http://127.0.0.1:18790',
-            serverUrl: 'http://localhost:8080',
+            grottoServerUrl: 'http://localhost:8090',
+            postgresDataPath: '~/.tavern/dev/test/postgres',
             websiteUrl: 'http://localhost:3100',
         },
-        jobs: { items: [], state: 'idle' },
         phase: 'starting',
         processes: {
+            computer: { status: 'waiting' },
             desktop: { status: 'waiting' },
-            runtime: { status: 'waiting' },
-            server: { status: 'waiting' },
+            grotto: { status: 'waiting' },
+            postgres: { status: 'waiting' },
             website: { status: 'waiting' },
         },
         staleCleanupCount: 0,
@@ -31,158 +29,40 @@ function snapshot(overrides = {}) {
     };
 }
 
-test('formatHeader prints durable startup context once', () => {
-    const output = formatHeader(snapshot(), { colorize: false });
-
-    assert.match(output, /🎰 grotto booting local stack/u);
-    assert.doesNotMatch(output, /server http:\/\/localhost:8080/u);
-    assert.doesNotMatch(output, /data ~\/\.tavern\/tavern\.sqlite/u);
+test('formats current stack services without standalone Runtime surfaces', () => {
+    const output = formatReadyBlock(snapshot(), { colorize: false });
+    assert.match(output, /Server\s+http:\/\/localhost:8090/u);
+    assert.match(output, /Computer\s+running/u);
+    assert.match(output, /Website\s+http:\/\/localhost:3100/u);
+    assert.doesNotMatch(output, /Runtime|Local API|Jobs|\.sqlite/u);
 });
 
-test('formatLogLine prefixes process output without clipping errors', () => {
-    const output = formatLogLine(
-        {
-            line: '[15:03:13.147] ERROR Container runtime unavailable detail="docker info failed" fix="Start Docker Desktop or Colima"',
-            source: 'runtime',
+test('streams Computer startup and emits the final ready block', () => {
+    const initial = snapshotDigest(snapshot());
+    const runningSnapshot = snapshot({
+        phase: 'running',
+        processes: {
+            computer: { status: 'running' },
+            desktop: { status: 'running' },
+            grotto: { status: 'running' },
+            postgres: { status: 'running' },
+            website: { status: 'running' },
         },
+    });
+    const lines = getSnapshotChangeLines(
+        initial,
+        snapshotDigest(runningSnapshot),
+        runningSnapshot,
         { colorize: false }
     );
-
-    assert.equal(
-        output,
-        '🧠 runtime [15:03:13.147] ERROR Container runtime unavailable detail="docker info failed" fix="Start Docker Desktop or Colima"'
-    );
-});
-
-test('formatStatusLine shows concise process transitions', () => {
-    assert.equal(
-        formatStatusLine('desktop', 'starting', 'enabled', { colorize: false }),
-        '◐ desktop starting enabled'
-    );
-    assert.equal(
-        formatStatusLine('runtime', 'running', 'http://127.0.0.1:18790', { colorize: false }),
-        '✓ runtime ready http://127.0.0.1:18790'
-    );
-    assert.equal(
-        formatStatusLine('runtime', 'stopping', 'http://127.0.0.1:18790', { colorize: false }),
-        '◐ runtime stopping http://127.0.0.1:18790'
-    );
-});
-
-test('formatReadyBlock prints the final startup summary', () => {
-    const currentSnapshot = snapshot({
-        jobs: {
-            items: [
-                {
-                    cadence: '5m',
-                    immediate: true,
-                    key: 'sync-codex-usage',
-                    label: 'Sync Codex Usage',
-                    state: 'enabled',
-                },
-            ],
-            state: 'ready',
-        },
-        phase: 'running',
-        processes: {
-            desktop: { status: 'running' },
-            runtime: { status: 'running' },
-            server: { status: 'running' },
-            website: { status: 'running' },
-        },
-    });
-
-    const output = formatReadyBlock(currentSnapshot, { colorize: false });
-
-    assert.match(output, /╭─ 🎰 GROTTO/u);
-    assert.match(output, /Ready to go/u);
-    assert.match(output, /Runtime\s+http:\/\/127\.0\.0\.1:18790/u);
-    assert.match(output, /Server\s+http:\/\/localhost:8080/u);
-    assert.match(output, /Website\s+http:\/\/localhost:3100/u);
-    assert.match(output, /Desktop\s+running/u);
-    assert.match(output, /Sync Codex Usage every 5m · immediate/u);
-    assert.match(output, /DB\s+~\/\.tavern\/tavern\.sqlite/u);
-});
-
-test('getSnapshotChangeLines keeps ready details in the final block', () => {
-    const currentSnapshot = snapshot({
-        jobs: {
-            items: [
-                {
-                    cadence: '5m',
-                    immediate: true,
-                    key: 'sync-codex-usage',
-                    label: 'Sync Codex Usage',
-                    state: 'enabled',
-                },
-            ],
-            state: 'ready',
-        },
-        phase: 'running',
-        processes: {
-            desktop: { status: 'running' },
-            runtime: { status: 'running' },
-            server: { status: 'running' },
-            website: { status: 'running' },
-        },
-    });
-    const previous = {
-        jobs: {},
-        jobsState: 'loading',
-        phase: 'starting',
-        processes: {
-            desktop: 'starting',
-            runtime: 'running',
-            server: 'running',
-            website: 'running',
-        },
-        staleCleanupCount: 0,
-    };
-    const next = {
-        jobs: {
-            'sync-codex-usage': 'enabled:5m:true:Sync Codex Usage',
-        },
-        jobsState: 'ready',
-        phase: 'running',
-        processes: {
-            desktop: 'running',
-            runtime: 'running',
-            server: 'running',
-            website: 'running',
-        },
-        staleCleanupCount: 0,
-    };
-
-    const lines = getSnapshotChangeLines(previous, next, currentSnapshot, { colorize: false });
-
     assert.equal(lines.length, 1);
-    assert.match(lines[0], /╭─ 🎰 GROTTO/u);
-    assert.match(lines[0], /Sync Codex Usage every 5m · immediate/u);
-    assert.doesNotMatch(lines[0], /scheduled jobs ready/u);
+    assert.match(lines[0], /Ready to go/u);
 });
 
-test('getSnapshotChangeLines still streams startup progress', () => {
-    const previous = {
-        jobs: {},
-        jobsState: 'idle',
-        phase: 'starting',
-        processes: {
-            desktop: 'waiting',
-            runtime: 'waiting',
-            server: 'waiting',
-            website: 'waiting',
-        },
-        staleCleanupCount: 0,
-    };
-    const next = {
-        ...previous,
-        processes: {
-            ...previous.processes,
-            runtime: 'starting',
-        },
-    };
-
-    assert.deepEqual(getSnapshotChangeLines(previous, next, snapshot(), { colorize: false }), [
-        '◐ runtime starting',
-    ]);
+test('prefixes Computer logs with the current service name', () => {
+    assert.equal(
+        formatLogLine({ line: 'runner ready', source: 'computer' }, { colorize: false }),
+        '🖥️ computer runner ready'
+    );
+    assert.match(formatHeader(snapshot(), { colorize: false }), /booting local stack/u);
 });

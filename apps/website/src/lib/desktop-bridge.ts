@@ -20,7 +20,7 @@ export interface TavernDesktopBridge {
     closeWindow: () => Promise<void>;
     downloadUpdate: () => Promise<void>;
     getInfo: () => Promise<{ isPackaged: boolean; platform: NodeJS.Platform; version: string }>;
-    /** Grotto App loads the canonical Server UI instead of a bundled renderer. */
+    /** Electron loads the canonical Grotto App instead of a bundled renderer. */
     loadsHostedApp?: true;
     /** Main → renderer: the Developer menu toggled dev mode for this device. */
     onDevModeToggle?: (listener: () => void) => () => void;

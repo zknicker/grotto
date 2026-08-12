@@ -17,7 +17,6 @@ All notable changes to this project will be documented in this file.
 - Server: Publish v1.8.17
 - App: Publish v1.8.17
 - Computer: Publish v1.4.4
-- Runtime: Unchanged
 
 ## v1.8.16 - 2026-08-10
 

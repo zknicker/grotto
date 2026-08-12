@@ -50,7 +50,7 @@ async function start() {
             ? 'verified-email lookup configured'
             : 'disabled — set CLERK_SECRET_KEY to accept invitations'
     );
-    logStartupDetail('🌐', 'Server UI origin', env.APP_ORIGIN);
+    logStartupDetail('🌐', 'Grotto App origin', env.APP_ORIGIN);
     logStartupDetail('📡', 'HTTP', `http://127.0.0.1:${env.GROTTO_SERVER_PORT}`);
     logStartupDetail('🔌', 'WebSocket', `ws://127.0.0.1:${env.GROTTO_SERVER_PORT}/trpc`);
     logStartupComplete('Grotto Server is ready');

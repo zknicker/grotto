@@ -9,33 +9,28 @@ import {
     formatPortBlockers,
 } from './dev-stack-shared.mjs';
 
-test('formatPortBlockers includes owner process details', () => {
+test('formatPortBlockers includes current Server process details', () => {
     const repositoryRoot = path.join('/Users', 'zknicker', 'repo');
     const message = formatPortBlockers(
         [
             {
-                command: 'bun --watch src/index.ts',
-                cwd: path.join('/Users', 'zknicker', 'repo', 'apps', 'runtime'),
-                label: 'runtime',
+                command: 'bun --watch src/grotto-server.ts',
+                cwd: path.join(repositoryRoot, 'apps', 'server'),
+                label: 'Grotto Server',
                 pid: 1234,
-                port: 18_790,
+                port: 8090,
             },
         ],
         repositoryRoot
     );
 
-    assert.match(message, /Required dev port unavailable/u);
-    assert.match(message, /runtime port 18790 is already in use by PID 1234/u);
-    assert.match(message, /bun --watch src\/index\.ts/u);
-    assert.match(message, /\.\/apps\/runtime/u);
+    assert.match(message, /Grotto Server port 8090 is already in use by PID 1234/u);
+    assert.match(message, /\.\/apps\/server/u);
 });
 
-test('createDevStackEnvironment uses shared dev state outside packaged app state', () => {
+test('createDevStackEnvironment uses isolated current-product state', () => {
     const ports = resolveDevPorts({
-        baseEnvironment: {
-            TAVERN_DEV_PORT_BASE: '42000',
-            TAVERN_DEV_STACK_ID: 'alpha',
-        },
+        baseEnvironment: { TAVERN_DEV_PORT_BASE: '42000', TAVERN_DEV_STACK_ID: 'alpha' },
         repositoryRoot: '/repo/tavern',
     });
     const environment = createDevStackEnvironment({
@@ -54,105 +49,42 @@ test('createDevStackEnvironment uses shared dev state outside packaged app state
         path.join(os.homedir(), '.tavern', 'dev', 'alpha', 'computer')
     );
     assert.equal(
-        environment.DATABASE_PATH,
-        path.join(os.homedir(), '.tavern', 'dev', 'alpha', 'tavern.sqlite')
+        environment.GROTTO_POSTGRES_DATA_ROOT,
+        path.join(os.homedir(), '.tavern', 'dev', 'alpha', 'postgres')
     );
-    assert.equal(environment.TAVERN_SERVER_PORT, '42001');
+    assert.equal(environment.GROTTO_SERVER_PORT, '42003');
     assert.equal(environment.TAVERN_WEBSITE_PORT, '42000');
     assert.equal(environment.TAVERN_DEV_STACK, '1');
-    assert.notEqual(environment.DATABASE_PATH, path.join(os.homedir(), '.tavern', 'tavern.sqlite'));
-    assert.notEqual(
-        environment.DATABASE_PATH,
-        path.join(os.homedir(), '.tavern', 'dev', 'tavern.sqlite')
-    );
+    assert.equal(environment.TAVERN_RUNTIME_PORT, undefined);
+    assert.equal(environment.TAVERN_SERVER_PORT, undefined);
 });
 
-test('resolveDevPorts derives different default port groups for different worktrees', () => {
+test('resolveDevPorts derives different groups for different worktrees', () => {
     const left = resolveDevPorts({ repositoryRoot: '/repo/worktree-left/tavern' });
     const right = resolveDevPorts({ repositoryRoot: '/repo/worktree-right/tavern' });
 
     assert.notDeepEqual(left, right);
-    assert.equal(Number(left.serverPort), Number(left.websitePort) + 1);
-    assert.equal(Number(left.runtimePort), Number(left.websitePort) + 2);
+    assert.equal(Number(left.grottoPort), Number(left.websitePort) + 3);
 });
 
-test('resolveDevPorts derives shared default ports from an explicit stack id', () => {
+test('resolveDevPorts shares ports for an explicit stack id', () => {
     const baseEnvironment = { TAVERN_DEV_STACK_ID: 'tavern-shared' };
-    const left = resolveDevPorts({
-        baseEnvironment,
-        repositoryRoot: '/repo/worktree-left/tavern',
-    });
-    const right = resolveDevPorts({
-        baseEnvironment,
-        repositoryRoot: '/repo/worktree-right/tavern',
-    });
+    const left = resolveDevPorts({ baseEnvironment, repositoryRoot: '/repo/left' });
+    const right = resolveDevPorts({ baseEnvironment, repositoryRoot: '/repo/right' });
 
     assert.deepEqual(left, right);
-    assert.equal(Number(left.serverPort), Number(left.websitePort) + 1);
-    assert.equal(Number(left.runtimePort), Number(left.websitePort) + 2);
 });
 
-test('createDevStackEnvironment preserves explicit state overrides', () => {
-    const environment = createDevStackEnvironment({
-        baseEnvironment: {
-            DATABASE_PATH: '/tmp/tavern.sqlite',
-        },
-        repositoryRoot: '/repo/tavern',
-    });
-
-    assert.equal(environment.DATABASE_PATH, '/tmp/tavern.sqlite');
-});
-
-test('cleanupStaleProcesses closes the old Tauri desktop app in desktop mode', () => {
-    const killedProcesses = [];
-    const cleanupCount = cleanupStaleProcesses({
-        mode: 'desktop',
-        ports: {
-            serverPort: 8080,
-            websitePort: 3100,
-        },
-        processTools: {
-            killProcess: (pid, signal) => {
-                killedProcesses.push([pid, signal]);
-            },
-            listListeningProcessIds: (port) => (port === 3180 ? [222] : []),
-            readProcessCommand: (pid) =>
-                pid === 222
-                    ? '/Applications/Grotto.app/Contents/MacOS/grotto-server --app-origin tauri://localhost --server-port 3180'
-                    : '',
-            readProcessParentId: (pid) => (pid === 222 ? 111 : null),
-            readProcessWorkingDirectory: () => null,
-            waitForProcessExit: () => undefined,
-        },
-        repositoryRoot: '/repo',
-    });
-
-    assert.equal(cleanupCount, 2);
-    assert.deepEqual(killedProcesses, [
-        [222, 'SIGTERM'],
-        [111, 'SIGTERM'],
-    ]);
-});
-
-test('cleanupStaleProcesses closes an orphaned hosted Server watcher', () => {
+test('cleanupStaleProcesses closes an orphaned Grotto Server watcher', () => {
     const repositoryRoot = '/repo';
     const killedProcesses = [];
     const cleanupCount = cleanupStaleProcesses({
-        mode: 'web',
-        ports: {
-            grottoPort: 8083,
-            serverPort: 8081,
-            websitePort: 8080,
-        },
+        ports: { grottoPort: 8083, websitePort: 8080 },
         processTools: {
-            killProcess: (pid, signal) => {
-                killedProcesses.push([pid, signal]);
-            },
+            killProcess: (pid, signal) => killedProcesses.push([pid, signal]),
             listListeningProcessIds: (port) => (port === 8083 ? [333] : []),
-            readProcessCommand: (pid) => (pid === 333 ? 'bun --watch src/grotto-server.ts' : ''),
-            readProcessParentId: () => null,
-            readProcessWorkingDirectory: (pid) =>
-                pid === 333 ? path.join(repositoryRoot, 'apps', 'server') : null,
+            readProcessCommand: () => 'bun --watch src/grotto-server.ts',
+            readProcessWorkingDirectory: () => path.join(repositoryRoot, 'apps', 'server'),
             waitForProcessExit: () => undefined,
         },
         repositoryRoot,

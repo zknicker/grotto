@@ -14,17 +14,10 @@ import {
 const changelogPath = 'CHANGELOG.md';
 
 const releaseType = process.argv[2];
-const flags = new Set(process.argv.slice(3));
-const bumpRuntime = flags.has('--runtime');
-const requireRuntime = flags.has('--require-runtime');
 
 if (!releaseType || releaseType === '--help' || releaseType === '-h') {
     printUsage();
     process.exit(releaseType ? 0 : 1);
-}
-
-if (requireRuntime && !bumpRuntime) {
-    fail('--require-runtime requires --runtime');
 }
 
 const main = async () => {
@@ -47,13 +40,10 @@ const main = async () => {
         fail(`target version ${targetVersion} must be greater than current ${currentVersion}`);
     }
 
-    await updateVersionedFiles(targetVersion, {
-        bumpRuntime,
-        requireRuntime,
-    });
+    await updateVersionedFiles(targetVersion);
     await updateJson('release-surfaces.json', () => resetReleaseSurfaceDecision(targetVersion));
 
-    printSummary({ bumpRuntime, currentVersion, requireRuntime, targetVersion });
+    printSummary({ currentVersion, targetVersion });
 };
 
 await main();
@@ -65,8 +55,6 @@ function printUsage() {
             '',
             'Examples:',
             '  bun run release:bump patch',
-            '  bun run release:bump patch -- --runtime',
-            '  bun run release:bump patch -- --runtime --require-runtime',
             '  bun run release:bump 1.0.1',
         ].join('\n')
     );
@@ -129,38 +117,18 @@ function bumpVersion(version, type) {
     return `${parsed.major + 1}.0.0`;
 }
 
-async function updateVersionedFiles(targetVersion, options) {
+async function updateVersionedFiles(targetVersion) {
     await updateJson('apps/website/package.json', (packageJson) => {
         packageJson.version = targetVersion;
-
-        if (options.requireRuntime) {
-            packageJson.tavern ??= {};
-            packageJson.tavern.runtime ??= {};
-            packageJson.tavern.runtime.minimumVersion = targetVersion;
-        }
-
         return packageJson;
     });
-
-    if (options.bumpRuntime) {
-        await updateJson('apps/runtime/package.json', (packageJson) => {
-            packageJson.version = targetVersion;
-            return packageJson;
-        });
-    }
 }
 
-function printSummary({ bumpRuntime, currentVersion, requireRuntime, targetVersion }) {
+function printSummary({ currentVersion, targetVersion }) {
     console.log(`Bumped release version ${currentVersion} -> ${targetVersion}`);
     console.log('Updated files:');
     console.log('- apps/website/package.json');
     console.log('- release-surfaces.json');
-    if (bumpRuntime) {
-        console.log('- apps/runtime/package.json');
-    }
-    if (requireRuntime) {
-        console.log('- apps/website/package.json tavern.runtime.minimumVersion');
-    }
     console.log('Next:');
     console.log('- bun install --frozen-lockfile');
     console.log('- bun run release:collect-changelog-context');

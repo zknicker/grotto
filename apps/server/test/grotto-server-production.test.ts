@@ -45,7 +45,7 @@ beforeAll(async () => {
     await application.listen(0);
 });
 
-test('serves the Server UI assets from the same origin', async () => {
+test('serves Grotto App assets from the same origin', async () => {
     const address = application.app.server.address() as AddressInfo;
     const response = await fetch(`http://127.0.0.1:${address.port}/assets/app.js`);
 
@@ -64,7 +64,7 @@ test('serves the public privacy page with its security policy', async () => {
     expect(await response.text()).toContain('<h1>Privacy</h1>');
 });
 
-test('serves the trailing-slash privacy URL instead of the Server UI shell', async () => {
+test('serves the trailing-slash privacy URL instead of the Grotto App shell', async () => {
     const address = application.app.server.address() as AddressInfo;
     const response = await fetch(`http://127.0.0.1:${address.port}/privacy/`);
 
@@ -80,7 +80,7 @@ afterAll(async () => {
     rmSync(staticAppRoot, { force: true, recursive: true });
 });
 
-test('serves the Server UI history route from a loopback-only Server', async () => {
+test('serves Grotto App history routes from a loopback-only Server', async () => {
     const address = application.app.server.address() as AddressInfo;
     const response = await fetch(`http://127.0.0.1:${address.port}/s/grotto-hq`, {
         headers: { accept: 'text/html' },

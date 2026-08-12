@@ -1,11 +1,5 @@
 # Plans
 
-Current implementation plans:
-
-- [006 Chat-Native Multi-Agent Runtime](006-chat-native-multi-agent-runtime.md)
-- [007 Agent Engine Gap Hardening](007-agent-engine-gap-hardening.md)
-- [008 Self-Learning Agents](008-self-learning-agents.md)
-
 ## Chat status motion refinements (animation audit)
 
 | Plan | Title | Severity | Status |

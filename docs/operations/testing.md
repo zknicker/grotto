@@ -1,8 +1,8 @@
 ---
 summary: Testing strategy for choosing focused lanes, writing durable tests, keeping suites current, and avoiding unnecessary route or smoke coverage.
 read_when:
-  - adding tests, changing runtime contracts, or choosing a verification lane
-  - changing OpenAPI, Runtime stores, SDK, app e2e, or managed runtime contract behavior
+  - adding tests, changing execution-runtime contracts, or choosing a verification lane
+  - changing OpenAPI, Server stores, SDK, App e2e, or Computer execution behavior
 ---
 
 # Testing
@@ -23,11 +23,9 @@ can prevent compounding risk.
 When an iteration check is warranted, run one test file:
 
 ```sh
-# runtime (vitest; add -t for one case)
-bun run --filter @tavern/runtime test src/tavern/agent-session-store.test.ts
-
-# server and website (bun test; run from the package directory)
-cd apps/server && bun test test/agent-runtime-client.test.ts
+# server, Computer, and website (bun test; run from the package directory)
+cd apps/server && bun test test/grotto-server-production.test.ts
+cd apps/computer && bun test src/harness/instructions.test.ts
 cd apps/website && bun test src/features/shell/sidebar-chat-list.test.ts
 ```
 
@@ -45,14 +43,13 @@ Each package gate includes its tests and typecheck:
 
 | Touched path | Gate |
 | --- | --- |
-| `apps/runtime` | `@tavern/runtime test` + `typecheck`. The runtime build bundles without tsc, so nothing else typechecks runtime code. |
 | `apps/server` | `@tavern/server test` + `typecheck`. Hosted Server tests provision a throwaway cluster from locally installed PostgreSQL binaries; install PostgreSQL 16 or point `GROTTO_POSTGRES_BIN` at its bin directory. |
 | `apps/computer` | `@tavern/computer test` + `typecheck` |
 | `apps/website` | `@tavern/website test` + `typecheck` |
 | `packages/tavern-api` | `@tavern/api check`, plus typecheck of the consuming apps you touched |
 | `packages/tavern-sdk` | `@tavern/sdk test` + `typecheck` |
 | Browser-level contracts (navigation, reload, websocket, chat flows, layout) | `bun run test:e2e`, scoped to the affected spec file when possible |
-| Harness executor, harness adapters, provider auth wiring, `@ai-sdk/harness-*` bumps | `bun run --filter @tavern/runtime test:smoke` (opt-in, real provider calls) |
+| Execution runtimes, harness adapters, provider auth wiring, or `@ai-sdk/harness-*` bumps | `@tavern/computer test` + `typecheck`; add scoped Live Agent E2E when deterministic proof is insufficient |
 
 Rules that keep runs cheap and honest:
 
@@ -61,8 +58,6 @@ Rules that keep runs cheap and honest:
 * Documentation-only changes use `bun run docs:list` plus direct link and
   rendering inspection. Copy-, token-, and CSS-only changes use lint, adding a
   suite only for an encoded browser contract.
-* Run runtime tests through the package script (they require Bun; node-run
-  vitest fails on `bun:sqlite`).
 * If a suite fails in code you did not touch, verify against an untouched
   checkout before chasing it — worktrees have carried baseline failures that
   are not your regression. Do not rerun whole suites to investigate.
@@ -85,8 +80,8 @@ that matches multiple rows, run the union of their required proof.
 | Route tree, persistent shell, navigation, side pane, or layout-critical behavior | Website gate plus scoped App e2e | Use the full App e2e suite for broad shell or cross-flow changes. |
 | Hosted Server API, authorization, PostgreSQL state, or realtime | Focused regression plus server gate | Add App e2e when the public browser flow or reconnect behavior changed. |
 | Computer execution, delivery, or local capability behavior | Focused regression plus computer gate | Add scoped Live Agent E2E when deterministic proof cannot cover the observable model-driven behavior. |
-| Runtime store, execution mapping, delivery semantics, or agent-engine behavior | Focused regression plus runtime gate | Add provider smoke for executor/provider-boundary changes listed below. |
-| API or SDK contract | API or SDK gate plus affected consumer typechecks | Add Server, Runtime, or App coverage when behavior changed behind the contract. |
+| Computer execution-runtime mapping, delivery semantics, or agent behavior | Focused regression plus Computer gate | Add provider smoke or Live Agent E2E for executor/provider-boundary changes. |
+| API or SDK contract | API or SDK gate plus affected consumer typechecks | Add Server, Computer, or App coverage when behavior changed behind the contract. |
 | Agent prompt or managed instructions | Prompt contract and snapshot review plus owning package gate | Run `eval:prompt` after meaningful prompt-text changes, as required by AGENTS.md. |
 | Live Agent behavior, fixture, or eval harness | Run the affected `eval:agents` spec after deterministic support tests | Run the full Live Agent E2E suite only when shared behavior can affect several specs or for release confidence. |
 
@@ -95,13 +90,12 @@ that matches multiple rows, run the union of their required proof.
 | Lane | Use when | Keep current by |
 | --- | --- | --- |
 | Focused unit/domain tests | Pure logic, view models, hooks, mappers, scheduling rules, validation, or regressions. | Add one targeted regression for behavior changes. Avoid asserting implementation calls. |
-| Runtime store/service tests | Persistence, ids, ordering, idempotency, transactions, recovery, chat, inbox cursors, jobs, or execution evidence. | Use real temp SQLite/temp dirs and the real store/service. Do not mock tables or transaction behavior. |
-| Runtime handler tests | Boot, process wiring, HTTP payload shape, event delivery, or route-owned error/auth/transport behavior. | Use the real Bun handler or a started local service only when the handler owns meaningful behavior. |
+| Computer service tests | Workspaces, queues, execution state, recovery, or execution evidence. | Use real temp directories and the real service boundary. |
 | Hosted Server tests | Grotto Server identity, Chats, messages, reads, search, ordering, authorization, or realtime. | Drive the public tRPC surface through `test/grotto-server-harness.ts`: a throwaway PostgreSQL cluster plus a local Clerk issuer. Never mock PostgreSQL or the transaction. |
 | Contract/API/SDK gates | `packages/tavern-api`, OpenAPI, SDK client shape, generated types, or cross-boundary request/response contracts. | Run `@tavern/api check`, SDK tests/typecheck, and update docs with the product contract. |
 | App component/hook tests | React state rules, cache invalidation, optimistic UI, row models, filters, keyboard behavior, or rendering transforms. | Prefer hook/model/component tests before e2e. Use the `architect-react-features` skill for nontrivial React architecture. |
-| App e2e | Browser-level app contracts: navigation, reload recovery, websocket reconnect, full chat identity, user flows, or layout-critical behavior. | Use deterministic Playwright against isolated ports, isolated DBs/runtime dirs, managed Runtime, and a fake executor. |
-| Runtime executor tests | AI SDK executor mapping, event projection, delivery semantics, local sandbox behavior, or capability degradation. | Verify with Runtime fixtures, deterministic fake executors, or opt-in harness smoke tests. |
+| App e2e | Browser-level app contracts: navigation, reload recovery, websocket reconnect, full chat identity, user flows, or layout-critical behavior. | Use deterministic Playwright against isolated ports and a throwaway PostgreSQL cluster. |
+| Computer executor tests | Execution-runtime mapping, event projection, delivery semantics, local sandbox behavior, or capability degradation. | Verify with Computer fixtures, deterministic fake executors, or opt-in Live Agent E2E. |
 | Live/manual smoke | Real provider behavior, local environment diagnosis, or release confidence that deterministic lanes cannot cover. | Keep opt-in. Record temporary chat ids/titles and clean up only those records. |
 
 ## Writing Tests
@@ -178,7 +172,7 @@ four-file/12-summary seed, `apps/computer/src/agent-configuration.test.ts` and
 `apps/server/test/grotto-agent-manual.test.ts` for authenticated Manual overview,
 full-card access, and audit metadata.
 
-## Runtime Adapter Contracts
+## Execution Runtime Adapter Contracts
 
 When changing executor routes, event projection, chat behavior, or delivery
 semantics, verify against deterministic service fixtures, hosted Browser E2E,
@@ -188,7 +182,7 @@ Add raw-frame or fixture-backed tests for behavior Grotto depends on.
 
 ## Manual Smoke Hygiene
 
-Manual real-runtime chats are rare. Prefer deterministic e2e or unit/service
+Manual real-provider chats are rare. Prefer deterministic e2e or unit/service
 tests.
 
 If manual validation creates real Grotto chats, use an obvious temporary first
@@ -226,37 +220,10 @@ Agents by exact id. Never sweep by display name, prefix, age, or broad query.
 After an interrupted run, inspect intermediate Agent, Task, and Chat state
 before rerunning; remove only the exact temporary resources left by that run.
 
-## Live Provider Smoke
-
-Live provider tests are opt-in. They are not part of normal CI or default local
-test lanes because they spend provider credits and depend on local tools,
-network, and account state. Run the lane when a change touches the harness
-executor, a harness adapter, provider auth wiring, or bumps an
-`@ai-sdk/harness-*` dependency — deterministic lanes mock exactly the layer
-this one exercises.
-
-Run the automated smoke lane from `apps/runtime`:
-
-```sh
-bun run --filter @tavern/runtime test:smoke
-```
-
-The lane (`src/tavern/harness-agent-executor.smoke.ts`) executes one real agent
-turn per provider through the harness executor against a temp database: OpenAI
-via the Pi harness, Claude Code, and Codex. Each provider case skips itself
-when its CLI or credentials are missing (OpenAI needs `OPENAI_API_KEY` or
-`TAVERN_AGENT_API_KEY`; Claude needs the `claude` CLI; Codex needs the `codex`
-CLI plus `~/.codex/auth.json`). An available provider that errors is a real
-failure. Read the run summary — a skip-heavy pass proves less than it looks.
-Other automated tests should fake the executor boundary instead of spending
-provider credits.
-
 ## Prompt Behavior Evals
 
 The composed agent system prompt has two guard layers. Text loss is caught in
-CI by the prompt contract suite
-(`apps/runtime/src/tavern/agent-prompt-contract.test.ts`): a requirements
-ledger, reviewable full-prompt snapshots, and character budgets. Behavior loss
+CI by the Computer harness instruction tests under `apps/computer/src/harness/`. Behavior loss
 is caught on demand by `bun run eval:prompt`. The live lane signs in as the
 configured development Clerk user and drives real hosted
 Server-to-Computer-to-model turns through the public tRPC contract. It checks
@@ -294,7 +261,7 @@ dark and light themes with Playwright, and writes per-run output plus a
 `contact-sheet.html` under `scripts/design-battery/output/` (gitignored).
 The verdict is human: judge the sheet against
 `scripts/design-battery/RUBRIC.md`, revise the visuals skill sources
-(`apps/runtime/src/agent-engine/visuals-skill/`), restart the stack to
+(`packages/agent-workspace/src/visuals-skill/`), restart the stack to
 reseed, and rerun. `--model <provider>/<model>` runs the battery on a
 specific executor model (restored afterward unless `--keep-model`);
 `--only <slug>` reruns a subset; `--reuse-chats` recycles the battery chat.

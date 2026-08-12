@@ -1,30 +1,20 @@
 # Grotto
 
-Grotto is a macOS chat app for working with always-on agents.
-
-Grotto Runtime is the local chat server. It owns canonical chats, messages,
-participants, sequence, events, reads, deliveries, activity, automations, and
-runtime-owned product state. Grotto App is the first-party Electron client and
-presentation layer. The internal agent engine runs turns through local AI SDK
-language models and projects execution activity back into Grotto Runtime.
+Grotto is a chat app for working with agents. Grotto Server owns collaboration
+state, Grotto App is the React product surface in browsers and Electron, and
+Grotto Computer runs agents on an attached machine.
 
 The repository, package namespace, API types, environment variables, and dev
-state retain the internal `tavern` name. Production app and Runtime artifacts
-use Grotto names and `~/.grotto` state paths.
+state retain the internal `tavern` name.
 
 ## Architecture
 
 ```text
-Grotto App
-  -> @tavern/sdk
-  -> Grotto API
-  -> Grotto Runtime
-  -> Agent engine
+Grotto App -> Grotto Server -> Grotto Computer -> Codex / Claude Code / Pi
 ```
 
 `packages/tavern-api` is the cross-boundary contract package. OpenAPI is the
-wire source of truth, and the package also owns the shared Zod contracts used by
-the current Runtime/App/admin surfaces.
+wire source of truth, and the package also owns shared first-party contracts.
 
 `packages/tavern-sdk` is the TypeScript client over that API. Bots, webhooks,
 automations, local tools, tests, and the app use the SDK/API
@@ -34,10 +24,9 @@ shape instead of a second protocol package.
 
 * `packages/tavern-api`: OpenAPI and shared Grotto API contracts.
 * `packages/tavern-sdk`: TypeScript client wrapper for Grotto API.
-* `apps/runtime`: always-on Grotto Runtime and local agent engine.
-* `apps/server`: local app backend, tRPC facade, app cache, and product logic.
-* `apps/website`: Electron/React app client.
-* `jobs`: local background jobs for sync, usage ingest, and refresh work.
+* `apps/server`: Grotto Server and canonical collaboration state.
+* `apps/website`: Grotto App, including the React UI and Electron shell.
+* `apps/computer`: Grotto Computer and machine-local Agent execution.
 
 ## Development
 
@@ -58,26 +47,13 @@ Run the full local stack:
 bun run dev
 ```
 
-`bun run dev` starts the local app backend, PostgreSQL, Grotto Server, Grotto
-Computer, and the website dev server; `bun run dev-app` adds the desktop shell.
+`bun run dev` starts PostgreSQL, Grotto Server, Grotto Computer, and the App dev
+server; `bun run dev-app` adds the Electron shell.
 
 Dev state is isolated under the worktree-specific Grotto dev root.
 
 Local dev ports are derived from the worktree path so multiple worktrees can run
-at once. Override them with:
-
-```bash
-TAVERN_RUNTIME_HOST=127.0.0.1
-TAVERN_RUNTIME_PORT=18790
-TAVERN_AGENT_PROVIDER=openai
-```
-
-Set `TAVERN_RUNTIME_HOST=0.0.0.0` and point the app at
-`http://<host>:18790` when Runtime runs on an always-on Mac.
-
-Production Runtime installs expose `grotto` as the CLI and
-`grotto-runtime` as the service binary. `grotto update` upgrades the
-Homebrew formula and restarts the service by default.
+at once. Use `dev-port` to inspect the assigned port group.
 
 ## Desktop Build
 

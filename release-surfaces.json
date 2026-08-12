@@ -12,10 +12,6 @@
     "computer": {
       "action": "publish",
       "version": "1.4.4"
-    },
-    "runtime": {
-      "action": "unchanged",
-      "version": null
     }
   }
 }

@@ -21,13 +21,12 @@ import {
     waitForPort,
 } from './dev-stack-shared.mjs';
 
-const shutdownProcessOrder = ['desktop', 'website', 'computer', 'grotto', 'server', 'postgres'];
+const shutdownProcessOrder = ['desktop', 'website', 'computer', 'grotto', 'postgres'];
 const shutdownTimeoutMs = Number.parseInt(
     process.env.TAVERN_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000',
     10
 );
 const processGroupShutdownPollMs = 50;
-const serverDependencyPrebuildCommand = 'bun run --filter @tavern/sdk build';
 
 export class DevStackController extends EventEmitter {
     constructor({
@@ -62,17 +61,12 @@ export class DevStackController extends EventEmitter {
                 repositoryRoot: this.repositoryRoot,
             }),
             phase: 'starting',
-            jobs: {
-                items: [],
-                state: 'idle',
-            },
             logs: [],
             processes: {
                 computer: { status: 'waiting' },
                 desktop: { status: isDesktop ? 'waiting' : 'disabled' },
                 grotto: { status: 'waiting' },
                 postgres: { status: 'waiting' },
-                server: { status: 'waiting' },
                 website: { status: 'waiting' },
             },
             staleCleanupCount: 0,
@@ -101,44 +95,6 @@ export class DevStackController extends EventEmitter {
         this.emit('log', entry);
     }
 
-    applyStartupEvent(event) {
-        this.update((snapshot) => {
-            if (event.source === 'server' && event.type === 'jobs.loading') {
-                snapshot.jobs.state = 'loading';
-                return;
-            }
-
-            if (event.source === 'server' && event.type === 'jobs.ready') {
-                snapshot.jobs.state = 'ready';
-                return;
-            }
-
-            if (event.source === 'server' && event.type === 'jobs.item') {
-                const existingIndex = snapshot.jobs.items.findIndex(
-                    (item) => item.key === event.payload.key
-                );
-                const nextItem = {
-                    cadence: event.payload.cadence,
-                    immediate: event.payload.immediate,
-                    key: event.payload.key,
-                    label: event.payload.label,
-                    state: event.payload.state,
-                };
-
-                if (existingIndex === -1) {
-                    snapshot.jobs.items = [...snapshot.jobs.items, nextItem].sort((left, right) =>
-                        left.label.localeCompare(right.label)
-                    );
-                } else {
-                    snapshot.jobs.items = snapshot.jobs.items.map((item, index) =>
-                        index === existingIndex ? nextItem : item
-                    );
-                }
-                return;
-            }
-        });
-    }
-
     parseOutputLine(source, line) {
         const normalizedLine = stripAnsi(line);
 
@@ -153,7 +109,7 @@ export class DevStackController extends EventEmitter {
         if (normalizedLine.startsWith(startupEventPrefix)) {
             try {
                 const event = JSON.parse(normalizedLine.slice(startupEventPrefix.length));
-                this.applyStartupEvent(event);
+                this.addLog(source, event.payload?.message ?? event.type);
             } catch {
                 this.addLog(source, normalizedLine);
             }
@@ -289,28 +245,9 @@ export class DevStackController extends EventEmitter {
             ...startupUiEnv,
             VITE_GROTTO_APP_ORIGIN: startupUiEnv.APP_ORIGIN,
             VITE_GROTTO_SERVER_ORIGIN: hostedServerUrl,
-            VITE_SERVER_ORIGIN: `http://localhost:${this.ports.serverPort}`,
-        };
-
-        const serverEnv = {
-            ...startupUiEnv,
-            TAVERN_EXIT_ON_ORPHAN: '1',
         };
         let websiteReadyPromise = null;
         let desktopPrebuildPromise = null;
-        let serverDependencyPrebuildPromise = null;
-
-        const startServerDependencyPrebuild = () => {
-            if (!serverDependencyPrebuildPromise) {
-                serverDependencyPrebuildPromise = this.spawnBackgroundProcess(
-                    'server',
-                    serverDependencyPrebuildCommand,
-                    startupUiEnv
-                );
-            }
-
-            return serverDependencyPrebuildPromise;
-        };
 
         const startWebsite = () => {
             if (!websiteReadyPromise) {
@@ -344,10 +281,7 @@ export class DevStackController extends EventEmitter {
             }
 
             const desktopEnv = getDesktopEnv();
-            const prebuildCommand = [
-                'node scripts/build-macos-app-icon.mjs',
-                'node scripts/build-electron-sidecar.mjs',
-            ].join(' && ');
+            const prebuildCommand = 'node scripts/build-macos-app-icon.mjs';
             desktopPrebuildPromise = this.spawnBackgroundProcess(
                 'desktop',
                 prebuildCommand,
@@ -356,10 +290,6 @@ export class DevStackController extends EventEmitter {
         };
 
         startDesktopPrebuild();
-        if (!(await startServerDependencyPrebuild())) {
-            throw new Error('Failed to build server workspace dependencies.');
-        }
-
         const postgres = prepareDevPostgres(devStackEnvironment, await reserveDevPostgresPort());
         const postgresChild = this.spawnProcess('postgres', postgres.executable, postgres.args, {
             env: startupUiEnv,
@@ -410,15 +340,6 @@ export class DevStackController extends EventEmitter {
             }
         }
 
-        this.spawnProcess('server', 'bun', ['--watch', 'src/index.ts'], {
-            cwd: serverDirectory,
-            env: serverEnv,
-        });
-        await waitForPort(Number(this.ports.serverPort));
-        this.update((snapshot) => {
-            snapshot.processes.server.status = 'running';
-        });
-
         this.spawnProcess('grotto', 'bun', ['--watch', 'src/grotto-server.ts'], {
             cwd: serverDirectory,
             env: hostedServerEnv,
@@ -448,12 +369,9 @@ export class DevStackController extends EventEmitter {
             if (desktopPrebuildPromise) {
                 await desktopPrebuildPromise;
             }
-            this.spawnProcess(
-                'desktop',
-                'node',
-                ['scripts/run-desktop-dev.mjs', '--skip-server-cleanup'],
-                { env: getDesktopEnv() }
-            );
+            this.spawnProcess('desktop', 'node', ['scripts/run-desktop-dev.mjs'], {
+                env: getDesktopEnv(),
+            });
             this.update((snapshot) => {
                 snapshot.processes.desktop.status = 'running';
             });
@@ -568,7 +486,6 @@ export function createDesktopDevEnvironment({
     return {
         ...devStackEnvironment,
         ...clerkEnvironmentOverrides,
-        TAVERN_SERVER_PORT: String(ports.serverPort),
         TAVERN_WEBSITE_PORT: String(ports.websitePort),
     };
 }
@@ -666,12 +583,10 @@ function isStartupComplete(snapshot) {
     const postgresReady = snapshot.processes.postgres.status === 'running';
 
     return (
-        snapshot.processes.server.status === 'running' &&
         computerReady &&
         grottoReady &&
         postgresReady &&
         snapshot.processes.website.status === 'running' &&
-        desktopReady &&
-        snapshot.jobs.state === 'ready'
+        desktopReady
     );
 }

@@ -3,7 +3,6 @@ import {
     Activity01Icon,
     AiBrain01Icon,
     BrowserIcon,
-    ComputerTerminal01Icon,
     PaintBrush03Icon,
     Plug01Icon,
     ServerStack01Icon,
@@ -19,12 +18,6 @@ export const staticSettingsNavItems = [
         id: 'server',
         label: 'Server',
         to: appRoutes.settings,
-    },
-    {
-        icon: ComputerTerminal01Icon,
-        id: 'agent-runtime',
-        label: 'Grotto Runtime',
-        to: appRoutes.settingsAgentRuntime,
     },
     {
         icon: PaintBrush03Icon,
@@ -88,7 +81,6 @@ export const settingsNavSections = [
         id: 'general',
         itemIds: [
             'server',
-            'agent-runtime',
             'appearance',
             'profile',
             'updates',

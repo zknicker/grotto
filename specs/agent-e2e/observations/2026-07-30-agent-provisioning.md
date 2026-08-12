@@ -50,15 +50,13 @@ Agent messages correctly lived in the source message's child Thread. The test
 now resolves that Thread from the canonical message receipt, opens it through
 the visible reply affordance, and verifies the shared file link there.
 
-The App now matches the retention contract. After the Chat list invalidates,
-the retired Agent's Owner DM stays listed and reachable by direct URL, keeps the
-Agent's name, and is clearly labeled Retired with a closed composer. The
-executable scenario navigates to the DM by URL and asserts the preserved
-history, the Retired label, and the absent composer.
+Retiring the Agent removes its Owner DM from active App navigation. Canonical
+collaboration records remain durable Server history, but the executable scenario
+does not treat a retired Agent's DM as an App destination.
 
 Verification:
 `TAVERN_DEV_STACK_ID=agent-e2e bun run eval:agents -- agent-provisioning.spec.ts`
-(`2 passing flows`).
+(`1 passing flow`).
 
 Matched screenshots:
 

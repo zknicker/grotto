@@ -56,9 +56,8 @@ When behavior changes:
 
 ## Boundaries
 
-Grotto Runtime owns values that affect execution: model provider setup,
-executable model inventory, Agent default model, current Agent sessions, tool
-inventory, sandbox mode, turns, and activity. Grotto App and Server are clients
-and presentation layers.
+Grotto Server owns collaboration state and desired Agent configuration. Grotto Computer owns
+machine-local runtime discovery, model inventory, Agent sessions, tools, turns, and effective
+execution state. Grotto App owns presentation and local interaction state.
 
 Docs should keep that ownership clear.

@@ -1,50 +1,15 @@
 # Agents
 
-Grotto presents one primary Runtime-backed agent that it observes, presents, and configures
-through Runtime APIs. Normal product surfaces resolve the primary agent instead of asking the
-person to choose among internal runtime workers.
+An Agent is a persistent non-human member of one Grotto server. Server owns its identity,
+membership, Chat participation, immutable Computer assignment, desired execution configuration,
+and lifecycle. Computer owns its workspace, skills, queues, sessions, turns, and effective
+execution state.
 
-## Product Expectations
+An Agent remains visible while its Computer is offline. Humans may edit desired runtime/model state
+against the Computer's last reported inventory; Computer applies it after reconnect or reports the
+exact missing resource. Grotto never substitutes another Computer, runtime, or model.
 
-- An agent has a stable Runtime identity.
-- An agent has a user-facing name.
-- An agent feels like the same worker wherever Grotto presents it.
-- An agent remains visible in Grotto when Runtime is offline if Grotto has already synced
-  it.
-- An agent is not a session, turn, worker process, or tool call.
-- Product-facing navigation, chat start, cron setup, skills, model settings, and messaging
-  bindings presume one primary agent.
-- Plural agent lists are runtime/internal surfaces, not normal product navigation.
-
-## Ownership
-
-- Runtime is canonical for execution config.
-- Runtime agent config may include name, model route, skill assignments, exact MCP and host-tool
-  grants, workspace, and generated instruction context.
-- Grotto exposes Runtime's per-agent thinking setting as model effort when the Runtime supports it.
-- Grotto reads and writes supported agent config through Runtime APIs.
-- Grotto does not keep a competing canonical agent config store.
-- Grotto may keep local presentation overlays such as color and local notes.
-- Grotto exposes agent display name and color as editable agent settings on the agent record.
-- The home timezone is a runtime-wide Runtime-stored setting (system default when unset); it
-  governs schedules, Memory day bucketing, and time-aware answers.
-- Runtime-native edits made outside Grotto refresh Grotto through sync and events.
-
-## Relationships
-
-- An agent belongs to the stable Runtime namespace.
-- An agent may participate in many chats.
-- An agent may run many sessions.
-- An agent may own many turns and workers.
-- An agent may author many messages and tool interactions.
-- Grotto selects one primary agent for user-facing flows. Multi-agent support uses
-  explicit product behavior rather than leaking runtime lists into the UI.
-
-## Lifecycle
-
-- Creating, editing, or deleting an agent in Grotto acts on Runtime when the Runtime
-  supports that operation.
-- If Runtime reports an agent removed from an authoritative agent snapshot, Grotto removes the
-  current agent row.
-- Grotto-owned overlays may remain available for reuse only when they are not represented as a live
-  Runtime agent.
+One Agent owns one global session across all Chats and runs at most one turn at a time. Creating an
+Agent also creates its ordinary human↔Agent DM. Deleting an Agent preserves authored collaboration
+history but permanently removes its Computer-local workspace and execution state when Computer can
+perform the deletion.

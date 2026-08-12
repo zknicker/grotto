@@ -10,10 +10,10 @@ import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 /**
  * Watches every hosted query and mutation for the Server's protocol-mismatch
- * rejection. The gate covers the whole Server UI because `server.list` and the
+ * rejection. The gate covers the whole Grotto App because `server.list` and the
  * open Server run on load, so a stale client trips it before showing product
  * data. Hosted browser tabs and the current thin desktop shell reload the
- * canonical Server UI. Older App releases with a bundled renderer are
+ * canonical Grotto App. Older releases with a bundled renderer are
  * taught to install a desktop update.
  */
 export function UpdateRequiredGate({

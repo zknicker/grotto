@@ -15,14 +15,14 @@ export const theme = {
     warning: ansi.yellow,
 };
 
-const processOrder = ['postgres', 'server', 'grotto', 'website', 'desktop'];
+const processOrder = ['postgres', 'grotto', 'computer', 'website', 'desktop'];
 
 const sourceMeta = {
     tavern: { color: theme.accent, icon: '🎰', label: 'grotto' },
     desktop: { color: theme.accent, icon: '🪟', label: 'desktop' },
-    grotto: { color: theme.warning, icon: '🏠', label: 'hosted' },
+    computer: { color: theme.warning, icon: '🖥️', label: 'computer' },
+    grotto: { color: theme.warning, icon: '🏠', label: 'server' },
     postgres: { color: theme.warning, icon: '🐘', label: 'postgres' },
-    server: { color: theme.warning, icon: '🖥️', label: 'server' },
     website: { color: theme.accent, icon: '🌐', label: 'website' },
 };
 
@@ -104,10 +104,6 @@ export function getSnapshotChangeLines(previous, next, snapshot, { colorize = fa
         );
     }
 
-    if (previous.jobsState !== next.jobsState && next.jobsState === 'loading') {
-        lines.push(formatJobsStateLine(next.jobsState, { colorize }));
-    }
-
     return lines;
 }
 
@@ -116,45 +112,24 @@ export function formatReadyBlock(snapshot, { colorize = false } = {}) {
         colorizeText('╭─ 🎰 GROTTO', theme.accent, colorize),
         `${dim('│', colorize)}  ${colorizeText('Ready to go', theme.ok, colorize)}`,
         colorizeText('├─ Services', theme.accent, colorize),
-        readyServiceLine('Local API', snapshot.config.serverUrl, colorize),
         readyServiceLine('Server', snapshot.config.grottoServerUrl, colorize),
+        readyServiceLine('Computer', 'running', colorize),
         readyServiceLine('Website', snapshot.config.websiteUrl, colorize),
         readyServiceLine(
             'Desktop',
             snapshot.config.desktopEnabled ? 'running' : 'disabled',
             colorize
         ),
-        colorizeText('├─ Jobs', theme.accent, colorize),
+        colorizeText('├─ Data', theme.accent, colorize),
+        `${dim('│', colorize)}  ${dim('PG', colorize)}   ${snapshot.config.postgresDataPath}`,
+        colorizeText('╰─', theme.accent, colorize),
     ];
-
-    if (snapshot.jobs.items.length === 0) {
-        lines.push(`${dim('│', colorize)}  ${dim('No scheduled jobs registered', colorize)}`);
-    } else {
-        const labelWidth = Math.max(...snapshot.jobs.items.map((item) => item.label.length));
-        for (const item of snapshot.jobs.items) {
-            lines.push(readyJobLine(item, colorize, labelWidth));
-        }
-    }
-
-    lines.push(colorizeText('├─ Data', theme.accent, colorize));
-    lines.push(`${dim('│', colorize)}  ${dim('DB', colorize)}   ${snapshot.config.databasePath}`);
-    lines.push(
-        `${dim('│', colorize)}  ${dim('PG', colorize)}   ${snapshot.config.postgresDataPath}`
-    );
-    lines.push(colorizeText('╰─', theme.accent, colorize));
 
     return lines.join('\n');
 }
 
 export function snapshotDigest(snapshot) {
     return {
-        jobs: Object.fromEntries(
-            snapshot.jobs.items.map((item) => [
-                item.key,
-                `${item.state}:${item.cadence}:${item.immediate}:${item.label}`,
-            ])
-        ),
-        jobsState: snapshot.jobs.state,
         phase: snapshot.phase,
         processes: Object.fromEntries(
             Object.entries(snapshot.processes).map(([key, processState]) => [
@@ -168,38 +143,6 @@ export function snapshotDigest(snapshot) {
 
 export function formatTavernLine(message, { color, colorize, icon }) {
     return `${colorizeText(`${icon} grotto`, color, colorize)} ${message}`;
-}
-
-function formatJobsStateLine(state, { colorize }) {
-    if (state === 'loading') {
-        return formatTavernLine('loading scheduled jobs', {
-            color: theme.warning,
-            colorize,
-            icon: '◐',
-        });
-    }
-
-    if (state === 'ready') {
-        return formatTavernLine('scheduled jobs ready', {
-            color: theme.ok,
-            colorize,
-            icon: '✓',
-        });
-    }
-
-    return formatTavernLine(`scheduled jobs ${state}`, {
-        color: theme.muted,
-        colorize,
-        icon: '·',
-    });
-}
-
-function readyJobLine(item, colorize, labelWidth) {
-    const icon = item.state === 'enabled' ? '✓' : '◐';
-    const color = item.state === 'enabled' ? theme.ok : theme.warning;
-    const immediate = item.immediate ? ' · immediate' : '';
-    const cadence = dim(`every ${item.cadence}${immediate}`, colorize);
-    return `${dim('│', colorize)}  ${colorizeText(icon, color, colorize)} ${item.label.padEnd(labelWidth, ' ')} ${cadence}`;
 }
 
 function readyServiceLine(label, value, colorize) {
@@ -221,10 +164,6 @@ function getStatusValue(source, status, snapshot) {
 }
 
 function getProcessValue(source, snapshot) {
-    if (source === 'server') {
-        return snapshot.config.serverUrl;
-    }
-
     if (source === 'website') {
         return snapshot.config.websiteUrl;
     }

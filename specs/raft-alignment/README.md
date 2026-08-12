@@ -52,12 +52,12 @@ the chat surface of `@tavern/api` co-hosted in the local process, and WS6 moves 
 the plumbing.
 
 **Transport topology (decided).** The hosted Server is the durable hub; the Computer is an
-attached client. **Server UI ↔ Server**: one websocket carrying two event classes — durable
+attached client. **Grotto App ↔ Server**: one websocket carrying two event classes — durable
 (message.created etc., replayable, reconnect-refetch) and volatile (compositions, status dots;
 fire-and-forget, no replay) — plus HTTP for queries/mutations. **Computer ↔ Server**: one
 persistent duplex connection per Server attachment (typed start/delivery/control messages down;
 composition deltas coalesced ~10Hz, status transitions, telemetry, heartbeats up — Raft's daemon
-topology) plus the CLI proxy's per-action HTTP. **Computer ↔ Server UI: nothing, ever** — remote
+topology) plus the CLI proxy's per-action HTTP. **Computer ↔ Grotto App: nothing, ever** — remote
 viewing, multi-device, and member visibility all require Server fan-out, and the Server
 membership-checks every relayed event, ephemeral ones
 included. Pre-WS6 both connections are in-process hops inside the co-hosted process; WS6
@@ -82,7 +82,7 @@ runtime-compatible global skill folders on the physical machine are opt-in impor
 Changing an Agent between Codex, Claude Code, or Pi keeps that same library unchanged. Grotto
 creates no per-runtime copies or variants, performs no conversion or compatibility filtering, and
 treats runtime-specific instructions as ordinary Agent-owned skill content.
-The Server UI may copy a selected bundle into one Agent library while its Computer is online, after which
+Grotto App may copy a selected bundle into one Agent library while its Computer is online, after which
 the Agent owns an independent mutable copy. Agents may also create, edit, and delete their own
 skills through `grotto skill`. There is no shared catalog, Server-owned skill assignment,
 automatic synchronization, or reconciliation flow.
@@ -97,16 +97,16 @@ Removing a skill from an Agent is a confirmed deletion of that Agent's mutable c
 adaptations. The dialog names the Agent and skill and states that the copy will be deleted. The
 import source and other Agent libraries remain unchanged; there is no archive or disabled copy.
 The Computer reports each Agent skill's name, description, content hash, and modified time for
-offline Server UI display. Bodies and supporting files remain Computer-local; viewing or mutating them
+offline Grotto App display. Bodies and supporting files remain Computer-local; viewing or mutating them
 uses the authorized live relay and requires the Computer online. The Server does not keep another
 copy of skill contents.
 Stopping the service is temporary and preserves all attachments; permanent Computer removal is
-a Server UI action, never a CLI detach. The installed service starts automatically at boot unless an
+a Grotto App action, never a CLI detach. The installed service starts automatically at boot unless an
 operator has explicitly stopped it; that stopped state persists until `grotto-computer start`.
 Computer releases are operator-triggered, not installed automatically at service startup.
 Computer settings show the installed and available versions plus update progress; an Owner or
 Admin starts an update, the Server sends a typed command over the attachment socket, and the
-Computer verifies, stages, restarts, and reconnects. The Server UI immediately acknowledges the request,
+Computer verifies, stages, restarts, and reconnects. Grotto App immediately acknowledges the request,
 shows real byte-based download progress, names verification and drain phases, and uses prominent
 indeterminate progress through restart and reconnect. `grotto-computer upgrade` remains the local
 recovery path. Any attached Server's Owner or Admin may trigger the signed update. Because the
@@ -121,7 +121,7 @@ An incompatible Computer connects in `update-required` mode with no Agent starts
 ordinary control. If it cannot speak the bootstrap protocol, recovery requires a local
 `grotto-computer upgrade`; Grotto does not preserve old product-protocol behavior.
 Grotto deliberately omits Raft's `latest`/`alpha`/`pinned` release-channel model. There is one
-production Computer release stream, and both Server UI-triggered updates and plain CLI upgrades target
+production Computer release stream, and both Grotto App-triggered updates and plain CLI upgrades target
 its newest version.
 Matching Raft's executable-versus-`$SLOCK_HOME` split, Grotto Computer ships as a compiled,
 Developer-ID-signed and notarized standalone executable at
@@ -131,7 +131,7 @@ workspaces never live beside the executable. Updates atomically replace code onl
 previous verified executable for explicit `grotto-computer upgrade --rollback`; they never clean,
 relocate, stage through, snapshot, or roll back durable Agent data. Reinstalling the executable
 validates and resumes still-valid attachments and workspaces.
-WS6 supports Apple Silicon macOS only, matching the current Grotto Runtime release. It ships one
+WS6 supports Apple Silicon macOS only, matching the pre-Computer macOS target. It ships one
 standalone executable and launchd service implementation, reports OS/architecture in the Computer
 handshake, and adds no Linux, Intel Mac, Windows, or generic service-manager abstraction.
 Computer has independent SemVer and `computer-vX.Y.Z` tags but participates in one holistic Grotto
@@ -160,7 +160,7 @@ scoped runner credential. Local and stdio MCP are not supported. Google Calendar
 are endpoint/auth presets on the generic path.
 Runtime/model choices and Server-owned MCP grants may be saved against the
 Computer's last reported inventory while it is offline and apply from a full snapshot on reconnect.
-The Server UI shows them as pending until Computer-reported effective state catches up. Missing local
+Grotto App shows them as pending until Computer-reported effective state catches up. Missing local
 resources degrade explicitly; no substitute is chosen. Runtime rescans, MCP auth/test/identity or
 secret changes, skill package mutations, local inspection, and process lifecycle actions require
 the Computer online and are never queued.
@@ -593,8 +593,7 @@ Rewritten or retired by this program (each within the workstream that lands the 
 then they describe the pre-Raft system): `specs/tasks.md` (superseded by D8), `specs/cron.md`
 (D4), `specs/memories.md` + memory specs (D3), Wiki specs (D3b), `specs/steering.md` (I2 —
 notices replace body pushes), `specs/sessions.md` (I1/I3 — floating turns, two-cursor ledger;
-global-session core survives), `specs/runtime-cli.md` (WS1 — gains the agent surface),
-`specs/tavern-skill.md` (D5 — CLI replaces the HTTP-skill approach), ADR 0011 (amended by I1),
+global-session core survives), the retired Runtime CLI and skill specs, ADR 0011 (amended by I1),
 prompt contract + snapshots (WS2). New ADRs accompany each landing per `docs/adr/` convention.
 
 ## 4. Workstreams
@@ -664,14 +663,14 @@ deployment, so intermediate brokenness is not a constraint.
   grotto.sh starts completely fresh — existing local chat history and Agent workspaces are
   discarded, not migrated or adopted (decided).**
   **Integration credentials stay on Grotto Server** (D9): MCP is a hosted service and Computer
-  receives only safe schemas plus scoped invocation. Agent deletion requires a Server UI confirmation,
+  receives only safe schemas plus scoped invocation. Agent deletion requires a Grotto App confirmation,
   immediately retires Server membership/assignments/reminders/task claims while preserving
   tombstoned authored history, and queues Computer-local workspace cleanup without waiting for an
   offline Computer; deletion has no restore path. Each Agent's creation-time Computer assignment is
   immutable: offline Agents resume only when that same Computer reconnects, and a Computer cannot
   be removed until every assigned Agent is explicitly deleted. There is no Agent migration,
   adoption, reassignment, or unhosted-Agent recovery state. Stopping Grotto Computer preserves
-  attachments and workspaces; the Server UI may remove a confirmed, Agent-free Computer even while it is
+  attachments and workspaces; Grotto App may remove a confirmed, Agent-free Computer even while it is
   offline, without waiting for impossible local cleanup. There is no detach/forget/reclaim flow.
   Agent workspaces, skills, queues, sessions, and effective state are isolated to one Computer
   attachment. MCP connections and grants are Server-owned and available to that Server's Agents
@@ -712,9 +711,8 @@ deployment, so intermediate brokenness is not a constraint.
     settings cards/dialogs/forms (`apps/website/src/features/settings/plugins/`) onto the
     existing MCP data layer (`apps/website/src/features/settings/mcp/`), then delete
     `settings/plugins/`. Keep `agent-engine/mcp-servers.ts` + `mcp-routes.ts` as the substrate.
-  - **Delete:** the plugin host/manifest/settings framework (`apps/runtime/src/plugins/store.ts`,
-    `routes.ts`, `agent-capabilities.ts`, `materialize-skills.ts`, `merchbase*`, `google*`;
-    server `api/plugin/**`), rehoming Browser's health/grant wiring onto the MCP-grants surface.
+  - **Delete:** the retired standalone plugin host/manifest/settings framework and server
+    `api/plugin/**`, rehoming Browser's health/grant wiring onto the MCP-grants surface.
   - **Build on Grotto Server.** Integrations are a Server feature and secrets never enter Computer.
   - The `## MCP` prompt section composes only for agents with at least one granted server.
 - **Release blockers (flip → mini):** the flip may not ride a release to the mini without

@@ -15,7 +15,6 @@ export const appRoutes = {
     },
 
     settings: '/settings',
-    settingsAgentRuntime: '/settings/agent-runtime',
     settingsAppearance: '/settings/appearance',
     settingsProfile: '/settings/profile',
     settingsUpdates: '/settings/updates',

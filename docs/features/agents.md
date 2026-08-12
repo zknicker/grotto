@@ -97,10 +97,10 @@ it no longer appears in the Agent list, mention pickers, or Channel-creation
 controls, and it can neither execute a turn nor receive a new send. A send to its
 DM, a reply in one of that DM's Threads, or a new task message is rejected.
 
-Its Owner DM is durable collaboration history and stays reachable by direct URL,
-but leaves active navigation with the Agent. Its transcript keeps the retired
-Agent's historical profile under a **Deleted** treatment; its Chat and Thread
-composers are closed, and it is excluded from task creation targets.
+Its Owner DM leaves active navigation and is not an App destination after retirement. Canonical
+collaboration records remain durable Server history. Historical messages visible in other Chats
+keep the retired Agent's profile under a **Deleted** treatment, and the Agent is excluded from task
+creation targets.
 
 The Agent id is permanent identity; its handle is an active Server-scoped alias.
 Retirement releases that alias for a newly created Agent while preserving it on

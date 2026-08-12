@@ -34,10 +34,8 @@ export interface AppCommandGroup {
 
 export interface AppCommandBuildContext {
     chats: readonly ChatListItem[];
-    checkRuntimeHealth: () => void;
     currentChat: ChatListItem | null;
     devMode: boolean;
-    isCheckingRuntimeHealth: boolean;
     navigate: (path: string) => void;
     pathname: string;
     resolveCapability: (requirement: CapabilityRequirement) => CapabilityView;

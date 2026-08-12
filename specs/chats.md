@@ -31,8 +31,8 @@ Chats are Grotto's shared conversation surfaces.
 
 ## Config And Observation
 
-- Grotto-owned chats are created, named, bound, ordered, renamed, archived, and deleted by Grotto Runtime
-  through Grotto API.
+- Grotto-owned Chats are created, named, ordered, archived, and deleted by Grotto Server through
+  first-party Server APIs.
 - Agent engines do not create, name, rename, archive, or delete Grotto-owned chats.
 - Archiving a chat hides it from normal Grotto chat lists without deleting its chat row. Runtime
   session and message records may continue to reference that stable chat id.

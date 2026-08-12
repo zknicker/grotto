@@ -8,7 +8,7 @@ import {
     waitForChildShutdown,
 } from './dev-stack-controller.mjs';
 
-test('App development receives the Clerk issuer used by the Server UI', () => {
+test('App development receives the Clerk issuer used by Grotto Server', () => {
     assert.deepEqual(
         createDesktopDevEnvironment({
             clerkEnvironmentOverrides: {
@@ -18,14 +18,13 @@ test('App development receives the Clerk issuer used by the Server UI', () => {
                 PATH: '/usr/bin',
             },
             ports: {
-                serverPort: 25_249,
+                grottoPort: 25_251,
                 websitePort: 25_248,
             },
         }),
         {
             CLERK_ISSUER_URL: 'https://clerk.shared.lcl.dev',
             PATH: '/usr/bin',
-            TAVERN_SERVER_PORT: '25249',
             TAVERN_WEBSITE_PORT: '25248',
         }
     );
@@ -34,23 +33,23 @@ test('App development receives the Clerk issuer used by the Server UI', () => {
 test('dev stack shutdown signals all managed processes before waiting in order', async () => {
     const controller = new DevStackController({
         mode: 'desktop',
-        ports: { serverPort: 80_800, websitePort: 31_000 },
+        ports: { grottoPort: 31_003, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
     });
     const desktop = createManagedChildProcessStub(12_341, { autoExit: false });
     const website = createManagedChildProcessStub(12_342);
-    const server = createManagedChildProcessStub(12_343);
+    const computer = createManagedChildProcessStub(12_343);
 
     controller.processes.set('desktop', desktop);
     controller.processes.set('website', website);
-    controller.processes.set('server', server);
+    controller.processes.set('computer', computer);
 
     const stopPromise = controller.stop(0);
     await new Promise((resolve) => setImmediate(resolve));
 
     assert.deepEqual(desktop.signals, ['SIGTERM']);
     assert.deepEqual(website.signals, ['SIGTERM']);
-    assert.deepEqual(server.signals, ['SIGTERM']);
+    assert.deepEqual(computer.signals, ['SIGTERM']);
 
     desktop.exitCode = 0;
     desktop.emit('exit', 0, null);
@@ -60,19 +59,19 @@ test('dev stack shutdown signals all managed processes before waiting in order',
 test('dev stack shutdown forwards the operator signal to managed processes', async () => {
     const controller = new DevStackController({
         mode: 'web',
-        ports: { serverPort: 80_800, websitePort: 31_000 },
+        ports: { grottoPort: 31_003, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
     });
     const website = createManagedChildProcessStub(12_342);
-    const server = createManagedChildProcessStub(12_343);
+    const computer = createManagedChildProcessStub(12_343);
 
     controller.processes.set('website', website);
-    controller.processes.set('server', server);
+    controller.processes.set('computer', computer);
 
     await controller.stop(130, { signal: 'SIGINT' });
 
     assert.deepEqual(website.signals, ['SIGINT']);
-    assert.deepEqual(server.signals, ['SIGINT']);
+    assert.deepEqual(computer.signals, ['SIGINT']);
 });
 
 test('waitForChildShutdown waits after the shell exits until the process group is gone', async () => {
@@ -138,7 +137,7 @@ test('managed processes launch directly without an intermediate shell', () => {
     const child = createManagedChildProcessStub(12_346, { autoExit: false });
     const controller = new DevStackController({
         mode: 'web',
-        ports: { serverPort: 80_800, websitePort: 31_000 },
+        ports: { grottoPort: 31_003, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
         spawnImpl: (...args) => {
             spawnCalls.push(args);
@@ -146,19 +145,19 @@ test('managed processes launch directly without an intermediate shell', () => {
         },
     });
 
-    controller.spawnProcess('server', 'bun', ['--watch', 'src/index.ts'], {
-        cwd: '/tmp/tavern-server',
-        env: { TAVERN_SERVER_PORT: '80800' },
+    controller.spawnProcess('computer', 'bun', ['--watch', 'src/index.ts', 'start'], {
+        cwd: '/tmp/grotto-computer',
+        env: { GROTTO_SERVER_PORT: '31003' },
     });
 
     assert.deepEqual(spawnCalls, [
         [
             'bun',
-            ['--watch', 'src/index.ts'],
+            ['--watch', 'src/index.ts', 'start'],
             {
-                cwd: '/tmp/tavern-server',
+                cwd: '/tmp/grotto-computer',
                 detached: true,
-                env: { TAVERN_SERVER_PORT: '80800' },
+                env: { GROTTO_SERVER_PORT: '31003' },
                 shell: false,
                 stdio: ['ignore', 'pipe', 'pipe'],
             },

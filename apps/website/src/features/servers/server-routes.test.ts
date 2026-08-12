@@ -6,7 +6,7 @@ import {
     taskThreadRoute,
 } from './server-routes.ts';
 
-test('invitation links use the configured browser-reachable Server UI origin', () => {
+test('invitation links use the configured browser-reachable Grotto App origin', () => {
     expect(invitationLink('secret-token', 'https://app.grotto.test')).toBe(
         'https://app.grotto.test/invite/secret-token'
     );

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { loadEnvFile, readJson, repoRoot } from './release-utils.mjs';
@@ -9,11 +8,8 @@ import { loadEnvFile, readJson, repoRoot } from './release-utils.mjs';
 loadEnvFile();
 
 const s3Uri = trimTrailingSlash(requireEnv('TAVERN_RELEASE_S3_URI'));
-const includeRuntime =
-    process.argv.includes('--runtime') || process.env.TAVERN_RELEASE_INCLUDE_RUNTIME === '1';
 const includeDesktop = process.env.TAVERN_RELEASE_INCLUDE_DESKTOP !== '0';
 const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
-const runtimeBundleDir = path.join(repoRoot, 'apps', 'website', 'electron-dist', 'runtime');
 
 const main = async () => {
     const { version } = await readJson('apps/website/package.json');
@@ -40,10 +36,7 @@ const main = async () => {
         process.exit(1);
     }
 
-    const artifacts = [
-        ...desktopArtifacts,
-        ...(includeRuntime ? await findRuntimeArtifacts(version) : []),
-    ];
+    const artifacts = desktopArtifacts;
 
     for (const artifact of artifacts) {
         const targetUri = `${s3Uri}/${path.basename(artifact)}`;
@@ -59,24 +52,6 @@ await main();
 async function findFiles(directory, predicate) {
     const entries = await readdir(directory);
     return entries.filter(predicate).map((entry) => path.join(directory, entry));
-}
-
-async function findFilesIfExists(directory, predicate) {
-    if (!existsSync(directory)) {
-        return [];
-    }
-
-    return findFiles(directory, predicate);
-}
-
-async function findRuntimeArtifacts(version) {
-    const expectedPrefix = `grotto-runtime-${version}-`;
-    return findFilesIfExists(
-        runtimeBundleDir,
-        (entry) =>
-            entry.startsWith(expectedPrefix) &&
-            (entry.endsWith('.tar.gz') || entry.endsWith('.tar.gz.sha256'))
-    );
 }
 
 function runAws(args) {

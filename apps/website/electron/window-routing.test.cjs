@@ -34,7 +34,7 @@ test('nextWindowBounds centers the first window and offsets the rest', () => {
     );
 });
 
-test('buildWindowUrl seeds hosted and dev Server UI routes', () => {
+test('buildWindowUrl seeds hosted and dev Grotto App routes', () => {
     assert.equal(buildWindowUrl('https://grotto.sh', '/chats/abc'), 'https://grotto.sh/chats/abc');
     assert.equal(
         buildWindowUrl('http://localhost:3100', '/chats/abc'),

@@ -62,7 +62,7 @@ export function resolveGrottoServerOrigin(
     }
 
     throw new Error(
-        'The Grotto Server origin is unavailable. Open the Server UI over HTTP(S) or configure VITE_GROTTO_SERVER_ORIGIN for development.'
+        'The Grotto Server origin is unavailable. Open Grotto App over HTTP(S) or configure VITE_GROTTO_SERVER_ORIGIN for development.'
     );
 }
 

@@ -1,11 +1,9 @@
-import { toast } from '@heroui/react';
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDevMode } from '../components/dev-mode-provider.tsx';
 import { buildChatList } from '../features/chats/chat-list-data.ts';
 import { useChatList } from '../hooks/chats/use-chat-list.ts';
 import { useCapability } from '../hooks/connections/use-capability.ts';
-import { trpc } from '../lib/trpc.tsx';
 import { buildChatNavigationCommandGroups } from './chat-navigation-commands.ts';
 import { buildCurrentChatCommandGroup, getCurrentChatId } from './current-chat-commands.ts';
 import { buildDeveloperCommandGroup } from './developer-commands.ts';
@@ -19,18 +17,6 @@ export function useAppCommands() {
     const { devMode, setDevMode } = useDevMode();
     const resolveCapability = useCapability();
     const chatsQuery = useChatList();
-    const utils = trpc.useUtils();
-    const healthMutation = trpc.agentRuntime.checkHealth.useMutation({
-        onError: (error) => {
-            toast.danger('Runtime check failed', { description: error.message });
-        },
-        onSettled: () => {
-            void utils.agentRuntime.get.invalidate();
-        },
-        onSuccess: () => {
-            toast.success('Runtime check requested');
-        },
-    });
 
     const chatId = getCurrentChatId(pathname);
     const chats = React.useMemo(() => buildChatList(chatsQuery.data), [chatsQuery.data]);
@@ -51,11 +37,9 @@ export function useAppCommands() {
 
     return React.useMemo(() => {
         const context = {
-            checkRuntimeHealth: () => healthMutation.mutate(),
             chats,
             currentChat,
             devMode,
-            isCheckingRuntimeHealth: healthMutation.isPending,
             navigate,
             pathname,
             resolveCapability,
@@ -71,15 +55,5 @@ export function useAppCommands() {
                 buildDeveloperCommandGroup(context),
             ].filter((group) => group !== null)
         );
-    }, [
-        currentChat,
-        chats,
-        devMode,
-        healthMutation.isPending,
-        healthMutation.mutate,
-        navigate,
-        pathname,
-        resolveCapability,
-        setDevMode,
-    ]);
+    }, [currentChat, chats, devMode, navigate, pathname, resolveCapability, setDevMode]);
 }

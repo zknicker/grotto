@@ -102,7 +102,7 @@ registration), with optional info-string text as the title:
   managed prompt keeps a three-line pointer: the surfaces exist and the
   skill is a mandatory read before emitting any fence (ADR 0012). Skill
   sources are markdown files under
-  `apps/runtime/src/agent-engine/visuals-skill/`; quality is tuned with the
+  `packages/agent-workspace/src/visuals-skill/`; quality is tuned with the
   design battery (`bun run eval:design`, `scripts/design-battery/RUBRIC.md`).
 
 ## Artifacts

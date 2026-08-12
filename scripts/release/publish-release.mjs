@@ -13,7 +13,6 @@ import { fail, isSemver, readFlagValue, readJson, readText, repoRoot } from './r
 
 const argv = process.argv.slice(2);
 const pushBranch = readFlagValue(argv, '--push-branch') ?? 'main';
-const publishRuntime = argv.includes('--runtime');
 
 if (argv.includes('--help') || argv.includes('-h')) {
     printUsage();
@@ -22,12 +21,10 @@ if (argv.includes('--help') || argv.includes('-h')) {
 
 const allowedDirtyPaths = new Set([
     'CHANGELOG.md',
-    'apps/runtime/package.json',
     'apps/website/package.json',
     'release-surfaces.json',
 ]);
 const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
-const runtimeBundleDir = path.join(repoRoot, 'apps', 'website', 'electron-dist', 'runtime');
 const serverReleaseRoot = path.join(repoRoot, 'apps', 'server', 'release');
 
 const main = async () => {
@@ -57,10 +54,6 @@ const main = async () => {
             production: computerRelease.version,
         });
     }
-    if (publishRuntime) {
-        await assertRuntimeReleaseVersion(version);
-    }
-
     const releasePaths = readReleaseDirtyPaths();
     stageReleasePaths(releasePaths);
     commitReleaseIfNeeded(tagName);
@@ -70,23 +63,11 @@ const main = async () => {
         env: { ...process.env, GROTTO_SOURCE_REVISION: sourceRevision },
     });
 
-    if (publishRuntime) {
-        run('bun', ['run', 'release:build-runtime-artifact']);
-    }
     if (publishApp) {
         run('bun', ['run', 'publish:desktop'], {
             env: {
                 ...process.env,
                 TAVERN_RELEASE_INCLUDE_DESKTOP: '1',
-                TAVERN_RELEASE_INCLUDE_RUNTIME: publishRuntime ? '1' : '0',
-            },
-        });
-    } else if (publishRuntime) {
-        run('node', ['scripts/release/publish-desktop.mjs'], {
-            env: {
-                ...process.env,
-                TAVERN_RELEASE_INCLUDE_DESKTOP: '0',
-                TAVERN_RELEASE_INCLUDE_RUNTIME: '1',
             },
         });
     }
@@ -97,7 +78,6 @@ const main = async () => {
     const notesPath = await writeReleaseNotes(version);
     const artifacts = await findReleaseArtifacts({
         includeDesktop: publishApp,
-        includeRuntime: publishRuntime,
         sourceRevision,
         version,
     });
@@ -105,10 +85,6 @@ const main = async () => {
     createTag(tagName);
     pushReleaseTag({ pushBranch, tagName });
     createGithubRelease({ artifacts, notesPath, tagName });
-    if (publishRuntime) {
-        run('bun', ['run', 'release:publish-homebrew-formula']);
-    }
-
     console.log(`Released ${tagName}`);
 };
 
@@ -118,11 +94,9 @@ function printUsage() {
     console.log(
         [
             'Usage: bun run release:publish [-- --push-branch main]',
-            '       bun run release:publish -- --runtime',
             '',
             'Builds the hosted Server and each declared release surface,',
             'pushes the release commit and tag, and creates the GitHub Release.',
-            'Pass --runtime to also build/publish the Runtime tarball and Homebrew formula.',
         ].join('\n')
     );
 }
@@ -135,16 +109,6 @@ async function readReleaseVersion() {
 function assertVersion(version) {
     if (!isSemver(version)) {
         fail(`invalid release version: ${version}`);
-    }
-}
-
-async function assertRuntimeReleaseVersion(appVersion) {
-    const runtimePackage = await readJson('apps/runtime/package.json');
-    if (runtimePackage.version !== appVersion) {
-        fail('Runtime releases must use the same version as the release tag', {
-            app: appVersion,
-            runtime: runtimePackage.version,
-        });
     }
 }
 
@@ -272,7 +236,7 @@ function extractReleaseNotes(changelog, version) {
     return notes;
 }
 
-async function findReleaseArtifacts({ includeDesktop, includeRuntime, sourceRevision, version }) {
+async function findReleaseArtifacts({ includeDesktop, sourceRevision, version }) {
     const artifacts = [
         ...(includeDesktop ? await findDesktopArtifacts(version) : []),
         ...(includeDesktop ? [path.join(bundleRoot, 'latest-mac.yml')] : []),
@@ -281,7 +245,6 @@ async function findReleaseArtifacts({ includeDesktop, includeRuntime, sourceRevi
             sourceRevision,
             version,
         })),
-        ...(includeRuntime ? await findRuntimeArtifacts(version) : []),
     ];
 
     if (includeDesktop && !artifacts.some((artifact) => path.basename(artifact).endsWith('.dmg'))) {
@@ -305,20 +268,6 @@ async function findDesktopArtifacts(version) {
 
 async function findFiles(directory, predicate) {
     return (await readdir(directory)).filter(predicate).map((entry) => path.join(directory, entry));
-}
-
-async function findRuntimeArtifacts(version) {
-    const files = await readdir(runtimeBundleDir);
-    const expectedPrefix = `grotto-runtime-${version}-`;
-    const artifacts = files
-        .filter((entry) => entry.startsWith(expectedPrefix) && entry.includes('.tar.gz'))
-        .map((entry) => path.join(runtimeBundleDir, entry));
-
-    if (artifacts.length === 0) {
-        fail(`could not find runtime artifact for ${version}`, { files });
-    }
-
-    return artifacts;
 }
 
 function createGithubRelease({ artifacts, notesPath, tagName }) {

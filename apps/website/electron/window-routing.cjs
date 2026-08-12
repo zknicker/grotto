@@ -42,7 +42,7 @@ function nextWindowBounds(openerBounds, options = {}) {
     };
 }
 
-/** Builds the hosted or dev Server UI URL for a seeded route, or the bare Server UI origin. */
+/** Builds the hosted or dev Grotto App URL for a seeded route, or the bare App origin. */
 function buildWindowUrl(appUrl, route) {
     return route ? new URL(route, appUrl).toString() : appUrl;
 }

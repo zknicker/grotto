@@ -248,7 +248,9 @@ export async function claimAgentTasks(
     for (const task of tasks) {
         const result = await mutateAgentTask(db, runner, task.messageId, task.version, 'claim');
         claimed.push(result.task);
-        events.push(result.event);
+        if (result.event) {
+            events.push(result.event);
+        }
     }
     return { claimed, events };
 }
@@ -300,6 +302,22 @@ async function mutateAgentTask(
             chatId: current.chatId,
             serverId: runner.serverId,
         });
+        if (
+            action === 'claim' &&
+            current.assigneeAgentId === runner.agentId &&
+            current.claimedAt !== null
+        ) {
+            const [message] = await tx
+                .select(messageSelection)
+                .from(chatMessagesTable)
+                .where(
+                    and(
+                        eq(chatMessagesTable.serverId, runner.serverId),
+                        eq(chatMessagesTable.id, messageId)
+                    )
+                );
+            return { event: null, task: await taskRow(tx, runner, message, current) };
+        }
         if (current.version !== expectedVersion) {
             throw new AgentTaskError('That task changed; refresh it before updating.');
         }

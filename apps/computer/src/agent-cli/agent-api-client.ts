@@ -2,7 +2,7 @@ import * as z from 'zod';
 import { type AgentContext, resolveAgentContext } from './agent-context.ts';
 import { AgentCliError } from './agent-error.ts';
 
-const REQUEST_TIMEOUT_MS = 1500;
+const REQUEST_TIMEOUT_MS = 15_000;
 const errorResponseSchema = z.object({
     code: z.string().min(1),
     draftSaved: z.boolean().optional(),

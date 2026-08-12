@@ -765,6 +765,109 @@ test('accepts a repeated Computer-local visibility receipt after a committed rec
     });
 });
 
+test('attests a multi-message Computer-local pull without wedging the transaction', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const messageIds = await Promise.all([
+        insertHumanMessage(seed, 'task anchor one', 1),
+        insertHumanMessage(seed, 'task anchor two', 2),
+    ]);
+    const threadChatId = `cht_thr_${messageIds[0]?.slice(4)}`;
+    await connection.db.insert(chatsTable).values({
+        anchorMessageId: messageIds[0],
+        id: threadChatId,
+        kind: 'thread',
+        parentChatId: seed.chatId,
+        serverId: seed.serverId,
+    });
+    const briefingId = createOpaqueId('msg');
+    await connection.db.insert(chatMessagesTable).values({
+        authorUserId: seed.userId,
+        chatId: threadChatId,
+        content: 'task thread briefing',
+        id: briefingId,
+        nonce: createOpaqueId('nonce'),
+        sequence: 1,
+        serverId: seed.serverId,
+    });
+    messageIds.push(briefingId);
+    await connection.db.insert(messageTasksTable).values([
+        {
+            assigneeAgentId: seed.agentId,
+            chatId: seed.chatId,
+            createdByUserId: seed.userId,
+            messageId: messageIds[0] ?? '',
+            number: 1,
+            origin: 'composed',
+            serverId: seed.serverId,
+            status: 'todo',
+        },
+        {
+            assigneeAgentId: seed.agentId,
+            chatId: seed.chatId,
+            createdByUserId: seed.userId,
+            messageId: messageIds[1] ?? '',
+            number: 2,
+            origin: 'composed',
+            serverId: seed.serverId,
+            status: 'todo',
+        },
+    ]);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'task anchor one',
+        dedupeKey: messageIds[0] ?? '',
+        sequence: 1,
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    await connection.db.insert(agentPendingWorkTable).values([
+        {
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            content: 'task anchor two',
+            dedupeKey: messageIds[1] ?? '',
+            id: createOpaqueId('apw'),
+            serverId: seed.serverId,
+            source: 'human',
+        },
+        {
+            agentId: seed.agentId,
+            chatId: threadChatId,
+            content: 'task thread briefing',
+            dedupeKey: messageIds[2] ?? '',
+            id: createOpaqueId('apw'),
+            serverId: seed.serverId,
+            source: 'human',
+        },
+    ]);
+    const runner = {
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        computerId: seed.computerId,
+        runId,
+        runnerId: createOpaqueId('arc'),
+        serverId: seed.serverId,
+    };
+
+    await expect(
+        attestAgentEvents(
+            connection.db,
+            runner,
+            messageIds.map((id, index) => ({
+                chatId: index === 2 ? threadChatId : seed.chatId,
+                id,
+                sequence: index === 2 ? 1 : index + 1,
+            }))
+        )
+    ).resolves.toEqual({ accepted: messageIds });
+});
+
 test('reconnect replays busy work pulled by an unsettled active run', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();

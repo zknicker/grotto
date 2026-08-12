@@ -23,12 +23,18 @@ export async function pullAgentEvents(db: GrottoDatabase, runner: ResolvedRunner
 
         const pending = await listQueuedMessagePending(tx, runner.agentId, maxPulledMessages + 1);
         const selected = pending.slice(0, maxPulledMessages);
-        const messages = await Promise.all(
-            selected.map(async (row) => ({
+        const messages: Array<{
+            message: Awaited<ReturnType<typeof resolveAgentMessage>>;
+            target: string;
+        }> = [];
+        // Each resolver issues several queries. Bun's transaction client must not run those
+        // compound query sequences concurrently or it can wait on itself indefinitely.
+        for (const row of selected) {
+            messages.push({
                 message: await resolveAgentMessage(tx, runner, row.dedupeKey),
                 target: await targetForChat(tx, runner.serverId, row.chatId),
-            }))
-        );
+            });
+        }
         await attachQueuedPendingToRun(tx, {
             agentId: runner.agentId,
             pendingIds: selected.map((row) => row.id),
@@ -81,20 +87,20 @@ export async function attestAgentEvents(
             listPendingForRun(tx, { agentId: runner.agentId, runId: runner.runId }),
         ]);
         const selected = [...pending, ...attached].filter((row) => requested.has(row.dedupeKey));
-        const messages = await Promise.all(
-            selected.map(async (row) => {
-                const message = await resolveAgentMessage(tx, runner, row.dedupeKey);
-                const identity = requested.get(row.dedupeKey);
-                if (
-                    !identity ||
-                    identity.chatId !== message.chat_id ||
-                    identity.sequence !== message.sequence
-                ) {
-                    throw new Error('The local inbox receipt has a stale message boundary.');
-                }
-                return message;
-            })
-        );
+        const messages: Awaited<ReturnType<typeof resolveAgentMessage>>[] = [];
+        // Preserve one query sequence at a time on this transaction-bound client.
+        for (const row of selected) {
+            const message = await resolveAgentMessage(tx, runner, row.dedupeKey);
+            const identity = requested.get(row.dedupeKey);
+            if (
+                !identity ||
+                identity.chatId !== message.chat_id ||
+                identity.sequence !== message.sequence
+            ) {
+                throw new Error('The local inbox receipt has a stale message boundary.');
+            }
+            messages.push(message);
+        }
         await attachQueuedPendingToRun(tx, {
             agentId: runner.agentId,
             pendingIds: pending.filter((row) => requested.has(row.dedupeKey)).map((row) => row.id),

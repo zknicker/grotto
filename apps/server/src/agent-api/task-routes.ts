@@ -109,7 +109,9 @@ export function registerAgentTaskRoutes(
                               ...parsed.data,
                               status: parsed.data.status as z.infer<typeof taskStatusSchema>,
                           });
-                emitTaskEvents([result.event]);
+                if (result.event) {
+                    emitTaskEvents([result.event]);
+                }
                 return { task: result.task };
             } catch (cause) {
                 return sendAgentReadError(reply, cause);

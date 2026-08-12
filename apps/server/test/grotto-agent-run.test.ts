@@ -855,6 +855,15 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         status: 'in_progress',
         version: 2,
     });
+    const repeatedClaim = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
+        numbers: [1],
+        target: '#dispatch',
+    });
+    expect(repeatedClaim.body.claimed[0]).toMatchObject({
+        assignee: { handle: 'sage', id: agentId },
+        status: 'in_progress',
+        version: 2,
+    });
     const updated = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
         number: 1,
         status: 'in_review',
@@ -987,7 +996,6 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
     expect(convertedEvents.map((event) => event.event_type)).toEqual([
         'message.created',
         'task.created',
-        'task.updated',
     ]);
     const [conversionReceipt] = (await harness.sql`
         select content, system_author

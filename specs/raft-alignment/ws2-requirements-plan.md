@@ -144,8 +144,7 @@ are the enforced dead list.
 | stdin heredoc send form | `<<'GROTTOMSG'` | full |
 | draft revise path | `To update the draft, use a normal \`grotto message send\`` | full |
 | draft send-unchanged path | `--send-draft --target <target>\` with no stdin` | full |
-| exact target reuse on reply | `Reuse the exact \`target\` from the received message for ordinary replies` | full |
-| explicit final delivery overrides ordinary reply routing | `an explicit human delivery instruction wins` | full |
+| exact target reuse on reply | `To reply to any message, always reuse the exact \`target\` from the received message` | full |
 
 ### Reminders — all `phase: 'ws5'`
 

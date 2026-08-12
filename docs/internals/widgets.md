@@ -57,14 +57,8 @@ registration), with optional info-string text as the title:
   in the message body and the transcript splits it out at render time — there
   is no separate widget-render snapshot. Live and durable replies render
   through the same `splitVisualFences` path, so a visual survives without any
-  Runtime projection. Data is embedded at generation time; visuals never fetch
+  Computer-side projection. Data is embedded at generation time; visuals never fetch
   live app data.
-- **Streaming.** While a `visual` fence is open mid-turn, Runtime updates the
-  streaming post on a 500ms throttle (`harness-turn-stream.ts`), and the app
-  splits fences out of live reply text (`splitVisualFences`) to grow the
-  iframe body progressively — the browser's error-tolerant HTML parsing is
-  the streaming renderer; srcdoc rewrites are throttled app-side. Malformed
-  HTML degrades to whatever the parser can render, never an error state.
 - **Sandbox.** Opaque origin, `srcDoc`, scripts allowed, never
   `allow-same-origin`, no browser storage
   (`apps/website/src/features/chats/visual-card.tsx`). A CSP meta locks the document
@@ -152,13 +146,13 @@ completes.
 ## Storage
 
 > **Dormant post-flip.** The flip removed per-turn response activities, so
-> Runtime no longer writes `widget` activity and no `widget` chat rows are
+> Computer does not write `widget` activity and no new `widget` Chat rows are
 > projected today. Visuals render entirely from message content (see
 > **Persistence** above); the activity/row pipeline below describes the
 > pre-flip contract that the artifact widget path still assumes, and is
 > retained pending the artifacts decision. Do not wire new widgets to it.
 
-Runtime stores each valid fence as response activity:
+The retired standalone service stored each valid fence as response activity:
 
 ```ts
 kind: "widget"
@@ -180,9 +174,7 @@ Historical chats contain stored activity for retired catalog widgets
 `merchbase-sales-chart`). Their props schemas are gone, so both projection
 paths degrade them identically: the stored envelope no longer validates, and
 the row renders as a fallback card — the envelope's fallback text plus a
-visible "Widget unavailable" state. No legacy renderers are kept. Legacy
-`rich_response` activity from the older json-render system is dropped by a
-one-time Runtime schema repair; old chats keep their prose.
+visible "Widget unavailable" state. No legacy renderers are kept.
 
 ## Ownership
 
@@ -190,7 +182,7 @@ Canonical names, props schemas, and the render envelope live in
 `packages/tavern-api/src/widgets`. Visuals parse and render on the Website:
 `splitVisualFences` (`packages/tavern-api/src/widgets/visual`) splits fences
 from message content and `chat-transcript-turn.tsx` renders the iframe card —
-Runtime no longer parses fences or writes `widget` activity. Server still
+Computer does not parse fences or write `widget` activity. Server still
 holds the dormant row projection (`apps/server/src/widgets/widgets.ts`) and
 Website the `widget`-row renderers (`apps/website/src/widgets`: artifact card
 and fallback card) for the pipeline noted under **Storage**. The pane's HTML

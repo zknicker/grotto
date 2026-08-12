@@ -1,106 +1,59 @@
 ---
 name: grotto-widgets
-description: Use when adding or changing Grotto Widgets, widget fence parsing, widget render contracts, generated agent Widget guidance, or seeded Widget chat demos. Covers the end-to-end checklist across @tavern/api, Runtime, Server, Website, docs, and tests.
+description: Use when changing Grotto visual or artifact fences, their render contracts, Agent authoring guidance, sandboxing, or legacy Widget replay. Covers the current seams across @tavern/api, Computer, Server, App, docs, and tests.
 ---
 
 # Grotto Widgets
 
-Use this skill to add or change a Grotto Widget end to end. Keep this file lean:
-the canonical contract lives in repo docs and code.
+Grotto currently renders two Agent-authored fence types: inline `visual` HTML and durable
+`artifact` workspace files. The old closed Widget catalog is retired. Treat historical Widget rows
+as replay compatibility, not an extension point.
 
 ## Start
 
-1. Read repo `AGENTS.md`.
-2. Run `bun run docs:list`.
-3. Read the docs routed for Widgets and demos:
-   - `docs/internals/widgets.md`
-   - `docs/internals/chat-demos.md`
-   - `docs/adr/0010-widgets-use-tagged-fences.md`
-4. Preserve unrelated dirty work.
+1. Read repo `AGENTS.md` and run `bun run docs:list`.
+2. Read `docs/internals/widgets.md`, `docs/internals/artifacts.md`, and
+   `docs/adr/0010-widgets-use-tagged-fences.md`.
+3. Follow the current source paths from those docs before editing; preserve unrelated dirty work.
 
-## Vocabulary
+## Current ownership
 
-- **Widget**: typed app-rendered UI block in chat, authored by the agent as a
-  `widget:<name>` fenced code block containing one JSON object of props.
-- **Widget name**: kebab-case fence tag, e.g. `bar-chart`.
-- **Component id**: durable stored id, always `tavern.widget.<name>`.
-- **Render envelope**: stored `{ component, fallback, props, target }` payload
-  inside `widget` response activity metadata.
+- `packages/tavern-api/src/widgets/visual/`: visual-fence splitting and validation.
+- `packages/tavern-api/src/widgets/artifact/`: artifact-card payload validation.
+- `packages/tavern-api/src/widgets/workspace-path.ts`: confined workspace paths.
+- `packages/agent-workspace/src/visuals-skill/`: Agent authoring guidance and design references.
+- `apps/website/src/features/chats/`: transcript splitting, visual cards, artifact cards, and pane
+  rendering.
+- `apps/website/src/agent-html/`: iframe sandbox and injected theme-token contract.
+- `apps/server/src/widgets/`: dormant historical row projection only.
 
-## Checklist
+## Change checklist
 
-For each new Widget:
-
-1. Add the props schema in `packages/tavern-api/src/widgets/<family>/contracts.ts`
-   (or a new family folder).
-   - Strict Zod schema; model-friendly shorthands may normalize via
-     `.transform` (see the table matrix shorthand).
-2. Register the Widget in `packages/tavern-api/src/widgets/contracts.ts`:
-   - add the name to `widgetNameSchema`,
-   - add the schema to `widgetPropsSchemasByName`,
-   - add a `widgetRenderInputEntry` to `widgetRenderInputSchema`,
-   - add a display name in `widgetDisplayName`, and widget-specific fallback
-     text in `widgetFallbackText` when `title` alone is not enough.
-3. Add a `WidgetPromptEntry` (`{ description, signature, constraints? }`) to the
-   `widgetPromptEntries` map in `packages/tavern-api/src/widgets/prompt.ts`.
-   - One decision-oriented description line plus a compact props signature; keep
-     it small, it ships every turn.
-   - The `satisfies Record<WidgetName, WidgetPromptEntry>` guard turns a missing
-     entry into a compile error — that is the reminder, not this checklist.
-   - Plugin-owned entries live beside their schema (see
-     `widgets/merchbase/contracts.ts`) and are imported into the map.
-4. Runtime needs no per-widget wiring; `availableWidgetNamesForAgent` gates
-   the prompt. A core widget (owned by no Plugin) is available to every agent
-   automatically; a plugin widget appears only when the Plugin is enabled and
-   granted (via the manifest `widgets` field), so no gating code is needed per
-   widget. Note (post-flip): only ```` ```visual ```` fences render today —
-   they parse client-side from message content (`splitVisualFences`), not in
-   Runtime. The `widget`-activity → server-row pipeline is dormant; see
-   `docs/internals/widgets.md` before adding a non-visual widget.
-5. Add the Website renderer:
-   - a thin `Widget*` wrapper in `apps/website/src/widgets/` mapping fence
-     props onto Grotto component kit components from `apps/website/src/kit/`
-     (`Card` for framing; see `docs/internals/kit.md`),
-   - a case in the `widgetElement` switch in
-     `apps/website/src/widgets/render-widget.tsx`.
-   - Never render model-provided HTML, JSX, CSS, class names, or component
-     trees.
-6. Plugin-owned Widgets declare themselves in the Plugin manifest `widgets`
-   array and keep component source beside the Plugin where practical.
-7. Seed a dev chat demo.
-   - Use real Runtime chat rows via `widgetDemoRenderInput(name, fallback, props)`.
-   - Plugin-owned Widgets use one `dev/<widget>.demo.ts` module per widget.
-8. Add focused tests at the seams:
-   - API: props parsing/normalization and `parseWidgetPayload` behavior;
-     prompt assembly (`widgets/prompt.test.ts`).
-   - For a plugin widget, add a grant case to
-     `plugins/agent-capabilities.test.ts`.
-   - Website: visual fence split + transcript render + fallback
-     (`chat-transcript.test.tsx`, `packages/tavern-api/src/widgets/visual`).
-   - Instructions: generated prompt strings and gating
-     (`apps/runtime/src/workspace/instructions.test.ts`).
-
-## Standards
-
-- Widget names: kebab-case, singular product nouns (`calendar-event`).
-- Component ids: always `tavern.widget.<name>`; never freeform.
-- Props are flat data. Interactivity lives in the React component, not in the
-  payload. No state, actions, event handlers, or dynamic expressions.
-- No centralized registry framework, manifest loader, or plugin system for
-  first-party Widgets. Use the explicit schema map and renderer switch.
-- Fallback/error state must stay visible to users.
-- Invalid fences strip from the reply and produce no activity; never block the
-  prose.
+1. Change the narrow API contract first. Keep schemas strict and reject traversal, unknown props,
+   oversized bodies, and unsupported fence kinds at the boundary.
+2. Update the App renderer without expanding the iframe's authority. Agent-authored HTML stays in an
+   opaque-origin sandbox; never add `allow-same-origin`, app DOM access, cookies, storage, or an
+   unrestricted network channel.
+3. Keep visuals and artifacts distinct:
+   - `visual` content is the durable message body and renders inline.
+   - `artifact` points at one confined `.html` or `.htm` workspace file and opens in the pane.
+4. When authoring guidance changes, update the seeded visuals skill under
+   `packages/agent-workspace/src/visuals-skill/` and its focused tests. Keep the managed Computer
+   prompt as a small pointer to that skill.
+5. Preserve historical Widget fallback rendering. Do not restore catalog schemas or renderers to
+   support new output.
+6. Update `docs/internals/widgets.md` or `docs/internals/artifacts.md` whenever the durable fence,
+   sandbox, rendering, or ownership contract changes.
 
 ## Verify
 
-Run the smallest lanes that cover changed seams. Common lanes:
+Run the smallest lanes covering the changed seams, then repository lint:
 
 ```bash
-cd packages/tavern-api && bun test src/widgets/ && bun run typecheck
-bun run --filter @tavern/runtime test -- src/workspace/instructions.test.ts
-cd apps/website && bun test src/features/chats src/widgets && bun run typecheck
-bun run --filter @tavern/server typecheck
+bun test packages/tavern-api/src/widgets
+bun run --filter @tavern/api typecheck
+bun run --filter @tavern/website typecheck
+bun run --filter @tavern/computer typecheck
 bun run lint
 git diff --check
 ```

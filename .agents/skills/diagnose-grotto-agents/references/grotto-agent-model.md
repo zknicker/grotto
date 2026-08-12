@@ -8,10 +8,10 @@ them, investigate the discrepancy and update the stale material.
 - **Chat**: durable conversation and routing surface. Channels, DMs, and Threads are Chats.
 - **Agent session**: one Agent's continuous global execution context across every Chat it joins.
 - **Turn**: one execution inside that global session.
-- **Grotto Runtime / Server**: canonical Chats, messages, participants, pending delivery, cursors,
+- **Grotto Server**: canonical Chats, messages, participants, pending delivery, cursors,
   reads, events, and Agent-presence routing.
-- **Computer**: Agent runtime, session process, local inbox projection, delivery notices, and the
-  prompt/input surface.
+- **Computer**: execution-runtime discovery, Agent session processes, local inbox projection,
+  delivery notices, and the prompt/input surface.
 - **Execution trace**: evidence about a turn, not the canonical product conversation.
 
 Grotto inherits Raft's session model. A Chat is never an Agent session boundary. Per-Chat sessions
@@ -29,12 +29,12 @@ would erase continuity and violate the current architecture.
 6. Delivery, model visibility, and freshness are distinct states. The seen ledger is the authority
    for what has reached the model; transport delivery alone is insufficient.
 7. A pull may batch pending targets, but each target stays independently addressable.
-8. Agents speak through the Grotto CLI. A floating Runtime turn anchors to the Agent
+8. Agents speak through the Grotto CLI. A floating execution turn anchors to the Agent
    session, not an arbitrary Chat.
-9. Canonical Chat history remains in Grotto Runtime and is recoverable through read/search/check tools.
+9. Canonical Chat history remains in Grotto Server and is recoverable through read/search/check tools.
    Session continuity does not require replaying every Chat transcript on each turn.
-10. Sends resolve a Runtime-owned Agent presence and its current session binding. Frontends do not
-    invent routing ids.
+10. Sends resolve Server-owned Agent routing and the assigned Computer. Frontends do not invent
+    Computer, session, or execution-runtime routing ids.
 
 ## Read These First
 
@@ -46,9 +46,9 @@ Run `bun run docs:list`. For delivery, context, inbox, or session bugs, read thi
 - `specs/sessions.md`
 - `specs/inbox.md`
 - `docs/internals/agent-daemon-delivery.md`
-- `docs/internals/agent-engine-runtime.md`
-- `docs/internals/runtime.md`
-- `docs/api/chat.md`
+- `docs/internals/architecture-overview.md`
+- `docs/api/agents.md`
+- `docs/api/realtime.md`
 - `docs/features/chat.md`
 - `docs/features/context-management.md`
 - `docs/operations/development.md`

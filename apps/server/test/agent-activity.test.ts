@@ -170,7 +170,8 @@ function summary(seed: Seed, runId: string): HostedAgentTurnSummary {
 
 test('deduplicates out-of-order Computer frames and interleaves by Server position', async () => {
     const seed = await seedActivity();
-    const { frame } = await startRun(seed);
+    const { delivery, frame } = await startRun(seed);
+    await delivery.onAck({ agentId: seed.agentId, runId: frame.runId });
     const first = await recordComputerAgentActivity(connection.db, {
         computerId: seed.computerId,
         frame: activityFrame(seed, frame.runId, 2),
@@ -246,6 +247,9 @@ test('deduplicates out-of-order Computer frames and interleaves by Server positi
 test('rejects wrong identities and settled runs, while active snapshot recovers the latest event', async () => {
     const seed = await seedActivity();
     const { delivery, frame } = await startRun(seed);
+    expect(await readHostedActiveAgentActivity(connection.db, seed.serverId)).toEqual({
+        activities: [],
+    });
     const wrongComputer = await recordComputerAgentActivity(connection.db, {
         computerId: createOpaqueId('cmp'),
         frame: activityFrame(seed, frame.runId, 1),
@@ -264,6 +268,14 @@ test('rejects wrong identities and settled runs, while active snapshot recovers 
     expect(wrongComputer).toBeNull();
     expect(wrongAgent).toBeNull();
     expect(wrongServer).toBeNull();
+    const unaccepted = await recordComputerAgentActivity(connection.db, {
+        computerId: seed.computerId,
+        frame: activityFrame(seed, frame.runId, 1),
+        serverId: seed.serverId,
+    });
+    expect(unaccepted).toBeNull();
+
+    await delivery.onAck({ agentId: seed.agentId, runId: frame.runId });
 
     const accepted = await recordComputerAgentActivity(connection.db, {
         computerId: seed.computerId,

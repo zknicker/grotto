@@ -82,15 +82,18 @@ type AgentActivityEvent = {
 Each producer assigns a monotonic `producerSequence` within the run. Server validates the currently
 assigned Computer and active run, deduplicates `(serverId, agentId, runId, producer,
 producerId, producerSequence)`, assigns the next run-local `position` while holding the owning
-delivery/turn lock, persists the event, then broadcasts it. `position` is the only presentation
-order; producer timestamps never resolve cross-machine ordering. Server-originated lifecycle events
-use their own producer identity and the same ordered journal without pretending they came from
-Harness.
+  delivery/turn lock, persists the event, then broadcasts it when the run is eligible for the
+  current projection. `position` is the only presentation order within a run; the Server's recorded
+  run start preserves cross-Agent turn ordering. Producer timestamps never resolve event ordering.
+  Server-originated lifecycle events use their own producer identity and the same ordered journal
+  without pretending they came from Harness.
 
 The hosted Server API exposes this journal through `agent.activityHistory`, the unsettled-run
-`agent.activeActivity` snapshot, and one Server-scoped `agent.onActivity` subscription. History
-pages use a run-local `{ runId, position }` cursor; the legacy compact `agent.activity` turn
-summary remains a separate compatibility read.
+`agent.activeActivity` snapshot, and one Server-scoped `agent.onActivity` subscription. Current
+activity includes only an active run after the assigned Computer's acceptance ack; a dispatched
+but unaccepted run remains durable history without entering the current projection. History pages
+use a run-local `{ runId, position }` cursor; the legacy compact `agent.activity` turn summary
+remains a separate compatibility read.
 
 Heartbeats and repeated identical current states are not persisted. Short adjacent events may be
 coalesced for the live strip, but every meaningful transition remains available in history.
@@ -123,7 +126,7 @@ is owned by Linear PRD-216.
 The strip sits at the bottom of every Server sidebar and is absent from full-width destinations
 without a sidebar, including Search and Reminders.
 
-- Membership is exactly the Server's Agents with unsettled turns.
+- Membership is exactly the Server's Agents with unsettled, Computer-accepted turns.
 - Each row shows the Agent avatar with its ordinary global status dot plus the latest semantic
   activity label.
 - Show at most four rows, then `N more working`.

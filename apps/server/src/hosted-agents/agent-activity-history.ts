@@ -4,7 +4,7 @@ import type {
     HostedAgentActivityHistoryInput,
     HostedAgentActivityHistoryPage,
 } from '@tavern/api';
-import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, lt, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentActivityTable, agentDeliveryTable } from '../postgres/schema.ts';
 
@@ -78,23 +78,25 @@ export async function readHostedActiveAgentActivity(
             and(
                 eq(agentDeliveryTable.serverId, agentActivityTable.serverId),
                 eq(agentDeliveryTable.agentId, agentActivityTable.agentId),
-                eq(agentDeliveryTable.activeRunId, agentActivityTable.runId)
+                eq(agentDeliveryTable.activeRunId, agentActivityTable.runId),
+                isNotNull(agentDeliveryTable.acceptedAt)
             )
         )
         .where(eq(agentActivityTable.serverId, serverId))
-        .orderBy(desc(agentActivityTable.position));
-    const seen = new Set<string>();
-    const activities = rows
-        .map(({ activity }) => activity)
-        .filter((activity) => {
-            const key = `${activity.agentId}:${activity.runId}`;
-            if (seen.has(key)) {
-                return false;
-            }
-            seen.add(key);
-            return true;
-        })
-        .map(toAgentActivityEvent);
+        // `runOrder` is Agent-local for history pagination. The first recorded
+        // event is the only cross-Agent turn-start ordering fact available to
+        // this projection, so preserve each run's first-seen position while
+        // replacing it with the latest semantic event.
+        .orderBy(asc(agentActivityTable.recordedAt), asc(agentActivityTable.id));
+    const latestByRun = new Map<string, typeof agentActivityTable.$inferSelect>();
+    for (const { activity } of rows) {
+        const key = `${activity.agentId}:${activity.runId}`;
+        const latest = latestByRun.get(key);
+        if (!latest || activity.position > latest.position) {
+            latestByRun.set(key, activity);
+        }
+    }
+    const activities = [...latestByRun.values()].map(toAgentActivityEvent);
     return { activities };
 }
 

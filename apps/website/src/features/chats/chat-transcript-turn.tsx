@@ -1,6 +1,7 @@
 import { Chip, Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
+import type { HostedAgent } from '@tavern/api';
 import { splitVisualFences } from '@tavern/api/widgets/visual';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
@@ -15,6 +16,7 @@ import { openAgentProfilePane } from '../../hooks/pane/use-agent-profile-pane.ts
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { formatShortTime } from '../../lib/format.ts';
 import { cn } from '../../lib/utils.ts';
+import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentHoverCard } from './agent-hover-card.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
@@ -275,14 +277,33 @@ function getActiveReplyText(items: TranscriptItem[]) {
 // Agents and people share one identity mark: the uploaded square image when
 // there is one, initials otherwise.
 function TurnAvatar({
+    agentId,
+    availability,
     avatarUrl,
     deleted = false,
     name,
 }: {
+    agentId?: null | string;
+    availability?: HostedAgent['availability'];
     avatarUrl?: string | null;
     deleted?: boolean;
     name: string;
 }) {
+    if (agentId && !deleted) {
+        return (
+            <AgentAvatar
+                agent={{
+                    availability,
+                    avatarUrl: avatarUrl ?? null,
+                    displayName: name,
+                    id: agentId,
+                }}
+                className={turnAvatarOffsetClassName}
+                size={32}
+            />
+        );
+    }
+
     return (
         <ChatMessage.Avatar
             alt={`${name} avatar`}
@@ -542,7 +563,12 @@ function AgentTurnPresentation({
                     // height and re-centering the avatar it wraps.
                     triggerClassName="shrink-0 self-start"
                 >
-                    <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
+                    <TurnAvatar
+                        agentId={actorId}
+                        availability={actorProfile?.availability}
+                        avatarUrl={actorProfile?.avatarUrl}
+                        name={displayName}
+                    />
                 </AgentHoverCard>
             ) : chatId && actorId && profilePaneChatId && !actorProfile?.deleted ? (
                 <button
@@ -551,10 +577,17 @@ function AgentTurnPresentation({
                     onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
                     type="button"
                 >
-                    <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
+                    <TurnAvatar
+                        agentId={actorId}
+                        availability={actorProfile?.availability}
+                        avatarUrl={actorProfile?.avatarUrl}
+                        name={displayName}
+                    />
                 </button>
             ) : (
                 <TurnAvatar
+                    agentId={actorId}
+                    availability={actorProfile?.availability}
                     avatarUrl={actorProfile?.avatarUrl}
                     deleted={actorProfile?.deleted}
                     name={displayName}

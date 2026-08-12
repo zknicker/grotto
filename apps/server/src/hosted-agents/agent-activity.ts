@@ -163,11 +163,19 @@ export async function recordComputerAgentActivityWithStatus(
             return null;
         }
         const [delivery] = await tx
-            .select({ activeRunComputerId: agentDeliveryTable.activeRunComputerId })
+            .select({
+                acceptedAt: agentDeliveryTable.acceptedAt,
+                activeRunComputerId: agentDeliveryTable.activeRunComputerId,
+                activeRunId: agentDeliveryTable.activeRunId,
+            })
             .from(agentDeliveryTable)
             .where(eq(agentDeliveryTable.agentId, input.frame.agentId))
             .limit(1);
-        if (delivery?.activeRunComputerId !== input.computerId) {
+        if (
+            delivery?.activeRunComputerId !== input.computerId ||
+            delivery.activeRunId !== input.frame.runId ||
+            delivery.acceptedAt === null
+        ) {
             return null;
         }
         const [existing] = await tx

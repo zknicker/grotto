@@ -31,6 +31,8 @@ import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pa
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { ChatEventListeners } from '../../hooks/servers/chat-events/chat-event-listeners.tsx';
+import { SidebarAgentActivityStrip } from '../../features/shell/sidebar-agent-activity-strip.tsx';
+import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
@@ -139,64 +141,79 @@ export function ServerLayout() {
                             onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
                             servers={serverChoices}
                         />
-                        <AppLayout
-                            className="h-full min-h-0 min-w-0 flex-1"
-                            navigate={navigate}
-                            scrollMode="content"
-                            sidebar={
-                                <ShellSidebar activePage={activeSidebarPage}>
-                                    <ShellSidebarPage ariaLabel="Server" value="server">
-                                        <AppSidebar
-                                            currentServer={server.data}
-                                            selectedChatId={selectedChatId}
-                                        />
-                                    </ShellSidebarPage>
-                                    <ShellSidebarPage ariaLabel="Tasks" value="tasks">
-                                        <TaskSidebar
-                                            canManage={canOperate}
-                                            isActive={activeSidebarPage === 'tasks'}
+                        <AgentLifecycleProvider serverId={server.data.id}>
+                            <AgentActivityProvider serverId={server.data.id}>
+                                <AppLayout
+                                    className="h-full min-h-0 min-w-0 flex-1"
+                                    navigate={navigate}
+                                    scrollMode="content"
+                                    sidebar={
+                                        <ShellSidebar
+                                            activePage={activeSidebarPage}
+                                            footer={
+                                                showSidebar ? (
+                                                    <SidebarAgentActivityStrip
+                                                        serverId={server.data.id}
+                                                        slug={slug}
+                                                    />
+                                                ) : null
+                                            }
+                                        >
+                                            <ShellSidebarPage ariaLabel="Server" value="server">
+                                                <AppSidebar
+                                                    currentServer={server.data}
+                                                    selectedChatId={selectedChatId}
+                                                />
+                                            </ShellSidebarPage>
+                                            <ShellSidebarPage ariaLabel="Tasks" value="tasks">
+                                                <TaskSidebar
+                                                    canManage={canOperate}
+                                                    isActive={activeSidebarPage === 'tasks'}
+                                                    serverId={server.data.id}
+                                                    slug={slug}
+                                                />
+                                            </ShellSidebarPage>
+                                            <ShellSidebarPage ariaLabel="Members" value="members">
+                                                <MembersSidebar
+                                                    isActive={activeSidebarPage === 'members'}
+                                                    server={server.data}
+                                                />
+                                            </ShellSidebarPage>
+                                            {canOperate ? (
+                                                <ShellSidebarPage
+                                                    ariaLabel="Computers"
+                                                    value="computers"
+                                                >
+                                                    <ComputersSidebar
+                                                        isActive={activeSidebarPage === 'computers'}
+                                                        serverId={server.data.id}
+                                                        slug={slug}
+                                                    />
+                                                </ShellSidebarPage>
+                                            ) : null}
+                                            <ShellSidebarPage ariaLabel="Settings" value="settings">
+                                                <SettingsSidebar
+                                                    currentSection={settingsSection}
+                                                    slug={slug}
+                                                />
+                                            </ShellSidebarPage>
+                                        </ShellSidebar>
+                                    }
+                                    sidebarCollapsible="offcanvas"
+                                    sidebarOpen={showSidebar}
+                                    toggleShortcut={false}
+                                >
+                                    <ShellFrame>
+                                        <ShellTopbar />
+                                        <ConnectionNotice
+                                            serverError={Boolean(server.error)}
                                             serverId={server.data.id}
-                                            slug={slug}
                                         />
-                                    </ShellSidebarPage>
-                                    <ShellSidebarPage ariaLabel="Members" value="members">
-                                        <MembersSidebar
-                                            isActive={activeSidebarPage === 'members'}
-                                            server={server.data}
-                                        />
-                                    </ShellSidebarPage>
-                                    {canOperate ? (
-                                        <ShellSidebarPage ariaLabel="Computers" value="computers">
-                                            <ComputersSidebar
-                                                isActive={activeSidebarPage === 'computers'}
-                                                serverId={server.data.id}
-                                                slug={slug}
-                                            />
-                                        </ShellSidebarPage>
-                                    ) : null}
-                                    <ShellSidebarPage ariaLabel="Settings" value="settings">
-                                        <SettingsSidebar
-                                            currentSection={settingsSection}
-                                            slug={slug}
-                                        />
-                                    </ShellSidebarPage>
-                                </ShellSidebar>
-                            }
-                            sidebarCollapsible="offcanvas"
-                            sidebarOpen={showSidebar}
-                            toggleShortcut={false}
-                        >
-                            <ShellFrame>
-                                <ShellTopbar />
-                                <ConnectionNotice
-                                    serverError={Boolean(server.error)}
-                                    serverId={server.data.id}
-                                />
-                                <AgentLifecycleProvider serverId={server.data.id}>
-                                    <Outlet context={{ server: server.data }} />
-                                </AgentLifecycleProvider>
-                            </ShellFrame>
-                        </AppLayout>
+                                        <Outlet context={{ server: server.data }} />
+                                    </ShellFrame>
+                                </AppLayout>
+                            </AgentActivityProvider>
+                        </AgentLifecycleProvider>
                     </div>
                     <Modal isOpen={managingServers} onOpenChange={setManagingServers}>
                         <Modal.Backdrop isDismissable>

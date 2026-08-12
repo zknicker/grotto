@@ -12,6 +12,7 @@ import { messageSelection, toAgentMessages } from '../agent-api/message-view.ts'
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import { appendServerAgentActivity } from '../hosted-agents/agent-activity.ts';
+import { readHostedActiveAgentActivity } from '../hosted-agents/agent-activity-history.ts';
 import type { HostedAgentConfigurationRotation } from '../hosted-agents/configure-agent.ts';
 import { recordAgentTurnSummary } from '../hosted-agents/record-agent-turn.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -382,6 +383,14 @@ export class AgentDelivery {
             await store.markAccepted(tx, input);
             const state = await store.readDeliveryState(tx, input.agentId);
             return {
+                acceptedActivity:
+                    state?.activeRunId === input.runId
+                        ? ((await readHostedActiveAgentActivity(tx, serverId)).activities.find(
+                              (activity) =>
+                                  activity.agentId === input.agentId &&
+                                  activity.runId === input.runId
+                          ) ?? null)
+                        : null,
                 plan:
                     state?.activeRunId === input.runId
                         ? await this.planDispatch(tx, input.agentId)
@@ -390,6 +399,9 @@ export class AgentDelivery {
             };
         });
         const state = stateAndPlan?.state;
+        if (stateAndPlan?.acceptedActivity) {
+            publishCommittedAgentActivity(stateAndPlan.acceptedActivity);
+        }
         if (state?.activeRunId === input.runId && state.activeRunChatId) {
             publishAgentLifecycle({
                 agentId: input.agentId,
@@ -952,6 +964,9 @@ export class AgentDelivery {
             return;
         }
         for (const activity of plan.activities ?? []) {
+            if (activity.category === 'starting_work' && activity.phase === 'started') {
+                continue;
+            }
             publishCommittedAgentActivity(activity);
         }
         if (plan.suppressSend) {

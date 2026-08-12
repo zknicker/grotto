@@ -196,6 +196,7 @@ export function ChatView({
             readOnly={readOnly}
             summary={threadSummary}
             takeover={threadTakeover}
+            turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
         />
     ) : null;
     const sidePanel = (
@@ -313,6 +314,7 @@ export function ChatView({
                         scrollContentRef={scrollContentRef}
                         serverId={chat.serverId}
                         threads={messages.data?.threads}
+                        turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
                     />
                 )}
             />

@@ -39,6 +39,7 @@ interface ChatTranscriptInput {
     onStartDm?: (userId: string) => void;
     serverId: string;
     threads?: readonly HostedThreadSummary[];
+    turnDetailsAccess?: 'journal' | 'summary';
 }
 
 export function ChatTranscript({
@@ -90,6 +91,7 @@ export function useChatTranscript({
     onStartDm,
     serverId,
     threads = emptyChatThreads,
+    turnDetailsAccess = 'summary',
 }: ChatTranscriptInput) {
     const messageList = messages ?? emptyChatMessages;
     const agents = useAgents(serverId);
@@ -174,6 +176,10 @@ export function useChatTranscript({
                 defaultOpenWorkGroups: false,
                 disableAgentHoverCard: true,
                 flashMessageId: null,
+                hostedTurnDetails: {
+                    access: turnDetailsAccess,
+                    serverId,
+                },
                 hiddenCount: 0,
                 onActorClick: onStartDm
                     ? (actor) => {
@@ -226,6 +232,8 @@ export function useChatTranscript({
             onToggleReaction,
             renderMessageAttachments,
             resolveActorProfile,
+            serverId,
+            turnDetailsAccess,
         ]
     );
 

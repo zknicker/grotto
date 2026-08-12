@@ -60,6 +60,7 @@ import {
 import type { SessionNoticeRow } from './chat-transcript-row-model.ts';
 import { RuntimeNoticeEntry, SessionNoticeAction } from './chat-transcript-system-step.tsx';
 import { ChatTurnDrawer } from './chat-turn-drawer.tsx';
+import { HostedTurnDetailsDrawer } from './hosted-turn-details-drawer.tsx';
 import { AgentWidget } from './legacy-widget-row.tsx';
 import { MessageReactionActions } from './thread/message-reactions.tsx';
 import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
@@ -487,6 +488,7 @@ function AgentTurnPresentation({
         canRequestMention,
         composerId,
         disableAgentHoverCard,
+        hostedTurnDetails,
         onToggleReaction,
         profilePaneChatId,
         repliedRunIds,
@@ -497,6 +499,7 @@ function AgentTurnPresentation({
     const turnStopped =
         hasStoppedTurn(items, activeReply?.runId) || (!activeReply && hasAnyStoppedTurn(items));
     const turnActive = isActiveTurn(items, activeReply, lastMessage);
+    const turnRunId = items.map(getItemRunId).find((value) => value !== null) ?? null;
     const copyValue = lastMessage?.content ?? getActiveReplyText(items);
     const [inspectOpen, setInspectOpen] = React.useState(false);
     const [inspectMounted, setInspectMounted] = React.useState(false);
@@ -628,16 +631,29 @@ function AgentTurnPresentation({
             </ChatMessage.Body>
             {/* Mounted on first use so long transcripts don't pay a drawer per turn. */}
             {inspectMounted ? (
-                <ChatTurnDrawer
-                    agentAvatarUrl={actorProfile?.avatarUrl ?? null}
-                    agentName={displayName}
-                    chatId={chatId}
-                    embeddedEvidence={turnEvidenceSource === 'embedded'}
-                    entry={entry}
-                    onOpenChange={setInspectOpen}
-                    open={inspectOpen}
-                    turnActive={turnActive}
-                />
+                hostedTurnDetails ? (
+                    <HostedTurnDetailsDrawer
+                        access={hostedTurnDetails.access}
+                        agentAvatarUrl={actorProfile?.avatarUrl ?? null}
+                        agentId={actorId}
+                        agentName={displayName}
+                        onOpenChange={setInspectOpen}
+                        open={inspectOpen}
+                        runId={turnRunId}
+                        serverId={hostedTurnDetails.serverId}
+                    />
+                ) : (
+                    <ChatTurnDrawer
+                        agentAvatarUrl={actorProfile?.avatarUrl ?? null}
+                        agentName={displayName}
+                        chatId={chatId}
+                        embeddedEvidence={turnEvidenceSource === 'embedded'}
+                        entry={entry}
+                        onOpenChange={setInspectOpen}
+                        open={inspectOpen}
+                        turnActive={turnActive}
+                    />
+                )
             ) : null}
         </ChatMessage.Assistant>
     );

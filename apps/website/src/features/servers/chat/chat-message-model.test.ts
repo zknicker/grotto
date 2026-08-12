@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { HostedChatMessage } from '@tavern/api';
+import { buildTranscriptEntries, getItemRunId } from '../../chats/chat-transcript-model.ts';
 import { mergeTaskAnchor, projectChatMessages } from './chat-message-model.ts';
 
 test('keeps an older task anchor available when the latest transcript page omits it', () => {
@@ -60,6 +61,16 @@ test('projects hosted messages into the preserved transcript contract', () => {
         kind: 'agent',
     });
     expect(agentRow?.kind === 'message' ? agentRow.runId : null).toBe('run_agent');
+
+    const agentEntry = buildTranscriptEntries({ rows }).find(
+        (entry) => entry.kind === 'turn' && entry.participant === 'agent'
+    );
+    expect(agentEntry?.kind === 'turn' ? agentEntry.id : null).toBe('turn:run_agent');
+    expect(
+        agentEntry?.kind === 'turn' && agentEntry.items[0]
+            ? getItemRunId(agentEntry.items[0])
+            : null
+    ).toBe('run_agent');
 });
 
 test('projects a hosted system receipt as a quiet Grotto timeline row', () => {
@@ -80,6 +91,30 @@ test('projects a hosted system receipt as a quiet Grotto timeline row', () => {
             senderType: 'system',
         },
     });
+});
+
+test('preserves one global Agent run identity when messages come from multiple Chats', () => {
+    const runId = 'run_global';
+    const first: HostedChatMessage = {
+        ...message('message_first', 1),
+        author: { agentId: 'agent_one', kind: 'agent' },
+        chatId: 'chat_first',
+        runId,
+    };
+    const second: HostedChatMessage = {
+        ...message('message_second', 2),
+        author: { agentId: 'agent_one', kind: 'agent' },
+        chatId: 'chat_second',
+        runId,
+    };
+
+    const rows = projectChatMessages([first, second], []);
+
+    expect(
+        rows
+            .filter((row) => row.kind === 'message')
+            .map((row) => (row.kind === 'message' ? row.runId : null))
+    ).toEqual([runId, runId]);
 });
 
 function message(id: string, sequence: number): HostedChatMessage {

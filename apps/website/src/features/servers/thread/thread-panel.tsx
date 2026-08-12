@@ -31,6 +31,7 @@ export function ThreadPanel({
     readOnly,
     summary,
     takeover,
+    turnDetailsAccess,
 }: {
     active: boolean;
     anchor: HostedChatMessage;
@@ -43,6 +44,7 @@ export function ThreadPanel({
     readOnly: boolean;
     summary: HostedThreadSummary | null;
     takeover: boolean;
+    turnDetailsAccess: 'journal' | 'summary';
 }) {
     return (
         <ChatSidePaneShell
@@ -65,6 +67,7 @@ export function ThreadPanel({
                     readOnly={readOnly}
                     summary={summary}
                     takeover={takeover}
+                    turnDetailsAccess={turnDetailsAccess}
                     width={width}
                 />
             )}
@@ -83,6 +86,7 @@ function ThreadContent({
     readOnly,
     summary,
     takeover,
+    turnDetailsAccess,
     width,
 }: {
     active: boolean;
@@ -95,6 +99,7 @@ function ThreadContent({
     readOnly: boolean;
     summary: HostedThreadSummary | null;
     takeover: boolean;
+    turnDetailsAccess: 'journal' | 'summary';
     width: number | null;
 }) {
     const [createdThreadChatId, setCreatedThreadChatId] = React.useState<string | null>(null);
@@ -120,6 +125,7 @@ function ThreadContent({
         messages: threadMessages,
         onOpenArtifact,
         serverId: chat.serverId,
+        turnDetailsAccess,
     });
     const anchorEntries = React.useMemo(
         () => buildTranscriptEntries({ rows: rows.slice(0, 1) }),

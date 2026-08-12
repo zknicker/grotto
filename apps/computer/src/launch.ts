@@ -222,6 +222,7 @@ export async function runAgentLaunch(
             phase: activity.phase,
             producerSequence: ++activitySequence,
             runId: command.runId,
+            ...(activity.toolRef ? { toolRef: activity.toolRef } : {}),
             type: 'agent-activity' as const,
         };
         try {
@@ -231,6 +232,7 @@ export async function runAgentLaunch(
             // socket must not turn a model turn into a delivery failure.
         }
     };
+    proxy.setActivitySink(sendActivity);
     const tokenFile = join(dirs.runtime, 'proxy-token');
     const binDir = join(dirs.runtime, 'bin');
     await mkdir(binDir, { mode: 0o700, recursive: true });
@@ -266,7 +268,6 @@ export async function runAgentLaunch(
     let result: {
         failureKind?: RuntimeFailureKind;
         status: 'completed' | 'failed';
-        toolNames?: string[];
     } = {
         status: 'failed',
     };
@@ -299,6 +300,7 @@ export async function runAgentLaunch(
     } finally {
         await revokeRunner(options, runner.runnerId).catch(() => undefined);
         proxy.clearRunnerToken();
+        proxy.setActivitySink(undefined);
     }
 
     return reportTurn(options, {
@@ -307,7 +309,7 @@ export async function runAgentLaunch(
         ...result,
         summary:
             result.status === 'completed'
-                ? completedTurnSummary(proxy.sendCount(), result.toolNames ?? [])
+                ? completedTurnSummary(proxy.sendCount())
                 : `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`,
         visibleMessages: await readRunVisibleMessages(
             {
@@ -320,18 +322,8 @@ export async function runAgentLaunch(
     });
 }
 
-function completedTurnSummary(messageCount: number, toolNames: string[]) {
-    const tools = toolNames.map(formatToolName).filter(Boolean);
-    const evidence = tools.length > 0 ? ` Tools: ${tools.join(', ')}.` : '';
-    return `Sent ${messageCount} message(s).${evidence}`;
-}
-
-function formatToolName(toolName: string) {
-    if (toolName.startsWith('mcp__')) {
-        const upstreamName = toolName.split('__').at(-1);
-        return upstreamName ? `MCP ${upstreamName.slice(0, 80)}` : 'MCP';
-    }
-    return toolName.replaceAll('_', ' ').slice(0, 80);
+function completedTurnSummary(messageCount: number) {
+    return `Sent ${messageCount} message(s).`;
 }
 
 async function ensureNativeSkillLinks(homeDir: string, skillsDir: string) {
@@ -647,7 +639,6 @@ async function runRealRuntime(
 ): Promise<{
     failureKind?: RuntimeFailureKind;
     status: 'completed' | 'failed';
-    toolNames?: string[];
 }> {
     const { command } = input;
     try {
@@ -667,6 +658,7 @@ async function runRealRuntime(
             onStoredNoticeDelivered: input.onStoredNoticeDelivered,
             onActivity: input.onActivity,
             registerNoticeSink: input.registerNoticeSink,
+            runId: command.runId,
             runtimeId: command.runtimeId,
             sessionGeneration: command.sessionGeneration,
             signal: input.signal,
@@ -677,7 +669,7 @@ async function runRealRuntime(
             tools: input.tools,
         });
         await writeTrace(input, 'Harness turn completed.\n');
-        return { status: 'completed', toolNames: turn.toolNames };
+        return { status: turn.aborted ? 'failed' : 'completed' };
     } catch (error) {
         await writeTrace(input, `Harness turn failed: ${messageOf(error)}\n`);
         return {

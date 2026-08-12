@@ -17,4 +17,6 @@ export type ComputerAgentActivityPhase = 'completed' | 'failed' | 'started';
 export interface ComputerAgentActivityUpdate {
     category: ComputerAgentActivityCategory;
     phase: ComputerAgentActivityPhase;
+    /** Only a canonical Grotto-owned identity may cross the Computer boundary. */
+    toolRef?: string;
 }

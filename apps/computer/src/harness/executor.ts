@@ -15,7 +15,15 @@ import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import type { HostedAgentInboxItem } from '../launch.ts';
+import {
+    createComputerActivityProjector,
+    createComputerActivityRegistry,
+} from './activity-projector.ts';
 import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
+import {
+    type ComputerExecutionJournal,
+    createComputerExecutionJournal,
+} from './execution-journal.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { projectHostedMessageForAgent } from './rich-reference-projection.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
@@ -60,6 +68,7 @@ export interface HarnessTurnInput {
     onActivity?: (activity: ComputerAgentActivityUpdate) => void;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     registerNoticeSink?: NoticeSinkRegistrar;
+    runId: string;
     runtimeId: string;
     sessionGeneration: number;
     signal?: AbortSignal;
@@ -75,8 +84,8 @@ export interface HarnessTurnInput {
 export type NoticeSinkRegistrar = (sink: (notice: string) => Promise<boolean>) => () => void;
 
 export interface HarnessTurnResult {
+    aborted: boolean;
     contextTokens: number | null;
-    toolNames: string[];
 }
 
 /** Resume was rejected; the caller rotates the generation and cold-starts once. */
@@ -91,25 +100,36 @@ export class AgentSessionResumeRejectedError extends Error {
 }
 
 export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTurnResult> {
-    const stored = await readAgentSessionState(input.agentRoot);
-    const session = resolveTurnSession(stored, {
-        generation: input.sessionGeneration,
-        modelId: input.modelId,
-        runtimeId: input.runtimeId,
+    const journal = await createComputerExecutionJournal({
+        agentRoot: input.agentRoot,
+        runId: input.runId,
     });
-    const restartRequested = await isSessionRestartRequested(input.agentRoot);
-    const refreshInstructions = session.resumeState !== null && restartRequested;
-    const result = await executeHarnessTurn(input, session, refreshInstructions);
-    if (restartRequested) {
-        await clearSessionRestartRequest(input.agentRoot);
+    try {
+        const stored = await readAgentSessionState(input.agentRoot);
+        const session = resolveTurnSession(stored, {
+            generation: input.sessionGeneration,
+            modelId: input.modelId,
+            runtimeId: input.runtimeId,
+        });
+        const restartRequested = await isSessionRestartRequested(input.agentRoot);
+        const refreshInstructions = session.resumeState !== null && restartRequested;
+        const result = await executeHarnessTurn(input, session, refreshInstructions, journal);
+        if (restartRequested) {
+            await clearSessionRestartRequest(input.agentRoot);
+        }
+        await journal.finish(result.aborted ? 'interrupted' : 'completed');
+        return result;
+    } catch (error) {
+        await journal.finish(input.signal?.aborted ? 'interrupted' : 'failed', error);
+        throw error;
     }
-    return result;
 }
 
 async function executeHarnessTurn(
     input: HarnessTurnInput,
     session: AgentSessionState,
-    refreshInstructions: boolean
+    refreshInstructions: boolean,
+    journal: ComputerExecutionJournal
 ): Promise<HarnessTurnResult> {
     const skills = await readAgentSkills(input.skillsDir);
     // The Computer composes the managed Grotto operating contract itself; the
@@ -218,16 +238,37 @@ async function executeHarnessTurn(
             () => storedNoticeReady.resolve()
         );
         let observation: HarnessTurnResult;
+        const activityRegistry = createComputerActivityRegistry();
+        activityRegistry.registerGrottoHostTool({
+            category: 'browsing',
+            name: 'browser',
+            toolRef: 'browser',
+        });
+        activityRegistry.registerGrottoHostTool({
+            category: 'browsing',
+            name: 'web_fetch',
+            toolRef: 'web-fetch',
+        });
+        const projector = createComputerActivityProjector({
+            journal,
+            onActivity: input.onActivity,
+            registry: activityRegistry,
+            runtimeId: input.runtimeId,
+        });
         input.onActivity?.({ category: 'thinking', phase: 'started' });
         try {
             await storedNoticeReady.promise;
             observation = await observeTurnStream(
                 turn.fullStream,
                 noticeCoordinator.flush,
-                input.onActivity
+                projector
             );
-            input.onActivity?.({ category: 'thinking', phase: 'completed' });
+            input.onActivity?.({
+                category: 'thinking',
+                phase: observation.aborted ? 'failed' : 'completed',
+            });
         } catch (error) {
+            await projector.finish(input.signal?.aborted ? 'interrupted' : 'failed', error);
             input.onActivity?.({ category: 'thinking', phase: 'failed' });
             throw error;
         } finally {
@@ -404,48 +445,59 @@ function pendingNoticePath(agentRoot: string) {
 async function observeTurnStream(
     stream: AsyncIterable<unknown>,
     onToolBoundary?: () => Promise<void>,
-    onActivity?: (activity: ComputerAgentActivityUpdate) => void
+    projector?: ReturnType<typeof createComputerActivityProjector>
 ): Promise<HarnessTurnResult> {
     let contextTokens: number | null = null;
     let streamError: unknown;
     let aborted = false;
-    const toolNames = new Set<string>();
-    for await (const part of stream) {
-        if (!isRecord(part) || typeof part.type !== 'string') {
-            continue;
+    try {
+        for await (const part of stream) {
+            if (!isRecord(part) || typeof part.type !== 'string') {
+                continue;
+            }
+            switch (part.type) {
+                case 'tool-call':
+                    await projector?.observe(part);
+                    break;
+                case 'tool-result':
+                    await projector?.observe(part);
+                    if (part.preliminary !== true) {
+                        await onToolBoundary?.();
+                    }
+                    break;
+                case 'file-change':
+                    await projector?.observe(part);
+                    break;
+                case 'finish-step':
+                    contextTokens = usageContextTokens(part.usage) ?? contextTokens;
+                    break;
+                case 'finish':
+                    contextTokens ??= usageContextTokens(part.totalUsage);
+                    break;
+                case 'error':
+                    streamError ??=
+                        (part as { error?: unknown }).error ?? new Error('Harness stream failed.');
+                    break;
+                case 'abort':
+                    aborted = true;
+                    break;
+                default:
+                    break;
+            }
         }
-        switch (part.type) {
-            case 'tool-call':
-                onActivity?.({ category: 'using_tool', phase: 'started' });
-                if (typeof part.toolName === 'string' && toolNames.size < 6) {
-                    toolNames.add(part.toolName.slice(0, 128));
-                }
-                break;
-            case 'tool-result':
-                await onToolBoundary?.();
-                onActivity?.({ category: 'using_tool', phase: 'completed' });
-                break;
-            case 'finish-step':
-                contextTokens = usageContextTokens(part.usage) ?? contextTokens;
-                break;
-            case 'finish':
-                contextTokens ??= usageContextTokens(part.totalUsage);
-                break;
-            case 'error':
-                streamError ??=
-                    (part as { error?: unknown }).error ?? new Error('Harness stream failed.');
-                break;
-            case 'abort':
-                aborted = true;
-                break;
-            default:
-                break;
-        }
+    } catch (error) {
+        streamError ??= error;
     }
-    if (streamError && !aborted) {
+    if (aborted) {
+        await projector?.finish('interrupted', streamError);
+        return { aborted: true, contextTokens };
+    }
+    if (streamError) {
+        await projector?.finish('failed', streamError);
         throw streamError instanceof Error ? streamError : new Error(String(streamError));
     }
-    return { contextTokens, toolNames: [...toolNames] };
+    await projector?.finish('completed');
+    return { aborted: false, contextTokens };
 }
 
 // The construction seam. Tests inject a fake harness Agent to exercise the

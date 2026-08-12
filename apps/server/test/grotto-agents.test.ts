@@ -126,6 +126,29 @@ test('provisions an ordinary Agent with its real execution settings and Owner DM
     );
 });
 
+test('restricts one-run execution detail to Server Owners and Admins', async () => {
+    const [agent] = await owner.trpc.agent.list.query({ serverId });
+    if (!agent) {
+        throw new Error('Expected the provisioned Agent.');
+    }
+
+    await expect(
+        member.trpc.agent.executionJournal.query({
+            agentId: agent.id,
+            runId: 'run_detail',
+            serverId,
+        })
+    ).rejects.toThrow(/Owner or Admin/i);
+
+    await expect(
+        owner.trpc.agent.executionJournal.query({
+            agentId: agent.id,
+            runId: 'run_detail',
+            serverId,
+        })
+    ).resolves.toMatchObject({ reason: 'offline', status: 'unavailable' });
+});
+
 test('fails closed on a runtime or model the assigned Computer never reported', async () => {
     await expect(
         owner.trpc.agent.create.mutate({

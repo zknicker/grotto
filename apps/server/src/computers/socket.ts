@@ -7,6 +7,7 @@ import {
     hostedAgentActivityFrameSchema,
     hostedAgentDeliveryAckSchema,
     hostedAgentEffectiveStateSchema,
+    hostedAgentExecutionJournalResultSchema,
     hostedAgentNoticeAckSchema,
     hostedAgentSkillFileResultSchema,
     hostedAgentSkillImportResultSchema,
@@ -258,6 +259,12 @@ async function ingestReport(
     const workspace = hostedAgentWorkspaceResultSchema.safeParse(frame);
     if (workspace.success) {
         connections.acceptWorkspaceResult(computerId, workspace.data);
+        return;
+    }
+
+    const executionJournal = hostedAgentExecutionJournalResultSchema.safeParse(frame);
+    if (executionJournal.success) {
+        connections.acceptExecutionJournalResult(computerId, executionJournal.data);
         return;
     }
 

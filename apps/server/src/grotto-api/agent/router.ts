@@ -7,6 +7,7 @@ import { configureAgentProcedure } from './configure.ts';
 import { createAgentProcedure } from './create.ts';
 import { deleteAgentProcedure } from './delete.ts';
 import { agentDeliveryStateProcedure } from './delivery-state.ts';
+import { agentExecutionJournalProcedure } from './execution-journal.ts';
 import { getAgentProcedure } from './get.ts';
 import { importAgentSkillProcedure } from './import-skill.ts';
 import { listAgentsProcedure } from './list.ts';
@@ -34,6 +35,7 @@ export const agentRouter = createRouter({
     create: createAgentProcedure,
     delete: deleteAgentProcedure,
     deliveryState: agentDeliveryStateProcedure,
+    executionJournal: agentExecutionJournalProcedure,
     get: getAgentProcedure,
     importSkill: importAgentSkillProcedure,
     skillFile: agentSkillFileProcedure,

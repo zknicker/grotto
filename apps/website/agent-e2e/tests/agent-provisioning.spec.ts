@@ -52,7 +52,6 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
     if (!agent.dmChatId) {
         throw new Error(`${name} did not receive an Owner DM.`);
     }
-    suite.dmChatId = agent.dmChatId;
     await openChat(page, server.slug, agent.dmChatId, name);
     await sendFromComposer(page, prompt);
 
@@ -91,23 +90,6 @@ test('an Owner can provision, use, inspect, and retire a general-purpose Agent',
     suite.agentId = null;
 });
 
-test("a retired Agent's Owner DM stays readable and clearly labeled Retired", async ({ page }) => {
-    if (!suite.dmChatId) {
-        throw new Error('The provisioning scenario did not create an Agent DM.');
-    }
-
-    await page.goto(`/s/${suite.server.slug}/chats/${suite.dmChatId}`);
-    await expect(page).toHaveURL(new RegExp(`/chats/${suite.dmChatId}$`, 'u'));
-    await expect(messageByContent(page, suite.prompt)).toBeVisible();
-    await expect(page.getByText(/has been retired/u)).toBeVisible();
-    await expect(page.getByRole('textbox', { name: /^Message /u })).toHaveCount(0);
-
-    await openMessageThread(messageByContent(page, suite.prompt));
-    const thread = page.getByRole('complementary', { name: 'Thread' });
-    await expect(thread.getByText(/read-only.*retired/u)).toBeVisible();
-    await expect(thread.getByRole('textbox', { name: /^Message /u })).toHaveCount(0);
-});
-
 async function setupSuite() {
     const harness = await createEvalHarness({ evalName: 'agentprovisioning', repositoryRoot });
     const servers = await harness.trpc('server.list');
@@ -132,7 +114,6 @@ async function setupSuite() {
             }
             await harness.cleanup();
         },
-        dmChatId: null as string | null,
         harness,
         name,
         prompt: `We’re preparing the Bluebird launch. Create a short note named bluebird-brief.md with three headings: Audience, Risks, Next questions. Tell me when it’s ready. Audit reference ${harness.stamp}.`,

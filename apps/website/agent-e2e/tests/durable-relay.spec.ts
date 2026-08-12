@@ -45,7 +45,7 @@ test('a fresh Agent continues a sourced artifact handoff from its durable Thread
         'Use only these supplied public evidence pages; do not search beyond them: https://docs.stripe.com/billing/subscriptions/trials https://developer.paddle.com/build/subscriptions/offer-free-trials https://www.chargebee.com/docs/2.0/trial_period.html',
         'Post a decision under 300 words with an explicit recommendation, all three source links, two risks, and a two-week validation plan.',
         'Generate one unpredictable token beginning DR- with at least 20 following letters or digits. Put it on a line beginning RELAY TOKEN: in both the Chat reply and artifact.',
-        `Save a self-contained HTML brief at ${artifactPath} and share it as a clickable artifact titled "${artifactTitle}".`,
+        `Save a self-contained HTML brief at ${artifactPath} and share it as a Grotto artifact card titled "${artifactTitle}". A workspace link alone does not satisfy the requested artifact card.`,
         'Keep the inline reply complete enough that another Agent can verify it from canonical Thread history. Do not delegate.',
     ].join('\n');
 
@@ -59,37 +59,13 @@ test('a fresh Agent continues a sourced artifact handoff from its durable Thread
 
     const threadChatId = await resolveThreadChatId(harness, channel, authorPrompt);
     trackChatId(threadChatId);
-    const authorMessages = await harness.pollMessages(
-        threadChatId,
-        (messages) =>
-            messages.some(
-                (message) =>
-                    message.author.kind === 'agent' &&
-                    message.author.agentId === author.id &&
-                    message.content.includes(artifactPath) &&
-                    message.content.includes('```artifact') &&
-                    /RELAY TOKEN:\s*DR-[A-Za-z0-9]{20,}/u.test(message.content) &&
-                    extractUrls(message.content).length >= 3
-            ),
-        300_000
-    );
-    const authorReply = authorMessages.find(
-        (message) =>
-            message.author.kind === 'agent' &&
-            message.author.agentId === author.id &&
-            message.content.includes(artifactPath) &&
-            message.content.includes('```artifact') &&
-            /RELAY TOKEN:\s*DR-[A-Za-z0-9]{20,}/u.test(message.content)
-    );
-    if (!authorReply) {
-        throw new Error('The first owner did not publish the durable decision artifact.');
-    }
-
-    const relayToken = authorReply.content.match(/RELAY TOKEN:\s*(DR-[A-Za-z0-9]{20,})/u)?.[1];
+    const authorMessages = await pollAuthorHandoff();
+    const authorOutput = authoredOutput(authorMessages, author.id);
+    const relayToken = authorOutput.match(/RELAY TOKEN:\s*(DR-[A-Za-z0-9]{20,})/u)?.[1];
     if (!relayToken) {
         throw new Error('The first owner did not publish a recoverable relay token.');
     }
-    const sourceUrls = extractUrls(authorReply.content);
+    const sourceUrls = extractUrls(authorOutput);
     expect(sourceUrls.length).toBeGreaterThanOrEqual(3);
 
     const artifact = (await harness.trpc('agent.workspaceFile', {
@@ -122,6 +98,7 @@ test('a fresh Agent continues a sourced artifact handoff from its durable Thread
     });
 
     await closeArtifacts(page);
+    await reopenThread(page);
     const successorPrompt = [
         `@${successor.handle} Take over from the durable work already in this Thread without asking me to restate the assignment.`,
         'Recover the previous owner’s relay token, artifact path, recommendation, and evidence from canonical Thread history.',
@@ -150,7 +127,12 @@ test('a fresh Agent continues a sourced artifact handoff from its durable Thread
         (message) =>
             message.author.kind === 'agent' &&
             message.author.agentId === successor.id &&
-            message.content.includes('GO/NO-GO GATES')
+            message.content.includes(relayToken) &&
+            message.content.includes(artifactPath) &&
+            message.content.includes('EVIDENCE AMENDMENT') &&
+            message.content.includes('GO/NO-GO GATES') &&
+            message.content.includes('NEXT ACTION') &&
+            sourceUrls.some((url) => message.content.includes(url))
     );
     if (!successorReply) {
         throw new Error('The successor did not deliver the durable continuation.');
@@ -163,6 +145,31 @@ test('a fresh Agent continues a sourced artifact handoff from its durable Thread
     await expect(thread).toContainText('EVIDENCE AMENDMENT');
     await expect(thread).toContainText('GO/NO-GO GATES');
     await expect(thread).toContainText('NEXT ACTION');
+
+    async function pollAuthorHandoff() {
+        try {
+            return await harness.pollMessages(
+                threadChatId,
+                (messages) => {
+                    const output = authoredOutput(messages, author.id);
+                    return (
+                        output.includes(artifactPath) &&
+                        output.includes('```artifact') &&
+                        /RELAY TOKEN:\s*DR-[A-Za-z0-9]{20,}/u.test(output) &&
+                        extractUrls(output).length >= 3
+                    );
+                },
+                300_000
+            );
+        } catch (error) {
+            const messages = await harness.readMessages(threadChatId);
+            const output = authoredOutput(messages, author.id);
+            throw new Error(
+                `Author handoff incomplete: path=${output.includes(artifactPath)} artifactCard=${output.includes('```artifact')} relayToken=${/RELAY TOKEN:\s*DR-[A-Za-z0-9]{20,}/u.test(output)} urls=${extractUrls(output).length}\n${output}`,
+                { cause: error }
+            );
+        }
+    }
 });
 
 async function openThread(page: Page, content: string) {
@@ -178,6 +185,14 @@ async function sendFromThread(page: Page, content: string) {
     await expect(messageByContent(thread, content)).toBeVisible();
 }
 
+async function reopenThread(page: Page) {
+    await page
+        .getByRole('button', { name: /\d+ replies?/u })
+        .last()
+        .click();
+    await expect(page.getByRole('complementary', { name: 'Thread' })).toBeVisible();
+}
+
 async function closeArtifacts(page: Page) {
     const artifacts = page.getByRole('complementary', { name: 'Artifacts' });
     await artifacts.getByRole('button', { name: 'Hide artifacts' }).click();
@@ -185,5 +200,21 @@ async function closeArtifacts(page: Page) {
 }
 
 function extractUrls(content: string) {
-    return [...new Set([...content.matchAll(/https?:\/\/[^\s)\]]+/gu)].map(([url]) => url))];
+    return [
+        ...new Set(
+            [...content.matchAll(/https?:\/\/[^\s)\]}>]+/gu)].map(([url]) =>
+                url.replace(/[.,;:!?]+$/u, '')
+            )
+        ),
+    ];
+}
+
+function authoredOutput(
+    messages: Array<{ author: { agentId?: string; kind: string }; content: string }>,
+    agentId: string
+) {
+    return messages
+        .filter((message) => message.author.kind === 'agent' && message.author.agentId === agentId)
+        .map((message) => message.content)
+        .join('\n\n');
 }

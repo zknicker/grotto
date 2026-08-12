@@ -6,10 +6,12 @@ import { createAgentChannelFixture } from '../support/agent-channel-fixture.ts';
 import {
     expectVisibleReply,
     messageByContent,
+    messageTimeline,
     openChat,
     openMessageThread,
     sendFromComposer,
 } from '../support/live-agent-app.ts';
+import { pollAgentReply } from '../support/task-replies.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -34,23 +36,22 @@ test('one Agent carries a fact from its DM into a Channel', async ({ page }) => 
         `For this launch exercise, remember that the deployment codename is ${codename}. Confirm briefly.`
     );
     await expectVisibleReply(page, codename);
+    await harness.waitForAgentQuiet(agent.id, 2000, 120_000);
 
     const channelHead = await harness.readHead(all);
+    const prompt = `@${agent.handle} What deployment codename did I just give you in DM? Answer inline, no task.`;
     await openChat(page, server.slug, all, channelName);
-    await sendFromComposer(
-        page,
-        `@${agent.handle} Without tools or files, what deployment codename did I just give you in DM? Reply only with it.`
-    );
+    await sendFromComposer(page, prompt);
 
-    const messages = await harness.pollMessages(
+    const result = await pollAgentReply(
+        harness,
         all,
-        (rows) => harness.authoredBy(rows, agent.id, channelHead).length > 0,
-        240_000
+        agent.id,
+        prompt,
+        (content) => content.trim().toLowerCase() === codename.toLowerCase(),
+        channelHead
     );
-    const replies = harness
-        .authoredBy(messages, agent.id, channelHead)
-        .map((reply) => reply.trim().toLowerCase());
-    expect(replies).toContain(codename.toLowerCase());
+    expect(result.threadChatId).toBeUndefined();
     await expectVisibleReply(page, codename);
 });
 
@@ -61,30 +62,26 @@ test('an active Agent incorporates a message received mid-turn', async ({ page }
 
     await harness.waitForAgentQuiet(agent.id, 3000, 120_000);
     await openChat(page, server.slug, all, channelName);
+    const channelHead = await harness.readHead(all);
     await sendFromComposer(page, prompt);
     await harness.waitForTurnActive(agent.id, 60_000);
+    await pollClaimedTask(harness, prompt, agent.id);
     await sendFromComposer(page, `The release color for this exercise is ${color}.`);
 
-    const task = await pollClaimedTask(harness, prompt, agent.id);
-    const messages = await harness.pollMessages(
-        task.task.threadChatId,
-        (rows) =>
-            harness
-                .authoredBy(rows, agent.id)
-                .some((reply) => reply.toLowerCase().includes(color.toLowerCase())),
-        240_000
-    );
-    const reply = harness
-        .authoredBy(messages, agent.id)
-        .find((candidate) => candidate.toLowerCase().includes(color.toLowerCase()));
+    const terminalReply = (content: string) => {
+        const normalized = content.trim().toLowerCase();
+        return normalized === color.toLowerCase() || normalized === 'no-color';
+    };
+    const result = await pollAgentReply(harness, all, agent.id, prompt, terminalReply, channelHead);
+    expect(result.reply.content.trim().toLowerCase()).toBe(color.toLowerCase());
 
-    expect(reply).toBeDefined();
-    await openMessageThread(messageByContent(page, prompt));
-    await expect(
-        page
-            .getByRole('complementary', { name: 'Thread' })
-            .getByText(reply?.trim() ?? color, { exact: true })
-    ).toBeVisible();
+    if (result.threadChatId) {
+        await openMessageThread(messageByContent(page, prompt));
+    }
+    const replySurface = result.threadChatId
+        ? page.getByRole('complementary', { name: 'Thread' })
+        : messageTimeline(page);
+    await expect(replySurface.getByText(color, { exact: true })).toBeVisible();
 });
 
 async function setupSuite() {

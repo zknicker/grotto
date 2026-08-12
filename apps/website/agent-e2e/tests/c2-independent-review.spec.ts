@@ -15,8 +15,8 @@ import {
 
 /**
  * User story: consequential work passes from its author to a distinct verifier before
- * publication. The verifier must inspect the actual draft, remove unsupported claims,
- * and return the corrected result and remaining caveat to the coordinator.
+ * publication. The verifier reports findings without rewriting, the author revises,
+ * and the verifier approves the exact version that the coordinator publishes.
  */
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(480_000);
@@ -39,16 +39,17 @@ test('coordinator passes an authored draft through a distinct independent verifi
     const verifierMarker = `C2-VERIFY-${harness.stamp}`;
     const prompt = [
         `@${coordinator.handle} Coordinate a reviewed Bluebird private-beta launch announcement in #${channelName}.`,
-        `First create one task titled ${authorMarker} and assign it to @${author.handle}.`,
-        'The author should draft 50–80 words using this product packet:',
+        `First create one task titled ${authorMarker}, assign it to @${author.handle}, and include this complete product packet in that task:`,
         '- Approved: private beta opens October 15.',
         '- Approved: CSV import is supported.',
         '- Candidate claim: Bluebird cuts setup time by 50%.',
         '- Candidate claim: Bluebird is the #1 launch tool.',
         'Ask the author to put the exact draft between BEGIN CANDIDATE and END CANDIDATE in the task Thread.',
-        `Wait for the authored draft. Only then create a second task titled ${verifierMarker}, assign it to @${verifier.handle}, and paste the author's exact candidate text into that task.`,
-        'Ask the verifier to independently check every claim against the supplied packet, identify unsupported claims, and return a corrected announcement between BEGIN REVIEWED and END REVIEWED plus one remaining caveat.',
-        `Wait for the verifier. Then publish the reviewed announcement in #${channelName} under REVIEWED ANNOUNCEMENT and the caveat under REMAINING CAVEAT. Do not self-certify the author's draft.`,
+        `Wait for the authored draft. Only then create a second task titled ${verifierMarker}, assign it to @${verifier.handle}, and paste both the author's exact candidate and the complete product packet above into that task.`,
+        'Ask the verifier to independently check every claim against the supplied packet and report issues between BEGIN FINDINGS and END FINDINGS. The verifier must not rewrite the announcement.',
+        `Wait for the findings. Paste them into the ${authorMarker} task Thread and ask @${author.handle} for a corrected version between BEGIN REVISION and END REVISION.`,
+        `Wait for the revision. Paste that exact revision into the ${verifierMarker} task Thread and ask @${verifier.handle} to reply APPROVED EXACT REVISION if it resolves every finding, or return new findings without rewriting it.`,
+        `Only after approval, publish that exact revision unchanged in #${channelName} under REVIEWED ANNOUNCEMENT, followed by the remaining caveat under REMAINING CAVEAT. Do not self-certify or rewrite the author's revision.`,
     ].join('\n');
 
     if (!coordinator.dmChatId) {
@@ -109,41 +110,94 @@ test('coordinator passes an authored draft through a distinct independent verifi
             messages.some(
                 (message) =>
                     message.author.kind === 'agent' &&
-                    message.author.agentId === coordinator.id &&
-                    message.content.includes(candidate)
-            ) &&
-            messages.some(
-                (message) =>
-                    message.author.kind === 'agent' &&
                     message.author.agentId === verifier.id &&
-                    message.content.includes('BEGIN REVIEWED') &&
-                    /50%/u.test(message.content) &&
-                    /#1/u.test(message.content)
+                    message.content.includes('BEGIN FINDINGS')
             ),
         300_000
     );
-    expect(
+    const candidateHandoff =
+        verifierTask.message.content.includes(candidate) ||
         verifierMessages.some(
             (message) =>
                 message.author.kind === 'agent' &&
                 message.author.agentId === coordinator.id &&
                 message.content.includes(candidate)
-        )
-    ).toBe(true);
+        );
+    expect(candidateHandoff).toBe(true);
     const verifierReply = verifierMessages.find(
         (message) =>
             message.author.kind === 'agent' &&
             message.author.agentId === verifier.id &&
-            message.content.includes('BEGIN REVIEWED')
+            message.content.includes('BEGIN FINDINGS')
     );
     if (!verifierReply) {
-        throw new Error('Verifier did not return a marked reviewed announcement.');
+        throw new Error('Verifier did not return marked findings.');
     }
-    const reviewed = extractMarkedSection(verifierReply.content, 'BEGIN REVIEWED', 'END REVIEWED');
-    expect(reviewed).toBeTruthy();
-    expect(reviewed).toContain('October 15');
-    expect(reviewed).toContain('CSV import');
-    expect(reviewed).not.toMatch(/50%|#1/u);
+    const findings = extractMarkedSection(verifierReply.content, 'BEGIN FINDINGS', 'END FINDINGS');
+    if (!findings) {
+        throw new Error('Verifier returned empty findings.');
+    }
+    expect(findings).toMatch(/50%|setup time/iu);
+    expect(findings).toMatch(/#1|launch tool|superlative/iu);
+
+    const revisedMessages = await harness.pollMessages(
+        authorTask.task.threadChatId,
+        (messages) =>
+            messages.some(
+                (message) =>
+                    message.author.kind === 'agent' &&
+                    message.author.agentId === coordinator.id &&
+                    message.content.includes(findings)
+            ) &&
+            messages.some(
+                (message) =>
+                    message.author.kind === 'agent' &&
+                    message.author.agentId === author.id &&
+                    message.content.includes('BEGIN REVISION')
+            ),
+        300_000
+    );
+    const revisionReply = revisedMessages.find(
+        (message) =>
+            message.author.kind === 'agent' &&
+            message.author.agentId === author.id &&
+            message.content.includes('BEGIN REVISION')
+    );
+    const revision = revisionReply
+        ? extractMarkedSection(revisionReply.content, 'BEGIN REVISION', 'END REVISION')
+        : null;
+    if (!revision) {
+        throw new Error('Author did not return a marked revision.');
+    }
+    expect(revision).toContain('October 15');
+    expect(revision).toContain('CSV import');
+    expect(revision).not.toMatch(/50%|#1/u);
+
+    const approvalMessages = await harness.pollMessages(
+        verifierTask.task.threadChatId,
+        (messages) =>
+            messages.some(
+                (message) =>
+                    message.author.kind === 'agent' &&
+                    message.author.agentId === coordinator.id &&
+                    message.content.includes(revision)
+            ) &&
+            messages.some(
+                (message) =>
+                    message.author.kind === 'agent' &&
+                    message.author.agentId === verifier.id &&
+                    message.content.includes('APPROVED EXACT REVISION')
+            ),
+        300_000
+    );
+    expect(
+        approvalMessages.some(
+            (message) =>
+                message.author.kind === 'agent' &&
+                message.author.agentId === verifier.id &&
+                message.content.includes('APPROVED EXACT REVISION')
+        )
+    ).toBe(true);
 
     const parentMessages = await harness.pollMessages(
         channel,
@@ -172,9 +226,7 @@ test('coordinator passes an authored draft through a distinct independent verifi
         .replace('REVIEWED ANNOUNCEMENT', '')
         .trim();
     const caveat = final.content.split('REMAINING CAVEAT', 2)[1]?.trim();
-    expect(published).toContain('October 15');
-    expect(published).toContain('CSV import');
-    expect(published).not.toMatch(/50%|#1/u);
+    expect(published).toBe(revision);
     expect(caveat).toBeTruthy();
 
     await openChat(page, server.slug, channel, channelName);

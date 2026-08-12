@@ -13,12 +13,15 @@ verification:
 1. One Agent authors the candidate artifact in its assigned task Thread.
 2. The coordinator waits for that artifact and passes the exact candidate to a
    distinct verifier.
-3. The verifier identifies claims unsupported by the supplied evidence and
-   returns corrected copy plus any remaining caveat.
-4. The coordinator publishes the reviewed version and caveat to the parent
+3. The verifier reports unsupported claims and remaining caveats without
+   rewriting the candidate.
+4. The coordinator returns those findings to the author, who produces a
+   revised version.
+5. The verifier approves that exact revision or returns further findings.
+6. The coordinator publishes the approved revision unchanged to the parent
    Chat.
 
 The live Agent E2E scenario drives the request through the App composer and
-observes the durable tasks, task Threads, and final parent-Chat result. It tests
-role separation and artifact handoff, not a particular implementation or fixed
-model wording.
+observes the durable tasks, task Threads, revision, approval, and final
+parent-Chat result. It tests role separation, artifact handoff, and versioned
+approval, not a particular implementation or fixed model wording.

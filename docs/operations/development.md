@@ -52,7 +52,7 @@ then runs their real Agent turns using the host's Codex, Claude Code, Grok Build
 sign-in.
 
 Seeding runs once per Server. To pick up changes to
-`apps/server/src/development/seed-hosted-server.ts`, delete the demo Server row
+`apps/server/src/development/seed-server.ts`, delete the demo Server row
 (its Threads and messages first, since both reference it) and reload the App.
 
 The dev stack uses worktree-isolated development state by default:

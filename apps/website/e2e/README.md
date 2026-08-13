@@ -30,7 +30,7 @@ This folder holds Playwright coverage for user-facing App behavior.
 Run one file while repairing a focused surface:
 
 ```bash
-bun e2e/run-playwright.ts e2e/tests/hosted-messaging.spec.ts
+bun e2e/run-playwright.ts e2e/tests/messaging.spec.ts
 ```
 
 The default lane starts no local sidecar, Runtime, Computer, or model. Chat, task, membership,

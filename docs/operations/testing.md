@@ -147,7 +147,7 @@ bun run test:app
 Run one spec while repairing a focused surface:
 
 ```bash
-bun e2e/run-playwright.ts e2e/tests/hosted-messaging.spec.ts
+bun e2e/run-playwright.ts e2e/tests/messaging.spec.ts
 ```
 
 The lane starts only the hosted Server, throwaway PostgreSQL, Clerk issuer, and

@@ -31,6 +31,8 @@ import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sideb
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { SidebarAgentActivityStrip } from '../../features/shell/sidebar-agent-activity-strip.tsx';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
+import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
+import { useDesktopMenuNavigation } from '../../hooks/desktop/use-desktop-menu-navigation.ts';
 import { ChatEventListeners } from '../../hooks/servers/chat-events/chat-event-listeners.tsx';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useChats } from '../../hooks/servers/use-chats.ts';
@@ -56,6 +58,12 @@ export function ServerLayout() {
     const currentServerSlug = server.data?.slug;
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
     const [managingServers, setManagingServers] = React.useState(false);
+
+    useDesktopMenuNavigation({
+        searchRoute: serverSearchRoute(slug),
+        settingsRoute: serverSettingsRoute(slug),
+    });
+    useDesktopDockBadge((chats.data ?? []).reduce((total, chat) => total + chat.unreadCount, 0));
 
     React.useEffect(() => {
         if (currentServerSlug) {

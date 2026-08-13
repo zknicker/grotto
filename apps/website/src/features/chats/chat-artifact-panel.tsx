@@ -1,6 +1,7 @@
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useDesktopTabPane } from '../../hooks/desktop/use-desktop-window-commands.ts';
 import type { ChatArtifactPanelState } from '../../hooks/pane/use-chat-pane-state.ts';
 import { ArtifactPanelChrome } from './chat-artifact-panel-chrome.tsx';
 import { WorkspaceBrowserContent } from './chat-artifact-workspace-content.tsx';
@@ -24,6 +25,28 @@ export function ChatArtifactPanel({
     state: ChatArtifactPanelState;
     takeover?: boolean;
 }) {
+    // ⌘W closes the active tab, then the pane, and only then the window;
+    // ⌘T opens the workspace tab while the pane is visible.
+    useDesktopTabPane({
+        active: open && state.visible,
+        closeActiveTab: () => {
+            if (state.activeKey) {
+                state.closeActiveTarget();
+            } else {
+                state.toggleVisible();
+            }
+            return true;
+        },
+        openNewTab: () => {
+            if (!agentId) {
+                return false;
+            }
+
+            state.open({ agentId, kind: 'workspaceDirectory', path: '' });
+            return true;
+        },
+    });
+
     return (
         <ChatSidePaneShell label="Artifacts" open={open && state.visible} takeover={takeover}>
             {(width) => (

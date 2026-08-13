@@ -1,6 +1,5 @@
-import { Alert, Button, Modal, Separator, Spinner, Surface } from '@heroui/react';
+import { Alert, Button, Chip, Modal, Separator, Spinner, Surface } from '@heroui/react';
 import { Fragment, useState } from 'react';
-import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import {
     ConnectionDestructiveDialog,
     ConnectionMenu,
@@ -94,16 +93,16 @@ export function McpConnectionDetailDialog({
                                             <p className="truncate font-mono text-muted text-xs">
                                                 {connectionSummary(connection)}
                                             </p>
-                                            <p className="mt-1 flex items-center gap-2 text-sm">
-                                                <StatusDot
-                                                    status={
-                                                        connection.connected ? 'success' : 'muted'
-                                                    }
-                                                />
+                                            <Chip
+                                                className="mt-1"
+                                                color={connection.connected ? 'success' : 'default'}
+                                                size="sm"
+                                                variant="soft"
+                                            >
                                                 {connection.connected
                                                     ? 'Connected'
                                                     : 'Not connected'}
-                                            </p>
+                                            </Chip>
                                         </div>
                                         {connection.auth === 'oauth' ? (
                                             <Button
@@ -138,7 +137,7 @@ export function McpConnectionDetailDialog({
                                                 <h3 className="font-medium text-sm">
                                                     Available Tools
                                                 </h3>
-                                                <p className="text-muted text-xs">
+                                                <p className="text-muted text-sm">
                                                     Enabled Agents receive every tool listed here.
                                                 </p>
                                             </div>
@@ -160,7 +159,7 @@ export function McpConnectionDetailDialog({
                                     <section className="grid gap-2">
                                         <div>
                                             <h3 className="font-medium text-sm">Agent Access</h3>
-                                            <p className="text-muted text-xs">
+                                            <p className="text-muted text-sm">
                                                 Access is enabled per MCP server from each Agent
                                                 profile.
                                             </p>
@@ -275,7 +274,7 @@ function ToolList({
             {index > 0 ? <Separator variant="secondary" /> : null}
             <div className="px-4 py-3">
                 <p className="font-medium text-sm">{tool.title ?? tool.name}</p>
-                <p className="truncate text-muted text-xs">{tool.description}</p>
+                <p className="truncate text-muted text-sm">{tool.description}</p>
             </div>
         </Fragment>
     ));

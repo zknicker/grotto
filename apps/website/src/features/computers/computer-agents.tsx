@@ -1,9 +1,10 @@
+import { Chip } from '@heroui/react';
 import { Link } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
+import { hostedAvailabilityBadgeColor } from '../members/agent-avatar.tsx';
 import { agentRoute } from '../servers/server-routes.ts';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
@@ -68,30 +69,19 @@ function AgentRow({
 
     return (
         <Link
-            className="flex min-w-0 items-center gap-3 border-separator border-b py-3 outline-none last:border-b-0 hover:bg-surface-secondary focus-visible:bg-surface-secondary"
+            className="flex min-w-0 items-center gap-3 border-separator border-b py-3 outline-none last:border-b-0 hover:bg-background-hover focus-visible:bg-background-hover"
             to={agentRoute(serverSlug, agent.id)}
         >
             <EntityAvatar name={agent.displayName} size="sm" src={agent.avatarUrl} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
                 <p className="truncate font-medium text-foreground text-sm">{agent.displayName}</p>
-                <p className="truncate text-muted text-xs">
+                <p className="truncate text-muted text-sm">
                     {execution.runtime} · {execution.model}
                 </p>
             </div>
-            <div className="flex shrink-0 items-center gap-1.5 text-muted text-xs">
-                <StatusDot status={availabilityStatus(agent.availability)} />
+            <Chip color={hostedAvailabilityBadgeColor(agent.availability)} size="sm" variant="soft">
                 {availabilityLabel(agent.availability)}
-            </div>
+            </Chip>
         </Link>
     );
-}
-
-function availabilityStatus(value: GrottoOutputs['agent']['list'][number]['availability']) {
-    if (value === 'idle') {
-        return 'success' as const;
-    }
-    if (value === 'working') {
-        return 'warning' as const;
-    }
-    return value === 'error' ? ('error' as const) : ('muted' as const);
 }

@@ -9,9 +9,10 @@ interface StoredChatMessage {
     createdAt: Date;
     id: string;
     nonce: string;
+    runId: string | null;
     sequence: number;
     serverId: string;
-    systemAuthor: 'reminder' | 'session' | 'task' | null;
+    systemAuthor: 'reminder' | 'session' | null;
 }
 
 export interface StoredChatMessageAuthorProfile {
@@ -69,6 +70,7 @@ export function toHostedChatMessage(
         createdAt: message.createdAt.toISOString(),
         id: message.id,
         nonce: message.nonce,
+        runId: message.runId,
         sequence: message.sequence,
         serverId: message.serverId,
     };
@@ -83,9 +85,6 @@ function readAuthor(
     }
     if (message.systemAuthor === 'session') {
         return { kind: 'system', system: 'session' };
-    }
-    if (message.systemAuthor === 'task') {
-        return { kind: 'system', system: 'task' };
     }
     if (message.authorAgentId !== null) {
         return { agentId: message.authorAgentId, kind: 'agent', profile };

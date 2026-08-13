@@ -5,7 +5,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
 
-export type HostedSystemMessageAuthor = 'reminder' | 'session' | 'task';
+export type HostedSystemMessageAuthor = 'reminder' | 'session';
 
 type SystemMessageWriter = Pick<GrottoDatabase, 'insert' | 'update'>;
 

@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { HarnessV1, HarnessV1Bootstrap } from '@ai-sdk/harness';
+import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import codexPackage from '../../assets/harness-bridges/codex/package.json' with { type: 'text' };
 import codexLockfile from '../../assets/harness-bridges/codex/pnpm-lock.yaml' with { type: 'text' };
 // @ts-expect-error -- Bun's text loader embeds this bridge in the standalone executable.
@@ -144,6 +145,29 @@ export async function validateComputerBridgeAssets(): Promise<void> {
             readBridgeBootstrap(harnessId, bridgeSpecs[harnessId])
         )
     );
+    const grokBuildBootstrap = await createGrokBuild().getBootstrap?.();
+    const grokBuildDescriptor = grokBuildBootstrap?.files?.find(
+        (file) => file.path === '.harness-bootstrap/grok-build/implementation/implementation.json'
+    );
+    if (
+        !grokBuildDescriptor?.content.includes('"local": true') ||
+        grokBuildBootstrap?.files?.some((file) =>
+            file.path.endsWith('/implementation/package.json')
+        )
+    ) {
+        throw new Error('Grok Build must use the detected local executable.');
+    }
+    const grokBuildBridge = grokBuildBootstrap?.files?.find(
+        (file) => file.path === '.harness-bootstrap/grok-build/bridge.mjs'
+    );
+    if (
+        !(
+            grokBuildBridge?.content.includes('_x.ai/interject') &&
+            grokBuildBridge.content.includes('grok-interjection-accepted')
+        )
+    ) {
+        throw new Error('Grok Build bridge does not include live user-message delivery.');
+    }
 }
 
 function installCommand(storeDir?: string) {

@@ -1,5 +1,6 @@
 import type {
     HostedAgent,
+    HostedAgentActivityEvent,
     HostedAgentCommand,
     HostedAgentInboxItem,
     HostedAgentTurnSummary,
@@ -10,6 +11,8 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { messageSelection, toAgentMessages } from '../agent-api/message-view.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
+import { appendServerAgentActivity } from '../hosted-agents/agent-activity.ts';
+import { readHostedActiveAgentActivity } from '../hosted-agents/agent-activity-history.ts';
 import type { HostedAgentConfigurationRotation } from '../hosted-agents/configure-agent.ts';
 import { recordAgentTurnSummary } from '../hosted-agents/record-agent-turn.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -26,6 +29,7 @@ import {
 } from '../reminders/reminder-script-delivery.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { listHostedMessageTaskMap } from '../tasks/task-shape.ts';
+import { publishCommittedAgentActivity } from './activity-events.ts';
 import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
 import {
     advanceDeliveredCursor,
@@ -46,9 +50,11 @@ export interface DeliveryTransport {
 }
 
 interface DispatchPlan {
+    activities?: HostedAgentActivityEvent[];
     computerId: string;
     frame: HostedAgentCommand;
     serverId: string;
+    suppressSend?: boolean;
 }
 
 interface DispatchOptions {
@@ -180,14 +186,25 @@ export class AgentDelivery {
                 agentId: input.agentId,
                 runId: state.activeRunId,
             });
+            const activity = await appendServerAgentActivity(tx, {
+                agentId: input.agentId,
+                category: 'working',
+                phase: 'failed',
+                runId: state.activeRunId,
+                serverId: input.serverId,
+            });
             await store.clearActiveRun(tx, input.agentId);
             return {
+                activity,
                 chatId: state.activeRunChatId,
                 computerId: state.activeRunComputerId,
                 runId: state.activeRunId,
             };
         });
         if (kill) {
+            if (kill.activity) {
+                publishCommittedAgentActivity(kill.activity);
+            }
             if (kill.chatId) {
                 publishAgentLifecycle({
                     agentId: input.agentId,
@@ -226,6 +243,9 @@ export class AgentDelivery {
         }
         const interrupted = await this.interruptActiveRun(input);
         if (interrupted) {
+            if (interrupted.activity) {
+                publishCommittedAgentActivity(interrupted.activity);
+            }
             if (interrupted.chatId) {
                 publishAgentLifecycle({
                     agentId: input.agentId,
@@ -264,6 +284,7 @@ export class AgentDelivery {
         const result = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, input.serverId);
             const state = await store.readDeliveryState(tx, input.agentId);
+            let activity: HostedAgentActivityEvent | null = null;
             if (state?.activeRunId) {
                 await revokeRunnerCredentialsForRun(tx, {
                     agentId: input.agentId,
@@ -273,6 +294,13 @@ export class AgentDelivery {
                 await store.requeuePendingForRun(tx, {
                     agentId: input.agentId,
                     runId: state.activeRunId,
+                });
+                activity = await appendServerAgentActivity(tx, {
+                    agentId: input.agentId,
+                    category: 'working',
+                    phase: 'failed',
+                    runId: state.activeRunId,
+                    serverId: input.serverId,
                 });
                 await store.clearActiveRun(tx, input.agentId);
             }
@@ -302,6 +330,7 @@ export class AgentDelivery {
                 serverId: input.serverId,
             });
             return {
+                activity,
                 chatId: state?.activeRunChatId ?? null,
                 computerId: config?.computerId ?? null,
                 events,
@@ -309,6 +338,9 @@ export class AgentDelivery {
                 sessionGeneration: rotated.sessionGeneration,
             };
         });
+        if (result.activity) {
+            publishCommittedAgentActivity(result.activity);
+        }
         for (const event of result.events) {
             emitDurableChatEvent({ audienceUserId: null, event });
         }
@@ -351,6 +383,14 @@ export class AgentDelivery {
             await store.markAccepted(tx, input);
             const state = await store.readDeliveryState(tx, input.agentId);
             return {
+                acceptedActivity:
+                    state?.activeRunId === input.runId
+                        ? ((await readHostedActiveAgentActivity(tx, serverId)).activities.find(
+                              (activity) =>
+                                  activity.agentId === input.agentId &&
+                                  activity.runId === input.runId
+                          ) ?? null)
+                        : null,
                 plan:
                     state?.activeRunId === input.runId
                         ? await this.planDispatch(tx, input.agentId)
@@ -359,6 +399,9 @@ export class AgentDelivery {
             };
         });
         const state = stateAndPlan?.state;
+        if (stateAndPlan?.acceptedActivity) {
+            publishCommittedAgentActivity(stateAndPlan.acceptedActivity);
+        }
         if (state?.activeRunId === input.runId && state.activeRunChatId) {
             publishAgentLifecycle({
                 agentId: input.agentId,
@@ -404,7 +447,11 @@ export class AgentDelivery {
             const recovery = await this.db.transaction(async (tx) => {
                 await lockServerRow(tx, serverId);
                 const state = await store.readDeliveryState(tx, summary.agentId);
-                if (state?.activeRunId !== summary.runId || !state.activeRunChatId) {
+                if (
+                    state?.activeRunId !== summary.runId ||
+                    state.activeRunComputerId !== computerId ||
+                    !state.activeRunChatId
+                ) {
                     return null;
                 }
                 await revokeRunnerCredentialsForRun(tx, {
@@ -419,6 +466,13 @@ export class AgentDelivery {
                 await store.clearPendingNotices(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
+                });
+                const activity = await appendServerAgentActivity(tx, {
+                    agentId: summary.agentId,
+                    category: 'working',
+                    phase: 'failed',
+                    runId: summary.runId,
+                    serverId,
                 });
                 await store.clearActiveRun(tx, summary.agentId);
                 const [rotated] = await tx
@@ -446,6 +500,7 @@ export class AgentDelivery {
                     serverId,
                 });
                 return {
+                    activity,
                     chatId: state.activeRunChatId,
                     config,
                     events,
@@ -454,6 +509,9 @@ export class AgentDelivery {
             });
             if (!recovery) {
                 return;
+            }
+            if (recovery.activity) {
+                publishCommittedAgentActivity(recovery.activity);
             }
             for (const event of recovery.events) {
                 emitDurableChatEvent({ audienceUserId: null, event });
@@ -478,7 +536,11 @@ export class AgentDelivery {
         const settlement = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, serverId);
             const state = await store.readDeliveryState(tx, summary.agentId);
-            if (state?.activeRunId !== summary.runId || !state.activeRunChatId) {
+            if (
+                state?.activeRunId !== summary.runId ||
+                state.activeRunComputerId !== computerId ||
+                !state.activeRunChatId
+            ) {
                 // A stale or duplicate summary for an already-cleared run: the
                 // durable record upsert above is the only effect.
                 return null;
@@ -516,8 +578,15 @@ export class AgentDelivery {
                     agentId: summary.agentId,
                     turns: nextAgentChainTurns(budgetRows, state.agentChainTurns),
                 });
+                const activity = await appendServerAgentActivity(tx, {
+                    agentId: summary.agentId,
+                    category: 'working',
+                    phase: 'completed',
+                    runId: summary.runId,
+                    serverId,
+                });
                 await store.clearActiveRun(tx, summary.agentId);
-                return { chatId, plan: await this.planDispatch(tx, summary.agentId) };
+                return { activity, chatId, plan: await this.planDispatch(tx, summary.agentId) };
             }
             // A failed turn that produced model-visible output must not requeue
             // its work — redelivering it would re-trigger that output. Only a
@@ -545,6 +614,13 @@ export class AgentDelivery {
                     runId: summary.runId,
                 });
             }
+            const activity = await appendServerAgentActivity(tx, {
+                agentId: summary.agentId,
+                category: 'working',
+                phase: 'failed',
+                runId: summary.runId,
+                serverId,
+            });
             await store.clearActiveRun(tx, summary.agentId);
             const retryable = shouldRetryFailure(summary.failureKind);
             const failures = retryable ? state.consecutiveFailures + 1 : maxDeliveryFailures;
@@ -554,10 +630,13 @@ export class AgentDelivery {
                 retryAfter:
                     retryable && failures < maxDeliveryFailures ? nextRetryAt(failures) : null,
             });
-            return { chatId, plan: null };
+            return { activity, chatId, plan: null };
         });
         if (!settlement) {
             return;
+        }
+        if (settlement.activity) {
+            publishCommittedAgentActivity(settlement.activity);
         }
         publishAgentLifecycle({
             agentId: summary.agentId,
@@ -627,6 +706,9 @@ export class AgentDelivery {
     }): Promise<void> {
         const { agent, rotation } = input;
         if (rotation) {
+            if (rotation.activity) {
+                publishCommittedAgentActivity(rotation.activity);
+            }
             for (const event of rotation.events) {
                 emitDurableChatEvent({ audienceUserId: null, event });
             }
@@ -747,8 +829,31 @@ export class AgentDelivery {
                     frame.inboxDelivery === 'notice' &&
                     frame.inbox.length === 0
                 ) {
+                    const activity = await appendServerAgentActivity(tx, {
+                        agentId,
+                        category: 'working',
+                        phase: 'failed',
+                        runId: state.activeRunId,
+                        serverId: state.serverId,
+                    });
                     await store.clearActiveRun(tx, agentId);
-                    return await this.planDispatch(tx, agentId);
+                    const next = await this.planDispatch(tx, agentId);
+                    if (next) {
+                        return {
+                            ...next,
+                            activities: [
+                                ...(activity ? [activity] : []),
+                                ...(next.activities ?? []),
+                            ],
+                        };
+                    }
+                    return {
+                        activities: activity ? [activity] : [],
+                        computerId: state.activeRunComputerId,
+                        frame,
+                        serverId: state.serverId,
+                        suppressSend: true,
+                    };
                 }
                 return {
                     computerId: state.activeRunComputerId,
@@ -825,7 +930,15 @@ export class AgentDelivery {
             runId,
             runtimeId: config.desiredRuntimeId,
         });
+        const activity = await appendServerAgentActivity(tx, {
+            agentId,
+            category: 'starting_work',
+            phase: 'started',
+            runId,
+            serverId: state.serverId,
+        });
         return {
+            ...(activity ? { activities: [activity] } : {}),
             computerId: config.computerId,
             frame: {
                 agentId,
@@ -847,7 +960,19 @@ export class AgentDelivery {
     }
 
     private emit(plan: DispatchPlan | null): void {
-        if (!(plan && this.transport.send(plan.computerId, plan.frame))) {
+        if (!plan) {
+            return;
+        }
+        for (const activity of plan.activities ?? []) {
+            if (activity.category === 'starting_work' && activity.phase === 'started') {
+                continue;
+            }
+            publishCommittedAgentActivity(activity);
+        }
+        if (plan.suppressSend) {
+            return;
+        }
+        if (!this.transport.send(plan.computerId, plan.frame)) {
             return;
         }
         if (plan.frame.type === 'start') {
@@ -877,8 +1002,16 @@ export class AgentDelivery {
                 agentId: input.agentId,
                 runId: state.activeRunId,
             });
+            const activity = await appendServerAgentActivity(tx, {
+                agentId: input.agentId,
+                category: 'working',
+                phase: 'failed',
+                runId: state.activeRunId,
+                serverId: input.serverId,
+            });
             await store.clearActiveRun(tx, input.agentId);
             return {
+                activity,
                 chatId: state.activeRunChatId,
                 computerId: state.activeRunComputerId,
                 runId: state.activeRunId,

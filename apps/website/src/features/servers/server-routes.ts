@@ -17,11 +17,6 @@ export function serverArchivedChatsRoute(slug: string) {
     return `${serverRoute(slug)}/archived`;
 }
 
-export function taskThreadRoute(slug: string, chatId: string, messageId: string) {
-    const route = serverChatRoute(slug, chatId);
-    return `${route}?task=${encodeURIComponent(messageId)}`;
-}
-
 export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }
@@ -42,20 +37,12 @@ export function serverComputersRoute(slug: string) {
     return `${serverRoute(slug)}/computers`;
 }
 
-export function serverRemindersRoute(slug: string) {
-    return `${serverRoute(slug)}/reminders`;
-}
-
 export function serverSettingsRoute(slug: string) {
     return `${serverRoute(slug)}/settings`;
 }
 
 export function serverSettingsSectionRoute(slug: string, section: string) {
     return `${serverSettingsRoute(slug)}/${section}`;
-}
-
-export function isServerRemindersPath(pathname: string, slug: string) {
-    return pathname === serverRemindersRoute(slug);
 }
 
 /**

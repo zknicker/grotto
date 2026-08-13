@@ -2,6 +2,7 @@
 export const hostedComputerRuntimeCatalog = [
     { id: 'codex', label: 'Codex' },
     { id: 'claude-code', label: 'Claude Code' },
+    { id: 'grok-build', label: 'Grok Build' },
     { id: 'pi', label: 'Pi' },
 ] as const;
 

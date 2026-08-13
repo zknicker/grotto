@@ -47,22 +47,22 @@
     {
       "idx": 6,
       "version": "7",
-      "when": 1786591760391,
-      "tag": "0006_agent-turn-observability",
+      "when": 1786556260793,
+      "tag": "0006_striped_randall_flagg",
       "breakpoints": true
     },
     {
       "idx": 7,
       "version": "7",
-      "when": 1786591797129,
-      "tag": "0007_delivery-ledger-retention",
+      "when": 1786556467712,
+      "tag": "0007_organic_killmonger",
       "breakpoints": true
     },
     {
       "idx": 8,
       "version": "7",
-      "when": 1786594441364,
-      "tag": "0008_delivery-run-serving-index",
+      "when": 1786653574199,
+      "tag": "0008_agent-observability-ledger",
       "breakpoints": true
     }
   ]

@@ -1,10 +1,10 @@
 ---
-summary: Agent inbox — delivery planning, the two-cursor ledger, notice turns, local-first pulls, and the composition stream. Supersedes steering.md and addressing.md.
+summary: Agent inbox — delivery planning, the two-cursor ledger, notice turns, and local-first pulls. Supersedes steering.md and addressing.md.
 read_when:
   - changing which agents wake for a chat message, mute/follow semantics, or mention piercing
   - changing delivered/seen cursors, freshness catch-up, or pull acknowledgement
   - changing mid-turn notices, drain batching, or chain limits
-  - changing the provisional composition bubble or agent status surfaces
+  - changing Agent status surfaces derived from inbox delivery
 ---
 
 # Agent Inbox
@@ -138,11 +138,8 @@ the Agent again. A pull followed by a crash replays from canonical Server state.
 
 ## Presentation split (I1/I4)
 
-Chat level renders durable messages plus the ephemeral composition stream:
-`agent.composition` events (volatile, never persisted or replayed) drive a
-provisional bubble for an in-flight send, swapped for the durable message on
-the `message.created` compositionId echo, retracted on a freshness hold, and
-TTL-faded when updates stop. Everything else — status dot, activity feed,
-prompt and file-change trace — is agent-level. Inbox visibility for humans
-is read-only (I4): pending targets, mutes, and follows on the agent profile;
-humans steer attention by asking in chat.
+Attaching accepted pending rows to the active run is a delivery fact, not a claim that the Agent is
+composing a reply. Chat renders only durable messages. Status dots, semantic Agent activity, and
+detailed execution evidence remain separate Agent-level projections
+([agent-activity.md](agent-activity.md)). Inbox visibility for humans is read-only (I4): pending
+targets, mutes, and follows on the Agent profile; humans steer attention by asking in Chat.

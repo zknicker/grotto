@@ -48,3 +48,9 @@ the scoped runner credential. The Agent process never receives a Server-valid cr
 Wire schemas live in `packages/tavern-api`; Server handlers live in `apps/server/src/agent-api/`
 and `apps/server/src/grotto-api/agent/`; Computer proxy and launch behavior live in
 `apps/computer/src/`.
+
+Hosted Agent execution detail is a separate, explicit `agent.executionJournal` query. It accepts
+one `serverId`, `agentId`, and `runId`; Server authorizes only Owners/Admins, resolves the Agent's
+assigned Computer, and relays the request over that authenticated attachment. The response is
+either the Computer-local journal or an explicit `unavailable` result (`offline`, `missing`, or
+`timeout`). Server does not persist the journal, and ordinary members never receive it.

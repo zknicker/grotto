@@ -59,6 +59,7 @@ export * from './app-protocol.ts';
 export * from './avatar.ts';
 export * from './development-chat-demos.ts';
 export * from './hosted-agent.ts';
+export * from './hosted-agent-activity.ts';
 export * from './hosted-agent-runner.ts';
 export * from './hosted-attachments.ts';
 export * from './hosted-avatar.ts';

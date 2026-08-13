@@ -154,58 +154,58 @@ colors:
 typography:
   xs:
     fontFamily: "Inter"
-    fontSize: "12px"
+    fontSize: "11px"
     lineHeight: "16px"
   sm:
     fontFamily: "Inter"
-    fontSize: "14px"
+    fontSize: "13px"
     lineHeight: "20px"
   base:
     fontFamily: "Inter"
-    fontSize: "16px"
+    fontSize: "15px"
     lineHeight: "24px"
   lg:
     fontFamily: "Inter"
-    fontSize: "18px"
+    fontSize: "17px"
     lineHeight: "28px"
   xl:
     fontFamily: "Inter"
-    fontSize: "20px"
+    fontSize: "19px"
     lineHeight: "28px"
   2xl:
     fontFamily: "Inter"
-    fontSize: "24px"
+    fontSize: "22px"
     lineHeight: "32px"
   3xl:
     fontFamily: "Inter"
-    fontSize: "30px"
+    fontSize: "28px"
     lineHeight: "36px"
   4xl:
     fontFamily: "Inter"
-    fontSize: "36px"
+    fontSize: "32px"
     lineHeight: "40px"
   5xl:
     fontFamily: "Inter"
-    fontSize: "48px"
-    lineHeight: "48px"
+    fontSize: "44px"
+    lineHeight: "44px"
   6xl:
     fontFamily: "Inter"
-    fontSize: "60px"
-    lineHeight: "60px"
+    fontSize: "54px"
+    lineHeight: "54px"
   7xl:
     fontFamily: "Inter"
-    fontSize: "72px"
-    lineHeight: "72px"
+    fontSize: "64px"
+    lineHeight: "64px"
   8xl:
     fontFamily: "Inter"
-    fontSize: "96px"
-    lineHeight: "96px"
+    fontSize: "84px"
+    lineHeight: "84px"
   9xl:
     fontFamily: "Inter"
-    fontSize: "128px"
-    lineHeight: "128px"
+    fontSize: "112px"
+    lineHeight: "112px"
 spacing:
-  base: "4px"
+  base: "3.75px"
   fieldBorderWidth: "0px"
 rounded:
   field: "12px"
@@ -333,19 +333,19 @@ Use semantic HeroUI tokens and Tailwind utilities in product code. The raw value
 Use the generated font and text scale through HeroUI components and Tailwind text utilities. The raw values below are normalized to px for design handoff.
 | Token | Font family | Font size | Line height | HeroUI variable | Tailwind equivalent |
 | --- | --- | --- | --- | --- | --- |
-| `xs` | Inter | `12px` | `16px` | `--text-xs` | `text-xs` |
-| `sm` | Inter | `14px` | `20px` | `--text-sm` | `text-sm` |
-| `base` | Inter | `16px` | `24px` | `--text-base` | `text-base` |
-| `lg` | Inter | `18px` | `28px` | `--text-lg` | `text-lg` |
-| `xl` | Inter | `20px` | `28px` | `--text-xl` | `text-xl` |
-| `2xl` | Inter | `24px` | `32px` | `--text-2xl` | `text-2xl` |
-| `3xl` | Inter | `30px` | `36px` | `--text-3xl` | `text-3xl` |
-| `4xl` | Inter | `36px` | `40px` | `--text-4xl` | `text-4xl` |
-| `5xl` | Inter | `48px` | `48px` | `--text-5xl` | `text-5xl` |
-| `6xl` | Inter | `60px` | `60px` | `--text-6xl` | `text-6xl` |
-| `7xl` | Inter | `72px` | `72px` | `--text-7xl` | `text-7xl` |
-| `8xl` | Inter | `96px` | `96px` | `--text-8xl` | `text-8xl` |
-| `9xl` | Inter | `128px` | `128px` | `--text-9xl` | `text-9xl` |
+| `xs` | Inter | `11px` | `16px` | `--text-xs` | `text-xs` |
+| `sm` | Inter | `13px` | `20px` | `--text-sm` | `text-sm` |
+| `base` | Inter | `15px` | `24px` | `--text-base` | `text-base` |
+| `lg` | Inter | `17px` | `28px` | `--text-lg` | `text-lg` |
+| `xl` | Inter | `19px` | `28px` | `--text-xl` | `text-xl` |
+| `2xl` | Inter | `22px` | `32px` | `--text-2xl` | `text-2xl` |
+| `3xl` | Inter | `28px` | `36px` | `--text-3xl` | `text-3xl` |
+| `4xl` | Inter | `32px` | `40px` | `--text-4xl` | `text-4xl` |
+| `5xl` | Inter | `44px` | `44px` | `--text-5xl` | `text-5xl` |
+| `6xl` | Inter | `54px` | `54px` | `--text-6xl` | `text-6xl` |
+| `7xl` | Inter | `64px` | `64px` | `--text-7xl` | `text-7xl` |
+| `8xl` | Inter | `84px` | `84px` | `--text-8xl` | `text-8xl` |
+| `9xl` | Inter | `112px` | `112px` | `--text-9xl` | `text-9xl` |
 ### Font and Letter Spacing
 
 | Token | Raw value | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
@@ -364,7 +364,7 @@ Layout should use Tailwind v4 spacing utilities and HeroUI component structure. 
 
 | Token | Raw value | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| `spacing` | `4px` |  | `--spacing` | Prefer Tailwind spacing utilities like `gap-4`, `p-6`, `px-8`, and `space-y-4`. | Base spacing unit used by the generated Tailwind spacing scale. |
+| `spacing` | `3.75px` |  | `--spacing` | Prefer Tailwind spacing utilities like `gap-4`, `p-6`, `px-8`, and `space-y-4`. | Base spacing unit used by the generated Tailwind spacing scale. |
 | `field border width` | `0px` |  | `--border-width-field` | Prefer HeroUI field components; use this only for custom field implementations. | Border width used by form fields and field-like cells. |
 | `field border width alias` | `0px` |  | `--field-border-width` | Prefer `--border-width-field` for new CSS. | Compatibility alias for field border width. |
 

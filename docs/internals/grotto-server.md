@@ -392,8 +392,7 @@ with a new `joined_at`, increments its `stint`, and joins only `#all`. A DM
 records both participants' stint numbers: the returning human cannot read the
 former DM or its Threads, while the peer who did not leave retains that
 history. Removal clears `channel_participants`, `chat_reads`, and
-`thread_follows`, and retires live composition state for every departed Chat
-including Threads.
+`thread_follows`, and live composition state for every departed Chat, including Threads.
 
 `CLERK_SECRET_KEY` authorizes the Clerk Backend API lookup that reads which of a
 human's addresses Clerk has verified; it is the only Grotto surface that reads a
@@ -516,9 +515,9 @@ Server independently verifies a current token on every operation, including
 each subscription start, so an expired session is refused rather than
 tolerated.
 
-Live durable notifications and composition are process-local signals.
-PostgreSQL cursors heal durable notification loss on reconnect; composition is
-intentionally best-effort and disappears instead of replaying.
+Live durable notifications and composition are process-local signals. PostgreSQL cursors heal
+durable notification loss on reconnect; composition is intentionally best-effort and disappears
+instead of replaying.
 
 Thread message and follow notifications retain the existing durable event row
 shape. The public event adds only `parentChatId`, nullable for top-level Chats,

@@ -20,6 +20,7 @@ function message(id: string, sequence: number): HostedChatMessage {
         createdAt: '2026-07-26T12:00:00.000Z',
         id,
         nonce: `nonce_${id}`,
+        runId: null,
         sequence,
         serverId: 'srv_one',
     };

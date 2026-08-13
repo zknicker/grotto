@@ -26,10 +26,8 @@ function ChatEventInvalidations() {
     useTaskChangeEvents();
     useTaskLabelEvents();
 
-    // `reminder.changed` deliberately has no listener: the operator-scoped
-    // reminder lane (`reminder.onEvent` + `reminder.changes`) is that
-    // namespace's single invalidation owner, and this participant-gated lane
-    // cannot see every reminder the Reminders page renders.
+    // `reminder.changed` deliberately has no listener. This participant-gated
+    // lane cannot see every reminder shown on an Agent profile.
 
     return null;
 }

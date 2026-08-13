@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { composeInboxNotice } from '../inbox-format.ts';
 import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
+import { readComputerExecutionJournal } from './execution-journal.ts';
 import {
     AgentSessionResumeRejectedError,
     type HarnessTurnInput,
@@ -86,11 +87,22 @@ function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
             streamedPrompts.push(options.prompt);
             return {
                 fullStream: (async function* () {
-                    for (const toolName of streamToolNames) {
-                        yield { toolName, type: 'tool-call' };
+                    for (const [index, toolName] of streamToolNames.entries()) {
+                        yield { toolCallId: `call_${index}`, toolName, type: 'tool-call' };
                     }
                     if (streamIncludesToolBoundary) {
-                        yield { type: 'tool-result' };
+                        if (streamToolNames.length === 0) {
+                            yield { type: 'tool-result' };
+                        } else {
+                            for (const [index, toolName] of streamToolNames.entries()) {
+                                yield {
+                                    result: { ok: true },
+                                    toolCallId: `call_${index}`,
+                                    toolName,
+                                    type: 'tool-result',
+                                };
+                            }
+                        }
                     }
                     yield {
                         type: 'finish-step',
@@ -138,6 +150,7 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
         ],
         inboxDelivery: 'concrete',
         modelId: 'gpt-5.6-sol',
+        runId: 'run_test',
         runtimeId: 'codex',
         sessionGeneration: 1,
         skillsDir: join(agentRoot, 'skills'),
@@ -156,7 +169,7 @@ async function readSession(): Promise<AgentSessionState> {
 test('cold-starts a fresh Agent then resumes its one global session', async () => {
     const first = await runHarnessTurn(turnInput());
     expect(first.contextTokens).toBe(15);
-    expect(first.toolNames).toEqual([]);
+    expect(first.aborted).toBe(false);
     // Cold start: no resume payload, generation 1, engine session + resume state
     // persisted for the next turn.
     expect(createSessionCalls[0]?.resumeFrom).toBeUndefined();
@@ -176,7 +189,7 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     expect((await readSession()).generation).toBe(1);
 });
 
-test('returns bounded unique tool names as safe turn evidence', async () => {
+test('keeps detailed tool evidence local instead of returning raw tool names', async () => {
     streamToolNames = [
         'mcp__catalog__get_issue',
         'mcp__catalog__get_issue',
@@ -190,13 +203,23 @@ test('returns bounded unique tool names as safe turn evidence', async () => {
 
     const result = await runHarnessTurn(turnInput());
 
-    expect(result.toolNames).toEqual([
-        'mcp__catalog__get_issue',
-        'shell_command',
-        'read_file',
-        'write_file',
-        'search',
-        'edit_file',
+    expect(result).not.toHaveProperty('toolNames');
+    const journal = await readComputerExecutionJournal(agentRoot, 'run_test');
+    expect(journal?.tools.map((tool) => tool.toolName)).toEqual(streamToolNames);
+});
+
+test('projects tool stream boundaries into safe semantic activity', async () => {
+    streamToolNames = ['cat_private_file'];
+    streamIncludesToolBoundary = true;
+    const activity: Array<{ category: string; phase: string }> = [];
+
+    await runHarnessTurn(turnInput({ onActivity: (event) => activity.push(event) }));
+
+    expect(activity).toEqual([
+        { category: 'thinking', phase: 'started' },
+        { category: 'using_tool', phase: 'started' },
+        { category: 'using_tool', phase: 'completed' },
+        { category: 'thinking', phase: 'completed' },
     ]);
 });
 

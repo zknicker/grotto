@@ -116,13 +116,6 @@ export function createAppRouter() {
                                                     ),
                                                 },
                                                 {
-                                                    path: 'reminders',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.reminders,
-                                                        'ServerRemindersPage'
-                                                    ),
-                                                },
-                                                {
                                                     path: 'members',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.members,

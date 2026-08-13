@@ -1,8 +1,8 @@
 ---
-summary: Agent chat experience — durable messages, the ephemeral composition bubble, artifacts, receipts, and channel/DM structure. Execution evidence lives on the agent profile, not the chat.
+summary: Agent chat experience — durable messages, artifacts, and channel/DM structure. Execution evidence stays outside the timeline.
 read_when:
   - changing the main agent conversation experience
-  - changing durable messages, the composition bubble, artifacts, or receipts
+  - changing durable messages, composer behavior, or artifacts
   - changing channel/DM structure, archiving, or chat appearance
 ---
 
@@ -16,8 +16,6 @@ and [Agent Inbox](../../specs/inbox.md).
 ## In the box
 
 * **Durable messages.** User, assistant, and Server-authored system rows are stable history.
-  Task creation and promotion can add a concise system receipt to the parent Chat; it is an
-  informational timeline row, while the task message and its Thread remain canonical.
   The timeline carries conversation units only — messages, artifacts,
   notices, thread anchors — and nothing turn-shaped. See
   [chat-timeline](../../specs/chat-timeline.md).
@@ -36,14 +34,6 @@ and [Agent Inbox](../../specs/inbox.md).
   the same way, including the first reply, whose pending row belongs to the
   anchor message until the Thread it creates exists. Pending rows are never
   written into durable chat history.
-* **Composition bubble.** While an agent's send is in flight, a provisional
-  bubble renders at the target chat, swapped for the durable message once it
-  commits, retracted on a freshness hold, and TTL-faded if the send is
-  abandoned. On a hosted Server, the Server's volatile Agent lifecycle feed
-  opens the bubble for `sending` and clears it when the send returns to
-  `reading`; the durable `message.created` event then refreshes the canonical
-  timeline. It is ephemeral app state, never persisted or replayed. No
-  working, reading, tool, or reasoning phase creates a Chat row.
 * **Changed files.** A turn that creates, modifies, or deletes workspace files
   shows a "Changed N files" chip under the agent's reply, and the full
   per-file diff view. Selecting text in a diff or workspace file preview
@@ -74,7 +64,7 @@ and [Agent Inbox](../../specs/inbox.md).
   a channel can be reopened or restored. An open archived channel shows an
   Archived badge and a restore bar in place of the composer. Its history,
   search results, deep link, and child Threads remain readable, but new
-  messages, tasks, reactions, attachments, compositions, and reminder output
+  messages, tasks, reactions, attachments, and reminder output
   in the aggregate are rejected. Archive cancels undrained
   Agent inbox work for the aggregate; already accepted turns cannot send back
   after the transition. Restore permits new work without replaying canceled
@@ -107,8 +97,9 @@ and [Agent Inbox](../../specs/inbox.md).
   resets stay agent-wide in Agent settings (specs/sessions.md); their durable
   new-session notice attaches to the agent's next turn as a header-action
   hover affordance instead of rendering standalone. Execution evidence (turn
-  status, activity feed, prompt and file-change trace) lives entirely on the
-  profile, not in the chat pane — see [Agent Activity](../../specs/agent-activity.md).
+  status and Activity History) lives on the profile. An Agent message's Turn Details drawer may
+  show its Server summary and, for Owners/Admins with an online Computer, relay the detailed local
+  execution journal — see [Agent Activity](../../specs/agent-activity.md).
 * **Stop.** Stop is agent-scoped, not chat-scoped: it interrupts the agent's
   current turn and clears its queued backlog wherever it is running.
 * **Dismissal.** Failed-turn banners can be dismissed with a hover X. The
@@ -123,15 +114,13 @@ The timeline combines three inputs:
 | --- | --- | --- |
 | Durable messages | Grotto Server | Canonical timeline rows |
 | Artifacts | Grotto Server | Rich renderable outputs |
-| Composition bubbles | Grotto App (ephemeral) | In-flight agent send preview |
 | Optimistic local rows | Grotto App | One-frame accepted-message handoff |
 
 Rendering rules:
 
 * key user and assistant rows by durable message id
 * key artifacts by artifact id
-* replace optimistic rows and composition bubbles by durable message id
-  (matched on `compositionId`)
+* reconcile optimistic rows by durable message id
 * recover reloads from Server messages and artifacts
 
 ## App Data Flow

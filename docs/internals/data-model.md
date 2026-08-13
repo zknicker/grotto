@@ -24,5 +24,8 @@ does not ingest provider credentials, full prompts, execution transcripts, arbit
 or Agent workspace contents. Computer state is not a substitute for canonical Chat history, and App
 cache is never authoritative.
 
+Semantic Agent activity is durable Server metadata. Detailed execution journals remain
+Computer-local and are read only through an authorized live relay.
+
 The Server application PostgreSQL role receives normal table/sequence privileges; migration and
 backup roles remain separate operational credentials.

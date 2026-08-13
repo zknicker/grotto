@@ -1,4 +1,5 @@
 import type {
+    HostedAgentActivityEvent,
     HostedAgentSendReceipt,
     HostedAttachmentMetadata,
     HostedDurableEvent,
@@ -14,6 +15,7 @@ import {
     readMessageAttachments,
     requireAgentMessageAttachments,
 } from '../attachments/message-attachments.ts';
+import { appendServerAgentActivity } from '../hosted-agents/agent-activity.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
@@ -27,12 +29,14 @@ export interface SendHostedAgentMessageInput {
     chatId: string;
     content: string;
     nonce: string;
+    runId: string;
     serverId: string;
     /** The grammar target the Agent believes it answered; recorded for fidelity. */
     target: string;
 }
 
 export interface SendHostedAgentMessageResult {
+    activities: HostedAgentActivityEvent[];
     event: HostedDurableEvent | null;
     message: TavernAgentMessage;
     receipt: HostedAgentSendReceipt;
@@ -78,6 +82,7 @@ export async function sendHostedAgentMessage(
                 cursor: chatEventsTable.cursor,
                 id: chatMessagesTable.id,
                 nonce: chatMessagesTable.nonce,
+                runId: chatMessagesTable.runId,
                 sequence: chatMessagesTable.sequence,
             })
             .from(chatMessagesTable)
@@ -112,6 +117,7 @@ export async function sendHostedAgentMessage(
                 throw new AgentSendConflictError();
             }
             return {
+                activities: [],
                 event: null,
                 message: toAgentCliMessage(existing, {
                     ...agent,
@@ -128,6 +134,17 @@ export async function sendHostedAgentMessage(
                 },
                 wakes: [],
             };
+        }
+        const activities: HostedAgentActivityEvent[] = [];
+        const startedActivity = await appendServerAgentActivity(tx, {
+            agentId: input.agentId,
+            category: 'sending_message',
+            phase: 'started',
+            runId: input.runId,
+            serverId: input.serverId,
+        });
+        if (startedActivity) {
+            activities.push(startedActivity);
         }
         const attachments = await requireAgentMessageAttachments(tx, input.agentId, {
             attachmentIds: input.attachmentIds,
@@ -155,6 +172,7 @@ export async function sendHostedAgentMessage(
                 content: input.content,
                 id: createOpaqueId('msg'),
                 nonce: input.nonce,
+                runId: input.runId,
                 sequence: updatedChat.sequence,
                 serverId: input.serverId,
             })
@@ -210,7 +228,19 @@ export async function sendHostedAgentMessage(
                 id: chatEventsTable.id,
             });
 
+        const completedActivity = await appendServerAgentActivity(tx, {
+            agentId: input.agentId,
+            category: 'sending_message',
+            phase: 'completed',
+            runId: input.runId,
+            serverId: input.serverId,
+        });
+        if (completedActivity) {
+            activities.push(completedActivity);
+        }
+
         return {
+            activities,
             event: {
                 chatId: input.chatId,
                 createdAt: event.createdAt.toISOString(),

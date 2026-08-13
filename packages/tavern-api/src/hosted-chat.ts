@@ -36,9 +36,7 @@ export const hostedChatMessageAuthorSchema = z.discriminatedUnion('kind', [
             userId: hostedIdSchema,
         })
         .strict(),
-    z
-        .object({ kind: z.literal('system'), system: z.enum(['reminder', 'session', 'task']) })
-        .strict(),
+    z.object({ kind: z.literal('system'), system: z.enum(['reminder', 'session']) }).strict(),
 ]);
 
 export const hostedChatMessageSchema = z
@@ -50,6 +48,8 @@ export const hostedChatMessageSchema = z
         createdAt: hostedTimestampSchema,
         id: hostedIdSchema,
         nonce: z.string().trim().min(1).max(128),
+        /** The real Server-assigned Agent run; human/system messages are null. */
+        runId: hostedIdSchema.nullable(),
         sequence: z.number().int().positive(),
         serverId: hostedIdSchema,
         task: hostedMessageTaskSchema.nullable().optional(),
@@ -317,6 +317,10 @@ export type HostedChatReadReceipt = z.infer<typeof hostedChatReadReceiptSchema>;
 
 export const hostedChatSearchInputSchema = z
     .object({
+        /** Only messages created at or after this instant. */
+        after: hostedTimestampSchema.optional(),
+        authorAgentId: hostedIdSchema.optional(),
+        authorUserId: hostedIdSchema.optional(),
         chatId: hostedIdSchema.optional(),
         limit: z.number().int().min(1).max(100).default(50),
         query: z.string().trim().min(1).max(500),

@@ -92,7 +92,7 @@ export function MentionPicker({
                                     <button
                                         aria-selected={index === activeIndex}
                                         className={cn(
-                                            'h-8 w-full shrink-0 cursor-pointer overflow-hidden rounded-lg px-2.5 text-left text-foreground outline-hidden focus:bg-default',
+                                            'h-8 w-full shrink-0 cursor-(--cursor-interactive) overflow-hidden rounded-lg px-2.5 text-left text-foreground outline-hidden focus:bg-default',
                                             index === activeIndex
                                                 ? 'bg-default'
                                                 : 'hover:bg-default'

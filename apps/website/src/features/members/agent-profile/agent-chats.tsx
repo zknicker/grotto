@@ -37,7 +37,7 @@ export function AgentChats({ agent, server }: { agent: HostedAgent; server: Serv
                         <React.Fragment key={chat.id}>
                             {index > 0 ? <Separator /> : null}
                             <button
-                                className="flex w-full cursor-[var(--cursor-interactive)] items-center gap-3 px-4 py-3.5 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus"
+                                className="flex w-full cursor-[var(--cursor-interactive)] items-center gap-3 px-4 py-3.5 text-left outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus"
                                 onClick={() => navigate(serverChatRoute(server.slug, chat.id))}
                                 type="button"
                             >

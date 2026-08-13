@@ -30,7 +30,7 @@ export function ServerSwitcher({
                         <EntityAvatar name={server.displayName || server.slug} size="sm" />
                         <span className="min-w-0">
                             <span className="block truncate">{server.displayName}</span>
-                            <span className="block text-muted text-xs">/{server.slug}</span>
+                            <span className="block text-muted text-sm">/{server.slug}</span>
                         </span>
                     </div>
                 </NavLink>

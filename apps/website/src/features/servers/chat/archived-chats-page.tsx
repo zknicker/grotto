@@ -6,8 +6,6 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useArchivedChats } from '../../../hooks/servers/use-archived-chats.ts';
 import { useChannelUnarchive } from '../../../hooks/servers/use-channel-lifecycle.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import { SectionHeader } from '../../shell/section-header.tsx';
-import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { serverChatRoute } from '../server-routes.ts';
 
 export function ArchivedChatsPage({ server }: { server: ServerDetail }) {
@@ -19,9 +17,6 @@ export function ArchivedChatsPage({ server }: { server: ServerDetail }) {
 
     return (
         <section aria-label="Archived channels" className="flex min-h-0 flex-1 flex-col">
-            <PageTopbar>
-                <SectionHeader title="Archived" />
-            </PageTopbar>
             <div className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto p-6 pt-8">
                 {chats.isPending ? (
                     <div aria-busy="true" className="min-h-full">

@@ -60,6 +60,7 @@ test('hosted messages and durable events keep stable Server and Chat identity', 
         createdAt: '2026-07-26T12:00:00.000Z',
         id: 'msg_one',
         nonce: 'send-1',
+        runId: null,
         sequence: 1,
         serverId: 'srv_main',
     });
@@ -124,6 +125,7 @@ test('hosted message history can preserve a deleted author profile', () => {
         createdAt: '2026-08-10T12:00:00.000Z',
         id: 'msg_cove',
         nonce: 'cove-history',
+        runId: null,
         sequence: 1,
         serverId: 'srv_main',
     });
@@ -134,20 +136,21 @@ test('hosted message history can preserve a deleted author profile', () => {
     });
 });
 
-test('hosted message contracts carry Server-authored task timeline receipts', () => {
-    expect(
+test('hosted message contracts reject the retired task system author', () => {
+    expect(() =>
         hostedChatMessageSchema.parse({
             attachments: [],
             author: { kind: 'system', system: 'task' },
             chatId: 'cht_all',
-            content: '📋 1 new task created: #1 "Audit the hosted export"',
+            content: 'Retired receipt',
             createdAt: '2026-07-26T12:00:00.000Z',
-            id: 'msg_task_receipt',
-            nonce: 'task-receipt:send-1',
+            id: 'msg_retired_receipt',
+            nonce: 'retired-receipt',
+            runId: null,
             sequence: 2,
             serverId: 'srv_main',
         })
-    ).toMatchObject({ author: { kind: 'system', system: 'task' } });
+    ).toThrow();
 });
 
 test('hosted sends allow attachment-only messages but reject empty messages', () => {

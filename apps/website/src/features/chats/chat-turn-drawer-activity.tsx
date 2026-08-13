@@ -184,7 +184,7 @@ function DrawerToolCall({ chatId, row }: { chatId?: string; row: ToolStepRow }) 
             </ChatTool.Trigger>
             <ChatTool.Content>
                 {detailPending ? (
-                    <div className="flex items-center gap-2 p-2 text-muted text-xs">
+                    <div className="flex items-center gap-2 p-2 text-muted text-sm">
                         <Spinner color="current" size="sm" />
                         Loading tool detail
                     </div>

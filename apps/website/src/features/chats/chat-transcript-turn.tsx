@@ -1,6 +1,7 @@
 import { Chip, Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
+import type { HostedAgent } from '@tavern/api';
 import { splitVisualFences } from '@tavern/api/widgets/visual';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
@@ -15,6 +16,7 @@ import { openAgentProfilePane } from '../../hooks/pane/use-agent-profile-pane.ts
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { formatShortTime } from '../../lib/format.ts';
 import { cn } from '../../lib/utils.ts';
+import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentHoverCard } from './agent-hover-card.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
@@ -58,6 +60,7 @@ import {
 import type { SessionNoticeRow } from './chat-transcript-row-model.ts';
 import { RuntimeNoticeEntry, SessionNoticeAction } from './chat-transcript-system-step.tsx';
 import { ChatTurnDrawer } from './chat-turn-drawer.tsx';
+import { HostedTurnDetailsDrawer } from './hosted-turn-details-drawer.tsx';
 import { AgentWidget } from './legacy-widget-row.tsx';
 import { MessageReactionActions } from './thread/message-reactions.tsx';
 import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
@@ -72,7 +75,7 @@ import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
 // wash also holds while a bar-owned popover (the emoji picker) is open, so
 // moving the pointer into the portaled popover doesn't unwash the row.
 const turnRowClassName =
-    'group/turn -mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2 hover:bg-surface-hover has-[[data-turn-actions]_[aria-expanded=true]]:bg-surface-hover';
+    'group/turn -mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2 hover:bg-background-hover has-[[data-turn-actions]_[aria-expanded=true]]:bg-background-hover';
 const turnBodyClassName = 'gap-0';
 const turnAvatarOffsetClassName = 'mt-1.5';
 // Stock action buttons are composer-sized; transcript rows want the compact
@@ -122,10 +125,15 @@ export function TranscriptEntryView({
         if (entry.item.kind === 'row' && entry.item.row.kind === 'message') {
             return (
                 <ThreadMessageSurface row={entry.item.row}>
-                    <p className="flex justify-center gap-2 px-5 py-2 text-center text-muted text-xs">
-                        <span>{entry.item.row.message.content}</span>
+                    {/* pl-11.5 + the surface's px-5 = avatar + gap: the message text column. */}
+                    <p className="flex items-baseline gap-2 py-2 pr-5 pl-11.5 text-muted text-sm">
+                        <span className="min-w-0 truncate" title={entry.item.row.message.content}>
+                            {entry.item.row.message.content}
+                        </span>
                         <span aria-hidden="true">·</span>
-                        <RelativeTime value={entry.item.row.message.timestamp} />
+                        <span className="shrink-0 text-xs">
+                            <RelativeTime value={entry.item.row.message.timestamp} />
+                        </span>
                     </p>
                 </ThreadMessageSurface>
             );
@@ -275,14 +283,33 @@ function getActiveReplyText(items: TranscriptItem[]) {
 // Agents and people share one identity mark: the uploaded square image when
 // there is one, initials otherwise.
 function TurnAvatar({
+    agentId,
+    availability,
     avatarUrl,
     deleted = false,
     name,
 }: {
+    agentId?: null | string;
+    availability?: HostedAgent['availability'];
     avatarUrl?: string | null;
     deleted?: boolean;
     name: string;
 }) {
+    if (agentId && !deleted) {
+        return (
+            <AgentAvatar
+                agent={{
+                    availability,
+                    avatarUrl: avatarUrl ?? null,
+                    displayName: name,
+                    id: agentId,
+                }}
+                className={turnAvatarOffsetClassName}
+                size={32}
+            />
+        );
+    }
+
     return (
         <ChatMessage.Avatar
             alt={`${name} avatar`}
@@ -320,7 +347,7 @@ function TurnHeader({
                 <button
                     aria-label={`Mention ${displayName}`}
                     className={cn(
-                        'shrink-0 cursor-pointer truncate font-semibold text-sm leading-5 hover:underline',
+                        'shrink-0 cursor-(--cursor-interactive) truncate font-semibold text-sm leading-5 hover:underline',
                         deleted ? 'text-muted' : 'text-foreground'
                     )}
                     onClick={() =>
@@ -333,7 +360,7 @@ function TurnHeader({
             ) : onClick ? (
                 <button
                     className={cn(
-                        'shrink-0 cursor-pointer truncate font-semibold text-sm leading-5 hover:underline',
+                        'shrink-0 cursor-(--cursor-interactive) truncate font-semibold text-sm leading-5 hover:underline',
                         deleted ? 'text-muted' : 'text-foreground'
                     )}
                     onClick={onClick}
@@ -466,6 +493,7 @@ function AgentTurnPresentation({
         canRequestMention,
         composerId,
         disableAgentHoverCard,
+        hostedTurnDetails,
         onToggleReaction,
         profilePaneChatId,
         repliedRunIds,
@@ -476,6 +504,7 @@ function AgentTurnPresentation({
     const turnStopped =
         hasStoppedTurn(items, activeReply?.runId) || (!activeReply && hasAnyStoppedTurn(items));
     const turnActive = isActiveTurn(items, activeReply, lastMessage);
+    const turnRunId = items.map(getItemRunId).find((value) => value !== null) ?? null;
     const copyValue = lastMessage?.content ?? getActiveReplyText(items);
     const [inspectOpen, setInspectOpen] = React.useState(false);
     const [inspectMounted, setInspectMounted] = React.useState(false);
@@ -537,24 +566,36 @@ function AgentTurnPresentation({
                             ? () => openAgentProfilePane(profilePaneChatId, actorId)
                             : undefined
                     }
-                    triggerButtonClassName="cursor-pointer rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    triggerButtonClassName="cursor-(--cursor-interactive) rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     // self-start keeps the trigger from stretching to the row
                     // height and re-centering the avatar it wraps.
                     triggerClassName="shrink-0 self-start"
                 >
-                    <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
+                    <TurnAvatar
+                        agentId={actorId}
+                        availability={actorProfile?.availability}
+                        avatarUrl={actorProfile?.avatarUrl}
+                        name={displayName}
+                    />
                 </AgentHoverCard>
             ) : chatId && actorId && profilePaneChatId && !actorProfile?.deleted ? (
                 <button
                     aria-label={`Agent details: ${displayName}`}
-                    className="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    className="shrink-0 cursor-(--cursor-interactive) self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
                     type="button"
                 >
-                    <TurnAvatar avatarUrl={actorProfile?.avatarUrl} name={displayName} />
+                    <TurnAvatar
+                        agentId={actorId}
+                        availability={actorProfile?.availability}
+                        avatarUrl={actorProfile?.avatarUrl}
+                        name={displayName}
+                    />
                 </button>
             ) : (
                 <TurnAvatar
+                    agentId={actorId}
+                    availability={actorProfile?.availability}
                     avatarUrl={actorProfile?.avatarUrl}
                     deleted={actorProfile?.deleted}
                     name={displayName}
@@ -595,16 +636,29 @@ function AgentTurnPresentation({
             </ChatMessage.Body>
             {/* Mounted on first use so long transcripts don't pay a drawer per turn. */}
             {inspectMounted ? (
-                <ChatTurnDrawer
-                    agentAvatarUrl={actorProfile?.avatarUrl ?? null}
-                    agentName={displayName}
-                    chatId={chatId}
-                    embeddedEvidence={turnEvidenceSource === 'embedded'}
-                    entry={entry}
-                    onOpenChange={setInspectOpen}
-                    open={inspectOpen}
-                    turnActive={turnActive}
-                />
+                hostedTurnDetails ? (
+                    <HostedTurnDetailsDrawer
+                        access={hostedTurnDetails.access}
+                        agentAvatarUrl={actorProfile?.avatarUrl ?? null}
+                        agentId={actorId}
+                        agentName={displayName}
+                        onOpenChange={setInspectOpen}
+                        open={inspectOpen}
+                        runId={turnRunId}
+                        serverId={hostedTurnDetails.serverId}
+                    />
+                ) : (
+                    <ChatTurnDrawer
+                        agentAvatarUrl={actorProfile?.avatarUrl ?? null}
+                        agentName={displayName}
+                        chatId={chatId}
+                        embeddedEvidence={turnEvidenceSource === 'embedded'}
+                        entry={entry}
+                        onOpenChange={setInspectOpen}
+                        open={inspectOpen}
+                        turnActive={turnActive}
+                    />
+                )
             ) : null}
         </ChatMessage.Assistant>
     );
@@ -924,7 +978,7 @@ function AssistantNarrationText({ item }: { item: TranscriptItem }) {
     const text = getAssistantNarrationText(item);
 
     return text ? (
-        <div className="min-w-0 max-w-[46rem] whitespace-pre-wrap break-words text-foreground text-sm leading-6 [overflow-wrap:anywhere]">
+        <div className="min-w-0 max-w-[46rem] whitespace-pre-wrap break-words text-base text-foreground leading-6 [overflow-wrap:anywhere]">
             {text}
         </div>
     ) : null;

@@ -17,7 +17,11 @@ export function ChatMarkdownText({
 }) {
     if (animatedRanges.length === 0) {
         return (
-            <ReferenceMarkdown className="chat-markdown" content={content} mentions={mentions} />
+            <ReferenceMarkdown
+                className="chat-markdown text-base"
+                content={content}
+                mentions={mentions}
+            />
         );
     }
 
@@ -41,7 +45,7 @@ export function ChatMarkdownText({
 
         return (
             <p
-                className="my-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                className="my-0 whitespace-pre-wrap break-words text-base [overflow-wrap:anywhere]"
                 key={`prose:${block.start}`}
             >
                 {renderMarkdownInline({

@@ -63,9 +63,11 @@ Known skills, plugins, apps, and agents may receive richer icons or labels from
 their kind and target. Transcript rendering reconstructs chips by parsing the
 message content, not by reading message metadata.
 
-All surfaces render one shared reference chip component. Its kind registry
-owns icons, labels, colors, and fallbacks so new reference types do not add
-conditionals to chat renderers. Agent chips show the agent's avatar tinted with
+All surfaces render one shared reference chip component built on HeroUI
+`Chip`. HeroUI owns the shell's shape, spacing, size, and label structure. The
+kind registry owns icons, labels, colors, and fallbacks so new reference types
+do not add conditionals to chat renderers or introduce another chip primitive.
+Agent chips show the agent's avatar tinted with
 its configured color — the same color the user picks from the agent color
 presets in Settings. Transcript surfaces resolve that appearance live from the
 agent record by decoding the `agent://...` target; the composer embeds the same

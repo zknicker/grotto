@@ -57,6 +57,10 @@ import {
     readComputerStatus,
 } from './diagnostics.ts';
 import { readEffectiveAgentStates } from './effective-state.ts';
+import {
+    parseExecutionJournalRequest,
+    readExecutionJournalRequest,
+} from './execution-journal-relay.ts';
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import { prewarmBridgeStores } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
@@ -1322,6 +1326,17 @@ async function connect(attachment: Attachment) {
                     runAgentWorkspaceRequest({
                         dataRoot,
                         request: workspaceRequest,
+                        serverId: attachment.serverId,
+                    }).then((result) => socket.send(JSON.stringify(result)))
+                );
+                return;
+            }
+            const executionJournalRequest = parseExecutionJournalRequest(frame);
+            if (executionJournalRequest) {
+                void trackWriter(
+                    readExecutionJournalRequest({
+                        dataRoot,
+                        request: executionJournalRequest,
                         serverId: attachment.serverId,
                     }).then((result) => socket.send(JSON.stringify(result)))
                 );

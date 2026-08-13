@@ -241,21 +241,55 @@ identity.
 _Avoid_: Worker, sender, runtime identity
 
 **Agent seat**:
-An agent Chat participant in a specific Chat, owning that agent's current session binding for the
-Chat.
+An Agent Chat participant in a specific Chat, used for membership, addressing, authorship, and
+Chat-scoped routing. The Agent's execution continuity belongs to the Agent, not to this seat.
 _Avoid_: Agent presence, session key, runtime route
 
 **Agent session**:
-The rotatable execution continuity record for an Agent seat. An Agent has at most one current
-session across all Chats. Changing its runtime or model starts a fresh session generation while
+The rotatable execution continuity record for one Agent across all of its Chats. An Agent has at
+most one current session. Changing its runtime or model starts a fresh session generation while
 preserving the Agent's identity, workspace, memory, and skills. A runtime resume failure also
 rotates automatically with explicit recovery evidence rather than leaving the Agent stuck on
 unusable context.
 _Avoid_: Chat, seat, runtime session
 
 **Agent turn**:
-One execution attempt by an Agent seat inside an Agent session.
+One execution attempt by an Agent inside its Agent session. A turn may receive or act across
+multiple Chats and is not owned by the Chat that woke it.
 _Avoid_: Agent run, Chat, session
+
+**Agent activity**:
+A human-readable observation of meaningful Agent work during an Agent turn, such as a lifecycle
+transition or semantic tool category. It is safe, summarized execution metadata—not reasoning,
+message drafts, raw tool inputs or outputs, command contents, or private file contents.
+_Avoid_: Chat activity, typing indicator, raw execution trace
+
+**Agent activity strip**:
+The conditional Server-sidebar surface that shows the latest summarized Agent activity for each
+Agent currently doing work on that Server.
+_Avoid_: Agent roster, activity history, status feed
+
+**Agent activity history**:
+The Server-persisted chronological record of summarized Agent activity, including lifecycle changes
+and semantic tool categories. It remains available when the Agent's Computer is offline and never
+contains the detailed Computer-local execution journal. An Agent's creator is provenance, not its
+owner or a separate authorization role.
+_Avoid_: Chat history, turn list, current status
+
+**Turn Details**:
+The role-aware drawer opened from an Agent-authored Chat message to inspect the turn associated with
+that response. Server members see the Server-persisted activity summary. Server Owners and Admins
+may request the detailed execution journal from the Agent's online Computer through an authorized
+live relay; those details are unavailable while the Computer is offline and are not persisted by
+Server. Agent activity history remains the canonical chronological summary.
+_Avoid_: Chat transcript, unrestricted execution trace, Agent activity history
+
+**Agent execution journal**:
+The Computer-local, turn-keyed record of inspectable tool calls, inputs, outputs, errors, and timing.
+It is available to Server Owners and Admins through an authorized live relay such as Turn Details,
+but is not copied into Server persistence. It excludes model reasoning. Its retention and cleanup
+behavior are intentionally deferred to the holistic Agent data-retention policy.
+_Avoid_: Agent activity history, Chat history, model session
 
 **Agent workspace**:
 The Computer-local per-Agent filesystem home that stores the Agent's editable identity,

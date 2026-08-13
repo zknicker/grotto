@@ -1,10 +1,14 @@
+import { Badge } from '@heroui/react';
 import type { HostedAgent } from '@tavern/api';
 import type React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { StatusDot } from '../../components/ui/status-dot.tsx';
+import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
+import { cn } from '../../lib/utils.ts';
 
 /** Hosted availability mapped onto the stock Badge colour vocabulary. */
-export function hostedAvailabilityBadgeColor(availability: HostedAgent['availability']) {
+export function hostedAvailabilityBadgeColor(
+    availability: HostedAgent['availability'] | undefined
+) {
     switch (availability) {
         case 'idle':
             return 'success' as const;
@@ -17,18 +21,34 @@ export function hostedAvailabilityBadgeColor(availability: HostedAgent['availabi
     }
 }
 
-/** Hosted availability mapped onto the shared status-dot vocabulary. */
-export function hostedAvailabilityStatus(availability: HostedAgent['availability']) {
+export function hostedAvailabilityLabel(availability: HostedAgent['availability'] | undefined) {
     switch (availability) {
         case 'idle':
-            return 'success' as const;
+            return 'Online';
         case 'working':
-            return 'warning' as const;
+            return 'Working';
+        case 'offline':
+            return 'Offline';
+        case 'stopped':
+            return 'Stopped';
         case 'error':
-            return 'error' as const;
+            return 'Needs attention';
         default:
-            return 'muted' as const;
+            return null;
     }
+}
+
+export function resolveAgentAvatarAvailability(
+    availability: HostedAgent['availability'] | undefined,
+    isCurrentlyWorking: boolean | undefined
+) {
+    if (isCurrentlyWorking === true) {
+        return 'working' as const;
+    }
+    if (isCurrentlyWorking === false && availability === 'working') {
+        return 'idle' as const;
+    }
+    return availability;
 }
 
 /**
@@ -38,23 +58,46 @@ export function hostedAvailabilityStatus(availability: HostedAgent['availability
  */
 export function AgentAvatar({
     agent,
+    className,
     size = 20,
 }: {
-    agent: Pick<HostedAgent, 'availability' | 'avatarUrl' | 'displayName'>;
+    agent: {
+        availability?: HostedAgent['availability'];
+        avatarUrl: HostedAgent['avatarUrl'];
+        displayName: HostedAgent['displayName'];
+        id?: HostedAgent['id'];
+    };
+    className?: string;
     size?: number;
 }): React.ReactElement {
+    const currentActivity = useOptionalCurrentAgentActivity();
+    const availability = resolveAgentAvatarAvailability(
+        agent.availability,
+        agent.id && currentActivity?.isSnapshotReady
+            ? currentActivity.activityByAgentId.has(agent.id)
+            : undefined
+    );
+
     return (
-        <span
-            className="relative flex shrink-0 items-center justify-center"
+        <Badge.Anchor
+            className={className}
+            data-agent-id={agent.id}
+            data-agent-status={availability ?? 'unknown'}
             style={{ height: size, width: size }}
         >
             <EntityAvatar name={agent.displayName} size={size} src={agent.avatarUrl} />
-            <StatusDot
-                className="absolute -right-0.5 -bottom-0.5 ring-2 ring-background"
-                size="md"
-                status={hostedAvailabilityStatus(agent.availability)}
-                title={agent.availability}
+            <Badge
+                className={cn(
+                    availability !== 'idle' &&
+                        availability !== 'working' &&
+                        availability !== 'error' &&
+                        'bg-muted'
+                )}
+                color={hostedAvailabilityBadgeColor(availability)}
+                placement="bottom-right"
+                size="sm"
+                title={hostedAvailabilityLabel(availability) ?? undefined}
             />
-        </span>
+        </Badge.Anchor>
     );
 }

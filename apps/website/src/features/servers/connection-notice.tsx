@@ -16,7 +16,7 @@ export function ConnectionNotice({
     }
 
     return (
-        <div className="absolute top-2 right-3 z-20 rounded-lg bg-surface-secondary px-2 py-1 text-muted text-xs shadow-surface">
+        <div className="absolute top-2 right-3 z-20 rounded-lg bg-surface-secondary px-2 py-1 text-muted text-sm shadow-surface">
             {agents.error && !agents.data
                 ? 'Agent directory unavailable'
                 : 'Server reconnecting · showing the latest data'}

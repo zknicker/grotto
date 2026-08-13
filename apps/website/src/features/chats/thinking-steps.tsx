@@ -1,4 +1,4 @@
-import { Disclosure } from '@heroui/react';
+import { Badge, Disclosure } from '@heroui/react';
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
@@ -12,7 +12,6 @@ import {
     useState,
 } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
-import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { cn } from '../../lib/utils.ts';
 
 type StepStatus = 'active' | 'complete' | 'pending' | 'failed';
@@ -212,15 +211,18 @@ export function ThinkingStep({
                                 <Icon className="size-4 text-muted" icon={icon} strokeWidth={1.5} />
                             ) : (
                                 <div className="flex size-4 items-center justify-center">
-                                    <StatusDot
-                                        pulse={isActive}
-                                        status={
+                                    <Badge
+                                        className="static transform-none"
+                                        color={
                                             status === 'failed'
-                                                ? 'error'
+                                                ? 'danger'
                                                 : isActive
-                                                  ? 'info'
-                                                  : 'muted'
+                                                  ? 'accent'
+                                                  : status === 'complete'
+                                                    ? 'success'
+                                                    : 'default'
                                         }
+                                        size="sm"
                                     />
                                 </div>
                             )}
@@ -269,7 +271,7 @@ export function ThinkingStepDetails({
         <Disclosure className={cn('mt-1 -ml-3', className)} defaultExpanded={defaultOpen}>
             <div className="w-fit">
                 <Disclosure.Heading>
-                    <Disclosure.Trigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-muted text-sm leading-tight hover:bg-surface-secondary hover:text-foreground">
+                    <Disclosure.Trigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-muted text-sm leading-tight hover:bg-surface-hover hover:text-foreground">
                         <span>{summary}</span>
                         <Disclosure.Indicator />
                     </Disclosure.Trigger>

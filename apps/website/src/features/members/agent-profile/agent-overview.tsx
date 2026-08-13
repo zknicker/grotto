@@ -3,17 +3,16 @@ import { ComputerIcon, ShieldUserIcon } from '@hugeicons-pro/core-stroke-rounded
 import type { HostedAgent } from '@tavern/api';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import {
+    computerHealthColor,
     computerHealthLabel,
-    computerHealthStatus,
     computerLabel,
 } from '../../computers/presentation.ts';
 import { serverComputersRoute } from '../../servers/server-routes.ts';
 import { SettingsPage } from '../../settings/layout/settings-page.tsx';
-import { hostedAvailabilityStatus } from '../agent-avatar.tsx';
+import { hostedAvailabilityBadgeColor } from '../agent-avatar.tsx';
 import { MemberProfileFact, MemberProfileFacts } from '../member-profile-header.tsx';
 import { AgentDanger } from './agent-danger.tsx';
 import { AgentIdentity } from './agent-identity.tsx';
@@ -42,10 +41,14 @@ export function AgentOverview({
                     canEdit={canEdit}
                     serverId={server.id}
                     status={
-                        <div className="flex shrink-0 items-center gap-1.5 text-muted text-sm">
-                            <StatusDot status={hostedAvailabilityStatus(agent.availability)} />
-                            <span className="capitalize">{agent.availability}</span>
-                        </div>
+                        <Chip
+                            className="capitalize"
+                            color={hostedAvailabilityBadgeColor(agent.availability)}
+                            size="sm"
+                            variant="soft"
+                        >
+                            {agent.availability}
+                        </Chip>
                     }
                 >
                     <MemberProfileFacts>
@@ -69,13 +72,14 @@ export function AgentOverview({
                                         className="block min-w-0"
                                         to={`${serverComputersRoute(server.slug)}?computer=${encodeURIComponent(computer.id)}`}
                                     >
-                                        <Chip className="max-w-full" variant="primary">
+                                        <Chip
+                                            className="max-w-full"
+                                            color={computerHealthColor(computer.health)}
+                                            variant="soft"
+                                        >
                                             <Icon
                                                 className="size-4 shrink-0 text-muted"
                                                 icon={ComputerIcon}
-                                            />
-                                            <StatusDot
-                                                status={computerHealthStatus(computer.health)}
                                             />
                                             <Chip.Label className="min-w-0 truncate">
                                                 {computerLabel(computer)}

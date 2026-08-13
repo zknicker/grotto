@@ -9,7 +9,9 @@ read_when:
 
 Grotto App is the React client in `apps/website`. It talks to Grotto Server through the hosted tRPC
 client and renders Server-owned collaboration state. The same App runs in a browser or in Electron;
-Electron owns desktop installation, window behavior, and desktop updates, not a local backend.
+Electron owns desktop installation, window behavior (the menu bar and its shortcuts, window-state
+persistence, focus dimming, history swipes, and the Dock unread badge), and desktop updates, not a
+local backend.
 
 The App owns presentation state, local preferences, React Query cache state, optimistic compose
 rows, routing, and transient UI. Server owns durable Chats, Messages, Tasks, members, Agents,

@@ -6,6 +6,7 @@ import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
 import { useDmEnsure } from '../../../hooks/servers/use-dm-ensure.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
+import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
@@ -92,6 +93,7 @@ export function ChatView({
             : chat.peerAgentId
               ? (chat.peerAgentDisplayName ?? 'Agent')
               : `Direct · ${humans.name(chat.peerUserId)}`;
+    useWindowTitle(chat.kind === 'channel' ? `#${chatName}` : chatName);
     const threadSummary =
         messages.data?.threads.find(
             (summary) => summary.anchorMessageId === threadSelection?.anchor.id
@@ -196,6 +198,7 @@ export function ChatView({
             readOnly={readOnly}
             summary={threadSummary}
             takeover={threadTakeover}
+            turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
         />
     ) : null;
     const sidePanel = (
@@ -259,7 +262,7 @@ export function ChatView({
                     viewTab === 'chat' ? (
                         <>
                             {ensureDm.error && !peerRetired ? (
-                                <p className="px-9 text-danger text-xs">{ensureDm.error.message}</p>
+                                <p className="px-9 text-danger text-sm">{ensureDm.error.message}</p>
                             ) : null}
                             <span className="sr-only" data-testid="read-state">
                                 {read.data ? `Read through ${read.data.sequence}` : ''}
@@ -270,7 +273,7 @@ export function ChatView({
                                     chat={chat}
                                 />
                             ) : peerRetired ? (
-                                <p className="mx-auto w-full max-w-none px-9 pb-4 text-muted text-xs">
+                                <p className="mx-auto w-full max-w-none px-9 pb-4 text-muted text-sm">
                                     {chatName} has been retired. You can read this conversation, but
                                     you can’t send new messages.
                                 </p>
@@ -278,7 +281,6 @@ export function ChatView({
                                 <ChatComposer
                                     chatId={chat.id}
                                     chatName={chatName}
-                                    compositionChatId={chat.id}
                                     pendingChatId={chat.id}
                                     placeholder="Let's go on an adventure..."
                                     serverId={chat.serverId}
@@ -313,6 +315,7 @@ export function ChatView({
                         scrollContentRef={scrollContentRef}
                         serverId={chat.serverId}
                         threads={messages.data?.threads}
+                        turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
                     />
                 )}
             />

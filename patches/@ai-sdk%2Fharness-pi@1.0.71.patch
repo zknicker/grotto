@@ -1,0 +1,30 @@
+diff --git a/dist/index.js b/dist/index.js
+index 2774f4856e7eace8181aebbada705c2fd20a7cf6..f4d7af22714df159f29ea9fec742dca2b5e7c71f 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -267,6 +267,15 @@ async function registerCustomProviders({
+     if (!baseUrl) {
+       continue;
+     }
++    let models;
++    const modelsJson = customEnv[`${prefix}_MODELS_JSON`];
++    if (modelsJson) {
++      try {
++        const parsed = JSON.parse(modelsJson);
++        if (Array.isArray(parsed) && parsed.length > 0) models = parsed;
++      } catch {
++      }
++    }
+     await register({
+       registries,
+       provider,
+@@ -274,7 +283,8 @@ async function registerCustomProviders({
+       config: {
+         apiKey,
+         baseUrl,
+-        authHeader: true
++        authHeader: true,
++        ...models ? { models } : {}
+       }
+     });
+   }

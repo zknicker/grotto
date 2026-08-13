@@ -23,6 +23,24 @@ test('renders only the active sidebar page so route changes are instant', () => 
     expect(markup).not.toContain('Tasks');
 });
 
+test('keeps shell footer presentation outside the active sidebar page', () => {
+    const markup = renderToStaticMarkup(
+        <Sidebar.Provider>
+            <ShellSidebar activePage="tasks" footer="Working">
+                <ShellSidebarPage ariaLabel="Server" value="server">
+                    Server
+                </ShellSidebarPage>
+                <ShellSidebarPage ariaLabel="Tasks" value="tasks">
+                    Tasks
+                </ShellSidebarPage>
+            </ShellSidebar>
+        </Sidebar.Provider>
+    );
+
+    expect(markup).toContain('Tasks');
+    expect(markup).toContain('Working');
+});
+
 test('renders every sidebar page through the shared header band', () => {
     const markup = renderToStaticMarkup(
         <Sidebar.Provider>

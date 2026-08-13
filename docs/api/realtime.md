@@ -20,6 +20,7 @@ clients recover through durable reads.
 | Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, Chat lifecycle, and reminder changes |
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
+| Hosted Agent activity journal | Grotto Server | Durable semantic execution metadata plus live current-state projection |
 | Hosted Agent lifecycle hub | Grotto Server | Volatile working/reading/sending/settled projection for presence and send composition |
 | App subscriptions | Grotto App | tRPC notification transport, catch-up cursors, and focused query invalidation |
 
@@ -81,11 +82,10 @@ summary and the Chat list, because parent unread counts include Thread
 attention. `task.created` and `task.updated` invalidate the Server task list
 and the affected Chat message snapshot, not the Chat list. `task.label.updated`
 invalidates the task-label catalog and the task list, whose rows embed label
-records. The Chat lane registers no `reminder.changed` listener at all: it is
-participant-gated on both live delivery and replay, so it cannot see every
-reminder the operator-scoped Reminders surface renders. The reminder lane
-(`reminder.onEvent` + `reminder.changes`) is that namespace's single
-invalidation owner. `chat.lifecycle` carries `created`, `updated`, `archived`,
+records. The Chat lane registers no `reminder.changed` listener: it is
+participant-gated on both live delivery and replay, so it cannot reliably
+refresh the operator-only reminder snapshot on an Agent profile.
+`chat.lifecycle` carries `created`, `updated`, `archived`,
 `unarchived`, or `deleted` plus the stable Chat id, and invalidates active and
 archived lists, the focused Chat query, and the Server's Agent chat lists, whose
 rows are the viewer's visible Chats filtered by Agent membership. Unlike
@@ -125,17 +125,24 @@ fails the subscription.
 Hosted composition events use a separate in-memory hub. They carry current
 composition text or a clear signal, are never written to PostgreSQL, have no
 cursor, and are never replayed. The subscriber's Chat access is rechecked for
-every delivery.
+every delivery. The first-party App does not publish human draft text or render
+a provisional Agent response from this transport.
 
 Hosted Agent lifecycle events are also volatile and membership-checked. The
 Server projects `working` when a run is dispatched, `reading` when Computer
 acceptance arrives and after a send commits, `sending` around the Agent's
 message-send request, and `settled` from the Computer's terminal turn proof.
-The App maps every active phase to coarse Agent `working` availability. Only
-`sending` carries provisional text and composition identity, and only the
-exact target Chat renders it. Settlement invalidates the durable Agent list,
+The App maps every active phase to coarse Agent `working` availability. Settlement invalidates the durable Agent list,
 delivery state, and activity reads. Reconnect recovers from those reads rather
 than replaying lifecycle events.
+
+Semantic Agent activity is written before broadcast. Computer frames carry a narrow category,
+phase, run id, per-run sequence, timestamp, and optional canonical safe tool reference. They never
+carry reasoning, drafts, commands, paths, inputs, or outputs. Reconnect reads durable Activity
+History plus the current unsettled-Agent snapshot before applying later live updates. Hosted tRPC
+uses one Server-scoped `agent.onActivity` subscription; `agent.activityHistory` and
+`agent.activeActivity` are the durable history and reconnect snapshot reads. Activity positions
+are assigned under the Server row lock and are never derived from producer timestamps.
 
 Hosted durable event kinds are `message.created`, `chat.read`, `chat.lifecycle`, the
 reader-private `thread.follow.updated`, `task.created`, `task.updated`, and

@@ -7,7 +7,12 @@ import { useHostedServerContext } from '../hosted-server-context.ts';
 import { taskAssignmentInput } from './task-input.ts';
 import type { TaskItem } from './task-model.ts';
 
-export function TaskAssignee({ task }: { task: TaskItem }) {
+type TaskAssigneeTarget = Pick<
+    TaskItem,
+    'assigneeAgentId' | 'assigneeLabel' | 'assigneeUserId' | 'id' | 'number' | 'version'
+>;
+
+export function TaskAssignee({ task }: { task: TaskAssigneeTarget }) {
     const { server } = useHostedServerContext();
     const humans = useHumanDirectory(server.id);
     const canAssign = server.role === 'owner' || server.role === 'admin';
@@ -73,7 +78,7 @@ export function TaskAssignee({ task }: { task: TaskItem }) {
                 </Select.Popover>
             </Select>
             {assignees.error || assign.error ? (
-                <span className="basis-full text-danger text-xs" role="alert">
+                <span className="basis-full text-danger text-sm" role="alert">
                     {(assignees.error ?? assign.error)?.message}
                 </span>
             ) : null}

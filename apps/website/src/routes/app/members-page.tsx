@@ -9,10 +9,12 @@ import { agentRoute, membersRoute } from '../../features/servers/server-routes.t
 import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useMember } from '../../hooks/members/use-member.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
+import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 
 /** Members owns the stable detail column; child routes choose its content. */
 export function MembersPage() {
     const context = useHostedServerContext();
+    useWindowTitle('Members');
 
     return (
         <main className="flex min-h-0 flex-1">

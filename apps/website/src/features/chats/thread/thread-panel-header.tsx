@@ -49,7 +49,7 @@ export function ThreadPanelHeader({
                 <h2 className="min-w-0 truncate font-semibold text-sm">{header}</h2>
                 {target ? (
                     <button
-                        className="min-w-0 shrink truncate text-left text-muted text-xs hover:text-foreground"
+                        className="min-w-0 shrink truncate text-left text-muted text-sm hover:text-foreground"
                         onClick={async () => {
                             try {
                                 await writeClipboardText(target);

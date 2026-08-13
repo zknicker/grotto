@@ -222,6 +222,17 @@ export const hostedAgentDetailInputSchema = z
     .object({ agentId: hostedIdSchema, serverId: hostedIdSchema })
     .strict();
 
+/** Explicit opt-in request for one Computer-local Agent execution journal. */
+export const hostedAgentExecutionJournalInputSchema = hostedAgentDetailInputSchema.extend({
+    runId: hostedIdSchema,
+});
+
+export type HostedAgentExecutionJournalInput = z.infer<
+    typeof hostedAgentExecutionJournalInputSchema
+>;
+
+export const hostedAgentTurnDetailInputSchema = hostedAgentExecutionJournalInputSchema;
+
 export const hostedAgentActivityInputSchema = hostedAgentDetailInputSchema.extend({
     limit: z.number().int().min(1).max(100).default(50),
 });

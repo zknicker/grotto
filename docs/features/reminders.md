@@ -1,8 +1,8 @@
 ---
-summary: Hosted, author-owned reminders anchored to Server messages, with visible fires, pending Agent attention, run history, and an operator view.
+summary: Hosted, author-owned reminders anchored to Server messages, with visible fires, pending Agent attention, run history, and Agent-profile visibility.
 read_when:
   - changing reminder scheduling, cadences, fires, script payloads, or run history
-  - changing the hosted Reminders operator view
+  - changing Agent-profile reminder visibility
   - changing how scheduled work waits for an offline Agent
 ---
 
@@ -27,11 +27,11 @@ schedule, so it fires even while the Agent's Computer is offline.
   stores it but never runs or interprets it. The assigned Computer executes it
   once in the Agent workspace. Empty success stays quiet; output or failure is
   posted to the conversation and wakes the Agent.
-- **Operator view.** Server Owners and Admins can filter reminders, inspect
-  fire history, and cancel from `/s/<slug>/reminders`. Members cannot open the
-  view. Script contents remain redacted.
-- **Reconnect recovery.** The App keeps the last hosted snapshot visible and
-  combines live invalidation with durable cursor catch-up.
+- **Agent profiles.** Server Owners and Admins can see an Agent's reminders on
+  that Agent's profile. There is no Server-wide Reminders page. Script contents
+  remain redacted.
+- **Snapshot freshness.** The Agent profile keeps the last hosted snapshot
+  visible and refreshes stale reminder data on mount or reconnect.
 
 Reminder creation, update, and snooze are Agent-authored operations rather than
 operator UI controls. Offline fires wait durably, Computer reconnect resends

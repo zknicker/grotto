@@ -78,7 +78,7 @@ export function PickerPopover<Item extends PickerPopoverItem>({
                                             <li key={item.id}>
                                                 <button
                                                     aria-label={`Add ${item.name}`}
-                                                    className="flex min-h-10 w-full cursor-[var(--cursor-interactive)] items-center rounded-xl px-3 py-2 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-default disabled:opacity-64"
+                                                    className="flex min-h-10 w-full cursor-[var(--cursor-interactive)] items-center rounded-xl px-3 py-2 text-left outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-default disabled:opacity-64"
                                                     disabled={isPending}
                                                     onClick={() => {
                                                         setOpen(false);

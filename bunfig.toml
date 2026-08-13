@@ -5,7 +5,16 @@ auto = "disable"
 ignoreScripts = true
 saveTextLockfile = true
 minimumReleaseAge = 259200
-minimumReleaseAgeExcludes = ["@heroui-pro/react"]
+minimumReleaseAgeExcludes = [
+    "@ai-sdk/harness",
+    "@ai-sdk/harness-claude-code",
+    "@ai-sdk/harness-codex",
+    "@ai-sdk/harness-grok-build",
+    "@ai-sdk/harness-pi",
+    "@ai-sdk/mcp",
+    "@ai-sdk/provider-utils",
+    "@heroui-pro/react",
+]
 
 [install.scopes]
 '@hugeicons-pro' = { token = '$HUGEICONS_LICENSE_KEY', url = 'https://npm.hugeicons.com/' }

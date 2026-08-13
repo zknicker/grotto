@@ -139,7 +139,7 @@ function HttpConnectionFields({
             {draft.auth === 'oauth' ? (
                 <OAuthAdvancedFields draft={draft} setDraft={setDraft} />
             ) : null}
-            <p className="text-muted text-xs">
+            <p className="text-muted text-sm">
                 Only connect servers from developers you trust. Their tools and behavior can change.
             </p>
         </>

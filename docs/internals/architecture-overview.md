@@ -13,7 +13,7 @@ Grotto has three supported first-party surfaces:
 flowchart LR
   app["Grotto App"] <--> server["Grotto Server"]
   server <--> computer["Grotto Computer"]
-  computer <--> runtimes["Codex / Claude Code / Pi"]
+  computer <--> runtimes["Codex / Claude Code / Grok Build / Pi"]
 ```
 
 | Surface | Owns |
@@ -28,7 +28,7 @@ the Agent's assigned Computer. Computer reports availability, state, progress, a
 summaries back to Server. Full prompts, transcripts, tool traces, provider credentials, and Agent
 workspace files remain on the machine unless a specific product contract says otherwise.
 
-“Runtime” means a Computer-local execution runtime such as Codex, Claude Code, or Pi. There is no
+“Runtime” means a Computer-local execution runtime such as Codex, Claude Code, Grok Build, or Pi. There is no
 standalone Grotto Runtime service, release, compatibility floor, updater, or deployment surface.
 
 See [ADR 0019](../adr/0019-servers-own-collaboration-computers-own-execution.md) for the ownership

@@ -21,7 +21,7 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
                 'group flex w-full max-w-[28rem] items-center gap-3 rounded-lg border border-border bg-surface-secondary/65 px-3.5 py-3 text-left',
                 'transition-colors',
                 openArtifactPanel
-                    ? 'cursor-pointer hover:border-border-secondary hover:bg-surface-tertiary/70'
+                    ? 'cursor-(--cursor-interactive) hover:border-border-secondary hover:bg-surface-tertiary/70'
                     : 'cursor-default'
             )}
             onClick={() => openArtifactPanel?.({ kind: 'workspaceFile', path: props.path })}
@@ -34,11 +34,11 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
                 <span className="block truncate font-medium text-foreground text-sm leading-5">
                     {title}
                 </span>
-                <span className="block truncate text-muted text-xs leading-5">
+                <span className="block truncate text-muted text-sm leading-5">
                     Page · {props.path}
                 </span>
             </span>
-            <span className="shrink-0 text-muted text-xs group-hover:text-foreground">Open</span>
+            <span className="shrink-0 text-muted text-sm group-hover:text-foreground">Open</span>
         </button>
     );
 }

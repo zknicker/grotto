@@ -349,6 +349,19 @@ export const hostedBrowserRequestSchema = z
 
 export type HostedBrowserRequest = z.infer<typeof hostedBrowserRequestSchema>;
 
+export const hostedAgentExecutionJournalRequestSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        requestId: hostedIdSchema,
+        runId: hostedIdSchema,
+        type: z.literal('agent-execution-journal-request'),
+    })
+    .strict();
+
+export type HostedAgentExecutionJournalRequest = z.infer<
+    typeof hostedAgentExecutionJournalRequestSchema
+>;
+
 /** Every typed frame the Server sends down a Computer attachment socket. */
 export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
     hostedAgentStartCommandSchema,
@@ -361,6 +374,7 @@ export const hostedAgentCommandSchema = z.discriminatedUnion('type', [
     hostedAgentSkillImportCommandSchema,
     hostedAgentSkillFileRequestSchema,
     hostedAgentWorkspaceRequestSchema,
+    hostedAgentExecutionJournalRequestSchema,
     hostedBrowserRequestSchema,
     hostedReminderScriptCommandSchema,
     hostedAgentNoticeCommandSchema,
@@ -555,6 +569,89 @@ export const hostedAgentWorkspaceResultSchema = z
     .refine((value) => Boolean(value.error) !== Boolean(value.result));
 
 export type HostedAgentWorkspaceResult = z.infer<typeof hostedAgentWorkspaceResultSchema>;
+
+const hostedExecutionJournalResultSchema = z
+    .object({
+        error: z.unknown().optional(),
+        observedAt: hostedTimestampSchema,
+        output: z.unknown().optional(),
+    })
+    .strict();
+
+const hostedExecutionJournalToolSchema = z
+    .object({
+        durationMs: z.number().int().nonnegative().optional(),
+        endedAt: hostedTimestampSchema.optional(),
+        error: z.unknown().optional(),
+        final: hostedExecutionJournalResultSchema.optional(),
+        input: z.unknown().optional(),
+        interruptions: z
+            .array(
+                z
+                    .object({
+                        at: hostedTimestampSchema,
+                        reason: z.enum(['computer_restart', 'stream_abort', 'stream_error']),
+                    })
+                    .strict()
+            )
+            .max(100)
+            .optional(),
+        nativeName: z.string().max(256).optional(),
+        output: z.unknown().optional(),
+        preliminary: hostedExecutionJournalResultSchema.optional(),
+        startedAt: hostedTimestampSchema,
+        status: z.enum(['completed', 'failed', 'interrupted', 'running']),
+        toolCallId: z.string().trim().min(1).max(256),
+        toolName: z.string().trim().min(1).max(256),
+    })
+    .strict();
+
+export const hostedAgentExecutionJournalSchema = z
+    .object({
+        endedAt: hostedTimestampSchema.optional(),
+        error: z.unknown().optional(),
+        runId: hostedIdSchema,
+        startedAt: hostedTimestampSchema,
+        status: z.enum(['completed', 'failed', 'interrupted', 'running']),
+        tools: z.array(hostedExecutionJournalToolSchema).max(10_000),
+    })
+    .strict();
+
+export type HostedAgentExecutionJournal = z.infer<typeof hostedAgentExecutionJournalSchema>;
+
+export const hostedAgentExecutionJournalResultSchema = z.discriminatedUnion('status', [
+    z
+        .object({
+            agentId: hostedIdSchema,
+            journal: hostedAgentExecutionJournalSchema,
+            requestId: hostedIdSchema,
+            runId: hostedIdSchema,
+            status: z.literal('available'),
+            type: z.literal('agent-execution-journal-result'),
+        })
+        .strict()
+        .refine((value) => value.journal.runId === value.runId, {
+            message: 'The execution journal must belong to the requested run.',
+            path: ['journal', 'runId'],
+        }),
+    z
+        .object({
+            agentId: hostedIdSchema,
+            reason: z.enum(['missing', 'offline', 'timeout']),
+            requestId: hostedIdSchema,
+            runId: hostedIdSchema,
+            status: z.literal('unavailable'),
+            type: z.literal('agent-execution-journal-result'),
+        })
+        .strict(),
+]);
+
+export type HostedAgentExecutionJournalResult = z.infer<
+    typeof hostedAgentExecutionJournalResultSchema
+>;
+
+export const hostedAgentTurnDetailRequestSchema = hostedAgentExecutionJournalRequestSchema;
+export const hostedAgentTurnDetailResultSchema = hostedAgentExecutionJournalResultSchema;
 
 /**
  * A Computer mints a per-launch runner credential from its Computer credential

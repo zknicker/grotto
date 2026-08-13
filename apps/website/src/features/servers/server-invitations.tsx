@@ -46,11 +46,11 @@ export function InviteMemberForm({ serverId }: { serverId: string }) {
                         Invite
                     </Button>
                 </div>
-                <p className="text-muted text-xs">
+                <p className="text-muted text-sm">
                     They must accept while signed in to Clerk with this exact verified address.
                 </p>
             </div>
-            {create.error ? <p className="text-danger text-xs">{create.error.message}</p> : null}
+            {create.error ? <p className="text-danger text-sm">{create.error.message}</p> : null}
             {issued ? (
                 <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
                     <p className="text-foreground text-sm">

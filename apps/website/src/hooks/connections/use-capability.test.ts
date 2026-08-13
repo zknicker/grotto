@@ -55,8 +55,7 @@ describe('Runtime capability gates', () => {
         expect(settingsCapabilityRequirements.models).toEqual(['apiServer']);
     });
 
-    test('keeps Reminders and Tasks reachable as static honest-empty pages', () => {
-        expect(routeTabCapabilityRequirements.reminders).toEqual([]);
+    test('keeps Tasks reachable without Runtime capabilities', () => {
         expect(routeTabCapabilityRequirements.tasks).toEqual([]);
     });
 

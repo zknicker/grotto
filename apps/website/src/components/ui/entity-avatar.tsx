@@ -1,6 +1,5 @@
 import { Avatar } from '@heroui/react';
 import type React from 'react';
-import { cn } from '../../lib/utils.ts';
 
 export type EntityAvatarSize = 'lg' | 'md' | 'sm';
 
@@ -34,7 +33,7 @@ export function EntityAvatar({
 
     return (
         <Avatar
-            className={cn(exact && 'shrink-0', className)}
+            className={className}
             size={preset}
             style={
                 exact

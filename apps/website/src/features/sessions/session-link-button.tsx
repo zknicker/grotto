@@ -45,7 +45,7 @@ export function SessionLinkButton({
             {subtitle ? (
                 <span
                     className={cn(
-                        'min-w-0 truncate text-xs',
+                        'min-w-0 truncate text-sm',
                         tone === 'amber'
                             ? 'text-warning'
                             : tone === 'sky'

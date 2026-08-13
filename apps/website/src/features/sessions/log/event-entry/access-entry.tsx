@@ -5,7 +5,6 @@ export function AccessEventLogEntry({ entry }: { entry: SessionHistoryAccessEven
     return (
         <div className="rounded-md border border-warning-soft bg-warning-soft px-3 py-1.5">
             <div className="flex items-center gap-2">
-                <span className="size-1 shrink-0 rounded-full bg-warning" />
                 <span className="font-medium text-warning text-xs uppercase tracking-[0.16em]">
                     Access {entry.accessEvent.status}
                 </span>

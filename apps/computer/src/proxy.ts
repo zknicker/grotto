@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import {
     agentHistoryResponseSchema,
     agentMessageCheckResponseSchema,
@@ -16,6 +17,7 @@ import {
     viewLocalAgentSkill,
     writeLocalAgentSkillFile,
 } from './agent-skills.ts';
+import { classifyGrottoProxyBoundary } from './harness/activity-projector.ts';
 import {
     type AgentInboxLocation,
     consumeVisibleMessages,
@@ -46,6 +48,7 @@ export interface LoopbackProxy {
     close(): void;
     resetSendCount(): void;
     sendCount(): number;
+    setActivitySink(sink: ((activity: ComputerAgentActivityUpdate) => void) | undefined): void;
     setRunId(runId: string): void;
     setRunnerToken(token: string): void;
     url: string;
@@ -66,10 +69,12 @@ export function startLoopbackProxy(input: {
     serverId?: string;
     serverOrigin: string;
     skillsDir?: string;
+    onActivity?: (activity: ComputerAgentActivityUpdate) => void;
 }): LoopbackProxy {
     let sends = 0;
     let runnerToken: string | null = input.runnerToken;
     let runId: string | null = input.runId ?? null;
+    let activitySink = input.onActivity;
     const server = Bun.serve({
         fetch: async (request) => {
             const url = new URL(request.url);
@@ -79,118 +84,31 @@ export function startLoopbackProxy(input: {
             if (!isAuthorized(request, input.proxyToken)) {
                 return new Response('Unauthorized', { status: 401 });
             }
-            const skillResponse = await handleSkillRequest(request, url, input);
-            if (skillResponse) {
-                return skillResponse;
-            }
-            if (!runnerToken) {
-                return Response.json(
-                    { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
-                    { status: 409 }
-                );
-            }
-            const location = agentInboxLocation(input);
-            if (request.method === 'GET' && url.pathname === '/api/agent/events' && location) {
-                const local = await localAgentEvents(location);
-                if (local) {
-                    if (!runId) {
-                        return Response.json(
-                            { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
-                            { status: 409 }
-                        );
-                    }
-                    await recordRunVisibleMessages(location, runId, local.identities);
-                    await awaitBestEffortAttestation(
-                        input.serverOrigin,
-                        runnerToken,
-                        local.identities
-                    );
-                    await consumeVisibleMessages(location, local.identities);
-                    return Response.json({ messages: local.messages, more: local.more });
-                }
-            }
-            const body = await request.text();
-            const upstreamUrl = new URL(url.pathname, input.serverOrigin);
-            upstreamUrl.search = url.search;
-            const isMessageSend = url.pathname === '/api/agent/messages/send';
-            const isMessageMutation = isMessageSend || url.pathname === '/api/agent/messages/react';
-            let upstream: Response;
-            try {
-                upstream = await fetch(upstreamUrl, {
-                    body: request.method === 'GET' ? undefined : body,
-                    headers: {
-                        authorization: `Bearer ${runnerToken}`,
-                        'content-type': request.headers.get('content-type') ?? 'application/json',
+            const category = classifyGrottoProxyBoundary(request.method, url.pathname);
+            if (!category) {
+                return await handleAuthorizedProxyRequest(request, url, input, {
+                    getRunId: () => runId,
+                    getRunnerToken: () => runnerToken,
+                    incrementSendCount: () => {
+                        sends += 1;
                     },
-                    method: request.method,
                 });
-            } catch (error) {
-                // Once a send reached a Server connection, losing its response is
-                // ambiguous: the transaction may already have committed. Count it
-                // conservatively so a failed turn is never replayed into duplicate
-                // model output. Connection refusal and DNS/TLS setup failures are
-                // known pre-commit and remain safe to requeue.
-                if (isMessageSend && !isDefinitelyPreCommitFailure(error)) {
-                    sends += 1;
-                }
-                return Response.json(
-                    {
-                        code: 'UPSTREAM_UNAVAILABLE',
-                        message: 'The Server response was unavailable.',
+            }
+            activitySink?.({ category, phase: 'started' });
+            let completed = false;
+            try {
+                const response = await handleAuthorizedProxyRequest(request, url, input, {
+                    getRunId: () => runId,
+                    getRunnerToken: () => runnerToken,
+                    incrementSendCount: () => {
+                        sends += 1;
                     },
-                    { status: 502 }
-                );
+                });
+                completed = response.ok;
+                return response;
+            } finally {
+                activitySink?.({ category, phase: completed ? 'completed' : 'failed' });
             }
-            const responseBody = await upstream.text();
-            if (upstream.ok && isMessageSend && isCommittedSend(responseBody)) {
-                sends += 1;
-            }
-            const visibleMessageIds = upstream.ok
-                ? extractVisibleMessageIds(url.pathname, responseBody)
-                : [];
-            if (location && visibleMessageIds.length > 0) {
-                try {
-                    const activeRunId = runId;
-                    if (activeRunId) {
-                        await recordRunVisibleMessages(location, activeRunId, visibleMessageIds);
-                    }
-                    const attested = activeRunId
-                        ? await attestLocalEvents(
-                              input.serverOrigin,
-                              runnerToken,
-                              visibleMessageIds
-                          )
-                        : null;
-                    if (!((activeRunId && attested) || isMessageMutation)) {
-                        return Response.json(
-                            {
-                                code: 'VISIBILITY_RECEIPT_UNAVAILABLE',
-                                message: 'The Server could not record visible messages.',
-                            },
-                            { status: 502 }
-                        );
-                    }
-                    await consumeVisibleMessages(location, attested ?? visibleMessageIds);
-                } catch {
-                    if (isMessageMutation) {
-                        return new Response(responseBody, {
-                            headers: { 'content-type': 'application/json' },
-                            status: upstream.status,
-                        });
-                    }
-                    return Response.json(
-                        {
-                            code: 'LOCAL_INBOX_UNAVAILABLE',
-                            message: 'The Agent inbox could not record visible messages.',
-                        },
-                        { status: 500 }
-                    );
-                }
-            }
-            return new Response(responseBody, {
-                headers: { 'content-type': 'application/json' },
-                status: upstream.status,
-            });
         },
         hostname: '127.0.0.1',
         port: 0,
@@ -204,6 +122,9 @@ export function startLoopbackProxy(input: {
             sends = 0;
         },
         sendCount: () => sends,
+        setActivitySink: (sink) => {
+            activitySink = sink;
+        },
         setRunId: (value) => {
             runId = value;
         },
@@ -212,6 +133,126 @@ export function startLoopbackProxy(input: {
         },
         url: `http://127.0.0.1:${server.port}`,
     };
+}
+
+async function handleAuthorizedProxyRequest(
+    request: Request,
+    url: URL,
+    input: {
+        agentId?: string;
+        dataRoot?: string;
+        proxyToken: string;
+        runId?: string;
+        serverId?: string;
+        serverOrigin: string;
+        skillsDir?: string;
+    },
+    state: {
+        getRunId(): string | null;
+        getRunnerToken(): string | null;
+        incrementSendCount(): void;
+    }
+): Promise<Response> {
+    const skillResponse = await handleSkillRequest(request, url, input);
+    if (skillResponse) {
+        return skillResponse;
+    }
+    const runnerToken = state.getRunnerToken();
+    if (!runnerToken) {
+        return Response.json(
+            { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
+            { status: 409 }
+        );
+    }
+    const location = agentInboxLocation(input);
+    if (request.method === 'GET' && url.pathname === '/api/agent/events' && location) {
+        const local = await localAgentEvents(location);
+        if (local) {
+            const activeRunId = state.getRunId();
+            if (!activeRunId) {
+                return Response.json(
+                    { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
+                    { status: 409 }
+                );
+            }
+            await recordRunVisibleMessages(location, activeRunId, local.identities);
+            await awaitBestEffortAttestation(input.serverOrigin, runnerToken, local.identities);
+            await consumeVisibleMessages(location, local.identities);
+            return Response.json({ messages: local.messages, more: local.more });
+        }
+    }
+    const body = await request.text();
+    const upstreamUrl = new URL(url.pathname, input.serverOrigin);
+    upstreamUrl.search = url.search;
+    const isMessageSend = url.pathname === '/api/agent/messages/send';
+    const isMessageMutation = isMessageSend || url.pathname === '/api/agent/messages/react';
+    let upstream: Response;
+    try {
+        upstream = await fetch(upstreamUrl, {
+            body: request.method === 'GET' ? undefined : body,
+            headers: {
+                authorization: `Bearer ${runnerToken}`,
+                'content-type': request.headers.get('content-type') ?? 'application/json',
+            },
+            method: request.method,
+        });
+    } catch (error) {
+        // A send may have committed before its response disappeared. Count it
+        // conservatively so a failed turn cannot replay duplicate model output.
+        if (isMessageSend && !isDefinitelyPreCommitFailure(error)) {
+            state.incrementSendCount();
+        }
+        return Response.json(
+            { code: 'UPSTREAM_UNAVAILABLE', message: 'The Server response was unavailable.' },
+            { status: 502 }
+        );
+    }
+    const responseBody = await upstream.text();
+    if (upstream.ok && isMessageSend && isCommittedSend(responseBody)) {
+        state.incrementSendCount();
+    }
+    const visibleMessageIds = upstream.ok
+        ? extractVisibleMessageIds(url.pathname, responseBody)
+        : [];
+    if (location && visibleMessageIds.length > 0) {
+        try {
+            const activeRunId = state.getRunId();
+            if (activeRunId) {
+                await recordRunVisibleMessages(location, activeRunId, visibleMessageIds);
+            }
+            const attested = activeRunId
+                ? await attestLocalEvents(input.serverOrigin, runnerToken, visibleMessageIds)
+                : null;
+            if (!((activeRunId && attested) || isMessageMutation)) {
+                return Response.json(
+                    {
+                        code: 'VISIBILITY_RECEIPT_UNAVAILABLE',
+                        message: 'The Server could not record visible messages.',
+                    },
+                    { status: 502 }
+                );
+            }
+            await consumeVisibleMessages(location, attested ?? visibleMessageIds);
+        } catch {
+            if (isMessageMutation) {
+                return new Response(responseBody, {
+                    headers: { 'content-type': 'application/json' },
+                    status: upstream.status,
+                });
+            }
+            return Response.json(
+                {
+                    code: 'LOCAL_INBOX_UNAVAILABLE',
+                    message: 'The Agent inbox could not record visible messages.',
+                },
+                { status: 500 }
+            );
+        }
+    }
+    return new Response(responseBody, {
+        headers: { 'content-type': 'application/json' },
+        status: upstream.status,
+    });
 }
 
 async function localAgentEvents(location: AgentInboxLocation) {

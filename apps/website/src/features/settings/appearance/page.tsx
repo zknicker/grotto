@@ -36,7 +36,7 @@ export function AppearanceSettings() {
                                     'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-background',
                                     isActive
                                         ? 'border-accent'
-                                        : 'border-border hover:bg-surface-secondary'
+                                        : 'border-border hover:bg-surface-hover'
                                 )}
                                 key={option.id}
                                 onClick={() => setTheme(option.id)}
@@ -59,7 +59,7 @@ export function AppearanceSettings() {
                                             <div className="truncate font-semibold text-foreground text-sm leading-none">
                                                 {option.label}
                                             </div>
-                                            <div className="mt-1 truncate text-muted text-xs leading-none">
+                                            <div className="mt-1 truncate text-muted text-sm leading-none">
                                                 {option.description}
                                             </div>
                                         </div>

@@ -66,6 +66,43 @@ test('the loopback proxy forwards inbox reads to the canonical Server ledger', a
     }
 });
 
+test('projects structured message and Browser proxy boundaries without request details', async () => {
+    const activity: Array<{ category: string; phase: string }> = [];
+    const upstream = Bun.serve({
+        fetch() {
+            return Response.json({ messages: [], more: false });
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    servers.push(upstream);
+    const proxy = startLoopbackProxy({
+        onActivity: (event) => activity.push(event),
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        serverOrigin: `http://127.0.0.1:${upstream.port}`,
+    });
+    try {
+        const headers = { authorization: 'Bearer local-token' };
+        await fetch(`${proxy.url}/api/agent/events`, { headers });
+        await fetch(`${proxy.url}/api/agent/history?target=%23general`, { headers });
+        await fetch(`${proxy.url}/api/agent/messages/search?q=private`, { headers });
+        await fetch(`${proxy.url}/api/agent/browser`, { headers });
+        expect(activity).toEqual([
+            { category: 'checking_messages', phase: 'started' },
+            { category: 'checking_messages', phase: 'completed' },
+            { category: 'checking_messages', phase: 'started' },
+            { category: 'checking_messages', phase: 'completed' },
+            { category: 'checking_messages', phase: 'started' },
+            { category: 'checking_messages', phase: 'completed' },
+            { category: 'browsing', phase: 'started' },
+            { category: 'browsing', phase: 'completed' },
+        ]);
+    } finally {
+        proxy.close();
+    }
+});
+
 test('the loopback proxy preserves Agent API query parameters', async () => {
     let upstreamUrl = '';
     const upstream = Bun.serve({

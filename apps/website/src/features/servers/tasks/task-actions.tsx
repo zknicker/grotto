@@ -49,7 +49,7 @@ export function TaskActions({ task }: { task: TaskItem }) {
                 </Button>
             ) : null}
             {error ? (
-                <span className="basis-full text-danger text-xs" role="alert">
+                <span className="basis-full text-danger text-sm" role="alert">
                     {error.message}
                 </span>
             ) : null}

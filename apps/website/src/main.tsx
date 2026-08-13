@@ -6,7 +6,7 @@ import { DevModeProvider } from './components/dev-mode-provider.tsx';
 import { ThemeProvider } from './components/theme-provider.tsx';
 import { DesktopEditContextMenuProvider } from './features/shell/desktop-edit-context-menu.tsx';
 import { TavernClerkProvider } from './lib/clerk.tsx';
-import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
+import { getDesktopBridge, isElectronDesktopApp } from './lib/desktop-bridge.ts';
 import './styles/global.css';
 
 const rootElement = document.getElementById('root');
@@ -17,6 +17,13 @@ if (!rootElement) {
 
 if (isElectronDesktopApp() && navigator.userAgent.includes('Mac')) {
     document.documentElement.classList.add('macos-electron');
+
+    // Native windows dim their chrome when unfocused. Window focus comes from
+    // the main process: renderer blur also fires when focus moves into an
+    // iframe (artifact panes), which must not dim the window.
+    getDesktopBridge()?.onWindowFocusChanged?.((focused) => {
+        document.documentElement.classList.toggle('window-blurred', !focused);
+    });
 }
 
 createRoot(rootElement).render(

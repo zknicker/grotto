@@ -1,15 +1,15 @@
-import { Button, Tooltip } from '@heroui/react';
+import { Badge, Button, Tooltip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { ComputerIcon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
-import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { cn } from '../../lib/utils.ts';
 import { serverComputersRoute } from '../servers/server-routes.ts';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
-import { computerHealthLabel, computerHealthStatus, computerLabel } from './presentation.ts';
+import { computerHealthColor, computerHealthLabel, computerLabel } from './presentation.ts';
 
 /** Computers section sidebar: the attached-Computer roster as navigation. */
 export function ComputersSidebar({
@@ -72,19 +72,23 @@ export function ComputersSidebar({
                                 textValue={computerLabel(computer)}
                             >
                                 <Sidebar.MenuIcon>
-                                    <span className="relative flex size-5 shrink-0 items-center justify-center">
+                                    <Badge.Anchor className="size-5 items-center justify-center">
                                         <Icon
                                             aria-hidden="true"
                                             className="size-4 text-muted"
                                             icon={ComputerIcon}
                                         />
-                                        <StatusDot
-                                            className="absolute right-0 bottom-0"
-                                            size="md"
-                                            status={computerHealthStatus(computer.health)}
+                                        <Badge
+                                            className={cn(
+                                                'min-h-2.5 min-w-2.5',
+                                                computer.health === 'offline' && 'bg-muted'
+                                            )}
+                                            color={computerHealthColor(computer.health)}
+                                            placement="bottom-right"
+                                            size="sm"
                                             title={computerHealthLabel(computer.health)}
                                         />
-                                    </span>
+                                    </Badge.Anchor>
                                 </Sidebar.MenuIcon>
                                 <Sidebar.MenuItemContent>
                                     <Sidebar.MenuLabel>{computerLabel(computer)}</Sidebar.MenuLabel>

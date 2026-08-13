@@ -88,8 +88,8 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 
 * `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
   `ShellSidebar`. Sections compose `ShellSidebarPage` slots; route state
-  selects one slot without replacing the sidebar root. Search and Reminders
-  are full-width destinations and do not show contextual navigation.
+  selects one slot without replacing the sidebar root. Search is a full-width
+  destination and does not show contextual navigation.
   Returning to Chat resolves the remembered valid Chat directly instead of
   rendering the Server entry redirect between rail destinations.
 * `ShellSidebar` mounts only the active page descriptor. Left-sidebar changes
@@ -164,9 +164,7 @@ allowlists to make it pass.
   event type means adding its listener hook, not another branch in a shared
   switch. See `hooks/servers/chat-events/`.
 * Open a second wire stream only when the audience or authority differs, never
-  to separate concerns. Reminders have their own stream because that lane is
-  operator-scoped, and the participant-gated Chat lane cannot see every
-  reminder the Reminders page renders. See [Realtime](../api/realtime.md).
+  to separate concerns.
 * When an event names the record it changed, invalidate that record's detail
   read exactly and keep the broad invalidation as the no-id fallback. A
   `server.updated` event carrying `agentId` refreshes that Agent's detail and
@@ -239,6 +237,9 @@ identity is the change signal** — hosted chat messages carry no version or
   durable agent-authored HTML. Product components must not use its aliases.
 * Feature behavior CSS stays beside its owner, such as chat motion and the
   Electron shell. It must not restyle HeroUI component appearance.
+* At HeroUI `Avatar`, `Badge`, and `Chip` call sites, limit classes to layout,
+  truncation, and named product semantics. HeroUI owns radius, spacing,
+  typography, borders, hover, focus, and motion; do not recreate those styles.
 * Use HeroUI semantic utilities directly. Add a custom token only when the
   value represents a durable product concept rather than a component,
   feature implementation, or alternate name for an existing HeroUI role.

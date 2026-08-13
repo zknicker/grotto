@@ -3,11 +3,10 @@ import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
-import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { agentRoute } from '../../servers/server-routes.ts';
 import { SettingsGroup, SettingsSection } from '../../settings/layout/settings-page.tsx';
-import { hostedAvailabilityStatus } from '../agent-avatar.tsx';
+import { hostedAvailabilityBadgeColor } from '../agent-avatar.tsx';
 
 /** Agents created by one human, with its own focused list read. */
 export function CreatedAgents({
@@ -58,7 +57,7 @@ function CreatedAgentRow({ agent, slug }: { agent: HostedAgent; slug: string }) 
 
     return (
         <button
-            className="flex w-full cursor-[var(--cursor-interactive)] items-center gap-3 px-5 py-3.5 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus"
+            className="flex w-full cursor-[var(--cursor-interactive)] items-center gap-3 px-5 py-3.5 text-left outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus"
             onClick={() => navigate(agentRoute(slug, agent.id))}
             type="button"
         >
@@ -66,10 +65,14 @@ function CreatedAgentRow({ agent, slug }: { agent: HostedAgent; slug: string }) 
             <span className="min-w-0 truncate font-medium text-foreground text-sm">
                 {agent.displayName}
             </span>
-            <span className="ml-auto flex shrink-0 items-center gap-1.5 text-muted text-xs">
-                <StatusDot status={hostedAvailabilityStatus(agent.availability)} />
-                <span className="capitalize">{agent.availability}</span>
-            </span>
+            <Chip
+                className="ml-auto capitalize"
+                color={hostedAvailabilityBadgeColor(agent.availability)}
+                size="sm"
+                variant="soft"
+            >
+                {agent.availability}
+            </Chip>
         </button>
     );
 }

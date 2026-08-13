@@ -1,6 +1,6 @@
+import { Badge } from '@heroui/react';
 import { useAgentPresence } from '../../hooks/agents/use-agent-presence.ts';
 import type { AgentPresenceOutput } from '../../lib/trpc.tsx';
-import { cn } from '../../lib/utils.ts';
 import { type ChatListItem, getChatAgentId } from './chat-list-data.ts';
 
 type AgentPresenceEntry = AgentPresenceOutput['presence'][number];
@@ -20,7 +20,7 @@ export function AgentPresenceBadge({ chat }: { chat: ChatListItem }) {
     return (
         <span className="flex min-w-0 items-center gap-1.5" data-slot="agent-presence">
             <AgentPresenceDot state={presence.state} />
-            {label ? <span className="truncate text-muted text-xs">{label}</span> : null}
+            {label ? <span className="truncate text-muted text-sm">{label}</span> : null}
         </span>
     );
 }
@@ -29,22 +29,13 @@ export function resolveDmPresenceLabel(presence: AgentPresenceEntry, _chatId: st
     return presence.state === 'busy' ? 'Working…' : null;
 }
 
-function AgentPresenceDot({
-    className,
-    state,
-}: {
-    className?: string;
-    state: AgentPresenceEntry['state'];
-}) {
+function AgentPresenceDot({ state }: { state: AgentPresenceEntry['state'] }) {
     return (
-        <span
-            aria-hidden="true"
-            className={cn(
-                'size-2 shrink-0 rounded-full transition-colors duration-300',
-                state === 'busy' ? 'bg-warning' : 'bg-success',
-                className
-            )}
+        <Badge
+            className="static transform-none"
+            color={state === 'busy' ? 'warning' : 'success'}
             data-state={state}
+            size="sm"
         />
     );
 }
@@ -60,7 +51,7 @@ export function AgentPresenceStatusLine({ agentId }: { agentId: string }) {
         <span className="flex min-w-0 items-center gap-1.5">
             <AgentPresenceDot state={presence.state} />
             {presence.state === 'busy' ? (
-                <span className="truncate text-muted text-xs">Working…</span>
+                <span className="truncate text-muted text-sm">Working…</span>
             ) : null}
         </span>
     );

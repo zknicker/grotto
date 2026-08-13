@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import {
     agentExecutionLabels,
+    computerHealthColor,
     computerLabel,
     computerRuntimePresentations,
     computerSystemLabel,
@@ -37,6 +38,13 @@ test('presents Computer and execution ids as customer-facing labels', () => {
         runtime: 'Codex',
         runtimeAvailable: true,
     });
+});
+
+test('Computer health maps onto HeroUI status colors', () => {
+    expect(computerHealthColor('healthy')).toBe('success');
+    expect(computerHealthColor('offline')).toBe('default');
+    expect(computerHealthColor('degraded')).toBe('warning');
+    expect(computerHealthColor('update-required')).toBe('warning');
 });
 
 test('uses a neutral platform label before a Computer reports its name', () => {
@@ -97,6 +105,7 @@ test('presents every supported runtime and preserves newly reported runtimes', (
     ).toEqual([
         { detected: true, id: 'codex', label: 'Codex' },
         { detected: false, id: 'claude-code', label: 'Claude Code' },
+        { detected: false, id: 'grok-build', label: 'Grok Build' },
         { detected: false, id: 'pi', label: 'Pi' },
         { detected: true, id: 'future-runtime', label: 'Future Runtime' },
     ]);

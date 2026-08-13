@@ -8,7 +8,6 @@ describe('app route tab', () => {
             { id: 'chat', label: 'Chat', path: '/chats' },
             { id: 'activity', label: 'Activity', path: '/activity' },
             { id: 'tasks', label: 'Tasks', path: '/tasks' },
-            { id: 'reminders', label: 'Reminders', path: '/reminders' },
             { id: 'members', label: 'Members', path: '/members' },
         ]);
     });
@@ -19,16 +18,12 @@ describe('app route tab', () => {
         expect(getRouteTab('/chats/chat_123')).toBe('chat');
         expect(getRouteTab('/activity')).toBe('activity');
         expect(getRouteTab('/tasks')).toBe('tasks');
-        expect(getRouteTab('/reminders')).toBe('reminders');
         expect(getRouteTab('/members/agents/agent_123')).toBe('members');
-        expect(getRouteTab('/automations')).toBe('reminders');
     });
 
     test('keeps dashboard tab detection during redirects', () => {
         expect(getRouteTab('/dashboard/activity')).toBe('activity');
         expect(getRouteTab('/dashboard/chats/chat_123')).toBe('chat');
-        expect(getRouteTab('/dashboard/cron')).toBe('reminders');
-        expect(getRouteTab('/dashboard/automations')).toBe('reminders');
     });
 
     test('returns null when no app tab is active', () => {

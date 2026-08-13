@@ -8,6 +8,7 @@ import {
     Image01Icon,
     MagicWand01Icon,
     PlugIcon,
+    SparklesIcon,
     UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
 import { Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
@@ -15,6 +16,7 @@ import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { agentColorPresets } from '../agents/agent-color-presets.ts';
+import { formatSkillName } from '../skills/skill-name-format.ts';
 import type { ReferenceKind } from './mention-types.ts';
 
 const mentionIconKeys = [
@@ -57,18 +59,17 @@ const defaultMentionAppearance = {
     file: { icon: 'file' },
     image: { icon: 'image' },
     plugin: { icon: 'plugin' },
-    skill: { brandColor: 'var(--accent)', icon: 'skill' },
+    skill: { brandColor: agentColorPresets[0].color, icon: 'skill' },
     user: { icon: 'user' },
     website: { icon: 'website' },
 } satisfies Record<ReferenceKind, MentionAppearance>;
 
 const skillAppearanceOverrides = {
     'gh-issues': {
-        brandColor: 'var(--foreground)',
         icon: 'github',
         label: 'GitHub Issues',
     },
-    github: { brandColor: 'var(--foreground)', icon: 'github', label: 'GitHub' },
+    github: { icon: 'github', label: 'GitHub' },
 } satisfies Record<string, MentionAppearanceOverride>;
 
 const capabilityAppearanceOverrides = {
@@ -101,7 +102,7 @@ const mentionIconMap = {
     github: Github01Icon,
     image: Image01Icon,
     plugin: PlugIcon,
-    skill: CubeIcon,
+    skill: SparklesIcon,
     unknown: MagicWand01Icon,
     user: UserIcon,
     website: Globe02Icon,
@@ -156,10 +157,15 @@ export function MentionAppearanceIcon({
 }
 
 export function getMentionDisplayLabel(input: MentionAppearanceInput) {
-    return getMentionAppearance(input).label ?? input.label;
+    const appearanceLabel = getMentionAppearance(input).label;
+    if (appearanceLabel) {
+        return appearanceLabel;
+    }
+
+    return input.kind === 'skill' ? formatSkillName(input.label) : input.label;
 }
 
-// The accent driving a mention chip's tinted badge: the agent's configured
+// The accent driving a reference Chip's tint: the agent's configured
 // color, a brand override, or the shared mention accent.
 export function getMentionChipColor(appearance: MentionAppearance) {
     if (appearance.agentAvatar) {

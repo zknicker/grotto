@@ -101,12 +101,12 @@ export function SettingsRow({
             <div className="space-y-0.5">
                 <h3 className="font-medium text-foreground text-sm leading-tight">{title}</h3>
                 {description ? (
-                    <div className="text-muted text-xs leading-tight">{description}</div>
+                    <div className="text-muted text-sm leading-tight">{description}</div>
                 ) : null}
             </div>
             <div className="flex min-w-0 flex-col gap-2 md:w-full md:justify-self-end">
                 {children}
-                {error ? <div className="text-danger text-xs">{error}</div> : null}
+                {error ? <div className="text-danger text-sm">{error}</div> : null}
             </div>
         </div>
     );

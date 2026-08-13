@@ -67,7 +67,7 @@ function WidgetFallback({ error, text }: { error: string | null; text: string })
             <p className="whitespace-pre-wrap break-words text-foreground [overflow-wrap:anywhere]">
                 {text}
             </p>
-            {error ? <p className="mt-1 text-muted text-xs">Widget unavailable.</p> : null}
+            {error ? <p className="mt-1 text-muted text-sm">Widget unavailable.</p> : null}
         </div>
     );
 }

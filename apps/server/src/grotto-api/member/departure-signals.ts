@@ -12,7 +12,7 @@ import { emitServerUpdated } from '../server-events.ts';
  *
  * A `null` composition retires that human's draft wherever it is still shown.
  * The App also filters humans who have left the member directory, so a missed
- * signal cannot leave a former member typing forever.
+ * signal cannot leave a former member composing forever.
  */
 export function announceDeparture(departure: RemovedServerMember): void {
     for (const event of departure.taskEvents) {

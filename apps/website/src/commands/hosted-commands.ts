@@ -12,7 +12,6 @@ import {
     membersRoute,
     serverChatRoute,
     serverComputersRoute,
-    serverRemindersRoute,
     serverRoute,
     serverSearchRoute,
     serverSettingsSectionRoute,
@@ -83,16 +82,6 @@ function buildHostedNavigationGroup(
             route: tasksRoute(context.serverSlug),
             title: 'Tasks',
         },
-        ...(context.role === 'member'
-            ? []
-            : [
-                  {
-                      icon: getRouteTabIcon('reminders'),
-                      id: 'reminders',
-                      route: serverRemindersRoute(context.serverSlug),
-                      title: 'Reminders',
-                  },
-              ]),
         {
             icon: getRouteTabIcon('members'),
             id: 'members',

@@ -74,7 +74,7 @@ test('ChatMarkdownText renders rich references as shared chips', () => {
     expect(markup).not.toContain('agent://agt_blippy');
     expect(markup).not.toContain('skill://design');
     expect(markup).toContain('Blippy');
-    expect(markup).toContain('design');
+    expect(markup).toContain('Design');
     expect(markup).toContain('example.com/favicon.ico');
 });
 

@@ -13,9 +13,11 @@ interface ShellSidebarPageProps {
 export function ShellSidebar({
     activePage,
     children,
+    footer,
 }: {
     activePage: ShellSidebarPageId;
     children: React.ReactNode;
+    footer?: React.ReactNode;
 }) {
     let activePageContent: ShellSidebarPageProps | undefined;
     React.Children.forEach(children, (child) => {
@@ -34,7 +36,12 @@ export function ShellSidebar({
         throw new Error(`ShellSidebar is missing its active ${activePage} page.`);
     }
 
-    return <Sidebar aria-label={activePageContent.ariaLabel}>{activePageContent.children}</Sidebar>;
+    return (
+        <Sidebar aria-label={activePageContent.ariaLabel}>
+            {activePageContent.children}
+            {footer ? <Sidebar.Footer>{footer}</Sidebar.Footer> : null}
+        </Sidebar>
+    );
 }
 
 /** Declarative page marker consumed by ShellSidebar. */
@@ -52,11 +59,9 @@ export function ShellSidebarPage({ children }: ShellSidebarPageProps) {
 export function ShellSidebarPageContent({
     band,
     children,
-    footer,
 }: {
     band: React.ReactNode;
     children: React.ReactNode;
-    footer?: React.ReactNode;
 }) {
     return (
         <>
@@ -64,7 +69,6 @@ export function ShellSidebarPageContent({
                 <div className="-mx-1 -mt-2 flex min-h-8 items-center">{band}</div>
             </Sidebar.Header>
             <Sidebar.Content>{children}</Sidebar.Content>
-            {footer ? <Sidebar.Footer>{footer}</Sidebar.Footer> : null}
         </>
     );
 }

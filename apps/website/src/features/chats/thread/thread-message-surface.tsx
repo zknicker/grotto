@@ -13,7 +13,12 @@ import { useTaskConvert } from '../../../hooks/tasks/use-task-mutations.ts';
 import { appRoutes } from '../../../lib/app-routes.ts';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { cn } from '../../../lib/utils.ts';
-import { MessageTaskChip, messageTaskAssigneeLabel } from '../../tasks/message-task-chip.tsx';
+import {
+    type MessageTask,
+    type MessageTaskAssigneeProfile,
+    MessageTaskChip,
+    messageTaskAssigneeLabel,
+} from '../../tasks/message-task-chip.tsx';
 import { formatTaskNumber, taskStatusLabels } from '../../tasks/task-presentation.ts';
 import { TaskStatusMenu } from '../../tasks/task-status-menu.tsx';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
@@ -54,6 +59,11 @@ function RuntimeThreadMessageSurface({
     const durable = isThreadAnchorRow(row);
     const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
     const thread = getTranscriptMessageThread(row);
+    const taskLivesInPreview = Boolean(row.message.task && canOpenThread);
+    const taskAssigneeProfile = resolveTaskAssigneeProfile(row.message.task, context);
+    const taskAssigneeLabel =
+        taskAssigneeProfile?.name ??
+        (row.message.task ? messageTaskAssigneeLabel(row.message.task) : null);
     const flashing = context?.flashMessageId === row.message.id;
     const openThread = () => context?.onOpenThread(row);
     const menuActions: Record<string, () => void> = {
@@ -79,18 +89,40 @@ function RuntimeThreadMessageSurface({
             >
                 {children}
                 <div className="flex flex-wrap items-center gap-1.5">
-                    {row.message.task ? (
+                    {row.message.task && !taskLivesInPreview ? (
                         <TaskStatusMenu
-                            ariaLabel={`Change status for task ${formatTaskNumber(row.message.task)}${row.message.task.assignee?.handle ? ` @${row.message.task.assignee.handle}` : ''}`}
+                            ariaLabel={`Change status for task ${formatTaskNumber(row.message.task)}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}`}
                             messageId={row.message.id}
                             status={row.message.task.status}
                         >
-                            <MessageTaskChip task={row.message.task} />
+                            <MessageTaskChip
+                                assigneeProfile={taskAssigneeProfile}
+                                task={row.message.task}
+                            />
                         </TaskStatusMenu>
                     ) : null}
                     <MessageReactionPills row={row} />
                 </div>
-                {canOpenThread ? <ThreadPreviewBlock row={row} /> : null}
+                {canOpenThread ? (
+                    <ThreadPreviewBlock
+                        headerLeading={
+                            row.message.task && taskLivesInPreview ? (
+                                <TaskStatusMenu
+                                    ariaLabel={`Change status for task ${formatTaskNumber(row.message.task)}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}`}
+                                    messageId={row.message.id}
+                                    status={row.message.task.status}
+                                >
+                                    <MessageTaskChip
+                                        assigneeProfile={taskAssigneeProfile}
+                                        task={row.message.task}
+                                    />
+                                </TaskStatusMenu>
+                            ) : undefined
+                        }
+                        isHeaderLeadingInteractive
+                        row={row}
+                    />
+                ) : null}
             </ContextMenu.Trigger>
             <ContextMenu.Popover>
                 <QuickReactionStrip row={row} />
@@ -140,9 +172,13 @@ function EmbeddedThreadMessageSurface({
     const context = useTranscriptRenderContextOptional();
     const durable = isThreadAnchorRow(row);
     const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
+    const taskLivesInPreview = Boolean(row.message.task && canOpenThread);
+    const taskAssigneeProfile = resolveTaskAssigneeProfile(row.message.task, context);
     const flashing = context?.flashMessageId === row.message.id;
     const openThread = () => context?.onOpenThread(row);
-    const taskAssigneeLabel = row.message.task ? messageTaskAssigneeLabel(row.message.task) : null;
+    const taskAssigneeLabel =
+        taskAssigneeProfile?.name ??
+        (row.message.task ? messageTaskAssigneeLabel(row.message.task) : null);
 
     return (
         <div
@@ -154,23 +190,74 @@ function EmbeddedThreadMessageSurface({
         >
             {children}
             <div className="flex flex-wrap items-center gap-1.5">
-                {row.message.task && canOpenThread ? (
-                    <button
-                        aria-label={`Task ${formatTaskNumber(row.message.task)} — ${taskStatusLabels[row.message.task.status]}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}. Open thread`}
-                        className="inline-flex cursor-[var(--cursor-interactive)] rounded-sm outline-none ring-transparent transition-[box-shadow] hover:ring-1 hover:ring-border-secondary focus-visible:ring-2 focus-visible:ring-focus"
-                        onClick={openThread}
-                        type="button"
-                    >
-                        <MessageTaskChip task={row.message.task} />
-                    </button>
-                ) : row.message.task ? (
-                    <MessageTaskChip task={row.message.task} />
+                {row.message.task && !taskLivesInPreview ? (
+                    canOpenThread ? (
+                        <ThreadTaskChipButton
+                            ariaLabel={`Task ${formatTaskNumber(row.message.task)} — ${taskStatusLabels[row.message.task.status]}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}. Open thread`}
+                            onOpenThread={openThread}
+                            task={row.message.task}
+                        />
+                    ) : (
+                        <MessageTaskChip
+                            assigneeProfile={taskAssigneeProfile}
+                            task={row.message.task}
+                        />
+                    )
                 ) : null}
                 <MessageReactionPills row={row} />
             </div>
-            {canOpenThread ? <ThreadPreviewBlock row={row} /> : null}
+            {canOpenThread ? (
+                <ThreadPreviewBlock
+                    headerLeading={
+                        row.message.task && taskLivesInPreview ? (
+                            <MessageTaskChip
+                                assigneeProfile={taskAssigneeProfile}
+                                task={row.message.task}
+                            />
+                        ) : undefined
+                    }
+                    row={row}
+                />
+            ) : null}
         </div>
     );
+}
+
+export function ThreadTaskChipButton({
+    ariaLabel,
+    onOpenThread,
+    task,
+}: {
+    ariaLabel: string;
+    onOpenThread: () => void;
+    task: MessageTask;
+}) {
+    return (
+        <button
+            aria-label={ariaLabel}
+            className="inline-flex cursor-[var(--cursor-interactive)] rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            onClick={onOpenThread}
+            type="button"
+        >
+            <MessageTaskChip task={task} />
+        </button>
+    );
+}
+
+function resolveTaskAssigneeProfile(
+    task: MessageTask | null | undefined,
+    context: ReturnType<typeof useTranscriptRenderContextOptional>
+): MessageTaskAssigneeProfile | null {
+    if (!(task?.assignee?.kind && context?.resolveActorProfile)) {
+        return null;
+    }
+
+    const profile = context.resolveActorProfile({
+        id: task.assignee.id,
+        kind: task.assignee.kind === 'agent' ? 'agent' : 'participant',
+    });
+
+    return profile ? { avatarUrl: profile.avatarUrl, name: profile.name } : null;
 }
 
 /**

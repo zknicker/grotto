@@ -1,6 +1,7 @@
 import type {
     ComputerUpdatePhase,
     HostedAgentCommand,
+    HostedAgentExecutionJournalResult,
     HostedAgentSkillFileRequest,
     HostedAgentSkillFileResult,
     HostedAgentSkillImportResult,
@@ -45,6 +46,15 @@ interface PendingBrowserRequest {
     timeout: ReturnType<typeof setTimeout>;
 }
 
+interface PendingExecutionJournalRequest {
+    agentId: string;
+    computerId: string;
+    resolve(result: HostedAgentExecutionJournalResult): void;
+    runId: string;
+    serverId: string;
+    timeout: ReturnType<typeof setTimeout>;
+}
+
 /**
  * The live registry of Computer attachment sockets — the Server→Computer side of
  * the typed protocol. It is pure transport: durable run, stop, and pending state
@@ -60,6 +70,10 @@ export class ComputerConnections implements DeliveryTransport {
     );
     private readonly pendingWorkspaceRequests = new Map<string, PendingWorkspaceRequest>();
     private readonly pendingBrowserRequests = new Map<string, PendingBrowserRequest>();
+    private readonly pendingExecutionJournalRequests = new Map<
+        string,
+        PendingExecutionJournalRequest
+    >();
 
     register(computerId: string, computer: AttachedComputer): void {
         this.attached.set(computerId, computer);
@@ -86,6 +100,20 @@ export class ComputerConnections implements DeliveryTransport {
                 clearTimeout(pending.timeout);
                 this.pendingBrowserRequests.delete(requestId);
                 pending.reject(new Error('The selected Computer went offline.'));
+            }
+        }
+        for (const [requestId, pending] of this.pendingExecutionJournalRequests) {
+            if (pending.computerId === computerId) {
+                clearTimeout(pending.timeout);
+                this.pendingExecutionJournalRequests.delete(requestId);
+                pending.resolve({
+                    agentId: pending.agentId,
+                    reason: 'offline',
+                    requestId,
+                    runId: pending.runId,
+                    status: 'unavailable',
+                    type: 'agent-execution-journal-result',
+                });
             }
         }
     }
@@ -290,6 +318,84 @@ export class ComputerConnections implements DeliveryTransport {
         } else {
             pending.reject(new Error(result.error ?? 'The Browser request failed.'));
         }
+        return true;
+    }
+
+    requestExecutionJournal(
+        computerId: string,
+        input: { agentId: string; runId: string; serverId: string }
+    ): Promise<HostedAgentExecutionJournalResult> {
+        const requestId = createOpaqueId('req');
+        const computer = this.attached.get(computerId);
+        if (!(computer?.serverId === input.serverId && this.isOnline(computerId))) {
+            return Promise.resolve({
+                agentId: input.agentId,
+                reason: 'offline',
+                requestId,
+                runId: input.runId,
+                status: 'unavailable',
+                type: 'agent-execution-journal-result',
+            });
+        }
+        return new Promise((resolve) => {
+            const timeout = setTimeout(() => {
+                this.pendingExecutionJournalRequests.delete(requestId);
+                resolve({
+                    agentId: input.agentId,
+                    reason: 'timeout',
+                    requestId,
+                    runId: input.runId,
+                    status: 'unavailable',
+                    type: 'agent-execution-journal-result',
+                });
+            }, 10_000);
+            this.pendingExecutionJournalRequests.set(requestId, {
+                agentId: input.agentId,
+                computerId,
+                resolve,
+                runId: input.runId,
+                serverId: input.serverId,
+                timeout,
+            });
+            if (
+                !this.send(computerId, {
+                    agentId: input.agentId,
+                    requestId,
+                    runId: input.runId,
+                    type: 'agent-execution-journal-request',
+                })
+            ) {
+                clearTimeout(timeout);
+                this.pendingExecutionJournalRequests.delete(requestId);
+                resolve({
+                    agentId: input.agentId,
+                    reason: 'offline',
+                    requestId,
+                    runId: input.runId,
+                    status: 'unavailable',
+                    type: 'agent-execution-journal-result',
+                });
+            }
+        });
+    }
+
+    acceptExecutionJournalResult(
+        computerId: string,
+        result: HostedAgentExecutionJournalResult
+    ): boolean {
+        const pending = this.pendingExecutionJournalRequests.get(result.requestId);
+        if (
+            !pending ||
+            pending.computerId !== computerId ||
+            pending.agentId !== result.agentId ||
+            pending.runId !== result.runId ||
+            this.attached.get(computerId)?.serverId !== pending.serverId
+        ) {
+            return false;
+        }
+        clearTimeout(pending.timeout);
+        this.pendingExecutionJournalRequests.delete(result.requestId);
+        pending.resolve(result);
         return true;
     }
 

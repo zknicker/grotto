@@ -96,7 +96,7 @@ export function WorkspaceArtifactContent({
                 ) : null}
             </div>
             {file.truncated ? (
-                <div className="shrink-0 border-separator border-b bg-warning-soft px-3 py-2 text-warning-soft-foreground text-xs">
+                <div className="shrink-0 border-separator border-b bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
                     Preview truncated. This file is {formatWorkspaceFileBytes(file.sizeBytes)}.
                 </div>
             ) : null}
@@ -144,7 +144,7 @@ function WorkspaceFilePreview({
     }
     if (!raw && (mediaType === 'text/markdown' || /\.(?:md|mdx)$/iu.test(path))) {
         return (
-            <div className="h-full overflow-auto px-6 py-5 text-sm">
+            <div className="h-full overflow-auto px-6 py-5 text-base">
                 <ChatMarkdownText content={content} />
             </div>
         );

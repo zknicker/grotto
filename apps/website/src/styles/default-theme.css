@@ -1,4 +1,42 @@
 /*
  * HeroUI Pro Theme
- * No customizations from defaults — your app inherits @heroui/styles defaults.
+ * Add this to your globals.css after importing @heroui/styles
+ * @see https://heroui.com/docs/react/getting-started/theming
  */
+
+/*
+ * Font: Inter
+ * Load this font in your app:
+ * <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
+ */
+:root,
+.light,
+.default,
+[data-theme="light"],
+[data-theme="default"] {
+  /* Spacing */
+  --spacing: 0.234375rem;
+
+  /* Font Sizes */
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: calc(1 / 0.6875);
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: calc(1.25 / 0.8125);
+  --text-base: 0.9375rem;
+  --text-base--line-height: calc(1.5 / 0.9375);
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: calc(1.75 / 1.0625);
+  --text-xl: 1.1875rem;
+  --text-xl--line-height: calc(1.75 / 1.1875);
+  --text-2xl: 1.375rem;
+  --text-2xl--line-height: calc(2 / 1.375);
+  --text-3xl: 1.75rem;
+  --text-3xl--line-height: calc(2.25 / 1.75);
+  --text-4xl: 2rem;
+  --text-4xl--line-height: calc(2.5 / 2);
+  --text-5xl: 2.75rem;
+  --text-6xl: 3.375rem;
+  --text-7xl: 4rem;
+  --text-8xl: 5.25rem;
+  --text-9xl: 7rem;
+}

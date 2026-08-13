@@ -9,12 +9,22 @@ import {
 } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { createCodex } from '@ai-sdk/harness-codex';
+import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import type { HostedAgentInboxItem } from '../launch.ts';
+import {
+    createComputerActivityProjector,
+    createComputerActivityRegistry,
+} from './activity-projector.ts';
 import { bridgeStoreDirForAgentsRoot, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
+import {
+    type ComputerExecutionJournal,
+    createComputerExecutionJournal,
+} from './execution-journal.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { projectHostedMessageForAgent } from './rich-reference-projection.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
@@ -30,8 +40,8 @@ import { readAgentSkills } from './skills.ts';
 /**
  * A ported copy of Runtime's `harness-agent-executor.ts`, adapted to the
  * Computer's launch boundary. It drives the real `@ai-sdk/harness` Codex, Claude
- * Code, and Pi adapters for one Agent turn: an isolated workspace/HOME/skills,
- * native host provider login (the sandbox seeds the machine's own session), the
+ * Code, Grok Build, and Pi adapters for one Agent turn: an isolated
+ * workspace/HOME/skills, native host provider login (the sandbox seeds the machine's own session), the
  * managed `grotto` wrapper as the sole output channel, the ported Grotto
  * operating/system prompt (`instructions.ts`) composed per turn and delivered
  * once on cold start, and the Agent's one global persistent session resumed
@@ -56,8 +66,10 @@ export interface HarnessTurnInput {
     /** The Agent's description — the personality surface (ruling W2). */
     initialRole: string | null;
     modelId: string;
+    onActivity?: (activity: ComputerAgentActivityUpdate) => void;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     registerNoticeSink?: NoticeSinkRegistrar;
+    runId: string;
     runtimeId: string;
     sessionGeneration: number;
     signal?: AbortSignal;
@@ -73,8 +85,8 @@ export interface HarnessTurnInput {
 export type NoticeSinkRegistrar = (sink: (notice: string) => Promise<boolean>) => () => void;
 
 export interface HarnessTurnResult {
+    aborted: boolean;
     contextTokens: number | null;
-    toolNames: string[];
 }
 
 /** Resume was rejected; the caller rotates the generation and cold-starts once. */
@@ -89,25 +101,36 @@ export class AgentSessionResumeRejectedError extends Error {
 }
 
 export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTurnResult> {
-    const stored = await readAgentSessionState(input.agentRoot);
-    const session = resolveTurnSession(stored, {
-        generation: input.sessionGeneration,
-        modelId: input.modelId,
-        runtimeId: input.runtimeId,
+    const journal = await createComputerExecutionJournal({
+        agentRoot: input.agentRoot,
+        runId: input.runId,
     });
-    const restartRequested = await isSessionRestartRequested(input.agentRoot);
-    const refreshInstructions = session.resumeState !== null && restartRequested;
-    const result = await executeHarnessTurn(input, session, refreshInstructions);
-    if (restartRequested) {
-        await clearSessionRestartRequest(input.agentRoot);
+    try {
+        const stored = await readAgentSessionState(input.agentRoot);
+        const session = resolveTurnSession(stored, {
+            generation: input.sessionGeneration,
+            modelId: input.modelId,
+            runtimeId: input.runtimeId,
+        });
+        const restartRequested = await isSessionRestartRequested(input.agentRoot);
+        const refreshInstructions = session.resumeState !== null && restartRequested;
+        const result = await executeHarnessTurn(input, session, refreshInstructions, journal);
+        if (restartRequested) {
+            await clearSessionRestartRequest(input.agentRoot);
+        }
+        await journal.finish(result.aborted ? 'interrupted' : 'completed');
+        return result;
+    } catch (error) {
+        await journal.finish(input.signal?.aborted ? 'interrupted' : 'failed', error);
+        throw error;
     }
-    return result;
 }
 
 async function executeHarnessTurn(
     input: HarnessTurnInput,
     session: AgentSessionState,
-    refreshInstructions: boolean
+    refreshInstructions: boolean,
+    journal: ComputerExecutionJournal
 ): Promise<HarnessTurnResult> {
     const skills = await readAgentSkills(input.skillsDir);
     // The Computer composes the managed Grotto operating contract itself; the
@@ -227,12 +250,43 @@ async function executeHarnessTurn(
             () => storedNoticeReady.resolve()
         );
         let observation: HarnessTurnResult;
+        const activityRegistry = createComputerActivityRegistry();
+        activityRegistry.registerGrottoHostTool({
+            category: 'browsing',
+            name: 'browser',
+            toolRef: 'browser',
+        });
+        activityRegistry.registerGrottoHostTool({
+            category: 'browsing',
+            name: 'web_fetch',
+            toolRef: 'web-fetch',
+        });
+        const projector = createComputerActivityProjector({
+            journal,
+            onActivity: input.onActivity,
+            registry: activityRegistry,
+            runtimeId: input.runtimeId,
+        });
+        input.onActivity?.({ category: 'thinking', phase: 'started' });
         try {
             await storedNoticeReady.promise;
-            observation = await observeTurnStream(turn.fullStream, noticeCoordinator.flush, {
-                onFirstPart: () => phase('first stream event'),
-                stallLabel: `${input.runtimeId} agent=${input.agentId}`,
+            observation = await observeTurnStream(
+                turn.fullStream,
+                noticeCoordinator.flush,
+                projector,
+                {
+                    onFirstPart: () => phase('first stream event'),
+                    stallLabel: `${input.runtimeId} agent=${input.agentId}`,
+                }
+            );
+            input.onActivity?.({
+                category: 'thinking',
+                phase: observation.aborted ? 'failed' : 'completed',
             });
+        } catch (error) {
+            await projector.finish(input.signal?.aborted ? 'interrupted' : 'failed', error);
+            input.onActivity?.({ category: 'thinking', phase: 'failed' });
+            throw error;
         } finally {
             unregisterNoticeSink?.();
             noticeCoordinator.close();
@@ -407,6 +461,7 @@ function pendingNoticePath(agentRoot: string) {
 async function observeTurnStream(
     stream: AsyncIterable<unknown>,
     onToolBoundary?: () => Promise<void>,
+    projector?: ReturnType<typeof createComputerActivityProjector>,
     {
         onFirstPart,
         stallLabel,
@@ -416,7 +471,6 @@ async function observeTurnStream(
     let contextTokens: number | null = null;
     let streamError: unknown;
     let aborted = false;
-    const toolNames = new Set<string>();
     // Wedge telemetry: long silences separate provider latency (events flowed,
     // then stopped after a known part) from a hung bridge (nothing ever came).
     let lastPartAt = Date.now();
@@ -444,45 +498,53 @@ async function observeTurnStream(
             if (partCount === 1) {
                 onFirstPart?.();
             }
-            handlePart({ ...part, type: part.type });
-            if (part.type === 'tool-result') {
-                await onToolBoundary?.();
+            switch (part.type) {
+                case 'tool-call':
+                    await projector?.observe(part);
+                    break;
+                case 'tool-result':
+                    await projector?.observe(part);
+                    if (part.preliminary !== true) {
+                        await onToolBoundary?.();
+                    }
+                    break;
+                case 'file-change':
+                    await projector?.observe(part);
+                    break;
+                case 'finish-step':
+                    contextTokens = usageContextTokens(part.usage) ?? contextTokens;
+                    break;
+                case 'finish':
+                    contextTokens ??= usageContextTokens(part.totalUsage);
+                    break;
+                case 'error':
+                    streamError ??=
+                        (part as { error?: unknown }).error ?? new Error('Harness stream failed.');
+                    break;
+                case 'abort':
+                    aborted = true;
+                    break;
+                default:
+                    break;
             }
         }
+    } catch (error) {
+        streamError ??= error;
     } finally {
         if (stallTimer) {
             clearInterval(stallTimer);
         }
     }
-    if (streamError && !aborted) {
+    if (aborted) {
+        await projector?.finish('interrupted', streamError);
+        return { aborted: true, contextTokens };
+    }
+    if (streamError) {
+        await projector?.finish('failed', streamError);
         throw streamError instanceof Error ? streamError : new Error(String(streamError));
     }
-    return { contextTokens, toolNames: [...toolNames] };
-
-    function handlePart(part: Record<string, unknown> & { type: string }) {
-        switch (part.type) {
-            case 'tool-call':
-                if (typeof part.toolName === 'string' && toolNames.size < 6) {
-                    toolNames.add(part.toolName.slice(0, 128));
-                }
-                break;
-            case 'finish-step':
-                contextTokens = usageContextTokens(part.usage) ?? contextTokens;
-                break;
-            case 'finish':
-                contextTokens ??= usageContextTokens(part.totalUsage);
-                break;
-            case 'error':
-                streamError ??=
-                    (part as { error?: unknown }).error ?? new Error('Harness stream failed.');
-                break;
-            case 'abort':
-                aborted = true;
-                break;
-            default:
-                break;
-        }
-    }
+    await projector?.finish('completed');
+    return { aborted: false, contextTokens };
 }
 
 // The construction seam. Tests inject a fake harness Agent to exercise the
@@ -535,6 +597,18 @@ function createHarnessAgent(
 function sandboxOptions(input: HarnessTurnInput) {
     const rootDir = dirname(input.workspaceDir);
     const profile = authProfileFor(input.runtimeId);
+    if (input.runtimeId === 'grok-build') {
+        return {
+            authProfiles: ['grok-build'] as const,
+            env: {
+                ...input.env,
+                GROK_HOME: join(input.homeDir, '.grok'),
+                HOME: input.homeDir,
+            },
+            homeDir: input.homeDir,
+            rootDir,
+        };
+    }
     if (input.runtimeId !== 'codex') {
         return {
             ...(profile ? { authProfiles: [profile] as const } : {}),
@@ -558,7 +632,12 @@ function sandboxOptions(input: HarnessTurnInput) {
 }
 
 function authProfileFor(runtimeId: string) {
-    if (runtimeId === 'claude-code' || runtimeId === 'codex' || runtimeId === 'pi') {
+    if (
+        runtimeId === 'claude-code' ||
+        runtimeId === 'codex' ||
+        runtimeId === 'grok-build' ||
+        runtimeId === 'pi'
+    ) {
         return runtimeId;
     }
     return null;
@@ -607,6 +686,8 @@ function createHarnessForRuntime(
                 'codex',
                 { storeDir }
             ) as HarnessV1<ToolSet>;
+        case 'grok-build':
+            return createGrokBuild({ model: modelId }) as HarnessV1<ToolSet>;
         case 'pi':
             return createPi({ model: modelId }) as HarnessV1<ToolSet>;
         default:

@@ -98,13 +98,13 @@ export function computerHealthLabel(
     }
 }
 
-export function computerHealthStatus(
+export function computerHealthColor(
     health: 'degraded' | 'healthy' | 'offline' | 'update-required'
 ) {
     return health === 'healthy'
         ? ('success' as const)
         : health === 'offline'
-          ? ('muted' as const)
+          ? ('default' as const)
           : ('warning' as const);
 }
 

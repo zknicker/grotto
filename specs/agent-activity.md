@@ -1,75 +1,192 @@
 ---
-summary: Agent activity feed — a durable, turn-grained log of what an agent has been doing, shown in the agent profile's Activity tab and avatar hover card.
+summary: Agent activity — Server-persisted semantic work history, the live sidebar strip, avatar status dots, and Computer-local detailed execution evidence.
 read_when:
-  - changing the agent profile, avatar hover cards, or any agent activity feed
-  - changing turn lifecycle records, triggers, or outcome projection
-  - considering finer-grained (tool-level) agent status surfaces
+  - changing Agent activity events, presence dots, or the sidebar activity strip
+  - changing the Agent profile Activity tab or Turn Details drawer
+  - changing Computer tool observation or the Server/Computer execution-evidence boundary
 ---
 
 # Agent Activity
 
-[Presence](presence.md) answers "is the agent busy right now". The activity
-feed answers "what has this agent been doing" — a short, human-readable log
-of turn-grained moments, in the spirit of Raft's activity diagnostics but
-with more context: every entry says where it happened and, when known, why.
+Agent activity answers two related questions without turning execution into Chat content:
 
-The feed is a **projection over durable rows** — turn records and session
-notices Runtime already keeps — never a new event stream and never a new
-table. It is fetched when a surface opens, kept fresh by the same turn
-events that invalidate presence, and it survives reload because its sources
-are durable.
+- **What is happening now?** The Agent activity strip and status dots project current unsettled
+  work.
+- **What happened before?** Agent activity history is a durable chronological list of summarized
+  execution events.
 
-## Entry catalog
+Activity is Agent-scoped because one Agent owns one global session and one turn may work across
+several Chats. It carries a `runId`, never claims that one Chat owns the turn, and never enters the
+Chat transcript.
 
-This catalog is the rendering contract. Implementations must produce
-exactly these entry kinds with these label shapes; label copy lives in one
-module whose unit tests mirror this table.
+## Semantic catalog
 
-Turns float on the session (ADR 0014): entries carry no chat anchor, and
-replies are ordinary CLI sends visible in chat, not turn outcomes.
+The public catalog is intentionally small. Copy is centralized and rendered with an ellipsis while
+the category is current.
 
-| Kind | Label template | Source |
+| Category | Current label | Evidence |
 | --- | --- | --- |
-| `message_received` | `Messages received` (detail: `Session start` for Start. turns) | Drain or start turn created |
-| `completed` | `Turn completed` | Turn status `completed` |
-| `failed` | `Turn failed` (+ error detail) | Turn status `failed` |
-| `stopped` | `Stopped` | Turn status `cancelled` (human stop) |
-| `new_session` | `Started fresh session` (+ ` — <reason>` when known) | System reset receipts in the agent DM |
+| `starting_work` | `Starting work…` | Server admits a turn to its assigned Computer |
+| `checking_messages` | `Checking messages…` | A structured Grotto message check/read/search boundary runs |
+| `thinking` | `Thinking…` | Harness reasoning starts; content is discarded |
+| `browsing` | `Browsing…` | A known Browser capability runs |
+| `searching_web` | `Searching the web…` | A known provider or Grotto web-search capability runs |
+| `reading_files` | `Reading files…` | A known file-read capability runs |
+| `editing_files` | `Editing files…` | A known file-write/edit capability runs |
+| `running_command` | `Running a command…` | A known shell/process capability runs |
+| `using_tool` | `Using a tool…` or `Using <safe name>…` | A known safe tool identity has no narrower category |
+| `sending_message` | `Sending a message…` | Server begins the canonical Agent message-send boundary |
+| `working` | `Working…` | No narrower truthful category is current |
 
-Rules:
+Completed and failed phases appear in history with past-tense copy. The strip never adds a
+synthetic `Finished` row; the Agent leaves the strip when its turn settles.
 
-- One turn yields at most two entries: its arrival and its outcome. A
-  still-running turn shows only its arrival entry — the live presence
-  line, not the feed, says "working".
-- Entries are newest-first, timestamped with wall-clock times, default
-  limit 20 (hover card shows the top 3–5).
+## Mapping evidence to activity
+
+Mapping is conservative and versioned. Prefer a less-specific truthful category over a specific
+inference.
+
+1. **Grotto product boundaries** map directly. Message checks come from the structured local proxy;
+   sends and turn lifecycle come from Server write boundaries.
+2. **Known tools** map through an explicit registry owned by the Computer activity projector.
+   Provider-specific Codex, Claude, and Pi identities have fixture-backed mappings. Grotto-owned
+   host tools declare their category at registration.
+3. **Unknown and MCP tools** default to `using_tool`. Their names, descriptions, and inputs are not
+   parsed for intent. A tool named `search` does not prove web search; `cat` inside a shell command
+   does not turn a shell event into file reading.
+
+An optional tool label crosses only when it is a canonical Grotto-controlled display identity.
+Unknown native or third-party names remain Computer-local and render `Using a tool…`.
+
+## Event contract
+
+Server and Computer produce the same narrow event shape:
+
+```ts
+type AgentActivityEvent = {
+  id: string
+  serverId: string
+  agentId: string
+  runId: string
+  position: number
+  producer: "server" | "computer"
+  producerId: string
+  producerSequence: number
+  category: AgentActivityCategory
+  phase: "started" | "completed" | "failed"
+  occurredAt: string
+  toolRef?: string
+}
+```
+
+Each producer assigns a monotonic `producerSequence` within the run. Server validates the currently
+assigned Computer and active run, deduplicates `(serverId, agentId, runId, producer,
+producerId, producerSequence)`, assigns the next run-local `position` while holding the owning
+  delivery/turn lock, persists the event, then broadcasts it when the run is eligible for the
+  current projection. `position` is the only presentation order within a run; the Server's recorded
+  run start preserves cross-Agent turn ordering. Producer timestamps never resolve event ordering.
+  Server-originated lifecycle events use their own producer identity and the same ordered journal
+  without pretending they came from Harness.
+
+The hosted Server API exposes this journal through `agent.activityHistory`, the unsettled-run
+`agent.activeActivity` snapshot, and one Server-scoped `agent.onActivity` subscription. Current
+activity includes only an active run after the assigned Computer's acceptance ack; a dispatched
+but unaccepted run remains durable history without entering the current projection. History pages
+use a run-local `{ runId, position }` cursor; the legacy compact `agent.activity` turn summary
+remains a separate compatibility read.
+
+Heartbeats and repeated identical current states are not persisted. Short adjacent events may be
+coalesced for the live strip, but every meaningful transition remains available in history.
+
+Activity events never contain reasoning text, model narration, draft messages, URLs, search terms,
+paths, commands, tool inputs or outputs, authorization data, or private file contents.
+
+## Computer projection and execution journal
+
+One raw Harness event fans into two deliberately separate products:
+
+```text
+Harness tool call/result
+  -> Computer-local execution journal (detailed)
+  -> Computer activity projector (semantic) -> Server activity journal
+```
+
+The **Agent execution journal** is keyed by `runId` and retains tool-call ids, exact observed tool
+identity, inputs, outputs, errors, and timings. It excludes model reasoning. It stays on Computer;
+Server Owners and Admins may inspect it through an authorized live Server-to-Computer relay. Server
+does not persist the response. When Computer is offline, detailed evidence is unavailable.
+
+This workstream assigns no retention or cleanup policy to the execution journal. Holistic cleanup
+is owned by Linear PRD-216.
 
 ## Surfaces
 
-- **Agent profile, Activity tab** — the full timestamped diagnostics view
-  with Copy Diagnostic Info ([agent-profile](agent-profile.md)). Read-only;
-  entries are not links in v1.
-- **Avatar hover card** — hovering any agent avatar (facepile, sidebar,
-  transcript) shows the agent's name, live presence line, and the top few
-  activity entries. Clicking a transcript avatar opens the profile in the
-  chat's right pane; elsewhere it opens the Members profile page — the
-  hover card is the preview, the profile is the full view.
+### Agent activity strip
 
-## Contract
+The strip sits at the bottom of every Server sidebar and is absent from full-width destinations
+without a sidebar, including Search and Reminders.
 
-- Runtime owns the projection (`GET /agents/{id}/activity`), assembled
-  from `agent_turns` (timestamps, kind, status, error metadata) and the
-  durable session-reset receipts in the agent's built-in DM.
-- The read is on-demand and bounded; nothing is stored per entry. Without
-  a reachable Runtime the feed is absent, like presence.
-- Turn-grained only: tool calls, reasoning, and narration never appear in
-  the feed — that detail belongs to the turn drawer. This is the same
-  altitude line specs/chat-timeline.md draws for the timeline.
+- Membership is exactly the Server's Agents with unsettled, Computer-accepted turns.
+- Each row shows the Agent avatar with its ordinary global status dot plus the latest semantic
+  activity label.
+- Show at most four rows, then `N more working`.
+- Order is stable by turn start, oldest first. A category change does not reorder rows. Entry and
+  exit reflow with a restrained layout animation; reduced-motion users get no rerank motion.
+- Clicking a row opens that Agent's profile.
+- Settlement removes the row with a short fade. Status dots never pulse.
+
+The strip consumes live current-state projection, not the historical query. Reconnect obtains a
+current active-activity snapshot before applying later events. A semantic operation's
+`completed` or `failed` event falls back to `Working…`; only the Server's terminal turn event
+removes the Agent. Snapshot and live-event reconciliation preserves live events that arrive while
+an older snapshot request is still in flight.
+
+### Agent activity history
+
+The Agent profile Activity tab reads the durable Server journal newest-first with pagination. It
+shows lifecycle and semantic tool-category rows similar to Raft's Activity diagnostics. Repeated
+heartbeats and raw details never appear.
+
+Every Server member may see the summarized history. Complete execution evidence is restricted to
+Server Owners and Admins and remains Computer-local. Agent creation provenance grants no additional
+access.
+
+This workstream adds no expiry or pruning to Server activity history. Any holistic retention change
+belongs to PRD-216.
+
+### Turn Details
+
+An Agent-authored Chat message stores the real `runId` that produced it. Its Turn Details drawer
+shows the Server-persisted activity summary to members who can access that message. Owners and
+Admins may additionally request the run's detailed execution journal while Computer is online.
+
+A global turn may touch several private Chats. Ordinary members never receive global raw evidence
+through one Chat message. Opening a Chat never fetches detailed evidence until the user explicitly
+opens Turn Details.
+
+### Avatar status dots
+
+Agent avatars in the Chat transcript render the same global status dot as Agent avatars in the
+sidebar and profile. The dot answers whether that Agent is currently working anywhere on the
+Server; it is not Chat-scoped and never pulses.
+
+DM headers mirror global Agent status with concise text such as `Online`, `Working`, `Offline`,
+`Stopped`, or `Needs attention`. Channel headers do not aggregate Agent status.
+
+## Failure behavior
+
+- Server history remains readable while Computer is offline.
+- A missing live activity update falls back to `Working…` while the unsettled turn remains known.
+- Computer disconnect clears current strip membership through Agent availability reconciliation;
+  it does not delete durable history.
+- Unknown tools stay generic. Classification failure never blocks the turn or tool call.
+- Activity transport is best effort during a turn. Settlement must still record the terminal turn
+  outcome even if intermediate semantic events were lost.
 
 ## Non-goals
 
-- Live micro-states in the feed or presence label ("Running tools…") —
-  the feed makes them unnecessary at this altitude.
-- A durable activity table or activity event stream.
-- Filtering, pagination, or per-chat activity views (revisit if the feed
-  proves useful and 20 entries feel cramped).
+- Streaming model text or reasoning into Activity.
+- Guessing intent from arbitrary tool names, arguments, commands, or output.
+- Showing raw execution evidence in the sidebar or ordinary-member Activity views.
+- Treating activity as Chat history, typing state, or a promise that the Agent will reply.
+- Defining retention or cleanup policy.

@@ -31,8 +31,9 @@ There is no separate per-agent settings surface.
 - **Profile.** Server-owned identity and role; desired Computer/runtime/model
   assignment; effective state reported by the Computer; Agent-owned skills
   reported by the Computer.
-- **Activity.** Timestamped, turn-grained diagnostics from durable Server
-  records ([agent-activity](agent-activity.md)) with Copy Diagnostic Info.
+- **Activity.** Timestamped semantic lifecycle and tool-category history from durable Server
+  records ([agent-activity](agent-activity.md)) with Copy Diagnostic Info. Raw tool evidence is not
+  part of this history.
 - **Chat.** Server-owned channels and DMs in which the Agent participates.
 - **Reminders.** Read-only view of the agent's schedules. Creation is
   conversational — the empty state says to tell the agent.
@@ -48,10 +49,10 @@ There is no separate per-agent settings surface.
 
 ## Ownership
 
-- The Server owns Agent identity, membership, configuration intent, chats,
-  activity summaries, reminders, MCP connections, and access grants.
-- The Computer owns execution, workspace files, credentials, and effective
-  runtime state.
+- The Server owns Agent identity, membership, configuration intent, Chats, semantic activity
+  history, reminders, MCP connections, and access grants.
+- The Computer owns execution, the detailed execution journal, workspace files, credentials, and
+  effective runtime state.
 - The browser talks only to the Server through typed tRPC procedures. It
   never invokes a Computer directly.
 - Reads never start, resume, rotate, or otherwise mutate Agent execution.

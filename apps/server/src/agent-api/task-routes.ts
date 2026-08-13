@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -50,6 +51,9 @@ export function registerAgentTaskRoutes(
         }
         try {
             const result = await createAgentTasks(db, runner, parsed.data, agentDelivery);
+            for (const activity of result.activities) {
+                publishCommittedAgentActivity(activity);
+            }
             emitTaskEvents(result.events);
             await Promise.all(
                 result.wakes.map(({ agentId, serverId }) =>

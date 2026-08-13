@@ -62,7 +62,7 @@ export function MembersSidebar({ isActive, server }: { isActive: boolean; server
                         Couldn’t load Agents
                     </p>
                 ) : (
-                    <Sidebar.Menu aria-label="Agents">
+                    <Sidebar.Menu aria-label="Agents" className="gap-0">
                         {agentItems.map((agent) => (
                             <Sidebar.MenuItem
                                 href={agentRoute(server.slug, agent.id)}
@@ -72,7 +72,7 @@ export function MembersSidebar({ isActive, server }: { isActive: boolean; server
                                 textValue={agent.displayName}
                             >
                                 <Sidebar.MenuIcon>
-                                    <AgentAvatar agent={agent} />
+                                    <AgentAvatar agent={agent} size={24} />
                                 </Sidebar.MenuIcon>
                                 <Sidebar.MenuItemContent>
                                     <Sidebar.MenuLabel>{agent.displayName}</Sidebar.MenuLabel>
@@ -91,7 +91,7 @@ export function MembersSidebar({ isActive, server }: { isActive: boolean; server
                         <span className="sr-only">Loading humans</span>
                     </div>
                 ) : (
-                    <Sidebar.Menu aria-label="Humans">
+                    <Sidebar.Menu aria-label="Humans" className="gap-0">
                         {humans.map((member) => (
                             <Sidebar.MenuItem
                                 href={humanRoute(server.slug, member.userId)}
@@ -103,7 +103,7 @@ export function MembersSidebar({ isActive, server }: { isActive: boolean; server
                                 <Sidebar.MenuIcon>
                                     <EntityAvatar
                                         name={humanDisplayName(member)}
-                                        size={20}
+                                        size={24}
                                         src={member.avatarUrl}
                                     />
                                 </Sidebar.MenuIcon>

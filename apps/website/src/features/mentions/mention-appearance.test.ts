@@ -10,9 +10,16 @@ describe('mention appearance', () => {
                 label: 'ui',
             })
         ).toEqual({
-            brandColor: 'var(--accent)',
+            brandColor: '#64748b',
             icon: 'skill',
         });
+        expect(
+            getMentionDisplayLabel({
+                id: 'skill://my-skill',
+                kind: 'skill',
+                label: 'my-skill',
+            })
+        ).toBe('My Skill');
     });
 
     it('resolves bundled GitHub skills to branded presentation', () => {
@@ -23,7 +30,7 @@ describe('mention appearance', () => {
         };
 
         expect(getMentionAppearance(input)).toEqual({
-            brandColor: 'var(--foreground)',
+            brandColor: '#64748b',
             icon: 'github',
             label: 'GitHub',
         });
@@ -38,7 +45,7 @@ describe('mention appearance', () => {
                 label: 'gh-issues',
             })
         ).toEqual({
-            brandColor: 'var(--foreground)',
+            brandColor: '#64748b',
             icon: 'github',
             label: 'GitHub Issues',
         });

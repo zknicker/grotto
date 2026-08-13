@@ -66,10 +66,10 @@
   },
   "patchedDependencies": {
     "@shadcn/react@0.1.0": "patches/@shadcn%2Freact@0.1.0.patch",
-    "@ai-sdk/harness@1.0.57": "patches/@ai-sdk%2Fharness@1.0.57.patch",
-    "@ai-sdk/harness-claude-code@1.0.58": "patches/@ai-sdk%2Fharness-claude-code@1.0.58.patch",
-    "@ai-sdk/harness-codex@1.0.59": "patches/@ai-sdk%2Fharness-codex@1.0.59.patch",
-    "@ai-sdk/harness-pi@1.0.57": "patches/@ai-sdk%2Fharness-pi@1.0.57.patch"
+    "@ai-sdk/harness@1.0.70": "patches/@ai-sdk%2Fharness@1.0.70.patch",
+    "@ai-sdk/harness-pi@1.0.71": "patches/@ai-sdk%2Fharness-pi@1.0.71.patch",
+    "@ai-sdk/harness-grok-build@1.0.6": "patches/@ai-sdk%2Fharness-grok-build@1.0.6.patch",
+    "@ai-sdk/harness-acp@1.0.7": "patches/@ai-sdk%2Fharness-acp@1.0.7.patch"
   },
   "trustedDependencies": [
     "heroui-pro",

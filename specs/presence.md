@@ -53,13 +53,12 @@ is no per-token churn.
 
 ## Non-goals
 
-- Micro-states ("Running tools", "Reading files") — coarse busy/idle only;
-  the live turn narration already exists for the active chat, and the
-  [activity feed](agent-activity.md) covers "what has it been doing" at
-  turn granularity.
-- A standing agent presence rail or ticker: agents and built-in DMs are
+- Encoding semantic activity inside presence. Presence remains coarse busy/idle; the focused
+  [Agent activity](agent-activity.md) stream owns `Checking messages…`, `Browsing…`, and other
+  current-work categories.
+- A standing Agent presence rail or ticker: Agents and built-in DMs are
   one-to-one, so the DM list already is the presence roster. The
-  bottom-of-sidebar activity strip (specs/raft-alignment, I1) is the one
-  exception — it renders only while an agent is mid-turn and disappears at
+  bottom-of-sidebar Agent activity strip is the one exception — it renders only while an Agent is
+  mid-turn and disappears at
   idle, so at rest the DM list remains the sole presence surface.
 - Presence for external/observed participants.

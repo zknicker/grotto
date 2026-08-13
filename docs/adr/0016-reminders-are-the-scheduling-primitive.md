@@ -37,11 +37,11 @@ contract as every other fire.
 
 - Cron agent-turn and system-event modes collapse into observable reminders;
   `cron_jobs` and `cron_runs` are absent from the fresh hosted schema.
-- The Reminders operator view reads hosted state directly. Server Owners and
-  Admins may filter, inspect fire history, and cancel; creation and editing
-  remain Agent-authored.
+- Server Owners and Admins can inspect each Agent's reminders from that Agent's
+  profile. There is no Server-wide Reminders view; creation and editing remain
+  Agent-authored.
 - PostgreSQL commands and row versions make retries and mutation/fire races
-  explicit. Durable events and cursor catch-up recover notification loss.
+  explicit. Durable events preserve a cursor-based integration contract.
 - Pending reminder attention is a concrete unacknowledged fire snapshot, not a
   generic scheduler, outbox, delivery, or acknowledgment framework.
 - The previous Runtime-owned quiet-script interpretation is superseded. No

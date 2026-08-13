@@ -1,0 +1,81 @@
+import * as React from 'react';
+import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
+
+/**
+ * Desktop ⌘W/⌘T routing. The menu's Close and New Tab items ask the renderer
+ * before acting: a visible tabbed pane (today the chat artifact pane)
+ * registers commands here, and Close only falls back to closing the window
+ * when no pane has a tab to close.
+ */
+export interface DesktopTabPaneCommands {
+    /** Close the pane's active tab (or the pane itself); false = nothing to close. */
+    closeActiveTab: () => boolean;
+    /** Open a fresh tab in the pane; false = the pane cannot add one right now. */
+    openNewTab: () => boolean;
+}
+
+let activePaneCommands: DesktopTabPaneCommands | null = null;
+
+export function registerDesktopTabPane(commands: DesktopTabPaneCommands): () => void {
+    activePaneCommands = commands;
+    return () => {
+        if (activePaneCommands === commands) {
+            activePaneCommands = null;
+        }
+    };
+}
+
+export function handleCloseWindowRequest(closeWindow: () => void) {
+    if (activePaneCommands?.closeActiveTab()) {
+        return;
+    }
+
+    closeWindow();
+}
+
+export function handleNewTabRequest() {
+    activePaneCommands?.openNewTab();
+}
+
+/** Mounted once in AppFrame: subscribes the window to the File menu's requests. */
+export function useDesktopWindowCommands() {
+    React.useEffect(() => {
+        const bridge = getDesktopBridge();
+        if (!bridge) {
+            return;
+        }
+
+        const unsubscribeClose = bridge.onCloseWindowRequest?.(() => {
+            handleCloseWindowRequest(() => {
+                void bridge.closeWindow();
+            });
+        });
+        const unsubscribeNewTab = bridge.onNewTabRequest?.(() => {
+            handleNewTabRequest();
+        });
+
+        return () => {
+            unsubscribeClose?.();
+            unsubscribeNewTab?.();
+        };
+    }, []);
+}
+
+/** Registered by a tabbed pane while it is visible; the latest handlers win. */
+export function useDesktopTabPane(commands: DesktopTabPaneCommands & { active: boolean }) {
+    const latest = React.useRef(commands);
+    React.useEffect(() => {
+        latest.current = commands;
+    });
+
+    React.useEffect(() => {
+        if (!commands.active) {
+            return;
+        }
+
+        return registerDesktopTabPane({
+            closeActiveTab: () => latest.current.closeActiveTab(),
+            openNewTab: () => latest.current.openNewTab(),
+        });
+    }, [commands.active]);
+}

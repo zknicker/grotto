@@ -70,10 +70,10 @@ function ArtifactTab({
             <button
                 aria-selected={active}
                 className={cn(
-                    'flex h-8 w-full min-w-0 items-center gap-1.5 rounded-lg py-0 pr-8 pl-2.5 text-xs outline-none transition-colors focus-visible:bg-surface-secondary',
+                    'flex h-8 w-full min-w-0 items-center gap-1.5 rounded-lg py-0 pr-8 pl-2.5 text-sm outline-none transition-colors focus-visible:bg-surface-secondary',
                     active
                         ? 'bg-surface-secondary text-foreground'
-                        : 'text-muted hover:bg-surface hover:text-foreground'
+                        : 'text-muted hover:bg-background-hover hover:text-foreground'
                 )}
                 onClick={onSelect}
                 role="tab"

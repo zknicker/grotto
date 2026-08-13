@@ -25,7 +25,34 @@
         :is(button, a[href], [role='button'], [role='tab']):not(:disabled):not(
             [aria-disabled='true']
         ) {
-        cursor: pointer;
+        cursor: var(--cursor-interactive);
+    }
+
+    /*
+     * Native macOS cursor convention: controls keep the arrow cursor and only
+     * hyperlinks get the pointer. HeroUI routes every interactive cursor
+     * through this token (defined in its theme layer, so this later-layer
+     * override wins); product code should use cursor-(--cursor-interactive)
+     * instead of cursor-pointer so it follows the platform too.
+     */
+    html.macos-electron {
+        --cursor-interactive: default;
+    }
+
+    html.macos-electron a[href] {
+        --cursor-interactive: pointer;
+    }
+
+    /*
+     * Native windows mute their chrome while unfocused; the renderer toggles
+     * window-blurred from main-process focus events. Dim the rail and sidebar
+     * contents only — content panes keep full contrast like native document
+     * areas, and the sidebar's ::before titlebar band stays solid.
+     */
+    html.macos-electron.window-blurred
+        :is(.app-rail, .app-shell [data-slot='sidebar'])
+        > * {
+        opacity: 0.55;
     }
 
     html.macos-electron [data-window-drag-region] {
@@ -137,5 +164,16 @@
     .app-shell .sidebar__offcanvas-wrapper,
     .app-shell [data-slot='sidebar'][data-collapsible='offcanvas'] {
         transition: none;
+    }
+
+    /*
+     * HeroUI fixes the collapsed sidebar width at 48px (declared on the aside
+     * itself) while pill height and rail padding scale with --spacing, so at
+     * non-default theme density the icon pills go non-square. Derive the width
+     * from the same spacing unit: 12 units - 2 * 1.5-unit rail padding =
+     * 9 units, matching the pill height.
+     */
+    .app-rail [data-slot='sidebar'] {
+        --sidebar-width-collapsed: calc(var(--spacing) * 12);
     }
 }

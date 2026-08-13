@@ -85,7 +85,7 @@ export function CoveMeetStep({
                             <EntityAvatar name="Cove" size={72} src="/prototypes/cove-avatar.png" />
                             <div className="grid gap-0.5">
                                 <p className="font-semibold text-lg">Cove</p>
-                                <p className="text-muted text-xs">@cove</p>
+                                <p className="text-muted text-sm">@cove</p>
                             </div>
                         </div>
                         <div className="grid content-center gap-4 border-separator border-t p-6 md:border-t-0 md:border-l">
@@ -147,7 +147,7 @@ export function CoveMeetStep({
                                     </ListBox>
                                 </Select.Popover>
                             </Select>
-                            <p className="text-muted text-xs">
+                            <p className="text-muted text-sm">
                                 Both come from what the Computer reported. You can change them
                                 later.
                             </p>
@@ -195,7 +195,7 @@ function CoveRepairAlert({
                     {guidance.command ? (
                         <CodeSnippet className="mt-2" lines={guidance.command} />
                     ) : null}
-                    {guidance.note ? <p className="mt-2 text-xs">{guidance.note}</p> : null}
+                    {guidance.note ? <p className="mt-2 text-sm">{guidance.note}</p> : null}
                 </Alert.Description>
                 {retryButton('mt-2 sm:hidden')}
             </Alert.Content>

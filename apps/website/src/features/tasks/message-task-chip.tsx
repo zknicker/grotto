@@ -1,5 +1,5 @@
-import { cn } from '../../lib/utils.ts';
-import { formatTaskNumber, type TaskStatus, taskStatusClasses } from './task-presentation.ts';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { formatTaskNumber, type TaskStatus } from './task-presentation.ts';
 import { TaskStatusDisc } from './task-status-disc.tsx';
 
 export interface MessageTask {
@@ -12,22 +12,40 @@ export interface MessageTask {
     status: TaskStatus;
 }
 
-export function MessageTaskChip({ task }: { task: MessageTask }) {
-    const assigneeLabel = messageTaskAssigneeLabel(task);
+export interface MessageTaskAssigneeProfile {
+    avatarUrl: string | null;
+    name: string;
+}
 
-    // Tinted fill frames the status hue (the label fg tokens read too heavy
-    // floating on a neutral chip); the disc inherits the same hue.
+export function MessageTaskChip({
+    assigneeProfile,
+    task,
+}: {
+    assigneeProfile?: MessageTaskAssigneeProfile | null;
+    task: MessageTask;
+}) {
+    const assigneeLabel = messageTaskAssigneeLabel(task);
+    const ownerName = assigneeProfile?.name ?? assigneeLabel;
+
     return (
         <span
-            className={cn(
-                'inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-xs',
-                taskStatusClasses[task.status]
-            )}
+            className="inline-flex min-w-0 max-w-full items-center gap-1.5 font-semibold text-muted"
             data-testid="message-task-badge"
         >
+            <span className="shrink-0 tabular-nums">Task {formatTaskNumber(task)}</span>
             <TaskStatusDisc className="size-3.5" status={task.status} />
-            <span className="font-medium tabular-nums">{formatTaskNumber(task)}</span>
-            {assigneeLabel ? <span className="opacity-80">{assigneeLabel}</span> : null}
+            {ownerName ? (
+                <span className="flex min-w-0 items-center gap-1.5">
+                    {assigneeProfile ? (
+                        <EntityAvatar
+                            name={assigneeProfile.name}
+                            size={14}
+                            src={assigneeProfile.avatarUrl}
+                        />
+                    ) : null}
+                    <span className="truncate">{ownerName}</span>
+                </span>
+            ) : null}
         </span>
     );
 }

@@ -695,9 +695,12 @@ async function waitForFrameCount(frames: Record<string, unknown>[], type: string
     );
 }
 
+/** Work still awaiting a turn. Settled `seen` rows are retained turn evidence. */
 async function countPendingWork(agentId: string) {
     const [row] = await harness.sql`
-        select count(*)::int as count from agent_pending_work where agent_id = ${agentId}
+        select count(*)::int as count
+        from agent_pending_work
+        where agent_id = ${agentId} and state <> 'seen'
     `;
     return Number(row?.count ?? 0);
 }

@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import type { HostedAgentCommand, HostedAgentTurnSummary } from '@tavern/api';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
-import { deleteSeenQueuedWork, readAgentInboxCursor } from '../src/agent-delivery/cursors.ts';
+import { markCursorSubsumedSeen, readAgentInboxCursor } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { countQueuedPending, readDeliveryState } from '../src/agent-delivery/store.ts';
@@ -149,12 +149,31 @@ async function countTurns(agentId: string): Promise<number> {
     return rows.length;
 }
 
-async function countAllPending(agentId: string): Promise<number> {
+/**
+ * Rows still in the delivery pipeline. Settled `seen` rows are retained as turn
+ * evidence, so they are not pending work any more.
+ */
+async function countUnsettledPending(agentId: string): Promise<number> {
     const rows = await connection.db
         .select({ id: agentPendingWorkTable.id })
         .from(agentPendingWorkTable)
-        .where(eq(agentPendingWorkTable.agentId, agentId));
+        .where(
+            and(eq(agentPendingWorkTable.agentId, agentId), ne(agentPendingWorkTable.state, 'seen'))
+        );
     return rows.length;
+}
+
+async function readDeliveryLedger(agentId: string) {
+    return await connection.db
+        .select({
+            acceptedAt: agentPendingWorkTable.acceptedAt,
+            dedupeKey: agentPendingWorkTable.dedupeKey,
+            seenAt: agentPendingWorkTable.seenAt,
+            settledRunId: agentPendingWorkTable.settledRunId,
+            state: agentPendingWorkTable.state,
+        })
+        .from(agentPendingWorkTable)
+        .where(eq(agentPendingWorkTable.agentId, agentId));
 }
 
 async function insertHumanMessage(seed: Seed, content: string, sequence: number): Promise<string> {
@@ -372,7 +391,7 @@ test('delivers non-Chat onboarding attention concretely without entering message
         seed.computerId,
         turnSummary(seed.agentId, start?.runId ?? '', 'completed')
     );
-    expect(await countAllPending(seed.agentId)).toBe(0);
+    expect(await countUnsettledPending(seed.agentId)).toBe(0);
 });
 
 test('keeps onboarding attention out of message check while an ordinary turn is live', async () => {
@@ -457,7 +476,7 @@ test('ignores a duplicate delivery of the same message', async () => {
     });
     // The second delivery deduped: only one inbox row ever existed (already
     // claimed into the offline run), so reconnect redelivers exactly one start.
-    expect(await countAllPending(seed.agentId)).toBe(1);
+    expect(await countUnsettledPending(seed.agentId)).toBe(1);
 
     transport.online.add(seed.computerId);
     await delivery.onComputerReconnect(seed.computerId);
@@ -597,7 +616,7 @@ test('settles explicitly pulled busy work with the active run without a second t
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
 
     expect(transport.framesOfType('start')).toHaveLength(1);
-    expect(await countAllPending(seed.agentId)).toBe(0);
+    expect(await countUnsettledPending(seed.agentId)).toBe(0);
     expect(
         await readAgentInboxCursor(connection.db, {
             agentId: seed.agentId,
@@ -629,7 +648,7 @@ test('settles exact Computer-local visibility carried by the turn summary', asyn
         visibleMessages: [{ chatId: seed.chatId, id: messageId, sequence: 1 }],
     });
 
-    expect(await countAllPending(seed.agentId)).toBe(0);
+    expect(await countUnsettledPending(seed.agentId)).toBe(0);
     expect(
         await readAgentInboxCursor(connection.db, {
             agentId: seed.agentId,
@@ -924,7 +943,7 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
         number: 1,
         status: 'in_progress',
     });
-    expect(await countAllPending(seed.agentId)).toBe(2);
+    expect(await countUnsettledPending(seed.agentId)).toBe(2);
     expect(
         await readAgentInboxCursor(connection.db, {
             agentId: seed.agentId,
@@ -1044,7 +1063,7 @@ test('repeated reconnects settle one durable result for one delivery', async () 
 
     expect(transport.framesOfType('start')).toHaveLength(3);
     expect(await countTurns(seed.agentId)).toBe(1);
-    expect(await countAllPending(seed.agentId)).toBe(0);
+    expect(await countUnsettledPending(seed.agentId)).toBe(0);
 });
 
 test('records a duplicate turn summary exactly once', async () => {
@@ -1116,7 +1135,7 @@ test('a failed turn backs off instead of tight-looping', async () => {
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'failed'));
     // No immediate re-drive, the work is requeued, and a backoff is scheduled.
     expect(transport.framesOfType('start')).toHaveLength(1);
-    expect(await countAllPending(seed.agentId)).toBe(1);
+    expect(await countUnsettledPending(seed.agentId)).toBe(1);
     const state = await readDeliveryState(connection.db, seed.agentId);
     expect(state?.consecutiveFailures).toBe(1);
     expect(state?.retryAfter?.getTime()).toBeGreaterThan(Date.now());
@@ -1168,7 +1187,7 @@ test('an expired backoff redrives and settles the queued work once', async () =>
 
     expect(transport.framesOfType('start')).toHaveLength(2);
     expect(await countTurns(seed.agentId)).toBe(2);
-    expect(await countAllPending(seed.agentId)).toBe(0);
+    expect(await countUnsettledPending(seed.agentId)).toBe(0);
 });
 
 test('an operator-action failure degrades immediately instead of spending retries', async () => {
@@ -1194,7 +1213,7 @@ test('an operator-action failure degrades immediately instead of spending retrie
     const state = await readDeliveryState(connection.db, seed.agentId);
     expect(state?.consecutiveFailures).toBe(5);
     expect(state?.retryAfter).toBeNull();
-    expect(await countAllPending(seed.agentId)).toBe(1);
+    expect(await countUnsettledPending(seed.agentId)).toBe(1);
     await delivery.sweep();
     expect(transport.framesOfType('start')).toHaveLength(1);
 });
@@ -1544,7 +1563,7 @@ test('a failed turn that produced output does not requeue its work', async () =>
     // The turn failed but already produced a durable send — requeuing would
     // re-trigger that output, so the work is dropped, not requeued or replayed.
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'failed', true));
-    expect(await countAllPending(seed.agentId)).toBe(0);
+    expect(await countUnsettledPending(seed.agentId)).toBe(0);
     expect(transport.framesOfType('start')).toHaveLength(1);
     expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
 });
@@ -1580,21 +1599,21 @@ test('served cursor never consumes queued work without seen proof', async () => 
         sessionGeneration: 1,
     });
 
-    await deleteSeenQueuedWork(connection.db, {
+    await markCursorSubsumedSeen(connection.db, {
         agentId: seed.agentId,
         serverId: seed.serverId,
     });
-    expect(await countAllPending(seed.agentId)).toBe(1);
+    expect(await countUnsettledPending(seed.agentId)).toBe(1);
 
     await connection.db
         .update(agentInboxCursorsTable)
         .set({ seenUpToSequence: 1 })
         .where(eq(agentInboxCursorsTable.agentId, seed.agentId));
-    await deleteSeenQueuedWork(connection.db, {
+    await markCursorSubsumedSeen(connection.db, {
         agentId: seed.agentId,
         serverId: seed.serverId,
     });
-    expect(await countAllPending(seed.agentId)).toBe(0);
+    expect(await countUnsettledPending(seed.agentId)).toBe(0);
 });
 
 test('agent-only chain ceiling preserves work until human intent arrives', async () => {
@@ -1619,7 +1638,7 @@ test('agent-only chain ceiling preserves work until human intent arrives', async
 
     await delivery.sweep();
     expect(transport.framesOfType('start')).toHaveLength(0);
-    expect(await countAllPending(seed.agentId)).toBe(1);
+    expect(await countUnsettledPending(seed.agentId)).toBe(1);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1654,7 +1673,7 @@ test('an output sent from agent-authored notice metadata still spends chain budg
     );
 
     expect((await readDeliveryState(connection.db, seed.agentId))?.agentChainTurns).toBe(1);
-    expect(await countAllPending(seed.agentId)).toBe(1);
+    expect(await countUnsettledPending(seed.agentId)).toBe(1);
 });
 
 test('a resent run stays frozen and the next delivery uses the changed runtime and model', async () => {
@@ -1745,4 +1764,114 @@ test('bounds one drain and carries the overflow in a later run', async () => {
     );
     const second = transport.framesOfType('start')[1];
     expect(second?.inbox.map((item) => item.content.slice(0, 6))).toEqual(['msg-3-']);
+});
+
+test('retains a settled delivery as proof the Agent read an FYI and answered nothing', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const messageId = await insertHumanMessage(seed, 'fyi, the deploy finished', 1);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'fyi, the deploy finished',
+        dedupeKey: messageId,
+        serverId: seed.serverId,
+    });
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    await pullAgentEvents(connection.db, {
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        computerId: seed.computerId,
+        runId,
+        runnerId: createOpaqueId('arc'),
+        serverId: seed.serverId,
+    });
+    const served = await readDeliveryLedger(seed.agentId);
+    expect(served).toMatchObject([{ dedupeKey: messageId, state: 'served' }]);
+    expect(served[0]?.acceptedAt).not.toBeNull();
+
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, runId, 'completed', false)
+    );
+
+    // The row is gone from the live queue but still readable as evidence.
+    expect(await countQueuedPending(connection.db, seed.agentId)).toBe(0);
+    expect(await countUnsettledPending(seed.agentId)).toBe(0);
+    const ledger = await readDeliveryLedger(seed.agentId);
+    expect(ledger).toMatchObject([{ dedupeKey: messageId, settledRunId: runId, state: 'seen' }]);
+    expect(ledger[0]?.seenAt).not.toBeNull();
+
+    const [turn] = await connection.db
+        .select({
+            failureKind: agentTurnsTable.failureKind,
+            messageCount: agentTurnsTable.messageCount,
+            outputProduced: agentTurnsTable.outputProduced,
+            status: agentTurnsTable.status,
+        })
+        .from(agentTurnsTable)
+        .where(eq(agentTurnsTable.runId, runId));
+    expect(turn).toEqual({
+        failureKind: null,
+        messageCount: 0,
+        outputProduced: false,
+        status: 'completed',
+    });
+    expect(transport.framesOfType('start')).toHaveLength(1);
+});
+
+test('retains a delivery the seen cursor subsumed instead of erasing it', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const firstMessageId = await insertHumanMessage(seed, 'earlier note', 1);
+    const secondMessageId = await insertHumanMessage(seed, 'later note', 2);
+
+    for (const [index, messageId] of [firstMessageId, secondMessageId].entries()) {
+        await delivery.deliver({
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            content: index === 0 ? 'earlier note' : 'later note',
+            dedupeKey: messageId,
+            sequence: index + 1,
+            serverId: seed.serverId,
+        });
+    }
+    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+
+    // Only the later message is attested, so the earlier one is proven read by
+    // the seen cursor rather than by its own run attachment.
+    await attestAgentEvents(
+        connection.db,
+        {
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            computerId: seed.computerId,
+            runId,
+            runnerId: createOpaqueId('arc'),
+            serverId: seed.serverId,
+        },
+        [{ chatId: seed.chatId, id: secondMessageId, sequence: 2 }]
+    );
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, runId, 'completed', false)
+    );
+
+    expect(await countQueuedPending(connection.db, seed.agentId)).toBe(0);
+    const ledger = await readDeliveryLedger(seed.agentId);
+    expect(ledger).toHaveLength(2);
+    const subsumed = ledger.find((row) => row.dedupeKey === firstMessageId);
+    expect(subsumed).toMatchObject({ settledRunId: null, state: 'seen' });
+    expect(subsumed?.seenAt).not.toBeNull();
+    expect(ledger.find((row) => row.dedupeKey === secondMessageId)).toMatchObject({
+        settledRunId: runId,
+        state: 'seen',
+    });
 });

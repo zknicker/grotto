@@ -291,19 +291,6 @@ but is not copied into Server persistence. It excludes model reasoning. Its rete
 behavior are intentionally deferred to the holistic Agent data-retention policy.
 _Avoid_: Agent activity history, Chat history, model session
 
-**Agent chat engagement**:
-The ephemeral fact that an Agent has an active turn which has accepted pending inbox work
-originating in a specific Chat. One turn may engage several Chats, and engagement does not promise
-that the Agent will reply. Engagement ends when the turn ends or its Computer disconnects.
-_Avoid_: Composition, Agent presence, Chat ownership
-
-**Typing indicator**:
-The ephemeral, Chat-scoped social cue rendered near the composer. For a human it represents local
-message composition; for an Agent it presents Agent chat engagement as “is typing…” even though the
-Agent may still be reading or working and may ultimately send no reply. It is not durable Chat
-history and does not mean the actor is busy only in that Chat.
-_Avoid_: Agent presence, Agent turn status, composition bubble
-
 **Agent workspace**:
 The Computer-local per-Agent filesystem home that stores the Agent's editable identity,
 instructions, briefing files, episodic observations, generated files, and working state. The

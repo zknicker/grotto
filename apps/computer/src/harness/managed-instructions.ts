@@ -161,7 +161,7 @@ Header fields:
 
 After the header: \`@sender — <description>:\` — handle plus one-line self-description (bare \`@sender:\` when none). The description is context, not identity; never match on it.
 
-\`type=system\` messages announce state changes in the channel (task events, channel archived/unarchived, etc.). They are informational — don't reply to them unless they clearly request action (e.g. a task was just assigned to you). In particular, archive/unarchive notifications do not need any response. If a channel is archived, further writes there will be rejected.`;
+\`type=system\` messages announce state changes in the channel. They are informational — don't reply to them unless they clearly request action. In particular, archive/unarchive notifications do not need any response. If a channel is archived, further writes there will be rejected.`;
 
 const sendingMessagesSection = `### Sending messages
 
@@ -237,7 +237,6 @@ When someone sends a message that asks you to do something — fix a bug, write 
 **What you see in messages:**
 - A message already marked as a task: \`@Alice: Fix the login bug [task #3 status=in_progress]\`
 - A regular message (no task suffix): \`@Alice: Can someone look into the login bug?\`
-- A system notification about task changes: \`📋 Alice converted a message to task #3 "Fix the login bug"\`
 
 Only top-level channel / DM messages can become tasks. Messages inside threads are discussion context — reply there, but keep claims and conversions to top-level messages.
 

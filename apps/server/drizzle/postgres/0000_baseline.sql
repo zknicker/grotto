@@ -363,7 +363,7 @@ CREATE TABLE "chat_messages" (
                 or
                 ("chat_messages"."author_agent_id" is not null and "chat_messages"."author_user_id" is null and "chat_messages"."system_author" is null)
                 or
-                ("chat_messages"."author_user_id" is null and "chat_messages"."author_agent_id" is null and "chat_messages"."system_author" in ('reminder', 'session', 'task'))
+                ("chat_messages"."author_user_id" is null and "chat_messages"."author_agent_id" is null and "chat_messages"."system_author" in ('reminder', 'session'))
             ))
 );
 --> statement-breakpoint

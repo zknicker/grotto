@@ -35,7 +35,7 @@ export const chatMessagesTable = pgTable(
         ),
         sequence: integer('sequence').notNull(),
         serverId: text('server_id').notNull(),
-        systemAuthor: text('system_author').$type<'reminder' | 'session' | 'task'>(),
+        systemAuthor: text('system_author').$type<'reminder' | 'session'>(),
     },
     (table) => [
         unique('chat_messages_server_id_key').on(table.serverId, table.id),
@@ -69,7 +69,7 @@ export const chatMessagesTable = pgTable(
                 or
                 (${table.authorAgentId} is not null and ${table.authorUserId} is null and ${table.systemAuthor} is null)
                 or
-                (${table.authorUserId} is null and ${table.authorAgentId} is null and ${table.systemAuthor} in ('reminder', 'session', 'task'))
+                (${table.authorUserId} is null and ${table.authorAgentId} is null and ${table.systemAuthor} in ('reminder', 'session'))
             )`
         ),
         index('chat_messages_chat_sequence_idx').on(table.serverId, table.chatId, table.sequence),

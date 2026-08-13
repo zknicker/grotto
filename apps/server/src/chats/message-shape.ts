@@ -12,7 +12,7 @@ interface StoredChatMessage {
     runId: string | null;
     sequence: number;
     serverId: string;
-    systemAuthor: 'reminder' | 'session' | 'task' | null;
+    systemAuthor: 'reminder' | 'session' | null;
 }
 
 export interface StoredChatMessageAuthorProfile {
@@ -85,9 +85,6 @@ function readAuthor(
     }
     if (message.systemAuthor === 'session') {
         return { kind: 'system', system: 'session' };
-    }
-    if (message.systemAuthor === 'task') {
-        return { kind: 'system', system: 'task' };
     }
     if (message.authorAgentId !== null) {
         return { agentId: message.authorAgentId, kind: 'agent', profile };

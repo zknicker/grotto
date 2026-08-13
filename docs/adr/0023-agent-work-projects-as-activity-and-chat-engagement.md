@@ -1,16 +1,16 @@
 ---
-summary: Decision to project Agent work as durable semantic Server activity, ephemeral Chat engagement, and Computer-local detailed execution evidence.
+summary: Decision to project Agent work as durable semantic Server activity and Computer-local detailed execution evidence without a Chat typing cue.
 read_when:
   - changing Agent activity, typing indicators, or status presentation
   - changing Server/Computer ownership of execution evidence
   - changing inbox visibility or Chat-scoped realtime events
 ---
 
-# ADR 0023: Agent Work Projects as Activity and Chat Engagement
+# ADR 0023: Agent Work Projects as Activity and Local Evidence
 
 ## Status
 
-Accepted 2026-08-11. Amends ADR 0014's provisional composition stream and ADR 0019's execution
+Accepted 2026-08-11. Amends ADR 0014's work-status presentation and ADR 0019's execution
 evidence boundary without changing CLI-only output or Agent-global sessions.
 
 ## Context
@@ -31,25 +31,24 @@ provider state, and raw evidence.
 
 ## Decision
 
-Grotto exposes Agent work through three distinct projections:
+Grotto exposes Agent work through two distinct projections:
 
 1. **Agent activity** is safe semantic execution metadata. Computer maps only known tool identities
    and structured product boundaries into a small category catalog; unknown tools use a generic
    fallback. Server persists this journal and projects it into Activity History and the live
    sidebar strip.
-2. **Agent Chat engagement** is the run-scoped fact that an active accepted turn has attached
-   pending inbox work from a Chat. Server projects engagement into that Chat's `is typing…` UI. It
-   does not claim literal composition or promise a reply.
-3. **Agent execution journal** is detailed tool evidence stored on Computer. Owners and Admins may
+2. **Agent execution journal** is detailed tool evidence stored on Computer. Owners and Admins may
    inspect it through an authorized live relay. Server does not persist it, and detail is unavailable
    while Computer is offline.
 
-Human typing and Agent engagement share a Chat-scoped ephemeral event and UI contract. Human clients
-publish small active/inactive pulses over the existing authenticated WebSocket; they never send
-draft text. Agent events come only from Server inbox and lifecycle state.
+Grotto does not show a typing indicator. Human draft activity is not needed for the core work
+surface, and Agent composition cannot be identified accurately across supported runtimes. An
+accepted turn may continue reading, creating Threads, or using tools long after it first handles
+work from a Chat, so inbox engagement is not presented as typing.
 
-The provisional transcript composition bubble, draft-text stream, and hosted `sending` lifecycle
-presentation are removed. Agent messages remain complete, durable CLI sends.
+The first-party human draft-text stream and general typing presentation are removed. The explicit,
+message-bound Agent composition bubble may still preview an in-flight CLI send; it does not stand
+in for the Agent's broader work status.
 
 ## Consequences
 
@@ -57,11 +56,9 @@ presentation are removed. Agent messages remain complete, durable CLI sends.
 - Activity History survives Computer downtime and reloads.
 - Turn Details can show summarized Server evidence to authorized Chat readers and detailed local
   evidence only to Owners/Admins while Computer is online.
-- One Agent may appear as typing in several Chats during one turn and may send no reply.
 - Tool classification must be explicit and conservative; MCP and unknown tools default to
   `Using a tool…`.
 - Computer must create a queryable local execution journal and a typed inspection relay.
-- Server needs a durable semantic activity journal plus a separate volatile Chat typing lane.
 - This work adds no retention or cleanup behavior. PRD-216 owns that policy holistically.
 
 ## Rejected alternatives
@@ -73,6 +70,8 @@ presentation are removed. Agent messages remain complete, durable CLI sends.
 - **Explicit Agent typing command:** provider-neutral but adds a model-taught round trip for a fact
   already available from inbox visibility.
 - **Turn-start typing:** marks a seed Chat even when the Agent handles unrelated pending work.
+- **Inbox-engagement typing:** starts too early and remains visible while the Agent performs work
+  that is not message composition.
 - **Server-persisted raw tool evidence:** violates the established Server/Computer privacy boundary.
 - **Computer lookup for Activity History:** makes an ordinary collaboration surface unavailable
   offline and turns history reads into remote machine operations.

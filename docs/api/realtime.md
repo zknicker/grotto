@@ -126,15 +126,14 @@ fails the subscription.
 Hosted composition events use a separate in-memory hub. They carry current
 composition text or a clear signal, are never written to PostgreSQL, have no
 cursor, and are never replayed. The subscriber's Chat access is rechecked for
-every delivery.
+every delivery. The first-party App does not publish human draft text or render
+a provisional Agent response from this transport.
 
 Hosted Agent lifecycle events are also volatile and membership-checked. The
 Server projects `working` when a run is dispatched, `reading` when Computer
 acceptance arrives and after a send commits, `sending` around the Agent's
 message-send request, and `settled` from the Computer's terminal turn proof.
-The App maps every active phase to coarse Agent `working` availability. Only
-`sending` carries provisional text and composition identity, and only the
-exact target Chat renders it. Settlement invalidates the durable Agent list,
+The App maps every active phase to coarse Agent `working` availability. Settlement invalidates the durable Agent list,
 delivery state, and activity reads. Reconnect recovers from those reads rather
 than replaying lifecycle events.
 

@@ -56,10 +56,7 @@ test('promotes one canonical hosted message into its deterministic Thread work s
     });
     expect(promotionEvents.map(({ messageId, type }) => ({ messageId, type }))).toEqual([
         { messageId: sent.message.id, type: 'task.created' },
-        { messageId: expect.any(String), type: 'message.created' },
     ]);
-    const receiptEvent = promotionEvents[1];
-    expect(receiptEvent?.messageId).not.toBe(sent.message.id);
     await expect(owner.trpc.task.list.query({ serverId: server.id })).resolves.toMatchObject([
         {
             message: { content: 'Audit the hosted export', id: sent.message.id },
@@ -77,12 +74,10 @@ test('promotes one canonical hosted message into its deterministic Thread work s
                     status: 'todo',
                 }),
             }),
-            expect.objectContaining({
-                author: { kind: 'system', system: 'task' },
-                content: '📋 Operator converted a message to task #1 "Audit the hosted export"',
-                id: receiptEvent?.messageId,
-            }),
         ])
+    );
+    expect(promotionMessages.messages.some((message) => message.author.kind === 'system')).toBe(
+        false
     );
 });
 
@@ -139,20 +134,10 @@ test('creates a task-message atomically and replays the same nonce idempotently'
     expect(creationEvents.map(({ messageId, type }) => ({ messageId, type }))).toEqual([
         { messageId: created.task.messageId, type: 'message.created' },
         { messageId: created.task.messageId, type: 'task.created' },
-        { messageId: expect.any(String), type: 'message.created' },
     ]);
-    const creationReceiptEvent = creationEvents[2];
-    expect(creationReceiptEvent?.messageId).not.toBe(created.task.messageId);
     const creationMessages = await owner.trpc.chat.messages.query({ chatId, serverId: server.id });
-    expect(creationMessages.messages).toEqual(
-        expect.arrayContaining([
-            expect.objectContaining({
-                author: { kind: 'system', system: 'task' },
-                content: '📋 1 new task created: #1 "Ship the hosted task lane"',
-                id: creationReceiptEvent?.messageId,
-            }),
-        ])
-    );
+    expect(creationMessages.messages).toHaveLength(1);
+    expect(creationMessages.messages[0]?.id).toBe(created.task.messageId);
 });
 
 test('lists the task Thread summary and DM peer identity', async () => {
@@ -847,18 +832,6 @@ test('recovers task state and exact invalidation events after a Server restart',
             },
         },
     ]);
-    const recoveredMessages = await owner.trpc.chat.messages.query({
-        chatId: server.channels[0].id,
-        serverId: server.id,
-    });
-    expect(recoveredMessages.messages).toEqual(
-        expect.arrayContaining([
-            expect.objectContaining({
-                author: { kind: 'system', system: 'task' },
-                content: '📋 1 new task created: #1 "Survive the hosted Server restart"',
-            }),
-        ])
-    );
     await expect(
         owner.trpc.chat.events.query({
             afterCursor: beforeClaim.at(-1)?.cursor as string,

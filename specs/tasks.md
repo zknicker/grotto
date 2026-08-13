@@ -17,9 +17,8 @@ Server tenant. `chat_messages.task` and task-list reads project the same row.
 
 Only top-level Channel or DM messages can be promoted. Promotion is idempotent by canonical
 message identity. Atomic create uses the message nonce for replay and creates the message, task,
-Thread, and durable events in one transaction. Creation and promotion also append one
-Server-authored `system: "task"` message to the parent Chat in that transaction. The receipt is
-informational; the canonical task message and deterministic Thread remain the work surface.
+Thread, and durable events in one transaction. Creation and promotion do not append a separate
+system message; the canonical task message and deterministic Thread remain the work surface.
 
 ## Authority and concurrency
 
@@ -45,19 +44,20 @@ Assignee and status are independent. Claiming an unassigned `todo` task moves it
 
 Task transactions emit small concrete durable events:
 
-- `message.created`: the Server-authored task receipt's Chat sequence and cursor
+- `message.created`: the canonical message's Chat sequence and cursor when composing a new task
 - `task.created`: Server, parent Chat, canonical message, sequence, and cursor
 - `task.updated`: the same ids for lifecycle changes
 - `task.label.updated`: Server, label, and cursor
 
 Events notify; PostgreSQL task/message/label reads remain authoritative. The App uses the same
-event targeting for live delivery and cursor catch-up after reconnect, so a receipt appears live
-and is recovered after a reconnect or restart.
+event targeting for live delivery and cursor catch-up after reconnect.
 
 ## Surfaces
 
 - Hosted App: Server Board and List lenses with create, claim, unclaim, human assignment, status,
-  priority, and task-label controls. Opening a task opens the canonical message's hosted Thread.
+  priority, and task-label controls. Opening a task opens the canonical message's hosted Thread,
+  where a task metadata header projects the number, status, assignee, and creator. Status and
+  authorized human-assignment edits use the same versioned task mutations as the other lenses.
 - Managed CLI: `grotto task list|create|claim|unclaim|update` uses the Computer's scoped runner
   authority and hosted Server task API. Agent identity comes from that runner credential.
 

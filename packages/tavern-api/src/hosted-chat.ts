@@ -36,9 +36,7 @@ export const hostedChatMessageAuthorSchema = z.discriminatedUnion('kind', [
             userId: hostedIdSchema,
         })
         .strict(),
-    z
-        .object({ kind: z.literal('system'), system: z.enum(['reminder', 'session', 'task']) })
-        .strict(),
+    z.object({ kind: z.literal('system'), system: z.enum(['reminder', 'session']) }).strict(),
 ]);
 
 export const hostedChatMessageSchema = z

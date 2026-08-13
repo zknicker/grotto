@@ -1,10 +1,10 @@
 ---
-summary: Agent inbox — delivery planning, the two-cursor ledger, notice turns, local-first pulls, and Agent Chat engagement. Supersedes steering.md and addressing.md.
+summary: Agent inbox — delivery planning, the two-cursor ledger, notice turns, and local-first pulls. Supersedes steering.md and addressing.md.
 read_when:
   - changing which agents wake for a chat message, mute/follow semantics, or mention piercing
   - changing delivered/seen cursors, freshness catch-up, or pull acknowledgement
   - changing mid-turn notices, drain batching, or chain limits
-  - changing Agent Chat engagement, typing indicators, or Agent status surfaces
+  - changing Agent status surfaces derived from inbox delivery
 ---
 
 # Agent Inbox
@@ -138,13 +138,8 @@ the Agent again. A pull followed by a crash replays from canonical Server state.
 
 ## Presentation split (I1/I4)
 
-Attaching accepted pending rows to the active run creates **Agent Chat engagement** for each source
-Chat. The Server projects that run-scoped fact through the ephemeral typing stream until the turn
-ends or Computer disconnects ([typing-indicators.md](typing-indicators.md)). A notice without an
-exact pull does not engage a Chat. `served` is not engagement evidence because it has no run
-identity and may outlive a failed turn.
-
-Chat renders only durable messages plus the near-composer typing indicator. Status dots, semantic
-Agent activity, and detailed execution evidence remain separate Agent-level projections
+Attaching accepted pending rows to the active run is a delivery fact, not a claim that the Agent is
+composing a reply. Chat renders only durable messages. Status dots, semantic Agent activity, and
+detailed execution evidence remain separate Agent-level projections
 ([agent-activity.md](agent-activity.md)). Inbox visibility for humans is read-only (I4): pending
 targets, mutes, and follows on the Agent profile; humans steer attention by asking in Chat.

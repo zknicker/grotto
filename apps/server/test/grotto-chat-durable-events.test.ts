@@ -88,7 +88,7 @@ test('a Thread system message persists and returns its parent Chat in the event'
         content: 'Thread system message',
         nonce: 'thread-system-message',
         serverId,
-        systemAuthor: 'task',
+        systemAuthor: 'session',
     });
     expect(event).toMatchObject({
         chatId: threadChatId,
@@ -114,7 +114,7 @@ test('a Thread system message persists and returns its parent Chat in the event'
         content: 'Thread system message',
         nonce: 'thread-system-message',
         sequence: 2,
-        systemAuthor: 'task',
+        systemAuthor: 'session',
     });
 
     const [storedEvent] = await connection.db

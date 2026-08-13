@@ -8,10 +8,8 @@ export const promoteTaskProcedure = taskProcedure
     .output(hostedTaskPromotionSchema)
     .mutation(async ({ ctx, input }) => {
         const result = await promoteHostedMessageTask(ctx.grottoDb, ctx.member, input);
-        for (const event of [result.event, result.receiptEvent]) {
-            if (event) {
-                emitDurableChatEvent({ audienceUserId: null, event });
-            }
+        if (result.event) {
+            emitDurableChatEvent({ audienceUserId: null, event: result.event });
         }
         return { idempotent: result.idempotent, task: result.task };
     });

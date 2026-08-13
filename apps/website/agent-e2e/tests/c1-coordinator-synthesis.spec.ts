@@ -139,15 +139,6 @@ test('coordinator fans out source-backed lanes and synthesizes one recommendatio
     }
 
     await openChat(page, server.slug, channel, channelName);
-    const receipt = parentPage.find(
-        (message) => message.author.kind === 'system' && /new tasks? created/u.test(message.content)
-    );
-    expect(receipt).toBeDefined();
-    if (receipt) {
-        await expect(
-            messageTimeline(page).getByText(receipt.content, { exact: true })
-        ).toBeVisible();
-    }
     const messages = messageTimeline(page);
     await expect(messages).toContainText('Recommendation');
     await expect(messages).toContainText('Tradeoffs');

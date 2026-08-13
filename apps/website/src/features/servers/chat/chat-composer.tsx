@@ -11,7 +11,6 @@ import {
 import { useChatComposerMentionRequest } from '../../../commands/chat-composer-mention.ts';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
-import { useChatCompositions } from '../../../hooks/servers/use-chat-compositions.ts';
 import { useChatMessageSend } from '../../../hooks/servers/use-chat-message-send.ts';
 import { useTaskCreate } from '../../../hooks/servers/use-task-create.ts';
 import { useUploadServerAttachment } from '../../../hooks/servers/use-upload-server-attachment.ts';
@@ -25,7 +24,6 @@ import {
 import { buildAgentMentionOption } from '../../mentions/use-mention-options.ts';
 import { ComposerAttachments } from './composer-attachments.tsx';
 import { type ComposerAttachment, useComposerAttachments } from './use-composer-attachments.ts';
-import { useCompositionDraft } from './use-composition-draft.ts';
 import {
     addPendingChatMessage,
     dropPendingChatMessage,
@@ -37,7 +35,6 @@ const emptyAgents: HostedAgent[] = [];
 export function ChatComposer({
     chatId,
     chatName,
-    compositionChatId,
     onThreadCreated,
     pendingChatId,
     placeholder,
@@ -46,7 +43,6 @@ export function ChatComposer({
 }: {
     chatId: string;
     chatName: string;
-    compositionChatId: string | undefined;
     onThreadCreated?: (threadChatId: string) => void;
     /**
      * The transcript that shows this composer's sends while they are in flight.
@@ -79,12 +75,6 @@ export function ChatComposer({
     const send = useChatMessageSend();
     const createTask = useTaskCreate();
     const upload = useUploadServerAttachment();
-    const compositions = useChatCompositions(serverId, compositionChatId);
-    const clearComposition = useCompositionDraft({
-        chatId: compositionChatId,
-        draft,
-        serverId,
-    });
     const mentionableAgentIds = React.useMemo(
         () => agentList.map((agent) => agent.id),
         [agentList]
@@ -150,7 +140,6 @@ export function ChatComposer({
         setMentions([]);
         setAsTask(false);
         clearAttachments();
-        clearComposition();
 
         try {
             if (submitAsTask && !thread) {
@@ -218,9 +207,6 @@ export function ChatComposer({
 
     return (
         <div className="shrink-0 px-5 pb-4">
-            {compositions.length > 0 ? (
-                <p className="mb-1 px-3 text-muted text-xs">Someone is typing…</p>
-            ) : null}
             <PromptInput
                 onSubmit={() => {
                     void handleSubmit();

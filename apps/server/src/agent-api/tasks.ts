@@ -4,7 +4,6 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireHostedChatWritable } from '../chats/chat-access.ts';
-import { insertHostedSystemMessage } from '../chats/insert-system-message.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import { appendServerAgentActivity } from '../hosted-agents/agent-activity.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -21,7 +20,6 @@ import {
 import { lockServerRow } from '../servers/server-lock.ts';
 import { insertHostedTaskEvent } from '../tasks/task-events.ts';
 import { agentOwnsTask, taskHasOtherOwnerForAgent } from '../tasks/task-ownership.ts';
-import { taskReceiptContent } from '../tasks/task-receipts.ts';
 import { ensureHostedThreadRecord } from '../threads/ensure-thread.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import {
@@ -221,22 +219,6 @@ export async function createAgentTasks(
                 );
             created.push(await taskRow(tx, runner, message, task));
         }
-        const receiptContent = taskReceiptContent({
-            kind: 'created',
-            tasks: created.map((task) => ({ number: task.number, title: task.message.content })),
-        });
-        if (!receiptContent) {
-            throw new AgentTaskError('Task creation did not produce a receipt.');
-        }
-        events.push(
-            await insertHostedSystemMessage(tx, {
-                chatId,
-                content: receiptContent,
-                nonce: `task-receipt:${input.nonce}`,
-                serverId: runner.serverId,
-                systemAuthor: 'task',
-            })
-        );
         return {
             activities,
             events,
@@ -469,7 +451,6 @@ async function promoteAgentMessageTask(
         const [message] = await tx
             .select({
                 chatId: chatMessagesTable.chatId,
-                content: chatMessagesTable.content,
                 id: chatMessagesTable.id,
             })
             .from(chatMessagesTable)
@@ -518,22 +499,7 @@ async function promoteAgentMessageTask(
             serverId: runner.serverId,
             type: 'task.created',
         });
-        const receiptContent = taskReceiptContent({
-            actorLabel: `@${await agentHandle(tx, runner)}`,
-            kind: 'converted',
-            tasks: [{ number: created.number, title: message.content }],
-        });
-        if (!receiptContent) {
-            throw new AgentTaskError('Task conversion did not produce a receipt.');
-        }
-        const receiptEvent = await insertHostedSystemMessage(tx, {
-            chatId,
-            content: receiptContent,
-            nonce: `task-receipt:${messageId}`,
-            serverId: runner.serverId,
-            systemAuthor: 'task',
-        });
-        return { events: [event, receiptEvent], task: created };
+        return { events: [event], task: created };
     });
 }
 

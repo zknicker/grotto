@@ -39,10 +39,9 @@ CLI on PATH. Consequences adopted together as one landing:
   hold catch-up rows. Notices and wakes advance nothing.
 - **Content-free notices.** Idle and busy agents see only batched target rows —
   counts, ids, latest sender — never bodies.
-- **Chat level shows humans human things.** The timeline contains durable messages only. ADR 0023
-  supersedes the provisional composition bubble with a near-composer typing indicator: human
-  composition plus Agent Chat engagement derived from accepted run-attached inbox work. Execution
-  evidence remains separate Agent-level state.
+- **Chat level shows humans human things.** The timeline is durable messages plus the ephemeral,
+  message-bound composition stream. ADR 0023 rejects inferring typing from general Agent work;
+  execution evidence remains separate Agent-level state.
 
 The same landing retires the systems the CLI-only model replaces: the memory
 pipeline (extraction, dreaming, core-memory injection), the Wiki, the cron

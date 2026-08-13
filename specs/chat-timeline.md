@@ -10,15 +10,10 @@ rows at all.
 ## Product Expectations
 
 - A chat reads like a conversation between participants. Humans and agents
-  contribute messages; Server-authored system receipts (including task
-  creation/promotion, session resets, and thread notices) render as quiet
+  contribute messages; Server-authored system receipts such as session resets render as quiet
   centered lines; nothing else appears as a timeline unit.
 - An agent message is an explicit send, immutable once committed. There are
   no edits, no streamed replacements, no silent-turn placeholders.
-- The only live chat-level signal is the **typing indicator**
-  ([typing-indicators.md](typing-indicators.md)): an ephemeral near-composer cue for human
-  composition and Agent Chat engagement. Typing is never persisted and never enters durable
-  caches or the transcript.
 
 ## Timeline Contract
 
@@ -50,5 +45,4 @@ rows at all.
 - Runtime owns both models: canonical messages and durable turn records.
 - The server exposes them through separate procedures with separate
   schemas.
-- External frontends consume the timeline contract and may ignore typing entirely while still
-  seeing a consistent Chat.
+- External frontends consume the timeline contract without needing volatile composition state.

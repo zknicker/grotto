@@ -4,7 +4,6 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
 import { findHostedChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
-import { insertHostedSystemMessage } from '../chats/insert-system-message.ts';
 import { ChatNonceConflictError, requireActiveDmPeer } from '../chats/send-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -23,7 +22,6 @@ import { InvalidTaskAssigneeError, TaskAdminRequiredError } from './assign-task.
 import { HostedTaskNotFoundError } from './claim-task.ts';
 import { UntaskableMessageError } from './promote-task.ts';
 import { insertHostedTaskEvent } from './task-events.ts';
-import { taskReceiptContent } from './task-receipts.ts';
 import { findHostedMessageTask } from './task-shape.ts';
 
 export interface CreateHostedTaskResult {
@@ -206,20 +204,6 @@ export async function createHostedTask(
             serverId: input.serverId,
             type: 'task.created',
         });
-        const receiptContent = taskReceiptContent({
-            kind: 'created',
-            tasks: [{ number: task.number, title: input.content }],
-        });
-        if (!receiptContent) {
-            throw new Error('Task creation did not produce a receipt.');
-        }
-        const receiptEvent = await insertHostedSystemMessage(tx, {
-            chatId: input.chatId,
-            content: receiptContent,
-            nonce: `task-receipt:${input.nonce}`,
-            serverId: input.serverId,
-            systemAuthor: 'task',
-        });
         const recipients = await planAgentMessageRecipients(tx, {
             authorAgentId: null,
             chatId: input.chatId,
@@ -240,7 +224,7 @@ export async function createHostedTask(
         }
 
         return {
-            events: [messageEvent, taskEvent, receiptEvent],
+            events: [messageEvent, taskEvent],
             idempotent: false,
             task,
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),

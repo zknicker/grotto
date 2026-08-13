@@ -270,10 +270,9 @@ Flow for `message send --target <t>`:
 in a tmpdir. We hold them server-side because the server is the record (I3),
 agent shells are ephemeral, and grotto.sh must survive machine hops.
 
-**Typing is not a CLI handoff (ADR 0023).** Agent typing projects from accepted run-attached inbox
-work, not from partial `message send` arguments. The CLI sends no composition identity, and durable
-messages need no provisional-row reconciliation. Human typing and Agent Chat engagement use the
-separate ephemeral Chat typing contract.
+**Composition is not a CLI handoff (ADR 0023).** The CLI sends no composition identity, and durable
+messages need no provisional-row reconciliation. Grotto does not infer Chat-scoped typing from
+inbox work or partial `message send` arguments.
 
 ## 7. Verb surface and ownership
 
@@ -374,7 +373,7 @@ All approved by operator ruling W1 (program contract, 2026-07-21).
 | Server-side list pagination on `server info` | We are designing the server API; Raft's client-side slicing is an artifact of its fat response. |
 | Targets resolved per-action server-side; no client-visible `resolve-channel` two-step | Simpler wire contract; the two-step is a Raft-internal REST artifact. |
 | `GROTTOMSG` delimiter | Naming parity with `RAFTMSG` (current npm), ours. |
-| Chat typing outside message sends | Grotto uses human composition pulses and Agent Chat engagement; no CLI composition id. |
+| Chat typing outside message sends | Grotto does not infer typing from Agent work; the CLI has no composition id. |
 | `attachment upload` takes no `--target` (Raft's does) | Upload is decoupled from posting; the message send carries `--attachment-id`, so an upload never implies a visible post (WS5). |
 | `reminder schedule` has no `--channel` anchor variant | The prompt teaches message anchors explicitly (anchorless reminders lose their context); Raft's `--channel` flag semantics are unverified in the wire layer (WS5). |
 | `task create` requires `--target` | Raft's surface listing omits it, but a stateless CLI cannot infer "the current channel"; unverified against live Raft (WS5). |

@@ -170,9 +170,9 @@ and MCP tools remain generic. Neither lifecycle nor semantic activity carries ar
 contents, model reasoning, draft messages, tool outputs, or private file contents.
 
 Computer separately records a detailed execution journal keyed by run. Owner/Admin inspection uses
-an authorized live relay; Server never persists that response. Chat receives only the ephemeral
-typing indicator described by `specs/typing-indicators.md`, backed for Agents by run-attached inbox
-work. The old `sending` composition bubble and compositionId handoff are removed.
+an authorized live relay; Server never persists that response. Chat does not project run-attached
+inbox work as typing. The `sending` composition bubble remains tied only to an explicit in-flight
+message and its composition id.
 
 ## Invariant Tests
 
@@ -196,7 +196,6 @@ work. The old `sending` composition bubble and compositionId handoff are removed
 | Chain ceiling preserves rows and human input releases it | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
-| Agent Chat engagement starts from accepted run-attached inbox work and clears at every terminal path | `apps/server/test/agent-delivery.test.ts`, `apps/server/test/grotto-agent-run.test.ts` |
 | `As Task` enters the inbox with canonical task metadata | `apps/server/test/grotto-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
 | Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/grotto-agent-run.test.ts` |
 | Mute/unfollow purge ordinary work; mentions pierce without changing attention state | `apps/server/test/grotto-agent-run.test.ts` |

@@ -352,7 +352,7 @@ Ordinary wake and busy-runtime inputs contain only pending-target metadata;
 the full envelope remains in the Computer inbox until the Agent drains it
 through `grotto message check`, whose localhost proxy answers from the local
 inbox before falling through to the hosted Server. Configuration is sent as a
-current snapshot on connect, while status and typing updates remain best-effort socket signals.
+current snapshot on connect, while status updates remain best-effort socket signals.
 ADR 0023 adds durable semantic activity metadata while keeping detailed execution journals local.
 No generic reliability framework is added.
 

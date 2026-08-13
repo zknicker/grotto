@@ -20,7 +20,7 @@ export interface MessageRow {
     id: string;
     nonce: string;
     sequence: number;
-    systemAuthor: 'reminder' | 'session' | 'task' | null;
+    systemAuthor: 'reminder' | 'session' | null;
 }
 
 export const messageSelection = {

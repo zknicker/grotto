@@ -1,5 +1,4 @@
-import { Alert } from '@heroui/react';
-import { StatusDot } from '../../../components/ui/status-dot.tsx';
+import { Alert, Spinner } from '@heroui/react';
 import { SessionLinkButton } from '../session-link-button.tsx';
 import { buildToolDrawerCall, type ToolDrawerDetails } from './tool-drawer-call.ts';
 import { resolveToolDrawerBody } from './tool-drawer-registry.tsx';
@@ -29,7 +28,7 @@ export function ToolDrawerBody({ details, isPending, queryError }: ToolDrawerBod
             ))}
             {isPending ? (
                 <div className="flex items-center gap-2.5 rounded-lg border border-separator bg-surface-secondary px-3.5 py-3">
-                    <StatusDot className="animate-pulse" status="muted" />
+                    <Spinner size="sm" />
                     <p className="text-muted text-sm">Loading tool details...</p>
                 </div>
             ) : null}

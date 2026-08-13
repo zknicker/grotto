@@ -3,6 +3,8 @@ import type { HostedAgentActivityEvent } from '@tavern/api';
 import {
     applyCurrentAgentActivityEvent,
     formatCurrentAgentActivityLabel,
+    projectCurrentAgentActivitySnapshot,
+    reconcileCurrentAgentActivity,
     splitCurrentAgentActivity,
 } from './current-agent-activity.ts';
 
@@ -49,14 +51,100 @@ test('category changes replace the row without changing turn order', () => {
     expect(result[0]?.category).toBe('editing_files');
 });
 
-test('settled activity removes the row instead of rendering a finished state', () => {
+test('semantic completion falls back to working until the Server settles the turn', () => {
     const active = activity();
-    const result = applyCurrentAgentActivityEvent(
+    const betweenTools = applyCurrentAgentActivityEvent(
         [active],
-        activity({ id: 'aev_done', phase: 'completed', position: 2 })
+        activity({
+            category: 'checking_messages',
+            id: 'aev_done',
+            phase: 'completed',
+            position: 2,
+            producer: 'computer',
+        })
     );
 
-    expect(result).toEqual([]);
+    expect(betweenTools).toEqual([
+        activity({
+            category: 'working',
+            id: 'aev_done',
+            phase: 'started',
+            position: 2,
+            producer: 'computer',
+        }),
+    ]);
+
+    const afterSend = applyCurrentAgentActivityEvent(
+        betweenTools,
+        activity({
+            category: 'sending_message',
+            id: 'aev_send_done',
+            phase: 'completed',
+            position: 3,
+            producer: 'server',
+        })
+    );
+
+    expect(afterSend[0]?.category).toBe('working');
+
+    const afterFailedTool = applyCurrentAgentActivityEvent(
+        afterSend,
+        activity({
+            category: 'running_command',
+            id: 'aev_tool_failed',
+            phase: 'failed',
+            position: 4,
+            producer: 'computer',
+        })
+    );
+
+    expect(afterFailedTool[0]?.category).toBe('working');
+
+    const settled = applyCurrentAgentActivityEvent(
+        afterFailedTool,
+        activity({
+            category: 'working',
+            id: 'aev_settled',
+            phase: 'completed',
+            position: 5,
+            producer: 'server',
+        })
+    );
+
+    expect(settled).toEqual([]);
+    expect(
+        applyCurrentAgentActivityEvent(
+            afterFailedTool,
+            activity({
+                category: 'working',
+                id: 'aev_failed_turn',
+                phase: 'failed',
+                position: 5,
+                producer: 'server',
+            })
+        )
+    ).toEqual([]);
+});
+
+test('reconnect snapshots keep accepted runs working between semantic operations', () => {
+    expect(
+        projectCurrentAgentActivitySnapshot([
+            activity({ id: 'aev_done', phase: 'completed', position: 2 }),
+        ])
+    ).toEqual([
+        activity({
+            category: 'working',
+            id: 'aev_done',
+            phase: 'started',
+            position: 2,
+        }),
+    ]);
+});
+
+test('a live accepted run survives an older empty snapshot response', () => {
+    expect(reconcileCurrentAgentActivity([], [activity({ category: 'starting_work' })])).toEqual([
+        activity({ category: 'starting_work' }),
+    ]);
 });
 
 test('stale events cannot roll back a newer current category', () => {

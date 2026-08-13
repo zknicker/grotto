@@ -1,9 +1,10 @@
+import { Chip } from '@heroui/react';
 import { Link } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
+import { hostedAvailabilityBadgeColor } from '../members/agent-avatar.tsx';
 import { agentRoute } from '../servers/server-routes.ts';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
@@ -78,20 +79,9 @@ function AgentRow({
                     {execution.runtime} · {execution.model}
                 </p>
             </div>
-            <div className="flex shrink-0 items-center gap-1.5 text-muted text-xs">
-                <StatusDot status={availabilityStatus(agent.availability)} />
+            <Chip color={hostedAvailabilityBadgeColor(agent.availability)} size="sm" variant="soft">
                 {availabilityLabel(agent.availability)}
-            </div>
+            </Chip>
         </Link>
     );
-}
-
-function availabilityStatus(value: GrottoOutputs['agent']['list'][number]['availability']) {
-    if (value === 'idle') {
-        return 'success' as const;
-    }
-    if (value === 'working') {
-        return 'warning' as const;
-    }
-    return value === 'error' ? ('error' as const) : ('muted' as const);
 }

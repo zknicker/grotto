@@ -1,5 +1,4 @@
-import { Tabs } from '@heroui/react';
-import { StatusDot } from '../../../components/ui/status-dot.tsx';
+import { Chip, Tabs } from '@heroui/react';
 import type { McpConnection, McpConnectionFilter } from './mcp-server-shared.ts';
 
 export function ConnectionFilters({
@@ -62,10 +61,9 @@ export function ConnectionRow({
                 </span>
             </span>
             <span className="text-muted text-sm">Remote</span>
-            <span className="flex items-center gap-2 text-sm">
-                <StatusDot status={connection.connected ? 'success' : 'muted'} />
+            <Chip color={connection.connected ? 'success' : 'default'} size="sm" variant="soft">
                 {connection.connected ? 'Connected' : 'Not connected'}
-            </span>
+            </Chip>
         </button>
     );
 }

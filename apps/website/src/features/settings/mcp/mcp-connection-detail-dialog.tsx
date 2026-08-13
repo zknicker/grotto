@@ -1,6 +1,5 @@
-import { Alert, Button, Modal, Separator, Spinner, Surface } from '@heroui/react';
+import { Alert, Button, Chip, Modal, Separator, Spinner, Surface } from '@heroui/react';
 import { Fragment, useState } from 'react';
-import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import {
     ConnectionDestructiveDialog,
     ConnectionMenu,
@@ -94,16 +93,16 @@ export function McpConnectionDetailDialog({
                                             <p className="truncate font-mono text-muted text-xs">
                                                 {connectionSummary(connection)}
                                             </p>
-                                            <p className="mt-1 flex items-center gap-2 text-sm">
-                                                <StatusDot
-                                                    status={
-                                                        connection.connected ? 'success' : 'muted'
-                                                    }
-                                                />
+                                            <Chip
+                                                className="mt-1"
+                                                color={connection.connected ? 'success' : 'default'}
+                                                size="sm"
+                                                variant="soft"
+                                            >
                                                 {connection.connected
                                                     ? 'Connected'
                                                     : 'Not connected'}
-                                            </p>
+                                            </Chip>
                                         </div>
                                         {connection.auth === 'oauth' ? (
                                             <Button

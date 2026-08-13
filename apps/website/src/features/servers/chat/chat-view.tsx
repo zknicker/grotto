@@ -279,7 +279,6 @@ export function ChatView({
                                 <ChatComposer
                                     chatId={chat.id}
                                     chatName={chatName}
-                                    compositionChatId={chat.id}
                                     pendingChatId={chat.id}
                                     placeholder="Let's go on an adventure..."
                                     serverId={chat.serverId}

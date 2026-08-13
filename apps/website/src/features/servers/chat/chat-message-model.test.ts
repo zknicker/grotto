@@ -73,26 +73,6 @@ test('projects hosted messages into the preserved transcript contract', () => {
     ).toBe('run_agent');
 });
 
-test('projects a hosted system receipt as a quiet Grotto timeline row', () => {
-    const receipt: HostedChatMessage = {
-        ...message('message_receipt', 2),
-        author: { kind: 'system', system: 'task' },
-        content: '📋 1 new task created: #1 "Audit the hosted export"',
-    };
-
-    const [row] = projectChatMessages([receipt], []);
-
-    expect(row).toMatchObject({
-        actor: null,
-        kind: 'message',
-        message: {
-            content: receipt.content,
-            sender: 'Grotto',
-            senderType: 'system',
-        },
-    });
-});
-
 test('preserves one global Agent run identity when messages come from multiple Chats', () => {
     const runId = 'run_global';
     const first: HostedChatMessage = {

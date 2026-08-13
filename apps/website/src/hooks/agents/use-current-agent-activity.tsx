@@ -2,8 +2,8 @@ import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import {
-    applyCurrentAgentActivityEvent,
     type CurrentAgentActivity,
+    reconcileCurrentAgentActivity,
 } from './current-agent-activity.ts';
 
 export interface CurrentAgentActivityContextValue {
@@ -24,6 +24,10 @@ const CurrentAgentActivityContext = React.createContext<CurrentAgentActivityCont
  */
 export function useCurrentAgentActivity(serverId: string | undefined) {
     const utils = grottoTrpc.useUtils();
+    const [liveState, setLiveState] = React.useState<{
+        byAgentId: ReadonlyMap<string, CurrentAgentActivity>;
+        serverId: string | undefined;
+    }>({ byAgentId: new Map(), serverId });
     const query = grottoTrpc.agent.activeActivity.useQuery(
         { serverId: serverId ?? '' },
         {
@@ -40,15 +44,20 @@ export function useCurrentAgentActivity(serverId: string | undefined) {
                 if (event.serverId !== serverId) {
                     return;
                 }
-                utils.agent.activeActivity.setData({ serverId: event.serverId }, (snapshot) => {
-                    const activities = applyCurrentAgentActivityEvent(
-                        snapshot?.activities ?? [],
-                        event
-                    );
-                    return { activities };
+                setLiveState((current) => {
+                    const currentEvents =
+                        current.serverId === event.serverId ? current.byAgentId : new Map();
+                    const previous = currentEvents.get(event.agentId);
+                    if (previous?.runId === event.runId && previous.position >= event.position) {
+                        return current;
+                    }
+                    const next = new Map(currentEvents);
+                    next.set(event.agentId, event);
+                    return { byAgentId: next, serverId: event.serverId };
                 });
             },
             onStarted: () => {
+                setLiveState({ byAgentId: new Map(), serverId });
                 if (serverId) {
                     void utils.agent.activeActivity.invalidate({ serverId });
                 }
@@ -56,7 +65,15 @@ export function useCurrentAgentActivity(serverId: string | undefined) {
         }
     );
 
-    return query;
+    const activities = React.useMemo(
+        () =>
+            reconcileCurrentAgentActivity(
+                query.data?.activities ?? [],
+                liveState.serverId === serverId ? [...liveState.byAgentId.values()] : []
+            ),
+        [liveState, query.data?.activities, serverId]
+    );
+    return { ...query, data: query.data ? { activities } : query.data };
 }
 
 export function AgentActivityProvider({

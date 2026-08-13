@@ -87,6 +87,7 @@ function message(id: string, content: string): HostedChatMessage {
         createdAt: '2026-08-11T00:00:00.000Z',
         id,
         nonce: `nonce_${id}`,
+        runId: null,
         sequence: Number(id.slice(-1)),
         serverId: 'srv_1',
         task: null,

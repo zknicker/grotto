@@ -54,8 +54,14 @@ plain text unless the user selects or types explicit link syntax.
 - Capability references never install, enable, connect, or authorize a tool by
   themselves.
 - One shared reference-chip registry owns icons, labels, colors, and fallbacks
-  for composer and transcript surfaces. Adding a new chip kind extends that
-  registry instead of adding message-renderer conditionals.
+  for composer and transcript surfaces. The renderer uses the stock HeroUI
+  `Chip` shell; the registry supplies only reference-specific appearance.
+  Inline reference chips use the compact shell with chat-sized label text, no
+  vertical padding, and content-independent optical alignment that does not enlarge
+  a text line. Skill references use one neutral treatment and the shared sparkles
+  mark across composer, transcript, and Skill surfaces.
+  Adding a new chip kind extends that registry instead of adding
+  message-renderer conditionals or another chip primitive.
 - Ordinary web links use the same chip shell with the site's favicon and a
   globe fallback. Activating one opens the original URL.
 

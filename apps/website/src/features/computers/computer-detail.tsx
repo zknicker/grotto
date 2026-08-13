@@ -1,14 +1,14 @@
+import { Chip } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { ModelProviderBadge } from '../../components/badges/model-provider-badge.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { getModelProviderConfig } from '../../lib/model-provider-config.ts';
 import { ComputerActions } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
 import {
+    computerHealthColor,
     computerHealthLabel,
-    computerHealthStatus,
     computerLabel,
     computerRuntimePresentations,
     computerSystemLabel,
@@ -45,10 +45,14 @@ export function ComputerDetail({
                 <h1 className="min-w-0 truncate font-semibold text-sm">
                     {computerLabel(computer)}
                 </h1>
-                <p className="ms-auto flex shrink-0 items-center gap-1.5 text-muted text-xs">
-                    <StatusDot status={computerHealthStatus(computer.health)} />
+                <Chip
+                    className="ms-auto"
+                    color={computerHealthColor(computer.health)}
+                    size="sm"
+                    variant="soft"
+                >
                     {computerHealthLabel(computer.health)}
-                </p>
+                </Chip>
             </header>
 
             <div className="px-5 sm:px-7">

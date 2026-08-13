@@ -59,11 +59,9 @@ export function ShellSidebarPage({ children }: ShellSidebarPageProps) {
 export function ShellSidebarPageContent({
     band,
     children,
-    footer,
 }: {
     band: React.ReactNode;
     children: React.ReactNode;
-    footer?: React.ReactNode;
 }) {
     return (
         <>
@@ -71,7 +69,6 @@ export function ShellSidebarPageContent({
                 <div className="-mx-1 -mt-2 flex min-h-8 items-center">{band}</div>
             </Sidebar.Header>
             <Sidebar.Content>{children}</Sidebar.Content>
-            {footer ? <Sidebar.Footer>{footer}</Sidebar.Footer> : null}
         </>
     );
 }

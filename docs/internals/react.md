@@ -124,7 +124,7 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 * Effects are for external synchronization, not derived state.
 * Chat hooks keep messages, lists, reads, and search in React Query.
   Durable reconnect events trigger cursor catch-up plus exact invalidation;
-  typing events stay component-local and are discarded on unmount.
+  composition events stay component-local and are discarded on unmount.
   Selected attachment `File` objects stay composer-local; durable messages
   retain only attachment metadata, and authenticated byte transfer stays in
   focused attachment hooks.
@@ -239,6 +239,9 @@ identity is the change signal** — hosted chat messages carry no version or
   durable agent-authored HTML. Product components must not use its aliases.
 * Feature behavior CSS stays beside its owner, such as chat motion and the
   Electron shell. It must not restyle HeroUI component appearance.
+* At HeroUI `Avatar`, `Badge`, and `Chip` call sites, limit classes to layout,
+  truncation, and named product semantics. HeroUI owns radius, spacing,
+  typography, borders, hover, focus, and motion; do not recreate those styles.
 * Use HeroUI semantic utilities directly. Add a custom token only when the
   value represents a durable product concept rather than a component,
   feature implementation, or alternate name for an existing HeroUI role.

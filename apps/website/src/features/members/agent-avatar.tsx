@@ -1,12 +1,14 @@
+import { Badge } from '@heroui/react';
 import type { HostedAgent } from '@tavern/api';
 import type React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { StatusDot } from '../../components/ui/status-dot.tsx';
 import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { cn } from '../../lib/utils.ts';
 
 /** Hosted availability mapped onto the stock Badge colour vocabulary. */
-export function hostedAvailabilityBadgeColor(availability: HostedAgent['availability']) {
+export function hostedAvailabilityBadgeColor(
+    availability: HostedAgent['availability'] | undefined
+) {
     switch (availability) {
         case 'idle':
             return 'success' as const;
@@ -16,20 +18,6 @@ export function hostedAvailabilityBadgeColor(availability: HostedAgent['availabi
             return 'danger' as const;
         default:
             return 'default' as const;
-    }
-}
-
-/** Hosted availability mapped onto the shared status-dot vocabulary. */
-export function hostedAvailabilityStatus(availability: HostedAgent['availability'] | undefined) {
-    switch (availability) {
-        case 'idle':
-            return 'success' as const;
-        case 'working':
-            return 'warning' as const;
-        case 'error':
-            return 'error' as const;
-        default:
-            return 'muted' as const;
     }
 }
 
@@ -91,19 +79,25 @@ export function AgentAvatar({
     );
 
     return (
-        <span
-            className={cn('relative flex shrink-0 items-center justify-center', className)}
+        <Badge.Anchor
+            className={className}
             data-agent-id={agent.id}
             data-agent-status={availability ?? 'unknown'}
             style={{ height: size, width: size }}
         >
             <EntityAvatar name={agent.displayName} size={size} src={agent.avatarUrl} />
-            <StatusDot
-                className="absolute -right-0.5 -bottom-0.5 ring-2 ring-background"
-                size="md"
-                status={hostedAvailabilityStatus(availability)}
+            <Badge
+                className={cn(
+                    availability !== 'idle' &&
+                        availability !== 'working' &&
+                        availability !== 'error' &&
+                        'bg-muted'
+                )}
+                color={hostedAvailabilityBadgeColor(availability)}
+                placement="bottom-right"
+                size="sm"
                 title={hostedAvailabilityLabel(availability) ?? undefined}
             />
-        </span>
+        </Badge.Anchor>
     );
 }

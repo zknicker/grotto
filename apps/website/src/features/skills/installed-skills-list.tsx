@@ -1,6 +1,7 @@
 import { Chip, SearchField } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
-import { CubeIcon, Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { SparklesIcon } from '@hugeicons-pro/core-solid-rounded';
+import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { SkillListOutput } from '../../lib/trpc.tsx';
@@ -82,7 +83,7 @@ function SkillRow({ onSelect, skill }: { onSelect: () => void; skill: SkillSumma
                     !skill.enabled && 'opacity-45'
                 )}
             >
-                <Icon className="size-5" icon={CubeIcon} />
+                <Icon className="size-5" icon={SparklesIcon} />
             </span>
             <span className={cn('min-w-0 flex-1', !skill.enabled && 'opacity-45')}>
                 <span className="flex min-w-0 items-center gap-2">

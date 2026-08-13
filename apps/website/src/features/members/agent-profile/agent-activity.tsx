@@ -1,9 +1,8 @@
-import { Button, Separator } from '@heroui/react';
+import { Button, Chip, Separator } from '@heroui/react';
 import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent } from '@tavern/api';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
@@ -17,7 +16,8 @@ import {
 import {
     formatAgentActivityDiagnosticInfo,
     formatAgentActivityEvent,
-    getAgentActivityStatus,
+    getAgentActivityColor,
+    getAgentActivityPhaseLabel,
 } from './agent-activity-model.ts';
 import { AgentChats } from './agent-chats.tsx';
 import { AgentLoading } from './agent-loading.tsx';
@@ -100,7 +100,13 @@ function ActivityHistoryRows({
                             >
                                 {formatActivityTime(event.occurredAt)}
                             </time>
-                            <StatusDot status={getAgentActivityStatus(event.phase)} />
+                            <Chip
+                                color={getAgentActivityColor(event.phase)}
+                                size="sm"
+                                variant="soft"
+                            >
+                                {getAgentActivityPhaseLabel(event.phase)}
+                            </Chip>
                             <span className="min-w-0 text-foreground text-sm">
                                 {formatAgentActivityEvent(event)}
                             </span>

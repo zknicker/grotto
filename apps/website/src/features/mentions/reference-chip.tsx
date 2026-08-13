@@ -1,3 +1,4 @@
+import { Chip } from '@heroui/react';
 import type * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 import {
@@ -25,42 +26,31 @@ export function ReferenceChip({
     const displayLabel = getMentionDisplayLabel({ id, kind, label, metadata });
 
     return (
-        <span
+        <Chip
             className={cn(
-                // Fixed leading keeps the chip the same height in every
-                // context (transcript, composer, drafts) instead of tracking
-                // the surrounding line-height.
-                'inline-flex max-w-full -translate-y-[0.05em] items-center gap-[0.22em] whitespace-nowrap rounded-md py-[0.06em] align-middle font-medium leading-[1.5]',
-                appearance.agentAvatar ? 'pr-[0.5em] pl-[0.3em]' : 'px-[0.45em]',
-                kind === 'skill'
-                    ? [
-                          'bg-[color-mix(in_srgb,var(--mention-chip-color)_15%,transparent)] dark:bg-[color-mix(in_srgb,var(--mention-chip-color)_26%,transparent)]',
-                          'text-[color:var(--mention-chip-color)]',
-                      ]
-                    : [
-                          'bg-[color-mix(in_srgb,var(--mention-chip-color)_12%,transparent)] dark:bg-[color-mix(in_srgb,var(--mention-chip-color)_22%,transparent)]',
-                          'text-[color:color-mix(in_srgb,var(--mention-chip-color)_50%,var(--foreground)_50%)]',
-                      ],
+                'max-w-full -translate-y-px whitespace-nowrap align-middle text-sm',
                 className
             )}
             contentEditable={false}
+            size="sm"
             style={
                 {
-                    '--mention-chip-color': getMentionChipColor(appearance),
-                } as React.CSSProperties
+                    '--chip-bg': 'color-mix(in srgb, var(--reference-chip-color) 16%, transparent)',
+                    '--chip-fg':
+                        'color-mix(in srgb, var(--reference-chip-color) 50%, var(--foreground) 50%)',
+                    '--reference-chip-color': getMentionChipColor(appearance),
+                } as React.CSSProperties & Record<`--${string}`, string>
             }
             title={displayLabel}
+            variant="soft"
         >
             <MentionAppearanceIcon
                 agentAvatar={appearance.agentAvatar}
-                className={cn(
-                    'shrink-0 object-contain',
-                    appearance.agentAvatar ? undefined : 'size-[1.02em] opacity-90'
-                )}
+                className={appearance.agentAvatar ? undefined : 'size-[1.02em] shrink-0 opacity-90'}
                 icon={appearance.icon}
                 iconDataUrl={appearance.iconDataUrl}
             />
-            <span className="truncate">{displayLabel}</span>
-        </span>
+            <Chip.Label className="min-w-0 truncate">{displayLabel}</Chip.Label>
+        </Chip>
     );
 }

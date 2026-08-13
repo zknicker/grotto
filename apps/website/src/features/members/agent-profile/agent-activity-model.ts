@@ -65,7 +65,7 @@ const activityCopy: Record<AgentActivityCategory, ActivityCopy> = {
     },
 };
 
-export type ActivityStatus = 'error' | 'success' | 'warning';
+export type ActivityColor = 'danger' | 'success' | 'warning';
 
 export function formatAgentActivityEvent(event: HostedAgentActivityEvent): string {
     const copy = activityCopy[event.category][event.phase];
@@ -90,14 +90,24 @@ export function formatAgentActivityDiagnosticInfo(
         .join('\n');
 }
 
-export function getAgentActivityStatus(phase: AgentActivityPhase): ActivityStatus {
+export function getAgentActivityColor(phase: AgentActivityPhase): ActivityColor {
     if (phase === 'failed') {
-        return 'error';
+        return 'danger';
     }
     if (phase === 'started') {
         return 'warning';
     }
     return 'success';
+}
+
+export function getAgentActivityPhaseLabel(phase: AgentActivityPhase) {
+    if (phase === 'failed') {
+        return 'Failed';
+    }
+    if (phase === 'started') {
+        return 'Active';
+    }
+    return 'Completed';
 }
 
 export type TurnJournalPresentation =

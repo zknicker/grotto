@@ -3,13 +3,13 @@ import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import { ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { HostedAgent, HostedChat } from '@tavern/api';
+import type React from 'react';
 import { useLocation } from 'react-router-dom';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverArchivedChatsRoute, serverChatRoute } from '../servers/server-routes.ts';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
-import { SidebarAccount } from './sidebar-account.tsx';
 
 export function ChatNavigation({
     agents,
@@ -30,10 +30,7 @@ export function ChatNavigation({
     const directMessages = chats.filter((chat) => chat.kind === 'dm' && !chat.peerAgentRetired);
 
     return (
-        <ShellSidebarPageContent
-            band={<ChatNavigationBand onCreateChannel={onCreateChannel} />}
-            footer={<SidebarAccount />}
-        >
+        <ShellSidebarPageContent band={<ChatNavigationBand onCreateChannel={onCreateChannel} />}>
             <ChatGroup
                 agents={agentById}
                 chats={channels}
@@ -48,8 +45,7 @@ export function ChatNavigation({
                 label="Direct messages"
                 selectedChatId={selectedChatId}
                 slug={slug}
-            />
-            <Sidebar.Menu aria-label="Archive">
+            >
                 <Sidebar.MenuItem
                     href={serverArchivedChatsRoute(slug)}
                     id="archived"
@@ -63,7 +59,7 @@ export function ChatNavigation({
                         <Sidebar.MenuLabel>Archived</Sidebar.MenuLabel>
                     </Sidebar.MenuItemContent>
                 </Sidebar.MenuItem>
-            </Sidebar.Menu>
+            </ChatGroup>
         </ShellSidebarPageContent>
     );
 }
@@ -88,6 +84,7 @@ function ChatNavigationBand({ onCreateChannel }: { onCreateChannel: () => void }
 function ChatGroup({
     agents,
     chats,
+    children,
     label,
     selectedChatId,
     showLabel = true,
@@ -95,6 +92,7 @@ function ChatGroup({
 }: {
     agents: Map<string, HostedAgent>;
     chats: HostedChat[];
+    children?: React.ReactNode;
     label: string;
     selectedChatId: string | undefined;
     showLabel?: boolean;
@@ -103,7 +101,7 @@ function ChatGroup({
     return (
         <Sidebar.Group>
             {showLabel ? <Sidebar.GroupLabel>{label}</Sidebar.GroupLabel> : null}
-            <Sidebar.Menu aria-label={label}>
+            <Sidebar.Menu aria-label={label} className="gap-0">
                 {chats.map((chat) => {
                     const agent = chat.peerAgentId ? (agents.get(chat.peerAgentId) ?? null) : null;
                     const name =
@@ -130,6 +128,7 @@ function ChatGroup({
                         </Sidebar.MenuItem>
                     );
                 })}
+                {children}
             </Sidebar.Menu>
         </Sidebar.Group>
     );
@@ -140,5 +139,5 @@ function ChatIcon({ agent }: { agent: HostedAgent | null }) {
         return <ChannelIconBox size="sidebar" />;
     }
 
-    return <AgentAvatar agent={agent} />;
+    return <AgentAvatar agent={agent} size={24} />;
 }

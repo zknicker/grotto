@@ -36,17 +36,54 @@ export function applyCurrentAgentActivityEvent(
         return [...activities];
     }
 
-    if (event.phase !== 'started') {
+    const projected = projectCurrentAgentActivityEvent(event);
+    if (!projected) {
         return index < 0
             ? [...activities]
             : activities.filter((_, itemIndex) => itemIndex !== index);
     }
 
     if (index < 0) {
-        return [...activities, event];
+        return [
+            ...activities.filter((activity) => activity.agentId !== projected.agentId),
+            projected,
+        ];
     }
 
-    return activities.map((activity, itemIndex) => (itemIndex === index ? event : activity));
+    return activities.map((activity, itemIndex) => (itemIndex === index ? projected : activity));
+}
+
+/**
+ * Current activity is an accepted-run projection, not the durable journal.
+ * Semantic completion means the Agent is between operations; only the
+ * Server-owned working completion is authoritative turn settlement.
+ */
+export function projectCurrentAgentActivityEvent(
+    event: CurrentAgentActivity
+): CurrentAgentActivity | null {
+    if (isTerminalAgentActivityEvent(event)) {
+        return null;
+    }
+    return event.phase === 'started' ? event : { ...event, category: 'working', phase: 'started' };
+}
+
+export function projectCurrentAgentActivitySnapshot(
+    activities: readonly CurrentAgentActivity[]
+): CurrentAgentActivity[] {
+    return activities.flatMap((activity) => {
+        const projected = projectCurrentAgentActivityEvent(activity);
+        return projected ? [projected] : [];
+    });
+}
+
+export function reconcileCurrentAgentActivity(
+    snapshot: readonly CurrentAgentActivity[],
+    liveEvents: readonly CurrentAgentActivity[]
+) {
+    return liveEvents.reduce(
+        applyCurrentAgentActivityEvent,
+        projectCurrentAgentActivitySnapshot(snapshot)
+    );
 }
 
 export function splitCurrentAgentActivity(
@@ -62,4 +99,12 @@ export function splitCurrentAgentActivity(
 
 function activityKey(activity: CurrentAgentActivity) {
     return `${activity.agentId}:${activity.runId}`;
+}
+
+function isTerminalAgentActivityEvent(activity: CurrentAgentActivity) {
+    return (
+        activity.producer === 'server' &&
+        activity.category === 'working' &&
+        activity.phase !== 'started'
+    );
 }

@@ -1,6 +1,5 @@
 import { Alert, Button, Chip } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
-import { StatusDot } from '../../../components/ui/status-dot.tsx';
 import { useReminders } from '../../../hooks/servers/use-reminders.ts';
 import { filterReminders, type ReminderItem, toReminderItem } from './reminder-model.ts';
 import { useReminderView } from './use-reminder-view.ts';
@@ -91,7 +90,6 @@ function ReminderRow({
 }) {
     return (
         <li className="flex flex-wrap items-center gap-3 bg-surface px-4 py-3">
-            <StatusDot status={reminder.status === 'scheduled' ? 'success' : 'muted'} />
             <div className="min-w-52 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-medium text-foreground text-sm">{reminder.title}</h3>

@@ -1,4 +1,4 @@
-import { Drawer } from '@heroui/react';
+import { Badge, Drawer } from '@heroui/react';
 import { useDevMode } from '../../components/dev-mode-provider.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useChatTurnPrompt } from '../../hooks/chats/use-chat-turn-prompt.ts';
@@ -97,10 +97,7 @@ function ChatTurnDrawerHeader({
                     <p className="flex min-w-0 items-center gap-1.5 text-muted text-sm">
                         {turnActive ? (
                             <span className="flex shrink-0 items-center gap-1.5">
-                                <span aria-hidden className="relative flex size-2">
-                                    <span className="absolute inline-flex size-full rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
-                                    <span className="relative inline-flex size-2 rounded-full bg-accent" />
-                                </span>
+                                <Badge className="static transform-none" color="accent" size="sm" />
                                 Working now
                             </span>
                         ) : null}

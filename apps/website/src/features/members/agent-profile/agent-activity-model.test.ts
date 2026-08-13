@@ -7,6 +7,8 @@ import type {
 import {
     formatAgentActivityDiagnosticInfo,
     formatAgentActivityEvent,
+    getAgentActivityColor,
+    getAgentActivityPhaseLabel,
     getTurnJournalPresentation,
     shouldRequestExecutionJournal,
 } from './agent-activity-model.ts';
@@ -39,6 +41,15 @@ test('diagnostic copy contains only the Server-safe activity summary', () => {
     expect(copy).toContain('Used search.web');
     expect(copy).not.toContain('computer_private_journal');
     expect(copy).not.toContain('run_one');
+});
+
+test('activity phases map onto HeroUI Chip presentation', () => {
+    expect(getAgentActivityColor('started')).toBe('warning');
+    expect(getAgentActivityColor('completed')).toBe('success');
+    expect(getAgentActivityColor('failed')).toBe('danger');
+    expect(getAgentActivityPhaseLabel('started')).toBe('Active');
+    expect(getAgentActivityPhaseLabel('completed')).toBe('Completed');
+    expect(getAgentActivityPhaseLabel('failed')).toBe('Failed');
 });
 
 test('journal presentation names missing, interrupted, and redacted states', () => {

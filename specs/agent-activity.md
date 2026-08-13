@@ -136,7 +136,10 @@ without a sidebar, including Search and Reminders.
 - Settlement removes the row with a short fade. Status dots never pulse.
 
 The strip consumes live current-state projection, not the historical query. Reconnect obtains a
-current active-activity snapshot before applying later events.
+current active-activity snapshot before applying later events. A semantic operation's
+`completed` or `failed` event falls back to `Working…`; only the Server's terminal turn event
+removes the Agent. Snapshot and live-event reconciliation preserves live events that arrive while
+an older snapshot request is still in flight.
 
 ### Agent activity history
 

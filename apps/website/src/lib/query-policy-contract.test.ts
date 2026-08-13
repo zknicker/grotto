@@ -26,7 +26,6 @@ const defaultFloorAllowlist: Record<string, string> = {
     'features/chats/chat-turn-drawer.tsx': 'debug drawer; one-off inspection reads',
     'hooks/connections/use-poll-model-provider-oauth.ts':
         'interval-driven OAuth poll; refetchInterval bypasses staleness',
-    'hooks/desktop/use-tavern-update.ts': 'desktop update check; interval-driven',
     'hooks/pane/use-chat-pane-state.ts': 'pane-local presentation state',
     'hooks/servers/use-accept-invitation.ts':
         'invitation preview answers "is this token good right now"; mount refetch is correctness',

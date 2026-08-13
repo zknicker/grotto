@@ -29,7 +29,7 @@ export function SidebarAgentActivityStrip({ serverId, slug }: { serverId: string
     return (
         <section
             aria-label="Current Agent activity"
-            className="w-full border-separator border-t px-1 pt-2"
+            className="w-full px-1"
             data-slot="agent-activity-strip"
         >
             <div className="flex flex-col gap-0.5">
@@ -62,10 +62,10 @@ export function SidebarAgentActivityStrip({ serverId, slug }: { serverId: string
                             >
                                 <Link
                                     aria-label={`${agent.displayName}: ${label}`}
-                                    className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-muted text-xs outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus"
+                                    className="flex min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left text-muted text-xs outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus"
                                     to={agentRoute(slug, activity.agentId)}
                                 >
-                                    <AgentAvatar agent={agent} size={20} />
+                                    <AgentAvatar agent={agent} size={24} />
                                     <span className="min-w-0 truncate">{label}</span>
                                 </Link>
                             </motion.div>

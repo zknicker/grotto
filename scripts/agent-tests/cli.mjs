@@ -3,17 +3,20 @@
 // Agent API contracts the App uses.
 //
 //   bun scripts/agent-tests/cli.mjs [--only <substring>] [--list] [--json]
-//                                   [--pool] [--lanes <n>]
+//                                   [--lanes <n>]
 
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createEvalHarness } from '../eval-harness.mjs';
-import { createAgentTestKit, ensureAgentTestPool } from './kit.mjs';
-import { clampLanes, poolLaneCapacity } from './pool.mjs';
+import { createAgentTestKit } from './kit.mjs';
 import { createRenderer, formatWall } from './render.mjs';
 import { buildSummary, buildTranscript, createReportWriter, runStamp } from './report.mjs';
 import { createExpect, isScenario } from './scenario.mjs';
+import { describeSweep, sweepAgentTestLeftovers } from './sweep.mjs';
+
+/** Agents are per scenario, so provider throughput is what caps the lanes. */
+const defaultLaneCeiling = 8;
 
 const scenariosDirectory = fileURLToPath(new URL('./scenarios/', import.meta.url));
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
@@ -36,7 +39,7 @@ if (options.list) {
 
 // An empty scenario set is a failure, not a clean run — and it is decided
 // before anything reaches the dev stack, so a typo costs no live agent time.
-if (!(options.pool || scenarios.length > 0)) {
+if (scenarios.length === 0) {
     process.stderr.write(
         options.only
             ? `No agent-test scenario name contains ${JSON.stringify(options.only)}.\n  list them with: bun run test:agents --list\n`
@@ -50,16 +53,6 @@ const report = createReportWriter({ repositoryRoot, stamp });
 const renderer = createRenderer({ quiet: options.json });
 const startedAt = new Date().toISOString();
 const startedAtMs = Date.now();
-
-if (options.pool) {
-    const harness = await createEvalHarness({ evalName: 'agent-tests', repositoryRoot });
-    const agents = await ensureAgentTestPool(harness, { repositoryRoot });
-    process.stdout.write(
-        `${agents.map((agent) => `  ✓ @${agent.handle}  ${agent.desiredRuntimeId}/${agent.desiredModelId}`).join('\n')}\n`
-    );
-    await harness.cleanup();
-    exit(0);
-}
 
 const results = await runScenarios().catch(reportInfraFailure);
 const wallSeconds = Math.round((Date.now() - startedAtMs) / 1000);
@@ -81,10 +74,14 @@ exit(passed === results.length ? 0 : 1);
 async function runScenarios() {
     const harness = await createEvalHarness({ evalName: 'agent-tests', repositoryRoot });
     const collected = [];
+    const retirements = [];
     try {
-        await ensureAgentTestPool(harness, { repositoryRoot });
+        const swept = describeSweep(await sweepAgentTestLeftovers(harness, { repositoryRoot }));
+        if (swept) {
+            process.stderr.write(`${swept}\n`);
+        }
         const queue = scenarios.map((scenario, index) => ({ index: index + 1, scenario }));
-        const lanes = Math.min(options.lanes, Math.max(queue.length, 1));
+        const lanes = options.lanes ?? Math.min(defaultLaneCeiling, Math.max(queue.length, 1));
         await Promise.all(
             Array.from({ length: lanes }, async () => {
                 for (;;) {
@@ -92,11 +89,14 @@ async function runScenarios() {
                     if (!next) {
                         return;
                     }
-                    collected.push(await runScenario(harness, next));
+                    collected.push(await runScenario(harness, next, retirements));
                 }
             })
         );
     } finally {
+        // Retirement is bounded inside itself and never gates a lane; the run
+        // still waits for it here so the ledger is settled before exit.
+        await Promise.all(retirements);
         await harness.cleanup();
     }
     return scenarios
@@ -104,22 +104,24 @@ async function runScenarios() {
         .filter(Boolean);
 }
 
-async function runScenario(harness, { index, scenario }) {
+async function runScenario(harness, { index, scenario }, retirements) {
     const key = scenario.name;
     const startedAtScenario = Date.now();
     renderer.start(key, { index, name: scenario.name });
     const assertions = [];
     const kit = createAgentTestKit(harness, { repositoryRoot, scenarioName: scenario.name });
     const expect = createExpect(assertions);
-    let lease = null;
+    let agents = [];
     let error = null;
 
     try {
-        renderer.phase(key, 'leasing');
-        lease = await kit.lease(scenario.agents);
+        renderer.phase(key, 'provisioning');
+        agents = await kit.provision(scenario.agents, {
+            onPhase: (phase) => renderer.phase(key, phase),
+        });
         renderer.phase(key, 'running');
         await scenario.run({
-            agents: lease.agents,
+            agents,
             expect,
             kit,
             log: (phase) => renderer.phase(key, phase),
@@ -136,25 +138,23 @@ async function runScenario(harness, { index, scenario }) {
 
     // The verdict clock stops here: teardown is not scenario time. Cleanup is
     // bounded — a chat delete stalled behind a still-active turn defers its
-    // ids to the next lease via the state ledger instead of stretching this
-    // run; the ledger only forgets ids the delete confirmed.
+    // ids to the next run via the crash ledger instead of stretching this one;
+    // the ledger only forgets ids the delete confirmed.
     const seconds = Math.round((Date.now() - startedAtScenario) / 1000);
-    // Release first so a slow chat delete never blocks another lane; the
-    // lease wipe re-deletes anything this bounded cleanup left behind.
-    lease?.release();
     await Promise.race([
         kit.cleanup().catch((cause) => {
             process.stderr.write(`\ncleanup deferred for ${key}: ${String(cause).slice(0, 200)}\n`);
         }),
         new Promise((resolve) => setTimeout(resolve, 60_000).unref?.()).then(() => {
-            process.stderr.write(
-                `\ncleanup for ${key} exceeded 60s; deferring to the next lease.\n`
-            );
+            process.stderr.write(`\ncleanup for ${key} exceeded 60s; deferring to the next run.\n`);
         }),
     ]);
+    // Retirement is started, not awaited: this lane takes the next scenario
+    // while these Agents are deleted, and the run awaits them at the end.
+    retirements.push(retire(kit, key));
 
     const result = {
-        agents: lease?.agents.map((agent) => agent.handle) ?? [],
+        agents: agents.map((agent) => agent.handle),
         assertions,
         error,
         name: scenario.name,
@@ -164,6 +164,16 @@ async function runScenario(harness, { index, scenario }) {
     await report.writeScenario(scenario.name, buildTranscript({ error, kit, result, scenario }));
     renderer.finish(key, { error, ok: result.ok, seconds });
     return result;
+}
+
+/** Retiring never fails a settled verdict; unconfirmed deletes are swept next run. */
+async function retire(kit, key) {
+    const { failures } = await kit.retire().catch((cause) => ({ failures: [{ error: cause }] }));
+    if (failures.length > 0) {
+        process.stderr.write(
+            `\nretiring ${failures.length} Agent(s) for ${key} deferred to the next run: ${String(failures[0].error).slice(0, 200)}\n`
+        );
+    }
 }
 
 /** Setup failures are the whole run failing, not one scenario failing. */
@@ -195,26 +205,29 @@ function filterScenarios(loaded, only) {
 
 /** Unknown args abort: a typo must never quietly become a full live-agent run. */
 function parseArgv(argv) {
-    const parsed = { json: false, lanes: poolLaneCapacity, list: false, only: null, pool: false };
+    const parsed = { json: false, lanes: null, list: false, only: null };
     const rest = [...argv];
     while (rest.length > 0) {
         const arg = rest.shift();
-        if (arg === '--json' || arg === '--list' || arg === '--pool') {
+        if (arg === '--json' || arg === '--list') {
             parsed[arg.slice(2)] = true;
         } else if (arg === '--only') {
             parsed.only = rest.shift() ?? null;
         } else if (arg === '--lanes') {
+            // Lanes are not clamped: Agents are created per scenario, so the
+            // only real ceiling is what the provider and Computer will take.
             const requested = rest.shift();
-            parsed.lanes = clampLanes(requested);
-            if (String(parsed.lanes) !== String(requested)) {
-                process.stderr.write(
-                    `Running ${parsed.lanes} lanes: the agent-test pool has ${poolLaneCapacity} worker Agents.\n`
-                );
+            const lanes = Math.trunc(Number(requested));
+            if (!(Number.isFinite(lanes) && lanes >= 1)) {
+                process.stderr.write(`--lanes needs a whole number of lanes, got ${requested}.\n`);
+                process.exit(2);
             }
+            parsed.lanes = lanes;
+            process.stderr.write(`Running ${lanes} lanes.\n`);
         } else {
             process.stderr.write(
                 `Unknown argument ${arg}.\n` +
-                    '  usage: bun run test:agents [--only <substring>] [--list] [--json] [--pool] [--lanes <n>]\n'
+                    '  usage: bun run test:agents [--only <substring>] [--list] [--json] [--lanes <n>]\n'
             );
             process.exit(2);
         }

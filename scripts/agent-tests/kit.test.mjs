@@ -1,35 +1,54 @@
 import { describe, expect, test } from 'bun:test';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chunkChatIds, expandEvalCleanupChatIds } from './cleanup-chats.mjs';
 import { marker } from './kit.mjs';
 import {
-    clampLanes,
-    findPoolTemplate,
+    agentKindDescriptions,
+    createConcurrency,
     isReady,
-    matchesKind,
-    poolLaneCapacity,
-    poolProfiles,
-} from './pool.mjs';
+    pickAgentTarget,
+    provisionAgents,
+    retireAgents,
+} from './provisioner.mjs';
 import { activeLine, formatWall, pad } from './render.mjs';
 import { buildSummary, runStamp, slug } from './report.mjs';
 import { AssertionError, createExpect, defineScenario, isScenario } from './scenario.mjs';
-import { createPoolState } from './state.mjs';
+import { createRunLedger } from './state.mjs';
+import { sweepAgentTestLeftovers } from './sweep.mjs';
 import { createTurnObserver, isMissingProcedure } from './turns.mjs';
 
 const readyAgent = {
     availability: 'idle',
-    desiredModelId: 'terra-1',
-    desiredRuntimeId: 'pi',
-    effectiveModelId: 'terra-1',
-    effectiveRuntimeId: 'pi',
-    handle: 'eval-worker-1',
+    desiredModelId: 'codex-terra-1',
+    desiredRuntimeId: 'codex',
+    effectiveModelId: 'codex-terra-1',
+    effectiveRuntimeId: 'codex',
+    handle: 'eval-worker1-a3f9kq',
     id: 'agt_worker',
     missingResources: [],
     status: 'applied',
+};
+
+const codexComputer = {
+    health: 'healthy',
+    id: 'cmp_1',
+    reportedInventory: {
+        runtimes: [
+            { id: 'claude-code', label: 'Claude Code', models: [{ id: 'opus', label: 'Opus' }] },
+            {
+                id: 'codex',
+                label: 'Codex',
+                models: [
+                    { id: 'gpt-5.6-sol', label: 'Sol' },
+                    { id: 'gpt-5.6-terra', label: 'Terra' },
+                ],
+            },
+        ],
+    },
 };
 
 describe('marker', () => {
@@ -80,10 +99,8 @@ describe('defineScenario', () => {
         });
         expect(isScenario(scenario)).toBe(true);
         expect(scenario.name).toBe('demo');
-        expect(scenario.agents).toEqual([
-            { cleanWorkspace: false, kind: 'worker' },
-            { cleanWorkspace: true, kind: 'coordinator' },
-        ]);
+        // A provisioned Agent is new, so only the kind survives normalization.
+        expect(scenario.agents).toEqual([{ kind: 'worker' }, { kind: 'coordinator' }]);
     });
 
     test('rejects unknown agent kinds and missing run functions', () => {
@@ -120,48 +137,173 @@ describe('cleanup expansion', () => {
     });
 });
 
-describe('pool helpers', () => {
-    test('maps handles to their pool kind', () => {
-        expect(matchesKind('eval-worker-2', 'worker')).toBe(true);
-        expect(matchesKind('eval-coordinator', 'worker')).toBe(false);
-        expect(poolProfiles.filter((profile) => profile.kind === 'worker')).toHaveLength(3);
+describe('agent target', () => {
+    test('reads runtime and model from the Computer inventory', () => {
+        expect(pickAgentTarget([codexComputer])).toEqual({
+            computerId: 'cmp_1',
+            modelId: 'gpt-5.6-terra',
+            runtimeId: 'codex',
+        });
+    });
+
+    test('skips offline Computers and Computers without a terra codex model', () => {
+        expect(pickAgentTarget([{ ...codexComputer, health: 'offline' }])).toBeNull();
+        expect(
+            pickAgentTarget([{ health: 'healthy', id: 'cmp_2', reportedInventory: null }])
+        ).toBeNull();
+        expect(pickAgentTarget([])).toBeNull();
+    });
+
+    test('prefers a healthy Computer over a degraded one', () => {
+        const degraded = { ...codexComputer, health: 'degraded', id: 'cmp_degraded' };
+        expect(pickAgentTarget([degraded, codexComputer])?.computerId).toBe('cmp_1');
     });
 
     test('readiness needs applied, idle, matching, and complete resources', () => {
         expect(isReady(readyAgent)).toBe(true);
         expect(isReady({ ...readyAgent, availability: 'working' })).toBe(false);
         expect(isReady({ ...readyAgent, effectiveModelId: 'other' })).toBe(false);
-        expect(isReady({ ...readyAgent, missingResources: ['pi'] })).toBe(false);
+        expect(isReady({ ...readyAgent, missingResources: ['session'] })).toBe(false);
         expect(isReady(undefined)).toBe(false);
-    });
-
-    test('finds a template by model hint', () => {
-        expect(findPoolTemplate([readyAgent])?.id).toBe('agt_worker');
-        expect(findPoolTemplate([{ ...readyAgent, desiredModelId: 'sol' }])).toBeUndefined();
-    });
-
-    test('clamps lanes to the worker pool', () => {
-        expect(poolLaneCapacity).toBe(3);
-        expect(clampLanes(2)).toBe(2);
-        expect(clampLanes(4)).toBe(3);
-        expect(clampLanes('0')).toBe(3);
-        expect(clampLanes(undefined)).toBe(3);
     });
 });
 
-describe('pool state', () => {
-    test('reading leftovers keeps them until a delete is confirmed', async () => {
+describe('provisioning', () => {
+    test('creates one Agent per request with a kind-shaped identity', async () => {
+        const harness = createFakeHarness();
+        const created = [];
+        const agents = await provisionAgents(
+            harness,
+            [{ kind: 'worker' }, { kind: 'coordinator' }],
+            { onCreated: (agent) => created.push(agent.id) }
+        );
+
+        expect(agents.map((agent) => agent.kind)).toEqual(['worker', 'coordinator']);
+        // The ledger learns each id the moment the Server record exists.
+        expect(created).toEqual(agents.map((agent) => agent.id));
+        const [worker, coordinator] = harness.inputsFor('agent.create');
+        expect(worker.displayName).toBe(`Eval Worker ${harness.stamp}-1`);
+        expect(worker.handle).toMatch(/^eval-worker1-[a-z2-9]{6}$/u);
+        expect(worker.description).toBe(agentKindDescriptions.worker);
+        expect(worker).toMatchObject({
+            computerId: 'cmp_1',
+            modelId: 'gpt-5.6-terra',
+            role: 'member',
+            runtimeId: 'codex',
+            serverId: 'srv_1',
+        });
+        expect(coordinator.handle).toMatch(/^eval-coordinator2-[a-z2-9]{6}$/u);
+        expect(coordinator.description).toBe(agentKindDescriptions.coordinator);
+    });
+
+    // Concurrent applies race the Computer into a degraded Agent missing its
+    // session, so the semaphore is global to the process, not per scenario.
+    test('bounds concurrent creation across every scenario in the process', async () => {
+        const harness = createFakeHarness({ createDelayMs: 20 });
+        const requests = Array.from({ length: 5 }, () => ({ kind: 'worker' }));
+        const [first, second] = await Promise.all([
+            provisionAgents(harness, requests.slice(0, 3)),
+            provisionAgents(harness, requests.slice(3)),
+        ]);
+
+        expect(first.length + second.length).toBe(5);
+        expect(harness.peakCreates()).toBe(createConcurrency);
+    });
+
+    test('retires the Agents it already created when one request fails', async () => {
+        const harness = createFakeHarness({ failCreateAt: 2 });
+        await expect(
+            provisionAgents(harness, [{ kind: 'worker' }, { kind: 'worker' }])
+        ).rejects.toThrow(/create refused/u);
+        expect(harness.inputsFor('agent.delete').map((input) => input.agentId)).toEqual(['agt_1']);
+    });
+
+    test('reports a failed retirement instead of throwing it', async () => {
+        const harness = createFakeHarness({ failDeleteFor: 'agt_2' });
+        const agents = await provisionAgents(harness, [{ kind: 'worker' }, { kind: 'worker' }]);
+        const result = await retireAgents(harness, agents);
+
+        expect(result.retired).toEqual(['agt_1']);
+        expect(result.failures[0].agentId).toBe('agt_2');
+        expect(harness.inputsFor('agent.delete')[0].confirmation).toBe(agents[0].displayName);
+    });
+});
+
+describe('crash ledger', () => {
+    test('records this run and reads only what earlier runs left', async () => {
         const repositoryRoot = await mkdtemp(path.join(tmpdir(), 'agent-tests-state-'));
-        const state = createPoolState({ repositoryRoot });
-        await state.remember('eval-worker-1', 'cht_a');
-        await state.remember('eval-worker-1', 'cht_b');
+        const crashed = createRunLedger({ repositoryRoot, stamp: 'run_a' });
+        await crashed.rememberAgent({ displayName: 'Eval Worker run_a-1', id: 'agt_a' });
+        await crashed.rememberChat('cht_a');
+        expect(await crashed.leftovers()).toEqual([]);
 
-        expect(await state.peek('eval-worker-1')).toEqual(['cht_a', 'cht_b']);
-        // A failed cleanup deletes nothing, so the next lease still sees both.
-        expect(await state.peek('eval-worker-1')).toEqual(['cht_a', 'cht_b']);
+        const current = createRunLedger({ repositoryRoot, stamp: 'run_b' });
+        await current.rememberChat('cht_b');
+        expect(await current.leftovers()).toEqual([
+            {
+                agents: [{ displayName: 'Eval Worker run_a-1', handle: null, id: 'agt_a' }],
+                chatIds: ['cht_a'],
+                stamp: 'run_a',
+            },
+        ]);
 
-        await state.forget(['cht_a']);
-        expect(await state.peek('eval-worker-1')).toEqual(['cht_b']);
+        // A failed sweep confirms nothing, so the ids survive to the next run.
+        expect(await current.leftovers()).toHaveLength(1);
+        await current.forgetChats(['cht_a']);
+        await current.forgetAgents(['agt_a']);
+        expect(await current.leftovers()).toEqual([]);
+    });
+
+    test('adopts the standing pool ledger so its chats are still swept', async () => {
+        const repositoryRoot = await mkdtemp(path.join(tmpdir(), 'agent-tests-legacy-'));
+        const file = path.join(repositoryRoot, '.context', 'agent-tests', 'state.json');
+        await mkdir(path.dirname(file), { recursive: true });
+        await writeFile(file, JSON.stringify({ chatsByHandle: { 'eval-worker-1': ['cht_old'] } }));
+
+        expect(await createRunLedger({ repositoryRoot, stamp: 'run_a' }).leftovers()).toEqual([
+            { agents: [], chatIds: ['cht_old'], stamp: 'standing-pool' },
+        ]);
+    });
+});
+
+describe('crash sweep', () => {
+    test('deletes exactly the recorded ids and forgets only confirmed deletes', async () => {
+        const repositoryRoot = await mkdtemp(path.join(tmpdir(), 'agent-tests-sweep-'));
+        const crashed = createRunLedger({ repositoryRoot, stamp: 'run_a' });
+        await crashed.rememberAgent({ displayName: 'Eval Worker run_a-1', id: 'agt_a' });
+        await crashed.rememberAgent({ displayName: 'Eval Worker run_a-2', id: 'agt_b' });
+        await crashed.rememberChat('cht_a');
+
+        const harness = createFakeHarness({ failDeleteFor: 'agt_b', stamp: 'run_b' });
+        const swept = await sweepAgentTestLeftovers(harness, { repositoryRoot });
+
+        expect(swept).toMatchObject({ agents: 1, chats: 1, runs: ['run_a'] });
+        expect(harness.inputsFor('dev.cleanupEvalChats')[0].chatIds).toEqual(['cht_a']);
+        expect(
+            harness
+                .inputsFor('agent.delete')
+                .map((input) => input.agentId)
+                .sort()
+        ).toEqual(['agt_a', 'agt_b']);
+        // Only the refused Agent stays; nothing was matched by name or age.
+        expect(await createRunLedger({ repositoryRoot, stamp: 'run_c' }).leftovers()).toEqual([
+            {
+                agents: [{ displayName: 'Eval Worker run_a-2', handle: null, id: 'agt_b' }],
+                chatIds: [],
+                stamp: 'run_a',
+            },
+        ]);
+    });
+
+    test('a run with nothing left behind sweeps nothing', async () => {
+        const repositoryRoot = await mkdtemp(path.join(tmpdir(), 'agent-tests-sweep-'));
+        const harness = createFakeHarness();
+        expect(await sweepAgentTestLeftovers(harness, { repositoryRoot })).toMatchObject({
+            agents: 0,
+            chats: 0,
+            runs: [],
+        });
+        expect(harness.inputsFor('agent.delete')).toEqual([]);
     });
 });
 
@@ -273,6 +415,76 @@ describe('render helpers', () => {
         expect(line).toBe('▶ 01 task-thread-routing       turn active · 24s');
     });
 });
+
+/**
+ * A hosted Server stand-in: it answers the exact procedures provisioning,
+ * retirement, and the crash sweep call, and records every input.
+ */
+function createFakeHarness({
+    createDelayMs = 0,
+    failCreateAt = null,
+    failDeleteFor = null,
+    stamp = '20260813031612',
+} = {}) {
+    const calls = [];
+    let created = 0;
+    let inFlightCreates = 0;
+    let peakCreates = 0;
+
+    async function trpc(path, input) {
+        calls.push({ input, path });
+        if (path === 'computer.list') {
+            return [codexComputer];
+        }
+        if (path === 'agent.create') {
+            inFlightCreates += 1;
+            peakCreates = Math.max(peakCreates, inFlightCreates);
+            try {
+                await wait(createDelayMs);
+                created += 1;
+                if (created === failCreateAt) {
+                    throw new Error(`create refused for ${input.handle}`);
+                }
+                return { agent: { ...readyAgent, ...input, id: `agt_${created}` } };
+            } finally {
+                inFlightCreates -= 1;
+            }
+        }
+        if (path === 'agent.list') {
+            return calls
+                .filter((call) => call.path === 'agent.create')
+                .map((call, index) => ({ ...readyAgent, ...call.input, id: `agt_${index + 1}` }));
+        }
+        if (path === 'agent.delete') {
+            if (input.agentId === failDeleteFor) {
+                throw new Error(`delete refused for ${input.agentId}`);
+            }
+            return { agentId: input.agentId };
+        }
+        if (path === 'task.list') {
+            return [];
+        }
+        if (path === 'chat.messages') {
+            return { messages: [], threads: [] };
+        }
+        if (path === 'dev.cleanupEvalChats') {
+            return { deleted: input.chatIds.length };
+        }
+        throw new Error(`the fake harness has no answer for ${path}`);
+    }
+
+    return {
+        inputsFor: (path) => calls.filter((call) => call.path === path).map((call) => call.input),
+        peakCreates: () => peakCreates,
+        serverId: 'srv_1',
+        stamp,
+        trpc,
+    };
+}
+
+function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /** The body a Server sends when the tRPC path itself is not routed. */
 function unroutedPathError(path) {

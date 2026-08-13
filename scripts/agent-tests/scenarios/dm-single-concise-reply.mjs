@@ -13,7 +13,7 @@ export default defineScenario({
         const [worker] = agents;
         const dmChatId = worker.dmChatId;
         if (!dmChatId) {
-            throw new Error(`Pool Agent @${worker.handle} has no Owner DM to send into.`);
+            throw new Error(`Agent @${worker.handle} has no Owner DM to send into.`);
         }
 
         const head = await kit.readHead(dmChatId);

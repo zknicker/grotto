@@ -144,8 +144,8 @@ Status values:
 
 - `bun run test:agents` is the executable home of this ledger. Scenarios live in
   `scripts/agent-tests/scenarios/` and drive real Server-to-Computer-to-model
-  behavior headlessly through the hosted tRPC and Agent API contracts, against a
-  standing Agent pool wiped on lease. See
+  behavior headlessly through the hosted tRPC and Agent API contracts, against
+  Agents created per scenario and retired after its verdict. See
   [Testing](../../docs/operations/testing.md#agent-tests).
 - `bun run test:tracer` is the single full-stack Playwright spec: one mention
   typed into the real App composer reaches the Agent and its reply renders.

@@ -3,7 +3,7 @@
 // session is reset, and the Server must be able to read the exact bytes.
 
 import { sleep } from '../../eval-harness.mjs';
-import { isReady } from '../pool.mjs';
+import { isReady } from '../provisioner.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({

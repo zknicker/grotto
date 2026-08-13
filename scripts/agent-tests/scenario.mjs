@@ -7,8 +7,9 @@ export const scenarioKind = 'agent-test-scenario';
 /**
  * Declares one agent-behavior scenario.
  *
- * `agents` requests pool agents by kind: `{ kind: 'worker' | 'coordinator',
- * cleanWorkspace?: boolean }`. `run` receives `{ agents, expect, kit, log, marker }`.
+ * `agents` declares the Agents to create for this scenario by kind:
+ * `{ kind: 'worker' | 'coordinator' }`. `run` receives
+ * `{ agents, expect, kit, log, marker }`.
  */
 export function defineScenario({ agents = [], contract = '', name, run }) {
     if (typeof name !== 'string' || name.trim().length === 0) {
@@ -125,10 +126,9 @@ function normalizeAgentRequest(request) {
             `Unknown agent kind ${format(normalized.kind)}; use worker or coordinator.`
         );
     }
-    return Object.freeze({
-        cleanWorkspace: Boolean(normalized.cleanWorkspace),
-        kind: normalized.kind,
-    });
+    // A provisioned Agent is new, so there is no workspace or session state a
+    // scenario could ask to clear: the kind is the whole request.
+    return Object.freeze({ kind: normalized.kind });
 }
 
 function truncate(value, limit) {

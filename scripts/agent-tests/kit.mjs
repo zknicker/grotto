@@ -1,34 +1,34 @@
 // The agent-test kit: everything a scenario needs to drive real Server →
 // Computer → model behavior headlessly, and nothing that requires a browser.
 //
-// Model: a standing Agent pool wiped on lease, turn settlement instead of
-// content polling, and assertions made of structural gates plus marker
-// containment.
+// Model: Agents provisioned per scenario and retired after its verdict, turn
+// settlement instead of content polling, and assertions made of structural
+// gates plus marker containment.
 
 import { createAgentAuthor } from './author.mjs';
 import { cleanupEvalChats } from './cleanup-chats.mjs';
-import { createAgentPool, poolProfiles } from './pool.mjs';
-import { createPoolState } from './state.mjs';
+import { provisionAgents, retireAgents } from './provisioner.mjs';
+import { createRunLedger } from './state.mjs';
 import { createTurnObserver } from './turns.mjs';
 
 const markerAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const contexts = new WeakMap();
 
 /**
- * Builds a scenario-scoped kit over a shared harness. Pool, turn observer,
- * Agent authoring, and cross-run state are shared per harness; observed
- * messages, turns, and chats are recorded per scenario for its transcript.
+ * Builds a scenario-scoped kit over a shared harness. Turn observer, Agent
+ * authoring, and the crash ledger are shared per harness; provisioned Agents,
+ * observed messages, turns, and chats are per scenario.
  */
 export function createAgentTestKit(
     harness,
     { repositoryRoot = process.cwd(), scenarioName = 'agent-test' } = {}
 ) {
     const context = resolveContext(harness, repositoryRoot);
-    const { author, observer, pool, serverId, state, trpc } = context;
+    const { author, ledger, observer, serverId, trpc } = context;
     const observedMessages = new Map();
     const observedTurns = [];
     const ownedChats = new Map();
-    let leaseHandle = null;
+    const provisioned = [];
 
     function record(messages) {
         for (const message of messages) {
@@ -51,7 +51,7 @@ export function createAgentTestKit(
     /** Registers a chat this scenario owns, so cleanup and crash recovery find it. */
     async function trackChat(chatId, { name = null } = {}) {
         ownedChats.set(chatId, name);
-        await state.remember(leaseHandle ?? 'unleased', chatId);
+        await ledger.rememberChat(chatId);
         return chatId;
     }
 
@@ -197,31 +197,24 @@ export function createAgentTestKit(
         return turn;
     }
 
-    async function lease(requests) {
-        const leased = await pool.lease(requests, { wipe });
-        leaseHandle ??= leased.agents[0]?.handle ?? null;
-        return leased;
+    /** Creates this scenario's declared Agents. Fresh Agent, fresh everything. */
+    async function provision(requests, { onPhase } = {}) {
+        const agents = await provisionAgents(harness, requests, {
+            onCreated: (agent) => ledger.rememberAgent(agent),
+            onPhase,
+        });
+        provisioned.push(...agents);
+        return agents;
     }
 
-    async function wipe(agent, request) {
-        const leftovers = await state.peek(agent.handle);
-        if (leftovers.length > 0) {
-            const deleted = await cleanupEvalChats({ serverId, trpc }, leftovers).catch((error) => {
-                process.stderr.write(
-                    `  ! agent-test cleanup left ${leftovers.length} chat(s) on @${agent.handle} for the next lease: ${error}\n`
-                );
-                return [];
-            });
-            if (deleted.length > 0) {
-                await state.forget(deleted);
-            }
+    /** Retires this scenario's Agents. Unconfirmed deletes stay in the ledger. */
+    async function retire() {
+        const result = await retireAgents(harness, provisioned);
+        if (result.retired.length > 0) {
+            await ledger.forgetAgents(result.retired);
         }
-        await trpc('agent.reset', {
-            agentId: agent.id,
-            kind: request.cleanWorkspace ? 'full' : 'session',
-            serverId,
-        });
-        await pool.waitForReady(agent.id);
+        provisioned.length = 0;
+        return result;
     }
 
     async function cleanup() {
@@ -230,7 +223,7 @@ export function createAgentTestKit(
             return [];
         }
         const deleted = await cleanupEvalChats({ serverId, trpc }, chatIds);
-        await state.forget(deleted.length > 0 ? deleted : chatIds);
+        await ledger.forgetChats(deleted.length > 0 ? deleted : chatIds);
         ownedChats.clear();
         return deleted;
     }
@@ -249,11 +242,12 @@ export function createAgentTestKit(
         createChannel,
         expectNoAgentMessages,
         harness,
-        lease,
         marker,
+        provision,
         readHead: (chatId) => harness.readHead(chatId),
         readMessages,
         readTask,
+        retire,
         scenarioName,
         sendInThread,
         sendTask,
@@ -269,14 +263,6 @@ export function createAgentTestKit(
         trpc,
         turns: observer,
     };
-}
-
-/** Verifies or repairs the standing pool. Safe to call repeatedly. */
-export function ensureAgentTestPool(
-    harness,
-    { profiles = poolProfiles, repositoryRoot = process.cwd() } = {}
-) {
-    return resolveContext(harness, repositoryRoot).pool.ensure(profiles);
 }
 
 export function marker(prefix = 'EVAL') {
@@ -297,11 +283,10 @@ function resolveContext(harness, repositoryRoot) {
             serverUrl: harness.serverUrl,
             stamp: harness.stamp,
         }),
+        ledger: createRunLedger({ repositoryRoot, stamp: harness.stamp }),
         observer: createTurnObserver({ serverId: harness.serverId, trpc: harness.trpc }),
-        pool: createAgentPool({ serverId: harness.serverId, trpc: harness.trpc }),
         serverId: harness.serverId,
         stamp: harness.stamp,
-        state: createPoolState({ repositoryRoot }),
         trpc: harness.trpc,
     };
     contexts.set(harness, context);

@@ -1,7 +1,6 @@
-// The same no-response contract in the Agent's standing Owner DM, where every
-// message is addressed by definition. The DM is durable collaboration the pool
-// Agent keeps between runs, so this scenario anchors on its head and never
-// tracks or deletes it.
+// The same no-response contract in the Agent's Owner DM, where every message
+// is addressed by definition. The DM belongs to the Agent, so this scenario
+// anchors on its head and lets Agent retirement carry it away.
 
 import { defineScenario } from '../scenario.mjs';
 
@@ -14,7 +13,7 @@ export default defineScenario({
         const [worker] = agents;
         const dmChatId = worker.dmChatId;
         if (!dmChatId) {
-            throw new Error(`Pool Agent @${worker.handle} has no Owner DM to send into.`);
+            throw new Error(`Agent @${worker.handle} has no Owner DM to send into.`);
         }
 
         const head = await kit.readHead(dmChatId);

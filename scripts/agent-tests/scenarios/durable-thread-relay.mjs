@@ -4,7 +4,7 @@
 // recovering it from Grotto — not from anything it was told.
 
 import { sleep } from '../../eval-harness.mjs';
-import { isReady } from '../pool.mjs';
+import { isReady } from '../provisioner.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 const relayTokenPattern = /RELAY TOKEN:\s*(RELAY-[A-Za-z0-9]{12,})/u;

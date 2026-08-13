@@ -14,7 +14,7 @@ const requiredHeadings = [
 ];
 
 export default defineScenario({
-    agents: [{ cleanWorkspace: true, kind: 'worker' }],
+    agents: [{ kind: 'worker' }],
     contract:
         'A skill imported to one Agent lands as Computer-reported Agent skill state and shapes the next turn: the reply follows every heading the skill requires and carries the requested marker.',
     name: 'skill-import-shapes-turn',

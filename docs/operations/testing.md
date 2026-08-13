@@ -208,7 +208,7 @@ bun run test:agents                            # every scenario
 bun run test:agents --only mention             # scenarios whose name contains "mention"
 bun run test:agents --list                     # scenario names, no live turns
 bun run test:agents --json                     # machine-readable run summary
-bun run test:agents --pool                     # provision the standing pool and exit
+bun run test:agents --lanes 4                  # override the lane count
 ```
 
 A scenario is one file under `scripts/agent-tests/scenarios/`, exporting a
@@ -216,12 +216,19 @@ A scenario is one file under `scripts/agent-tests/scenarios/`, exporting a
 `run` that receives the kit. Keep a scenario to one to three live turns; a
 longer story belongs in several scenarios or in a deterministic lane.
 
-The lane runs against a standing Agent pool — `eval-worker-1`, `eval-worker-2`,
-`eval-worker-3`, and `eval-coordinator` — created once and reused. Isolation
-comes from wiping an Agent when a scenario leases it (session reset plus
-leftover chat cleanup), not from creating and deleting Agents per scenario. The
-three workers cap lane concurrency; a leased Agent is released and its chats
-deleted by exact id when the scenario ends, including on failure.
+A scenario declares the Agents it needs by kind (`worker`, `coordinator`), and
+the lane creates them for that scenario and retires them after the verdict.
+Isolation is by construction: a fresh Agent has a fresh session, a fresh
+workspace, and a fresh Owner DM, so nothing carries over between scenarios.
+Creation is bounded to two concurrent Agent applies process-wide — more races
+the Computer into an Agent missing its session. Lanes default to eight, capped
+by scenario count; `--lanes` overrides it without a clamp.
+
+Every created Agent and chat id is recorded in `.context/agent-tests/state.json`
+under the run stamp before it is used. Teardown deletes chats by exact id and
+then retires the Agents, and the ledger forgets only what a delete confirmed, so
+a crashed run's leftovers are swept — by exact recorded id, never by name or age
+— at the start of the next run.
 
 Two rules keep assertions honest:
 
@@ -241,8 +248,9 @@ Each run writes `summary.json` plus one `transcript.json` per scenario under
 messages, and settled turns. Read the transcript before rerunning a failure.
 
 Like `eval:prompt`, the lane needs `bun run dev` and configured development
-Clerk keys, plus one applied online Agent to copy Computer, runtime, and model
-from when the pool is first created.
+Clerk keys, plus one attached Computer whose reported inventory carries a
+`codex` runtime with a `terra` model — that is what every test Agent is built
+on.
 
 ## Full-Stack Tracer
 

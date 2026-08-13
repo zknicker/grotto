@@ -154,13 +154,24 @@ async function executeHarnessTurn(
                 throw new AgentSessionResumeRejectedError(input.agentId, { cause: error });
             }
         }
+        // Wedge attribution: a turn stuck before its first stream event is
+        // invisible to the stream watchdog, so the startup path logs its own
+        // phases with timings.
+        const phaseStartedAt = Date.now();
+        const phase = (label: string) =>
+            console.error(
+                `[turn-phase] ${input.runtimeId} agent=${input.agentId} ${label} (${Math.round((Date.now() - phaseStartedAt) / 1000)}s)`
+            );
         try {
+            phase(effectiveResumeFrom ? 'creating session (resume)' : 'creating session (cold)');
             live = await agent.createSession({
                 abortSignal: input.signal,
                 resumeFrom: effectiveResumeFrom,
                 sessionId,
             });
+            phase('session ready');
         } catch (error) {
+            phase('session creation failed');
             if (!resumeFrom) {
                 throw error;
             }
@@ -219,6 +230,7 @@ async function executeHarnessTurn(
         try {
             await storedNoticeReady.promise;
             observation = await observeTurnStream(turn.fullStream, noticeCoordinator.flush, {
+                onFirstPart: () => phase('first stream event'),
                 stallLabel: `${input.runtimeId} agent=${input.agentId}`,
             });
         } finally {
@@ -395,7 +407,11 @@ function pendingNoticePath(agentRoot: string) {
 async function observeTurnStream(
     stream: AsyncIterable<unknown>,
     onToolBoundary?: () => Promise<void>,
-    { stallLabel, stallAfterMs = 120_000 }: { stallAfterMs?: number; stallLabel?: string } = {}
+    {
+        onFirstPart,
+        stallLabel,
+        stallAfterMs = 120_000,
+    }: { onFirstPart?: () => void; stallAfterMs?: number; stallLabel?: string } = {}
 ): Promise<HarnessTurnResult> {
     let contextTokens: number | null = null;
     let streamError: unknown;
@@ -425,6 +441,9 @@ async function observeTurnStream(
             lastPartAt = Date.now();
             lastPartType = part.type;
             partCount += 1;
+            if (partCount === 1) {
+                onFirstPart?.();
+            }
             handlePart({ ...part, type: part.type });
             if (part.type === 'tool-result') {
                 await onToolBoundary?.();

@@ -126,7 +126,7 @@ export function CommandMenuShell({
                                                     {command.title}
                                                 </span>
                                                 {command.disabledReason ? (
-                                                    <span className="truncate text-muted text-xs">
+                                                    <span className="truncate text-muted text-sm">
                                                         {command.disabledReason}
                                                     </span>
                                                 ) : null}

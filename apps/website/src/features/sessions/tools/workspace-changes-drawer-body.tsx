@@ -47,7 +47,7 @@ export function WorkspaceChangesDrawerBody({ call }: { call: ToolDrawerCall }) {
                         <Disclosure defaultExpanded={change.omitted === null}>
                             <Disclosure.Heading>
                                 <Disclosure.Trigger className="w-full">
-                                    <span className="flex w-full min-w-0 items-center gap-2 px-3 py-2 text-left hover:bg-surface-hover">
+                                    <span className="flex w-full min-w-0 items-center gap-2 px-3 py-2 text-left hover:bg-surface-tertiary">
                                         <span
                                             className={cn(
                                                 'shrink-0 font-medium text-xs uppercase tracking-wide',
@@ -83,7 +83,7 @@ export function WorkspaceChangesDrawerBody({ call }: { call: ToolDrawerCall }) {
                 );
             })}
             {truncated ? (
-                <p className="px-1 text-muted/70 text-xs">
+                <p className="px-1 text-muted/70 text-sm">
                     Some changes were omitted because this turn touched more files than the evidence
                     keeps.
                 </p>
@@ -102,16 +102,16 @@ function WorkspaceChangeDiff({
     isPending: boolean;
 }) {
     if (change.omitted === 'binary') {
-        return <p className="text-muted text-xs">Binary file changed.</p>;
+        return <p className="text-muted text-sm">Binary file changed.</p>;
     }
     if (change.omitted === 'too-large') {
-        return <p className="text-muted text-xs">File changed (too large to diff).</p>;
+        return <p className="text-muted text-sm">File changed (too large to diff).</p>;
     }
     if (isPending && !evidence) {
-        return <p className="text-muted text-xs">Loading diff…</p>;
+        return <p className="text-muted text-sm">Loading diff…</p>;
     }
     if (!evidence) {
-        return <p className="text-muted text-xs">Diff is unavailable.</p>;
+        return <p className="text-muted text-sm">Diff is unavailable.</p>;
     }
     return (
         <SelectionQuoteContainer

@@ -208,7 +208,7 @@ function SearchResultRow({
             <PressableFeedback.Highlight />
             <ItemCard.Content>
                 <span className="flex min-w-0 items-center gap-2">
-                    {label ? <span className="shrink-0 text-muted text-xs">{label}</span> : null}
+                    {label ? <span className="shrink-0 text-muted text-sm">{label}</span> : null}
                     <EntityAvatar name={author.name} size={18} src={author.avatarUrl} />
                     <span className="min-w-0 truncate font-medium text-sm">{author.name}</span>
                     <span className="shrink-0 text-muted text-xs">
@@ -220,7 +220,7 @@ function SearchResultRow({
                         </Chip>
                     ) : null}
                 </span>
-                <span className="mt-1 block text-foreground/90 text-sm leading-6">
+                <span className="mt-1 block text-base text-foreground/90 leading-6">
                     {renderSnippet(message.content, query)}
                 </span>
             </ItemCard.Content>

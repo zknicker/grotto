@@ -62,7 +62,7 @@ export function SidebarAgentActivityStrip({ serverId, slug }: { serverId: string
                             >
                                 <Link
                                     aria-label={`${agent.displayName}: ${label}`}
-                                    className="flex min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left text-muted text-xs outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus"
+                                    className="flex min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left text-muted text-sm outline-none hover:bg-background-hover focus-visible:ring-2 focus-visible:ring-focus"
                                     to={agentRoute(slug, activity.agentId)}
                                 >
                                     <AgentAvatar agent={agent} size={24} />
@@ -73,7 +73,7 @@ export function SidebarAgentActivityStrip({ serverId, slug }: { serverId: string
                     })}
                 </AnimatePresence>
                 {hiddenCount > 0 ? (
-                    <span className="px-2 py-1 text-muted text-xs">{hiddenCount} more working</span>
+                    <span className="px-2 py-1 text-muted text-sm">{hiddenCount} more working</span>
                 ) : null}
             </div>
         </section>

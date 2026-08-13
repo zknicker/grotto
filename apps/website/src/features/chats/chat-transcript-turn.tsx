@@ -75,7 +75,7 @@ import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
 // wash also holds while a bar-owned popover (the emoji picker) is open, so
 // moving the pointer into the portaled popover doesn't unwash the row.
 const turnRowClassName =
-    'group/turn -mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2 hover:bg-surface-hover has-[[data-turn-actions]_[aria-expanded=true]]:bg-surface-hover';
+    'group/turn -mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2 hover:bg-background-hover has-[[data-turn-actions]_[aria-expanded=true]]:bg-background-hover';
 const turnBodyClassName = 'gap-0';
 const turnAvatarOffsetClassName = 'mt-1.5';
 // Stock action buttons are composer-sized; transcript rows want the compact
@@ -125,10 +125,15 @@ export function TranscriptEntryView({
         if (entry.item.kind === 'row' && entry.item.row.kind === 'message') {
             return (
                 <ThreadMessageSurface row={entry.item.row}>
-                    <p className="flex justify-center gap-2 px-5 py-2 text-center text-muted text-xs">
-                        <span>{entry.item.row.message.content}</span>
+                    {/* pl-11.5 + the surface's px-5 = avatar + gap: the message text column. */}
+                    <p className="flex items-baseline gap-2 py-2 pr-5 pl-11.5 text-muted text-sm">
+                        <span className="min-w-0 truncate" title={entry.item.row.message.content}>
+                            {entry.item.row.message.content}
+                        </span>
                         <span aria-hidden="true">·</span>
-                        <RelativeTime value={entry.item.row.message.timestamp} />
+                        <span className="shrink-0 text-xs">
+                            <RelativeTime value={entry.item.row.message.timestamp} />
+                        </span>
                     </p>
                 </ThreadMessageSurface>
             );
@@ -973,7 +978,7 @@ function AssistantNarrationText({ item }: { item: TranscriptItem }) {
     const text = getAssistantNarrationText(item);
 
     return text ? (
-        <div className="min-w-0 max-w-[46rem] whitespace-pre-wrap break-words text-foreground text-sm leading-6 [overflow-wrap:anywhere]">
+        <div className="min-w-0 max-w-[46rem] whitespace-pre-wrap break-words text-base text-foreground leading-6 [overflow-wrap:anywhere]">
             {text}
         </div>
     ) : null;

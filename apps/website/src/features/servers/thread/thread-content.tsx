@@ -174,7 +174,7 @@ export function ThreadContent({
                 </div>
             </TranscriptRenderProvider>
             {readOnly ? (
-                <p className="shrink-0 border-separator border-t px-4 py-3 text-muted text-xs">
+                <p className="shrink-0 border-separator border-t px-4 py-3 text-muted text-sm">
                     This conversation is read-only because the Agent has been retired.
                 </p>
             ) : (

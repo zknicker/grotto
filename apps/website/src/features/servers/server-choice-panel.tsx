@@ -22,7 +22,7 @@ export function ServerChoicePanel({
             <section className="flex flex-col gap-3">
                 <div>
                     <h2 className="font-medium text-foreground text-sm">Create a Server</h2>
-                    <p className="mt-0.5 text-muted text-xs">
+                    <p className="mt-0.5 text-muted text-sm">
                         Start a new place for your people and Agents.
                     </p>
                 </div>
@@ -32,7 +32,7 @@ export function ServerChoicePanel({
             <section className="flex flex-col gap-3">
                 <div>
                     <h2 className="font-medium text-foreground text-sm">Join a Server</h2>
-                    <p className="mt-0.5 text-muted text-xs">Paste an invitation link or token.</p>
+                    <p className="mt-0.5 text-muted text-sm">Paste an invitation link or token.</p>
                 </div>
                 <JoinServerForm />
             </section>

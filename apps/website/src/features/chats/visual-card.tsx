@@ -77,8 +77,8 @@ export function VisualCard({
             {collapsible ? (
                 <button
                     className={cn(
-                        'block w-full border-border border-t px-3 py-1.5 text-center text-muted text-xs',
-                        'hover:bg-default hover:text-foreground'
+                        'block w-full border-border border-t px-3 py-1.5 text-center text-muted text-sm',
+                        'hover:bg-surface-hover hover:text-foreground'
                     )}
                     onClick={() => setExpanded((value) => !value)}
                     type="button"

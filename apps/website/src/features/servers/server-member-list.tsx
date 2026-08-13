@@ -35,7 +35,7 @@ export function ServerMemberList({
                                 <Chip.Label className="capitalize">{member.role}</Chip.Label>
                             </Chip>
                             {member.userId === directory.viewerUserId ? (
-                                <span className="text-muted text-xs">you</span>
+                                <span className="text-muted text-sm">you</span>
                             ) : null}
                         </div>
                         <div className="flex shrink-0 items-center gap-1">

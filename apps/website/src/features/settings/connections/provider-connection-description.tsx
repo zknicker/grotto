@@ -15,7 +15,7 @@ export function ProviderConnectionDescription({
     target,
 }: ProviderConnectionDescriptionProps) {
     return (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <ProviderConnectionStatus state={state} />
             <ProviderConnectionDetail description={description} state={state} target={target} />
         </div>

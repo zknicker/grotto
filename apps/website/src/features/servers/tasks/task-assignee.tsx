@@ -78,7 +78,7 @@ export function TaskAssignee({ task }: { task: TaskAssigneeTarget }) {
                 </Select.Popover>
             </Select>
             {assignees.error || assign.error ? (
-                <span className="basis-full text-danger text-xs" role="alert">
+                <span className="basis-full text-danger text-sm" role="alert">
                     {(assignees.error ?? assign.error)?.message}
                 </span>
             ) : null}

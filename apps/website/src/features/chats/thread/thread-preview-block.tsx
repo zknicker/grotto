@@ -110,7 +110,7 @@ function ThreadPreviewReply({
     const name = threadPreviewAuthorName(profile);
 
     return (
-        <span className="flex min-w-0 items-center gap-1.5 text-xs leading-tight">
+        <span className="flex min-w-0 items-center gap-1.5 text-sm leading-tight">
             <span className={cn(profile?.deleted && 'opacity-50 grayscale')}>
                 <EntityAvatar name={name} size={20} src={profile?.avatarUrl} />
             </span>
@@ -128,7 +128,7 @@ function ThreadPreviewReply({
                 </Chip>
             ) : null}
             <span className="min-w-0 flex-1 truncate text-muted">{oneLine(reply.content)}</span>
-            <span className={cn('shrink-0 text-muted tabular-nums')}>
+            <span className={cn('shrink-0 text-muted text-xs tabular-nums')}>
                 {formatRelativeTime(reply.createdAt, now)}
             </span>
         </span>

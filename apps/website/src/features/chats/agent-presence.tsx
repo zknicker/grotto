@@ -20,7 +20,7 @@ export function AgentPresenceBadge({ chat }: { chat: ChatListItem }) {
     return (
         <span className="flex min-w-0 items-center gap-1.5" data-slot="agent-presence">
             <AgentPresenceDot state={presence.state} />
-            {label ? <span className="truncate text-muted text-xs">{label}</span> : null}
+            {label ? <span className="truncate text-muted text-sm">{label}</span> : null}
         </span>
     );
 }
@@ -51,7 +51,7 @@ export function AgentPresenceStatusLine({ agentId }: { agentId: string }) {
         <span className="flex min-w-0 items-center gap-1.5">
             <AgentPresenceDot state={presence.state} />
             {presence.state === 'busy' ? (
-                <span className="truncate text-muted text-xs">Working…</span>
+                <span className="truncate text-muted text-sm">Working…</span>
             ) : null}
         </span>
     );

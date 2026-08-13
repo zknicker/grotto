@@ -75,7 +75,7 @@ export function ComputerDetail({
                         <Fact label="Created" value={formatDate(computer.createdAt)} />
                     </dl>
                     <div className="grid gap-2">
-                        <p className="text-muted text-xs">Detected runtimes</p>
+                        <p className="text-muted text-sm">Detected runtimes</p>
                         <div className="flex flex-wrap gap-1.5">
                             {runtimes.map((runtime) => (
                                 <RuntimeBadge key={runtime.id} runtime={runtime} />
@@ -129,7 +129,7 @@ function RuntimeBadge({
 function Fact({ label, value }: { label: string; value: string }) {
     return (
         <div className="grid gap-1">
-            <dt className="text-muted text-xs">{label}</dt>
+            <dt className="text-muted text-sm">{label}</dt>
             <dd className="font-medium text-foreground text-sm">{value}</dd>
         </div>
     );

@@ -61,7 +61,7 @@ export function ChatTranscript({
             composition={composition}
             leadingContent={
                 downloadError ? (
-                    <p className="px-2 text-danger text-xs">{downloadError}</p>
+                    <p className="px-2 text-danger text-sm">{downloadError}</p>
                 ) : undefined
             }
             renderContext={renderContext}

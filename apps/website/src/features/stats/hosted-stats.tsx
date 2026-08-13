@@ -90,7 +90,7 @@ function ComputerUsage({ computer }: { computer: HostedComputerUsage }) {
                 <h2 className="font-semibold text-sm">
                     Computer · {computer.computerId.slice(-6)}
                 </h2>
-                <p className="text-muted text-xs">
+                <p className="text-muted text-sm">
                     {[identity, health, freshness].filter(Boolean).join(' · ')}
                 </p>
             </div>

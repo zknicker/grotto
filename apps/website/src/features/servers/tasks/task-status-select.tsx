@@ -57,7 +57,7 @@ export function TaskStatusSelect({
                 </Select.Popover>
             </Select>
             {error ? (
-                <span className="text-danger text-xs" role="alert">
+                <span className="text-danger text-sm" role="alert">
                     {error.message}
                 </span>
             ) : null}

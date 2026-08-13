@@ -279,7 +279,7 @@ export function ChatComposer({
                     shell, which clips its overflow. */}
                 <MentionComposerPicker composer={mentionComposer} />
             </PromptInput>
-            {errorMessage ? <p className="mt-2 text-danger text-xs">{errorMessage}</p> : null}
+            {errorMessage ? <p className="mt-2 text-danger text-sm">{errorMessage}</p> : null}
         </div>
     );
 

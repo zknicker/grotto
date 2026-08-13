@@ -271,7 +271,7 @@ export function ThinkingStepDetails({
         <Disclosure className={cn('mt-1 -ml-3', className)} defaultExpanded={defaultOpen}>
             <div className="w-fit">
                 <Disclosure.Heading>
-                    <Disclosure.Trigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-muted text-sm leading-tight hover:bg-surface-secondary hover:text-foreground">
+                    <Disclosure.Trigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-muted text-sm leading-tight hover:bg-surface-hover hover:text-foreground">
                         <span>{summary}</span>
                         <Disclosure.Indicator />
                     </Disclosure.Trigger>

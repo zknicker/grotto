@@ -117,7 +117,7 @@ function AgentHoverCardBody({
                             )}
                         />
                     </span>
-                    <span className="min-w-0 truncate text-muted text-xs">
+                    <span className="min-w-0 truncate text-muted text-sm">
                         {presence?.state === 'busy' ? 'Working…' : 'Idle'}
                     </span>
                 </div>
@@ -131,7 +131,7 @@ function AgentHoverCardBody({
             {session ? (
                 <>
                     <Separator />
-                    <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 text-xs">
+                    <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 text-sm">
                         <dt className="text-muted">Model</dt>
                         <dd className="min-w-0 truncate text-foreground">
                             {session.effectiveModel.model} ·{' '}
@@ -146,17 +146,17 @@ function AgentHoverCardBody({
                     Recent activity
                 </span>
                 {activity.isPending ? (
-                    <span className="flex items-center gap-2 text-muted text-xs">
+                    <span className="flex items-center gap-2 text-muted text-sm">
                         <Spinner color="current" size="sm" />
                         Loading...
                     </span>
                 ) : entries.length === 0 ? (
-                    <p className="text-muted text-xs">No recent activity.</p>
+                    <p className="text-muted text-sm">No recent activity.</p>
                 ) : (
                     <ul className="flex flex-col gap-1">
                         {entries.map((entry) => (
                             <li
-                                className="flex min-w-0 items-center gap-2 text-xs"
+                                className="flex min-w-0 items-center gap-2 text-sm"
                                 key={`${entry.turnId ?? entry.at}-${entry.kind}`}
                             >
                                 <span
@@ -165,7 +165,7 @@ function AgentHoverCardBody({
                                         activityDotClassName(entry.kind)
                                     )}
                                 />
-                                <span className="w-16 shrink-0 whitespace-nowrap text-muted tabular-nums">
+                                <span className="w-16 shrink-0 whitespace-nowrap text-muted text-xs tabular-nums">
                                     {formatAgentActivityTime(entry.at)}
                                 </span>
                                 <span className="min-w-0 truncate text-foreground">

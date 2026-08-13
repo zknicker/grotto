@@ -206,7 +206,7 @@ function JournalContents({ journal }: { journal: HostedAgentExecutionJournal }) 
                         <h4 className="min-w-0 truncate font-medium text-foreground text-sm">
                             {tool.toolName}
                         </h4>
-                        <span className="shrink-0 text-muted text-xs">{tool.status}</span>
+                        <span className="shrink-0 text-muted text-sm">{tool.status}</span>
                     </div>
                     {tool.input !== undefined ? (
                         <JournalValue label="Input" value={tool.input} />
@@ -230,7 +230,7 @@ function JournalContents({ journal }: { journal: HostedAgentExecutionJournal }) 
 function JournalValue({ label, value }: { label: string; value: unknown }) {
     return (
         <div className="grid gap-0.5">
-            <span className="text-muted text-xs">{label}</span>
+            <span className="text-muted text-sm">{label}</span>
             <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-surface px-2 py-1 font-mono text-muted text-xs">
                 {formatJournalValue(value)}
             </pre>

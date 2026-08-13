@@ -4,7 +4,7 @@ export function SessionLogHiddenCount({ hiddenCount }: { hiddenCount: number }) 
     }
 
     return (
-        <p className="pb-1 text-center font-medium text-muted/60 text-xs">
+        <p className="pb-1 text-center font-medium text-muted/60 text-sm">
             {hiddenCount} older {hiddenCount === 1 ? 'entry' : 'entries'}
         </p>
     );

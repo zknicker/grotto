@@ -57,7 +57,7 @@ function CreatedAgentRow({ agent, slug }: { agent: HostedAgent; slug: string }) 
 
     return (
         <button
-            className="flex w-full cursor-[var(--cursor-interactive)] items-center gap-3 px-5 py-3.5 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus"
+            className="flex w-full cursor-[var(--cursor-interactive)] items-center gap-3 px-5 py-3.5 text-left outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus"
             onClick={() => navigate(agentRoute(slug, agent.id))}
             type="button"
         >

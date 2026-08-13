@@ -262,7 +262,7 @@ export function ChatView({
                     viewTab === 'chat' ? (
                         <>
                             {ensureDm.error && !peerRetired ? (
-                                <p className="px-9 text-danger text-xs">{ensureDm.error.message}</p>
+                                <p className="px-9 text-danger text-sm">{ensureDm.error.message}</p>
                             ) : null}
                             <span className="sr-only" data-testid="read-state">
                                 {read.data ? `Read through ${read.data.sequence}` : ''}
@@ -273,7 +273,7 @@ export function ChatView({
                                     chat={chat}
                                 />
                             ) : peerRetired ? (
-                                <p className="mx-auto w-full max-w-none px-9 pb-4 text-muted text-xs">
+                                <p className="mx-auto w-full max-w-none px-9 pb-4 text-muted text-sm">
                                     {chatName} has been retired. You can read this conversation, but
                                     you can’t send new messages.
                                 </p>

@@ -43,7 +43,7 @@ export function ConnectionRow({
 }) {
     return (
         <button
-            className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_7rem_8rem] items-center border-separator border-b px-5 text-left outline-none last:border-b-0 hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+            className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_7rem_8rem] items-center border-separator border-b px-5 text-left outline-none last:border-b-0 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
             onClick={onSelect}
             type="button"
         >
@@ -55,7 +55,7 @@ export function ConnectionRow({
                     <span className="block truncate font-medium text-foreground text-sm">
                         {connection.name}
                     </span>
-                    <span className="block truncate text-muted text-xs">
+                    <span className="block truncate text-muted text-sm">
                         {connection.accountLabel ?? (connection.builtIn ? 'Built in' : 'Custom')}
                     </span>
                 </span>

@@ -69,13 +69,13 @@ function AgentRow({
 
     return (
         <Link
-            className="flex min-w-0 items-center gap-3 border-separator border-b py-3 outline-none last:border-b-0 hover:bg-surface-secondary focus-visible:bg-surface-secondary"
+            className="flex min-w-0 items-center gap-3 border-separator border-b py-3 outline-none last:border-b-0 hover:bg-background-hover focus-visible:bg-background-hover"
             to={agentRoute(serverSlug, agent.id)}
         >
             <EntityAvatar name={agent.displayName} size="sm" src={agent.avatarUrl} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
                 <p className="truncate font-medium text-foreground text-sm">{agent.displayName}</p>
-                <p className="truncate text-muted text-xs">
+                <p className="truncate text-muted text-sm">
                     {execution.runtime} · {execution.model}
                 </p>
             </div>

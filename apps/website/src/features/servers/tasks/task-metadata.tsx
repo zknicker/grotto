@@ -97,7 +97,7 @@ export function TaskMetadata({ task }: { task: TaskItem }) {
                 </Dropdown.Popover>
             </Dropdown>
             {update.error ? (
-                <span className="basis-full text-danger text-xs" role="alert">
+                <span className="basis-full text-danger text-sm" role="alert">
                     {update.error.message}
                 </span>
             ) : null}

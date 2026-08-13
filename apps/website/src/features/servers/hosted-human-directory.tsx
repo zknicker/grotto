@@ -60,7 +60,7 @@ export function HostedHumanDirectory({
                             <ServerMemberList directory={directory} onChoose={openChange} />
                         </SettingsGroup>
                         {commandError ? (
-                            <p className="px-1 text-danger text-xs">{commandError}</p>
+                            <p className="px-1 text-danger text-sm">{commandError}</p>
                         ) : null}
                     </SettingsSection>
                     {canInvite ? (

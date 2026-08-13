@@ -6,7 +6,7 @@ export function ArchivedChannelBar({ canManage, chat }: { canManage: boolean; ch
     const unarchive = useChannelUnarchive();
 
     return (
-        <div className="mx-auto flex w-full items-center justify-between gap-4 px-9 pb-4 text-muted text-xs">
+        <div className="mx-auto flex w-full items-center justify-between gap-4 px-9 pb-4 text-muted text-sm">
             <p>This channel is archived. Its history is read-only.</p>
             {canManage ? (
                 <Button

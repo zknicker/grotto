@@ -153,7 +153,7 @@ function TaskListRow({
     return (
         <button
             aria-label={rowAriaLabel(task, assigneeLabel)}
-            className="flex h-9 w-full cursor-[var(--cursor-interactive)] items-center gap-2 px-3 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+            className="flex h-9 w-full cursor-[var(--cursor-interactive)] items-center gap-2 px-3 text-left outline-none hover:bg-background-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
             onClick={() => onOpen(task)}
             type="button"
         >
@@ -167,7 +167,7 @@ function TaskListRow({
                 {task.labels.map((label) => (
                     <LabelChip color={label.color} key={label.id} name={label.name} />
                 ))}
-                <span className="text-muted text-xs">{task.chatLabel}</span>
+                <span className="text-muted text-sm">{task.chatLabel}</span>
             </div>
             <span className="hidden shrink-0 text-muted text-xs tabular-nums sm:inline">
                 <RelativeTime value={task.updatedAt} />
@@ -219,9 +219,9 @@ function TaskSummary({
                     <LabelChip color={label.color} key={label.id} name={label.name} />
                 ))}
                 {task.priority === 'none' ? null : (
-                    <span className="text-muted text-xs">{taskPriorityLabels[task.priority]}</span>
+                    <span className="text-muted text-sm">{taskPriorityLabels[task.priority]}</span>
                 )}
-                <span className="text-muted text-xs">{assigneeLabel}</span>
+                <span className="text-muted text-sm">{assigneeLabel}</span>
                 <span className="text-muted text-xs">
                     <RelativeTime value={task.updatedAt} />
                 </span>

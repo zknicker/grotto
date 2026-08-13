@@ -8,6 +8,17 @@
 
 @layer base {
     :root {
+        /*
+         * Hover wash for transparent rows resting on the page canvas (chat
+         * turn rows, full-width list rows) — the --background counterpart to
+         * HeroUI's --surface-hover. Mode-aware because near-black needs a
+         * larger lightness step to read than near-white. Convention:
+         * canvas rows wash with background-hover; elements with a resting
+         * surface color step to the next surface token; rows nested inside a
+         * washable row keep surface-hover so they stay visible on the wash.
+         */
+        --background-hover: var(--background-tertiary);
+
         --sender-1: var(--color-violet-400);
         --sender-2: var(--color-blue-400);
         --sender-3: var(--color-emerald-400);
@@ -38,6 +49,8 @@
     }
 
     :root[data-theme='light'] {
+        --background-hover: var(--background-secondary);
+
         --sender-1: var(--color-violet-700);
         --sender-2: var(--color-blue-700);
         --sender-3: var(--color-emerald-700);
@@ -66,4 +79,9 @@
         --label-gray-fg: var(--color-stone-600);
         --label-gray-bg: --alpha(var(--color-stone-500) / 12%);
     }
+}
+
+/* Expose the wash to Tailwind so bg-background-hover works like bg-surface-hover. */
+@theme inline {
+    --color-background-hover: var(--background-hover);
 }

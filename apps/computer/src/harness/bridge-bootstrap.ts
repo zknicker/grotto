@@ -66,17 +66,23 @@ const embeddedBridgeAssets: Record<BridgeHarnessId, Readonly<Record<string, stri
     },
 };
 
-/** The proven Runtime bridge bootstrap, now owned and shipped by Computer. */
+/**
+ * The proven Runtime bridge bootstrap, now owned and shipped by Computer.
+ * `storeDir` points every Agent's install at one shared, content-addressed
+ * pnpm store (pnpm serializes concurrent store access itself) so the runtime's
+ * platform binary is fetched once per Computer instead of once per Agent.
+ */
 export function withComputerBridgeBootstrap<T extends HarnessV1>(
     harness: T,
-    harnessId: BridgeHarnessId
+    harnessId: BridgeHarnessId,
+    { storeDir }: { storeDir?: string } = {}
 ): T {
     const spec = bridgeSpecs[harnessId];
     let cachedBootstrap: HarnessV1Bootstrap | undefined;
     return {
         ...harness,
         getBootstrap: async () => {
-            cachedBootstrap ??= await readBridgeBootstrap(harnessId, spec);
+            cachedBootstrap ??= await readBridgeBootstrap(harnessId, spec, storeDir);
             return cachedBootstrap;
         },
     };
@@ -91,7 +97,9 @@ export async function validateComputerBridgeAssets(): Promise<void> {
     );
 }
 
-const installCommand = 'CI=true pnpm install --frozen-lockfile --store-dir .pnpm-store';
+function installCommand(storeDir?: string) {
+    return `CI=true pnpm install --frozen-lockfile --store-dir ${storeDir ? `"${storeDir}"` : '.pnpm-store'}`;
+}
 
 /**
  * pnpm exits 0 even when an OPTIONAL dependency (the runtime's platform
@@ -100,23 +108,26 @@ const installCommand = 'CI=true pnpm install --frozen-lockfile --store-dir .pnpm
  * command therefore doubles as the verification gate: on failure it retries
  * once from a clean slate, and if that also fails the bootstrap fails loudly.
  * A failed bootstrap writes no completion marker, so the next session start
- * re-runs it rather than keeping a broken bridge forever.
+ * re-runs it rather than keeping a broken bridge forever. A SHARED store is
+ * never wiped on retry — other Agents hard-link from it concurrently.
  */
-function verifiedCommand(command: string) {
-    return `(${command}) || (rm -rf node_modules .pnpm-store && ${installCommand} && (${command}))`;
+function verifiedCommand(command: string, storeDir?: string) {
+    const wipe = storeDir ? 'node_modules' : 'node_modules .pnpm-store';
+    return `(${command}) || (rm -rf ${wipe} && ${installCommand(storeDir)} && (${command}))`;
 }
 
 async function readBridgeBootstrap(
     harnessId: BridgeHarnessId,
-    spec: (typeof bridgeSpecs)[BridgeHarnessId]
+    spec: (typeof bridgeSpecs)[BridgeHarnessId],
+    storeDir?: string
 ): Promise<HarnessV1Bootstrap> {
     return {
         bootstrapDir: spec.bootstrapDir,
         commands: [
-            { command: installCommand },
+            { command: installCommand(storeDir) },
             ...('postInstallCommands' in spec
                 ? spec.postInstallCommands.map((command) => ({
-                      command: verifiedCommand(command),
+                      command: verifiedCommand(command, storeDir),
                   }))
                 : []),
         ],

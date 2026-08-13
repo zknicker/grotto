@@ -456,7 +456,12 @@ function createHarnessAgent(
     options: { instructions: string; skills: HarnessAgentSkill[] }
 ): HarnessAgent {
     return new HarnessAgent({
-        harness: createHarnessForRuntime(input.runtimeId, input.modelId, input.webAccess !== null),
+        harness: createHarnessForRuntime(
+            input.runtimeId,
+            input.modelId,
+            input.webAccess !== null,
+            bridgeStoreDir(input)
+        ),
         id: input.agentId,
         ...(input.runtimeId === 'claude-code'
             ? {
@@ -514,10 +519,20 @@ function authProfileFor(runtimeId: string) {
  * never diverge. Provider authentication is the host's native login (seeded into
  * the sandbox HOME), so no credential is injected here.
  */
+/**
+ * One content-addressed pnpm store per Computer server tree, shared by every
+ * Agent's bridge bootstrap: the runtime's platform binary downloads once, and
+ * later Agents hard-link from the store instead of hitting the network.
+ */
+function bridgeStoreDir(input: HarnessTurnInput) {
+    return join(dirname(dirname(input.workspaceDir)), '.harness-bridge-store');
+}
+
 function createHarnessForRuntime(
     runtimeId: string,
     modelId: string,
-    webAccess = false
+    webAccess = false,
+    storeDir?: string
 ): HarnessV1<ToolSet> {
     switch (runtimeId) {
         case 'claude-code':
@@ -528,7 +543,8 @@ function createHarnessForRuntime(
                     maxTurns: 50,
                     model: modelId,
                 }),
-                'claude-code'
+                'claude-code',
+                { storeDir }
             ) as HarnessV1<ToolSet>;
         case 'codex':
             return withComputerBridgeBootstrap(
@@ -536,7 +552,8 @@ function createHarnessForRuntime(
                     model: modelId,
                     ...(webAccess ? { webSearch: true } : {}),
                 }),
-                'codex'
+                'codex',
+                { storeDir }
             ) as HarnessV1<ToolSet>;
         case 'pi':
             return createPi({ model: modelId }) as HarnessV1<ToolSet>;

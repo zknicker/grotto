@@ -56,6 +56,22 @@ for (const bridge of [
     });
 }
 
+test('a shared store directory rides every install and is never wiped on retry', async () => {
+    const harness = withComputerBridgeBootstrap(createCodex(), 'codex', {
+        storeDir: '/computer/agents/.harness-bridge-store',
+    });
+    const bootstrap = await harness.getBootstrap?.();
+    const install = bootstrap?.commands?.[0]?.command ?? '';
+    const verify = bootstrap?.commands?.at(-1)?.command ?? '';
+
+    expect(install).toContain('--store-dir "/computer/agents/.harness-bridge-store"');
+    expect(verify).toContain('--store-dir "/computer/agents/.harness-bridge-store"');
+    // Other Agents hard-link from the shared store concurrently; the clean
+    // retry may only wipe this bootstrap's own node_modules.
+    expect(verify).toContain('rm -rf node_modules &&');
+    expect(verify).not.toContain('.pnpm-store &&');
+});
+
 test('Computer embeds every packaged harness bridge asset', async () => {
     await expect(validateComputerBridgeAssets()).resolves.toBeUndefined();
 });

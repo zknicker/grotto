@@ -14,7 +14,6 @@ export default defineScenario({
         const token = marker('HANDOFF');
 
         const channel = await kit.createChannel({ agentIds: [coordinator.id, worker.id] });
-        const head = await kit.readHead(channel.id);
 
         log('asking the coordinator to consult a peer');
         await kit.harness.send(
@@ -26,34 +25,25 @@ export default defineScenario({
         expect(turn.status, 'coordinator turn status').toBe('completed');
         expect(turn.failureKind ?? 'none', 'coordinator turn failure kind').toBe('none');
 
+        // The coordinator may consult its peer in the channel or by creating a
+        // task for it; the peer then answers in that task Thread. Both are real
+        // handoffs, so both containers count for the peer reply and the summary.
         log('waiting for the peer reply');
-        const peerReply = await kit.awaitMessage(
-            channel.id,
-            (message) => authoredBy(message, worker.id) && message.sequence > head,
-            240_000
-        );
+        const peerReply = await kit.awaitAgentReply(channel.id, worker.id, () => true, 300_000);
 
         log('waiting for the coordinator summary');
-        const summary = await kit.awaitMessage(
+        const summary = await kit.awaitAgentReply(
             channel.id,
-            (message) =>
-                authoredBy(message, coordinator.id) &&
-                message.sequence > head &&
-                message.content.includes(token),
-            240_000
+            coordinator.id,
+            (message) => message.content.includes(token),
+            300_000
         );
 
         log('checking gates');
-        const peerMessages = kit.authoredBy(await kit.readMessages(channel.id), worker.id, head);
-        expect(peerMessages.length, 'peer messages in the channel').toBeGreaterThan(0);
-        expect(summary.content, 'coordinator summary').toContain(token);
+        expect(summary.message.content, 'coordinator summary').toContain(token);
         expect(
-            Date.parse(summary.createdAt) >= Date.parse(peerReply.createdAt),
+            Date.parse(summary.message.createdAt) >= Date.parse(peerReply.message.createdAt),
             'summary authored no earlier than the peer reply'
         ).toBe(true);
     },
 });
-
-function authoredBy(message, agentId) {
-    return message.author.kind === 'agent' && message.author.agentId === agentId;
-}

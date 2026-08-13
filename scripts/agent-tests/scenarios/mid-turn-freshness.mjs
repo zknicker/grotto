@@ -20,18 +20,24 @@ export default defineScenario({
         log('sending the long-running prompt');
         await kit.harness.send(channel.id, prompt);
 
-        // settleTurn reports 'turn active' the moment the Server sees the turn
-        // running, which is exactly the window the follow-up has to land in.
+        // 'turn active' fires the moment the Server sees a run, which is before
+        // the Agent has taken the work — a color sent then arrives *before* the
+        // working window and the Agent honestly answers NO-COLOR. The claimed
+        // task is the real signal that the Agent is inside the work.
         let midTurnSend = null;
         let midTurnError = null;
         const turn = await settleTurn(worker.id, {
             onPhase: (phase) => {
                 log(phase);
-                midTurnSend ??= kit.harness
-                    .send(channel.id, `The release color for this exercise is ${color}.`)
-                    .catch((error) => {
-                        midTurnError = error;
-                    });
+                midTurnSend ??= sendOnceClaimed(kit, {
+                    agentId: worker.id,
+                    channelId: channel.id,
+                    color,
+                    log,
+                    prompt,
+                }).catch((error) => {
+                    midTurnError = error;
+                });
             },
             startWithin: 60_000,
         });
@@ -76,3 +82,30 @@ export default defineScenario({
         expect(replies, 'reply carrying the mid-turn release color').toContain(color);
     },
 });
+
+/** Sends the release color only once the Agent has claimed the prompt as work. */
+async function sendOnceClaimed(kit, { agentId, channelId, color, log, prompt }) {
+    await waitForClaimedTask(kit, { agentId, channelId, prompt });
+    log('sending the mid-turn color');
+    await kit.harness.send(channelId, `The release color for this exercise is ${color}.`);
+}
+
+async function waitForClaimedTask(kit, { agentId, channelId, prompt, timeoutMs = 120_000 }) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        const tasks = await kit.trpc('task.list', { serverId: kit.serverId });
+        const claimed = tasks.find(
+            (entry) =>
+                entry.task.chatId === channelId &&
+                entry.message.content === prompt &&
+                entry.task.assigneeAgentId === agentId
+        );
+        if (claimed) {
+            return claimed;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    throw new Error(
+        `Agent ${agentId} claimed no task for the active-turn prompt within ${Math.round(timeoutMs / 1000)}s.`
+    );
+}

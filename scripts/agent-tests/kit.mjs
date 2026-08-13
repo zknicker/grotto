@@ -113,9 +113,9 @@ export function createAgentTestKit(
             const tasks = await trpc('task.list', { serverId });
             for (const entry of tasks.filter((item) => item.task.chatId === chatId)) {
                 await trackChat(entry.task.threadChatId);
-                const inThread = record(
-                    await harness.readMessages(entry.task.threadChatId)
-                ).find(matches);
+                const inThread = record(await harness.readMessages(entry.task.threadChatId)).find(
+                    matches
+                );
                 if (inThread) {
                     return {
                         container: 'thread',

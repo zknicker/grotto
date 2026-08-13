@@ -16,7 +16,6 @@ export default defineScenario({
         const channel = await kit.createChannel({ agentIds: [worker.id] });
 
         log('asking for the mute');
-        const muteHead = await kit.readHead(channel.id);
         await kit.harness.send(
             channel.id,
             `@${worker.handle} Mute this channel, then reply only with ${muteToken}.`
@@ -24,8 +23,12 @@ export default defineScenario({
         const muteTurn = await settleTurn(worker.id);
         expect(muteTurn.status, 'mute turn status').toBe('completed');
         expect(muteTurn.failureKind ?? 'none', 'mute turn failure kind').toBe('none');
-        const muteReplies = kit.authoredBy(await kit.readMessages(channel.id), worker.id, muteHead);
-        expect(muteReplies.join('\n'), 'mute confirmation').toContain(muteToken);
+        // The Agent may promote the request to a task and confirm in its Thread;
+        // the mute is what matters, not which container carries the receipt.
+        const muteReply = await kit.awaitAgentReply(channel.id, worker.id, (message) =>
+            message.content.includes(muteToken)
+        );
+        expect(muteReply.message.content, 'mute confirmation').toContain(muteToken);
 
         log('sending unmentioned traffic');
         const quietHead = await kit.readHead(channel.id);
@@ -43,17 +46,14 @@ export default defineScenario({
         ).toHaveLength(0);
 
         log('piercing the mute with a mention');
-        const mentionHead = await kit.readHead(channel.id);
         await kit.harness.send(channel.id, `@${worker.handle} reply only with ${mentionToken}.`);
         const mentionTurn = await settleTurn(worker.id);
         expect(mentionTurn.status, 'mention turn status').toBe('completed');
         expect(mentionTurn.failureKind ?? 'none', 'mention turn failure kind').toBe('none');
-        const mentionReplies = kit.authoredBy(
-            await kit.readMessages(channel.id),
-            worker.id,
-            mentionHead
+        const mentionReply = await kit.awaitAgentReply(channel.id, worker.id, (message) =>
+            message.content.includes(mentionToken)
         );
-        expect(mentionReplies.join('\n'), 'reply after the mention').toContain(mentionToken);
+        expect(mentionReply.message.content, 'reply after the mention').toContain(mentionToken);
     },
 });
 

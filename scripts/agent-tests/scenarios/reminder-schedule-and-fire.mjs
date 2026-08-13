@@ -48,14 +48,16 @@ export default defineScenario({
             }
 
             log('waiting for the reminder to fire');
-            const report = await kit.awaitMessage(
+            // The report lands wherever the reminder is anchored — and if that
+            // anchor is the channel, the Agent may still promote the follow-up
+            // to a task and report in its Thread.
+            const reported = await kit.awaitAgentReply(
                 anchorChatId,
-                (message) =>
-                    message.author.kind === 'agent' &&
-                    message.author.agentId === worker.id &&
-                    message.content.includes(`READY-${token}`),
+                worker.id,
+                (message) => message.content.includes(`READY-${token}`),
                 200_000
             );
+            const report = reported.message;
             expect(report.content, 'the follow-up report').toContain(`READY-${token}`);
 
             log('checking gates');

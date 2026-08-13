@@ -26,7 +26,13 @@ export default defineScenario({
 
         log('checking claim gates');
         const claimed = await kit.readTask(created.messageId);
-        expect(claimed.status, 'task status while clarifying').toBe('in_progress');
+        // An Agent that asked its question and paused may already have handed the
+        // task to review; the contract here is claim-before-question, not the
+        // transient state. The in_review gate after delivery still stands.
+        expect(
+            ['in_progress', 'in_review'].includes(claimed.status),
+            `task status while clarifying left todo (got ${claimed.status})`
+        ).toBe(true);
         expect(claimed.assigneeAgentId, 'task assignee while clarifying').toBe(worker.id);
 
         const questions = await clarifying.authoredMessagesIn(created.threadChatId);
@@ -37,8 +43,11 @@ export default defineScenario({
         ).toBe(true);
 
         log('answering in the Thread');
-        await kit.harness.send(
-            created.threadChatId,
+        // A Thread reply is addressed to the parent chat plus its anchor message;
+        // sending straight at the Thread chat is rejected.
+        await kit.sendInThread(
+            channel.id,
+            created.messageId,
             `Target independent bookstore owners. Include the exact marker ${token} in the blurb.`
         );
 

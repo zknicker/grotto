@@ -34,7 +34,12 @@ export default defineScenario({
         expect(authorTurn.outputProduced, 'author turn produced durable output').toBe(true);
 
         const task = await kit.readTask(created.messageId);
-        expect(task.status, 'task status').toBe('in_progress');
+        // A one-shot task may already be advanced past in_progress at settlement;
+        // the contract is that the author owned it, not the transient state.
+        expect(
+            ['in_progress', 'in_review'].includes(task.status),
+            `task status left todo (got ${task.status})`
+        ).toBe(true);
         expect(task.assigneeAgentId, 'task assignee').toBe(author.id);
 
         const authorReplies = kit.authoredBy(

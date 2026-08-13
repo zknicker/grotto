@@ -139,6 +139,9 @@ async function runScenario(harness, { index, scenario }) {
     // ids to the next lease via the state ledger instead of stretching this
     // run; the ledger only forgets ids the delete confirmed.
     const seconds = Math.round((Date.now() - startedAtScenario) / 1000);
+    // Release first so a slow chat delete never blocks another lane; the
+    // lease wipe re-deletes anything this bounded cleanup left behind.
+    lease?.release();
     await Promise.race([
         kit.cleanup().catch((cause) => {
             process.stderr.write(`\ncleanup deferred for ${key}: ${String(cause).slice(0, 200)}\n`);
@@ -149,7 +152,6 @@ async function runScenario(harness, { index, scenario }) {
             );
         }),
     ]);
-    lease?.release();
 
     const result = {
         agents: lease?.agents.map((agent) => agent.handle) ?? [],

@@ -94,6 +94,7 @@ export function createTurnObserver({ serverId, trpc }) {
         const settleDeadline = activeSince + settleWithin;
         let newest = null;
         let lastHeartbeat = activeSince;
+        let pendingIdleSince = null;
         const runIds = [];
         while (Date.now() < settleDeadline) {
             const [state, rows] = await Promise.all([deliveryState(agentId), listTurns(agentId)]);
@@ -105,8 +106,20 @@ export function createTurnObserver({ serverId, trpc }) {
                 }
             }
             newest = fresh[0] ?? newest;
-            if (newest && !state.running && state.pending === 0) {
-                return { ...newest, runIds };
+            if (newest && !state.running) {
+                if (state.pending === 0) {
+                    return { ...newest, runIds };
+                }
+                // Queued work with no running turn can be permanently parked:
+                // a delivery noticed during the settled turn and ignored never
+                // self-drives a new turn. Give dispatch a grace window, then
+                // settle on the recorded turn rather than waiting forever.
+                pendingIdleSince ??= Date.now();
+                if (Date.now() - pendingIdleSince >= 20_000) {
+                    return { ...newest, pendingAtSettle: state.pending, runIds };
+                }
+            } else {
+                pendingIdleSince = null;
             }
             if (Date.now() - lastHeartbeat >= 30_000) {
                 lastHeartbeat = Date.now();

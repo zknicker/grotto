@@ -79,6 +79,58 @@ export function createAgentTestKit(
         };
     }
 
+    /** Thread replies target the PARENT chat plus the anchor message. */
+    async function sendInThread(parentChatId, anchorMessageId, content) {
+        const receipt = await trpc('chat.send', {
+            chatId: parentChatId,
+            content,
+            nonce: `agenttests_${context.stamp}_${crypto.randomUUID()}`,
+            serverId,
+            thread: { anchorMessageId },
+        });
+        if (receipt.threadChatId) {
+            await trackChat(receipt.threadChatId);
+        }
+        return receipt;
+    }
+
+    /**
+     * An Agent may answer in the chat itself or promote the request to a task
+     * whose Thread carries the reply — both satisfy an ordinary request. Polls
+     * the chat plus every task Thread promoted from it.
+     */
+    async function awaitAgentReply(chatId, agentId, predicate, timeoutMs = 240_000) {
+        const deadline = Date.now() + timeoutMs;
+        const matches = (message) =>
+            message.author.kind === 'agent' &&
+            message.author.agentId === agentId &&
+            predicate(message);
+        while (Date.now() < deadline) {
+            const direct = record(await harness.readMessages(chatId)).find(matches);
+            if (direct) {
+                return { container: 'chat', message: direct, threadChatId: null };
+            }
+            const tasks = await trpc('task.list', { serverId });
+            for (const entry of tasks.filter((item) => item.task.chatId === chatId)) {
+                await trackChat(entry.task.threadChatId);
+                const inThread = record(
+                    await harness.readMessages(entry.task.threadChatId)
+                ).find(matches);
+                if (inThread) {
+                    return {
+                        container: 'thread',
+                        message: inThread,
+                        threadChatId: entry.task.threadChatId,
+                    };
+                }
+            }
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+        throw new Error(
+            `no matching Agent reply in ${chatId} or its task Threads within ${Math.round(timeoutMs / 1000)}s.`
+        );
+    }
+
     async function readTask(messageId) {
         const tasks = await trpc('task.list', { serverId });
         const found = tasks.find((entry) => entry.task.messageId === messageId);
@@ -188,6 +240,7 @@ export function createAgentTestKit(
                 chatId: options.chatId ?? [...ownedChats.keys()][0],
             }),
         authoredBy: harness.authoredBy,
+        awaitAgentReply,
         awaitMessage,
         cleanup,
         createChannel,
@@ -199,6 +252,7 @@ export function createAgentTestKit(
         readMessages,
         readTask,
         scenarioName,
+        sendInThread,
         sendTask,
         serverId,
         settleTurn,

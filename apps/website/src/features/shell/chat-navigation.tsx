@@ -101,7 +101,7 @@ function ChatGroup({
     return (
         <Sidebar.Group>
             {showLabel ? <Sidebar.GroupLabel>{label}</Sidebar.GroupLabel> : null}
-            <Sidebar.Menu aria-label={label} className="gap-0">
+            <Sidebar.Menu aria-label={label}>
                 {chats.map((chat) => {
                     const agent = chat.peerAgentId ? (agents.get(chat.peerAgentId) ?? null) : null;
                     const name =

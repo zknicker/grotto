@@ -165,4 +165,15 @@
     .app-shell [data-slot='sidebar'][data-collapsible='offcanvas'] {
         transition: none;
     }
+
+    /*
+     * HeroUI fixes the collapsed sidebar width at 48px (declared on the aside
+     * itself) while pill height and rail padding scale with --spacing, so at
+     * non-default theme density the icon pills go non-square. Derive the width
+     * from the same spacing unit: 12 units - 2 * 1.5-unit rail padding =
+     * 9 units, matching the pill height.
+     */
+    .app-rail [data-slot='sidebar'] {
+        --sidebar-width-collapsed: calc(var(--spacing) * 12);
+    }
 }

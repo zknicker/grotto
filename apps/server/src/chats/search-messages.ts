@@ -1,5 +1,5 @@
 import type { HostedChatSearchResult } from '@tavern/api';
-import { and, eq, isNull, ne, sql } from 'drizzle-orm';
+import { and, eq, gte, isNull, ne, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -18,7 +18,15 @@ import { readStoredAuthorProfile, toHostedChatMessage } from './message-shape.ts
 export async function searchHostedChatMessages(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: { chatId?: string; limit: number; query: string; serverId: string }
+    input: {
+        after?: string;
+        authorAgentId?: string;
+        authorUserId?: string;
+        chatId?: string;
+        limit: number;
+        query: string;
+        serverId: string;
+    }
 ): Promise<HostedChatSearchResult[]> {
     await requireServerMembership(db, member, input.serverId);
 
@@ -85,6 +93,13 @@ export async function searchHostedChatMessages(
                 ne(chatsTable.kind, 'thread'),
                 isNull(chatsTable.deletedAt),
                 input.chatId ? eq(chatMessagesTable.chatId, input.chatId) : undefined,
+                input.authorAgentId
+                    ? eq(chatMessagesTable.authorAgentId, input.authorAgentId)
+                    : undefined,
+                input.authorUserId
+                    ? eq(chatMessagesTable.authorUserId, input.authorUserId)
+                    : undefined,
+                input.after ? gte(chatMessagesTable.createdAt, new Date(input.after)) : undefined,
                 sql`${chatMessagesTable.searchVector}
                     @@ websearch_to_tsquery('simple', ${input.query})`,
                 visibleHostedChats(member.id)

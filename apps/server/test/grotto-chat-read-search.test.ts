@@ -112,6 +112,40 @@ test('PostgreSQL search returns only authorized hosted messages', async () => {
     expect(JSON.stringify(plan)).toContain('chat_messages_search_idx');
 });
 
+test('search narrows by author and time window', async () => {
+    await peer.trpc.chat.send.mutate({
+        chatId,
+        content: 'Peer needle reply.',
+        nonce: 'read-search-3',
+        serverId,
+    });
+
+    const unfiltered = await peer.trpc.chat.search.query({ query: 'needle', serverId });
+    expect(unfiltered).toHaveLength(2);
+
+    const fromOwner = await peer.trpc.chat.search.query({
+        authorUserId: ownerUserId,
+        query: 'needle',
+        serverId,
+    });
+    expect(fromOwner).toHaveLength(1);
+    expect(fromOwner[0]).toMatchObject({ content: 'Durable search needle.' });
+
+    const futureOnly = await peer.trpc.chat.search.query({
+        after: new Date(Date.now() + 60_000).toISOString(),
+        query: 'needle',
+        serverId,
+    });
+    expect(futureOnly).toHaveLength(0);
+
+    const recent = await peer.trpc.chat.search.query({
+        after: new Date(Date.now() - 60_000).toISOString(),
+        query: 'needle',
+        serverId,
+    });
+    expect(recent).toHaveLength(2);
+});
+
 async function signIn(clerkUserId: string) {
     const token = await harness.clerk.mintSessionToken(clerkUserId);
     return createGrottoClient(harness, token);

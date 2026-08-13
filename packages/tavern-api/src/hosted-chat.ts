@@ -317,6 +317,10 @@ export type HostedChatReadReceipt = z.infer<typeof hostedChatReadReceiptSchema>;
 
 export const hostedChatSearchInputSchema = z
     .object({
+        /** Only messages created at or after this instant. */
+        after: hostedTimestampSchema.optional(),
+        authorAgentId: hostedIdSchema.optional(),
+        authorUserId: hostedIdSchema.optional(),
         chatId: hostedIdSchema.optional(),
         limit: z.number().int().min(1).max(100).default(50),
         query: z.string().trim().min(1).max(500),

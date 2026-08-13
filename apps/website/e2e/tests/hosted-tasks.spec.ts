@@ -26,6 +26,19 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     await page.getByPlaceholder('What needs to be done?').fill('Prove the hosted task flow');
     await page.getByRole('button', { name: 'Create task' }).click();
 
+    // The default lens is the Linear-style list, and opening a row shows the
+    // task Thread in a dialog over the tasks page rather than navigating.
+    await page.getByRole('button', { name: /Open task #1 Prove the hosted task flow/u }).click();
+    const dialog = page.getByRole('dialog', { name: 'Task #1 thread' });
+    await expect(dialog.getByRole('region', { name: 'Task #1 details' })).toBeVisible();
+    await expect(dialog.getByText('Prove the hosted task flow', { exact: true })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Close thread' }).click();
+    await expect(dialog).toHaveCount(0);
+
+    // Inline metadata controls live on the board cards, so switch lenses for
+    // the control flow below.
+    await page.getByLabel('Task layout').getByText('Board').click();
+
     let card = taskCard(page);
     await expect(card).toBeVisible();
     await card.getByRole('button', { name: 'Claim' }).click();

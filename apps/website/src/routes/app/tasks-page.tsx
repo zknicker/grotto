@@ -1,16 +1,14 @@
-import { useNavigate } from 'react-router-dom';
-import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
-import { taskThreadRoute } from '../../features/servers/server-routes.ts';
 import { TaskContent } from '../../features/servers/tasks/task-content.tsx';
 import { TaskControls, TaskSearch } from '../../features/servers/tasks/task-controls.tsx';
+import { TaskThreadDialog } from '../../features/servers/tasks/task-thread-dialog.tsx';
+import { useTaskView } from '../../features/servers/tasks/task-view.ts';
 import { SectionHeader } from '../../features/shell/section-header.tsx';
 import { PageTopbar } from '../../features/shell/shell-topbar.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 
 export function TasksPage() {
-    const navigate = useNavigate();
-    const { server } = useHostedServerContext();
     useWindowTitle('Tasks');
+    const { openTask } = useTaskView();
 
     return (
         <section aria-label="Tasks" className="flex min-h-0 flex-1 flex-col">
@@ -20,9 +18,8 @@ export function TasksPage() {
                     <TaskControls />
                 </SectionHeader>
             </PageTopbar>
-            <TaskContent
-                onOpenTask={(task) => navigate(taskThreadRoute(server.slug, task.chatId, task.id))}
-            />
+            <TaskContent onOpenTask={(task) => openTask(task.id)} />
+            <TaskThreadDialog />
         </section>
     );
 }

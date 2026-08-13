@@ -17,11 +17,6 @@ export function serverArchivedChatsRoute(slug: string) {
     return `${serverRoute(slug)}/archived`;
 }
 
-export function taskThreadRoute(slug: string, chatId: string, messageId: string) {
-    const route = serverChatRoute(slug, chatId);
-    return `${route}?task=${encodeURIComponent(messageId)}`;
-}
-
 export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }

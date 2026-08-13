@@ -79,10 +79,9 @@ fire log stores the bounded output, exit code, and timeout state.
 
 ## Surfaces and lifecycle
 
-- The hosted Reminders route is an Owner/Admin operator view backed directly by
-  `reminder.list`, `reminder.runs`, and `reminder.cancel`. It keeps script
-  contents redacted and recovers changes through durable
-  `reminder.changed` cursor catch-up plus live notifications.
+- An Agent profile shows that Agent's reminders to Owners and Admins through a
+  focused `reminder.list` read. There is no Server-wide Reminders route. Script
+  contents stay redacted.
 - Agent reminder verbs are exposed through the Computer-injected `grotto`
   CLI. Computer reconnect recovery, local script execution, and attention
   acknowledgment are part of the end-to-end contract.

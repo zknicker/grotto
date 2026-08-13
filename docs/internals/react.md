@@ -88,8 +88,8 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 
 * `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
   `ShellSidebar`. Sections compose `ShellSidebarPage` slots; route state
-  selects one slot without replacing the sidebar root. Search and Reminders
-  are full-width destinations and do not show contextual navigation.
+  selects one slot without replacing the sidebar root. Search is a full-width
+  destination and does not show contextual navigation.
   Returning to Chat resolves the remembered valid Chat directly instead of
   rendering the Server entry redirect between rail destinations.
 * `ShellSidebar` mounts only the active page descriptor. Left-sidebar changes
@@ -164,9 +164,7 @@ allowlists to make it pass.
   event type means adding its listener hook, not another branch in a shared
   switch. See `hooks/servers/chat-events/`.
 * Open a second wire stream only when the audience or authority differs, never
-  to separate concerns. Reminders have their own stream because that lane is
-  operator-scoped, and the participant-gated Chat lane cannot see every
-  reminder the Reminders page renders. See [Realtime](../api/realtime.md).
+  to separate concerns.
 * When an event names the record it changed, invalidate that record's detail
   read exactly and keep the broad invalidation as the no-id fallback. A
   `server.updated` event carrying `agentId` refreshes that Agent's detail and

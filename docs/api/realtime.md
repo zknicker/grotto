@@ -82,11 +82,10 @@ summary and the Chat list, because parent unread counts include Thread
 attention. `task.created` and `task.updated` invalidate the Server task list
 and the affected Chat message snapshot, not the Chat list. `task.label.updated`
 invalidates the task-label catalog and the task list, whose rows embed label
-records. The Chat lane registers no `reminder.changed` listener at all: it is
-participant-gated on both live delivery and replay, so it cannot see every
-reminder the operator-scoped Reminders surface renders. The reminder lane
-(`reminder.onEvent` + `reminder.changes`) is that namespace's single
-invalidation owner. `chat.lifecycle` carries `created`, `updated`, `archived`,
+records. The Chat lane registers no `reminder.changed` listener: it is
+participant-gated on both live delivery and replay, so it cannot reliably
+refresh the operator-only reminder snapshot on an Agent profile.
+`chat.lifecycle` carries `created`, `updated`, `archived`,
 `unarchived`, or `deleted` plus the stable Chat id, and invalidates active and
 archived lists, the focused Chat query, and the Server's Agent chat lists, whose
 rows are the viewer's visible Chats filtered by Agent membership. Unlike

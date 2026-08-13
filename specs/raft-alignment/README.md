@@ -272,8 +272,8 @@ inbox. Human **Start** resumes the current session and drains that work.
   (`--script`) is opaque delivery data for later Computer-local execution; the Server never
   interprets or executes it, and its fire is still visible. Cron agent-turn mode is replaced by
   conversational reminders; system-event mode is subsumed (a reminder fire *is* a scheduled
-  system message); the Automations page becomes a Reminders operator view (read-mostly; cancel,
-  don't silently edit). Existing agent-turn automations convert manually at cutover.
+  system message). Reminders appear on the owning Agent's profile; there is no Server-wide
+  Reminders page. Existing agent-turn automations convert manually at cutover.
 - **D5 — Zero engine tools.** The engine exposes only the runtime's native shell. Everything is
   a CLI on PATH: `grotto` (message/inbox/server/channel/thread/task/attachment/profile/reminder/
   skill) plus per-plugin CLI wrappers with runtime-held credentials (Raft's `integration env/
@@ -646,8 +646,9 @@ deployment, so intermediate brokenness is not a constraint.
   self-editing. **UI ports, not rewrites** (operator ruling): the polished pre-flip surfaces
   are the parts shelf — tasks board/list/calendar/label/priority components repoint onto
   task-messages; the automations page anatomy (filter sidebar, status rows, run-history
-  drawers ≈ `reminder log`, editor panes) becomes the Reminders operator view. Port source =
-  the last pre-flip main sha (pin it in the WS5 kickoff when the flip merges).
+  drawers ≈ `reminder log`, editor panes) is retired rather than ported. Agent profiles own
+  reminder visibility. Port source = the last pre-flip main sha (pin it in the WS5 kickoff when
+  the flip merges).
 - **WS6 — grotto.sh server split.** Move the chat surface to the single-node Mac mini Server,
   local PostgreSQL, and local attachment filesystem behind Cloudflare Tunnel (with asynchronous
   off-machine backup and a tested restore procedure); use fresh-schema Drizzle bootstrap; extract Grotto

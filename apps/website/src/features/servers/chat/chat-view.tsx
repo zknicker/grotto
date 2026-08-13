@@ -6,6 +6,7 @@ import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
 import { useDmEnsure } from '../../../hooks/servers/use-dm-ensure.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
+import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
@@ -92,6 +93,7 @@ export function ChatView({
             : chat.peerAgentId
               ? (chat.peerAgentDisplayName ?? 'Agent')
               : `Direct · ${humans.name(chat.peerUserId)}`;
+    useWindowTitle(chat.kind === 'channel' ? `#${chatName}` : chatName);
     const threadSummary =
         messages.data?.threads.find(
             (summary) => summary.anchorMessageId === threadSelection?.anchor.id

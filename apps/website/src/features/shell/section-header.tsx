@@ -26,7 +26,8 @@ export function SectionBar({ children }: { children?: ReactNode }) {
  * Topbar content row: optional leading icon, title, meta cluster, muted
  * description, optional centered slot, trailing actions. Carries no band
  * chrome — render it inside the shell band via PageTopbar, or inside a
- * local SectionBar.
+ * local SectionBar. Title is for content identity (a chat's name); section
+ * pages omit it — the rail and the window title already say where you are.
  */
 export function SectionHeader({
     center,
@@ -41,7 +42,7 @@ export function SectionHeader({
     description?: ReactNode;
     leading?: ReactNode;
     meta?: ReactNode;
-    title: ReactNode;
+    title?: ReactNode;
 }) {
     if (center) {
         // Equal flexible side columns anchor the center slot to the band's
@@ -50,7 +51,9 @@ export function SectionHeader({
             <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                     {leading}
-                    <h1 className="min-w-0 shrink truncate font-semibold text-sm">{title}</h1>
+                    {title ? (
+                        <h1 className="min-w-0 shrink truncate font-semibold text-sm">{title}</h1>
+                    ) : null}
                     {meta}
                     {description ? (
                         <p className="truncate text-muted text-xs">{description}</p>
@@ -65,7 +68,9 @@ export function SectionHeader({
     return (
         <div className="flex min-w-0 flex-1 items-center gap-3">
             {leading}
-            <h1 className="min-w-0 shrink truncate font-semibold text-sm">{title}</h1>
+            {title ? (
+                <h1 className="min-w-0 shrink truncate font-semibold text-sm">{title}</h1>
+            ) : null}
             {meta}
             {description ? <p className="truncate text-muted text-xs">{description}</p> : null}
             {children ? (

@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { ChatSearch } from '../../features/servers/chat/chat-search.tsx';
-import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
+import { useServerContext } from '../../features/servers/server-context.ts';
 import { serverChatRoute } from '../../features/servers/server-routes.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 
 export function SearchRoute() {
     const navigate = useNavigate();
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     useWindowTitle('Search');
     return (
         <ChatSearch

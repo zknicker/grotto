@@ -14,10 +14,10 @@ const browserTargetSchema = z
     })
     .strict();
 
-export const hostedBrowserGetInputSchema = browserTargetSchema;
-export const hostedBrowserSaveInputSchema = browserTargetSchema
+export const browserGetInputSchema = browserTargetSchema;
+export const browserSaveInputSchema = browserTargetSchema
     .extend({ settings: agentRuntimeSaveBrowserSettingsSchema })
     .strict();
-export const hostedBrowserActionInputSchema = browserTargetSchema;
-export const hostedBrowserSettingsOutputSchema = agentRuntimeBrowserSettingsSchema;
-export const hostedBrowserActionOutputSchema = agentRuntimeBrowserActionResultSchema;
+export const browserActionInputSchema = browserTargetSchema;
+export const browserSettingsOutputSchema = agentRuntimeBrowserSettingsSchema;
+export const browserActionOutputSchema = agentRuntimeBrowserActionResultSchema;

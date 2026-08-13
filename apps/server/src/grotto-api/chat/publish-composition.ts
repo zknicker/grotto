@@ -1,11 +1,11 @@
-import { hostedCompositionPublishedSchema, hostedCompositionPublishInputSchema } from '@tavern/api';
+import { compositionPublishedSchema, compositionPublishInputSchema } from '@tavern/api';
 import { requireChatWriteAccess } from '../../chats/chat-access.ts';
 import { publishChatComposition } from '../../chats/composition-hub.ts';
 import { chatProcedure } from './procedure.ts';
 
 export const publishCompositionProcedure = chatProcedure
-    .input(hostedCompositionPublishInputSchema)
-    .output(hostedCompositionPublishedSchema)
+    .input(compositionPublishInputSchema)
+    .output(compositionPublishedSchema)
     .mutation(async ({ ctx, input }) => {
         await requireChatWriteAccess(ctx.grottoDb, ctx.member, input);
 

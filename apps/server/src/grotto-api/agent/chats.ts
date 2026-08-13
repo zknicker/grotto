@@ -1,8 +1,8 @@
-import { hostedAgentDetailInputSchema, hostedChatListSchema } from '@tavern/api';
-import { listHostedAgentChats } from '../../hosted-agents/list-agent-chats.ts';
+import { agentDetailInputSchema, chatListSchema } from '@tavern/api';
+import { listAgentChats } from '../../server-agents/list-agent-chats.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const agentChatsProcedure = memberProcedure
-    .input(hostedAgentDetailInputSchema)
-    .output(hostedChatListSchema)
-    .query(({ ctx, input }) => listHostedAgentChats(ctx.grottoDb, ctx.member, input));
+    .input(agentDetailInputSchema)
+    .output(chatListSchema)
+    .query(({ ctx, input }) => listAgentChats(ctx.grottoDb, ctx.member, input));

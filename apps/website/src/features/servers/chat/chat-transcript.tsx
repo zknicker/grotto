@@ -1,4 +1,4 @@
-import type { HostedChatMessage, HostedThreadSummary } from '@tavern/api';
+import type { ChatMessage, ThreadSummary } from '@tavern/api';
 import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
@@ -33,12 +33,12 @@ const conversationLayout = {
 
 interface ChatTranscriptInput {
     chatId: string;
-    messages: readonly HostedChatMessage[] | undefined;
+    messages: readonly ChatMessage[] | undefined;
     onOpenArtifact: (target: TavernResourceTarget) => void;
-    onOpenThread?: (message: HostedChatMessage, summary: HostedThreadSummary | null) => void;
+    onOpenThread?: (message: ChatMessage, summary: ThreadSummary | null) => void;
     onStartDm?: (userId: string) => void;
     serverId: string;
-    threads?: readonly HostedThreadSummary[];
+    threads?: readonly ThreadSummary[];
     turnDetailsAccess?: 'journal' | 'summary';
 }
 
@@ -72,7 +72,7 @@ export function ChatTranscript({
 }
 
 /**
- * Shared hosted-chat transcript wiring: projects hosted messages into
+ * Shared Server Chat transcript wiring: projects messages into
  * transcript rows and builds the render context the shared turn
  * presentation needs. The thread panel reuses this so replies render with
  * exactly the same rows as the main chat.
@@ -176,7 +176,7 @@ export function useChatTranscript({
                 defaultOpenWorkGroups: false,
                 disableAgentHoverCard: true,
                 flashMessageId: null,
-                hostedTurnDetails: {
+                turnDetails: {
                     access: turnDetailsAccess,
                     serverId,
                 },

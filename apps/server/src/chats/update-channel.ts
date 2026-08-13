@@ -1,4 +1,4 @@
-import type { HostedChannelUpdateInput, HostedChat, HostedDurableEvent } from '@tavern/api';
+import type { ChannelUpdateInput, Chat, ServerDurableEvent } from '@tavern/api';
 import { and, eq, inArray, isNull, notInArray } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
@@ -6,10 +6,10 @@ import { agentsTable, channelAgentParticipantsTable, chatsTable } from '../postg
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { requireHostedChatWritable } from './chat-access.ts';
+import { requireChatWritable } from './chat-access.ts';
 import { ChannelAgentNotFoundError, ChannelNameTakenError } from './create-channel.ts';
-import { insertHostedLifecycleEvent } from './lifecycle-events.ts';
-import { listHostedChats } from './list-chats.ts';
+import { insertLifecycleEvent } from './lifecycle-events.ts';
+import { listChats } from './list-chats.ts';
 
 export class ChannelNotFoundError extends Error {
     constructor() {
@@ -17,25 +17,25 @@ export class ChannelNotFoundError extends Error {
     }
 }
 
-export interface UpdatedHostedChannel {
-    chat: HostedChat;
+export interface UpdatedChannel {
+    chat: Chat;
     /** Null when the save changed neither the name nor the Agent participant set. */
-    event: HostedDurableEvent | null;
+    event: ServerDurableEvent | null;
 }
 
 /** Renames a channel and replaces its Agent participant set. */
-export async function updateHostedChannel(
+export async function updateChannel(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: HostedChannelUpdateInput
-): Promise<UpdatedHostedChannel> {
+    input: ChannelUpdateInput
+): Promise<UpdatedChannel> {
     const event = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireServerMembership(tx, member, input.serverId);
         if (!member) {
             throw new Error('Authenticated Server membership requires a Grotto User.');
         }
-        await requireHostedChatWritable(tx, input);
+        await requireChatWritable(tx, input);
 
         const [chat] = await tx
             .select({ id: chatsTable.id, kind: chatsTable.kind, name: chatsTable.name })
@@ -109,10 +109,10 @@ export async function updateHostedChannel(
             )
             .onConflictDoNothing();
 
-        return changed ? await insertHostedLifecycleEvent(tx, input, 'updated', new Date()) : null;
+        return changed ? await insertLifecycleEvent(tx, input, 'updated', new Date()) : null;
     });
 
-    const channel = (await listHostedChats(db, member, input.serverId)).find(
+    const channel = (await listChats(db, member, input.serverId)).find(
         (candidate) => candidate.id === input.chatId
     );
     if (!channel) {

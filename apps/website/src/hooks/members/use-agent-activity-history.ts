@@ -1,8 +1,8 @@
 import { useQueries } from '@tanstack/react-query';
 import type {
-    HostedAgentActivityCursor,
-    HostedAgentActivityEvent,
-    HostedAgentActivityHistoryPage,
+    AgentActivityCursor,
+    AgentActivityEvent,
+    AgentActivityHistoryPage,
 } from '@tavern/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
@@ -13,7 +13,7 @@ const activityPageSize = 50;
 export function useAgentActivityHistory(serverId: string, agentId: string) {
     const utils = grottoTrpc.useUtils();
     const scope = `${serverId}:${agentId}`;
-    const [cursors, setCursors] = React.useState<Array<HostedAgentActivityCursor | undefined>>([
+    const [cursors, setCursors] = React.useState<Array<AgentActivityCursor | undefined>>([
         undefined,
     ]);
     const scopeRef = React.useRef(scope);
@@ -113,11 +113,11 @@ export function useAgentTurnActivityHistory(
 
 function dedupeEvents(
     pages: Array<{
-        data?: HostedAgentActivityHistoryPage;
+        data?: AgentActivityHistoryPage;
     }>
-): HostedAgentActivityEvent[] {
+): AgentActivityEvent[] {
     const seen = new Set<string>();
-    const events: HostedAgentActivityEvent[] = [];
+    const events: AgentActivityEvent[] = [];
     for (const page of pages) {
         for (const event of page.data?.events ?? []) {
             if (seen.has(event.id)) {

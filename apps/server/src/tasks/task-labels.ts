@@ -1,6 +1,6 @@
-import type { HostedDurableEvent, HostedTaskLabel } from '@tavern/api';
+import type { ServerDurableEvent, TaskLabel } from '@tavern/api';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
-import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
+import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -23,11 +23,11 @@ export class TaskLabelAdminRequiredError extends Error {
     }
 }
 
-export async function listHostedTaskLabels(
+export async function listTaskLabels(
     db: GrottoDatabase,
     member: GrottoUser | null,
     serverId: string
-): Promise<HostedTaskLabel[]> {
+): Promise<TaskLabel[]> {
     await requireServerMembership(db, member, serverId);
     return await db
         .select({
@@ -40,11 +40,11 @@ export async function listHostedTaskLabels(
         .orderBy(asc(taskLabelsTable.name));
 }
 
-export async function createHostedTaskLabel(
+export async function createTaskLabel(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { name: string; serverId: string }
-): Promise<{ event: HostedDurableEvent; label: HostedTaskLabel }> {
+): Promise<{ event: ServerDurableEvent; label: TaskLabel }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireServerMembership(tx, member, input.serverId);
@@ -104,16 +104,16 @@ export async function createHostedTaskLabel(
     });
 }
 
-export async function updateHostedTaskLabel(
+export async function updateTaskLabel(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: {
-        color?: HostedTaskLabel['color'];
+        color?: TaskLabel['color'];
         labelId: string;
         name?: string;
         serverId: string;
     }
-): Promise<{ event: HostedDurableEvent; label: HostedTaskLabel }> {
+): Promise<{ event: ServerDurableEvent; label: TaskLabel }> {
     try {
         return await db.transaction(async (tx) => {
             await lockServerRow(tx, input.serverId);
@@ -153,11 +153,11 @@ export async function updateHostedTaskLabel(
     }
 }
 
-export async function deleteHostedTaskLabel(
+export async function deleteTaskLabel(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { labelId: string; serverId: string }
-): Promise<{ event: HostedDurableEvent }> {
+): Promise<{ event: ServerDurableEvent }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);
@@ -182,7 +182,7 @@ export async function deleteHostedTaskLabel(
     });
 }
 
-export async function requireHostedTaskLabelIds(
+export async function requireTaskLabelIds(
     db: Pick<GrottoDatabase, 'select'>,
     serverId: string,
     labelIds: string[]
@@ -204,8 +204,8 @@ async function insertTaskLabelEvent(
     db: Pick<GrottoDatabase, 'insert' | 'update'>,
     serverId: string,
     labelId: string
-): Promise<HostedDurableEvent> {
-    const cursor = await allocateHostedEventCursor(db, serverId);
+): Promise<ServerDurableEvent> {
+    const cursor = await allocateEventCursor(db, serverId);
     const [event] = await db
         .insert(chatEventsTable)
         .values({
@@ -234,8 +234,8 @@ async function insertTaskLabelEvent(
     };
 }
 
-function colorForLabel(name: string): HostedTaskLabel['color'] {
-    const colors: HostedTaskLabel['color'][] = [
+function colorForLabel(name: string): TaskLabel['color'] {
+    const colors: TaskLabel['color'][] = [
         'red',
         'orange',
         'amber',

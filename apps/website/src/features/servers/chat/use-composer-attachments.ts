@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { hostedAttachmentMaxSizeBytes } from '../../../hooks/servers/use-upload-server-attachment.ts';
+import { attachmentMaxSizeBytes } from '../../../hooks/servers/use-upload-server-attachment.ts';
 
 export interface ComposerAttachment {
     file: File;
@@ -24,7 +24,7 @@ export function useComposerAttachments() {
     );
 
     const add = React.useCallback((files: File[]) => {
-        const oversized = files.find((file) => file.size > hostedAttachmentMaxSizeBytes);
+        const oversized = files.find((file) => file.size > attachmentMaxSizeBytes);
         if (oversized) {
             setError(`${oversized.name} exceeds the 50 MiB attachment limit.`);
             if (inputRef.current) {

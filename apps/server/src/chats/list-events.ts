@@ -1,17 +1,17 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import { and, eq, gt, or, type SQL, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatEventsTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { visibleHostedChats } from './chat-visibility.ts';
-import type { HostedChatLifecycleAction } from './lifecycle-events.ts';
+import { visibleChats } from './chat-visibility.ts';
+import type { ChatLifecycleAction } from './lifecycle-events.ts';
 
-export async function listHostedChatEvents(
+export async function listChatEvents(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { afterCursor: string; limit: number; serverId: string }
-): Promise<HostedDurableEvent[]> {
+): Promise<ServerDurableEvent[]> {
     await requireServerMembership(db, member, input.serverId);
 
     if (!member) {
@@ -69,7 +69,7 @@ export async function listHostedChatEvents(
                                 eq(chatEventsTable.readerUserId, member.id)
                             )
                         ),
-                        visibleHostedChats(member.id)
+                        visibleChats(member.id)
                     )
                 )
             )
@@ -99,7 +99,7 @@ export async function listHostedChatEvents(
         if (event.type === 'chat.lifecycle') {
             return {
                 ...common,
-                action: event.chatAction as HostedChatLifecycleAction,
+                action: event.chatAction as ChatLifecycleAction,
                 chatId: event.lifecycleChatId as string,
                 parentChatId: null,
                 sequence: 0 as const,
@@ -185,7 +185,7 @@ function replayableLifecycleChat(userId: string): SQL {
             from chats
             where ${chatsTable.serverId} = ${chatEventsTable.serverId}
                 and ${chatsTable.id} = ${chatEventsTable.lifecycleChatId}
-                and ${visibleHostedChats(userId)}
+                and ${visibleChats(userId)}
         )
     )`;
 }

@@ -1,11 +1,11 @@
-import { hostedChatEventSubscriptionInputSchema, hostedDurableEventSchema } from '@tavern/api';
-import { findHostedChatAccess } from '../../chats/chat-access.ts';
+import { chatEventSubscriptionInputSchema, serverdurableeventSchema } from '@tavern/api';
+import { findChatAccess } from '../../chats/chat-access.ts';
 import { subscribeToDurableChatEvents } from '../../chats/durable-events.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { chatProcedure } from './procedure.ts';
 
 export const onChatEventProcedure = chatProcedure
-    .input(hostedChatEventSubscriptionInputSchema)
+    .input(chatEventSubscriptionInputSchema)
     .use(async ({ ctx, input, next }) => {
         await requireServerMembership(ctx.grottoDb, ctx.member, input.serverId);
         return await next();
@@ -29,11 +29,11 @@ export const onChatEventProcedure = chatProcedure
             }
 
             if (event.type === 'task.label.updated') {
-                yield hostedDurableEventSchema.parse(event);
+                yield serverdurableeventSchema.parse(event);
                 continue;
             }
 
-            const chat = await findHostedChatAccess(ctx.grottoDb, ctx.member.id, {
+            const chat = await findChatAccess(ctx.grottoDb, ctx.member.id, {
                 chatId: event.chatId,
                 serverId: event.serverId,
             });
@@ -42,6 +42,6 @@ export const onChatEventProcedure = chatProcedure
                 continue;
             }
 
-            yield hostedDurableEventSchema.parse(event);
+            yield serverdurableeventSchema.parse(event);
         }
     });

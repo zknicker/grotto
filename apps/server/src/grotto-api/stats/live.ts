@@ -1,8 +1,8 @@
-import { hostedServerStatsInputSchema, hostedServerUsageOverviewSchema } from '@tavern/api';
-import { readHostedServerUsage } from '../../hosted-operations/computer-usage.ts';
+import { serverStatsInputSchema, serverUsageOverviewSchema } from '@tavern/api';
+import { readServerUsage } from '../../server-operations/computer-usage.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
-export const getHostedUsageProcedure = memberProcedure
-    .input(hostedServerStatsInputSchema)
-    .output(hostedServerUsageOverviewSchema)
-    .query(({ ctx, input }) => readHostedServerUsage(ctx.grottoDb, ctx.member, input.serverId));
+export const getUsageProcedure = memberProcedure
+    .input(serverStatsInputSchema)
+    .output(serverUsageOverviewSchema)
+    .query(({ ctx, input }) => readServerUsage(ctx.grottoDb, ctx.member, input.serverId));

@@ -1,4 +1,4 @@
-import { hostedIdSchema } from '@tavern/api';
+import { idSchema } from '@tavern/api';
 import { and, eq } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -21,7 +21,7 @@ export class NestedThreadError extends Error {
     }
 }
 
-export async function ensureHostedThread(
+export async function ensureThread(
     db: ThreadWriter,
     member: GrottoUser | null,
     input: { anchorMessageId: string; parentChatId: string; serverId: string }
@@ -30,7 +30,7 @@ export async function ensureHostedThread(
         chatId: input.parentChatId,
         serverId: input.serverId,
     });
-    const thread = await ensureHostedThreadRecord(db, input);
+    const thread = await ensureThreadRecord(db, input);
 
     const [anchor] = await db
         .select({ authorUserId: chatMessagesTable.authorUserId })
@@ -57,7 +57,7 @@ export async function ensureHostedThread(
 }
 
 /** Creates the canonical thread row after the caller has proved parent authority. */
-export async function ensureHostedThreadRecord(
+export async function ensureThreadRecord(
     db: ThreadWriter,
     input: { anchorMessageId: string; parentChatId: string; serverId: string }
 ) {
@@ -91,9 +91,7 @@ export async function ensureHostedThreadRecord(
         throw new InvalidThreadAnchorError();
     }
 
-    const threadChatId = hostedIdSchema.parse(
-        `cht_thr_${stripMessagePrefix(input.anchorMessageId)}`
-    );
+    const threadChatId = idSchema.parse(`cht_thr_${stripMessagePrefix(input.anchorMessageId)}`);
 
     await db
         .insert(chatsTable)

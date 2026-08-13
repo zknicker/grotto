@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
-import { useHostedServerContext } from '../hosted-server-context.ts';
+import { useServerContext } from '../server-context.ts';
 import { filterTasks, type TaskItem, toTaskItem } from './task-model.ts';
 import { TaskState } from './task-state.tsx';
 import { useTaskView } from './task-view.ts';
@@ -15,7 +15,7 @@ export function TaskContent({
     chatId?: string;
     onOpenTask: (task: TaskItem) => void;
 }) {
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const agents = useAgents(server.id);
     const tasksQuery = useTasks(server.id, chatId);
     const humans = useHumanDirectory(server.id);

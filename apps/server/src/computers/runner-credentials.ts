@@ -1,8 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import {
-    type HostedRunnerMintRequest,
-    type HostedRunnerRevokeRequest,
     manualRunnerCapability,
+    type RunnerMintRequest,
+    type RunnerRevokeRequest,
 } from '@tavern/api';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -33,7 +33,7 @@ const runnerLifetimeMs = 12 * 60 * 60 * 1000;
  * Server. The launch chat is retained as context while Agent API routes resolve
  * every product target and access under that same Agent/Server authority.
  */
-export async function mintRunnerCredential(db: GrottoDatabase, input: HostedRunnerMintRequest) {
+export async function mintRunnerCredential(db: GrottoDatabase, input: RunnerMintRequest) {
     const computer = await requireComputer(db, input.credentialHash);
 
     const [agent] = await db
@@ -77,7 +77,7 @@ export async function mintRunnerCredential(db: GrottoDatabase, input: HostedRunn
 }
 
 /** Revokes a runner credential at launch end. Idempotent for an already-gone row. */
-export async function revokeRunnerCredential(db: GrottoDatabase, input: HostedRunnerRevokeRequest) {
+export async function revokeRunnerCredential(db: GrottoDatabase, input: RunnerRevokeRequest) {
     const computer = await requireComputer(db, input.credentialHash);
     await db
         .update(agentRunnerCredentialsTable)

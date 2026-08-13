@@ -1,11 +1,11 @@
 import { AlertDialog, Button } from '@heroui/react';
-import type { HostedAgent, HostedMcpConnection, HostedMcpPreset } from '@tavern/api';
+import type { Agent, McpPreset, McpConnection as ServerMcpConnection } from '@tavern/api';
 import type { McpConnection } from './mcp-server-shared.ts';
 
 export function ConnectionPresetButtons({
     onAdd,
 }: {
-    onAdd(preset: HostedMcpPreset, name: string): void;
+    onAdd(preset: McpPreset, name: string): void;
 }) {
     return (
         <div className="flex gap-2">
@@ -66,8 +66,8 @@ export function ConnectionTrustDialog({
 }
 
 export function toConnectionView(
-    connection: HostedMcpConnection,
-    agents: HostedAgent[] = []
+    connection: ServerMcpConnection,
+    agents: Agent[] = []
 ): McpConnection {
     const grantedAgentIds = new Set(connection.grants.map((grant) => grant.agentId));
     return {

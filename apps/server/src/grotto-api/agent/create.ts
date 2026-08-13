@@ -1,16 +1,16 @@
-import { hostedAgentCreatedSchema, hostedCreateAgentInputSchema } from '@tavern/api';
+import { agentCreatedSchema, createAgentInputSchema } from '@tavern/api';
 import { TRPCError } from '@trpc/server';
-import { AgentConfigDeniedError } from '../../hosted-agents/agent-config-errors.ts';
-import { createHostedAgent } from '../../hosted-agents/create-agent.ts';
+import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
+import { createAgent } from '../../server-agents/create-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
 import { emitServerUpdated } from '../server-events.ts';
 
 export const createAgentProcedure = memberProcedure
-    .input(hostedCreateAgentInputSchema)
-    .output(hostedAgentCreatedSchema)
+    .input(createAgentInputSchema)
+    .output(agentCreatedSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            const created = await createHostedAgent(ctx.grottoDb, ctx.member, input);
+            const created = await createAgent(ctx.grottoDb, ctx.member, input);
             await ctx.agentDelivery.configureAgent({
                 agentDescription: created.agent.description,
                 agentId: created.agent.id,

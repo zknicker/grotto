@@ -1,6 +1,6 @@
 import { Chip } from '@heroui/react';
 import { ComputerIcon, ShieldUserIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
@@ -12,7 +12,7 @@ import {
 } from '../../computers/presentation.ts';
 import { serverComputersRoute } from '../../servers/server-routes.ts';
 import { SettingsPage } from '../../settings/layout/settings-page.tsx';
-import { hostedAvailabilityBadgeColor } from '../agent-avatar.tsx';
+import { availabilityBadgeColor } from '../agent-avatar.tsx';
 import { MemberProfileFact, MemberProfileFacts } from '../member-profile-header.tsx';
 import { AgentDanger } from './agent-danger.tsx';
 import { AgentIdentity } from './agent-identity.tsx';
@@ -24,7 +24,7 @@ export function AgentOverview({
     onDeleted,
     server,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     onDeleted: () => void;
     server: ServerDetail;
 }) {
@@ -43,7 +43,7 @@ export function AgentOverview({
                     status={
                         <Chip
                             className="capitalize"
-                            color={hostedAvailabilityBadgeColor(agent.availability)}
+                            color={availabilityBadgeColor(agent.availability)}
                             size="sm"
                             variant="soft"
                         >

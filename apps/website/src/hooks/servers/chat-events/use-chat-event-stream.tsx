@@ -1,4 +1,4 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import {
@@ -46,7 +46,7 @@ export function ChatEventStreamProvider({
     }
 
     const dispatchEvents = React.useCallback(
-        async (events: HostedDurableEvent[]) => {
+        async (events: ServerDurableEvent[]) => {
             if (serverId === undefined) {
                 return;
             }

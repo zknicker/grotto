@@ -1,8 +1,8 @@
 import type {
-    HostedAgentActivityEvent,
-    HostedAgentSendReceipt,
-    HostedAttachmentMetadata,
-    HostedDurableEvent,
+    AgentActivityEvent,
+    AgentSendReceipt,
+    AttachmentMetadata,
+    ServerDurableEvent,
     TavernAgentMessage,
 } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
@@ -15,15 +15,15 @@ import {
     readMessageAttachments,
     requireAgentMessageAttachments,
 } from '../attachments/message-attachments.ts';
-import { appendServerAgentActivity } from '../hosted-agents/agent-activity.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
-import { requireHostedChatWritable } from './chat-access.ts';
+import { allocateEventCursor } from './allocate-event-cursor.ts';
+import { requireChatWritable } from './chat-access.ts';
 
-export interface SendHostedAgentMessageInput {
+export interface SendAgentMessageInput {
     agentId: string;
     attachmentIds: string[];
     chatId: string;
@@ -35,11 +35,11 @@ export interface SendHostedAgentMessageInput {
     target: string;
 }
 
-export interface SendHostedAgentMessageResult {
-    activities: HostedAgentActivityEvent[];
-    event: HostedDurableEvent | null;
+export interface SendAgentMessageResult {
+    activities: AgentActivityEvent[];
+    event: ServerDurableEvent | null;
     message: TavernAgentMessage;
-    receipt: HostedAgentSendReceipt;
+    receipt: AgentSendReceipt;
     wakes: Array<{ agentId: string; serverId: string }>;
 }
 
@@ -48,11 +48,11 @@ export interface SendHostedAgentMessageResult {
  * The runner credential fixes the author and Server; the Agent API resolves the
  * grammar target and access before calling here. Idempotency is `(chat, nonce)`.
  */
-export async function sendHostedAgentMessage(
+export async function sendAgentMessage(
     db: GrottoDatabase,
-    input: SendHostedAgentMessageInput,
+    input: SendAgentMessageInput,
     agentDelivery: AgentDelivery
-): Promise<SendHostedAgentMessageResult> {
+): Promise<SendAgentMessageResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await tx.execute(sql`
@@ -60,7 +60,7 @@ export async function sendHostedAgentMessage(
             where server_id = ${input.serverId} and id = ${input.chatId}
             for update
         `);
-        await requireHostedChatWritable(tx, input);
+        await requireChatWritable(tx, input);
         const [agent] = await tx
             .select({
                 description: agentsTable.description,
@@ -135,7 +135,7 @@ export async function sendHostedAgentMessage(
                 wakes: [],
             };
         }
-        const activities: HostedAgentActivityEvent[] = [];
+        const activities: AgentActivityEvent[] = [];
         const startedActivity = await appendServerAgentActivity(tx, {
             agentId: input.agentId,
             category: 'sending_message',
@@ -210,7 +210,7 @@ export async function sendHostedAgentMessage(
             });
         }
 
-        const eventCursor = await allocateHostedEventCursor(tx, input.serverId);
+        const eventCursor = await allocateEventCursor(tx, input.serverId);
         const [event] = await tx
             .insert(chatEventsTable)
             .values({
@@ -280,7 +280,7 @@ function toAgentCliMessage(
     },
     agent: {
         agentId: string;
-        attachments: HostedAttachmentMetadata[];
+        attachments: AttachmentMetadata[];
         chatId: string;
         description: string | null;
         displayName: string;

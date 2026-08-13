@@ -1,9 +1,9 @@
 import { Button } from '@heroui/react';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useAgentDelete } from '../../../hooks/members/use-agent-delete.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import { HostedDeleteDialog } from '../../../routes/app/hosted-delete-dialog.tsx';
+import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import {
     SettingsGroup,
     SettingsRow,
@@ -15,7 +15,7 @@ export function AgentDanger({
     onDeleted,
     server,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     onDeleted: () => void;
     server: ServerDetail;
 }) {
@@ -48,7 +48,7 @@ export function AgentDanger({
                 </SettingsRow>
             </SettingsGroup>
             {deleting ? (
-                <HostedDeleteDialog
+                <DeleteDialog
                     confirmation={agent.displayName}
                     description="This permanently destroys the Agent’s local workspace, skills, runtime state, queues, and vault when its Computer can be reached. Its authored collaboration history remains."
                     onConfirm={() =>

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@tavern/api';
 import { WebSocket } from 'ws';
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
-import { createHostedClient } from '../support/hosted-server.ts';
+import { createClient } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('a fresh Server stays gated until a Computer reports usable inventory', async ({
@@ -51,7 +51,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await expect(page.getByRole('heading', { level: 1, name: 'Connect a Computer' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: 'Members' })).toHaveCount(0);
 
-    const owner = createHostedClient(readClerkSessionFixture().token);
+    const owner = createClient(readClerkSessionFixture().token);
     const server = await owner.server.bySlug.query({ slug: 'grotto-hq' });
     const computer = await startComputerSetup({ serverId: server.id, slug: 'grotto-hq' });
     try {

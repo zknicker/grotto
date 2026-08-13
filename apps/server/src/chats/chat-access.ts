@@ -4,7 +4,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { visibleHostedChats } from './chat-visibility.ts';
+import { visibleChats } from './chat-visibility.ts';
 
 type ChatReader = Pick<GrottoDatabase, 'select'>;
 const parentChatsTable = alias(chatsTable, 'parent_chat');
@@ -56,7 +56,7 @@ export async function requireChatAccess(
         throw new ChatAccessDeniedError();
     }
 
-    const accessibleChat = await findHostedChatAccess(db, member.id, input);
+    const accessibleChat = await findChatAccess(db, member.id, input);
 
     if (accessibleChat) {
         return accessibleChat;
@@ -86,7 +86,7 @@ export async function requireChatWriteAccess(
 }
 
 /** Agent routes authorize visibility separately, then share this lifecycle gate. */
-export async function requireHostedChatWritable(
+export async function requireChatWritable(
     db: ChatReader,
     input: { chatId: string; serverId: string }
 ): Promise<void> {
@@ -123,7 +123,7 @@ export async function requireHostedChatWritable(
     assertChatWritable({ archivedAt: chat.archivedAt, parentArchivedAt: chat.parentArchivedAt });
 }
 
-export async function findHostedChatAccess(
+export async function findChatAccess(
     db: ChatReader,
     userId: string,
     input: { chatId: string; serverId: string }
@@ -157,7 +157,7 @@ export async function findHostedChatAccess(
                 eq(chatsTable.serverId, input.serverId),
                 eq(chatsTable.id, input.chatId),
                 isNull(chatsTable.deletedAt),
-                visibleHostedChats(userId)
+                visibleChats(userId)
             )
         )
         .limit(1);

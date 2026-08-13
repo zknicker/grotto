@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
-import { useHostedServerContext } from '../hosted-server-context.ts';
+import { useServerContext } from '../server-context.ts';
 import { serverChatRoute } from '../server-routes.ts';
 import { ThreadContent } from '../thread/thread-content.tsx';
 import { useTaskView } from './task-view.ts';
@@ -17,7 +17,7 @@ import { useTaskView } from './task-view.ts';
  */
 export function TaskThreadDialog() {
     const navigate = useNavigate();
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const { closeTask, openTaskId } = useTaskView();
     const tasks = useTasks(server.id);
     const chats = useChats(server.id);

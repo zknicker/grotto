@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { HostedAgentActivityEvent } from '@tavern/api';
+import type { AgentActivityEvent } from '@tavern/api';
 import {
     applyCurrentAgentActivityEvent,
     filterCurrentAgentActivityByAvailability,
@@ -9,7 +9,7 @@ import {
     splitCurrentAgentActivity,
 } from './current-agent-activity.ts';
 
-function activity(overrides: Partial<HostedAgentActivityEvent> = {}): HostedAgentActivityEvent {
+function activity(overrides: Partial<AgentActivityEvent> = {}): AgentActivityEvent {
     return {
         agentId: 'agt_one',
         category: 'thinking',

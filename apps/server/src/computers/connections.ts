@@ -1,14 +1,14 @@
 import type {
+    AgentCommand,
+    AgentExecutionJournalResult,
+    AgentSkillFileRequest,
+    AgentSkillFileResult,
+    AgentSkillImportResult,
+    AgentWorkspaceRequest,
+    AgentWorkspaceResult,
+    BrowserRequest,
+    BrowserResult,
     ComputerUpdatePhase,
-    HostedAgentCommand,
-    HostedAgentExecutionJournalResult,
-    HostedAgentSkillFileRequest,
-    HostedAgentSkillFileResult,
-    HostedAgentSkillImportResult,
-    HostedAgentWorkspaceRequest,
-    HostedAgentWorkspaceResult,
-    HostedBrowserRequest,
-    HostedBrowserResult,
     SignedComputerRelease,
 } from '@tavern/api';
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
@@ -35,21 +35,21 @@ interface PendingWorkspaceRequest {
     agentId: string;
     computerId: string;
     reject(error: Error): void;
-    resolve(result: NonNullable<HostedAgentWorkspaceResult['result']>): void;
+    resolve(result: NonNullable<AgentWorkspaceResult['result']>): void;
     timeout: ReturnType<typeof setTimeout>;
 }
 
 interface PendingBrowserRequest {
     computerId: string;
     reject(error: Error): void;
-    resolve(result: NonNullable<HostedBrowserResult['result']>): void;
+    resolve(result: NonNullable<BrowserResult['result']>): void;
     timeout: ReturnType<typeof setTimeout>;
 }
 
 interface PendingExecutionJournalRequest {
     agentId: string;
     computerId: string;
-    resolve(result: HostedAgentExecutionJournalResult): void;
+    resolve(result: AgentExecutionJournalResult): void;
     runId: string;
     serverId: string;
     timeout: ReturnType<typeof setTimeout>;
@@ -165,7 +165,7 @@ export class ComputerConnections implements DeliveryTransport {
     }
 
     /** Sends a typed frame to the Computer, reporting whether it was online. */
-    send(computerId: string, frame: HostedAgentCommand): boolean {
+    send(computerId: string, frame: AgentCommand): boolean {
         const computer = this.attached.get(computerId);
         if (!(computer?.ordinary && (frame.type === 'stop' || this.isOnline(computerId)))) {
             return false;
@@ -200,7 +200,7 @@ export class ComputerConnections implements DeliveryTransport {
         });
     }
 
-    acceptSkillImport(computerId: string, result: HostedAgentSkillImportResult): boolean {
+    acceptSkillImport(computerId: string, result: AgentSkillImportResult): boolean {
         const pending = this.pendingSkillImports.get(result.requestId);
         if (
             !pending ||
@@ -223,13 +223,13 @@ export class ComputerConnections implements DeliveryTransport {
         computerId: string,
         input: {
             agentId: string;
-            operation: HostedAgentSkillFileRequest['operation'];
+            operation: AgentSkillFileRequest['operation'];
         }
-    ): Promise<NonNullable<HostedAgentSkillFileResult['result']>> {
+    ): Promise<NonNullable<AgentSkillFileResult['result']>> {
         return this.skillFileRelay.request(computerId, input);
     }
 
-    acceptSkillFileResult(computerId: string, result: HostedAgentSkillFileResult): boolean {
+    acceptSkillFileResult(computerId: string, result: AgentSkillFileResult): boolean {
         return this.skillFileRelay.accept(computerId, result);
     }
 
@@ -237,9 +237,9 @@ export class ComputerConnections implements DeliveryTransport {
         computerId: string,
         input: {
             agentId: string;
-            operation: HostedAgentWorkspaceRequest['operation'];
+            operation: AgentWorkspaceRequest['operation'];
         }
-    ): Promise<NonNullable<HostedAgentWorkspaceResult['result']>> {
+    ): Promise<NonNullable<AgentWorkspaceResult['result']>> {
         const requestId = createOpaqueId('req');
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -267,7 +267,7 @@ export class ComputerConnections implements DeliveryTransport {
         });
     }
 
-    acceptWorkspaceResult(computerId: string, result: HostedAgentWorkspaceResult): boolean {
+    acceptWorkspaceResult(computerId: string, result: AgentWorkspaceResult): boolean {
         const pending = this.pendingWorkspaceRequests.get(result.requestId);
         if (!pending || pending.computerId !== computerId || pending.agentId !== result.agentId) {
             return false;
@@ -284,8 +284,8 @@ export class ComputerConnections implements DeliveryTransport {
 
     requestBrowser(
         computerId: string,
-        operation: HostedBrowserRequest['operation']
-    ): Promise<NonNullable<HostedBrowserResult['result']>> {
+        operation: BrowserRequest['operation']
+    ): Promise<NonNullable<BrowserResult['result']>> {
         const requestId = createOpaqueId('req');
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -306,7 +306,7 @@ export class ComputerConnections implements DeliveryTransport {
         });
     }
 
-    acceptBrowserResult(computerId: string, result: HostedBrowserResult): boolean {
+    acceptBrowserResult(computerId: string, result: BrowserResult): boolean {
         const pending = this.pendingBrowserRequests.get(result.requestId);
         if (!pending || pending.computerId !== computerId) {
             return false;
@@ -324,7 +324,7 @@ export class ComputerConnections implements DeliveryTransport {
     requestExecutionJournal(
         computerId: string,
         input: { agentId: string; runId: string; serverId: string }
-    ): Promise<HostedAgentExecutionJournalResult> {
+    ): Promise<AgentExecutionJournalResult> {
         const requestId = createOpaqueId('req');
         const computer = this.attached.get(computerId);
         if (!(computer?.serverId === input.serverId && this.isOnline(computerId))) {
@@ -379,10 +379,7 @@ export class ComputerConnections implements DeliveryTransport {
         });
     }
 
-    acceptExecutionJournalResult(
-        computerId: string,
-        result: HostedAgentExecutionJournalResult
-    ): boolean {
+    acceptExecutionJournalResult(computerId: string, result: AgentExecutionJournalResult): boolean {
         const pending = this.pendingExecutionJournalRequests.get(result.requestId);
         if (
             !pending ||

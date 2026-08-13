@@ -1,4 +1,4 @@
-import type { HostedAttachmentMetadata } from '@tavern/api';
+import type { AttachmentMetadata } from '@tavern/api';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
@@ -123,7 +123,7 @@ export async function readMessageAttachments(
     serverId: string,
     messageIds: string[]
 ) {
-    const byMessage = new Map<string, HostedAttachmentMetadata[]>();
+    const byMessage = new Map<string, AttachmentMetadata[]>();
     if (messageIds.length === 0) {
         return byMessage;
     }

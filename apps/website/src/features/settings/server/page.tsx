@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ServerSummary } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
-import { HostedDeleteDialog } from '../../../routes/app/hosted-delete-dialog.tsx';
+import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import {
     SettingsGroup,
     SettingsPage,
@@ -61,7 +61,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                         </SettingsRow>
                     </SettingsGroup>
                     {deleting ? (
-                        <HostedDeleteDialog
+                        <DeleteDialog
                             confirmation={server.slug}
                             description="This immediately disables the Server and permanently deletes its hosted data. Offline Computers do not block deletion."
                             onConfirm={() =>

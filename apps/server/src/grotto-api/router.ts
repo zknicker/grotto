@@ -1,7 +1,7 @@
 import { agentRouter } from './agent/router.ts';
 import { attachmentRouter } from './attachment/router.ts';
 import { avatarRouter } from './avatar/router.ts';
-import { hostedBrowserRouter } from './browser/router.ts';
+import { browserRouter } from './browser/router.ts';
 import { chatRouter } from './chat/router.ts';
 import { computerRouter } from './computer/router.ts';
 import { devRouter } from './dev/router.ts';
@@ -23,7 +23,7 @@ export const grottoRouter = createRouter({
     agent: agentRouter,
     attachment: attachmentRouter,
     avatar: avatarRouter,
-    browser: hostedBrowserRouter,
+    browser: browserRouter,
     chat: chatRouter,
     computer: computerRouter,
     dev: devRouter,

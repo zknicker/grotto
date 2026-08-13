@@ -1,6 +1,6 @@
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 
-export function createAgentHandle(name: string, agents: readonly Pick<HostedAgent, 'handle'>[]) {
+export function createAgentHandle(name: string, agents: readonly Pick<Agent, 'handle'>[]) {
     const normalized =
         name
             .normalize('NFKD')

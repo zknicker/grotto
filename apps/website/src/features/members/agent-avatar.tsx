@@ -1,13 +1,11 @@
 import { Badge } from '@heroui/react';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import type React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { cn } from '../../lib/utils.ts';
 
-/** Hosted availability mapped onto the stock Badge colour vocabulary. */
-export function hostedAvailabilityBadgeColor(
-    availability: HostedAgent['availability'] | undefined
-) {
+/**  availability mapped onto the stock Badge colour vocabulary. */
+export function availabilityBadgeColor(availability: Agent['availability'] | undefined) {
     switch (availability) {
         case 'idle':
             return 'success' as const;
@@ -20,7 +18,7 @@ export function hostedAvailabilityBadgeColor(
     }
 }
 
-export function hostedAvailabilityLabel(availability: HostedAgent['availability'] | undefined) {
+export function availabilityLabel(availability: Agent['availability'] | undefined) {
     switch (availability) {
         case 'idle':
             return 'Online';
@@ -48,10 +46,10 @@ export function AgentAvatar({
     size = 20,
 }: {
     agent: {
-        availability?: HostedAgent['availability'];
-        avatarUrl: HostedAgent['avatarUrl'];
-        displayName: HostedAgent['displayName'];
-        id?: HostedAgent['id'];
+        availability?: Agent['availability'];
+        avatarUrl: Agent['avatarUrl'];
+        displayName: Agent['displayName'];
+        id?: Agent['id'];
     };
     className?: string;
     size?: number;
@@ -73,10 +71,10 @@ export function AgentAvatar({
                         availability !== 'error' &&
                         'bg-muted'
                 )}
-                color={hostedAvailabilityBadgeColor(availability)}
+                color={availabilityBadgeColor(availability)}
                 placement="bottom-right"
                 size="sm"
-                title={hostedAvailabilityLabel(availability) ?? undefined}
+                title={availabilityLabel(availability) ?? undefined}
             />
         </Badge.Anchor>
     );

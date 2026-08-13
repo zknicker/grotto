@@ -1,14 +1,14 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
-import type { HostedServerContextValue } from '../../features/servers/hosted-server-context.ts';
-import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
+import type { ServerContextValue } from '../../features/servers/server-context.ts';
+import { useServerContext } from '../../features/servers/server-context.ts';
 import { MembersPage } from './members-page.tsx';
 
 test('Members forwards the Server route context to profile routes', () => {
     const context = {
         server: { slug: 'dev' },
-    } as HostedServerContextValue;
+    } as ServerContextValue;
 
     expect(() =>
         renderToStaticMarkup(
@@ -28,6 +28,6 @@ test('Members forwards the Server route context to profile routes', () => {
 });
 
 function ServerProbe() {
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     return <span>{server.slug}</span>;
 }

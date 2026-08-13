@@ -1,4 +1,4 @@
-import type { HostedChat } from '@tavern/api';
+import type { Chat } from '@tavern/api';
 import { resolveEntryChat } from '../../features/servers/server-choice.ts';
 import {
     serverChatRoute,
@@ -25,11 +25,7 @@ export function shouldShowSidebar(active: AppRailSection, canOperate: boolean) {
     return active !== 'computers' || canOperate;
 }
 
-export function resolveChatSectionRoute(
-    chats: HostedChat[],
-    lastChatId: string | null,
-    slug: string
-) {
+export function resolveChatSectionRoute(chats: Chat[], lastChatId: string | null, slug: string) {
     const chat = resolveEntryChat(chats, lastChatId);
     return chat ? serverChatRoute(slug, chat.id) : serverRoute(slug);
 }

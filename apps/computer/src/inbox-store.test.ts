@@ -13,7 +13,7 @@ import {
     reofferPendingMessages,
     replacePendingInbox,
 } from './inbox-store.ts';
-import type { HostedAgentInboxItem } from './launch.ts';
+import type { AgentInboxItem } from './launch.ts';
 
 let dataRoot: string;
 const location = () => ({
@@ -166,7 +166,7 @@ test('does not hold the inbox lock while live notice delivery waits', async () =
     ).rejects.toMatchObject({ code: 'ENOENT' });
 });
 
-function item(id: string, target: string, sequence: number): HostedAgentInboxItem {
+function item(id: string, target: string, sequence: number): AgentInboxItem {
     return {
         chatId: 'cht_inbox',
         content: `message ${sequence}`,

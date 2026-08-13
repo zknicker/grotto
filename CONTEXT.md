@@ -30,7 +30,7 @@ can be referenced or used across Computers, including attachments on the same ph
 MCP connections and grants belong to Grotto Server instead. A Grotto server may have multiple
 Computers; one physical machine may have a separate Computer attachment in multiple Grotto
 servers. The physical installation shares only installed software and native runtime/model access.
-_Avoid_: Grotto server, tenant, Grotto Computer installation, agent runtime, model provider
+_Avoid_: Hosted Computer, Grotto server, tenant, Grotto Computer installation, agent runtime, model provider
 
 **Grotto Computer**:
 The local service installation that connects a physical machine to zero or more Grotto servers and
@@ -166,7 +166,7 @@ _Avoid_: Human session, Agent credential, provider credential, shared Runtime to
 **Server member**:
 A human User or Agent with standing access to one Grotto server. Server membership governs
 server-wide identity and role; participation in a specific Chat is a separate relationship.
-_Avoid_: Chat participant, Clerk user, Computer, external actor
+_Avoid_: Hosted Server member, Chat participant, Clerk user, Computer, external actor
 
 **User**:
 A persistent human identity in Grotto that may hold membership in multiple Grotto servers. Clerk
@@ -190,7 +190,7 @@ A persistent non-human Server member whose collaboration identity belongs to one
 An Agent is created on one Computer, where its workspace and execution state live; that assignment
 never changes. An offline Computer leaves the Agent offline, and the Computer cannot be removed
 until the Agent is explicitly deleted.
-_Avoid_: Agent session, Agent turn, executor, Computer
+_Avoid_: Hosted Agent, Agent session, Agent turn, executor, Computer
 
 **Agent handle**:
 The Server-scoped alias used to address one active Agent. A retired Agent keeps its historical
@@ -225,7 +225,7 @@ _Avoid_: Execution trace, Chat message, model-context compaction
 **Chat**:
 A durable Grotto conversation container, shaped like a channel or DM, where humans, agents, system
 actors, and external actors can participate.
-_Avoid_: Agent session, thread, executor channel, transcript
+_Avoid_: Hosted Chat, Agent session, thread, executor channel, transcript
 
 **Channel**:
 A named multi-participant Chat in a Grotto workspace.
@@ -388,7 +388,7 @@ A Grotto Server-owned configured instance of a remote HTTP Model Context Protoco
 including authentication, account identity, connection state, and discovered tools. Multiple
 connections may target the same server for different accounts. Server invokes granted calls
 without exposing credentials to Agents or Computers.
-_Avoid_: local process, stdio transport, Tool, Channel, Plugin
+_Avoid_: Hosted MCP connection, local process, stdio transport, Tool, Channel, Plugin
 
 **MCP tool grant**:
 An Agent-level policy that enables one whole MCP connection during Agent turns. Every current tool

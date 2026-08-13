@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-import { HostedMcpDeniedError, HostedMcpUpstreamError } from '../hosted-mcp/errors.ts';
-import type { HostedMcpRuntime } from '../hosted-mcp/runtime.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import { McpDeniedError, McpUpstreamError } from '../server-mcp/errors.ts';
+import type { McpRuntime } from '../server-mcp/runtime.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 
 const invocationSchema = z
@@ -14,7 +14,7 @@ const invocationSchema = z
 
 export function registerAgentMcpRoutes(
     app: FastifyInstance,
-    options: { db: GrottoDatabase; runtime: HostedMcpRuntime }
+    options: { db: GrottoDatabase; runtime: McpRuntime }
 ) {
     app.get('/api/agent/mcp/tools', async (request, reply) => {
         const runner = await authorizeAgentRunner(options.db, request);
@@ -56,10 +56,10 @@ export function registerAgentMcpRoutes(
                 }),
             };
         } catch (cause) {
-            if (cause instanceof HostedMcpDeniedError) {
+            if (cause instanceof McpDeniedError) {
                 return sendAgentApiError(reply, 403, cause.code, cause.message);
             }
-            if (cause instanceof HostedMcpUpstreamError) {
+            if (cause instanceof McpUpstreamError) {
                 return sendAgentApiError(
                     reply,
                     cause.code === 'MCP_TIMEOUT' ? 504 : 502,

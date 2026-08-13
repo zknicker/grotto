@@ -38,8 +38,8 @@ mock.module('../auth/sign-in-gate.tsx', () => ({
     ),
 }));
 
-mock.module('./hosted-server-event-listeners.tsx', () => ({
-    HostedServerEventListeners: () => <div data-testid="hosted-server-event-listeners" />,
+mock.module('./server-event-listeners.tsx', () => ({
+    ServerEventListeners: () => <div data-testid="server-event-listeners" />,
 }));
 
 const { GrottoServerRoutes } = await import('./grotto-server-routes.tsx');
@@ -58,5 +58,5 @@ test('mounts authenticated hosted state inside the sign-in gate', () => {
     expect(markup).toContain(
         '<div data-testid="dev-auto-sign-in"></div><div data-testid="sign-in-gate"><div data-testid="grotto-server-provider">'
     );
-    expect(markup).toContain('hosted-server-event-listeners');
+    expect(markup).toContain('server-event-listeners');
 });

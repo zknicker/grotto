@@ -1,35 +1,35 @@
 import {
-    hostedMcpConnectionCreateSchema,
-    hostedMcpConnectionInputSchema,
-    hostedMcpConnectionListInputSchema,
-    hostedMcpConnectionListSchema,
-    hostedMcpConnectionSchema,
-    hostedMcpGrantInputSchema,
-    hostedMcpGrantSchema,
-    hostedMcpHeadersUpdateSchema,
-    hostedMcpOAuthStartResultSchema,
-    hostedMcpOAuthStartSchema,
-    hostedMcpPresetAccountCreateSchema,
+    mcpConnectionCreateSchema,
+    mcpConnectionInputSchema,
+    mcpConnectionListInputSchema,
+    mcpConnectionListSchema,
+    mcpConnectionSchema,
+    mcpGrantInputSchema,
+    mcpGrantSchema,
+    mcpHeadersUpdateSchema,
+    mcpOAuthStartResultSchema,
+    mcpOAuthStartSchema,
+    mcpPresetAccountCreateSchema,
 } from '@tavern/api';
 import { TRPCError } from '@trpc/server';
-import { HostedMcpDeniedError } from '../../hosted-mcp/errors.ts';
-import { createHostedMcpPresetAccount } from '../../hosted-mcp/presets.ts';
+import { McpDeniedError } from '../../server-mcp/errors.ts';
+import { createMcpPresetAccount } from '../../server-mcp/presets.ts';
 import {
-    createHostedMcpConnection,
-    deleteHostedMcpConnection,
-    disconnectHostedMcpConnection,
-    refreshHostedMcpConnection,
-    replaceHostedMcpHeaders,
-    startHostedMcpOAuth,
-} from '../../hosted-mcp/service.ts';
-import { listHostedMcpConnections, setHostedMcpGrant } from '../../hosted-mcp/state.ts';
+    createMcpConnection,
+    deleteMcpConnection,
+    disconnectMcpConnection,
+    refreshMcpConnection,
+    replaceMcpHeaders,
+    startMcpOAuth,
+} from '../../server-mcp/service.ts';
+import { listMcpConnections, setMcpGrant } from '../../server-mcp/state.ts';
 import { memberProcedure } from '../server/procedure.ts';
 import { emitServerUpdated } from '../server-events.ts';
 import { createRouter } from '../trpc.ts';
 
 const guarded = memberProcedure.use(async ({ next }) => {
     const result = await next();
-    if (!result.ok && result.error.cause instanceof HostedMcpDeniedError) {
+    if (!result.ok && result.error.cause instanceof McpDeniedError) {
         throw new TRPCError({
             cause: result.error.cause,
             code: 'FORBIDDEN',
@@ -41,77 +41,69 @@ const guarded = memberProcedure.use(async ({ next }) => {
 
 export const mcpRouter = createRouter({
     add: guarded
-        .input(hostedMcpConnectionCreateSchema)
-        .output(hostedMcpConnectionSchema)
+        .input(mcpConnectionCreateSchema)
+        .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                createHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+                createMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
             )
         ),
     addPresetAccount: guarded
-        .input(hostedMcpPresetAccountCreateSchema)
-        .output(hostedMcpConnectionSchema)
+        .input(mcpPresetAccountCreateSchema)
+        .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                createHostedMcpPresetAccount(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+                createMcpPresetAccount(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
             )
         ),
     delete: guarded
-        .input(hostedMcpConnectionInputSchema)
-        .output(hostedMcpConnectionSchema)
+        .input(mcpConnectionInputSchema)
+        .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                deleteHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+                deleteMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
             )
         ),
     disconnect: guarded
-        .input(hostedMcpConnectionInputSchema)
-        .output(hostedMcpConnectionSchema)
+        .input(mcpConnectionInputSchema)
+        .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                disconnectHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+                disconnectMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
             )
         ),
     list: guarded
-        .input(hostedMcpConnectionListInputSchema)
-        .output(hostedMcpConnectionListSchema)
-        .query(({ ctx, input }) =>
-            listHostedMcpConnections(ctx.grottoDb, ctx.member, input.serverId)
-        ),
+        .input(mcpConnectionListInputSchema)
+        .output(mcpConnectionListSchema)
+        .query(({ ctx, input }) => listMcpConnections(ctx.grottoDb, ctx.member, input.serverId)),
     refresh: guarded
-        .input(hostedMcpConnectionInputSchema)
-        .output(hostedMcpConnectionSchema)
+        .input(mcpConnectionInputSchema)
+        .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                refreshHostedMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+                refreshMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
             )
         ),
     replaceHeaders: guarded
-        .input(hostedMcpHeadersUpdateSchema)
-        .output(hostedMcpConnectionSchema)
+        .input(mcpHeadersUpdateSchema)
+        .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                replaceHostedMcpHeaders(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+                replaceMcpHeaders(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
             )
         ),
     setGrant: guarded
-        .input(hostedMcpGrantInputSchema)
-        .output(hostedMcpGrantSchema)
+        .input(mcpGrantInputSchema)
+        .output(mcpGrantSchema)
         .mutation(({ ctx, input }) =>
-            withMcpUpdate(input.serverId, () => setHostedMcpGrant(ctx.grottoDb, ctx.member, input))
+            withMcpUpdate(input.serverId, () => setMcpGrant(ctx.grottoDb, ctx.member, input))
         ),
     startOAuth: guarded
-        .input(hostedMcpOAuthStartSchema)
-        .output(hostedMcpOAuthStartResultSchema)
+        .input(mcpOAuthStartSchema)
+        .output(mcpOAuthStartResultSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                startHostedMcpOAuth(
-                    ctx.grottoDb,
-                    ctx.mcpRuntime,
-                    ctx.mcpOAuthRelay,
-                    ctx.member,
-                    input
-                )
+                startMcpOAuth(ctx.grottoDb, ctx.mcpRuntime, ctx.mcpOAuthRelay, ctx.member, input)
             )
         ),
 });

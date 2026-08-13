@@ -1,4 +1,4 @@
-import { hostedRunnerMintRequestSchema, hostedRunnerRevokeRequestSchema } from '@tavern/api';
+import { runnerMintRequestSchema, runnerRevokeRequestSchema } from '@tavern/api';
 import type { FastifyInstance } from 'fastify';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { attachComputer, ComputerAttachmentError } from './attachment-service.ts';
@@ -105,7 +105,7 @@ export function registerComputerRoutes(
     });
     app.post('/computer/runner/mint', async (request, reply) => {
         try {
-            const input = hostedRunnerMintRequestSchema.parse(request.body);
+            const input = runnerMintRequestSchema.parse(request.body);
             return await mintRunnerCredential(options.db, input);
         } catch (cause) {
             return setupError(reply, cause);
@@ -113,7 +113,7 @@ export function registerComputerRoutes(
     });
     app.post('/computer/runner/revoke', async (request, reply) => {
         try {
-            const input = hostedRunnerRevokeRequestSchema.parse(request.body);
+            const input = runnerRevokeRequestSchema.parse(request.body);
             return await revokeRunnerCredential(options.db, input);
         } catch (cause) {
             return setupError(reply, cause);

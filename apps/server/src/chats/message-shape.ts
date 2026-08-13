@@ -1,4 +1,4 @@
-import type { HostedAttachmentMetadata, HostedChatMessage } from '@tavern/api';
+import type { AttachmentMetadata, ChatMessage } from '@tavern/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 interface StoredChatMessage {
@@ -57,11 +57,11 @@ export function readStoredAuthorProfile(
     return undefined;
 }
 
-export function toHostedChatMessage(
+export function toChatMessage(
     message: StoredChatMessage,
-    attachments: HostedAttachmentMetadata[] = [],
+    attachments: AttachmentMetadata[] = [],
     authorProfile?: StoredChatMessageAuthorProfile
-): HostedChatMessage {
+): ChatMessage {
     return {
         attachments,
         author: readAuthor(message, authorProfile),
@@ -79,7 +79,7 @@ export function toHostedChatMessage(
 function readAuthor(
     message: StoredChatMessage,
     profile?: StoredChatMessageAuthorProfile
-): HostedChatMessage['author'] {
+): ChatMessage['author'] {
     if (message.systemAuthor === 'reminder') {
         return { kind: 'system', system: 'reminder' };
     }

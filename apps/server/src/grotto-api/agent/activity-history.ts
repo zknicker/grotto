@@ -1,15 +1,12 @@
-import {
-    hostedAgentActivityHistoryInputSchema,
-    hostedAgentActivityHistoryPageSchema,
-} from '@tavern/api';
-import { listHostedAgentActivityHistory } from '../../hosted-agents/agent-activity-history.ts';
+import { agentActivityHistoryInputSchema, agentActivityHistoryPageSchema } from '@tavern/api';
+import { listAgentActivityHistory } from '../../server-agents/agent-activity-history.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const agentActivityHistoryProcedure = memberProcedure
-    .input(hostedAgentActivityHistoryInputSchema)
-    .output(hostedAgentActivityHistoryPageSchema)
+    .input(agentActivityHistoryInputSchema)
+    .output(agentActivityHistoryPageSchema)
     .query(async ({ ctx, input }) => {
         await requireServerMembership(ctx.grottoDb, ctx.member, input.serverId);
-        return await listHostedAgentActivityHistory(ctx.grottoDb, input);
+        return await listAgentActivityHistory(ctx.grottoDb, input);
     });

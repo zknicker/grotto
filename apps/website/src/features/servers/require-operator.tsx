@@ -1,5 +1,5 @@
 import { EmptyState } from '@heroui-pro/react';
-import type { ServerRole } from '@tavern/api/hosted-membership';
+import type { ServerRole } from '@tavern/api/membership';
 import type React from 'react';
 
 /**

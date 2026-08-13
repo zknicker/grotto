@@ -1,6 +1,6 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import { and, eq } from 'drizzle-orm';
-import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
+import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatsTable } from '../postgres/schema.ts';
@@ -18,8 +18,8 @@ export async function insertReminderChangedEvent(
         sequence: number;
         serverId: string;
     }
-): Promise<HostedDurableEvent> {
-    const cursor = await allocateHostedEventCursor(db, input.serverId);
+): Promise<ServerDurableEvent> {
+    const cursor = await allocateEventCursor(db, input.serverId);
     const [event] = await db
         .insert(chatEventsTable)
         .values({

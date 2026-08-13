@@ -5,9 +5,9 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { loadAppReleaseEnvironment } from './app-release-environment.mjs';
 import { checkComputerReleasePrerequisite } from './check-computer-prerequisite.mjs';
 import { findGrottoServerReleaseAssets } from './grotto-server-release-assets.mjs';
-import { loadHostedAppReleaseEnvironment } from './hosted-app-release-environment.mjs';
 import { releasePublishesSurface } from './release-surfaces.mjs';
 import { fail, isSemver, readFlagValue, readJson, readText, repoRoot } from './release-utils.mjs';
 
@@ -28,7 +28,7 @@ const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
 const serverReleaseRoot = path.join(repoRoot, 'apps', 'server', 'release');
 
 const main = async () => {
-    loadHostedAppReleaseEnvironment();
+    loadAppReleaseEnvironment();
     const version = await readReleaseVersion();
     const tagName = `v${version}`;
 

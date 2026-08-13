@@ -1,5 +1,5 @@
 import EventEmitter, { on } from 'node:events';
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 
 const eventName = 'chat.durable';
 const emitter = new EventEmitter();
@@ -8,7 +8,7 @@ emitter.setMaxListeners(0);
 
 export interface DurableChatNotification {
     audienceUserId: string | null;
-    event: HostedDurableEvent;
+    event: ServerDurableEvent;
 }
 
 export function emitDurableChatEvent(notification: DurableChatNotification) {

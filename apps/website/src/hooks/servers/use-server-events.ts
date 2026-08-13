@@ -1,6 +1,6 @@
-import type { HostedServerUpdatedEvent } from '@tavern/api';
+import type { ServerUpdatedEvent } from '@tavern/api';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
-import { cachesClearedOnMembershipLoss } from './hosted-membership-caches.ts';
+import { cachesClearedOnMembershipLoss } from './membership-caches.ts';
 import { isMembershipLoss } from './membership-loss.ts';
 
 /**
@@ -48,7 +48,7 @@ type ServerEventUtils = ReturnType<typeof grottoTrpc.useUtils>;
  * event's own precision: present when the change belongs to one Agent or one
  * human, absent when it is broad enough that the whole scope must refresh.
  */
-type ServerUpdateNotice = Pick<HostedServerUpdatedEvent, 'agentId' | 'memberId' | 'scope'>;
+type ServerUpdateNotice = Pick<ServerUpdatedEvent, 'agentId' | 'memberId' | 'scope'>;
 
 /**
  * Each subscription watches one Server, so `slug` names the only Server detail

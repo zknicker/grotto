@@ -1,15 +1,15 @@
-import { hostedAgentListInputSchema, hostedAgentListSchema } from '@tavern/api';
+import { agentListInputSchema, agentListSchema } from '@tavern/api';
 import { TRPCError } from '@trpc/server';
-import { AgentConfigDeniedError } from '../../hosted-agents/agent-config-errors.ts';
-import { listHostedAgents } from '../../hosted-agents/list-agents.ts';
+import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
+import { listAgents } from '../../server-agents/list-agents.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const listAgentsProcedure = memberProcedure
-    .input(hostedAgentListInputSchema)
-    .output(hostedAgentListSchema)
+    .input(agentListInputSchema)
+    .output(agentListSchema)
     .query(async ({ ctx, input }) => {
         try {
-            return await listHostedAgents(ctx.grottoDb, ctx.member, input.serverId);
+            return await listAgents(ctx.grottoDb, ctx.member, input.serverId);
         } catch (cause) {
             if (cause instanceof AgentConfigDeniedError) {
                 throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });

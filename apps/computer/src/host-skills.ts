@@ -2,11 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { lstat, mkdir, readdir, readFile, realpath, rename, rm, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, join } from 'node:path';
-import type {
-    HostedAgentSkillImportCommand,
-    HostedAgentSkillMetadata,
-    HostedImportableSkill,
-} from '@tavern/api';
+import type { AgentSkillImportCommand, AgentSkillMetadata, ImportableSkill } from '@tavern/api';
 import {
     copySkillBundle,
     readSkillBundle,
@@ -21,24 +17,24 @@ export {
     listAgentSkillImportReports,
 } from './host-skill-import-store.ts';
 
-interface HostSkillSource extends HostedImportableSkill {
+interface HostSkillSource extends ImportableSkill {
     directory: string;
 }
 
-export function parseAgentSkillImportCommand(frame: unknown): HostedAgentSkillImportCommand | null {
+export function parseAgentSkillImportCommand(frame: unknown): AgentSkillImportCommand | null {
     if (
         !isRecord(frame) ||
         frame.type !== 'agent-skill-import' ||
-        ![frame.agentId, frame.requestId, frame.sourceId].every(isHostedId)
+        ![frame.agentId, frame.requestId, frame.sourceId].every(isId)
     ) {
         return null;
     }
-    return frame as unknown as HostedAgentSkillImportCommand;
+    return frame as unknown as AgentSkillImportCommand;
 }
 
 export async function listImportableSkills(
     roots = defaultImportRoots()
-): Promise<HostedImportableSkill[]> {
+): Promise<ImportableSkill[]> {
     return (await scanHostSkills(roots)).map(({ directory: _, ...metadata }) => metadata);
 }
 
@@ -47,7 +43,7 @@ export async function listAgentSkillReports(dataRoot: string, serverId: string) 
     const agents = await readdir(agentsRoot, { withFileTypes: true }).catch(() => []);
     return await Promise.all(
         agents
-            .filter((entry) => entry.isDirectory() && isHostedId(entry.name))
+            .filter((entry) => entry.isDirectory() && isId(entry.name))
             .sort((left, right) => left.name.localeCompare(right.name))
             .map(async (entry) => ({
                 agentId: entry.name,
@@ -62,7 +58,7 @@ export async function importHostSkill(input: {
     roots?: string[];
     serverId: string;
     sourceId: string;
-}): Promise<HostedAgentSkillMetadata> {
+}): Promise<AgentSkillMetadata> {
     const source = (await scanHostSkills(input.roots ?? defaultImportRoots())).find(
         (candidate) => candidate.id === input.sourceId
     );
@@ -144,7 +140,7 @@ async function scanHostSkills(roots: string[]): Promise<HostSkillSource[]> {
 async function listSkillMetadata(
     skillsDir: string,
     onlyName?: string
-): Promise<HostedAgentSkillMetadata[]> {
+): Promise<AgentSkillMetadata[]> {
     const entries = await readdir(skillsDir, { withFileTypes: true }).catch(() => []);
     const metadata = await Promise.all(
         entries
@@ -184,7 +180,7 @@ async function listSkillMetadata(
             })
     );
     return metadata
-        .filter((item): item is HostedAgentSkillMetadata => item !== null)
+        .filter((item): item is AgentSkillMetadata => item !== null)
         .sort((left, right) => left.name.localeCompare(right.name));
 }
 
@@ -206,7 +202,7 @@ function shortPath(path: string) {
     return path.startsWith(`${home}/`) ? `~/${path.slice(home.length + 1)}` : path;
 }
 
-function isHostedId(value: unknown) {
+function isId(value: unknown) {
     return typeof value === 'string' && /^[a-z]+_[A-Za-z0-9_-]{16}$/u.test(value);
 }
 

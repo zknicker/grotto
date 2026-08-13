@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import type {
-    HostedAgentActivityEvent,
-    HostedAgentExecutionJournal,
-    HostedAgentExecutionJournalResult,
+    AgentActivityEvent,
+    AgentExecutionJournal,
+    AgentExecutionJournalResult,
 } from '@tavern/api';
 import {
     formatAgentActivityDiagnosticInfo,
@@ -141,9 +141,7 @@ test('execution journal requests require an explicit privileged open and real ru
     );
 });
 
-function activityEvent(
-    overrides: Partial<HostedAgentActivityEvent> = {}
-): HostedAgentActivityEvent {
+function activityEvent(overrides: Partial<AgentActivityEvent> = {}): AgentActivityEvent {
     return {
         agentId: 'agent_one',
         category: 'working',
@@ -161,8 +159,8 @@ function activityEvent(
 }
 
 function availableJournal(
-    overrides: { journal?: Partial<HostedAgentExecutionJournal> } = {}
-): HostedAgentExecutionJournalResult {
+    overrides: { journal?: Partial<AgentExecutionJournal> } = {}
+): AgentExecutionJournalResult {
     const journal = overrides.journal ?? {};
     return {
         agentId: 'agent_one',
@@ -173,7 +171,7 @@ function availableJournal(
             startedAt: '2026-08-11T12:00:00.000Z',
             status: journal.status ?? 'completed',
             tools: journal.tools ?? [],
-        } as HostedAgentExecutionJournal,
+        } as AgentExecutionJournal,
         requestId: 'request_one',
         runId: 'run_one',
         status: 'available',

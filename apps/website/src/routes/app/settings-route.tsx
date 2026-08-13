@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
+import { useServerContext } from '../../features/servers/server-context.ts';
 import { serverComputersRoute } from '../../features/servers/server-routes.ts';
 import { AppearanceSettings } from '../../features/settings/appearance/page.tsx';
 import { BrowserSettingsPage } from '../../features/settings/browser/page.tsx';
@@ -10,7 +10,7 @@ import { ProfileSettings } from '../../features/settings/profile/page.tsx';
 import { ServerSettings } from '../../features/settings/server/page.tsx';
 import { UpdatesSettings } from '../../features/settings/updates/page.tsx';
 import { SkillsSettings } from '../../features/skills/skills-settings.tsx';
-import { HostedStatsSettings } from '../../features/stats/hosted-stats.tsx';
+import { StatsSettings } from '../../features/stats/stats.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 
 interface SectionContext {
@@ -26,7 +26,7 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,
     server: ({ server }) => <ServerSettings server={server} />,
     skills: ({ server }) => <SkillsSettings serverId={server.id} />,
-    stats: ({ server }) => <HostedStatsSettings serverId={server.id} />,
+    stats: ({ server }) => <StatsSettings serverId={server.id} />,
     updates: ({ server }) => (
         <UpdatesSettings computerSettingsHref={serverComputersRoute(server.slug)} />
     ),
@@ -34,7 +34,7 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
 
 export function SettingsSectionRoute() {
     const { section = 'appearance' } = useParams();
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const render = sections[section];
     if (!render) {
         return <Navigate replace to="../appearance" />;

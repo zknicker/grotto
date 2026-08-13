@@ -1,6 +1,6 @@
 import { Chip } from '@heroui/react';
 import { ShieldUserIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { ServerMember } from '@tavern/api/hosted-membership';
+import type { ServerMember } from '@tavern/api/membership';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';

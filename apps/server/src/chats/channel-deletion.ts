@@ -9,7 +9,7 @@ interface DeletedChannelTarget {
     serverId: string;
 }
 
-export async function purgeDeletedHostedChannels(db: GrottoDatabase, root: AttachmentRoot) {
+export async function purgeDeletedChannels(db: GrottoDatabase, root: AttachmentRoot) {
     const channels = await db
         .select({ chatId: chatsTable.id, serverId: chatsTable.serverId })
         .from(chatsTable)
@@ -21,11 +21,11 @@ export async function purgeDeletedHostedChannels(db: GrottoDatabase, root: Attac
             )
         );
     for (const channel of channels) {
-        await purgeDeletedHostedChannel(db, root, channel);
+        await purgeDeletedChannel(db, root, channel);
     }
 }
 
-export async function purgeDeletedHostedChannel(
+export async function purgeDeletedChannel(
     db: GrottoDatabase,
     root: AttachmentRoot,
     input: DeletedChannelTarget

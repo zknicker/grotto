@@ -1,8 +1,8 @@
 import type {
-    HostedAgent,
-    HostedAgentSkillImportRecord,
-    HostedAgentSkillMetadata,
-    HostedImportableSkill,
+    Agent,
+    AgentSkillImportRecord,
+    AgentSkillMetadata,
+    ImportableSkill,
 } from '@tavern/api';
 import * as React from 'react';
 import { useSkillImport } from '../../../hooks/members/use-skill-import.ts';
@@ -18,14 +18,14 @@ export function AgentSkills({
     skillSources,
     skills,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     canEdit: boolean;
-    imports: HostedAgentSkillImportRecord[];
+    imports: AgentSkillImportRecord[];
     server: ServerDetail;
-    skillSources: HostedImportableSkill[];
-    skills: HostedAgentSkillMetadata[];
+    skillSources: ImportableSkill[];
+    skills: AgentSkillMetadata[];
 }) {
-    const [selectedSkill, setSelectedSkill] = React.useState<HostedAgentSkillMetadata | null>(null);
+    const [selectedSkill, setSelectedSkill] = React.useState<AgentSkillMetadata | null>(null);
     const importSkill = useSkillImport(server.id, agent.id);
 
     return (
@@ -55,16 +55,13 @@ export function AgentSkills({
     );
 }
 
-export function selectAddableSkills(
-    sources: HostedImportableSkill[],
-    owned: HostedAgentSkillMetadata[]
-) {
+export function selectAddableSkills(sources: ImportableSkill[], owned: AgentSkillMetadata[]) {
     const ownedNames = new Set(owned.map((skill) => skill.name));
     return sources.filter((source) => !ownedNames.has(source.name));
 }
 
-export function selectOutstandingImports(records: HostedAgentSkillImportRecord[], agentId: string) {
-    const latestBySource = new Map<string, HostedAgentSkillImportRecord>();
+export function selectOutstandingImports(records: AgentSkillImportRecord[], agentId: string) {
+    const latestBySource = new Map<string, AgentSkillImportRecord>();
     for (const record of records) {
         if (record.agentId !== agentId || latestBySource.has(record.sourceId)) {
             continue;

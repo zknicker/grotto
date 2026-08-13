@@ -56,7 +56,7 @@ export function WorkspaceBrowserContent({
     const [directoryLoadError, setDirectoryLoadError] = React.useState<string | null>(null);
     const initialDirectory = normalizeWorkspacePath(initialDirectoryPath);
     const utils = trpc.useUtils();
-    const hostedUtils = grottoTrpc.useUtils();
+    const serverUtils = grottoTrpc.useUtils();
     const fileSidebarWidth = useResizablePaneWidth({
         defaultWidth: 300,
         maxWidth: 440,
@@ -67,11 +67,11 @@ export function WorkspaceBrowserContent({
         { agentId, includeHidden, path: '' },
         { ...queryPolicy.agentRuntimeSnapshot, enabled: agentId.length > 0 && !serverId }
     );
-    const hostedFilesQuery = grottoTrpc.agent.workspaceFiles.useQuery(
+    const serverFilesQuery = grottoTrpc.agent.workspaceFiles.useQuery(
         { agentId, includeHidden, path: '', serverId: serverId ?? '' },
         { ...queryPolicy.agentRuntimeSnapshot, enabled: agentId.length > 0 && Boolean(serverId) }
     );
-    const filesQuery = serverId ? hostedFilesQuery : localFilesQuery;
+    const filesQuery = serverId ? serverFilesQuery : localFilesQuery;
     const entriesByDirectory = React.useMemo(
         () => ({
             ...loadedEntriesByDirectory,
@@ -128,7 +128,7 @@ export function WorkspaceBrowserContent({
 
             try {
                 const result = serverId
-                    ? await hostedUtils.agent.workspaceFiles.fetch({
+                    ? await serverUtils.agent.workspaceFiles.fetch({
                           agentId,
                           includeHidden,
                           path: nextPath,
@@ -149,7 +149,7 @@ export function WorkspaceBrowserContent({
         },
         [
             agentId,
-            hostedUtils.agent.workspaceFiles,
+            serverUtils.agent.workspaceFiles,
             includeHidden,
             loadedEntriesByDirectory,
             serverId,
@@ -163,14 +163,14 @@ export function WorkspaceBrowserContent({
 
         if (serverId) {
             await Promise.all([
-                hostedUtils.agent.workspaceFiles.invalidate({
+                serverUtils.agent.workspaceFiles.invalidate({
                     agentId,
                     includeHidden,
                     path: '',
                     serverId,
                 }),
                 selectedPath
-                    ? hostedUtils.agent.workspaceFile.invalidate({
+                    ? serverUtils.agent.workspaceFile.invalidate({
                           agentId,
                           includeHidden,
                           path: selectedPath,
@@ -191,7 +191,7 @@ export function WorkspaceBrowserContent({
                   })
                 : Promise.resolve(),
         ]);
-    }, [agentId, hostedUtils, includeHidden, selectedPath, serverId, utils]);
+    }, [agentId, includeHidden, selectedPath, serverId, serverUtils, utils]);
 
     React.useEffect(() => {
         if (filesQuery.data && initialDirectory) {

@@ -1,8 +1,8 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 
-export type ChatEventType = HostedDurableEvent['type'];
+export type ChatEventType = ServerDurableEvent['type'];
 
-export type ChatEventOf<Type extends ChatEventType> = Extract<HostedDurableEvent, { type: Type }>;
+export type ChatEventOf<Type extends ChatEventType> = Extract<ServerDurableEvent, { type: Type }>;
 
 /**
  * One listener's pass over a drained batch: every event of its own types, in
@@ -18,7 +18,7 @@ export interface ChatEventRegistry {
      * Hands each listener the pass's events of its own types, one call per
      * listener per pass, so per-type coalescing survives a burst.
      */
-    dispatch: (events: readonly HostedDurableEvent[], serverId: string) => Promise<void>;
+    dispatch: (events: readonly ServerDurableEvent[], serverId: string) => Promise<void>;
     /** Registers one listener for its event types. Returns its unregister. */
     register: <Type extends ChatEventType>(
         types: readonly Type[],
@@ -28,7 +28,7 @@ export interface ChatEventRegistry {
 
 interface ChatEventRegistration {
     /** Takes the whole pass and keeps its own types, so no listener sees another's events. */
-    handler: (events: readonly HostedDurableEvent[], serverId: string) => Promise<void> | void;
+    handler: (events: readonly ServerDurableEvent[], serverId: string) => Promise<void> | void;
     types: ReadonlySet<ChatEventType>;
 }
 

@@ -3,7 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
-import type { HostedAgentSkillImportCommand, HostedAgentSkillImportRecord } from '@tavern/api';
+import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@tavern/api';
 import { runAgentCli } from './agent-cli.ts';
 import {
     applyAgentConfiguration,
@@ -83,9 +83,9 @@ import {
 } from './inbox-store.ts';
 import { detectInventory } from './inventory.ts';
 import {
+    type AgentStartCommand,
+    type AgentTurnFrame,
     type Attachment,
-    type HostedAgentStartCommand,
-    type HostedAgentTurnFrame,
     parseNoticeCommand,
     parseResetCommand,
     parseRestartCommand,
@@ -976,7 +976,7 @@ async function connect(attachment: Attachment) {
         );
         return operation;
     };
-    const startAgent = (command: HostedAgentStartCommand) => {
+    const startAgent = (command: AgentStartCommand) => {
         if (resettingAgents.has(command.agentId) || retiredAgents.has(command.agentId)) {
             return;
         }
@@ -1025,15 +1025,15 @@ async function connect(attachment: Attachment) {
                 })
         );
     };
-    const sendSkillImportRecord = (record: HostedAgentSkillImportRecord) => {
+    const sendSkillImportRecord = (record: AgentSkillImportRecord) => {
         if (socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ ...record, type: 'agent-skill-import-result' }));
         }
     };
     const applyAcceptedSkillImport = async (
-        record: Extract<HostedAgentSkillImportRecord, { status: 'accepted' }>
+        record: Extract<AgentSkillImportRecord, { status: 'accepted' }>
     ) => {
-        let settled: HostedAgentSkillImportRecord;
+        let settled: AgentSkillImportRecord;
         try {
             await runSettlements.wait(record.agentId);
             const skill = await importHostSkill({
@@ -1069,7 +1069,7 @@ async function connect(attachment: Attachment) {
         sendSkillImportRecord(settled);
         await sendComputerReport(socket, attachment.serverId, computerName);
     };
-    const acceptSkillImport = async (command: HostedAgentSkillImportCommand) => {
+    const acceptSkillImport = async (command: AgentSkillImportCommand) => {
         const record = await acceptHostSkillImport({
             command,
             dataRoot,
@@ -1508,7 +1508,7 @@ function safeSkillImportError(error: unknown) {
  */
 async function handleStartCommand(input: {
     attachment: Attachment;
-    command: HostedAgentStartCommand;
+    command: AgentStartCommand;
     computerName: string;
     controller: AbortController;
     clearActiveRun: () => Promise<void>;
@@ -1529,7 +1529,7 @@ async function handleStartCommand(input: {
     const startedAt = new Date().toISOString();
     const send = (frame: unknown) => socket.send(JSON.stringify(frame));
     const ack = () => send({ agentId: command.agentId, runId: command.runId, type: 'ack' });
-    const settle = async (summary: HostedAgentTurnFrame) => {
+    const settle = async (summary: AgentTurnFrame) => {
         send(summary);
         await writeRunMarker(dataRoot, {
             marker: { status: 'settled', summary },
@@ -1556,7 +1556,7 @@ async function handleStartCommand(input: {
                 command.runId
             );
         }
-        let summary: HostedAgentTurnFrame;
+        let summary: AgentTurnFrame;
         try {
             summary = await runAgentLaunch({
                 attachment,
@@ -1661,10 +1661,10 @@ function reportStateError(error: unknown) {
 }
 
 function launchCrashTurn(
-    command: HostedAgentStartCommand,
+    command: AgentStartCommand,
     startedAt: string,
     error: unknown
-): HostedAgentTurnFrame {
+): AgentTurnFrame {
     return {
         agentId: command.agentId,
         endedAt: new Date().toISOString(),

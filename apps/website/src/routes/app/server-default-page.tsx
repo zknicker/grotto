@@ -1,11 +1,11 @@
 import { Navigate } from 'react-router-dom';
-import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
 import { readLastChatId, resolveEntryChat } from '../../features/servers/server-choice.ts';
+import { useServerContext } from '../../features/servers/server-context.ts';
 import { serverChatRoute } from '../../features/servers/server-routes.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 
 export function ServerDefaultPage() {
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const chats = useChats(server.id);
 
     if (chats.isPending) {

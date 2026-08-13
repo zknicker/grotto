@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { HostedChatMessage } from '@tavern/api';
+import type { ChatMessage } from '@tavern/api';
 import { buildTranscriptEntries, getItemRunId } from '../../chats/chat-transcript-model.ts';
 import { mergeTaskAnchor, projectChatMessages } from './chat-message-model.ts';
 
@@ -21,7 +21,7 @@ test('projects hosted messages into the preserved transcript contract', () => {
             sizeBytes: 42,
         },
     ];
-    const agent: HostedChatMessage = {
+    const agent: ChatMessage = {
         ...message('message_agent', 2),
         author: { agentId: 'agent_one', kind: 'agent' },
         runId: 'run_agent',
@@ -75,13 +75,13 @@ test('projects hosted messages into the preserved transcript contract', () => {
 
 test('preserves one global Agent run identity when messages come from multiple Chats', () => {
     const runId = 'run_global';
-    const first: HostedChatMessage = {
+    const first: ChatMessage = {
         ...message('message_first', 1),
         author: { agentId: 'agent_one', kind: 'agent' },
         chatId: 'chat_first',
         runId,
     };
-    const second: HostedChatMessage = {
+    const second: ChatMessage = {
         ...message('message_second', 2),
         author: { agentId: 'agent_one', kind: 'agent' },
         chatId: 'chat_second',
@@ -97,7 +97,7 @@ test('preserves one global Agent run identity when messages come from multiple C
     ).toEqual([runId, runId]);
 });
 
-function message(id: string, sequence: number): HostedChatMessage {
+function message(id: string, sequence: number): ChatMessage {
     return {
         attachments: [],
         author: { kind: 'human', userId: 'user_one' },

@@ -1,4 +1,4 @@
-import type { HostedAttachmentInventory } from '@tavern/api';
+import type { AttachmentInventory } from '@tavern/api';
 import { asc, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
@@ -13,12 +13,12 @@ export class AttachmentInventoryDeniedError extends Error {
     }
 }
 
-export async function inventoryHostedServerAttachments(
+export async function inventoryServerAttachments(
     db: GrottoDatabase,
     root: AttachmentRoot,
     member: GrottoUser | null,
     serverId: string
-): Promise<HostedAttachmentInventory> {
+): Promise<AttachmentInventory> {
     const server = await requireServerMembership(db, member, serverId);
     if (server.role !== 'owner' && server.role !== 'admin') {
         throw new AttachmentInventoryDeniedError();

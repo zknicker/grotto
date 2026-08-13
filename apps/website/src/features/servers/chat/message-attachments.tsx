@@ -1,5 +1,5 @@
 import { Attachment01Icon, Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAttachmentMetadata } from '@tavern/api';
+import type { AttachmentMetadata } from '@tavern/api';
 import {
     Attachment,
     AttachmentAction,
@@ -17,9 +17,9 @@ export function MessageAttachments({
     disabled,
     onDownload,
 }: {
-    attachments: HostedAttachmentMetadata[];
+    attachments: AttachmentMetadata[];
     disabled: boolean;
-    onDownload: (attachment: HostedAttachmentMetadata) => void;
+    onDownload: (attachment: AttachmentMetadata) => void;
 }) {
     return (
         <AttachmentGroup>

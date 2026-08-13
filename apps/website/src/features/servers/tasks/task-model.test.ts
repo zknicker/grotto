@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { HostedAgent, HostedTaskListItem } from '@tavern/api';
+import type { Agent, TaskListItem } from '@tavern/api';
 import { humanDirectory } from '../human-identity.ts';
 import {
     filterTasks,
@@ -226,7 +226,7 @@ test('identifies a DM task by its peer', () => {
     ).toBe('Direct · Human r_peer');
 });
 
-function agent(): HostedAgent {
+function agent(): Agent {
     return {
         availability: 'idle',
         avatarUrl: '/api/avatars/avt_fen',
@@ -251,7 +251,7 @@ function agent(): HostedAgent {
     };
 }
 
-function item(): HostedTaskListItem {
+function item(): TaskListItem {
     return {
         chatKind: 'channel',
         chatName: 'all',

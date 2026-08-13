@@ -1,13 +1,10 @@
-import {
-    hostedAgentActivityEventSchema,
-    hostedAgentActivitySubscriptionInputSchema,
-} from '@tavern/api';
+import { agentActivityEventSchema, agentActivitySubscriptionInputSchema } from '@tavern/api';
 import { subscribeToCommittedAgentActivity } from '../../agent-delivery/activity-events.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const onAgentActivityProcedure = memberProcedure
-    .input(hostedAgentActivitySubscriptionInputSchema)
+    .input(agentActivitySubscriptionInputSchema)
     .use(async ({ ctx, input, next }) => {
         await requireServerMembership(ctx.grottoDb, ctx.member, input.serverId);
         return await next();
@@ -18,6 +15,6 @@ export const onAgentActivityProcedure = memberProcedure
                 continue;
             }
             await requireServerMembership(ctx.grottoDb, ctx.member, input.serverId);
-            yield hostedAgentActivityEventSchema.parse(event);
+            yield agentActivityEventSchema.parse(event);
         }
     });

@@ -1,6 +1,6 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import { and, eq } from 'drizzle-orm';
-import { insertHostedSystemMessage } from '../chats/insert-system-message.ts';
+import { insertSystemMessage } from '../chats/insert-system-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 
@@ -8,11 +8,11 @@ type SessionRotationReason = 'configuration' | 'full' | 'recovery' | 'session';
 
 /**
  * Lands one canonical new-session receipt in every existing human↔Agent DM.
- * Hosted Servers can have more than one human seat for an Agent, so the
+ *  Servers can have more than one human seat for an Agent, so the
  * Agent-scoped lifecycle fact belongs in each built-in DM rather than an
  * arbitrary channel.
  */
-export async function recordHostedSessionRotationReceipts(
+export async function recordSessionRotationReceipts(
     db: GrottoDatabase,
     input: {
         agentId: string;
@@ -20,7 +20,7 @@ export async function recordHostedSessionRotationReceipts(
         reason: SessionRotationReason;
         serverId: string;
     }
-): Promise<HostedDurableEvent[]> {
+): Promise<ServerDurableEvent[]> {
     const dms = await db
         .select({ chatId: chatsTable.id })
         .from(chatsTable)
@@ -31,11 +31,11 @@ export async function recordHostedSessionRotationReceipts(
                 eq(chatsTable.dmAgentId, input.agentId)
             )
         );
-    const events: HostedDurableEvent[] = [];
+    const events: ServerDurableEvent[] = [];
     const now = new Date();
     for (const dm of dms) {
         events.push(
-            await insertHostedSystemMessage(db, {
+            await insertSystemMessage(db, {
                 chatId: dm.chatId,
                 content: rotationText(input.reason),
                 createdAt: now,

@@ -1,4 +1,4 @@
-import type { HostedReminderChangedEvent } from '@tavern/api';
+import type { ReminderChangedEvent } from '@tavern/api';
 import { and, asc, eq, gt } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -21,13 +21,13 @@ import {
 } from './mutations.ts';
 import { insertAnchoredReminderChangedEvent } from './reminder-events.ts';
 import {
-    type HostedReminder,
+    type Reminder,
     type ReminderClock,
     ReminderCommandConflictError,
     readReminder,
-    toHostedReminder,
+    toReminder,
 } from './reminder-model.ts';
-import type { HostedReminderFire } from './reminder-queries.ts';
+import type { ReminderFire } from './reminder-queries.ts';
 
 export class ReminderOperatorAccessDeniedError extends Error {
     constructor() {
@@ -59,7 +59,7 @@ export async function listOperatorReminders(
         serverId: string;
         status?: 'canceled' | 'fired' | 'scheduled';
     }
-): Promise<HostedReminder[]> {
+): Promise<Reminder[]> {
     await requireReminderOperator(db, member, input.serverId);
     const rows = await db
         .select({ agent: agentsTable, reminder: remindersTable })
@@ -79,14 +79,14 @@ export async function listOperatorReminders(
             )
         )
         .orderBy(asc(remindersTable.fireAt), asc(remindersTable.id));
-    return rows.map(({ agent, reminder }) => toHostedReminder(reminder, agent.handle));
+    return rows.map(({ agent, reminder }) => toReminder(reminder, agent.handle));
 }
 
 export async function listOperatorReminderRuns(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { reminderId: string; serverId: string }
-): Promise<HostedReminderFire[]> {
+): Promise<ReminderFire[]> {
     await requireReminderOperator(db, member, input.serverId);
     await requireReminderInServer(db, input.serverId, input.reminderId);
     const rows = await db
@@ -112,7 +112,7 @@ export async function listOperatorReminderChanges(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { afterCursor: string; limit: number; serverId: string }
-): Promise<HostedReminderChangedEvent[]> {
+): Promise<ReminderChangedEvent[]> {
     await requireReminderOperator(db, member, input.serverId);
     const rows = await db
         .select({
@@ -167,7 +167,7 @@ export async function cancelOperatorReminder(
         serverId: string;
     },
     clock: ReminderClock
-): Promise<{ idempotent: boolean; reminder: HostedReminder }> {
+): Promise<{ idempotent: boolean; reminder: Reminder }> {
     const fingerprint = JSON.stringify({
         action: 'cancel',
         expectedVersion: input.expectedVersion,
@@ -236,7 +236,7 @@ export async function cancelOperatorReminder(
         if (!updated) {
             throw new Error('Failed to cancel the reminder.');
         }
-        const hostedReminder = await readReminder(tx, input.serverId, updated.id);
+        const shapedReminder = await readReminder(tx, input.serverId, updated.id);
         await tx.insert(reminderCommandsTable).values({
             action: 'cancel',
             actorId: operator.id,
@@ -247,7 +247,7 @@ export async function cancelOperatorReminder(
             id: createOpaqueId('rcm'),
             reminderId: updated.id,
             requestFingerprint: fingerprint,
-            resultSnapshot: hostedReminder,
+            resultSnapshot: shapedReminder,
             serverId: input.serverId,
         });
         const event = await insertAnchoredReminderChangedEvent(tx, {
@@ -260,7 +260,7 @@ export async function cancelOperatorReminder(
         return {
             event,
             idempotent: false,
-            reminder: hostedReminder,
+            reminder: shapedReminder,
         };
     });
     if (result.event) {

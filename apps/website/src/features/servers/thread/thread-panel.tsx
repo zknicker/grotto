@@ -1,4 +1,4 @@
-import type { HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
+import type { Chat, ChatMessage, ThreadSummary } from '@tavern/api';
 import { ChatSidePaneShell } from '../../chats/chat-side-pane-shell.tsx';
 import type { TavernResourceTarget } from '../../chats/tavern-resource-link.ts';
 import { ThreadContent } from './thread-content.tsx';
@@ -18,15 +18,15 @@ export function ThreadPanel({
     turnDetailsAccess,
 }: {
     active: boolean;
-    anchor: HostedChatMessage;
-    chat: HostedChat;
+    anchor: ChatMessage;
+    chat: Chat;
     initialThreadChatId?: string;
     onClose: () => void;
     onExitComplete: () => void;
     onOpenArtifact: (target: TavernResourceTarget) => void;
     onViewInChannel: () => void;
     readOnly: boolean;
-    summary: HostedThreadSummary | null;
+    summary: ThreadSummary | null;
     takeover: boolean;
     turnDetailsAccess: 'journal' | 'summary';
 }) {

@@ -1,7 +1,7 @@
 import { Chip, Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import { splitVisualFences } from '@tavern/api/widgets/visual';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
@@ -60,8 +60,8 @@ import {
 import type { SessionNoticeRow } from './chat-transcript-row-model.ts';
 import { RuntimeNoticeEntry, SessionNoticeAction } from './chat-transcript-system-step.tsx';
 import { ChatTurnDrawer } from './chat-turn-drawer.tsx';
-import { HostedTurnDetailsDrawer } from './hosted-turn-details-drawer.tsx';
 import { AgentWidget } from './legacy-widget-row.tsx';
+import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
 import { MessageReactionActions } from './thread/message-reactions.tsx';
 import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
 import { useRevealedText } from './use-revealed-text.ts';
@@ -290,7 +290,7 @@ function TurnAvatar({
     name,
 }: {
     agentId?: null | string;
-    availability?: HostedAgent['availability'];
+    availability?: Agent['availability'];
     avatarUrl?: string | null;
     deleted?: boolean;
     name: string;
@@ -493,7 +493,7 @@ function AgentTurnPresentation({
         canRequestMention,
         composerId,
         disableAgentHoverCard,
-        hostedTurnDetails,
+        turnDetails,
         onToggleReaction,
         profilePaneChatId,
         repliedRunIds,
@@ -636,16 +636,16 @@ function AgentTurnPresentation({
             </ChatMessage.Body>
             {/* Mounted on first use so long transcripts don't pay a drawer per turn. */}
             {inspectMounted ? (
-                hostedTurnDetails ? (
-                    <HostedTurnDetailsDrawer
-                        access={hostedTurnDetails.access}
+                turnDetails ? (
+                    <ServerTurnDetailsDrawer
+                        access={turnDetails.access}
                         agentAvatarUrl={actorProfile?.avatarUrl ?? null}
                         agentId={actorId}
                         agentName={displayName}
                         onOpenChange={setInspectOpen}
                         open={inspectOpen}
                         runId={turnRunId}
-                        serverId={hostedTurnDetails.serverId}
+                        serverId={turnDetails.serverId}
                     />
                 ) : (
                     <ChatTurnDrawer

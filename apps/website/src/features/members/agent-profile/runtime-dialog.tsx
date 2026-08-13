@@ -1,9 +1,9 @@
 import { Alert, Button, Form, Label, ListBox, Modal, Select } from '@heroui/react';
-import type { HostedAgent, HostedComputerInventory } from '@tavern/api';
+import type { Agent, ComputerInventory } from '@tavern/api';
 import * as React from 'react';
 import { isRuntimeConfigDraftAvailable, type RuntimeConfigDraft } from './runtime-model.ts';
 
-type Runtime = HostedComputerInventory['runtimes'][number];
+type Runtime = ComputerInventory['runtimes'][number];
 
 export function RuntimeDialog({
     agent,
@@ -14,7 +14,7 @@ export function RuntimeDialog({
     pending,
     runtimes,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     error: string | null;
     onOpenChange: (open: boolean) => void;
     onSave: (draft: RuntimeConfigDraft) => Promise<void>;
@@ -49,7 +49,7 @@ function RuntimeConfigForm({
     pending,
     runtimes,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     error: string | null;
     onSave: (draft: RuntimeConfigDraft) => Promise<void>;
     pending: boolean;

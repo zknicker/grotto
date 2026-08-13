@@ -1,4 +1,4 @@
-import type { HostedChatSearchResult } from '@tavern/api';
+import type { ChatSearchResult } from '@tavern/api';
 import { and, eq, gte, isNull, ne, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -12,10 +12,10 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
-import { visibleHostedChats } from './chat-visibility.ts';
-import { readStoredAuthorProfile, toHostedChatMessage } from './message-shape.ts';
+import { visibleChats } from './chat-visibility.ts';
+import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 
-export async function searchHostedChatMessages(
+export async function searchChatMessages(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: {
@@ -27,7 +27,7 @@ export async function searchHostedChatMessages(
         query: string;
         serverId: string;
     }
-): Promise<HostedChatSearchResult[]> {
+): Promise<ChatSearchResult[]> {
     await requireServerMembership(db, member, input.serverId);
 
     if (!member) {
@@ -102,7 +102,7 @@ export async function searchHostedChatMessages(
                 input.after ? gte(chatMessagesTable.createdAt, new Date(input.after)) : undefined,
                 sql`${chatMessagesTable.searchVector}
                     @@ websearch_to_tsquery('simple', ${input.query})`,
-                visibleHostedChats(member.id)
+                visibleChats(member.id)
             )
         )
         .orderBy(sql`${chatMessagesTable.createdAt} desc`, sql`${chatMessagesTable.id} desc`)
@@ -115,7 +115,7 @@ export async function searchHostedChatMessages(
     );
 
     return rows.map((message) => ({
-        ...toHostedChatMessage(
+        ...toChatMessage(
             message,
             attachments.get(message.id) ?? [],
             readStoredAuthorProfile(message)

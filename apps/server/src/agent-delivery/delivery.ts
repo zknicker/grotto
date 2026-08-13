@@ -1,20 +1,16 @@
 import type {
-    HostedAgent,
-    HostedAgentActivityEvent,
-    HostedAgentCommand,
-    HostedAgentInboxItem,
-    HostedAgentTurnSummary,
-    HostedReminderScriptCommand,
-    HostedReminderScriptResult,
+    Agent,
+    AgentActivityEvent,
+    AgentCommand,
+    AgentInboxItem,
+    AgentTurnSummary,
+    ReminderScriptCommand,
+    ReminderScriptResult,
 } from '@tavern/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { messageSelection, toAgentMessages } from '../agent-api/message-view.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
-import { appendServerAgentActivity } from '../hosted-agents/agent-activity.ts';
-import { readHostedActiveAgentActivity } from '../hosted-agents/agent-activity-history.ts';
-import type { HostedAgentConfigurationRotation } from '../hosted-agents/configure-agent.ts';
-import { recordAgentTurnSummary } from '../hosted-agents/record-agent-turn.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -27,8 +23,12 @@ import {
     listReminderScriptCommands,
     settleReminderScript,
 } from '../reminders/reminder-script-delivery.ts';
+import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
+import { readActiveAgentActivity } from '../server-agents/agent-activity-history.ts';
+import type { AgentConfigurationRotation } from '../server-agents/configure-agent.ts';
+import { recordAgentTurnSummary } from '../server-agents/record-agent-turn.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { listHostedMessageTaskMap } from '../tasks/task-shape.ts';
+import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
 import {
@@ -39,20 +39,20 @@ import {
 } from './cursors.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
-import { recordHostedSessionRotationReceipts } from './session-rotation.ts';
+import { recordSessionRotationReceipts } from './session-rotation.ts';
 import type { AgentDeliveryRow, AgentDispatchConfig } from './store.ts';
 import * as store from './store.ts';
 
 /** The Server→Computer wire, narrowed to what durable delivery needs. */
 export interface DeliveryTransport {
     isOnline(computerId: string): boolean;
-    send(computerId: string, frame: HostedAgentCommand): boolean;
+    send(computerId: string, frame: AgentCommand): boolean;
 }
 
 interface DispatchPlan {
-    activities?: HostedAgentActivityEvent[];
+    activities?: AgentActivityEvent[];
     computerId: string;
-    frame: HostedAgentCommand;
+    frame: AgentCommand;
     serverId: string;
     suppressSend?: boolean;
 }
@@ -284,7 +284,7 @@ export class AgentDelivery {
         const result = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, input.serverId);
             const state = await store.readDeliveryState(tx, input.agentId);
-            let activity: HostedAgentActivityEvent | null = null;
+            let activity: AgentActivityEvent | null = null;
             if (state?.activeRunId) {
                 await revokeRunnerCredentialsForRun(tx, {
                     agentId: input.agentId,
@@ -323,7 +323,7 @@ export class AgentDelivery {
                 .delete(agentMessageDraftsTable)
                 .where(eq(agentMessageDraftsTable.agentId, input.agentId));
             const config = await store.readAgentDispatchConfig(tx, input.agentId);
-            const events = await recordHostedSessionRotationReceipts(tx, {
+            const events = await recordSessionRotationReceipts(tx, {
                 agentId: input.agentId,
                 generation: rotated.sessionGeneration,
                 reason: input.kind,
@@ -385,7 +385,7 @@ export class AgentDelivery {
             return {
                 acceptedActivity:
                     state?.activeRunId === input.runId
-                        ? ((await readHostedActiveAgentActivity(tx, serverId)).activities.find(
+                        ? ((await readActiveAgentActivity(tx, serverId)).activities.find(
                               (activity) =>
                                   activity.agentId === input.agentId &&
                                   activity.runId === input.runId
@@ -437,7 +437,7 @@ export class AgentDelivery {
     }
 
     /** A run settled on the Computer: consume or requeue its work, then drain next. */
-    async onTurnSettled(computerId: string, summary: HostedAgentTurnSummary): Promise<void> {
+    async onTurnSettled(computerId: string, summary: AgentTurnSummary): Promise<void> {
         await recordAgentTurnSummary(this.db, computerId, summary);
         const serverId = await store.readAgentServerId(this.db, summary.agentId);
         if (!serverId) {
@@ -493,7 +493,7 @@ export class AgentDelivery {
                     .where(eq(agentMessageDraftsTable.agentId, summary.agentId));
                 await store.clearDeliveryFailures(tx, summary.agentId);
                 const config = await store.readAgentDispatchConfig(tx, summary.agentId);
-                const events = await recordHostedSessionRotationReceipts(tx, {
+                const events = await recordSessionRotationReceipts(tx, {
                     agentId: summary.agentId,
                     generation: rotated.sessionGeneration,
                     reason: 'recovery',
@@ -701,8 +701,8 @@ export class AgentDelivery {
      * a no-op pair only resends configuration.
      */
     async applyAgentConfiguration(input: {
-        agent: HostedAgent;
-        rotation: HostedAgentConfigurationRotation | null;
+        agent: Agent;
+        rotation: AgentConfigurationRotation | null;
     }): Promise<void> {
         const { agent, rotation } = input;
         if (rotation) {
@@ -769,14 +769,11 @@ export class AgentDelivery {
         });
     }
 
-    dispatchReminderScript(computerId: string, command: HostedReminderScriptCommand): void {
+    dispatchReminderScript(computerId: string, command: ReminderScriptCommand): void {
         this.transport.send(computerId, command);
     }
 
-    async onReminderScriptResult(
-        computerId: string,
-        result: HostedReminderScriptResult
-    ): Promise<void> {
+    async onReminderScriptResult(computerId: string, result: ReminderScriptResult): Promise<void> {
         await settleReminderScript(
             this.db,
             computerId,
@@ -1043,7 +1040,7 @@ function isConfigured(config: AgentDispatchConfig | null): config is ConfiguredA
     );
 }
 
-function configureFrame(agentId: string, config: ConfiguredAgent): HostedAgentCommand {
+function configureFrame(agentId: string, config: ConfiguredAgent): AgentCommand {
     return {
         agentDescription: config.agentDescription,
         agentId,
@@ -1076,7 +1073,7 @@ async function startFrame(
         AgentDispatchConfig,
         'agentDescription' | 'agentName' | 'homeTimezone' | 'sessionGeneration'
     >
-): Promise<HostedAgentCommand> {
+): Promise<AgentCommand> {
     const runRows = state.activeRunId
         ? await store.listPendingForRun(db, {
               agentId: state.agentId,
@@ -1146,7 +1143,7 @@ function noticeWindow(
 async function attachSummaryVisibility(
     db: GrottoDatabase,
     state: AgentDeliveryRow,
-    identities: HostedAgentTurnSummary['visibleMessages'] | undefined
+    identities: AgentTurnSummary['visibleMessages'] | undefined
 ) {
     if (!(state.activeRunId && identities && identities.length > 0)) {
         return;
@@ -1198,7 +1195,7 @@ async function attachSummaryVisibility(
 async function buildInboxItems(
     db: GrottoDatabase,
     rows: store.PendingWorkRow[]
-): Promise<HostedAgentInboxItem[]> {
+): Promise<AgentInboxItem[]> {
     const serverId = rows[0]?.serverId;
     const messageIds = rows.map((row) => row.dedupeKey).filter((id) => id.startsWith('msg_'));
     const messageRows =
@@ -1216,7 +1213,7 @@ async function buildInboxItems(
     const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
     const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
     const taskByMessage = serverId
-        ? await listHostedMessageTaskMap(
+        ? await listMessageTaskMap(
               db,
               serverId,
               rows.map((row) => row.dedupeKey)

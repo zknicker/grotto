@@ -1,5 +1,5 @@
 import { Button } from '@heroui/react';
-import type { HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
+import type { Chat, ChatMessage, ThreadSummary } from '@tavern/api';
 import * as React from 'react';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
@@ -39,14 +39,14 @@ export function ThreadContent({
     width,
 }: {
     active: boolean;
-    anchor: HostedChatMessage;
-    chat: HostedChat;
+    anchor: ChatMessage;
+    chat: Chat;
     initialThreadChatId?: string;
     onClose: () => void;
     onOpenArtifact: (target: TavernResourceTarget) => void;
     onViewInChannel: () => void;
     readOnly: boolean;
-    summary: HostedThreadSummary | null;
+    summary: ThreadSummary | null;
     takeover: boolean;
     turnDetailsAccess: 'journal' | 'summary';
     width: number | null;

@@ -1,11 +1,8 @@
-import type { HostedComputerInventory } from '@tavern/api';
-import {
-    type HostedComputerRuntimeId,
-    hostedComputerRuntimeCatalog,
-} from '@tavern/api/hosted-computer-runtime';
+import type { ComputerInventory } from '@tavern/api';
+import { type ComputerRuntimeId, computerRuntimeCatalog } from '@tavern/api/computer-runtime';
 import { resolveRuntimeExecutable } from './runtime-discovery.ts';
 
-type ComputerRuntime = HostedComputerInventory['runtimes'][number];
+type ComputerRuntime = ComputerInventory['runtimes'][number];
 
 /**
  * Runtimes Grotto Computer knows how to drive, keyed by the CLI that must be
@@ -47,10 +44,10 @@ const knownRuntimes: { command: string; runtime: ComputerRuntime }[] = [
  * overrides detection with an explicit JSON catalogue for development and tests;
  * otherwise only runtimes whose CLI is installed are reported.
  */
-export function detectInventory(options: { searchPath?: string } = {}): HostedComputerInventory {
+export function detectInventory(options: { searchPath?: string } = {}): ComputerInventory {
     const override = process.env.GROTTO_COMPUTER_INVENTORY;
     if (override) {
-        return JSON.parse(override) as HostedComputerInventory;
+        return JSON.parse(override) as ComputerInventory;
     }
     const runtimes = knownRuntimes
         .filter(
@@ -64,10 +61,10 @@ export function detectInventory(options: { searchPath?: string } = {}): HostedCo
 }
 
 function supportedRuntime(
-    id: HostedComputerRuntimeId,
+    id: ComputerRuntimeId,
     models: ComputerRuntime['models']
 ): ComputerRuntime {
-    const runtime = hostedComputerRuntimeCatalog.find((candidate) => candidate.id === id);
+    const runtime = computerRuntimeCatalog.find((candidate) => candidate.id === id);
     if (!runtime) {
         throw new Error(`Missing supported Computer runtime ${id}.`);
     }

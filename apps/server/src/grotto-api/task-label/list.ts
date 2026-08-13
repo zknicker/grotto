@@ -1,11 +1,10 @@
-import { hostedTaskLabelListInputSchema, hostedTaskLabelListSchema } from '@tavern/api';
-import { listHostedTaskLabels } from '../../tasks/task-labels.ts';
+import { taskLabelListInputSchema, taskLabelListSchema } from '@tavern/api';
+import { listTaskLabels } from '../../tasks/task-labels.ts';
 import { taskProcedure } from '../task/procedure.ts';
 
 export const listTaskLabelsProcedure = taskProcedure
-    .input(hostedTaskLabelListInputSchema)
-    .output(hostedTaskLabelListSchema)
+    .input(taskLabelListInputSchema)
+    .output(taskLabelListSchema)
     .query(
-        async ({ ctx, input }) =>
-            await listHostedTaskLabels(ctx.grottoDb, ctx.member, input.serverId)
+        async ({ ctx, input }) => await listTaskLabels(ctx.grottoDb, ctx.member, input.serverId)
     );

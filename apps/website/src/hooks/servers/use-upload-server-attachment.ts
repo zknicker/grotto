@@ -1,9 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
-import type { HostedAttachmentUploadResult } from '@tavern/api';
+import type { AttachmentUploadResult } from '@tavern/api';
 import { getClerkSessionToken } from '../../lib/clerk.tsx';
 import { getGrottoServerOrigin, grottoTrpc } from '../../lib/grotto-server.tsx';
 
-export const hostedAttachmentMaxSizeBytes = 52_428_800;
+export const attachmentMaxSizeBytes = 52_428_800;
 
 export function useUploadServerAttachment() {
     const reserve = grottoTrpc.attachment.reserve.useMutation();
@@ -20,7 +20,7 @@ export function useUploadServerAttachment() {
             nonce: string;
             serverId: string;
         }) => {
-            if (file.size > hostedAttachmentMaxSizeBytes) {
+            if (file.size > attachmentMaxSizeBytes) {
                 throw new Error(`${file.name} exceeds the 50 MiB attachment limit.`);
             }
 
@@ -59,7 +59,7 @@ export function useUploadServerAttachment() {
     });
 }
 
-function readUploadResult(value: unknown): HostedAttachmentUploadResult {
+function readUploadResult(value: unknown): AttachmentUploadResult {
     if (
         typeof value !== 'object' ||
         value === null ||
@@ -80,7 +80,7 @@ function readUploadResult(value: unknown): HostedAttachmentUploadResult {
         throw new Error('The Server returned an invalid attachment upload response.');
     }
 
-    return value as HostedAttachmentUploadResult;
+    return value as AttachmentUploadResult;
 }
 
 function readError(value: unknown, fallback: string) {

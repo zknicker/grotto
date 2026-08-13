@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { visibleHostedChats } from '../chats/chat-visibility.ts';
+import { visibleChats } from '../chats/chat-visibility.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     channelParticipantsTable,
@@ -20,7 +20,7 @@ type PersonalWorkWriter = Pick<GrottoDatabase, 'delete' | 'insert' | 'select'>;
  * Clearing returns every Chat the human just lost, including child Threads, so
  * a caller that also revokes access can retire live composition state.
  */
-export async function clearHostedPersonalWork(
+export async function clearPersonalWork(
     db: PersonalWorkWriter,
     serverId: string,
     userId: string
@@ -28,7 +28,7 @@ export async function clearHostedPersonalWork(
     const departed = await db
         .select({ id: chatsTable.id })
         .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, serverId), visibleHostedChats(userId)));
+        .where(and(eq(chatsTable.serverId, serverId), visibleChats(userId)));
 
     await db
         .delete(channelParticipantsTable)

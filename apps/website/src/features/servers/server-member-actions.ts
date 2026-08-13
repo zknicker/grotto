@@ -5,7 +5,7 @@ import {
     type ServerMemberAction,
     type ServerMemberDirectory,
     type ServerRole,
-} from '@tavern/api/hosted-membership';
+} from '@tavern/api/membership';
 import { humanDisplayName } from './human-identity.ts';
 
 export type ServerMemberActionKind =

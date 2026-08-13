@@ -1,9 +1,5 @@
 import { Separator } from '@heroui/react';
-import type {
-    HostedAgentSkillImportRecord,
-    HostedAgentSkillMetadata,
-    HostedImportableSkill,
-} from '@tavern/api';
+import type { AgentSkillImportRecord, AgentSkillMetadata, ImportableSkill } from '@tavern/api';
 import * as React from 'react';
 import { PickerPopover } from '../../agents/picker-popover.tsx';
 import {
@@ -25,15 +21,15 @@ export function SkillList({
     skills,
     skillSources,
 }: {
-    addableSkills: HostedImportableSkill[];
+    addableSkills: ImportableSkill[];
     canEdit: boolean;
     importError: string | null;
     importPending: boolean;
-    imports: HostedAgentSkillImportRecord[];
+    imports: AgentSkillImportRecord[];
     onImport: (sourceId: string) => void;
-    onSelectSkill: (skill: HostedAgentSkillMetadata) => void;
-    skills: HostedAgentSkillMetadata[];
-    skillSources: HostedImportableSkill[];
+    onSelectSkill: (skill: AgentSkillMetadata) => void;
+    skills: AgentSkillMetadata[];
+    skillSources: ImportableSkill[];
 }) {
     return (
         <SettingsSection

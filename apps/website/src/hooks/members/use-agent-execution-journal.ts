@@ -1,14 +1,11 @@
-import type {
-    HostedAgentExecutionJournalInput,
-    HostedAgentExecutionJournalResult,
-} from '@tavern/api';
+import type { AgentExecutionJournalInput, AgentExecutionJournalResult } from '@tavern/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
 type JournalState =
     | { data: null; error: null; status: 'idle' }
     | { data: null; error: null; status: 'loading' }
-    | { data: HostedAgentExecutionJournalResult; error: null; status: 'success' }
+    | { data: AgentExecutionJournalResult; error: null; status: 'success' }
     | { data: null; error: unknown; status: 'error' };
 
 const initialState: JournalState = { data: null, error: null, status: 'idle' };
@@ -29,7 +26,7 @@ export function useAgentExecutionJournal() {
     }, []);
 
     const request = React.useCallback(
-        async (input: HostedAgentExecutionJournalInput) => {
+        async (input: AgentExecutionJournalInput) => {
             const requestId = requestRef.current + 1;
             requestRef.current = requestId;
             setState({ data: null, error: null, status: 'loading' });

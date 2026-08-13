@@ -8,7 +8,7 @@ import {
     ToolsIcon,
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
@@ -40,7 +40,7 @@ export function AgentProfilePage({
     server,
     tab,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     onDeleted: () => void;
     onTabChange: (tab: AgentTab) => void;
     server: ServerDetail;
@@ -68,7 +68,7 @@ export function AgentProfilePane({
     onClose,
     server,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     onClose: () => void;
     server: ServerDetail;
 }) {
@@ -171,7 +171,7 @@ function AgentTabContent({
     server,
     tab,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     onDeleted: () => void;
     server: ServerDetail;
     tab: AgentTab;

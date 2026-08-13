@@ -240,11 +240,11 @@ export class DevStackController extends EventEmitter {
             ...devStackEnvironment,
             TAVERN_STARTUP_UI: '1',
         };
-        const hostedServerUrl = `http://localhost:${this.ports.grottoPort}`;
+        const serverUrl = `http://localhost:${this.ports.grottoPort}`;
         const websiteEnv = {
             ...startupUiEnv,
             VITE_GROTTO_APP_ORIGIN: startupUiEnv.APP_ORIGIN,
-            VITE_GROTTO_SERVER_ORIGIN: hostedServerUrl,
+            VITE_GROTTO_SERVER_ORIGIN: serverUrl,
         };
         let websiteReadyPromise = null;
         let desktopPrebuildPromise = null;
@@ -299,7 +299,7 @@ export class DevStackController extends EventEmitter {
             snapshot.processes.postgres.status = 'running';
         });
 
-        const hostedServerEnv = {
+        const serverEnv = {
             ...startupUiEnv,
             ...this.clerkEnvironmentOverrides,
             APP_ORIGIN: startupUiEnv.APP_ORIGIN ?? `http://localhost:${this.ports.websitePort}`,
@@ -311,7 +311,7 @@ export class DevStackController extends EventEmitter {
                 'grotto',
                 'bun apps/server/src/grotto-server-migrate.ts',
                 {
-                    ...hostedServerEnv,
+                    ...serverEnv,
                     GROTTO_DATABASE_MIGRATION_URL: postgres.databaseUrl,
                     GROTTO_DATABASE_BACKUP_ROLE: 'grotto',
                     GROTTO_DATABASE_RUNTIME_ROLE: 'grotto',
@@ -329,7 +329,7 @@ export class DevStackController extends EventEmitter {
                 'grotto',
                 'bun apps/server/src/grotto-server-bootstrap.ts',
                 {
-                    ...hostedServerEnv,
+                    ...serverEnv,
                     GROTTO_DATABASE_BOOTSTRAP_URL: postgres.databaseUrl,
                     GROTTO_DATABASE_BACKUP_ROLE: 'grotto',
                     GROTTO_DATABASE_RUNTIME_ROLE: 'grotto',
@@ -342,7 +342,7 @@ export class DevStackController extends EventEmitter {
 
         this.spawnProcess('grotto', 'bun', ['--watch', 'src/grotto-server.ts'], {
             cwd: serverDirectory,
-            env: hostedServerEnv,
+            env: serverEnv,
         });
         await waitForPort(Number(this.ports.grottoPort));
         this.update((snapshot) => {
@@ -355,7 +355,7 @@ export class DevStackController extends EventEmitter {
                 ...startupUiEnv,
                 GROTTO_COMPUTER_RESIDENT: '1',
                 GROTTO_COMPUTER_WATCH_ATTACHMENT_DAEMON: '1',
-                GROTTO_SERVER_ORIGIN: hostedServerUrl,
+                GROTTO_SERVER_ORIGIN: serverUrl,
             },
         });
         this.update((snapshot) => {

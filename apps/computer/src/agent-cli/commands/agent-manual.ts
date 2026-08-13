@@ -1,7 +1,4 @@
-import {
-    hostedAgentManualGetResponseSchema,
-    hostedAgentManualSearchResponseSchema,
-} from '@tavern/api';
+import { agentManualGetResponseSchema, agentManualSearchResponseSchema } from '@tavern/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
@@ -73,7 +70,7 @@ export async function runManualGet(args: ParsedArgs, deps: ManualDeps): Promise<
     }
     const response = await deps.client.request(
         '/api/agent/manual/get',
-        hostedAgentManualGetResponseSchema,
+        agentManualGetResponseSchema,
         {
             query: {
                 intent: requiredManualText(args, '--intent'),
@@ -97,7 +94,7 @@ export async function runManualSearch(args: ParsedArgs, deps: ManualDeps): Promi
     }
     const response = await deps.client.request(
         '/api/agent/manual/search',
-        hostedAgentManualSearchResponseSchema,
+        agentManualSearchResponseSchema,
         {
             query: {
                 intent: requiredManualText(args, '--intent'),

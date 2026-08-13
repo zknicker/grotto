@@ -1,6 +1,6 @@
 import { createRouter } from '../trpc.ts';
-import { getHostedUsageProcedure } from './live.ts';
+import { getUsageProcedure } from './live.ts';
 
 export const statsRouter = createRouter({
-    live: getHostedUsageProcedure,
+    live: getUsageProcedure,
 });

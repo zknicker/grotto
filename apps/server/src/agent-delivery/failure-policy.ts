@@ -1,6 +1,6 @@
-import type { HostedAgentTurnSummary } from '@tavern/api';
+import type { AgentTurnSummary } from '@tavern/api';
 
-type FailureKind = NonNullable<HostedAgentTurnSummary['failureKind']>;
+type FailureKind = NonNullable<AgentTurnSummary['failureKind']>;
 
 export function shouldRetryFailure(kind: FailureKind | undefined): boolean {
     return !(kind && ['authentication', 'configuration', 'input'].includes(kind));

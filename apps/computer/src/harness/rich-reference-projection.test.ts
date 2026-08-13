@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { projectHostedMessageForAgent } from './rich-reference-projection.ts';
+import { projectMessageForAgent } from './rich-reference-projection.ts';
 
-describe('projectHostedMessageForAgent', () => {
+describe('projectMessageForAgent', () => {
     test('activates a referenced local skill while preserving canonical markdown', () => {
         const content = 'Please use [$agent-browser](skill://agent-browser) for this turn.';
-        const projected = projectHostedMessageForAgent({
+        const projected = projectMessageForAgent({
             content,
             enabledSkillIds: ['agent-browser'],
         });
@@ -18,7 +18,7 @@ describe('projectHostedMessageForAgent', () => {
         const content = 'Please use [$agent-browser](skill://agent-browser) for this turn.';
 
         expect(
-            projectHostedMessageForAgent({
+            projectMessageForAgent({
                 content,
                 enabledSkillIds: ['different-skill'],
             })

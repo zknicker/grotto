@@ -1,5 +1,5 @@
 import { Alert, AlertDialog, Button, Modal, TextArea } from '@heroui/react';
-import type { HostedAgent, HostedAgentSkillMetadata } from '@tavern/api';
+import type { Agent, AgentSkillMetadata } from '@tavern/api';
 import * as React from 'react';
 import { useSkillDelete } from '../../../hooks/members/use-skill-delete.ts';
 import { useSkillFile } from '../../../hooks/members/use-skill-file.ts';
@@ -12,10 +12,10 @@ export function SkillDialog({
     server,
     skill,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     onOpenChange(open: boolean): void;
     server: ServerDetail;
-    skill: HostedAgentSkillMetadata | null;
+    skill: AgentSkillMetadata | null;
 }) {
     const skillName = skill?.name ?? '';
     const file = useSkillFile(server.id, agent.id, skillName, Boolean(skill));

@@ -11,7 +11,7 @@ export class InfraError extends Error {}
 const devClerkAuthByServer = new Map();
 
 export async function createEvalHarness({ evalName, repositoryRoot = process.cwd() }) {
-    const serverUrl = resolveHostedServerUrl(repositoryRoot);
+    const serverUrl = resolveServerUrl(repositoryRoot);
     const onlyFilter = resolveFlag('--only');
     const stamp = new Date()
         .toISOString()
@@ -46,7 +46,7 @@ export async function createEvalHarness({ evalName, repositoryRoot = process.cwd
         await trpc('server.developmentBootstrap');
         servers = await trpc('server.list');
     }
-    const server = selectHostedServer(servers, resolveFlag('--server-id'));
+    const server = selectServer(servers, resolveFlag('--server-id'));
     const serverId = server.id;
 
     async function scenario(name, run, { retryOn = 'infra' } = {}) {
@@ -443,7 +443,7 @@ function protocolHeaders() {
     };
 }
 
-function resolveHostedServerUrl(repositoryRoot) {
+function resolveServerUrl(repositoryRoot) {
     const explicit = resolveFlag('--server');
     if (explicit) {
         return explicit.replace(/\/$/u, '');
@@ -456,7 +456,7 @@ function resolveFlag(name) {
     return index === -1 ? null : (process.argv[index + 1] ?? null);
 }
 
-export function selectHostedServer(servers, requestedServerId) {
+export function selectServer(servers, requestedServerId) {
     assert(Array.isArray(servers) && servers.length > 0, 'No hosted Servers are available');
     if (requestedServerId) {
         const server = servers.find((candidate) => candidate.id === requestedServerId);

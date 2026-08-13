@@ -1,8 +1,8 @@
 import { Button } from '@heroui/react';
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useHostedServerContext } from '../../servers/hosted-server-context.ts';
 import { RequireOperator } from '../../servers/require-operator.tsx';
+import { useServerContext } from '../../servers/server-context.ts';
 import { serverRoute } from '../../servers/server-routes.ts';
 import { SettingsPage, SettingsPageHeader } from '../layout/settings-page.tsx';
 import { ConnectionAddDrawer } from './connection-add-drawer.tsx';
@@ -12,7 +12,7 @@ import { ConnectionPresetSection } from './connection-preset-section.tsx';
 
 export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
     const { slug = '' } = useParams();
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const [isAddOpen, setIsAddOpen] = React.useState(false);
     const [selectedId, setSelectedId] = React.useState<string | null>(null);
 

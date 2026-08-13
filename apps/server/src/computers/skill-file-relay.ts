@@ -1,11 +1,11 @@
-import type { HostedAgentSkillFileRequest, HostedAgentSkillFileResult } from '@tavern/api';
+import type { AgentSkillFileRequest, AgentSkillFileResult } from '@tavern/api';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 
 interface PendingSkillFileRequest {
     agentId: string;
     computerId: string;
     reject(error: Error): void;
-    resolve(result: NonNullable<HostedAgentSkillFileResult['result']>): void;
+    resolve(result: NonNullable<AgentSkillFileResult['result']>): void;
     timeout: ReturnType<typeof setTimeout>;
 }
 
@@ -13,16 +13,16 @@ export class SkillFileRelay {
     private readonly pending = new Map<string, PendingSkillFileRequest>();
 
     constructor(
-        private readonly send: (computerId: string, frame: HostedAgentSkillFileRequest) => boolean
+        private readonly send: (computerId: string, frame: AgentSkillFileRequest) => boolean
     ) {}
 
     request(
         computerId: string,
         input: {
             agentId: string;
-            operation: HostedAgentSkillFileRequest['operation'];
+            operation: AgentSkillFileRequest['operation'];
         }
-    ): Promise<NonNullable<HostedAgentSkillFileResult['result']>> {
+    ): Promise<NonNullable<AgentSkillFileResult['result']>> {
         const requestId = createOpaqueId('req');
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -50,7 +50,7 @@ export class SkillFileRelay {
         });
     }
 
-    accept(computerId: string, result: HostedAgentSkillFileResult): boolean {
+    accept(computerId: string, result: AgentSkillFileResult): boolean {
         const pending = this.pending.get(result.requestId);
         if (!pending || pending.computerId !== computerId || pending.agentId !== result.agentId) {
             return false;

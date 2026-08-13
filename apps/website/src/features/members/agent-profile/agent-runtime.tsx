@@ -1,5 +1,5 @@
 import { Button } from '@heroui/react';
-import type { HostedAgent, HostedComputerInventory } from '@tavern/api';
+import type { Agent, ComputerInventory } from '@tavern/api';
 import * as React from 'react';
 import { useAgentRuntime } from '../../../hooks/members/use-agent-runtime.ts';
 import {
@@ -11,7 +11,7 @@ import {
 import { RuntimeDialog } from './runtime-dialog.tsx';
 import { resolveRuntimeConfig, runtimeConfigStatusLabel } from './runtime-model.ts';
 
-type Runtime = HostedComputerInventory['runtimes'][number];
+type Runtime = ComputerInventory['runtimes'][number];
 type ComputerHealth = Parameters<typeof runtimeConfigStatusLabel>[1];
 
 export function AgentRuntime({
@@ -21,7 +21,7 @@ export function AgentRuntime({
     runtimes,
     serverId,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     canEdit: boolean;
     computerHealth: ComputerHealth;
     runtimes: Runtime[];

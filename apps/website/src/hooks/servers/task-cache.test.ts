@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { HostedMessageTask, HostedTaskListItem } from '@tavern/api';
+import type { MessageTask, TaskListItem } from '@tavern/api';
 import { replaceTask } from './task-cache.ts';
 
 test('replaces both task projections with the authoritative mutation result', () => {
@@ -15,8 +15,8 @@ test('replaces both task projections with the authoritative mutation result', ()
     ]);
 });
 
-function taskItem(): HostedTaskListItem {
-    const task: HostedMessageTask = {
+function taskItem(): TaskListItem {
+    const task: MessageTask = {
         assigneeAgentId: null,
         assigneeUserId: null,
         chatId: 'chat_one',

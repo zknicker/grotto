@@ -1,4 +1,4 @@
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
@@ -14,7 +14,7 @@ export function AgentIdentity({
     serverId,
     status,
 }: {
-    agent: HostedAgent;
+    agent: Agent;
     canEdit: boolean;
     children: React.ReactNode;
     serverId: string;

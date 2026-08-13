@@ -1,13 +1,13 @@
 import { Button } from '@heroui/react';
 import { useTaskClaim } from '../../../hooks/servers/use-task-claim.ts';
 import { useTaskUnclaim } from '../../../hooks/servers/use-task-unclaim.ts';
-import { useHostedServerContext } from '../hosted-server-context.ts';
+import { useServerContext } from '../server-context.ts';
 import { TaskAssignee } from './task-assignee.tsx';
 import { TaskMetadata } from './task-metadata.tsx';
 import { type TaskItem, taskClaimAction } from './task-model.ts';
 
 export function TaskActions({ task }: { task: TaskItem }) {
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const claim = useTaskClaim();
     const unclaim = useTaskUnclaim();
     const error = claim.error ?? unclaim.error;

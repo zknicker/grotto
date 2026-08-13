@@ -1,8 +1,4 @@
-import type {
-    HostedChatMessageReceipt,
-    HostedChatSendInput,
-    HostedDurableEvent,
-} from '@tavern/api';
+import type { ChatMessageReceipt, ChatSendInput, ServerDurableEvent } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
@@ -22,12 +18,12 @@ import {
     threadFollowsTable,
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { ensureHostedThread } from '../threads/ensure-thread.ts';
-import { autoFollowHostedThreadMentions } from '../threads/thread-attention.ts';
+import { ensureThread } from '../threads/ensure-thread.ts';
+import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
+import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
-import { toHostedChatMessage } from './message-shape.ts';
+import { toChatMessage } from './message-shape.ts';
 
 export class ChatNonceConflictError extends Error {
     constructor() {
@@ -52,26 +48,26 @@ export class RetiredAgentDmSendError extends Error {
     }
 }
 
-export interface SendHostedChatMessageResult {
-    event: HostedDurableEvent | null;
-    receipt: HostedChatMessageReceipt;
+export interface SendChatMessageResult {
+    event: ServerDurableEvent | null;
+    receipt: ChatMessageReceipt;
     /** Agents whose durable pending inbox this send enqueued. */
     wakes: Array<{ agentId: string; serverId: string }>;
 }
 
-export async function sendHostedChatMessage(
+export async function sendChatMessage(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: HostedChatSendInput,
+    input: ChatSendInput,
     agentDelivery: AgentDelivery
-): Promise<SendHostedChatMessageResult> {
+): Promise<SendChatMessageResult> {
     return await db.transaction(async (tx) => {
         // Server row first, then authorize: a send that started before a removal
         // must re-read membership behind it rather than commit past it.
         await lockServerRow(tx, input.serverId);
 
         const thread = input.thread
-            ? await ensureHostedThread(tx, member, {
+            ? await ensureThread(tx, member, {
                   anchorMessageId: input.thread.anchorMessageId,
                   parentChatId: input.chatId,
                   serverId: input.serverId,
@@ -151,7 +147,7 @@ export async function sendHostedChatMessage(
                 receipt: {
                     eventCursor: existing.eventCursor.toString(),
                     idempotent: true,
-                    message: toHostedChatMessage(existing, existingAttachments),
+                    message: toChatMessage(existing, existingAttachments),
                     threadChatId: thread?.id ?? null,
                 },
                 wakes: [],
@@ -208,7 +204,7 @@ export async function sendHostedChatMessage(
                         threadFollowsTable.userId,
                     ],
                 });
-            await autoFollowHostedThreadMentions(tx, {
+            await autoFollowThreadMentions(tx, {
                 content: input.content,
                 parentChatId: thread.parentChatId,
                 serverId: input.serverId,
@@ -216,7 +212,7 @@ export async function sendHostedChatMessage(
             });
         }
 
-        const eventCursor = await allocateHostedEventCursor(tx, input.serverId);
+        const eventCursor = await allocateEventCursor(tx, input.serverId);
         const [event] = await tx
             .insert(chatEventsTable)
             .values({
@@ -270,7 +266,7 @@ export async function sendHostedChatMessage(
             receipt: {
                 eventCursor: event.cursor.toString(),
                 idempotent: false,
-                message: toHostedChatMessage(message, attachmentMetadata(attachments)),
+                message: toChatMessage(message, attachmentMetadata(attachments)),
                 threadChatId: thread?.id ?? null,
             },
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),

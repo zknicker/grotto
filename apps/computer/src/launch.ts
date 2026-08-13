@@ -37,14 +37,14 @@ export interface Attachment {
  * wire shapes (like `inventory.ts`) rather than importing the hosted contract
  * package, keeping the Computer artifact self-contained.
  */
-export interface HostedAgentStartCommand {
+export interface AgentStartCommand {
     /** Server-owned Agent facts the Computer composes into the system prompt. */
     agentDescription?: string;
     agentId: string;
     agentName?: string;
     chatId: string;
     homeTimezone?: string;
-    inbox?: HostedAgentInboxItem[];
+    inbox?: AgentInboxItem[];
     inboxDelivery: 'concrete' | 'notice';
     modelId: string;
     runId: string;
@@ -55,7 +55,7 @@ export interface HostedAgentStartCommand {
     webAccess?: 'fetch-only' | 'search' | 'search-only';
 }
 
-export interface HostedAgentInboxItem {
+export interface AgentInboxItem {
     chatId: string;
     content: string;
     createdAt: string;
@@ -78,20 +78,20 @@ export interface HostedAgentInboxItem {
 }
 
 /** Server→Computer command to terminate the named in-flight run. */
-export interface HostedAgentStopCommand {
+export interface AgentStopCommand {
     agentId: string;
     runId: string;
     type: 'stop';
 }
 
 /** Server→Computer command to refresh instructions without rotating context. */
-export interface HostedAgentRestartCommand {
+export interface AgentRestartCommand {
     agentId: string;
     type: 'agent-restart';
 }
 
 /** Server→Computer command to rotate one Agent's local execution state. */
-export interface HostedAgentResetCommand {
+export interface AgentResetCommand {
     agentId: string;
     kind: 'full' | 'session';
     sessionGeneration: number;
@@ -99,21 +99,21 @@ export interface HostedAgentResetCommand {
 }
 
 /** Server→Computer notice that a busy Agent has queued work. */
-export interface HostedAgentNoticeCommand {
+export interface AgentNoticeCommand {
     agentId: string;
-    inbox: HostedAgentInboxItem[];
+    inbox: AgentInboxItem[];
     runId: string;
     totalPending: number;
     type: 'notice';
 }
 
 /** Server-scoped instruction to erase this attachment's local partition. */
-export interface HostedServerDeleteCommand {
+export interface ServerDeleteCommand {
     type: 'server-delete';
 }
 
 /** The compact turn summary the Computer pushes up after a launch settles. */
-export interface HostedAgentTurnFrame {
+export interface AgentTurnFrame {
     agentId: string;
     endedAt: string;
     failureKind?: RuntimeFailureKind;
@@ -130,7 +130,7 @@ export interface HostedAgentTurnFrame {
 
 export interface RunAgentLaunchOptions {
     attachment: Attachment;
-    command: HostedAgentStartCommand;
+    command: AgentStartCommand;
     dataRoot: string;
     /** Commits the Server ack immediately before the runtime accepts the prompt. */
     onRuntimeReady?(): Promise<void>;
@@ -155,9 +155,7 @@ const fakeRuntimePath = resolve(moduleDir, 'fake-runtime.ts');
  * one persistent session; the `fake` lane runs the deterministic real-CLI turn.
  * Raw traces stay in the local runtime directory; only a compact summary leaves.
  */
-export async function runAgentLaunch(
-    options: RunAgentLaunchOptions
-): Promise<HostedAgentTurnFrame> {
+export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<AgentTurnFrame> {
     const startedAt = new Date().toISOString();
     const { command } = options;
     const agentRoot = join(
@@ -350,7 +348,7 @@ async function ensureNativeSkillLinks(homeDir: string, skillsDir: string) {
 }
 
 /** Validates a Server→Computer frame as a launch command. Fails closed to null. */
-export function parseStartCommand(frame: unknown): HostedAgentStartCommand | null {
+export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     if (!isRecord(frame) || frame.type !== 'start') {
         return null;
     }
@@ -408,7 +406,7 @@ export function parseStartCommand(frame: unknown): HostedAgentStartCommand | nul
 }
 
 /** Validates a Server→Computer frame as a stop command. Fails closed to null. */
-export function parseStopCommand(frame: unknown): HostedAgentStopCommand | null {
+export function parseStopCommand(frame: unknown): AgentStopCommand | null {
     if (
         !isRecord(frame) ||
         frame.type !== 'stop' ||
@@ -423,7 +421,7 @@ export function parseStopCommand(frame: unknown): HostedAgentStopCommand | null 
 }
 
 /** Validates a Server→Computer restart command. Fails closed to null. */
-export function parseRestartCommand(frame: unknown): HostedAgentRestartCommand | null {
+export function parseRestartCommand(frame: unknown): AgentRestartCommand | null {
     if (
         !isRecord(frame) ||
         frame.type !== 'agent-restart' ||
@@ -436,7 +434,7 @@ export function parseRestartCommand(frame: unknown): HostedAgentRestartCommand |
 }
 
 /** Validates a Server→Computer reset command. Fails closed to null. */
-export function parseResetCommand(frame: unknown): HostedAgentResetCommand | null {
+export function parseResetCommand(frame: unknown): AgentResetCommand | null {
     if (
         !isRecord(frame) ||
         frame.type !== 'agent-reset' ||
@@ -495,7 +493,7 @@ export async function resetAgentState(input: {
 }
 
 /** Validates a Server→Computer busy-inbox snapshot. Fails closed to null. */
-export function parseNoticeCommand(frame: unknown): HostedAgentNoticeCommand | null {
+export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
     if (
         !isRecord(frame) ||
         frame.type !== 'notice' ||
@@ -519,11 +517,11 @@ export function parseNoticeCommand(frame: unknown): HostedAgentNoticeCommand | n
     };
 }
 
-function parseInbox(value: unknown): HostedAgentInboxItem[] | null {
+function parseInbox(value: unknown): AgentInboxItem[] | null {
     if (!Array.isArray(value) || value.length > 100) {
         return null;
     }
-    const inbox: HostedAgentInboxItem[] = [];
+    const inbox: AgentInboxItem[] = [];
     for (const item of value) {
         if (
             !(
@@ -542,12 +540,12 @@ function parseInbox(value: unknown): HostedAgentInboxItem[] | null {
         ) {
             return null;
         }
-        inbox.push(item as unknown as HostedAgentInboxItem);
+        inbox.push(item as unknown as AgentInboxItem);
     }
     return inbox;
 }
 
-export function parseServerDeleteCommand(frame: unknown): HostedServerDeleteCommand | null {
+export function parseServerDeleteCommand(frame: unknown): ServerDeleteCommand | null {
     return isRecord(frame) && frame.type === 'server-delete' && Object.keys(frame).length === 1
         ? { type: 'server-delete' }
         : null;
@@ -567,8 +565,8 @@ function reportTurn(
         summary: string;
         visibleMessages?: Array<{ chatId: string; id: string; sequence: number }>;
     }
-): HostedAgentTurnFrame {
-    const frame: HostedAgentTurnFrame = {
+): AgentTurnFrame {
+    const frame: AgentTurnFrame = {
         agentId: options.command.agentId,
         endedAt: new Date().toISOString(),
         ...(input.failureKind ? { failureKind: input.failureKind } : {}),
@@ -587,7 +585,7 @@ function reportTurn(
 
 interface RuntimeExecutionInput {
     agentEnv: Record<string, string>;
-    command: HostedAgentStartCommand;
+    command: AgentStartCommand;
     dirs: { home: string; runtime: string; skills: string; workspace: string };
     onActivity?: (activity: ComputerAgentActivityUpdate) => void;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;

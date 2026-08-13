@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { HostedServerUpdatedEvent } from '@tavern/api';
+import type { ServerUpdatedEvent } from '@tavern/api';
 import { emitServerUpdated, subscribeToServerUpdates } from '../src/grotto-api/server-events.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
@@ -136,7 +136,7 @@ function watchServerUpdates() {
     const controller = new AbortController();
     const iterator = subscribeToServerUpdates(controller.signal)[Symbol.asyncIterator]();
     const advance = () => {
-        const pending: Promise<IteratorResult<HostedServerUpdatedEvent>> = iterator.next();
+        const pending: Promise<IteratorResult<ServerUpdatedEvent>> = iterator.next();
         // Stopping rejects whatever read is still outstanding, and by then no
         // test is waiting on it.
         pending.catch(() => undefined);

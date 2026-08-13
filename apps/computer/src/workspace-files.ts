@@ -2,13 +2,13 @@ import type { Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type {
-    HostedAgentWorkspaceRequest,
-    HostedAgentWorkspaceResult,
-    HostedWorkspaceFileContent,
-    HostedWorkspaceFileEntry,
-    HostedWorkspaceFileList,
+    AgentWorkspaceRequest,
+    AgentWorkspaceResult,
+    WorkspaceFileContent,
+    WorkspaceFileEntry,
+    WorkspaceFileList,
 } from '@tavern/api';
-import { hostedAgentWorkspaceRequestSchema } from '@tavern/api';
+import { agentWorkspaceRequestSchema } from '@tavern/api';
 import {
     isVisibleWorkspaceEntry,
     normalizeWorkspacePath,
@@ -79,16 +79,16 @@ const mediaTypeByExtension: Record<string, string> = {
     '.xml': 'application/xml',
 };
 
-export function parseAgentWorkspaceRequest(frame: unknown): HostedAgentWorkspaceRequest | null {
-    const parsed = hostedAgentWorkspaceRequestSchema.safeParse(frame);
+export function parseAgentWorkspaceRequest(frame: unknown): AgentWorkspaceRequest | null {
+    const parsed = agentWorkspaceRequestSchema.safeParse(frame);
     return parsed.success ? parsed.data : null;
 }
 
 export async function runAgentWorkspaceRequest(input: {
     dataRoot: string;
-    request: HostedAgentWorkspaceRequest;
+    request: AgentWorkspaceRequest;
     serverId: string;
-}): Promise<HostedAgentWorkspaceResult> {
+}): Promise<AgentWorkspaceResult> {
     try {
         const workspaceRoot = await fs.realpath(
             path.join(
@@ -138,7 +138,7 @@ export async function listWorkspaceFiles(
     workspaceRoot: string,
     requestedPath: string,
     includeHidden = false
-): Promise<HostedWorkspaceFileList> {
+): Promise<WorkspaceFileList> {
     const relativePath = normalizeWorkspacePath(requestedPath, true);
     rejectUnbrowseableWorkspacePath(relativePath, { includeHidden });
     const directory = await resolveWorkspaceChild(workspaceRoot, relativePath);
@@ -152,7 +152,7 @@ export async function listWorkspaceFiles(
             .filter((entry) => isVisibleWorkspaceEntry(entry, includeHidden))
             .map((entry) => toWorkspaceEntry(workspaceRoot, relativePath, entry))
     );
-    const files: HostedWorkspaceFileEntry[] = [];
+    const files: WorkspaceFileEntry[] = [];
     for (const entry of visibleEntries) {
         if (entry) {
             files.push(entry);
@@ -169,7 +169,7 @@ export async function readWorkspaceFile(
     workspaceRoot: string,
     requestedPath: string,
     includeHidden = false
-): Promise<HostedWorkspaceFileContent> {
+): Promise<WorkspaceFileContent> {
     const relativePath = normalizeWorkspacePath(requestedPath, false);
     rejectSensitiveWorkspacePath(relativePath);
     rejectUnbrowseableWorkspacePath(relativePath, { includeHidden });
@@ -244,7 +244,7 @@ async function toWorkspaceEntry(root: string, parentPath: string, entry: Dirent)
     };
 }
 
-function compareWorkspaceEntries(left: HostedWorkspaceFileEntry, right: HostedWorkspaceFileEntry) {
+function compareWorkspaceEntries(left: WorkspaceFileEntry, right: WorkspaceFileEntry) {
     if (left.kind !== right.kind) {
         return left.kind === 'directory' ? -1 : 1;
     }

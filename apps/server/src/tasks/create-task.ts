@@ -1,9 +1,9 @@
-import type { HostedDurableEvent, HostedMessageTask } from '@tavern/api';
+import type { MessageTask, ServerDurableEvent } from '@tavern/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
-import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
-import { findHostedChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
+import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
+import { findChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
 import { ChatNonceConflictError, requireActiveDmPeer } from '../chats/send-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -16,22 +16,22 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { ensureHostedThread } from '../threads/ensure-thread.ts';
+import { ensureThread } from '../threads/ensure-thread.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { InvalidTaskAssigneeError, TaskAdminRequiredError } from './assign-task.ts';
-import { HostedTaskNotFoundError } from './claim-task.ts';
+import { TaskNotFoundError } from './claim-task.ts';
 import { UntaskableMessageError } from './promote-task.ts';
-import { insertHostedTaskEvent } from './task-events.ts';
-import { findHostedMessageTask } from './task-shape.ts';
+import { insertTaskEvent } from './task-events.ts';
+import { findMessageTask } from './task-shape.ts';
 
-export interface CreateHostedTaskResult {
-    events: HostedDurableEvent[];
+export interface CreateTaskResult {
+    events: ServerDurableEvent[];
     idempotent: boolean;
-    task: HostedMessageTask;
+    task: MessageTask;
     wakes: Array<{ agentId: string; serverId: string }>;
 }
 
-export async function createHostedTask(
+export async function createTask(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: {
@@ -42,11 +42,11 @@ export async function createHostedTask(
         serverId: string;
     },
     agentDelivery: AgentDelivery
-): Promise<CreateHostedTaskResult> {
+): Promise<CreateTaskResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         if (!member) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
 
         const membershipIds = [
@@ -98,7 +98,7 @@ export async function createHostedTask(
             if (existing.authorUserId !== member.id || existing.content !== input.content) {
                 throw new ChatNonceConflictError();
             }
-            const task = await findHostedMessageTask(tx, input.serverId, existing.id);
+            const task = await findMessageTask(tx, input.serverId, existing.id);
             if (!task) {
                 throw new ChatNonceConflictError();
             }
@@ -117,7 +117,7 @@ export async function createHostedTask(
                     )
                 )
                 .limit(1);
-            if (!(active && (await findHostedChatAccess(tx, input.assigneeUserId, input)))) {
+            if (!(active && (await findChatAccess(tx, input.assigneeUserId, input)))) {
                 throw new InvalidTaskAssigneeError();
             }
         }
@@ -150,7 +150,7 @@ export async function createHostedTask(
                 serverId: input.serverId,
             })
             .returning();
-        await ensureHostedThread(tx, member, {
+        await ensureThread(tx, member, {
             anchorMessageId: message.id,
             parentChatId: input.chatId,
             serverId: input.serverId,
@@ -169,7 +169,7 @@ export async function createHostedTask(
             status: selfClaim ? 'in_progress' : 'todo',
         });
 
-        const cursor = await allocateHostedEventCursor(tx, input.serverId);
+        const cursor = await allocateEventCursor(tx, input.serverId);
         const [eventRow] = await tx
             .insert(chatEventsTable)
             .values({
@@ -182,12 +182,12 @@ export async function createHostedTask(
                 type: 'message.created',
             })
             .returning({ createdAt: chatEventsTable.createdAt, id: chatEventsTable.id });
-        const task = await findHostedMessageTask(tx, input.serverId, message.id);
+        const task = await findMessageTask(tx, input.serverId, message.id);
         if (!task) {
             throw new Error('Task creation did not persist.');
         }
 
-        const messageEvent: HostedDurableEvent = {
+        const messageEvent: ServerDurableEvent = {
             chatId: input.chatId,
             createdAt: eventRow.createdAt.toISOString(),
             cursor: cursor.toString(),
@@ -198,7 +198,7 @@ export async function createHostedTask(
             serverId: input.serverId,
             type: 'message.created',
         };
-        const taskEvent = await insertHostedTaskEvent(tx, {
+        const taskEvent = await insertTaskEvent(tx, {
             chatId: input.chatId,
             messageId: message.id,
             serverId: input.serverId,

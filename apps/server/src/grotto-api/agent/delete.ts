@@ -1,16 +1,16 @@
-import { hostedDeleteAgentInputSchema } from '@tavern/api';
+import { deleteAgentInputSchema } from '@tavern/api';
 import { TRPCError } from '@trpc/server';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
-import { AgentDeleteDeniedError } from '../../hosted-agents/agent-config-errors.ts';
-import { deleteHostedAgent } from '../../hosted-agents/delete-agent.ts';
+import { AgentDeleteDeniedError } from '../../server-agents/agent-config-errors.ts';
+import { deleteAgent } from '../../server-agents/delete-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
 import { emitServerUpdated } from '../server-events.ts';
 
 export const deleteAgentProcedure = memberProcedure
-    .input(hostedDeleteAgentInputSchema)
+    .input(deleteAgentInputSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            const result = await deleteHostedAgent(ctx.grottoDb, ctx.member, input);
+            const result = await deleteAgent(ctx.grottoDb, ctx.member, input);
             for (const event of result.taskEvents) {
                 emitDurableChatEvent({ audienceUserId: null, event });
             }

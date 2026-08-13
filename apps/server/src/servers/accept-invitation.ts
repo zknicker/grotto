@@ -14,7 +14,7 @@ import {
     InvitationNotAcceptableError,
 } from './invitation-access.ts';
 import { hashInvitationToken } from './invitation-token.ts';
-import { clearHostedPersonalWork, joinAllChannel } from './member-personal-work.ts';
+import { clearPersonalWork, joinAllChannel } from './member-personal-work.ts';
 import { lockServerRow } from './server-lock.ts';
 
 export interface AcceptedServerInvitation {
@@ -130,7 +130,7 @@ export async function acceptServerInvitation(
             });
         }
 
-        await clearHostedPersonalWork(tx, invitation.serverId, user.id);
+        await clearPersonalWork(tx, invitation.serverId, user.id);
         await joinAllChannel(tx, invitation.serverId, user.id);
 
         await tx

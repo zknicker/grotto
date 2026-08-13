@@ -1,4 +1,4 @@
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import { parseAgentReferenceTarget } from '@tavern/api/rich-references';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
@@ -89,7 +89,7 @@ export function useMentionComposer({
     });
 }
 
-export function useHostedMentionComposer({
+export function useServerMentionComposer({
     agents,
     chatId,
     content,
@@ -100,7 +100,7 @@ export function useHostedMentionComposer({
     onTextChange,
     serverId,
 }: {
-    agents: HostedAgent[];
+    agents: Agent[];
     chatId: string;
     content: string;
     mentionableAgentIds: readonly string[];

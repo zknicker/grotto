@@ -1,8 +1,8 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { HostedAgentRetireCommand } from '@tavern/api';
+import type { AgentRetireCommand } from '@tavern/api';
 
-export function parseAgentRetireCommand(frame: unknown): HostedAgentRetireCommand | null {
+export function parseAgentRetireCommand(frame: unknown): AgentRetireCommand | null {
     if (
         !isRecord(frame) ||
         frame.type !== 'agent-retire' ||

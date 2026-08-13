@@ -1,23 +1,23 @@
-import type { HostedChatReadReceipt, HostedDurableEvent } from '@tavern/api';
+import type { ChatReadReceipt, ServerDurableEvent } from '@tavern/api';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatReadsTable, chatsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
+import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatAccess } from './chat-access.ts';
 
-export interface MarkHostedChatReadResult {
-    event: HostedDurableEvent | null;
-    receipt: HostedChatReadReceipt;
+export interface MarkChatReadResult {
+    event: ServerDurableEvent | null;
+    receipt: ChatReadReceipt;
 }
 
-export async function markHostedChatRead(
+export async function markChatRead(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { chatId: string; sequence: number; serverId: string }
-): Promise<MarkHostedChatReadResult> {
+): Promise<MarkChatReadResult> {
     return await db.transaction(async (tx) => {
         // Server row first, then authorize. Removal takes the Server row and
         // then deletes read markers; without this order a read marker would hold
@@ -115,7 +115,7 @@ export async function markHostedChatRead(
             };
         }
 
-        const eventCursor = await allocateHostedEventCursor(tx, input.serverId);
+        const eventCursor = await allocateEventCursor(tx, input.serverId);
         const [event] = await tx
             .insert(chatEventsTable)
             .values({

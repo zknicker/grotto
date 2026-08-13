@@ -1,8 +1,8 @@
 import { Button, toast } from '@heroui/react';
-import type { HostedChat } from '@tavern/api';
+import type { Chat } from '@tavern/api';
 import { useChannelUnarchive } from '../../../hooks/servers/use-channel-lifecycle.ts';
 
-export function ArchivedChannelBar({ canManage, chat }: { canManage: boolean; chat: HostedChat }) {
+export function ArchivedChannelBar({ canManage, chat }: { canManage: boolean; chat: Chat }) {
     const unarchive = useChannelUnarchive();
 
     return (

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
-import { scheduleHostedReminder, tickHostedReminders } from '../src/reminders/hosted-reminders.ts';
+import { scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
@@ -62,7 +62,7 @@ afterAll(async () => {
 describe('hosted reminder operator API', () => {
     test('allows only Owner and Admin to list hosted state and fire logs', async () => {
         const reminder = await schedule('operator-visible', 'Operator visible');
-        await tickHostedReminders(connection.db, {
+        await tickReminders(connection.db, {
             now: () => new Date('2026-07-27T15:00:00.000Z'),
         });
 
@@ -247,7 +247,7 @@ describe('hosted reminder operator API', () => {
 });
 
 async function schedule(commandId: string, title: string) {
-    return scheduleHostedReminder(
+    return scheduleReminder(
         connection.db,
         agentId,
         {

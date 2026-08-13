@@ -79,7 +79,7 @@ Live evidence remains in:
 
 ### P1 — one unavailable MCP connection can block Agent startup
 
-`HostedMcpRuntime.listAgentTools` isolates thrown failures, but neither MCP
+`McpRuntime.listAgentTools` isolates thrown failures, but neither MCP
 client creation, discovery, nor invocation has a time bound. Computer launch
 awaits the complete Server tool catalog before starting the Agent. A remote MCP
 that never resolves can therefore stall the whole catalog and Agent launch,

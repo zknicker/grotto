@@ -1,7 +1,7 @@
 import type { FileTreeSortEntry } from '@pierre/trees';
-import type { HostedWorkspaceFileEntry } from '@tavern/api';
+import type { WorkspaceFileEntry as ServerWorkspaceFileEntry } from '@tavern/api';
 
-export type WorkspaceFileEntry = HostedWorkspaceFileEntry;
+export type WorkspaceFileEntry = ServerWorkspaceFileEntry;
 export type WorkspaceDirectoryEntries = Record<string, WorkspaceFileEntry[]>;
 
 export function buildWorkspaceTreePaths(entriesByDirectory: WorkspaceDirectoryEntries) {

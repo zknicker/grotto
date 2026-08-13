@@ -1,21 +1,21 @@
 import { TRPCError } from '@trpc/server';
-import { HostedBrowserDeniedError, requestHostedBrowser } from '../../hosted-browser/browser.ts';
+import { BrowserDeniedError, requestBrowser } from '../../server-browser/browser.ts';
 import type { GrottoUser } from '../../users/grotto-user.ts';
 import type { GrottoContext } from '../context.ts';
 import { memberProcedure } from '../server/procedure.ts';
 import { createRouter } from '../trpc.ts';
 import {
-    hostedBrowserActionInputSchema,
-    hostedBrowserActionOutputSchema,
-    hostedBrowserGetInputSchema,
-    hostedBrowserSaveInputSchema,
-    hostedBrowserSettingsOutputSchema,
+    browserActionInputSchema,
+    browserActionOutputSchema,
+    browserGetInputSchema,
+    browserSaveInputSchema,
+    browserSettingsOutputSchema,
 } from './contracts.ts';
 
-export const hostedBrowserRouter = createRouter({
+export const browserRouter = createRouter({
     get: memberProcedure
-        .input(hostedBrowserGetInputSchema)
-        .output(hostedBrowserSettingsOutputSchema)
+        .input(browserGetInputSchema)
+        .output(browserSettingsOutputSchema)
         .query(async ({ ctx, input }) => {
             const result = await relay(ctx, input, { kind: 'get' });
             if (result.kind !== 'settings') {
@@ -26,8 +26,8 @@ export const hostedBrowserRouter = createRouter({
     open: actionProcedure('open'),
     restart: actionProcedure('restart'),
     save: memberProcedure
-        .input(hostedBrowserSaveInputSchema)
-        .output(hostedBrowserSettingsOutputSchema)
+        .input(browserSaveInputSchema)
+        .output(browserSettingsOutputSchema)
         .mutation(async ({ ctx, input }) => {
             const result = await relay(ctx, input, { input: input.settings, kind: 'save' });
             if (result.kind !== 'settings') {
@@ -39,8 +39,8 @@ export const hostedBrowserRouter = createRouter({
 
 function actionProcedure(kind: 'open' | 'restart') {
     return memberProcedure
-        .input(hostedBrowserActionInputSchema)
-        .output(hostedBrowserActionOutputSchema)
+        .input(browserActionInputSchema)
+        .output(browserActionOutputSchema)
         .mutation(async ({ ctx, input }) => {
             const result = await relay(ctx, input, { kind });
             if (result.kind !== 'action') {
@@ -58,12 +58,12 @@ async function relay(
         | { input: { enabled?: boolean; profileName?: string }; kind: 'save' }
 ) {
     try {
-        return await requestHostedBrowser(ctx.grottoDb, ctx.computerConnections, ctx.member, {
+        return await requestBrowser(ctx.grottoDb, ctx.computerConnections, ctx.member, {
             ...input,
             operation,
         });
     } catch (cause) {
-        if (cause instanceof HostedBrowserDeniedError) {
+        if (cause instanceof BrowserDeniedError) {
             throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });
         }
         throw cause;

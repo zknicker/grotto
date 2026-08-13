@@ -1,4 +1,4 @@
-import type { HostedCompositionEvent } from '@tavern/api';
+import type { CompositionEvent } from '@tavern/api';
 
 /**
  * Composition is a live-only signal, so a human removed mid-draft can leave one
@@ -10,9 +10,9 @@ import type { HostedCompositionEvent } from '@tavern/api';
  * live signals from humans who are perfectly present.
  */
 export function visibleCompositions(
-    compositions: HostedCompositionEvent[],
+    compositions: CompositionEvent[],
     memberUserIds: string[] | undefined
-): HostedCompositionEvent[] {
+): CompositionEvent[] {
     if (!memberUserIds) {
         return compositions;
     }

@@ -1,0 +1,50 @@
+import * as React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { buildCommandGroups } from '../../commands/server-commands.ts';
+import { useDevMode } from '../../components/dev-mode-provider.tsx';
+import { useAgents } from '../../hooks/members/use-agents.ts';
+import { useChats } from '../../hooks/servers/use-chats.ts';
+import type { ServerSummary } from '../../lib/grotto-server.tsx';
+import { type AgentAvatarLookup, CommandMenuShell } from './command-menu.tsx';
+
+export function CommandMenu({ server }: { server: ServerSummary }) {
+    const { pathname } = useLocation();
+    const navigateRoute = useNavigate();
+    const { devMode, setDevMode } = useDevMode();
+    const agents = useAgents(server.id);
+    const chats = useChats(server.id);
+    const agentItems = React.useMemo(() => agents.data ?? [], [agents.data]);
+    const chatItems = React.useMemo(() => chats.data ?? [], [chats.data]);
+    const navigate = React.useCallback(
+        (path: string) => {
+            void navigateRoute(path);
+        },
+        [navigateRoute]
+    );
+    const commandGroups = React.useMemo(
+        () =>
+            buildCommandGroups({
+                agents: agentItems,
+                chats: chatItems,
+                devMode,
+                navigate,
+                pathname,
+                role: server.role,
+                serverSlug: server.slug,
+                setDevMode,
+            }),
+        [agentItems, chatItems, devMode, navigate, pathname, server, setDevMode]
+    );
+    const lookupAgentAvatarUrl = React.useMemo<AgentAvatarLookup>(() => {
+        const avatarById = new Map(agentItems.map((agent) => [agent.id, agent.avatarUrl]));
+
+        return (agentId) => (agentId ? (avatarById.get(agentId) ?? null) : null);
+    }, [agentItems]);
+
+    return (
+        <CommandMenuShell
+            commandGroups={commandGroups}
+            lookupAgentAvatarUrl={lookupAgentAvatarUrl}
+        />
+    );
+}

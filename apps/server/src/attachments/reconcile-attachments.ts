@@ -10,7 +10,7 @@ export interface AttachmentRecoveryResult {
     ready: string[];
 }
 
-export async function reconcileHostedAttachments(
+export async function reconcileAttachments(
     db: GrottoDatabase,
     root: AttachmentRoot
 ): Promise<AttachmentRecoveryResult> {

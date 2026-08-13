@@ -1,10 +1,10 @@
 import { ChatMessage } from '@heroui-pro/react';
-import type { HostedAgent, HostedAgentLifecycleEvent } from '@tavern/api';
+import type { Agent, AgentLifecycleEvent } from '@tavern/api';
 import { getEntityInitials } from '../../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
 
-type SendingLifecycle = Extract<HostedAgentLifecycleEvent, { phase: 'sending' }>;
+type SendingLifecycle = Extract<AgentLifecycleEvent, { phase: 'sending' }>;
 
 export function ChatAgentComposition({
     chatId,
@@ -30,9 +30,9 @@ export function AgentCompositionBubbles({
     chatId,
     lifecycles,
 }: {
-    agents: readonly HostedAgent[];
+    agents: readonly Agent[];
     chatId: string | undefined;
-    lifecycles: ReadonlyMap<string, HostedAgentLifecycleEvent>;
+    lifecycles: ReadonlyMap<string, AgentLifecycleEvent>;
 }) {
     if (!chatId) {
         return null;
@@ -71,7 +71,7 @@ export function AgentCompositionBubbles({
 
 export function hasAgentComposition(
     chatId: string | undefined,
-    lifecycles: ReadonlyMap<string, HostedAgentLifecycleEvent>
+    lifecycles: ReadonlyMap<string, AgentLifecycleEvent>
 ) {
     return (
         chatId !== undefined &&

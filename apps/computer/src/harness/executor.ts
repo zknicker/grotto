@@ -15,7 +15,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
-import type { HostedAgentInboxItem } from '../launch.ts';
+import type { AgentInboxItem } from '../launch.ts';
 import {
     createComputerActivityProjector,
     createComputerActivityRegistry,
@@ -26,7 +26,7 @@ import {
     createComputerExecutionJournal,
 } from './execution-journal.ts';
 import { composeAgentInstructions } from './instructions.ts';
-import { projectHostedMessageForAgent } from './rich-reference-projection.ts';
+import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { clearSessionRestartRequest, isSessionRestartRequested } from './session-restart.ts';
 import {
@@ -61,7 +61,7 @@ export interface HarnessTurnInput {
     /** Home timezone for the Current Runtime Context section. */
     homeTimezone: string;
     /** Structured Server-owned inbox rows. Computer owns their model projection. */
-    inbox: HostedAgentInboxItem[];
+    inbox: AgentInboxItem[];
     inboxDelivery: 'concrete' | 'notice';
     /** The Agent's description — the personality surface (ruling W2). */
     initialRole: string | null;
@@ -218,7 +218,7 @@ async function executeHarnessTurn(
         const coldStart = resetContext ? `Start.\n${resetContext}` : 'Start.';
         const turn = await agent.stream({
             abortSignal: input.signal,
-            prompt: projectHostedMessageForAgent({
+            prompt: projectMessageForAgent({
                 content: isColdStart
                     ? coldInbox
                         ? [resetContext, coldInbox].filter(Boolean).join('\n\n')

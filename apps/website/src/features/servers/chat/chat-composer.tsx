@@ -1,7 +1,7 @@
 import { Switch } from '@heroui/react';
 import { PromptInput } from '@heroui-pro/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useChatComposerFocusRequest } from '../../../commands/chat-composer-focus.ts';
 import {
@@ -19,7 +19,7 @@ import type { Mention } from '../../mentions/mention-types.ts';
 import {
     MentionComposerEditor,
     MentionComposerPicker,
-    useHostedMentionComposer,
+    useServerMentionComposer,
 } from '../../mentions/use-mention-composer.tsx';
 import { buildAgentMentionOption } from '../../mentions/use-mention-options.ts';
 import { ComposerAttachments } from './composer-attachments.tsx';
@@ -30,7 +30,7 @@ import {
     settlePendingChatMessage,
 } from './use-pending-messages.ts';
 
-const emptyAgents: HostedAgent[] = [];
+const emptyAgents: Agent[] = [];
 
 export function ChatComposer({
     chatId,
@@ -79,7 +79,7 @@ export function ChatComposer({
         () => agentList.map((agent) => agent.id),
         [agentList]
     );
-    const mentionComposer = useHostedMentionComposer({
+    const mentionComposer = useServerMentionComposer({
         agents: agentList,
         chatId,
         content: draft,

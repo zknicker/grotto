@@ -1,27 +1,22 @@
 import { join } from 'node:path';
-import type {
-    HostedAgentExecutionJournalRequest,
-    HostedAgentExecutionJournalResult,
-} from '@tavern/api';
-import { hostedAgentExecutionJournalRequestSchema } from '@tavern/api';
+import type { AgentExecutionJournalRequest, AgentExecutionJournalResult } from '@tavern/api';
+import { agentExecutionJournalRequestSchema } from '@tavern/api';
 import {
     type ComputerExecutionJournalDocument,
     isExecutionJournalRunId,
     readComputerExecutionJournal,
 } from './harness/execution-journal.ts';
 
-export function parseExecutionJournalRequest(
-    frame: unknown
-): HostedAgentExecutionJournalRequest | null {
-    const parsed = hostedAgentExecutionJournalRequestSchema.safeParse(frame);
+export function parseExecutionJournalRequest(frame: unknown): AgentExecutionJournalRequest | null {
+    const parsed = agentExecutionJournalRequestSchema.safeParse(frame);
     return parsed.success ? parsed.data : null;
 }
 
 export async function readExecutionJournalRequest(input: {
     dataRoot: string;
-    request: HostedAgentExecutionJournalRequest;
+    request: AgentExecutionJournalRequest;
     serverId: string;
-}): Promise<HostedAgentExecutionJournalResult> {
+}): Promise<AgentExecutionJournalResult> {
     if (!isExecutionJournalRunId(input.request.runId)) {
         return unavailableResult(input.request, 'missing');
     }
@@ -46,9 +41,9 @@ export async function readExecutionJournalRequest(input: {
 }
 
 function unavailableResult(
-    request: HostedAgentExecutionJournalRequest,
+    request: AgentExecutionJournalRequest,
     reason: 'missing'
-): HostedAgentExecutionJournalResult {
+): AgentExecutionJournalResult {
     return {
         agentId: request.agentId,
         reason,

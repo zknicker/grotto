@@ -9,7 +9,7 @@ import {
     chatsTable,
     messageReactionsTable,
 } from '../postgres/schema.ts';
-import { listHostedMessageTaskMap } from '../tasks/task-shape.ts';
+import { listMessageTaskMap } from '../tasks/task-shape.ts';
 
 export interface MessageRow {
     authorAgentId: string | null;
@@ -40,7 +40,7 @@ export async function toAgentMessages(
     serverId: string,
     rows: MessageRow[]
 ): Promise<TavernAgentMessage[]> {
-    const tasksByMessage = await listHostedMessageTaskMap(
+    const tasksByMessage = await listMessageTaskMap(
         db,
         serverId,
         rows.map(({ id }) => id)

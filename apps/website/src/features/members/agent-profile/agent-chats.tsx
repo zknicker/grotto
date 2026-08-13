@@ -1,7 +1,7 @@
 import { Chip, Separator } from '@heroui/react';
 import { HashtagIcon } from '@hugeicons-pro/core-solid-rounded';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -12,7 +12,7 @@ import { SettingsGroup, SettingsSection } from '../../settings/layout/settings-p
 import { AgentLoading } from './agent-loading.tsx';
 
 /** The chats this Agent belongs to — membership, not a chat surface. */
-export function AgentChats({ agent, server }: { agent: HostedAgent; server: ServerDetail }) {
+export function AgentChats({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const navigate = useNavigate();
     const chats = useAgentChats(server.id, agent.id);
     if (chats.isPending) {

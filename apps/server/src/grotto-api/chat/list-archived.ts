@@ -1,11 +1,11 @@
-import { hostedChatListInputSchema, hostedChatListSchema } from '@tavern/api';
-import { listHostedChats } from '../../chats/list-chats.ts';
+import { chatListInputSchema, chatListSchema } from '@tavern/api';
+import { listChats } from '../../chats/list-chats.ts';
 import { chatProcedure } from './procedure.ts';
 
 export const listArchivedChatsProcedure = chatProcedure
-    .input(hostedChatListInputSchema)
-    .output(hostedChatListSchema)
+    .input(chatListInputSchema)
+    .output(chatListSchema)
     .query(
         async ({ ctx, input }) =>
-            await listHostedChats(ctx.grottoDb, ctx.member, input.serverId, 'archived')
+            await listChats(ctx.grottoDb, ctx.member, input.serverId, 'archived')
     );

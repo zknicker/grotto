@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-export interface HostedReminderScriptCommand {
+export interface ReminderScriptCommand {
     agentId: string;
     attentionId: string;
     fireId: string;
@@ -10,7 +10,7 @@ export interface HostedReminderScriptCommand {
     type: 'reminder-script';
 }
 
-export interface HostedReminderScriptResult {
+export interface ReminderScriptResult {
     agentId: string;
     attentionId: string;
     exitCode: number;
@@ -22,9 +22,9 @@ export interface HostedReminderScriptResult {
 
 const scriptTimeoutMs = 60_000;
 const maxOutputBytes = 65_536;
-const runningScripts = new Map<string, Promise<HostedReminderScriptResult>>();
+const runningScripts = new Map<string, Promise<ReminderScriptResult>>();
 
-export function parseReminderScriptCommand(frame: unknown): HostedReminderScriptCommand | null {
+export function parseReminderScriptCommand(frame: unknown): ReminderScriptCommand | null {
     if (
         !isRecord(frame) ||
         frame.type !== 'reminder-script' ||
@@ -35,15 +35,15 @@ export function parseReminderScriptCommand(frame: unknown): HostedReminderScript
     ) {
         return null;
     }
-    return frame as unknown as HostedReminderScriptCommand;
+    return frame as unknown as ReminderScriptCommand;
 }
 
 /** Executes once in the Agent workspace; a redelivered command replays the durable result. */
 export async function runReminderScript(input: {
-    command: HostedReminderScriptCommand;
+    command: ReminderScriptCommand;
     dataRoot: string;
     serverId: string;
-}): Promise<HostedReminderScriptResult> {
+}): Promise<ReminderScriptResult> {
     const agentRoot = join(
         input.dataRoot,
         'servers',
@@ -74,7 +74,7 @@ async function executeReminderScript(
         resultDir: string;
         resultPath: string;
     }
-): Promise<HostedReminderScriptResult> {
+): Promise<ReminderScriptResult> {
     const prior = await readResult(input.resultPath);
     if (prior) {
         return prior;
@@ -106,7 +106,7 @@ async function executeReminderScript(
         child.exited.catch(() => (timedOut ? 124 : 1)),
     ]).finally(() => clearTimeout(timeout));
     const output = truncateUtf8([stdout, stderr].filter(Boolean).join('\n'), maxOutputBytes);
-    const result: HostedReminderScriptResult = {
+    const result: ReminderScriptResult = {
         agentId: input.command.agentId,
         attentionId: input.command.attentionId,
         exitCode: timedOut ? 124 : exitCode,
@@ -135,7 +135,7 @@ function reminderScriptEnvironment(home: string): Record<string, string> {
     return environment;
 }
 
-async function readResult(path: string): Promise<HostedReminderScriptResult | null> {
+async function readResult(path: string): Promise<ReminderScriptResult | null> {
     try {
         const value = JSON.parse(await readFile(path, 'utf8')) as unknown;
         return isResult(value) ? value : null;
@@ -168,7 +168,7 @@ function truncateUtf8(value: string, maxBytes: number): string {
     return result;
 }
 
-function isResult(value: unknown): value is HostedReminderScriptResult {
+function isResult(value: unknown): value is ReminderScriptResult {
     return (
         isRecord(value) &&
         value.type === 'reminder-script-result' &&

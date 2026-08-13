@@ -4,27 +4,23 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import {
-    type HostedTaskMutationResult,
-    HostedTaskNotFoundError,
-    TaskConflictError,
-} from './claim-task.ts';
-import { insertHostedTaskEvent } from './task-events.ts';
-import { findHostedMessageTask } from './task-shape.ts';
+import { TaskConflictError, type TaskMutationResult, TaskNotFoundError } from './claim-task.ts';
+import { insertTaskEvent } from './task-events.ts';
+import { findMessageTask } from './task-shape.ts';
 
-export async function unclaimHostedTask(
+export async function unclaimTask(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { expectedVersion: number; messageId: string; serverId: string }
-): Promise<HostedTaskMutationResult> {
+): Promise<TaskMutationResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         if (!member) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
-        const beforeLock = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const beforeLock = await findMessageTask(tx, input.serverId, input.messageId);
         if (!beforeLock) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
         await tx.execute(sql`
             select user_id from server_memberships
@@ -48,9 +44,9 @@ export async function unclaimHostedTask(
             for update
         `);
 
-        const current = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const current = await findMessageTask(tx, input.serverId, input.messageId);
         if (!current) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
         if (current.assigneeUserId !== member.id) {
             throw new TaskConflictError('Only the current assignee may unclaim this task.');
@@ -76,15 +72,15 @@ export async function unclaimHostedTask(
                     eq(messageTasksTable.messageId, input.messageId)
                 )
             );
-        const event = await insertHostedTaskEvent(tx, {
+        const event = await insertTaskEvent(tx, {
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: input.serverId,
             type: 'task.updated',
         });
-        const task = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const task = await findMessageTask(tx, input.serverId, input.messageId);
         if (!task) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
         return { event, task };
     });

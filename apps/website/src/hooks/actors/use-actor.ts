@@ -1,4 +1,4 @@
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import { useMemo } from 'react';
 import type { HistoryActorOutput } from '../../lib/trpc.tsx';
 import { useAgentList } from '../agents/use-agent-list.ts';
@@ -7,7 +7,7 @@ import { useParticipantList } from '../participants/use-participant-list.ts';
 import { useUserProfilePreference } from '../shell/use-user-profile-preference.ts';
 
 export interface ActorProfile {
-    availability?: HostedAgent['availability'];
+    availability?: Agent['availability'];
     avatarUrl: string | null;
     bio: string | null;
     deleted: boolean;

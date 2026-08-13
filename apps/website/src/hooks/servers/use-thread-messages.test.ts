@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { HostedChatMessage } from '@tavern/api';
+import type { ChatMessage } from '@tavern/api';
 import { mergeThreadMessagePages } from './use-thread-messages.ts';
 
 test('Thread pages merge oldest-first without duplicate messages', () => {
@@ -11,7 +11,7 @@ test('Thread pages merge oldest-first without duplicate messages', () => {
     ).toEqual(['msg_old', 'msg_middle', 'msg_new']);
 });
 
-function message(id: string, sequence: number): HostedChatMessage {
+function message(id: string, sequence: number): ChatMessage {
     return {
         attachments: [],
         author: { kind: 'human', userId: 'usr_author' },

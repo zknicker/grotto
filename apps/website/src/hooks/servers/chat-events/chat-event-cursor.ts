@@ -1,4 +1,4 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 
 const pageSize = 100;
 
@@ -11,9 +11,9 @@ export const chatEventBatchWindowMs = 150;
 
 export interface ChatEventBatch {
     /** Collects one event. Returns true when it opened a new window. */
-    add: (event: HostedDurableEvent) => boolean;
+    add: (event: ServerDurableEvent) => boolean;
     /** Empties the window into its collected events, or null when nothing waits. */
-    drain: () => HostedDurableEvent[] | null;
+    drain: () => ServerDurableEvent[] | null;
 }
 
 /**
@@ -22,7 +22,7 @@ export interface ChatEventBatch {
  * with the caller: it is immediate and exact regardless of batching.
  */
 export function createChatEventBatch(): ChatEventBatch {
-    let pending: HostedDurableEvent[] = [];
+    let pending: ServerDurableEvent[] = [];
 
     return {
         add: (event) => {
@@ -56,12 +56,12 @@ export async function walkEventCatchUp({
     onEvents,
 }: {
     afterCursor: string;
-    fetchPage: (afterCursor: string, limit: number) => Promise<HostedDurableEvent[]>;
-    onEvents: (events: HostedDurableEvent[]) => Promise<void>;
+    fetchPage: (afterCursor: string, limit: number) => Promise<ServerDurableEvent[]>;
+    onEvents: (events: ServerDurableEvent[]) => Promise<void>;
 }): Promise<string> {
     let walkCursor = afterCursor;
-    const walked: HostedDurableEvent[] = [];
-    let events: HostedDurableEvent[];
+    const walked: ServerDurableEvent[] = [];
+    let events: ServerDurableEvent[];
 
     do {
         events = await fetchPage(walkCursor, pageSize);

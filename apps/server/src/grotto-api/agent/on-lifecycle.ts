@@ -1,13 +1,10 @@
-import {
-    hostedAgentLifecycleEventSchema,
-    hostedAgentLifecycleSubscriptionInputSchema,
-} from '@tavern/api';
+import { agentLifecycleEventSchema, agentLifecycleSubscriptionInputSchema } from '@tavern/api';
 import { subscribeToAgentLifecycle } from '../../agent-delivery/lifecycle.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const onAgentLifecycleProcedure = memberProcedure
-    .input(hostedAgentLifecycleSubscriptionInputSchema)
+    .input(agentLifecycleSubscriptionInputSchema)
     .use(async ({ ctx, input, next }) => {
         await requireServerMembership(ctx.grottoDb, ctx.member, input.serverId);
         return await next();
@@ -19,6 +16,6 @@ export const onAgentLifecycleProcedure = memberProcedure
             }
 
             await requireServerMembership(ctx.grottoDb, ctx.member, input.serverId);
-            yield hostedAgentLifecycleEventSchema.parse(event);
+            yield agentLifecycleEventSchema.parse(event);
         }
     });

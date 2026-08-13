@@ -1,17 +1,17 @@
 import { expect, test } from 'bun:test';
-import { hostedAvailabilityBadgeColor, hostedAvailabilityLabel } from './agent-avatar.tsx';
+import { availabilityBadgeColor, availabilityLabel } from './agent-avatar.tsx';
 
 test('DM status copy uses concise global availability labels', () => {
-    expect(hostedAvailabilityLabel('idle')).toBe('Online');
-    expect(hostedAvailabilityLabel('working')).toBe('Working');
-    expect(hostedAvailabilityLabel('offline')).toBe('Offline');
-    expect(hostedAvailabilityLabel('stopped')).toBe('Stopped');
-    expect(hostedAvailabilityLabel('error')).toBe('Needs attention');
+    expect(availabilityLabel('idle')).toBe('Online');
+    expect(availabilityLabel('working')).toBe('Working');
+    expect(availabilityLabel('offline')).toBe('Offline');
+    expect(availabilityLabel('stopped')).toBe('Stopped');
+    expect(availabilityLabel('error')).toBe('Needs attention');
 });
 
 test('availability maps onto HeroUI Badge colors', () => {
-    expect(hostedAvailabilityBadgeColor('idle')).toBe('success');
-    expect(hostedAvailabilityBadgeColor('working')).toBe('warning');
-    expect(hostedAvailabilityBadgeColor('error')).toBe('danger');
-    expect(hostedAvailabilityBadgeColor('offline')).toBe('default');
+    expect(availabilityBadgeColor('idle')).toBe('success');
+    expect(availabilityBadgeColor('working')).toBe('warning');
+    expect(availabilityBadgeColor('error')).toBe('danger');
+    expect(availabilityBadgeColor('offline')).toBe('default');
 });

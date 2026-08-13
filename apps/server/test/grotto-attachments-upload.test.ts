@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import {
     type AttachmentUploadError,
-    uploadHostedAttachment,
+    uploadAttachment,
 } from '../src/attachments/upload-attachment.ts';
 import { connectGrottoDatabase } from '../src/postgres/connection.ts';
 import { findUserByClerkId } from '../src/users/grotto-user.ts';
@@ -86,7 +86,7 @@ test('accepts missing Content-Length and rejects streamed overflow without a rea
         const member = await findUserByClerkId(connection.db, 'upload_owner');
         const root = await openAttachmentRoot(harness.attachmentRoot);
         await expect(
-            uploadHostedAttachment(connection.db, root, {
+            uploadAttachment(connection.db, root, {
                 attachmentId: tooLarge.attachmentId,
                 declaredLength: null,
                 member,
@@ -158,7 +158,7 @@ test('accepts zero bytes and marks a dishonest Content-Length attempt failed', a
         const member = await findUserByClerkId(connection.db, 'upload_owner');
         const root = await openAttachmentRoot(harness.attachmentRoot);
         await expect(
-            uploadHostedAttachment(connection.db, root, {
+            uploadAttachment(connection.db, root, {
                 attachmentId: partial.attachmentId,
                 declaredLength: 2,
                 member,

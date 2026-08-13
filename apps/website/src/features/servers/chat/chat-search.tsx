@@ -1,7 +1,7 @@
 import { Button, Chip, SearchField } from '@heroui/react';
 import { EmptyState, ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedChat, HostedChatSearchResult } from '@tavern/api';
+import type { Chat, ChatSearchResult } from '@tavern/api';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -130,9 +130,9 @@ function SearchResults({
     query,
     searching,
 }: {
-    chatById: Map<string, HostedChat>;
+    chatById: Map<string, Chat>;
     filtersActive: boolean;
-    matches: HostedChatSearchResult[];
+    matches: ChatSearchResult[];
     onClearFilters(): void;
     onOpenChat(chatId: string): void;
     query: string;
@@ -185,8 +185,8 @@ function SearchResultRow({
     onOpen,
     query,
 }: {
-    chat: HostedChat | undefined;
-    message: HostedChatSearchResult;
+    chat: Chat | undefined;
+    message: ChatSearchResult;
     onOpen(): void;
     query: string;
 }) {
@@ -255,7 +255,7 @@ function SearchEmptyState({
     );
 }
 
-function messageAuthor(message: HostedChatSearchResult): {
+function messageAuthor(message: ChatSearchResult): {
     avatarUrl: string | null;
     name: string;
 } {

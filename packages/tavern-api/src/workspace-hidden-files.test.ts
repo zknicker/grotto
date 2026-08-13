@@ -1,9 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import {
-    hostedAgentWorkspaceListInputSchema,
-    hostedAgentWorkspaceReadInputSchema,
-} from './hosted-agent.ts';
-import { hostedAgentWorkspaceRequestSchema } from './hosted-agent-runner.ts';
+import { agentWorkspaceListInputSchema, agentWorkspaceReadInputSchema } from './agent.ts';
+import { agentWorkspaceRequestSchema } from './agent-runner.ts';
 import { agentRuntimeWorkspaceFileListInputSchema } from './runtime/contracts.ts';
 
 describe('workspace hidden-file contracts', () => {
@@ -12,7 +9,7 @@ describe('workspace hidden-file contracts', () => {
             false
         );
         expect(
-            hostedAgentWorkspaceListInputSchema.parse({
+            agentWorkspaceListInputSchema.parse({
                 agentId: 'agt_1234567890123456',
                 path: '',
                 serverId: 'srv_1234567890123456',
@@ -21,13 +18,13 @@ describe('workspace hidden-file contracts', () => {
     });
 
     test('carries the explicit visibility choice through list and read requests', () => {
-        const list = hostedAgentWorkspaceRequestSchema.parse({
+        const list = agentWorkspaceRequestSchema.parse({
             agentId: 'agt_1234567890123456',
             operation: { includeHidden: true, kind: 'list', path: '.drafts' },
             requestId: 'req_1234567890123456',
             type: 'agent-workspace-request',
         });
-        const read = hostedAgentWorkspaceReadInputSchema.parse({
+        const read = agentWorkspaceReadInputSchema.parse({
             agentId: 'agt_1234567890123456',
             includeHidden: true,
             path: '.drafts/plan.md',

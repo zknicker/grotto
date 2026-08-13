@@ -1,6 +1,6 @@
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 
-export function fullResetCopy(factoryKind: HostedAgent['factoryKind']) {
+export function fullResetCopy(factoryKind: Agent['factoryKind']) {
     if (factoryKind === 'cove') {
         return {
             confirmation:

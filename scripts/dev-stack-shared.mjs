@@ -24,8 +24,7 @@ export function createDevStackEnvironment({
 
     return {
         ...baseEnvironment,
-        GROTTO_ATTACHMENT_ROOT:
-            baseEnvironment.GROTTO_ATTACHMENT_ROOT ?? statePaths.hostedAttachmentRoot,
+        GROTTO_ATTACHMENT_ROOT: baseEnvironment.GROTTO_ATTACHMENT_ROOT ?? statePaths.attachmentRoot,
         GROTTO_COMPUTER_DATA_ROOT:
             baseEnvironment.GROTTO_COMPUTER_DATA_ROOT ?? statePaths.computerDataRoot,
         GROTTO_POSTGRES_DATA_ROOT:
@@ -234,7 +233,7 @@ export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
     return {
         appStateRoot,
         computerDataRoot: path.join(appStateRoot, 'computer'),
-        hostedAttachmentRoot: path.join(appStateRoot, 'server', 'attachments'),
+        attachmentRoot: path.join(appStateRoot, 'server', 'attachments'),
         postgresDataRoot: path.join(appStateRoot, 'postgres'),
         postgresSocketRoot: path.join(appStateRoot, 'postgres-socket'),
     };

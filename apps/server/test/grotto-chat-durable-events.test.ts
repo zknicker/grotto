@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
-import { insertHostedSystemMessage } from '../src/chats/insert-system-message.ts';
+import { insertSystemMessage } from '../src/chats/insert-system-message.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { chatEventsTable, chatMessagesTable } from '../src/postgres/schema.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
@@ -83,7 +83,7 @@ test('a Thread system message persists and returns its parent Chat in the event'
         throw new Error('Expected the Thread reply to return a child Chat id.');
     }
 
-    const event = await insertHostedSystemMessage(connection.db, {
+    const event = await insertSystemMessage(connection.db, {
         chatId: threadChatId,
         content: 'Thread system message',
         nonce: 'thread-system-message',

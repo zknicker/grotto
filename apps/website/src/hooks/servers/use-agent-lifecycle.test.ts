@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
-import type { HostedAgent, HostedAgentLifecycleEvent } from '@tavern/api';
+import type { Agent, AgentLifecycleEvent } from '@tavern/api';
 import { compositionExpiryDelay, projectAgentAvailability } from './use-agent-lifecycle.ts';
 
 const agent = {
     availability: 'idle',
     id: 'agt_test',
-} as HostedAgent;
+} as Agent;
 
 const base = {
     agentId: agent.id,
@@ -16,7 +16,7 @@ const base = {
 } as const;
 
 test('active lifecycle phases immediately project a working Agent', () => {
-    const event = { ...base, phase: 'reading' } satisfies HostedAgentLifecycleEvent;
+    const event = { ...base, phase: 'reading' } satisfies AgentLifecycleEvent;
     expect(projectAgentAvailability([agent], event)[0]?.availability).toBe('working');
 });
 
@@ -29,7 +29,7 @@ test.each([
         ...base,
         outcome,
         phase: 'settled',
-    } satisfies HostedAgentLifecycleEvent;
+    } satisfies AgentLifecycleEvent;
     expect(projectAgentAvailability([agent], event)[0]?.availability).toBe(availability);
 });
 

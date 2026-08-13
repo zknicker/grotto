@@ -6,7 +6,7 @@ import {
 import { and, eq, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable } from '../postgres/schema.ts';
-import { clearHostedTaskAssignments } from '../tasks/clear-task-assignments.ts';
+import { clearTaskAssignments } from '../tasks/clear-task-assignments.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import {
     findCurrentMembership,
@@ -15,7 +15,7 @@ import {
     ServerMemberAuthorityError,
     ServerMemberNotFoundError,
 } from './member-access.ts';
-import { clearHostedPersonalWork } from './member-personal-work.ts';
+import { clearPersonalWork } from './member-personal-work.ts';
 import { requireServerMembership } from './server-access.ts';
 import { lockServerRow } from './server-lock.ts';
 
@@ -23,7 +23,7 @@ export interface RemovedServerMember {
     /** Chats the human just lost, so live surfaces can drop volatile state. */
     departedChatIds: string[];
     serverId: string;
-    taskEvents: Awaited<ReturnType<typeof clearHostedTaskAssignments>>;
+    taskEvents: Awaited<ReturnType<typeof clearTaskAssignments>>;
     userId: string;
 }
 
@@ -93,11 +93,11 @@ export async function removeServerMember(
                 )
             );
 
-        const taskEvents = await clearHostedTaskAssignments(tx, server.id, {
+        const taskEvents = await clearTaskAssignments(tx, server.id, {
             id: target.userId,
             kind: 'user',
         });
-        const departedChatIds = await clearHostedPersonalWork(tx, server.id, target.userId);
+        const departedChatIds = await clearPersonalWork(tx, server.id, target.userId);
 
         return { departedChatIds, serverId: server.id, taskEvents, userId: target.userId };
     });

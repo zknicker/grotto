@@ -1,4 +1,4 @@
-import type { HostedAgentInboxItem } from './launch.ts';
+import type { AgentInboxItem } from './launch.ts';
 
 const deliveryTrailer = [
     'Respond as appropriate. Complete all your work before stopping.',
@@ -6,7 +6,7 @@ const deliveryTrailer = [
 ].join('\n');
 
 /** Exact model-visible drain shape from specs/raft-alignment/ws2-turn-shapes.md. */
-export function composeInboxDrain(items: HostedAgentInboxItem[], homeTimezone = 'UTC'): string {
+export function composeInboxDrain(items: AgentInboxItem[], homeTimezone = 'UTC'): string {
     if (items.length === 0) {
         return 'Start.';
     }
@@ -21,13 +21,13 @@ export function composeInboxDrain(items: HostedAgentInboxItem[], homeTimezone = 
 
 /** Content-free, target-level busy notice. Bodies never enter this projection. */
 export function composeInboxNotice(
-    items: HostedAgentInboxItem[],
+    items: AgentInboxItem[],
     totalPending = items.length
 ): string | null {
     if (items.length === 0) {
         return null;
     }
-    const targets = new Map<string, HostedAgentInboxItem[]>();
+    const targets = new Map<string, AgentInboxItem[]>();
     for (const item of items) {
         const rows = targets.get(item.target) ?? [];
         rows.push(item);
@@ -61,7 +61,7 @@ function plural(count: number, singular: string): string {
     return count === 1 ? singular : `${singular}s`;
 }
 
-function formatEnvelope(item: HostedAgentInboxItem, homeTimezone: string): string {
+function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
     const sender = item.senderDescription
         ? `@${item.senderHandle} — ${item.senderDescription}`
         : `@${item.senderHandle}`;
@@ -75,7 +75,7 @@ function formatEnvelope(item: HostedAgentInboxItem, homeTimezone: string): strin
     );
 }
 
-function taskAssignee(item: HostedAgentInboxItem): string {
+function taskAssignee(item: AgentInboxItem): string {
     if (!item.task) {
         return 'unassigned';
     }
@@ -98,7 +98,7 @@ function formatLocalTime(timestamp: string, homeTimezone: string): string {
     return `${value('year')}-${value('month')}-${value('day')} ${value('hour')}:${value('minute')}:${value('second')}`;
 }
 
-function noticeTag(target: string, item?: HostedAgentInboxItem): string {
+function noticeTag(target: string, item?: AgentInboxItem): string {
     const tags = [
         target.startsWith('dm:') ? 'dm' : target.includes(':') ? 'thread' : null,
         item?.task ? `task #${item.task.number}` : null,
@@ -111,7 +111,7 @@ function shortId(id: string): string {
     return id.replace(/^[a-z]+_/u, '').slice(0, 8) || '-';
 }
 
-function compareItems(left: HostedAgentInboxItem, right: HostedAgentInboxItem): number {
+function compareItems(left: AgentInboxItem, right: AgentInboxItem): number {
     return (
         left.createdAt.localeCompare(right.createdAt) ||
         left.sequence - right.sequence ||

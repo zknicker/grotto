@@ -1,5 +1,5 @@
 import { type InfiniteData, useInfiniteQuery } from '@tanstack/react-query';
-import type { HostedChatMessage } from '@tavern/api';
+import type { ChatMessage } from '@tavern/api';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
 import { type GrottoOutputs, grottoTrpc } from '../../lib/grotto-server.tsx';
@@ -55,10 +55,8 @@ export function threadMessagesQueryKey(serverId: string, threadChatId: string) {
     );
 }
 
-export function mergeThreadMessagePages(
-    pages: Array<{ messages: HostedChatMessage[] }> | undefined
-) {
-    const messagesById = new Map<string, HostedChatMessage>();
+export function mergeThreadMessagePages(pages: Array<{ messages: ChatMessage[] }> | undefined) {
+    const messagesById = new Map<string, ChatMessage>();
 
     for (let index = (pages?.length ?? 0) - 1; index >= 0; index -= 1) {
         for (const message of pages?.[index]?.messages ?? []) {

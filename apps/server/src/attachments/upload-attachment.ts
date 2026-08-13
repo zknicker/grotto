@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { HostedAttachmentUploadResult } from '@tavern/api';
+import type { AttachmentUploadResult } from '@tavern/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -7,7 +7,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
-import { hostedAttachmentMaxSizeBytes } from './reserve-attachment.ts';
+import { attachmentMaxSizeBytes } from './reserve-attachment.ts';
 
 export class AttachmentUploadError extends Error {
     constructor(
@@ -35,24 +35,24 @@ export interface AttachmentUploadFailureInjection {
     beforeReadyCommit?(): Promise<void> | void;
 }
 
-export async function uploadHostedAttachment(
+export async function uploadAttachment(
     db: GrottoDatabase,
     root: AttachmentRoot,
     input: UploadInput
-): Promise<HostedAttachmentUploadResult> {
+): Promise<AttachmentUploadResult> {
     const releaseServerWrite = root.beginServerWrite(input.serverId);
     try {
-        return await uploadHostedAttachmentOperation(db, root, input);
+        return await uploadAttachmentOperation(db, root, input);
     } finally {
         releaseServerWrite();
     }
 }
 
-async function uploadHostedAttachmentOperation(
+async function uploadAttachmentOperation(
     db: GrottoDatabase,
     root: AttachmentRoot,
     input: UploadInput
-): Promise<HostedAttachmentUploadResult> {
+): Promise<AttachmentUploadResult> {
     const attachment = await findAttachment(db, input.serverId, input.attachmentId);
 
     if (!attachment) {
@@ -197,7 +197,7 @@ async function digestStream(
     for await (const rawChunk of stream) {
         const chunk = Buffer.from(rawChunk);
         sizeBytes += chunk.byteLength;
-        if (sizeBytes > hostedAttachmentMaxSizeBytes) {
+        if (sizeBytes > attachmentMaxSizeBytes) {
             throw new AttachmentUploadError('Attachment exceeds the 50 MiB limit.', 'size_limit');
         }
         hash.update(chunk);

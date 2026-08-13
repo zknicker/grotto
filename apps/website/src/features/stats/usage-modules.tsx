@@ -1,7 +1,7 @@
 import { Card, Label, ProgressBar, Skeleton } from '@heroui/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import { ChatGptIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedUsageOverview } from '@tavern/api';
+import type { UsageOverview as ServerUsageOverview } from '@tavern/api';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useLiveUsageSuspense } from '../../hooks/models/use-live-usage.ts';
 import { useModelInventorySuspense } from '../../hooks/models/use-model-inventory.ts';
@@ -9,7 +9,7 @@ import { formatTimestamp } from '../../lib/format.ts';
 import type { LiveUsageOutput } from '../../lib/trpc.tsx';
 import { UsageSpendModule } from './usage-spend-module.tsx';
 
-export type UsageOverview = HostedUsageOverview | LiveUsageOutput;
+export type UsageOverview = ServerUsageOverview | LiveUsageOutput;
 
 export function UsageModules() {
     const [liveUsage] = useLiveUsageSuspense();
@@ -30,7 +30,7 @@ export function UsageModulesView({
 }: {
     allowOpenRouterConfiguration?: boolean;
     connectedProviders: string[];
-    liveUsage: HostedUsageOverview | LiveUsageOutput | undefined;
+    liveUsage: ServerUsageOverview | LiveUsageOutput | undefined;
 }) {
     const providerSet = new Set(connectedProviders);
     const showCodex = providerSet.has('openai-codex');

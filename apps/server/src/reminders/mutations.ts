@@ -1,4 +1,4 @@
-import { hostedReminderSchema } from '@tavern/api';
+import { reminderSchema } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -7,12 +7,12 @@ import { reminderCommandsTable, remindersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { insertAnchoredReminderChangedEvent } from './reminder-events.ts';
 import {
-    type HostedReminder,
+    type Reminder,
     type ReminderClock,
     ReminderCommandConflictError,
     requireActiveAgent,
     requireAgentAnchor,
-    toHostedReminder,
+    toReminder,
 } from './reminder-model.ts';
 
 export interface ReminderCommandInput {
@@ -22,12 +22,12 @@ export interface ReminderCommandInput {
     serverId: string;
 }
 
-export async function cancelHostedReminder(
+export async function cancelReminder(
     db: GrottoDatabase,
     agentId: string,
     input: ReminderCommandInput,
     clock: ReminderClock
-): Promise<{ idempotent: boolean; reminder: HostedReminder }> {
+): Promise<{ idempotent: boolean; reminder: Reminder }> {
     const fingerprint = JSON.stringify({
         action: 'cancel',
         expectedVersion: input.expectedVersion,
@@ -102,7 +102,7 @@ export async function cancelHostedReminder(
             id: createOpaqueId('rcm'),
             reminderId: input.reminderId,
             requestFingerprint: fingerprint,
-            resultSnapshot: toHostedReminder(updated, agent.handle),
+            resultSnapshot: toReminder(updated, agent.handle),
             serverId: input.serverId,
         });
         const event = await insertAnchoredReminderChangedEvent(tx, {
@@ -115,7 +115,7 @@ export async function cancelHostedReminder(
         return {
             event,
             idempotent: false,
-            reminder: toHostedReminder(updated, agent.handle),
+            reminder: toReminder(updated, agent.handle),
         };
     });
     if (result.event) {
@@ -175,6 +175,6 @@ export async function readExistingCommand(
     return parseReminderCommandResult(command.resultSnapshot);
 }
 
-export function parseReminderCommandResult(snapshot: unknown): HostedReminder {
-    return hostedReminderSchema.parse(snapshot);
+export function parseReminderCommandResult(snapshot: unknown): Reminder {
+    return reminderSchema.parse(snapshot);
 }

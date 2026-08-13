@@ -1,4 +1,4 @@
-import type { HostedAgent, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
+import type { Agent, ChatMessage, ThreadSummary } from '@tavern/api';
 import * as React from 'react';
 import type { HumanDirectory } from '../human-identity.ts';
 import {
@@ -8,20 +8,20 @@ import {
 } from './chat-message-model.ts';
 
 export interface ChatMessageProjectionInput {
-    agents: readonly HostedAgent[];
+    agents: readonly Agent[];
     humans?: HumanDirectory;
-    messages: readonly HostedChatMessage[];
-    threads: readonly HostedThreadSummary[];
+    messages: readonly ChatMessage[];
+    threads: readonly ThreadSummary[];
 }
 
 export interface ChatMessageProjection extends ChatMessageProjectionInput {
-    rowByMessage: ReadonlyMap<HostedChatMessage, ProjectedChatMessageRow>;
+    rowByMessage: ReadonlyMap<ChatMessage, ProjectedChatMessageRow>;
     rows: ProjectedChatMessageRow[];
 }
 
-export const emptyChatMessages: readonly HostedChatMessage[] = [];
-export const emptyChatThreads: readonly HostedThreadSummary[] = [];
-export const emptyChatAgents: readonly HostedAgent[] = [];
+export const emptyChatMessages: readonly ChatMessage[] = [];
+export const emptyChatThreads: readonly ThreadSummary[] = [];
+export const emptyChatAgents: readonly Agent[] = [];
 
 export const emptyChatMessageProjection: ChatMessageProjection = {
     agents: emptyChatAgents,
@@ -60,7 +60,7 @@ export function projectStableChatMessages(
     );
     const directories = chatMessageDirectories(input.agents, input.humans);
     const directoriesChanged = previous.agents !== input.agents || previous.humans !== input.humans;
-    const rowByMessage = new Map<HostedChatMessage, ProjectedChatMessageRow>();
+    const rowByMessage = new Map<ChatMessage, ProjectedChatMessageRow>();
     let reusedEveryRow = previous.rows.length === input.messages.length;
 
     const rows = input.messages.map((message, index) => {

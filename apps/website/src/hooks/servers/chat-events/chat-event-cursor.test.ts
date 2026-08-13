@@ -1,12 +1,12 @@
 import { expect, test } from 'bun:test';
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import { createChatEventBatch, laterEventCursor, walkEventCatchUp } from './chat-event-cursor.ts';
 import { lifecycleEvent, messageEvent, readEvent } from './chat-event-fixtures.ts';
 
 test('catch-up keeps a private cursor while a newer live event advances shared state', async () => {
-    const firstFetch = Promise.withResolvers<HostedDurableEvent[]>();
+    const firstFetch = Promise.withResolvers<ServerDurableEvent[]>();
     const fetchedAfter: string[] = [];
-    const passes: HostedDurableEvent[][] = [];
+    const passes: ServerDurableEvent[][] = [];
     let sharedCursor = '1';
     let fetchCount = 0;
 
@@ -35,7 +35,7 @@ test('catch-up keeps a private cursor while a newer live event advances shared s
 
 test('a multi-page catch-up coalesces every page into one dispatch pass', async () => {
     const fetchedAfter: string[] = [];
-    const passes: HostedDurableEvent[][] = [];
+    const passes: ServerDurableEvent[][] = [];
     const fullPage = Array.from({ length: 100 }, (_, index) =>
         messageEvent(String(index + 1), `chat_${index % 2}`)
     );

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { avatarRoutePrefix } from './avatar-url.ts';
-import { readHostedAvatar } from './read-avatar.ts';
+import { readAvatar } from './read-avatar.ts';
 
 interface AvatarRouteDependencies {
     db: GrottoDatabase;
@@ -16,7 +16,7 @@ export function registerAvatarRoutes(app: FastifyInstance, dependencies: AvatarR
     app.get<{ Params: { avatarId: string } }>(
         `${avatarRoutePrefix}/:avatarId`,
         async (request, reply) => {
-            const avatar = await readHostedAvatar(dependencies.db, request.params.avatarId);
+            const avatar = await readAvatar(dependencies.db, request.params.avatarId);
 
             if (!avatar) {
                 return await reply.code(404).send({ error: 'No avatar exists with that id.' });

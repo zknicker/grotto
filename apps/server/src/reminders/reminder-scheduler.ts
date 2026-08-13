@@ -11,19 +11,19 @@ export interface ReminderSchedulerTimers {
     setInterval(callback: () => void, milliseconds: number): ReturnType<typeof setInterval>;
 }
 
-export interface HostedReminderScheduler {
+export interface ReminderScheduler {
     close(): Promise<void>;
     health(): ReminderSchedulerHealth;
     start(): Promise<void>;
     wake(): Promise<void>;
 }
 
-export function createHostedReminderScheduler(options: {
+export function createReminderScheduler(options: {
     clock: ReminderClock;
     intervalMs?: number;
     tick(): Promise<unknown>;
     timers?: ReminderSchedulerTimers;
-}): HostedReminderScheduler {
+}): ReminderScheduler {
     const timers = options.timers ?? defaultTimers;
     let consecutiveFailures = 0;
     let lastSuccessfulTickAt: string | null = null;

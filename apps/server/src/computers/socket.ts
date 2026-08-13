@@ -1,34 +1,34 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
 import {
+    agentActivityFrameSchema,
+    agentDeliveryAckSchema,
+    agentEffectiveStateSchema,
+    agentExecutionJournalResultSchema,
+    agentNoticeAckSchema,
+    agentSkillFileResultSchema,
+    agentSkillImportResultSchema,
+    agentTurnSummarySchema,
+    agentWorkspaceResultSchema,
+    browserResultSchema,
     computerBootstrapHelloSchema,
+    computerInventorySchema,
     computerProtocolVersion,
     computerUpdateProgressFrameSchema,
-    hostedAgentActivityFrameSchema,
-    hostedAgentDeliveryAckSchema,
-    hostedAgentEffectiveStateSchema,
-    hostedAgentExecutionJournalResultSchema,
-    hostedAgentNoticeAckSchema,
-    hostedAgentSkillFileResultSchema,
-    hostedAgentSkillImportResultSchema,
-    hostedAgentTurnSummarySchema,
-    hostedAgentWorkspaceResultSchema,
-    hostedBrowserResultSchema,
-    hostedComputerInventorySchema,
-    hostedCoveApplyResultSchema,
-    hostedReminderScriptResultSchema,
-    hostedUsageReportSchema,
+    coveApplyResultSchema,
+    reminderScriptResultSchema,
+    usageReportSchema,
 } from '@tavern/api';
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitServerUpdated } from '../grotto-api/server-events.ts';
-import { recordComputerAgentActivityWithStatus } from '../hosted-agents/agent-activity.ts';
-import { recordAgentEffectiveState } from '../hosted-agents/record-agent-effective-state.ts';
-import { recordHostedComputerUsage } from '../hosted-operations/computer-usage.ts';
 import { recordCoveApplyResult, sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import { recordComputerAgentActivityWithStatus } from '../server-agents/agent-activity.ts';
+import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
+import { recordComputerUsage } from '../server-operations/computer-usage.ts';
 import type { ComputerConnections } from './connections.ts';
 import {
     hashComputerSecret,
@@ -42,8 +42,8 @@ import {
 /** Ongoing report of last-reported inventory and per-Agent effective state. */
 const reportSchema = z
     .object({
-        agents: z.array(hostedAgentEffectiveStateSchema).max(500).default([]),
-        inventory: hostedComputerInventorySchema.optional(),
+        agents: z.array(agentEffectiveStateSchema).max(500).default([]),
+        inventory: computerInventorySchema.optional(),
         type: z.literal('report'),
     })
     .strict();
@@ -190,7 +190,7 @@ async function ingestReport(
         return;
     }
 
-    const activity = hostedAgentActivityFrameSchema.safeParse(frame);
+    const activity = agentActivityFrameSchema.safeParse(frame);
     if (activity.success) {
         const committed = await recordComputerAgentActivityWithStatus(db, {
             computerId,
@@ -203,18 +203,18 @@ async function ingestReport(
         return;
     }
 
-    const ack = hostedAgentDeliveryAckSchema.safeParse(frame);
+    const ack = agentDeliveryAckSchema.safeParse(frame);
     if (ack.success) {
         await delivery.onAck(ack.data);
         return;
     }
-    const noticeAck = hostedAgentNoticeAckSchema.safeParse(frame);
+    const noticeAck = agentNoticeAckSchema.safeParse(frame);
     if (noticeAck.success) {
         await delivery.onNoticeAck(noticeAck.data);
         return;
     }
 
-    const coveApply = hostedCoveApplyResultSchema.safeParse(frame);
+    const coveApply = coveApplyResultSchema.safeParse(frame);
     if (coveApply.success) {
         const changedServerId = await recordCoveApplyResult(db, computerId, coveApply.data);
         if (changedServerId) {
@@ -230,7 +230,7 @@ async function ingestReport(
         return;
     }
 
-    const turn = hostedAgentTurnSummarySchema.safeParse(frame);
+    const turn = agentTurnSummarySchema.safeParse(frame);
     if (turn.success) {
         // Delivery records the durable summary and drains the next turn; a
         // duplicate frame for an already-settled run is a no-op.
@@ -238,45 +238,45 @@ async function ingestReport(
         return;
     }
 
-    const reminderScript = hostedReminderScriptResultSchema.safeParse(frame);
+    const reminderScript = reminderScriptResultSchema.safeParse(frame);
     if (reminderScript.success) {
         await delivery.onReminderScriptResult(computerId, reminderScript.data);
         return;
     }
 
-    const skillImport = hostedAgentSkillImportResultSchema.safeParse(frame);
+    const skillImport = agentSkillImportResultSchema.safeParse(frame);
     if (skillImport.success) {
         connections.acceptSkillImport(computerId, skillImport.data);
         return;
     }
 
-    const skillFile = hostedAgentSkillFileResultSchema.safeParse(frame);
+    const skillFile = agentSkillFileResultSchema.safeParse(frame);
     if (skillFile.success) {
         connections.acceptSkillFileResult(computerId, skillFile.data);
         return;
     }
 
-    const workspace = hostedAgentWorkspaceResultSchema.safeParse(frame);
+    const workspace = agentWorkspaceResultSchema.safeParse(frame);
     if (workspace.success) {
         connections.acceptWorkspaceResult(computerId, workspace.data);
         return;
     }
 
-    const executionJournal = hostedAgentExecutionJournalResultSchema.safeParse(frame);
+    const executionJournal = agentExecutionJournalResultSchema.safeParse(frame);
     if (executionJournal.success) {
         connections.acceptExecutionJournalResult(computerId, executionJournal.data);
         return;
     }
 
-    const browser = hostedBrowserResultSchema.safeParse(frame);
+    const browser = browserResultSchema.safeParse(frame);
     if (browser.success) {
         connections.acceptBrowserResult(computerId, browser.data);
         return;
     }
 
-    const usage = hostedUsageReportSchema.safeParse(frame);
+    const usage = usageReportSchema.safeParse(frame);
     if (usage.success) {
-        await recordHostedComputerUsage(db, {
+        await recordComputerUsage(db, {
             computerId,
             serverId,
             usage: usage.data.usage,

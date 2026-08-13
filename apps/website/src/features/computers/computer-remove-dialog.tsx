@@ -1,5 +1,5 @@
 import { useComputerRemove } from '../../hooks/servers/use-computer-remove.ts';
-import { HostedDeleteDialog } from '../../routes/app/hosted-delete-dialog.tsx';
+import { DeleteDialog } from '../../routes/app/delete-dialog.tsx';
 
 export function ComputerRemoveDialog({
     computerId,
@@ -13,7 +13,7 @@ export function ComputerRemoveDialog({
     const remove = useComputerRemove(serverId, () => onOpenChange(false));
 
     return (
-        <HostedDeleteDialog
+        <DeleteDialog
             confirmation="REMOVE"
             description="This immediately revokes this Computer’s credential and removes it from the Server."
             error={remove.error?.message}

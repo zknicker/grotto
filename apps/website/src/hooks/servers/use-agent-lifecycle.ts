@@ -1,8 +1,8 @@
-import type { HostedAgent, HostedAgentLifecycleEvent } from '@tavern/api';
+import type { Agent, AgentLifecycleEvent } from '@tavern/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
-export type AgentLifecycles = ReadonlyMap<string, HostedAgentLifecycleEvent>;
+export type AgentLifecycles = ReadonlyMap<string, AgentLifecycleEvent>;
 
 const compositionLifetimeMs = 12_000;
 const emptyLifecycles: AgentLifecycles = new Map();
@@ -13,7 +13,7 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
         new Map<string, ReturnType<typeof globalThis.setTimeout>>()
     );
     const [state, setState] = React.useState<{
-        events: Map<string, HostedAgentLifecycleEvent>;
+        events: Map<string, AgentLifecycleEvent>;
         serverId: string | undefined;
     }>({ events: new Map(), serverId });
 
@@ -44,7 +44,7 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
                     const events =
                         current.serverId === serverId
                             ? new Map(current.events)
-                            : new Map<string, HostedAgentLifecycleEvent>();
+                            : new Map<string, AgentLifecycleEvent>();
                     events.set(event.agentId, event);
                     return { events, serverId };
                 });
@@ -110,9 +110,9 @@ export function compositionExpiryDelay(emittedAt: string, now = Date.now()) {
 }
 
 export function projectAgentAvailability(
-    agents: readonly HostedAgent[],
-    event: HostedAgentLifecycleEvent
-): HostedAgent[] {
+    agents: readonly Agent[],
+    event: AgentLifecycleEvent
+): Agent[] {
     return agents.map((agent) => {
         if (agent.id !== event.agentId) {
             return agent;

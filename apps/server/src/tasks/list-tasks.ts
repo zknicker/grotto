@@ -1,27 +1,24 @@
-import type { HostedTaskListItem } from '@tavern/api';
+import type { TaskListItem } from '@tavern/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
-import { visibleHostedChats } from '../chats/chat-visibility.ts';
-import { toHostedChatMessage } from '../chats/message-shape.ts';
+import { visibleChats } from '../chats/chat-visibility.ts';
+import { toChatMessage } from '../chats/message-shape.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import { listHostedThreadSummaries } from '../threads/list-thread-summaries.ts';
+import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { listHostedTaskLabelMap, toHostedMessageTaskWithLabels } from './task-shape.ts';
+import { listTaskLabelMap, toMessageTaskWithLabels } from './task-shape.ts';
 
-export async function listHostedTasks(
+export async function listTasks(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { chatId?: string; serverId: string }
-): Promise<HostedTaskListItem[]> {
+): Promise<TaskListItem[]> {
     await requireServerMembership(db, member, input.serverId);
     if (!member) {
         return [];
     }
-    const predicates = [
-        eq(messageTasksTable.serverId, input.serverId),
-        visibleHostedChats(member.id),
-    ];
+    const predicates = [eq(messageTasksTable.serverId, input.serverId), visibleChats(member.id)];
     if (input.chatId) {
         predicates.push(eq(messageTasksTable.chatId, input.chatId));
     }
@@ -55,24 +52,24 @@ export async function listHostedTasks(
         .where(and(...predicates))
         .orderBy(desc(messageTasksTable.updatedAt));
 
-    const labels = await listHostedTaskLabelMap(
+    const labels = await listTaskLabelMap(
         db,
         input.serverId,
         rows.map((row) => row.task.messageId)
     );
-    const summaries = await listHostedThreadSummaries(db, member, {
+    const summaries = await listThreadSummaries(db, member, {
         anchorMessageIds: rows.map((row) => row.task.messageId),
         serverId: input.serverId,
     });
     const summaryByMessageId = new Map(
         summaries.map((summary) => [summary.anchorMessageId, summary])
     );
-    const tasks: HostedTaskListItem[] = [];
+    const tasks: TaskListItem[] = [];
     for (const row of rows) {
         if (row.chatKind !== 'channel' && row.chatKind !== 'dm') {
             continue;
         }
-        const task = toHostedMessageTaskWithLabels(row.task, labels.get(row.task.messageId));
+        const task = toMessageTaskWithLabels(row.task, labels.get(row.task.messageId));
         const threadSummary = summaryByMessageId.get(row.task.messageId);
         if (!threadSummary) {
             throw new Error('A hosted task must have its deterministic Thread.');
@@ -81,7 +78,7 @@ export async function listHostedTasks(
             chatKind: row.chatKind,
             chatName: row.chatName,
             chatPeerUserId: row.chatPeerUserId,
-            message: { ...toHostedChatMessage(row.message), task },
+            message: { ...toChatMessage(row.message), task },
             task,
             threadSummary,
         });

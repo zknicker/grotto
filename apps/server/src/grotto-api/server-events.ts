@@ -1,5 +1,5 @@
 import EventEmitter, { on } from 'node:events';
-import type { HostedServerUpdatedEvent } from '@tavern/api';
+import type { ServerUpdatedEvent } from '@tavern/api';
 
 /**
  * Server-scoped realtime notifications for the hosted Grotto Server. Delivery
@@ -20,7 +20,7 @@ emitter.setMaxListeners(0);
 export function emitServerUpdated(input: {
     agentId?: string;
     memberId?: string;
-    scope?: HostedServerUpdatedEvent['scope'];
+    scope?: ServerUpdatedEvent['scope'];
     serverId: string;
 }) {
     emitter.emit(eventName, {
@@ -29,13 +29,13 @@ export function emitServerUpdated(input: {
         memberId: input.memberId,
         scope: input.scope ?? 'server',
         serverId: input.serverId,
-    } satisfies HostedServerUpdatedEvent);
+    } satisfies ServerUpdatedEvent);
 }
 
 export async function* subscribeToServerUpdates(signal?: AbortSignal) {
     const iterator = signal ? on(emitter, eventName, { signal }) : on(emitter, eventName);
 
     for await (const [event] of iterator) {
-        yield event as HostedServerUpdatedEvent;
+        yield event as ServerUpdatedEvent;
     }
 }

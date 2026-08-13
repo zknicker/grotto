@@ -1,15 +1,15 @@
-import type { HostedMessageTask, HostedTaskLabel } from '@tavern/api';
+import type { MessageTask, TaskLabel } from '@tavern/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTaskLabelsTable, messageTasksTable, taskLabelsTable } from '../postgres/schema.ts';
 
 export type MessageTaskRow = typeof messageTasksTable.$inferSelect;
 
-export async function findHostedMessageTask(
+export async function findMessageTask(
     db: Pick<GrottoDatabase, 'select'>,
     serverId: string,
     messageId: string
-): Promise<HostedMessageTask | null> {
+): Promise<MessageTask | null> {
     const [row] = await db
         .select()
         .from(messageTasksTable)
@@ -21,14 +21,14 @@ export async function findHostedMessageTask(
         )
         .limit(1);
 
-    return row ? await toHostedMessageTask(db, row) : null;
+    return row ? await toMessageTask(db, row) : null;
 }
 
-export async function listHostedMessageTaskMap(
+export async function listMessageTaskMap(
     db: Pick<GrottoDatabase, 'select'>,
     serverId: string,
     messageIds: string[]
-): Promise<Map<string, HostedMessageTask>> {
+): Promise<Map<string, MessageTask>> {
     if (messageIds.length === 0) {
         return new Map();
     }
@@ -41,24 +41,24 @@ export async function listHostedMessageTaskMap(
                 inArray(messageTasksTable.messageId, messageIds)
             )
         );
-    const labels = await listHostedTaskLabelMap(db, serverId, messageIds);
-    const tasks = rows.map((row) => toHostedMessageTaskWithLabels(row, labels.get(row.messageId)));
+    const labels = await listTaskLabelMap(db, serverId, messageIds);
+    const tasks = rows.map((row) => toMessageTaskWithLabels(row, labels.get(row.messageId)));
 
     return new Map(tasks.map((task) => [task.messageId, task]));
 }
 
-export async function toHostedMessageTask(
+export async function toMessageTask(
     db: Pick<GrottoDatabase, 'select'>,
     row: MessageTaskRow
-): Promise<HostedMessageTask> {
-    const labels = await listHostedTaskLabels(db, row.serverId, row.messageId);
-    return toHostedMessageTaskWithLabels(row, labels);
+): Promise<MessageTask> {
+    const labels = await listTaskLabels(db, row.serverId, row.messageId);
+    return toMessageTaskWithLabels(row, labels);
 }
 
-export function toHostedMessageTaskWithLabels(
+export function toMessageTaskWithLabels(
     row: MessageTaskRow,
-    labels: HostedTaskLabel[] = []
-): HostedMessageTask {
+    labels: TaskLabel[] = []
+): MessageTask {
     return {
         assigneeAgentId: row.assigneeAgentId,
         assigneeUserId: row.assigneeUserId,
@@ -79,11 +79,11 @@ export function toHostedMessageTaskWithLabels(
     };
 }
 
-export async function listHostedTaskLabelMap(
+export async function listTaskLabelMap(
     db: Pick<GrottoDatabase, 'select'>,
     serverId: string,
     messageIds: string[]
-): Promise<Map<string, HostedTaskLabel[]>> {
+): Promise<Map<string, TaskLabel[]>> {
     if (messageIds.length === 0) {
         return new Map();
     }
@@ -109,7 +109,7 @@ export async function listHostedTaskLabelMap(
             )
         )
         .orderBy(asc(messageTaskLabelsTable.messageId), asc(taskLabelsTable.name));
-    const labels = new Map<string, HostedTaskLabel[]>();
+    const labels = new Map<string, TaskLabel[]>();
     for (const row of rows) {
         const current = labels.get(row.messageId) ?? [];
         current.push({ color: row.color, id: row.id, name: row.name });
@@ -118,12 +118,12 @@ export async function listHostedTaskLabelMap(
     return labels;
 }
 
-async function listHostedTaskLabels(
+async function listTaskLabels(
     db: Pick<GrottoDatabase, 'select'>,
     serverId: string,
     messageId: string
-): Promise<HostedTaskLabel[]> {
-    return (await listHostedTaskLabelMap(db, serverId, [messageId])).get(messageId) ?? [];
+): Promise<TaskLabel[]> {
+    return (await listTaskLabelMap(db, serverId, [messageId])).get(messageId) ?? [];
 }
 
 function stripMessagePrefix(messageId: string) {

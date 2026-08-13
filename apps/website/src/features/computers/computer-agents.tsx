@@ -4,7 +4,7 @@ import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
-import { hostedAvailabilityBadgeColor } from '../members/agent-avatar.tsx';
+import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
 import { agentRoute } from '../servers/server-routes.ts';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
@@ -79,7 +79,7 @@ function AgentRow({
                     {execution.runtime} · {execution.model}
                 </p>
             </div>
-            <Chip color={hostedAvailabilityBadgeColor(agent.availability)} size="sm" variant="soft">
+            <Chip color={availabilityBadgeColor(agent.availability)} size="sm" variant="soft">
                 {availabilityLabel(agent.availability)}
             </Chip>
         </Link>

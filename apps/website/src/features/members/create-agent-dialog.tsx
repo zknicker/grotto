@@ -12,7 +12,7 @@ import {
     TextArea,
     TextField,
 } from '@heroui/react';
-import type { HostedAgent, HostedComputerInventory } from '@tavern/api';
+import type { Agent, ComputerInventory } from '@tavern/api';
 import * as React from 'react';
 import { useAgentCreate } from '../../hooks/members/use-agent-create.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
@@ -20,7 +20,7 @@ import { computerLabel } from '../computers/presentation.ts';
 import { createAgentHandle } from './agent-handle.ts';
 
 interface CreateAgentDialogProps {
-    agents: HostedAgent[];
+    agents: Agent[];
     onCreated: (agentId: string) => void;
     onOpenChange: (open: boolean) => void;
     open: boolean;
@@ -29,7 +29,7 @@ interface CreateAgentDialogProps {
 
 interface ReportedComputer {
     id: string;
-    inventory: HostedComputerInventory;
+    inventory: ComputerInventory;
     label: string;
 }
 
@@ -45,7 +45,7 @@ export function CreateAgentDialog({
         .filter((computer) => (computer.reportedInventory?.runtimes.length ?? 0) > 0)
         .map((computer) => ({
             id: computer.id,
-            inventory: computer.reportedInventory as HostedComputerInventory,
+            inventory: computer.reportedInventory as ComputerInventory,
             label: computerLabel(computer),
         }));
 
@@ -68,7 +68,7 @@ export function CreateAgentDialog({
                                 </div>
                             </Modal.Body>
                         ) : (
-                            <CreateHostedAgentForm
+                            <CreateAgentForm
                                 agents={agents}
                                 onCreated={onCreated}
                                 reported={reported}
@@ -82,13 +82,13 @@ export function CreateAgentDialog({
     );
 }
 
-function CreateHostedAgentForm({
+function CreateAgentForm({
     agents,
     onCreated,
     reported,
     serverId,
 }: {
-    agents: HostedAgent[];
+    agents: Agent[];
     onCreated: (agentId: string) => void;
     reported: ReportedComputer[];
     serverId: string;

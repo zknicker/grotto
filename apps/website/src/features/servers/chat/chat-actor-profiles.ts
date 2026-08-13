@@ -1,10 +1,10 @@
-import type { HostedAgent, HostedChatMessage } from '@tavern/api';
+import type { Agent, ChatMessage } from '@tavern/api';
 import * as React from 'react';
 import type { ActorProfile } from '../../../hooks/actors/use-actor.ts';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
-type IdentifiedAuthor = Extract<HostedChatMessage['author'], { kind: 'agent' | 'human' }>;
+type IdentifiedAuthor = Extract<ChatMessage['author'], { kind: 'agent' | 'human' }>;
 type AuthorProfile = NonNullable<IdentifiedAuthor['profile']>;
 interface ProfileSource {
     id: string;
@@ -22,9 +22,9 @@ export function useResolveActorProfile({
     humans,
     messages,
 }: {
-    agentsById: ReadonlyMap<string, HostedAgent>;
+    agentsById: ReadonlyMap<string, Agent>;
     humans: HumanDirectory;
-    messages: readonly HostedChatMessage[];
+    messages: readonly ChatMessage[];
 }) {
     const historicalProfiles = useHistoricalActorProfiles(messages, humans);
 
@@ -77,10 +77,7 @@ export function useResolveActorProfile({
  * identical across refetches, so this map changes identity only when the set
  * of remembered authors actually changes — not on every new message.
  */
-function useHistoricalActorProfiles(
-    messages: readonly HostedChatMessage[],
-    humans: HumanDirectory
-) {
+function useHistoricalActorProfiles(messages: readonly ChatMessage[], humans: HumanDirectory) {
     const cacheRef = React.useRef<{
         humans: HumanDirectory | null;
         profiles: ReadonlyMap<string, ActorProfile>;

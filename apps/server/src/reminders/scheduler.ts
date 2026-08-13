@@ -1,4 +1,4 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
@@ -27,7 +27,7 @@ import {
     requireAgentAnchor,
 } from './reminder-model.ts';
 
-export async function tickHostedReminders(
+export async function tickReminders(
     db: GrottoDatabase,
     clock: ReminderClock,
     delivery?: AgentDelivery
@@ -334,7 +334,7 @@ interface ReminderFireAttempt {
               kind: 'script';
           }
         | null;
-    events: HostedDurableEvent[];
+    events: ServerDurableEvent[];
     fired: boolean;
 }
 

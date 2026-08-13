@@ -4,7 +4,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 
-export async function getHostedThreadContext(
+export async function getThreadContext(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { serverId: string; threadChatId: string }

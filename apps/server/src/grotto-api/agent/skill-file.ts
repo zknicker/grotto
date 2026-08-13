@@ -1,43 +1,43 @@
 import {
-    hostedAgentSkillFileDeleteInputSchema,
-    hostedAgentSkillFileReadInputSchema,
-    hostedAgentSkillFileSchema,
-    hostedAgentSkillFileUpdateInputSchema,
+    agentSkillFileDeleteInputSchema,
+    agentSkillFileReadInputSchema,
+    agentSkillFileSchema,
+    agentSkillFileUpdateInputSchema,
 } from '@tavern/api';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import {
     AgentSkillFileAccessError,
-    deleteHostedAgentSkillFile,
-    readHostedAgentSkillFile,
-    updateHostedAgentSkillFile,
-} from '../../hosted-agents/agent-skill-file.ts';
+    deleteAgentSkillFile,
+    readAgentSkillFile,
+    updateAgentSkillFile,
+} from '../../server-agents/agent-skill-file.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const agentSkillFileProcedure = memberProcedure
-    .input(hostedAgentSkillFileReadInputSchema)
-    .output(hostedAgentSkillFileSchema)
+    .input(agentSkillFileReadInputSchema)
+    .output(agentSkillFileSchema)
     .query(({ ctx, input }) =>
         withSkillFileError(() =>
-            readHostedAgentSkillFile(ctx.grottoDb, ctx.computerConnections, ctx.member, input)
+            readAgentSkillFile(ctx.grottoDb, ctx.computerConnections, ctx.member, input)
         )
     );
 
 export const updateAgentSkillFileProcedure = memberProcedure
-    .input(hostedAgentSkillFileUpdateInputSchema)
-    .output(hostedAgentSkillFileSchema)
+    .input(agentSkillFileUpdateInputSchema)
+    .output(agentSkillFileSchema)
     .mutation(({ ctx, input }) =>
         withSkillFileError(() =>
-            updateHostedAgentSkillFile(ctx.grottoDb, ctx.computerConnections, ctx.member, input)
+            updateAgentSkillFile(ctx.grottoDb, ctx.computerConnections, ctx.member, input)
         )
     );
 
 export const deleteAgentSkillFileProcedure = memberProcedure
-    .input(hostedAgentSkillFileDeleteInputSchema)
+    .input(agentSkillFileDeleteInputSchema)
     .output(z.object({ deleted: z.literal(true) }).strict())
     .mutation(({ ctx, input }) =>
         withSkillFileError(() =>
-            deleteHostedAgentSkillFile(ctx.grottoDb, ctx.computerConnections, ctx.member, input)
+            deleteAgentSkillFile(ctx.grottoDb, ctx.computerConnections, ctx.member, input)
         )
     );
 

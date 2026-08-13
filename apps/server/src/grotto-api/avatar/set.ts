@@ -1,8 +1,8 @@
-import { hostedAvatarSchema, hostedSetAvatarInputSchema } from '@tavern/api';
-import { setHostedAvatar } from '../../avatars/set-avatar.ts';
+import { avatarSchema, setAvatarInputSchema } from '@tavern/api';
+import { setAvatar } from '../../avatars/set-avatar.ts';
 import { avatarProcedure } from './procedure.ts';
 
 export const setAvatarProcedure = avatarProcedure
-    .input(hostedSetAvatarInputSchema)
-    .output(hostedAvatarSchema)
-    .mutation(async ({ ctx, input }) => await setHostedAvatar(ctx.grottoDb, ctx.member, input));
+    .input(setAvatarInputSchema)
+    .output(avatarSchema)
+    .mutation(async ({ ctx, input }) => await setAvatar(ctx.grottoDb, ctx.member, input));

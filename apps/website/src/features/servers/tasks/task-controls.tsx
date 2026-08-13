@@ -2,7 +2,7 @@ import { Button, SearchField, ToggleButton, ToggleButtonGroup } from '@heroui/re
 import * as React from 'react';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
-import { useHostedServerContext } from '../hosted-server-context.ts';
+import { useServerContext } from '../server-context.ts';
 import { NewTaskDialog } from './new-task-dialog.tsx';
 import { taskChatOptions } from './task-model.ts';
 import { useTaskView } from './task-view.ts';
@@ -27,7 +27,7 @@ export function TaskSearch() {
 }
 
 export function TaskControls({ chatId }: { chatId?: string }) {
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const chats = useChats(server.id);
     const humans = useHumanDirectory(server.id);
     const { layout, setLayout } = useTaskView();

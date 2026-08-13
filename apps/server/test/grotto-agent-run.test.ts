@@ -3,18 +3,15 @@ import { advanceServedCursor } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
-import { readHostedAgentSkillFile } from '../src/hosted-agents/agent-skill-file.ts';
-import { importHostedAgentSkill } from '../src/hosted-agents/import-agent-skill.ts';
-import { recordAgentTurnSummary } from '../src/hosted-agents/record-agent-turn.ts';
-import { HostedMcpDeniedError, type HostedMcpUpstreamError } from '../src/hosted-mcp/errors.ts';
-import { HostedMcpRuntime } from '../src/hosted-mcp/runtime.ts';
-import {
-    createHostedMcpConnection,
-    disconnectHostedMcpConnection,
-} from '../src/hosted-mcp/service.ts';
-import { listHostedMcpConnections, setHostedMcpGrant } from '../src/hosted-mcp/state.ts';
-import { modelToolName } from '../src/hosted-mcp/tool-catalog.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { readAgentSkillFile } from '../src/server-agents/agent-skill-file.ts';
+import { importAgentSkill } from '../src/server-agents/import-agent-skill.ts';
+import { recordAgentTurnSummary } from '../src/server-agents/record-agent-turn.ts';
+import { McpDeniedError, type McpUpstreamError } from '../src/server-mcp/errors.ts';
+import { McpRuntime } from '../src/server-mcp/runtime.ts';
+import { createMcpConnection, disconnectMcpConnection } from '../src/server-mcp/service.ts';
+import { listMcpConnections, setMcpGrant } from '../src/server-mcp/state.ts';
+import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
@@ -1584,7 +1581,7 @@ test('an Owner imports a Computer-reported host skill into exactly one assigned 
         serverId,
         updatePhase: 'idle',
     });
-    const imported = importHostedAgentSkill(
+    const imported = importAgentSkill(
         connection.db,
         computers,
         { clerkUserId: 'user_run_owner', id: ownerUserId },
@@ -1621,7 +1618,7 @@ test('a Member cannot relay Agent skill file bytes through the Server', async ()
         on conflict do nothing
     `;
     await expect(
-        readHostedAgentSkillFile(
+        readAgentSkillFile(
             connection.db,
             new ComputerConnections(),
             { clerkUserId: 'user_skill_member', id: memberUserId },
@@ -1660,8 +1657,8 @@ test('a human DM send enqueues durable pending work atomically with the message'
 
 test('keeps MCP credentials on Server and grants one whole connection', async () => {
     const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
-    const runtime = new HostedMcpRuntime(connection.db);
-    const created = await createHostedMcpConnection(connection.db, runtime, member, {
+    const runtime = new McpRuntime(connection.db);
+    const created = await createMcpConnection(connection.db, runtime, member, {
         auth: 'oauth',
         headers: {},
         name: 'Deterministic',
@@ -1692,7 +1689,7 @@ test('keeps MCP credentials on Server and grants one whole connection', async ()
         set account_label = 'Fixture account', connected = true, tools = ARRAY['echo']
         where id = ${created.id}
     `;
-    await setHostedMcpGrant(connection.db, member, {
+    await setMcpGrant(connection.db, member, {
         agentId,
         connectionId: created.id,
         enabled: true,
@@ -1705,13 +1702,13 @@ test('keeps MCP credentials on Server and grants one whole connection', async ()
     `) as { agent_id: string; connection_id: string }[];
     expect(grants).toEqual([{ agent_id: agentId, connection_id: created.id }]);
 
-    const listed = await listHostedMcpConnections(connection.db, member, serverId);
+    const listed = await listMcpConnections(connection.db, member, serverId);
     expect(listed.find((item) => item.id === created.id)).toMatchObject({
         grants: [{ agentId, connectionId: created.id }],
         status: 'online',
         tools: ['echo'],
     });
-    await disconnectHostedMcpConnection(connection.db, runtime, member, {
+    await disconnectMcpConnection(connection.db, runtime, member, {
         connectionId: created.id,
         serverId,
     });
@@ -1794,10 +1791,10 @@ test('Server discovers and invokes a granted remote MCP without Computer custody
         hostname: '127.0.0.1',
         port: 0,
     });
-    const runtime = new HostedMcpRuntime(connection.db);
+    const runtime = new McpRuntime(connection.db);
     try {
         const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
-        const created = await createHostedMcpConnection(connection.db, runtime, member, {
+        const created = await createMcpConnection(connection.db, runtime, member, {
             auth: 'none',
             headers: {},
             name: 'Server fixture',
@@ -1805,7 +1802,7 @@ test('Server discovers and invokes a granted remote MCP without Computer custody
             serverId,
             url: `http://127.0.0.1:${mcp.port}/mcp`,
         });
-        await setHostedMcpGrant(connection.db, member, {
+        await setMcpGrant(connection.db, member, {
             agentId,
             connectionId: created.id,
             enabled: true,
@@ -1841,7 +1838,7 @@ test('a slow MCP discovery is bounded without hiding healthy granted tools', asy
         delayMs: 200,
         toolName: 'slow_echo',
     });
-    const runtime = new HostedMcpRuntime(connection.db, { discoveryTimeoutMs: 25 });
+    const runtime = new McpRuntime(connection.db, { discoveryTimeoutMs: 25 });
     try {
         for (const fixture of [
             { id: healthyId, server: healthy, tool: 'healthy_echo' },
@@ -1893,7 +1890,7 @@ test('MCP invocation distinguishes revoked access, timeout, and upstream auth', 
         hostname: '127.0.0.1',
         port: 0,
     });
-    const runtime = new HostedMcpRuntime(connection.db, {
+    const runtime = new McpRuntime(connection.db, {
         discoveryTimeoutMs: 25,
         invocationTimeoutMs: 25,
     });
@@ -1936,7 +1933,7 @@ test('MCP invocation distinguishes revoked access, timeout, and upstream auth', 
                 serverId,
                 toolName: modelToolName(timeoutId, 'wait'),
             })
-        ).rejects.toBeInstanceOf(HostedMcpDeniedError);
+        ).rejects.toBeInstanceOf(McpDeniedError);
 
         await harness.sql`
             insert into agent_mcp_connection_grants (server_id, agent_id, connection_id)
@@ -1949,7 +1946,7 @@ test('MCP invocation distinguishes revoked access, timeout, and upstream auth', 
                 serverId,
                 toolName: modelToolName(timeoutId, 'wait'),
             })
-        ).rejects.toMatchObject<Partial<HostedMcpUpstreamError>>({ code: 'MCP_TIMEOUT' });
+        ).rejects.toMatchObject<Partial<McpUpstreamError>>({ code: 'MCP_TIMEOUT' });
         await expect(
             runtime.invoke({
                 agentId,
@@ -1957,7 +1954,7 @@ test('MCP invocation distinguishes revoked access, timeout, and upstream auth', 
                 serverId,
                 toolName: modelToolName(authId, 'reauthorize'),
             })
-        ).rejects.toMatchObject<Partial<HostedMcpUpstreamError>>({
+        ).rejects.toMatchObject<Partial<McpUpstreamError>>({
             code: 'MCP_AUTH_REQUIRED',
         });
 

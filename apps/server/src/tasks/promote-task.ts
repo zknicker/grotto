@@ -1,13 +1,13 @@
-import type { HostedDurableEvent, HostedMessageTask } from '@tavern/api';
+import type { MessageTask, ServerDurableEvent } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { ensureHostedThread } from '../threads/ensure-thread.ts';
+import { ensureThread } from '../threads/ensure-thread.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { insertHostedTaskEvent } from './task-events.ts';
-import { findHostedMessageTask } from './task-shape.ts';
+import { insertTaskEvent } from './task-events.ts';
+import { findMessageTask } from './task-shape.ts';
 
 export class TaskMessageNotFoundError extends Error {
     constructor() {
@@ -23,14 +23,14 @@ export class UntaskableMessageError extends Error {
     }
 }
 
-export async function promoteHostedMessageTask(
+export async function promoteMessageTask(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { messageId: string; serverId: string }
 ): Promise<{
-    event: HostedDurableEvent | null;
+    event: ServerDurableEvent | null;
     idempotent: boolean;
-    task: HostedMessageTask;
+    task: MessageTask;
 }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
@@ -78,7 +78,7 @@ export async function promoteHostedMessageTask(
             for update
         `);
 
-        const existing = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const existing = await findMessageTask(tx, input.serverId, input.messageId);
         if (existing) {
             return { event: null, idempotent: true, task: existing };
         }
@@ -92,7 +92,7 @@ export async function promoteHostedMessageTask(
             throw new TaskMessageNotFoundError();
         }
 
-        await ensureHostedThread(tx, member, {
+        await ensureThread(tx, member, {
             anchorMessageId: message.id,
             parentChatId: message.chatId,
             serverId: input.serverId,
@@ -106,11 +106,11 @@ export async function promoteHostedMessageTask(
             serverId: input.serverId,
         });
 
-        const task = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const task = await findMessageTask(tx, input.serverId, input.messageId);
         if (!task) {
             throw new Error('Task promotion did not persist.');
         }
-        const event = await insertHostedTaskEvent(tx, {
+        const event = await insertTaskEvent(tx, {
             chatId: message.chatId,
             messageId: message.id,
             serverId: input.serverId,

@@ -1,24 +1,20 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { lstat, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type {
-    HostedAgentSkillFile,
-    HostedAgentSkillFileRequest,
-    HostedAgentSkillFileResult,
-} from '@tavern/api';
-import { hostedAgentSkillFileRequestSchema } from '@tavern/api';
+import type { AgentSkillFile, AgentSkillFileRequest, AgentSkillFileResult } from '@tavern/api';
+import { agentSkillFileRequestSchema } from '@tavern/api';
 import { readSkillBundle, skillNamePattern } from './host-skill-bundle.ts';
 
-export function parseAgentSkillFileRequest(frame: unknown): HostedAgentSkillFileRequest | null {
-    const parsed = hostedAgentSkillFileRequestSchema.safeParse(frame);
+export function parseAgentSkillFileRequest(frame: unknown): AgentSkillFileRequest | null {
+    const parsed = agentSkillFileRequestSchema.safeParse(frame);
     return parsed.success ? parsed.data : null;
 }
 
 export async function runAgentSkillFileRequest(input: {
     dataRoot: string;
-    request: HostedAgentSkillFileRequest;
+    request: AgentSkillFileRequest;
     serverId: string;
-}): Promise<HostedAgentSkillFileResult> {
+}): Promise<AgentSkillFileResult> {
     try {
         const skillRoot = await resolveSkillRoot(input);
         const current = await readAgentSkillFile(skillRoot, input.request.operation.name);
@@ -56,7 +52,7 @@ export async function runAgentSkillFileRequest(input: {
 
 async function resolveSkillRoot(input: {
     dataRoot: string;
-    request: HostedAgentSkillFileRequest;
+    request: AgentSkillFileRequest;
     serverId: string;
 }) {
     const name = input.request.operation.name;
@@ -80,7 +76,7 @@ async function resolveSkillRoot(input: {
     return root;
 }
 
-async function readAgentSkillFile(skillRoot: string, name: string): Promise<HostedAgentSkillFile> {
+async function readAgentSkillFile(skillRoot: string, name: string): Promise<AgentSkillFile> {
     const files = await readSkillBundle(skillRoot);
     const skill = files.find((file) => file.path === 'SKILL.md');
     if (!skill) {
@@ -104,9 +100,9 @@ function hashSkillBundle(files: Awaited<ReturnType<typeof readSkillBundle>>) {
 }
 
 function success(
-    request: HostedAgentSkillFileRequest,
-    result: NonNullable<HostedAgentSkillFileResult['result']>
-): HostedAgentSkillFileResult {
+    request: AgentSkillFileRequest,
+    result: NonNullable<AgentSkillFileResult['result']>
+): AgentSkillFileResult {
     return {
         agentId: request.agentId,
         requestId: request.requestId,

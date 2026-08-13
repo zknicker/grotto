@@ -1,6 +1,6 @@
-import type { HostedMessageTask } from '@tavern/api';
+import type { MessageTask } from '@tavern/api';
 
-type TaskOwnership = Pick<HostedMessageTask, 'assigneeAgentId' | 'assigneeUserId'>;
+type TaskOwnership = Pick<MessageTask, 'assigneeAgentId' | 'assigneeUserId'>;
 
 export function taskHasOtherOwnerForUser(task: TaskOwnership, userId: string) {
     return Boolean(task.assigneeAgentId || (task.assigneeUserId && task.assigneeUserId !== userId));

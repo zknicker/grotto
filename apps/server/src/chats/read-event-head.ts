@@ -4,7 +4,7 @@ import { serversTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 
-export async function readHostedChatEventHead(
+export async function readChatEventHead(
     db: GrottoDatabase,
     member: GrottoUser | null,
     serverId: string

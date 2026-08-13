@@ -6,7 +6,7 @@ import {
     chatMessagesTable,
     chatsTable,
 } from '../postgres/schema.ts';
-import { ensureHostedThreadRecord } from '../threads/ensure-thread.ts';
+import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 
 /**
  * Resolves the Agent CLI's product target under the runner's Server and Agent
@@ -114,7 +114,7 @@ export async function resolveAgentSendTarget(
         throw new AgentTargetError();
     }
     return (
-        await ensureHostedThreadRecord(db, {
+        await ensureThreadRecord(db, {
             anchorMessageId: anchors[0].id,
             parentChatId: parsed.parentChatId,
             serverId: runner.serverId,

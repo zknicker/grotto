@@ -21,7 +21,7 @@ export interface TavernDesktopBridge {
     downloadUpdate: () => Promise<void>;
     getInfo: () => Promise<{ isPackaged: boolean; platform: NodeJS.Platform; version: string }>;
     /** Electron loads the canonical Grotto App instead of a bundled renderer. */
-    loadsHostedApp?: true;
+    loadsApp?: true;
     /** Main → renderer: File > Close (⌘W); close a tab first or fall back to closeWindow. */
     onCloseWindowRequest?: (listener: () => void) => () => void;
     /** Main → renderer: the Developer menu toggled dev mode for this device. */

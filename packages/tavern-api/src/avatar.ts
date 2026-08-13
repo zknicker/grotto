@@ -22,3 +22,43 @@ export type AvatarId = z.infer<typeof avatarIdSchema>;
 export function isAvatarId(value: unknown): value is AvatarId {
     return avatarIdSchema.safeParse(value).success;
 }
+
+const idSchema = z.string().trim().min(1);
+
+/** Base64 inflates the byte ceiling by 4/3; the slack covers padding. */
+const base64MaxLength = Math.ceil((avatarMaxBytes * 4) / 3) + 8;
+
+export const avatarTargetSchema = z.discriminatedUnion('kind', [
+    z.object({ agentId: idSchema, kind: z.literal('agent') }).strict(),
+    z.object({ kind: z.literal('user') }).strict(),
+]);
+
+export type AvatarTarget = z.infer<typeof avatarTargetSchema>;
+
+export const setAvatarInputSchema = z
+    .object({
+        bytesBase64: z
+            .string()
+            .min(1)
+            .max(base64MaxLength)
+            .regex(/^[A-Za-z0-9+/]+={0,2}$/u, 'Avatar bytes must be base64.'),
+        mediaType: avatarMediaTypeSchema,
+        serverId: idSchema,
+        target: avatarTargetSchema,
+    })
+    .strict();
+
+export type SetAvatarInput = z.infer<typeof setAvatarInputSchema>;
+
+export const clearAvatarInputSchema = z
+    .object({ serverId: idSchema, target: avatarTargetSchema })
+    .strict();
+
+export type ClearAvatarInput = z.infer<typeof clearAvatarInputSchema>;
+
+/** `avatarUrl` is null only after clearing; it always matches `avatarId`. */
+export const avatarSchema = z
+    .object({ avatarId: avatarIdSchema.nullable(), avatarUrl: z.string().nullable() })
+    .strict();
+
+export type Avatar = z.infer<typeof avatarSchema>;

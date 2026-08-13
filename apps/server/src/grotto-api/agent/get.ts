@@ -1,13 +1,13 @@
-import { hostedAgentDetailInputSchema, hostedAgentSchema } from '@tavern/api';
+import { agentDetailInputSchema, agentSchema } from '@tavern/api';
 import { TRPCError } from '@trpc/server';
-import { getHostedAgent } from '../../hosted-agents/get-agent.ts';
+import { getAgent } from '../../server-agents/get-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const getAgentProcedure = memberProcedure
-    .input(hostedAgentDetailInputSchema)
-    .output(hostedAgentSchema)
+    .input(agentDetailInputSchema)
+    .output(agentSchema)
     .query(async ({ ctx, input }) => {
-        const agent = await getHostedAgent(ctx.grottoDb, ctx.member, input.serverId, input.agentId);
+        const agent = await getAgent(ctx.grottoDb, ctx.member, input.serverId, input.agentId);
         if (!agent) {
             throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found.' });
         }

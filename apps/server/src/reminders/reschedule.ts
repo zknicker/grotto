@@ -13,21 +13,21 @@ import {
 } from './mutations.ts';
 import { insertAnchoredReminderChangedEvent } from './reminder-events.ts';
 import {
-    type HostedReminder,
+    type Reminder,
     type ReminderClock,
     requireActiveAgent,
     requireAgentAnchor,
-    toHostedReminder,
+    toReminder,
 } from './reminder-model.ts';
 
-interface UpdateHostedReminderInput extends ReminderCommandInput {
+interface UpdateReminderInput extends ReminderCommandInput {
     fireAt?: Date;
     repeat?: string | null;
     script?: string | null;
     title?: string;
 }
 
-interface SnoozeHostedReminderInput extends ReminderCommandInput {
+interface SnoozeReminderInput extends ReminderCommandInput {
     duration: string;
 }
 
@@ -38,12 +38,12 @@ interface ReminderRescheduleValues {
     title?: string;
 }
 
-export async function updateHostedReminder(
+export async function updateReminder(
     db: GrottoDatabase,
     agentId: string,
-    input: UpdateHostedReminderInput,
+    input: UpdateReminderInput,
     clock: ReminderClock
-): Promise<{ idempotent: boolean; reminder: HostedReminder }> {
+): Promise<{ idempotent: boolean; reminder: Reminder }> {
     const now = clock.now();
     const values = validatedUpdate(input);
     return applyReschedule(db, agentId, input, {
@@ -63,12 +63,12 @@ export async function updateHostedReminder(
     });
 }
 
-export async function snoozeHostedReminder(
+export async function snoozeReminder(
     db: GrottoDatabase,
     agentId: string,
-    input: SnoozeHostedReminderInput,
+    input: SnoozeReminderInput,
     clock: ReminderClock
-): Promise<{ idempotent: boolean; reminder: HostedReminder }> {
+): Promise<{ idempotent: boolean; reminder: Reminder }> {
     const delay = parseReminderSnooze(input.duration);
     if (delay === null) {
         throw new Error('Reminder snooze does not use the supported grammar.');
@@ -193,7 +193,7 @@ async function applyReschedule(
             id: createOpaqueId('rcm'),
             reminderId: input.reminderId,
             requestFingerprint: change.fingerprint,
-            resultSnapshot: toHostedReminder(updated, agent.handle),
+            resultSnapshot: toReminder(updated, agent.handle),
             serverId: input.serverId,
         });
         const event = await insertAnchoredReminderChangedEvent(tx, {
@@ -206,7 +206,7 @@ async function applyReschedule(
         return {
             event,
             idempotent: false,
-            reminder: toHostedReminder(updated, agent.handle),
+            reminder: toReminder(updated, agent.handle),
         };
     });
     if (result.event) {
@@ -215,7 +215,7 @@ async function applyReschedule(
     return { idempotent: result.idempotent, reminder: result.reminder };
 }
 
-function validatedUpdate(input: UpdateHostedReminderInput) {
+function validatedUpdate(input: UpdateReminderInput) {
     const values: ReminderRescheduleValues = {};
     if (input.title !== undefined) {
         const title = input.title.trim();

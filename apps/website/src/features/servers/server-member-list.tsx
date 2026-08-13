@@ -1,5 +1,5 @@
 import { Button, Chip, Separator } from '@heroui/react';
-import type { ServerMember, ServerMemberDirectory } from '@tavern/api/hosted-membership';
+import type { ServerMember, ServerMemberDirectory } from '@tavern/api/membership';
 import * as React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { humanDisplayName } from './human-identity.ts';

@@ -1,8 +1,8 @@
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedChatMessage } from '@tavern/api';
+import type { ChatMessage } from '@tavern/api';
 import { Icon } from '../../../components/ui/icon.tsx';
 
-export function ChatFiles({ messages }: { messages: HostedChatMessage[] | undefined }) {
+export function ChatFiles({ messages }: { messages: ChatMessage[] | undefined }) {
     const attachments = messages?.flatMap((message) => message.attachments) ?? [];
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">

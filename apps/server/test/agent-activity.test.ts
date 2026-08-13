@@ -1,21 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type {
-    HostedAgentActivityFrame,
-    HostedAgentCommand,
-    HostedAgentTurnSummary,
-} from '@tavern/api';
+import type { AgentActivityFrame, AgentCommand, AgentTurnSummary } from '@tavern/api';
 import { and, asc, eq } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
-import {
-    appendServerAgentActivity,
-    recordComputerAgentActivity,
-    recordComputerAgentActivityWithStatus,
-} from '../src/hosted-agents/agent-activity.ts';
-import {
-    listHostedAgentActivityHistory,
-    readHostedActiveAgentActivity,
-} from '../src/hosted-agents/agent-activity-history.ts';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
@@ -28,6 +15,15 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
+import {
+    appendServerAgentActivity,
+    recordComputerAgentActivity,
+    recordComputerAgentActivityWithStatus,
+} from '../src/server-agents/agent-activity.ts';
+import {
+    listAgentActivityHistory,
+    readActiveAgentActivity,
+} from '../src/server-agents/agent-activity-history.ts';
 import { lockServerRow } from '../src/servers/server-lock.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -47,13 +43,13 @@ afterAll(async () => {
 
 class FakeTransport implements DeliveryTransport {
     readonly online = new Set<string>();
-    readonly sent: HostedAgentCommand[] = [];
+    readonly sent: AgentCommand[] = [];
 
     isOnline(computerId: string) {
         return this.online.has(computerId);
     }
 
-    send(computerId: string, frame: HostedAgentCommand) {
+    send(computerId: string, frame: AgentCommand) {
         if (!this.online.has(computerId)) {
             return false;
         }
@@ -130,7 +126,7 @@ async function startRun(seed: Seed) {
         serverId: seed.serverId,
     });
     const frame = transport.sent.find(
-        (item): item is Extract<HostedAgentCommand, { type: 'start' }> => item.type === 'start'
+        (item): item is Extract<AgentCommand, { type: 'start' }> => item.type === 'start'
     );
     if (!frame) {
         throw new Error('The test run did not start.');
@@ -138,11 +134,7 @@ async function startRun(seed: Seed) {
     return { delivery, frame, transport };
 }
 
-function activityFrame(
-    seed: Seed,
-    runId: string,
-    producerSequence: number
-): HostedAgentActivityFrame {
+function activityFrame(seed: Seed, runId: string, producerSequence: number): AgentActivityFrame {
     return {
         agentId: seed.agentId,
         category: 'using_tool',
@@ -154,7 +146,7 @@ function activityFrame(
     };
 }
 
-function summary(seed: Seed, runId: string): HostedAgentTurnSummary {
+function summary(seed: Seed, runId: string): AgentTurnSummary {
     return {
         agentId: seed.agentId,
         endedAt: '2026-08-11T12:00:00.000Z',
@@ -227,13 +219,13 @@ test('deduplicates out-of-order Computer frames and interleaves by Server positi
         'using_tool',
     ]);
 
-    const firstPage = await listHostedAgentActivityHistory(connection.db, {
+    const firstPage = await listAgentActivityHistory(connection.db, {
         agentId: seed.agentId,
         limit: 2,
         runId: frame.runId,
         serverId: seed.serverId,
     });
-    const secondPage = await listHostedAgentActivityHistory(connection.db, {
+    const secondPage = await listAgentActivityHistory(connection.db, {
         agentId: seed.agentId,
         before: firstPage.nextBefore ?? undefined,
         limit: 2,
@@ -248,7 +240,7 @@ test('deduplicates out-of-order Computer frames and interleaves by Server positi
 test('rejects wrong identities and settled runs, while active snapshot recovers the latest event', async () => {
     const seed = await seedActivity();
     const { delivery, frame } = await startRun(seed);
-    expect(await readHostedActiveAgentActivity(connection.db, seed.serverId)).toEqual({
+    expect(await readActiveAgentActivity(connection.db, seed.serverId)).toEqual({
         activities: [],
     });
     const wrongComputer = await recordComputerAgentActivity(connection.db, {
@@ -283,7 +275,7 @@ test('rejects wrong identities and settled runs, while active snapshot recovers 
         frame: activityFrame(seed, frame.runId, 1),
         serverId: seed.serverId,
     });
-    const snapshot = await readHostedActiveAgentActivity(connection.db, seed.serverId);
+    const snapshot = await readActiveAgentActivity(connection.db, seed.serverId);
     expect(snapshot.activities).toHaveLength(1);
     expect(snapshot.activities[0]).toEqual(accepted);
 
@@ -291,9 +283,7 @@ test('rejects wrong identities and settled runs, while active snapshot recovers 
         .update(computersTable)
         .set({ health: 'offline' })
         .where(eq(computersTable.id, seed.computerId));
-    expect((await readHostedActiveAgentActivity(connection.db, seed.serverId)).activities).toEqual(
-        []
-    );
+    expect((await readActiveAgentActivity(connection.db, seed.serverId)).activities).toEqual([]);
     await connection.db
         .update(computersTable)
         .set({ health: 'healthy' })
@@ -306,12 +296,10 @@ test('rejects wrong identities and settled runs, while active snapshot recovers 
         serverId: seed.serverId,
     });
     expect(stale).toBeNull();
-    expect((await readHostedActiveAgentActivity(connection.db, seed.serverId)).activities).toEqual(
-        []
-    );
+    expect((await readActiveAgentActivity(connection.db, seed.serverId)).activities).toEqual([]);
 
     const nextRun = await startRun(seed);
-    const allRuns = await listHostedAgentActivityHistory(connection.db, {
+    const allRuns = await listAgentActivityHistory(connection.db, {
         agentId: seed.agentId,
         limit: 1,
         serverId: seed.serverId,

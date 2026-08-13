@@ -1,5 +1,5 @@
 import { Alert, Button, Form, Input, Modal, TextField } from '@heroui/react';
-import type { HostedTaskLabel } from '@tavern/api';
+import type { TaskLabel } from '@tavern/api';
 import * as React from 'react';
 import { useTaskLabelCreate } from '../../../hooks/servers/use-task-label-create.ts';
 import { useTaskLabelDelete } from '../../../hooks/servers/use-task-label-delete.ts';
@@ -14,7 +14,7 @@ export function TaskLabelsDialog({
     serverId,
 }: {
     canManage: boolean;
-    labels: HostedTaskLabel[];
+    labels: TaskLabel[];
     onOpenChange: (open: boolean) => void;
     open: boolean;
     serverId: string;
@@ -110,7 +110,7 @@ function TaskLabelRow({
     serverId,
 }: {
     canManage: boolean;
-    label: HostedTaskLabel;
+    label: TaskLabel;
     serverId: string;
 }) {
     const update = useTaskLabelUpdate();

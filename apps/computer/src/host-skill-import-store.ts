@@ -2,16 +2,16 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
-    type HostedAgentSkillImportCommand,
-    type HostedAgentSkillImportRecord,
-    hostedAgentSkillImportRecordSchema,
+    type AgentSkillImportCommand,
+    type AgentSkillImportRecord,
+    agentSkillImportRecordSchema,
 } from '@tavern/api';
 
 export async function acceptHostSkillImport(input: {
-    command: HostedAgentSkillImportCommand;
+    command: AgentSkillImportCommand;
     dataRoot: string;
     serverId: string;
-}): Promise<HostedAgentSkillImportRecord> {
+}): Promise<AgentSkillImportRecord> {
     const previous = await readSkillImportRecord(
         input.dataRoot,
         input.serverId,
@@ -38,10 +38,10 @@ export async function acceptHostSkillImport(input: {
 export async function finishHostSkillImport(input: {
     dataRoot: string;
     record:
-        | Omit<Extract<HostedAgentSkillImportRecord, { status: 'applied' }>, 'updatedAt'>
-        | Omit<Extract<HostedAgentSkillImportRecord, { status: 'failed' }>, 'updatedAt'>;
+        | Omit<Extract<AgentSkillImportRecord, { status: 'applied' }>, 'updatedAt'>
+        | Omit<Extract<AgentSkillImportRecord, { status: 'failed' }>, 'updatedAt'>;
     serverId: string;
-}): Promise<HostedAgentSkillImportRecord> {
+}): Promise<AgentSkillImportRecord> {
     return await writeSkillImportRecord(input.dataRoot, input.serverId, {
         ...input.record,
         updatedAt: new Date().toISOString(),
@@ -51,16 +51,16 @@ export async function finishHostSkillImport(input: {
 export async function listAgentSkillImportReports(
     dataRoot: string,
     serverId: string
-): Promise<HostedAgentSkillImportRecord[]> {
+): Promise<AgentSkillImportRecord[]> {
     return (await readSkillImportRecords(dataRoot, serverId)).slice(0, 100);
 }
 
 export async function listAcceptedHostSkillImports(
     dataRoot: string,
     serverId: string
-): Promise<Extract<HostedAgentSkillImportRecord, { status: 'accepted' }>[]> {
+): Promise<Extract<AgentSkillImportRecord, { status: 'accepted' }>[]> {
     return (await readSkillImportRecords(dataRoot, serverId)).filter(
-        (record): record is Extract<HostedAgentSkillImportRecord, { status: 'accepted' }> =>
+        (record): record is Extract<AgentSkillImportRecord, { status: 'accepted' }> =>
             record.status === 'accepted'
     );
 }
@@ -77,14 +77,14 @@ async function readSkillImportRecords(dataRoot: string, serverId: string) {
                     return null;
                 }
                 try {
-                    return hostedAgentSkillImportRecordSchema.parse(JSON.parse(raw));
+                    return agentSkillImportRecordSchema.parse(JSON.parse(raw));
                 } catch {
                     return null;
                 }
             })
     );
     return records
-        .filter((record): record is HostedAgentSkillImportRecord => record !== null)
+        .filter((record): record is AgentSkillImportRecord => record !== null)
         .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 }
 
@@ -96,15 +96,15 @@ async function readSkillImportRecord(dataRoot: string, serverId: string, request
     if (!raw) {
         return null;
     }
-    return hostedAgentSkillImportRecordSchema.parse(JSON.parse(raw));
+    return agentSkillImportRecordSchema.parse(JSON.parse(raw));
 }
 
 async function writeSkillImportRecord(
     dataRoot: string,
     serverId: string,
-    record: HostedAgentSkillImportRecord
+    record: AgentSkillImportRecord
 ) {
-    const parsed = hostedAgentSkillImportRecordSchema.parse(record);
+    const parsed = agentSkillImportRecordSchema.parse(record);
     const root = skillImportRoot(dataRoot, serverId);
     await mkdir(root, { mode: 0o700, recursive: true });
     const destination = join(root, `${parsed.requestId}.json`);

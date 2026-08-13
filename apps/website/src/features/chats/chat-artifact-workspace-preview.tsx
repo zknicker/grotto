@@ -28,11 +28,11 @@ export function WorkspaceArtifactContent({
         { agentId, includeHidden, path: target.path },
         { ...queryPolicy.agentRuntimeSnapshot, enabled: agentId.length > 0 && !serverId }
     );
-    const hostedFileQuery = grottoTrpc.agent.workspaceFile.useQuery(
+    const serverFileQuery = grottoTrpc.agent.workspaceFile.useQuery(
         { agentId, includeHidden, path: target.path, serverId: serverId ?? '' },
         { ...queryPolicy.agentRuntimeSnapshot, enabled: agentId.length > 0 && Boolean(serverId) }
     );
-    const fileQuery = serverId ? hostedFileQuery : localFileQuery;
+    const fileQuery = serverId ? serverFileQuery : localFileQuery;
     const [rawPath, setRawPath] = useState<string | null>(null);
 
     if (!agentId) {

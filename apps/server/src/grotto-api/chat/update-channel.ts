@@ -1,13 +1,13 @@
-import { hostedChannelUpdateInputSchema, hostedChatSchema } from '@tavern/api';
+import { channelUpdateInputSchema, chatSchema } from '@tavern/api';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
-import { updateHostedChannel } from '../../chats/update-channel.ts';
+import { updateChannel } from '../../chats/update-channel.ts';
 import { chatProcedure } from './procedure.ts';
 
 export const updateChannelProcedure = chatProcedure
-    .input(hostedChannelUpdateInputSchema)
-    .output(hostedChatSchema)
+    .input(channelUpdateInputSchema)
+    .output(chatSchema)
     .mutation(async ({ ctx, input }) => {
-        const result = await updateHostedChannel(ctx.grottoDb, ctx.member, input);
+        const result = await updateChannel(ctx.grottoDb, ctx.member, input);
         if (result.event) {
             emitDurableChatEvent({ audienceUserId: null, event: result.event });
         }

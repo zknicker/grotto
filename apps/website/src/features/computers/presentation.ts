@@ -1,5 +1,5 @@
-import type { HostedAgent, HostedComputerInventory } from '@tavern/api';
-import { hostedComputerRuntimeCatalog } from '@tavern/api/hosted-computer-runtime';
+import type { Agent, ComputerInventory } from '@tavern/api';
+import { computerRuntimeCatalog } from '@tavern/api/computer-runtime';
 
 export interface ComputerPresentation {
     architecture: string | null;
@@ -8,7 +8,7 @@ export interface ComputerPresentation {
     operatingSystem: string | null;
 }
 
-export type ComputerRuntimePresentation = HostedComputerInventory['runtimes'][number] & {
+export type ComputerRuntimePresentation = ComputerInventory['runtimes'][number] & {
     detected: boolean;
 };
 
@@ -28,8 +28,8 @@ export function computerSystemLabel(computer: ComputerPresentation) {
 }
 
 export function agentExecutionLabels(
-    agent: Pick<HostedAgent, 'desiredModelId' | 'desiredRuntimeId'>,
-    inventory: HostedComputerInventory | null
+    agent: Pick<Agent, 'desiredModelId' | 'desiredRuntimeId'>,
+    inventory: ComputerInventory | null
 ) {
     const runtime = inventory?.runtimes?.find(
         (candidate) => candidate.id === agent.desiredRuntimeId
@@ -44,12 +44,12 @@ export function agentExecutionLabels(
 }
 
 export function computerRuntimePresentations(
-    inventory: HostedComputerInventory | null
+    inventory: ComputerInventory | null
 ): ComputerRuntimePresentation[] {
     const detectedRuntimes = new Map(
         inventory?.runtimes?.map((runtime) => [runtime.id, runtime] as const) ?? []
     );
-    const supportedRuntimes = hostedComputerRuntimeCatalog.map((runtime) => {
+    const supportedRuntimes = computerRuntimeCatalog.map((runtime) => {
         const detectedRuntime = detectedRuntimes.get(runtime.id);
         detectedRuntimes.delete(runtime.id);
         return {
@@ -68,7 +68,7 @@ export function computerRuntimePresentations(
     ];
 }
 
-export function availabilityLabel(value: HostedAgent['availability']) {
+export function availabilityLabel(value: Agent['availability']) {
     switch (value) {
         case 'idle':
             return 'Online';

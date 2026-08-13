@@ -1,13 +1,13 @@
-import type { HostedDurableEvent, HostedMessageTask } from '@tavern/api';
+import type { MessageTask, ServerDurableEvent } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { insertHostedTaskEvent } from './task-events.ts';
+import { insertTaskEvent } from './task-events.ts';
 import { taskHasOtherOwnerForUser } from './task-ownership.ts';
-import { findHostedMessageTask } from './task-shape.ts';
+import { findMessageTask } from './task-shape.ts';
 
 export class TaskConflictError extends Error {
     constructor(message: string) {
@@ -16,27 +16,27 @@ export class TaskConflictError extends Error {
     }
 }
 
-export class HostedTaskNotFoundError extends Error {
+export class TaskNotFoundError extends Error {
     constructor() {
         super('No task exists in this Server with that message id.');
-        this.name = 'HostedTaskNotFoundError';
+        this.name = 'TaskNotFoundError';
     }
 }
 
-export interface HostedTaskMutationResult {
-    event: HostedDurableEvent | null;
-    task: HostedMessageTask;
+export interface TaskMutationResult {
+    event: ServerDurableEvent | null;
+    task: MessageTask;
 }
 
-export async function claimHostedTask(
+export async function claimTask(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { expectedVersion: number; messageId: string; serverId: string }
-): Promise<HostedTaskMutationResult> {
+): Promise<TaskMutationResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         if (!member) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
         const initial = await findTaskCoordinates(tx, input);
 
@@ -62,9 +62,9 @@ export async function claimHostedTask(
             for update
         `);
 
-        const current = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const current = await findMessageTask(tx, input.serverId, input.messageId);
         if (!current) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
         if (current.assigneeUserId === member.id && current.claimedAt !== null) {
             return { event: null, task: current };
@@ -95,15 +95,15 @@ export async function claimHostedTask(
                     eq(messageTasksTable.messageId, input.messageId)
                 )
             );
-        const event = await insertHostedTaskEvent(tx, {
+        const event = await insertTaskEvent(tx, {
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: input.serverId,
             type: 'task.updated',
         });
-        const task = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const task = await findMessageTask(tx, input.serverId, input.messageId);
         if (!task) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
 
         return { event, task };
@@ -125,7 +125,7 @@ async function findTaskCoordinates(
         )
         .limit(1);
     if (!task) {
-        throw new HostedTaskNotFoundError();
+        throw new TaskNotFoundError();
     }
     return task;
 }

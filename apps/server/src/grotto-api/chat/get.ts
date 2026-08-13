@@ -1,8 +1,8 @@
-import { hostedChatGetInputSchema, hostedChatSchema } from '@tavern/api';
-import { getHostedChat } from '../../chats/get-chat.ts';
+import { chatGetInputSchema, chatSchema } from '@tavern/api';
+import { getChat } from '../../chats/get-chat.ts';
 import { chatProcedure } from './procedure.ts';
 
 export const getChatProcedure = chatProcedure
-    .input(hostedChatGetInputSchema)
-    .output(hostedChatSchema)
-    .query(async ({ ctx, input }) => await getHostedChat(ctx.grottoDb, ctx.member, input));
+    .input(chatGetInputSchema)
+    .output(chatSchema)
+    .query(async ({ ctx, input }) => await getChat(ctx.grottoDb, ctx.member, input));

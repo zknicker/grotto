@@ -4,7 +4,7 @@ import {
     SidebarRightIcon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent, HostedChat } from '@tavern/api';
+import type { Agent, Chat } from '@tavern/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
@@ -17,10 +17,10 @@ import {
 } from '../../../hooks/servers/use-channel-lifecycle.ts';
 import { useChannelUpdate } from '../../../hooks/servers/use-channel-update.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import { HostedDeleteDialog } from '../../../routes/app/hosted-delete-dialog.tsx';
+import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { ChannelDialog } from '../../chats/channel-dialog.tsx';
 import { ChatViewSwitcher, type ChatViewTab } from '../../chats/chat-view-tabs.tsx';
-import { hostedAvailabilityLabel } from '../../members/agent-avatar.tsx';
+import { availabilityLabel } from '../../members/agent-avatar.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
 import { serverRoute } from '../server-routes.ts';
 
@@ -34,7 +34,7 @@ export function ChatTopbar({
     viewTab,
 }: {
     artifactVisible: boolean;
-    chat: HostedChat;
+    chat: Chat;
     chatName: string;
     onToggleArtifacts: () => void;
     onViewTabChange: (tab: ChatViewTab) => void;
@@ -80,8 +80,8 @@ export function ChatTopbar({
     );
 }
 
-function DmAgentStatus({ agent }: { agent: HostedAgent }) {
-    return hostedAvailabilityLabel(agent.availability);
+function DmAgentStatus({ agent }: { agent: Agent }) {
+    return availabilityLabel(agent.availability);
 }
 
 function ChannelParticipants({
@@ -89,8 +89,8 @@ function ChannelParticipants({
     chat,
     server,
 }: {
-    agents: HostedAgent[];
-    chat: HostedChat;
+    agents: Agent[];
+    chat: Chat;
     server: ServerDetail;
 }) {
     const navigate = useNavigate();
@@ -224,7 +224,7 @@ function ChannelParticipants({
                 title="Edit channel"
             />
             {confirmingDelete ? (
-                <HostedDeleteDialog
+                <DeleteDialog
                     confirmation={chat.name ?? ''}
                     description="This permanently deletes the channel, its messages, threads, tasks, reminders, reactions, and attachments. This cannot be undone."
                     error={deleteChannel.error?.message}

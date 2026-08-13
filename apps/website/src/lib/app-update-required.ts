@@ -17,9 +17,7 @@ export type UpdateRequiredMode = 'desktop-update' | 'reload';
  * App update instead.
  */
 export function updateRequiredMode(): UpdateRequiredMode {
-    return isElectronDesktopApp() && !getDesktopBridge()?.loadsHostedApp
-        ? 'desktop-update'
-        : 'reload';
+    return isElectronDesktopApp() && !getDesktopBridge()?.loadsApp ? 'desktop-update' : 'reload';
 }
 
 /** True when a tRPC error is the hosted Server's protocol-mismatch rejection. */

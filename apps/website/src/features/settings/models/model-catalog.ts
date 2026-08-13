@@ -1,11 +1,11 @@
-import type { HostedComputerInventory } from '@tavern/api';
+import type { ComputerInventory } from '@tavern/api';
 import { type ComputerPresentation, computerLabel } from '../../computers/presentation.ts';
 
 export interface ModelsComputer extends ComputerPresentation {
-    reportedInventory: HostedComputerInventory | null;
+    reportedInventory: ComputerInventory | null;
 }
 
-export interface HostedModelCatalogItem {
+export interface ModelCatalogItem {
     computerCount: number;
     id: string;
     label: string;

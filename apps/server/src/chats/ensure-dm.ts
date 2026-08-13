@@ -1,4 +1,4 @@
-import type { HostedChat, HostedDurableEvent } from '@tavern/api';
+import type { Chat, ServerDurableEvent } from '@tavern/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -6,8 +6,8 @@ import { chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { insertHostedLifecycleEvent } from './lifecycle-events.ts';
-import { listHostedChats } from './list-chats.ts';
+import { insertLifecycleEvent } from './lifecycle-events.ts';
+import { listChats } from './list-chats.ts';
 
 export class DmPeerNotFoundError extends Error {
     constructor() {
@@ -23,17 +23,17 @@ export class InvalidDmPeerError extends Error {
     }
 }
 
-export interface EnsuredHostedDm {
-    chat: HostedChat;
+export interface EnsuredDm {
+    chat: Chat;
     /** Null when the DM already existed; only its first resolution is a lifecycle change. */
-    event: HostedDurableEvent | null;
+    event: ServerDurableEvent | null;
 }
 
-export async function ensureHostedDm(
+export async function ensureDm(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { peerUserId: string; serverId: string }
-): Promise<EnsuredHostedDm> {
+): Promise<EnsuredDm> {
     const ensured = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireServerMembership(tx, member, input.serverId);
@@ -105,7 +105,7 @@ export async function ensureHostedDm(
 
         const event =
             inserted.length > 0
-                ? await insertHostedLifecycleEvent(
+                ? await insertLifecycleEvent(
                       tx,
                       { chatId: chat.id, serverId: input.serverId },
                       'created',
@@ -116,7 +116,7 @@ export async function ensureHostedDm(
         return { chatId: chat.id, event };
     });
 
-    const visibleChat = (await listHostedChats(db, member, input.serverId)).find(
+    const visibleChat = (await listChats(db, member, input.serverId)).find(
         (candidate) => candidate.id === ensured.chatId
     );
 

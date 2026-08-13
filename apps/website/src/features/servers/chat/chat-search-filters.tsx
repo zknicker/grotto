@@ -1,5 +1,5 @@
 import { Label, ListBox, Select } from '@heroui/react';
-import type { HostedAgent, HostedChat, ServerMember } from '@tavern/api';
+import type { Agent, Chat, ServerMember } from '@tavern/api';
 import * as React from 'react';
 import type { ChatSearchFilters } from '../../../hooks/servers/use-chat-search.ts';
 import { AgentOptionLabel } from '../../agents/agent-option-label.tsx';
@@ -65,8 +65,8 @@ export function ChatSearchFilterRow({
     onChange,
     selection,
 }: {
-    agents: HostedAgent[];
-    chats: HostedChat[];
+    agents: Agent[];
+    chats: Chat[];
     members: ServerMember[];
     onChange: (selection: SearchFilterSelection) => void;
     selection: SearchFilterSelection;
@@ -200,7 +200,7 @@ function activeIndicatorClassName(active: boolean): string | undefined {
     return active ? 'text-accent-soft-foreground' : undefined;
 }
 
-export function searchChatLabel(chat: HostedChat): string {
+export function searchChatLabel(chat: Chat): string {
     if (chat.kind === 'channel') {
         return `#${chat.name ?? 'channel'}`;
     }

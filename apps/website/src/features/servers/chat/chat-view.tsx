@@ -1,4 +1,4 @@
-import type { HostedChat, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
+import type { Chat, ChatMessage, ThreadSummary } from '@tavern/api';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
@@ -37,10 +37,10 @@ export function ChatView({
     onOpenChat,
     server,
 }: {
-    chat: HostedChat;
+    chat: Chat;
     initialTask?: {
-        message: HostedChatMessage;
-        summary: HostedThreadSummary;
+        message: ChatMessage;
+        summary: ThreadSummary;
         threadChatId: string;
     };
     onOpenChat: (chatId: string) => void;
@@ -52,8 +52,8 @@ export function ChatView({
     const artifactState = useChatArtifactPanel(chat.id);
     const activeSidePane = useChatSidePane(chat.id);
     const [threadSelection, setThreadSelection] = React.useState<{
-        anchor: HostedChatMessage;
-        initialSummary: HostedThreadSummary | null;
+        anchor: ChatMessage;
+        initialSummary: ThreadSummary | null;
         initialThreadChatId?: string;
     } | null>(() =>
         initialTask
@@ -145,7 +145,7 @@ export function ChatView({
     // so these handlers stay referentially stable: a fresh callback per render
     // would rebuild that context and re-render the whole transcript.
     const openThread = React.useCallback(
-        (anchor: HostedChatMessage, initialSummary: HostedThreadSummary | null) => {
+        (anchor: ChatMessage, initialSummary: ThreadSummary | null) => {
             threadCloseRequestedRef.current = false;
             setThreadSelection({ anchor, initialSummary });
             setSearchParams(

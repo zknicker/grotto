@@ -1,9 +1,9 @@
 import { getManualTopic, searchManualTopics } from '@tavern/agent-manual';
 import {
-    hostedAgentManualGetQuerySchema,
-    hostedAgentManualGetResponseSchema,
-    hostedAgentManualSearchQuerySchema,
-    hostedAgentManualSearchResponseSchema,
+    agentManualGetQuerySchema,
+    agentManualGetResponseSchema,
+    agentManualSearchQuerySchema,
+    agentManualSearchResponseSchema,
     manualRunnerCapability,
 } from '@tavern/api';
 import type { FastifyInstance } from 'fastify';
@@ -40,7 +40,7 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDataba
                 'This runner is not authorized to read the Grotto Manual.'
             );
         }
-        const parsed = hostedAgentManualGetQuerySchema.safeParse(request.query);
+        const parsed = agentManualGetQuerySchema.safeParse(request.query);
         if (!parsed.success) {
             return sendAgentApiError(
                 reply,
@@ -84,7 +84,7 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDataba
                 'This runner is not authorized to read the Grotto Manual.'
             );
         }
-        const parsed = hostedAgentManualSearchQuerySchema.safeParse(request.query);
+        const parsed = agentManualSearchQuerySchema.safeParse(request.query);
         if (!parsed.success) {
             return sendAgentApiError(
                 reply,
@@ -109,7 +109,7 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDataba
 async function readManualTopic(
     db: GrottoDatabase,
     runner: ResolvedRunner,
-    input: z.infer<typeof hostedAgentManualGetQuerySchema>
+    input: z.infer<typeof agentManualGetQuerySchema>
 ) {
     await recordManualLookup(db, runner, {
         intent: input.intent,
@@ -121,13 +121,13 @@ async function readManualTopic(
     if (!topic) {
         throw new ManualTopicNotFoundError(input.topic);
     }
-    return hostedAgentManualGetResponseSchema.parse({ topic });
+    return agentManualGetResponseSchema.parse({ topic });
 }
 
 async function searchManual(
     db: GrottoDatabase,
     runner: ResolvedRunner,
-    input: z.infer<typeof hostedAgentManualSearchQuerySchema>
+    input: z.infer<typeof agentManualSearchQuerySchema>
 ) {
     await recordManualLookup(db, runner, {
         intent: input.intent,
@@ -138,7 +138,7 @@ async function searchManual(
     const results = searchManualTopics(input.q, { limit: input.limit, scope: input.scope }).map(
         ({ body: _body, related: _related, ...result }) => result
     );
-    return hostedAgentManualSearchResponseSchema.parse({
+    return agentManualSearchResponseSchema.parse({
         query: input.q,
         results,
         scope: input.scope,

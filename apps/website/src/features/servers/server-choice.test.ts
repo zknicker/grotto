@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { HostedChat } from '@tavern/api';
+import type { Chat } from '@tavern/api';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import {
     lastServerSlugStorageKey,
@@ -19,7 +19,7 @@ const servers = [
 const chats = [
     { id: 'chat-product', isAll: false },
     { id: 'chat-all', isAll: true },
-] as HostedChat[];
+] as Chat[];
 
 describe('Server entry choice', () => {
     test('uses the last joined Server and falls back to the first joined Server', () => {

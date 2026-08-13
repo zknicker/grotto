@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { Sidebar } from '@heroui-pro/react';
-import type { HostedChat } from '@tavern/api';
+import type { Chat } from '@tavern/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { ChatNavigation } from './chat-navigation.tsx';
@@ -29,7 +29,7 @@ test('hides a retired Agent DM from active navigation', () => {
     expect(markup).not.toContain('Retired');
 });
 
-function retiredDm(): HostedChat {
+function retiredDm(): Chat {
     return {
         archivedAt: null,
         archivedByUserId: null,

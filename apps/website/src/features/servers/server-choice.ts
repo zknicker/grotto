@@ -1,4 +1,4 @@
-import type { HostedChat } from '@tavern/api';
+import type { Chat } from '@tavern/api';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 
 export const lastServerSlugStorageKey = 'grotto.last-server-slug';
@@ -26,10 +26,7 @@ export function rememberLastServerSlug(
     storage.setItem(lastServerSlugStorageKey, slug);
 }
 
-export function resolveEntryChat(
-    chats: HostedChat[],
-    lastChatId: string | null
-): HostedChat | null {
+export function resolveEntryChat(chats: Chat[], lastChatId: string | null): Chat | null {
     return (
         chats.find((chat) => chat.id === lastChatId) ??
         chats.find((chat) => chat.isAll) ??

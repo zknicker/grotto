@@ -10,7 +10,7 @@ export interface StoredAvatar {
 }
 
 /** Reads one avatar by its opaque id. Nothing here is Server-scoped. */
-export async function readHostedAvatar(
+export async function readAvatar(
     db: Pick<GrottoDatabase, 'select'>,
     avatarId: string
 ): Promise<StoredAvatar | null> {

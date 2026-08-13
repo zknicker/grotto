@@ -1,4 +1,4 @@
-import type { HostedAttachmentReservation, HostedAttachmentReserveInput } from '@tavern/api';
+import type { AttachmentReservation, AttachmentReserveInput } from '@tavern/api';
 import { and, eq } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -6,7 +6,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 
-export const hostedAttachmentMaxSizeBytes = 50 * 1024 * 1024;
+export const attachmentMaxSizeBytes = 50 * 1024 * 1024;
 
 export class AttachmentNonceConflictError extends Error {
     constructor() {
@@ -15,11 +15,11 @@ export class AttachmentNonceConflictError extends Error {
     }
 }
 
-export async function reserveHostedAttachment(
+export async function reserveAttachment(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: HostedAttachmentReserveInput
-): Promise<HostedAttachmentReservation> {
+    input: AttachmentReserveInput
+): Promise<AttachmentReservation> {
     await requireChatWriteAccess(db, member, input);
 
     if (!member) {
@@ -45,7 +45,7 @@ export async function reserveHostedAttachment(
         return {
             attachmentId: created.id,
             idempotent: false,
-            maxSizeBytes: hostedAttachmentMaxSizeBytes,
+            maxSizeBytes: attachmentMaxSizeBytes,
             state: created.state,
         };
     }
@@ -74,7 +74,7 @@ export async function reserveHostedAttachment(
     return {
         attachmentId: existing.id,
         idempotent: true,
-        maxSizeBytes: hostedAttachmentMaxSizeBytes,
+        maxSizeBytes: attachmentMaxSizeBytes,
         state: existing.state,
     };
 }

@@ -1,13 +1,10 @@
-import {
-    hostedCompositionEventSchema,
-    hostedCompositionSubscriptionInputSchema,
-} from '@tavern/api';
+import { compositionEventSchema, compositionSubscriptionInputSchema } from '@tavern/api';
 import { requireChatAccess } from '../../chats/chat-access.ts';
 import { subscribeToChatCompositions } from '../../chats/composition-hub.ts';
 import { chatProcedure } from './procedure.ts';
 
 export const onCompositionProcedure = chatProcedure
-    .input(hostedCompositionSubscriptionInputSchema)
+    .input(compositionSubscriptionInputSchema)
     .use(async ({ ctx, input, next }) => {
         await requireChatAccess(ctx.grottoDb, ctx.member, input);
         return await next();
@@ -23,6 +20,6 @@ export const onCompositionProcedure = chatProcedure
             }
 
             await requireChatAccess(ctx.grottoDb, ctx.member, input);
-            yield hostedCompositionEventSchema.parse(event);
+            yield compositionEventSchema.parse(event);
         }
     });

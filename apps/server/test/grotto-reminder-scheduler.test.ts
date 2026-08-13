@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HostedAgentCommand } from '@tavern/api';
+import type { AgentCommand } from '@tavern/api';
 import { eq, sql } from 'drizzle-orm';
 import { pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
@@ -22,8 +22,8 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
-import { createHostedReminderScheduler } from '../src/reminders/reminder-scheduler.ts';
-import { tickHostedReminders } from '../src/reminders/scheduler.ts';
+import { createReminderScheduler } from '../src/reminders/reminder-scheduler.ts';
+import { tickReminders } from '../src/reminders/scheduler.ts';
 import { type ClerkTestIssuer, startClerkTestIssuer } from './clerk-test-issuer.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -120,7 +120,7 @@ describe('hosted reminder scheduler lifecycle', () => {
     test('waits for an in-flight tick during graceful shutdown', async () => {
         const tickStarted = Promise.withResolvers<void>();
         const releaseTick = Promise.withResolvers<void>();
-        const scheduler = createHostedReminderScheduler({
+        const scheduler = createReminderScheduler({
             clock: { now: () => now },
             tick: async () => {
                 tickStarted.resolve();
@@ -145,7 +145,7 @@ describe('hosted reminder scheduler lifecycle', () => {
 
     test('reports failures without exposing their details and recovers on success', async () => {
         let shouldFail = true;
-        const scheduler = createHostedReminderScheduler({
+        const scheduler = createReminderScheduler({
             clock: { now: () => now },
             tick: async () => {
                 if (shouldFail) {
@@ -201,7 +201,7 @@ describe('hosted reminder scheduler lifecycle', () => {
             updatedAt: new Date('2026-07-26T12:00:00.000Z'),
         });
 
-        await expect(tickHostedReminders(connection.db, { now: () => now })).rejects.toThrow(
+        await expect(tickReminders(connection.db, { now: () => now })).rejects.toThrow(
             'could not fire'
         );
 
@@ -215,7 +215,7 @@ describe('hosted reminder scheduler lifecycle', () => {
         await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
         connection = await connectGrottoDatabase(cluster.databaseUrl);
         await seedOverdueReminder(connection);
-        await configureHostedComputer(connection);
+        await configureComputer(connection);
         await connection.db
             .update(remindersTable)
             .set({ repeat: null, script: 'printf changed' })
@@ -223,7 +223,7 @@ describe('hosted reminder scheduler lifecycle', () => {
 
         const transport = new RecordingTransport();
         const delivery = new AgentDelivery(connection.db, transport);
-        await tickHostedReminders(connection.db, { now: () => now }, delivery);
+        await tickReminders(connection.db, { now: () => now }, delivery);
 
         const command = transport.frames.find((frame) => frame.type === 'reminder-script');
         expect(command).toMatchObject({
@@ -260,7 +260,7 @@ describe('hosted reminder scheduler lifecycle', () => {
         await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
         connection = await connectGrottoDatabase(cluster.databaseUrl);
         await seedOverdueReminder(connection);
-        await configureHostedComputer(connection);
+        await configureComputer(connection);
         await connection.db
             .update(remindersTable)
             .set({ repeat: 'daily@09:00', script: 'printf changed' })
@@ -269,7 +269,7 @@ describe('hosted reminder scheduler lifecycle', () => {
         const transport = new RecordingTransport();
         transport.online = false;
         const delivery = new AgentDelivery(connection.db, transport);
-        await tickHostedReminders(connection.db, { now: () => now }, delivery);
+        await tickReminders(connection.db, { now: () => now }, delivery);
 
         expect(transport.frames).toHaveLength(0);
         expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(1);
@@ -319,7 +319,7 @@ describe('hosted reminder scheduler lifecycle', () => {
         await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
         connection = await connectGrottoDatabase(cluster.databaseUrl);
         await seedOverdueReminder(connection);
-        await configureHostedComputer(connection);
+        await configureComputer(connection);
         await connection.db
             .update(remindersTable)
             .set({ repeat: null })
@@ -328,7 +328,7 @@ describe('hosted reminder scheduler lifecycle', () => {
         const transport = new RecordingTransport();
         transport.online = false;
         const delivery = new AgentDelivery(connection.db, transport);
-        await tickHostedReminders(connection.db, { now: () => now }, delivery);
+        await tickReminders(connection.db, { now: () => now }, delivery);
 
         expect(transport.frames).toHaveLength(0);
         expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(1);
@@ -383,14 +383,14 @@ describe('hosted reminder scheduler lifecycle', () => {
 });
 
 class RecordingTransport implements DeliveryTransport {
-    readonly frames: HostedAgentCommand[] = [];
+    readonly frames: AgentCommand[] = [];
     online = true;
 
     isOnline(computerId: string): boolean {
         return this.online && computerId === 'cmp_ssssssssssssssss';
     }
 
-    send(computerId: string, frame: HostedAgentCommand): boolean {
+    send(computerId: string, frame: AgentCommand): boolean {
         if (!this.isOnline(computerId)) {
             return false;
         }
@@ -462,7 +462,7 @@ async function seedOverdueReminder(grotto: GrottoConnection) {
     });
 }
 
-async function configureHostedComputer(grotto: GrottoConnection) {
+async function configureComputer(grotto: GrottoConnection) {
     await grotto.db
         .insert(usersTable)
         .values({ clerkUserId: 'clerk_scheduler', id: 'usr_scheduler' });

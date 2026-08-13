@@ -14,7 +14,7 @@ This folder holds Playwright coverage for user-facing App behavior.
 - `run-playwright.ts`: allocates unique ports and run ids for each Playwright run.
 - `preflight.ts`: verifies Playwright Chromium and builds the SDK before service readiness timers start.
 - `start-grotto-server.ts`: boots the hosted Server with run-scoped PostgreSQL, attachments, and Clerk fixtures.
-- `support/hosted-server.ts`: authenticated Server setup and durable navigation helpers.
+- `support/server.ts`: authenticated Server setup and durable navigation helpers.
 - `support/test.ts`: shared Playwright exports.
 - `tests/*.spec.ts`: user-facing specs grouped by current hosted surface.
 
@@ -25,7 +25,7 @@ This folder holds Playwright coverage for user-facing App behavior.
 - Prefer one focused regression over broad fixture setup and brittle assertions.
 - Use role/name locators scoped to a semantic region or row. Avoid generated ids and document-wide text selectors.
 - Create each spec's Server in `beforeAll` or its test. Never depend on another spec's rows or execution order.
-- Reuse `openHostedChannel` and `openHostedSection` so navigation follows the accessible tree contract.
+- Reuse `openChannel` and `openSection` so navigation follows the accessible tree contract.
 
 Run one file while repairing a focused surface:
 

@@ -1,4 +1,4 @@
-import type { HostedCreateAgentInput } from '@tavern/api';
+import type { CreateAgentInput } from '@tavern/api';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
 export function useAgentCreate(serverId: string) {
@@ -7,7 +7,7 @@ export function useAgentCreate(serverId: string) {
 
     return {
         ...mutation,
-        createAgent: async (input: HostedCreateAgentInput) => {
+        createAgent: async (input: CreateAgentInput) => {
             const result = await mutation.mutateAsync(input);
             await Promise.all([
                 utils.agent.list.invalidate({ serverId }),

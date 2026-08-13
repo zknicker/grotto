@@ -1,4 +1,4 @@
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
@@ -10,7 +10,7 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { agentRoute } from '../servers/server-routes.ts';
 
-const fallbackAgent: Pick<HostedAgent, 'avatarUrl' | 'displayName'> = {
+const fallbackAgent: Pick<Agent, 'avatarUrl' | 'displayName'> = {
     avatarUrl: null,
     displayName: 'Agent',
 };

@@ -1,5 +1,5 @@
 import { AlertDialog, Button, Separator } from '@heroui/react';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useAgentReset } from '../../../hooks/members/use-agent-reset.ts';
 import { useAgentRestart } from '../../../hooks/members/use-agent-restart.ts';
@@ -13,7 +13,7 @@ import {
 } from '../../settings/layout/settings-page.tsx';
 import { fullResetCopy } from './agent-session-model.ts';
 
-export function AgentSession({ agent, server }: { agent: HostedAgent; server: ServerDetail }) {
+export function AgentSession({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const reset = useAgentReset(server.id, agent.id);
     const stop = useAgentStop(server.id, agent.id);
     const restart = useAgentRestart(server.id, agent.id);

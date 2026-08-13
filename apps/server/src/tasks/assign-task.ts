@@ -1,17 +1,13 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import { findHostedChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
+import { findChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTasksTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import {
-    type HostedTaskMutationResult,
-    HostedTaskNotFoundError,
-    TaskConflictError,
-} from './claim-task.ts';
-import { insertHostedTaskEvent } from './task-events.ts';
-import { findHostedMessageTask } from './task-shape.ts';
+import { TaskConflictError, type TaskMutationResult, TaskNotFoundError } from './claim-task.ts';
+import { insertTaskEvent } from './task-events.ts';
+import { findMessageTask } from './task-shape.ts';
 
 export class TaskAdminRequiredError extends Error {
     constructor() {
@@ -27,7 +23,7 @@ export class InvalidTaskAssigneeError extends Error {
     }
 }
 
-export async function assignHostedTask(
+export async function assignTask(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: {
@@ -36,15 +32,15 @@ export async function assignHostedTask(
         messageId: string;
         serverId: string;
     }
-): Promise<HostedTaskMutationResult> {
+): Promise<TaskMutationResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         if (!member) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
-        const currentBeforeLock = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const currentBeforeLock = await findMessageTask(tx, input.serverId, input.messageId);
         if (!currentBeforeLock) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
 
         const membershipIds = [
@@ -79,9 +75,9 @@ export async function assignHostedTask(
             for update
         `);
 
-        const current = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const current = await findMessageTask(tx, input.serverId, input.messageId);
         if (!current) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
         if (current.version !== input.expectedVersion) {
             throw new TaskConflictError('That task changed; refresh it before assigning.');
@@ -99,7 +95,7 @@ export async function assignHostedTask(
                 )
                 .limit(1);
             const access = active
-                ? await findHostedChatAccess(tx, active.userId, {
+                ? await findChatAccess(tx, active.userId, {
                       chatId: current.chatId,
                       serverId: input.serverId,
                   })
@@ -124,15 +120,15 @@ export async function assignHostedTask(
                     eq(messageTasksTable.messageId, input.messageId)
                 )
             );
-        const event = await insertHostedTaskEvent(tx, {
+        const event = await insertTaskEvent(tx, {
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: input.serverId,
             type: 'task.updated',
         });
-        const task = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const task = await findMessageTask(tx, input.serverId, input.messageId);
         if (!task) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
 
         return { event, task };

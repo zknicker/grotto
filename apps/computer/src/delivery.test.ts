@@ -13,7 +13,7 @@ import {
     writePendingNotice,
     writeRunMarker,
 } from './delivery.ts';
-import type { HostedAgentTurnFrame } from './launch.ts';
+import type { AgentTurnFrame } from './launch.ts';
 import { parseNoticeCommand, parseServerDeleteCommand } from './launch.ts';
 
 let dataRoot: string;
@@ -27,7 +27,7 @@ afterEach(async () => {
     await rm(dataRoot, { force: true, recursive: true });
 });
 
-const summary: HostedAgentTurnFrame = {
+const summary: AgentTurnFrame = {
     agentId: 'agt_x',
     endedAt: '2026-07-27T00:00:01.000Z',
     messageCount: 1,
@@ -84,7 +84,7 @@ test('an interrupted accepted-only run stays replayable until it settles', async
 
     // Recovery reports a failed, interrupted turn and settles the marker, so a
     // later redelivery replays that terminal result instead of recovering again.
-    const interrupted: HostedAgentTurnFrame = {
+    const interrupted: AgentTurnFrame = {
         ...summary,
         outputProduced: true,
         status: 'failed',

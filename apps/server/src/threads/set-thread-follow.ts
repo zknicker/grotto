@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
+import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -7,7 +7,7 @@ import { chatEventsTable, threadFollowsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 
-export async function setHostedThreadFollow(
+export async function setThreadFollow(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { follow: boolean; serverId: string; threadChatId: string }
@@ -40,7 +40,7 @@ export async function setHostedThreadFollow(
                     threadFollowsTable.userId,
                 ],
             });
-        const eventCursor = await allocateHostedEventCursor(tx, input.serverId);
+        const eventCursor = await allocateEventCursor(tx, input.serverId);
         const [event] = await tx
             .insert(chatEventsTable)
             .values({

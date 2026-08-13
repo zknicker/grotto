@@ -1,9 +1,9 @@
-import type { HostedChat } from '@tavern/api';
+import type { Chat } from '@tavern/api';
 
 export function resolveChatPageChat(input: {
-    detail: HostedChat | undefined;
+    detail: Chat | undefined;
     isPending: boolean;
-    listed: HostedChat | undefined;
+    listed: Chat | undefined;
 }) {
     return input.detail ?? (input.isPending ? input.listed : undefined);
 }

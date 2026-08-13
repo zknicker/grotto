@@ -2,7 +2,7 @@ import { type SQL, sql } from 'drizzle-orm';
 import { chatsTable } from '../postgres/schema.ts';
 
 /** The canonical DM-pair-or-Channel-participant visibility rule. */
-export function visibleHostedChats(userId: string): SQL {
+export function visibleChats(userId: string): SQL {
     return sql`(
         (
             ${chatsTable.kind} = 'dm'

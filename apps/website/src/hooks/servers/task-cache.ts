@@ -1,9 +1,9 @@
-import type { HostedMessageTask, HostedTaskListItem } from '@tavern/api';
+import type { MessageTask, TaskListItem } from '@tavern/api';
 
 export function replaceTask(
-    items: HostedTaskListItem[] | undefined,
-    task: HostedMessageTask
-): HostedTaskListItem[] | undefined {
+    items: TaskListItem[] | undefined,
+    task: MessageTask
+): TaskListItem[] | undefined {
     return items?.map((item) =>
         item.task.messageId === task.messageId
             ? {

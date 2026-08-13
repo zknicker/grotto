@@ -1,4 +1,4 @@
-import type { HostedChannelCreateInput, HostedChat, HostedDurableEvent } from '@tavern/api';
+import type { ChannelCreateInput, Chat, ServerDurableEvent } from '@tavern/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
@@ -12,8 +12,8 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { insertHostedLifecycleEvent } from './lifecycle-events.ts';
-import { listHostedChats } from './list-chats.ts';
+import { insertLifecycleEvent } from './lifecycle-events.ts';
+import { listChats } from './list-chats.ts';
 
 export class ChannelAgentNotFoundError extends Error {
     constructor() {
@@ -27,16 +27,16 @@ export class ChannelNameTakenError extends Error {
     }
 }
 
-export interface CreatedHostedChannel {
-    chat: HostedChat;
-    event: HostedDurableEvent;
+export interface CreatedChannel {
+    chat: Chat;
+    event: ServerDurableEvent;
 }
 
-export async function createHostedChannel(
+export async function createChannel(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: HostedChannelCreateInput
-): Promise<CreatedHostedChannel> {
+    input: ChannelCreateInput
+): Promise<CreatedChannel> {
     const created = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireServerMembership(tx, member, input.serverId);
@@ -82,7 +82,7 @@ export async function createHostedChannel(
         await tx
             .insert(channelAgentParticipantsTable)
             .values(agentIds.map((agentId) => ({ agentId, chatId: id, serverId: input.serverId })));
-        const event = await insertHostedLifecycleEvent(
+        const event = await insertLifecycleEvent(
             tx,
             { chatId: id, serverId: input.serverId },
             'created',
@@ -91,7 +91,7 @@ export async function createHostedChannel(
         return { chatId: id, event };
     });
 
-    const channel = (await listHostedChats(db, member, input.serverId)).find(
+    const channel = (await listChats(db, member, input.serverId)).find(
         (candidate) => candidate.id === created.chatId
     );
     if (!channel) {

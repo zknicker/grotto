@@ -29,10 +29,6 @@ export interface TranscriptRenderContextValue {
     disableAgentHoverCard?: boolean;
     flashMessageId: string | null;
     hiddenCount: number;
-    hostedTurnDetails?: {
-        access: 'journal' | 'summary';
-        serverId: string;
-    };
     onActorClick?: (actor: TranscriptActor) => void;
     onOpenThread: (row: TranscriptMessageRow) => void;
     /**
@@ -54,6 +50,10 @@ export interface TranscriptRenderContextValue {
      */
     shouldAnimateItemEnter: (key: string, timestampMs: number | null) => boolean;
     threadActionsEnabled: boolean;
+    turnDetails?: {
+        access: 'journal' | 'summary';
+        serverId: string;
+    };
     turnEvidenceSource?: 'embedded' | 'runtime';
 }
 

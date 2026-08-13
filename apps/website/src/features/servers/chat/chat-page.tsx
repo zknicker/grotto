@@ -1,5 +1,5 @@
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { useHostedChat } from '../../../hooks/servers/use-chat.ts';
+import { useChat } from '../../../hooks/servers/use-chat.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
@@ -10,7 +10,7 @@ import { ChatView } from './chat-view.tsx';
 export function ChatPage({ chatId, server }: { chatId: string; server: ServerDetail }) {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const chatQuery = useHostedChat(server.id, chatId);
+    const chatQuery = useChat(server.id, chatId);
     const chats = useChats(server.id);
     const chat = resolveChatPageChat({
         detail: chatQuery.data,

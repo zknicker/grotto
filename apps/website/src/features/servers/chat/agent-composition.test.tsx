@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { HostedAgent, HostedAgentLifecycleEvent } from '@tavern/api';
+import type { Agent, AgentLifecycleEvent } from '@tavern/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AgentCompositionBubbles, hasAgentComposition } from './agent-composition.tsx';
 
@@ -7,7 +7,7 @@ const agent = {
     avatarUrl: null,
     displayName: 'Cove',
     id: 'agt_cove',
-} as HostedAgent;
+} as Agent;
 const sending = {
     agentId: agent.id,
     chatId: 'cht_parent',
@@ -17,7 +17,7 @@ const sending = {
     runId: 'run_test',
     serverId: 'srv_test',
     text: 'I found the answer.',
-} satisfies HostedAgentLifecycleEvent;
+} satisfies AgentLifecycleEvent;
 
 test('renders an ephemeral Agent send only at its exact chat target', () => {
     const lifecycles = new Map([[agent.id, sending]]);
@@ -36,7 +36,7 @@ test('renders an ephemeral Agent send only at its exact chat target', () => {
 });
 
 test('reading is coarse status, never a provisional chat bubble', () => {
-    const lifecycles = new Map<string, HostedAgentLifecycleEvent>([
+    const lifecycles = new Map<string, AgentLifecycleEvent>([
         [
             agent.id,
             {

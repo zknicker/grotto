@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { recordComputerInventory } from '../src/computers/service.ts';
-import { recordAgentEffectiveState } from '../src/hosted-agents/record-agent-effective-state.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { recordAgentEffectiveState } from '../src/server-agents/record-agent-effective-state.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
 let harness: GrottoServerHarness;

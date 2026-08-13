@@ -1,13 +1,9 @@
 import { expect, test } from 'bun:test';
-import type {
-    HostedAgentCommand,
-    HostedAgentExecutionJournalResult,
-    SignedComputerRelease,
-} from '@tavern/api';
+import type { AgentCommand, AgentExecutionJournalResult, SignedComputerRelease } from '@tavern/api';
 import { ComputerConnections } from '../src/computers/connections.ts';
 
 const computerId = 'cmp_1234567890123456';
-const start: HostedAgentCommand = {
+const start: AgentCommand = {
     agentId: 'agt_1234567890123456',
     chatId: 'cht_1234567890123456',
     modelId: 'model',
@@ -16,7 +12,7 @@ const start: HostedAgentCommand = {
     runtimeId: 'runtime',
     type: 'start',
 };
-const stop: HostedAgentCommand = {
+const stop: AgentCommand = {
     agentId: start.agentId,
     runId: start.runId,
     type: 'stop',
@@ -278,7 +274,7 @@ test('execution journal relay is paired to the assigned Computer, Agent, and run
         runId: start.runId,
         type: 'agent-execution-journal-request',
     });
-    const available: HostedAgentExecutionJournalResult = {
+    const available: AgentExecutionJournalResult = {
         agentId: start.agentId,
         journal: {
             runId: start.runId,

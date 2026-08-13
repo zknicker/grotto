@@ -2,7 +2,7 @@ import { Button } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import { ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent, HostedChat } from '@tavern/api';
+import type { Agent, Chat } from '@tavern/api';
 import type React from 'react';
 import { useLocation } from 'react-router-dom';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
@@ -18,8 +18,8 @@ export function ChatNavigation({
     selectedChatId,
     slug,
 }: {
-    agents: HostedAgent[];
-    chats: HostedChat[];
+    agents: Agent[];
+    chats: Chat[];
     onCreateChannel: () => void;
     selectedChatId: string | undefined;
     slug: string;
@@ -90,8 +90,8 @@ function ChatGroup({
     showLabel = true,
     slug,
 }: {
-    agents: Map<string, HostedAgent>;
-    chats: HostedChat[];
+    agents: Map<string, Agent>;
+    chats: Chat[];
     children?: React.ReactNode;
     label: string;
     selectedChatId: string | undefined;
@@ -134,7 +134,7 @@ function ChatGroup({
     );
 }
 
-function ChatIcon({ agent }: { agent: HostedAgent | null }) {
+function ChatIcon({ agent }: { agent: Agent | null }) {
     if (!agent) {
         return <ChannelIconBox size="sidebar" />;
     }

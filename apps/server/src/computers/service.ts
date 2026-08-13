@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import {
+    type ComputerInventory,
     type ComputerUpdateProgress,
     computerProtocolVersion,
-    type HostedComputerInventory,
 } from '@tavern/api';
 import { and, desc, eq, isNotNull, isNull, ne, or } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -142,7 +142,7 @@ export async function reportComputerUpdateProgress(
 export async function recordComputerInventory(
     db: GrottoDatabase,
     computerId: string,
-    inventory: HostedComputerInventory
+    inventory: ComputerInventory
 ) {
     await db.transaction(async (tx) => {
         const [computer] = await tx

@@ -1,8 +1,8 @@
-import type { HostedAgent, HostedAgentActivityEvent } from '@tavern/api';
+import type { Agent, AgentActivityEvent } from '@tavern/api';
 
-export type CurrentAgentActivity = HostedAgentActivityEvent;
+export type CurrentAgentActivity = AgentActivityEvent;
 
-const activityLabels: Record<HostedAgentActivityEvent['category'], string> = {
+const activityLabels: Record<AgentActivityEvent['category'], string> = {
     browsing: 'Browsing…',
     checking_messages: 'Checking messages…',
     editing_files: 'Editing files…',
@@ -100,7 +100,7 @@ export function splitCurrentAgentActivity(
 /** Semantic activity describes only Agents whose canonical availability is working. */
 export function filterCurrentAgentActivityByAvailability(
     activities: readonly CurrentAgentActivity[],
-    agents: readonly Pick<HostedAgent, 'availability' | 'id'>[]
+    agents: readonly Pick<Agent, 'availability' | 'id'>[]
 ) {
     const workingAgentIds = new Set(
         agents.filter((agent) => agent.availability === 'working').map((agent) => agent.id)

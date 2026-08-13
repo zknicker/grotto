@@ -2,11 +2,11 @@ import { afterAll, beforeAll, test } from 'bun:test';
 import type { SQL } from 'bun';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import {
-    cancelHostedReminder,
-    scheduleHostedReminder,
-    tickHostedReminders,
-    updateHostedReminder,
-} from '../src/reminders/hosted-reminders.ts';
+    cancelReminder,
+    scheduleReminder,
+    tickReminders,
+    updateReminder,
+} from '../src/reminders/reminders.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
@@ -66,7 +66,7 @@ test('all reminder writes take the Server lock before descendant rows', async ()
     );
     await expectServerFirst(
         () =>
-            updateHostedReminder(
+            updateReminder(
                 connection.db,
                 agentId,
                 {
@@ -84,7 +84,7 @@ test('all reminder writes take the Server lock before descendant rows', async ()
     );
     await expectServerFirst(
         () =>
-            cancelHostedReminder(
+            cancelReminder(
                 connection.db,
                 agentId,
                 {
@@ -101,7 +101,7 @@ test('all reminder writes take the Server lock before descendant rows', async ()
     );
     await expectServerFirst(
         () =>
-            tickHostedReminders(connection.db, {
+            tickReminders(connection.db, {
                 now: () => new Date('2026-07-28T13:00:00.000Z'),
             }),
         async (tx) => {
@@ -111,7 +111,7 @@ test('all reminder writes take the Server lock before descendant rows', async ()
 });
 
 async function schedule(commandId: string, title: string, fireAt: string) {
-    return await scheduleHostedReminder(
+    return await scheduleReminder(
         connection.db,
         agentId,
         {

@@ -1,6 +1,6 @@
-import type { HostedAgent, HostedComputerInventory } from '@tavern/api';
+import type { Agent, ComputerInventory } from '@tavern/api';
 
-type Runtime = HostedComputerInventory['runtimes'][number];
+type Runtime = ComputerInventory['runtimes'][number];
 
 export interface RuntimeConfigDraft {
     modelId: string;
@@ -8,7 +8,7 @@ export interface RuntimeConfigDraft {
 }
 
 export function resolveRuntimeConfig(
-    agent: Pick<HostedAgent, 'desiredModelId' | 'desiredRuntimeId'>,
+    agent: Pick<Agent, 'desiredModelId' | 'desiredRuntimeId'>,
     runtimes: Runtime[]
 ) {
     const runtime = runtimes.find((candidate) => candidate.id === agent.desiredRuntimeId) ?? null;
@@ -24,7 +24,7 @@ export function resolveRuntimeConfig(
 }
 
 export function runtimeConfigStatusLabel(
-    agent: Pick<HostedAgent, 'status'>,
+    agent: Pick<Agent, 'status'>,
     computerHealth: 'degraded' | 'healthy' | 'offline' | 'update-required' | undefined
 ) {
     if (agent.status === 'applied') {

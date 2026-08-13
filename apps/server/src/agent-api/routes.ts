@@ -1,4 +1,4 @@
-import { hostedAgentSendInputSchema } from '@tavern/api';
+import { agentSendInputSchema } from '@tavern/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
@@ -6,7 +6,7 @@ import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import { AgentSendConflictError, sendHostedAgentMessage } from '../chats/send-agent-message.ts';
+import { AgentSendConflictError, sendAgentMessage } from '../chats/send-agent-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
@@ -69,7 +69,7 @@ export function registerAgentApiRoutes(
         agentDelivery: import('../agent-delivery/delivery.ts').AgentDelivery;
         attachmentRoot: AttachmentRoot;
         db: GrottoDatabase;
-        mcpRuntime: import('../hosted-mcp/runtime.ts').HostedMcpRuntime;
+        mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
     }
 ) {
     registerAgentAttachmentRoutes(app, { db: options.db, root: options.attachmentRoot });
@@ -301,7 +301,7 @@ export function registerAgentApiRoutes(
             );
         }
 
-        const parsed = hostedAgentSendInputSchema.safeParse(request.body);
+        const parsed = agentSendInputSchema.safeParse(request.body);
         if (!parsed.success) {
             return sendAgentApiError(
                 reply,
@@ -319,7 +319,7 @@ export function registerAgentApiRoutes(
                 if (prepared.kind === 'held') {
                     return { kind: 'held' as const, response: prepared.response };
                 }
-                const result = await sendHostedAgentMessage(
+                const result = await sendAgentMessage(
                     tx,
                     {
                         agentId: runner.agentId,

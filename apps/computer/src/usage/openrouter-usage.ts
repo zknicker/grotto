@@ -1,7 +1,7 @@
-import type { HostedUsageOverview } from '@tavern/api';
+import type { UsageOverview } from '@tavern/api';
 import { z } from 'zod';
 
-type OpenRouterOverview = HostedUsageOverview['openRouter']['overview'];
+type OpenRouterOverview = UsageOverview['openRouter']['overview'];
 type OpenRouterFetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 const activityRowSchema = z

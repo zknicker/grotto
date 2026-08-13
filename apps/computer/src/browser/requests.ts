@@ -1,8 +1,8 @@
 import {
-    type HostedBrowserRequest,
-    type HostedBrowserResult,
-    hostedBrowserRequestSchema,
-    hostedBrowserResultSchema,
+    type BrowserRequest,
+    type BrowserResult,
+    browserRequestSchema,
+    browserResultSchema,
 } from '@tavern/api';
 import {
     getComputerBrowserSettings,
@@ -11,15 +11,15 @@ import {
     saveComputerBrowserSettings,
 } from './settings.ts';
 
-export function parseBrowserRequest(value: unknown): HostedBrowserRequest | null {
-    const parsed = hostedBrowserRequestSchema.safeParse(value);
+export function parseBrowserRequest(value: unknown): BrowserRequest | null {
+    const parsed = browserRequestSchema.safeParse(value);
     return parsed.success ? parsed.data : null;
 }
 
 export async function runBrowserRequest(
     root: string,
-    request: HostedBrowserRequest
-): Promise<HostedBrowserResult> {
+    request: BrowserRequest
+): Promise<BrowserResult> {
     try {
         const result =
             request.operation.kind === 'get'
@@ -40,13 +40,13 @@ export async function runBrowserRequest(
                                 : await restartComputerBrowser(root),
                     };
 
-        return hostedBrowserResultSchema.parse({
+        return browserResultSchema.parse({
             requestId: request.requestId,
             result,
             type: 'browser-result',
         });
     } catch (error) {
-        return hostedBrowserResultSchema.parse({
+        return browserResultSchema.parse({
             error: safeBrowserError(error),
             requestId: request.requestId,
             type: 'browser-result',

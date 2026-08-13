@@ -3,8 +3,8 @@ import { AgentLoading } from '../../features/members/agent-profile/agent-loading
 import { AgentProfilePage } from '../../features/members/agent-profile/agent-profile.tsx';
 import { isAgentTab } from '../../features/members/agent-profile/agent-tabs.ts';
 import { HumanProfile } from '../../features/members/human-profile/human-profile.tsx';
-import { HostedHumanDirectory } from '../../features/servers/hosted-human-directory.tsx';
-import { useHostedServerContext } from '../../features/servers/hosted-server-context.ts';
+import { HumanDirectory } from '../../features/servers/human-directory.tsx';
+import { useServerContext } from '../../features/servers/server-context.ts';
 import { agentRoute, membersRoute } from '../../features/servers/server-routes.ts';
 import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useMember } from '../../hooks/members/use-member.ts';
@@ -13,7 +13,7 @@ import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 
 /** Members owns the stable detail column; child routes choose its content. */
 export function MembersPage() {
-    const context = useHostedServerContext();
+    const context = useServerContext();
     useWindowTitle('Members');
 
     return (
@@ -30,7 +30,7 @@ export function MembersEmptyPage() {
 export function AgentPage() {
     const { agentId = '', tab } = useParams();
     const navigate = useNavigate();
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const agent = useAgent(server.id, agentId);
 
     if (!isAgentTab(tab)) {
@@ -60,23 +60,19 @@ export function AgentPage() {
 }
 
 export function HumanDirectoryPage() {
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const directory = useMembers(server.id);
     if (directory.error && !directory.data) {
         return <p className="m-auto text-danger text-sm">Couldn’t load humans.</p>;
     }
     return (
-        <HostedHumanDirectory
-            directory={directory.data}
-            serverId={server.id}
-            serverSlug={server.slug}
-        />
+        <HumanDirectory directory={directory.data} serverId={server.id} serverSlug={server.slug} />
     );
 }
 
 export function HumanPage() {
     const { userId = '' } = useParams();
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const member = useMember(server.id, userId);
 
     if (member.isPending) {

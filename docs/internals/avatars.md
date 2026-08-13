@@ -29,7 +29,7 @@ agent-vs-human branch at any call site.
 Every record that can wear an avatar exposes **`avatarUrl: string | null`** —
 an absolute-or-relative URL a surface drops straight into an `<img src>`. Call
 sites never see an avatar id, media type, or byte payload. This holds for
-`HostedAgent`, `ServerMember`, and the local agent catalog item alike.
+`Agent`, `ServerMember`, and the local agent catalog item alike.
 
 ## Storage
 

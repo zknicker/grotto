@@ -1,10 +1,8 @@
-import { hostedAttachmentReservationSchema, hostedAttachmentReserveInputSchema } from '@tavern/api';
-import { reserveHostedAttachment } from '../../attachments/reserve-attachment.ts';
+import { attachmentReservationSchema, attachmentReserveInputSchema } from '@tavern/api';
+import { reserveAttachment } from '../../attachments/reserve-attachment.ts';
 import { attachmentProcedure } from './procedure.ts';
 
 export const reserveAttachmentProcedure = attachmentProcedure
-    .input(hostedAttachmentReserveInputSchema)
-    .output(hostedAttachmentReservationSchema)
-    .mutation(
-        async ({ ctx, input }) => await reserveHostedAttachment(ctx.grottoDb, ctx.member, input)
-    );
+    .input(attachmentReserveInputSchema)
+    .output(attachmentReservationSchema)
+    .mutation(async ({ ctx, input }) => await reserveAttachment(ctx.grottoDb, ctx.member, input));

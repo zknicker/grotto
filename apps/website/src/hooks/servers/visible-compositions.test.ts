@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { HostedCompositionEvent } from '@tavern/api';
+import type { CompositionEvent } from '@tavern/api';
 import { visibleCompositions } from './visible-compositions.ts';
 
-function composition(actorUserId: string): HostedCompositionEvent {
+function composition(actorUserId: string): CompositionEvent {
     return {
         actorUserId,
         chatId: 'cht_all',

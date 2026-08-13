@@ -1,12 +1,12 @@
-import type { HostedAgent, HostedChatMessage, HostedThreadSummary } from '@tavern/api';
+import type { Agent, ChatMessage, ThreadSummary } from '@tavern/api';
 import type { ChatLogOutput } from '../../../lib/trpc.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
 export function mergeTaskAnchor(
-    messages: HostedChatMessage[] | undefined,
-    anchor: HostedChatMessage | undefined
+    messages: ChatMessage[] | undefined,
+    anchor: ChatMessage | undefined
 ) {
     if (!(messages && anchor) || messages.some((message) => message.id === anchor.id)) {
         return messages;
@@ -24,7 +24,7 @@ export interface ChatMessageDirectories {
 }
 
 export function chatMessageDirectories(
-    agents: readonly HostedAgent[],
+    agents: readonly Agent[],
     humans?: HumanDirectory
 ): ChatMessageDirectories {
     return {
@@ -34,9 +34,9 @@ export function chatMessageDirectories(
 }
 
 export function projectChatMessages(
-    messages: readonly HostedChatMessage[],
-    threads: readonly HostedThreadSummary[],
-    agents: readonly HostedAgent[] = [],
+    messages: readonly ChatMessage[],
+    threads: readonly ThreadSummary[],
+    agents: readonly Agent[] = [],
     humans?: HumanDirectory
 ): ProjectedChatMessageRow[] {
     const threadsByAnchor = new Map(threads.map((thread) => [thread.anchorMessageId, thread]));
@@ -48,8 +48,8 @@ export function projectChatMessages(
 }
 
 export function projectChatMessage(
-    message: HostedChatMessage,
-    thread: HostedThreadSummary | null,
+    message: ChatMessage,
+    thread: ThreadSummary | null,
     directories: ChatMessageDirectories
 ): ProjectedChatMessageRow {
     const actor = messageActor(message);
@@ -101,7 +101,7 @@ export function projectChatMessage(
 }
 
 function messageTask(
-    task: HostedChatMessage['task'],
+    task: ChatMessage['task'],
     handleByAgentId: ReadonlyMap<string, string>,
     humans?: HumanDirectory
 ): TranscriptMessage['task'] {
@@ -122,7 +122,7 @@ function messageTask(
 }
 
 function taskAssignee(
-    task: NonNullable<HostedChatMessage['task']>,
+    task: NonNullable<ChatMessage['task']>,
     handleByAgentId: ReadonlyMap<string, string>,
     humans?: HumanDirectory
 ): { handle: string | null; id: string; kind: 'agent' | 'human' } | null {
@@ -143,7 +143,7 @@ function taskAssignee(
     return null;
 }
 
-function messageActor(message: HostedChatMessage): TranscriptActor {
+function messageActor(message: ChatMessage): TranscriptActor {
     if (message.author.kind === 'agent') {
         return { id: message.author.agentId, kind: 'agent' };
     }

@@ -1,8 +1,4 @@
-import type {
-    HostedDurableEvent,
-    HostedReminderScriptCommand,
-    HostedReminderScriptResult,
-} from '@tavern/api';
+import type { ReminderScriptCommand, ReminderScriptResult, ServerDurableEvent } from '@tavern/api';
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -20,7 +16,7 @@ import { insertMessageEvent } from './reminder-model.ts';
 export async function listReminderScriptCommands(
     db: GrottoDatabase,
     computerId: string
-): Promise<HostedReminderScriptCommand[]> {
+): Promise<ReminderScriptCommand[]> {
     const rows = await db
         .select({
             agentId: reminderAgentAttentionTable.agentId,
@@ -59,7 +55,7 @@ export async function listReminderScriptCommands(
 export async function settleReminderScript(
     db: GrottoDatabase,
     computerId: string,
-    result: HostedReminderScriptResult,
+    result: ReminderScriptResult,
     enqueue: (
         tx: GrottoDatabase,
         input: {
@@ -199,11 +195,11 @@ export async function settleReminderScript(
         });
     });
     if (event) {
-        emitDurableChatEvent({ audienceUserId: null, event: event as HostedDurableEvent });
+        emitDurableChatEvent({ audienceUserId: null, event: event as ServerDurableEvent });
     }
 }
 
-function scriptResultContent(result: HostedReminderScriptResult) {
+function scriptResultContent(result: ReminderScriptResult) {
     // Agent launch envelopes cap one inbox item's content at 32 KiB.
     const output = result.output.trim().slice(0, 30_000);
     if (!output && result.exitCode === 0 && !result.timedOut) {

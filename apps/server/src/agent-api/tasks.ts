@@ -1,11 +1,10 @@
-import type { HostedAgentActivityEvent, HostedDurableEvent } from '@tavern/api';
+import type { AgentActivityEvent, ServerDurableEvent } from '@tavern/api';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
-import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
-import { requireHostedChatWritable } from '../chats/chat-access.ts';
+import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
+import { requireChatWritable } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import { appendServerAgentActivity } from '../hosted-agents/agent-activity.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -17,10 +16,11 @@ import {
     chatsTable,
     messageTasksTable,
 } from '../postgres/schema.ts';
+import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { insertHostedTaskEvent } from '../tasks/task-events.ts';
+import { insertTaskEvent } from '../tasks/task-events.ts';
 import { agentOwnsTask, taskHasOtherOwnerForAgent } from '../tasks/task-ownership.ts';
-import { ensureHostedThreadRecord } from '../threads/ensure-thread.ts';
+import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import {
     type MessageRow,
@@ -96,14 +96,14 @@ export async function createAgentTasks(
     const nonces = titles.map((_, index) => `${input.nonce}:${index}`);
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
-        await requireHostedChatWritable(tx, { chatId, serverId: runner.serverId });
+        await requireChatWritable(tx, { chatId, serverId: runner.serverId });
         const replay = await replayAgentTasks(tx, runner, chatId, titles, nonces, assigneeAgentId);
         if (replay) {
             return { activities: [], events: [], tasks: replay, wakes: [] };
         }
         const created: Awaited<ReturnType<typeof taskRow>>[] = [];
-        const activities: HostedAgentActivityEvent[] = [];
-        const events: HostedDurableEvent[] = [];
+        const activities: AgentActivityEvent[] = [];
+        const events: ServerDurableEvent[] = [];
         const wakes = new Set<string>();
         for (const [index, title] of titles.entries()) {
             const startedActivity = await appendServerAgentActivity(tx, {
@@ -201,7 +201,7 @@ export async function createAgentTasks(
                     sequence: message.sequence,
                     serverId: runner.serverId,
                 }),
-                await insertHostedTaskEvent(tx, {
+                await insertTaskEvent(tx, {
                     chatId,
                     messageId: message.id,
                     serverId: runner.serverId,
@@ -241,7 +241,7 @@ export async function claimAgentTasks(
         ...input,
         messageId,
     });
-    const events: HostedDurableEvent[] = [];
+    const events: ServerDurableEvent[] = [];
     if (tasks.length === 0 && messageId) {
         const promoted = await promoteAgentMessageTask(db, runner, chatId, messageId);
         tasks = [promoted.task];
@@ -304,7 +304,7 @@ async function mutateAgentTask(
         if (!current) {
             throw new AgentTaskError('That task no longer exists.');
         }
-        await requireHostedChatWritable(tx, {
+        await requireChatWritable(tx, {
             chatId: current.chatId,
             serverId: runner.serverId,
         });
@@ -379,7 +379,7 @@ async function mutateAgentTask(
         if (!updated) {
             throw new AgentTaskError('That task changed; refresh it before updating.');
         }
-        const event = await insertHostedTaskEvent(tx, {
+        const event = await insertTaskEvent(tx, {
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: runner.serverId,
@@ -447,7 +447,7 @@ async function promoteAgentMessageTask(
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
-        await requireHostedChatWritable(tx, { chatId, serverId: runner.serverId });
+        await requireChatWritable(tx, { chatId, serverId: runner.serverId });
         const [message] = await tx
             .select({
                 chatId: chatMessagesTable.chatId,
@@ -493,7 +493,7 @@ async function promoteAgentMessageTask(
         if (!created) {
             throw new Error('Task conversion did not persist.');
         }
-        const event = await insertHostedTaskEvent(tx, {
+        const event = await insertTaskEvent(tx, {
             chatId,
             messageId,
             serverId: runner.serverId,
@@ -531,8 +531,8 @@ async function taskRow(
 async function insertAgentMessageCreatedEvent(
     db: GrottoDatabase,
     input: { chatId: string; messageId: string; sequence: number; serverId: string }
-): Promise<HostedDurableEvent> {
-    const cursor = await allocateHostedEventCursor(db, input.serverId);
+): Promise<ServerDurableEvent> {
+    const cursor = await allocateEventCursor(db, input.serverId);
     const [event] = await db
         .insert(chatEventsTable)
         .values({
@@ -573,7 +573,7 @@ async function createAgentTaskThread(
     if (!parent || parent.kind === 'thread') {
         throw new AgentTaskError('Tasks require a top-level Channel or DM.');
     }
-    const thread = await ensureHostedThreadRecord(db, {
+    const thread = await ensureThreadRecord(db, {
         anchorMessageId: messageId,
         parentChatId,
         serverId: runner.serverId,

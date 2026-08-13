@@ -1,17 +1,17 @@
-import { hostedAgentWorkspaceReadInputSchema, hostedWorkspaceFileContentSchema } from '@tavern/api';
+import { agentWorkspaceReadInputSchema, workspaceFileContentSchema } from '@tavern/api';
 import { TRPCError } from '@trpc/server';
 import {
     AgentWorkspaceAccessError,
-    readHostedAgentWorkspaceFile,
-} from '../../hosted-agents/agent-workspace.ts';
+    readAgentWorkspaceFile,
+} from '../../server-agents/agent-workspace.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const agentWorkspaceFileProcedure = memberProcedure
-    .input(hostedAgentWorkspaceReadInputSchema)
-    .output(hostedWorkspaceFileContentSchema)
+    .input(agentWorkspaceReadInputSchema)
+    .output(workspaceFileContentSchema)
     .query(async ({ ctx, input }) => {
         try {
-            return await readHostedAgentWorkspaceFile(
+            return await readAgentWorkspaceFile(
                 ctx.grottoDb,
                 ctx.computerConnections,
                 ctx.member,

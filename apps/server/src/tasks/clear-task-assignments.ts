@@ -1,8 +1,8 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
-import { insertHostedTaskEvent } from './task-events.ts';
+import { insertTaskEvent } from './task-events.ts';
 
 type TaskAssignmentWriter = Pick<GrottoDatabase, 'insert' | 'select' | 'update'>;
 
@@ -11,11 +11,11 @@ type TaskAssignmentWriter = Pick<GrottoDatabase, 'insert' | 'select' | 'update'>
  * Server lock, so task writers cannot race this selection or its ordered
  * updates.
  */
-export async function clearHostedTaskAssignments(
+export async function clearTaskAssignments(
     db: TaskAssignmentWriter,
     serverId: string,
     actor: { id: string; kind: 'agent' | 'user' }
-): Promise<HostedDurableEvent[]> {
+): Promise<ServerDurableEvent[]> {
     const assigneeColumn =
         actor.kind === 'agent'
             ? messageTasksTable.assigneeAgentId
@@ -28,7 +28,7 @@ export async function clearHostedTaskAssignments(
         .from(messageTasksTable)
         .where(and(eq(messageTasksTable.serverId, serverId), eq(assigneeColumn, actor.id)))
         .orderBy(asc(messageTasksTable.messageId));
-    const events: HostedDurableEvent[] = [];
+    const events: ServerDurableEvent[] = [];
 
     for (const task of assigned) {
         await db
@@ -48,7 +48,7 @@ export async function clearHostedTaskAssignments(
                 )
             );
         events.push(
-            await insertHostedTaskEvent(db, {
+            await insertTaskEvent(db, {
                 chatId: task.chatId,
                 messageId: task.messageId,
                 serverId,

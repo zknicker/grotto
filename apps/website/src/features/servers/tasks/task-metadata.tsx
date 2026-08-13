@@ -8,13 +8,13 @@ import {
     taskPriorityLabels,
     taskPriorityOrder,
 } from '../../tasks/task-presentation.ts';
-import { useHostedServerContext } from '../hosted-server-context.ts';
+import { useServerContext } from '../server-context.ts';
 import { taskUpdateInput } from './task-input.ts';
 import type { TaskItem } from './task-model.ts';
 import { TaskStatusSelect } from './task-status-select.tsx';
 
 export function TaskMetadata({ task }: { task: TaskItem }) {
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const labelsQuery = useTaskLabels(server.id);
     const labels = labelsQuery.data ?? [];
     const update = useTaskUpdate();

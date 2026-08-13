@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { HostedChatMessage, HostedThreadSummary } from '@tavern/api';
+import type { ChatMessage, ThreadSummary } from '@tavern/api';
 import {
     type ChatMessageProjectionInput,
     emptyChatAgents,
@@ -72,13 +72,13 @@ test('a new thread summary reprojects only its anchor row', () => {
 });
 
 function input(
-    messages: readonly HostedChatMessage[],
-    threads: readonly HostedThreadSummary[] = emptyChatThreads
+    messages: readonly ChatMessage[],
+    threads: readonly ThreadSummary[] = emptyChatThreads
 ): ChatMessageProjectionInput {
     return { agents: emptyChatAgents, messages, threads };
 }
 
-function message(id: string, content: string): HostedChatMessage {
+function message(id: string, content: string): ChatMessage {
     return {
         attachments: [],
         author: { kind: 'human', userId: 'usr_1' },
@@ -94,7 +94,7 @@ function message(id: string, content: string): HostedChatMessage {
     };
 }
 
-function thread(anchorMessageId: string): HostedThreadSummary {
+function thread(anchorMessageId: string): ThreadSummary {
     return {
         anchorMessageId,
         followed: true,

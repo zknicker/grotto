@@ -7,7 +7,7 @@ import {
 } from '../postgres/schema.ts';
 import { requireActiveAgent, requireAgentAnchor } from './reminder-model.ts';
 
-export interface HostedReminderFire {
+export interface ReminderFire {
     firedAt: string;
     id: string;
     receiptMessageId: string;
@@ -30,14 +30,14 @@ export interface ReminderAgentAttention {
     script: string | null;
 }
 
-export async function listHostedReminderFires(
+export async function listReminderFires(
     db: GrottoDatabase,
     input: {
         actor: { agentId: string; kind: 'agent' };
         reminderId: string;
         serverId: string;
     }
-): Promise<HostedReminderFire[]> {
+): Promise<ReminderFire[]> {
     await requireOwnedReminder(db, input.serverId, input.actor.agentId, input.reminderId);
     const rows = await db
         .select()

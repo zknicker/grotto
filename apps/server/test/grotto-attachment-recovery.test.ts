@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { type AttachmentRoot, openAttachmentRoot } from '../src/attachments/attachment-root.ts';
-import { reconcileHostedAttachments } from '../src/attachments/reconcile-attachments.ts';
-import { uploadHostedAttachment } from '../src/attachments/upload-attachment.ts';
+import { reconcileAttachments } from '../src/attachments/reconcile-attachments.ts';
+import { uploadAttachment } from '../src/attachments/upload-attachment.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { findUserByClerkId, type GrottoUser } from '../src/users/grotto-user.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
@@ -61,7 +61,7 @@ test('an interrupted request stream removes its partial staging file', async () 
     const attachmentId = await reserve('interrupted-stream');
 
     await expect(
-        uploadHostedAttachment(connection.db, root, {
+        uploadAttachment(connection.db, root, {
             attachmentId,
             declaredLength: null,
             member,
@@ -88,11 +88,11 @@ test('restart completes a committed finalizing row whose staging file is durable
     ).rejects.toThrow(/process stopped/i);
     expect(await state(attachmentId)).toMatchObject({ state: 'finalizing' });
 
-    await expect(reconcileHostedAttachments(connection.db, root)).resolves.toEqual({
+    await expect(reconcileAttachments(connection.db, root)).resolves.toEqual({
         failed: [],
         ready: [attachmentId],
     });
-    await expect(reconcileHostedAttachments(connection.db, root)).resolves.toEqual({
+    await expect(reconcileAttachments(connection.db, root)).resolves.toEqual({
         failed: [],
         ready: [],
     });
@@ -109,7 +109,7 @@ test('restart verifies an object renamed before directory fsync and finishes its
     await expect(upload(attachmentId, interruptedRoot)).rejects.toThrow(/directory fsync/i);
     expect(await state(attachmentId)).toMatchObject({ state: 'finalizing' });
 
-    await expect(reconcileHostedAttachments(connection.db, root)).resolves.toEqual({
+    await expect(reconcileAttachments(connection.db, root)).resolves.toEqual({
         failed: [],
         ready: [attachmentId],
     });
@@ -132,7 +132,7 @@ test('restart removes a matching staging leaf left beside its finalized object',
     await duplicateStage.sync();
     await duplicateStage.close();
 
-    await expect(reconcileHostedAttachments(connection.db, root)).resolves.toEqual({
+    await expect(reconcileAttachments(connection.db, root)).resolves.toEqual({
         failed: [],
         ready: [attachmentId],
     });
@@ -151,7 +151,7 @@ test('restart finishes a durable object when the ready commit was never attempte
     ).rejects.toThrow(/ready commit/i);
     expect(await state(attachmentId)).toMatchObject({ state: 'finalizing' });
 
-    await expect(reconcileHostedAttachments(connection.db, root)).resolves.toEqual({
+    await expect(reconcileAttachments(connection.db, root)).resolves.toEqual({
         failed: [],
         ready: [attachmentId],
     });
@@ -176,7 +176,7 @@ test('restart removes interrupted writes and enumerates missing finalization fai
         where id = ${missingId}
     `;
 
-    await expect(reconcileHostedAttachments(connection.db, root)).resolves.toEqual({
+    await expect(reconcileAttachments(connection.db, root)).resolves.toEqual({
         failed: [uploadingId, missingId],
         ready: [],
     });
@@ -205,9 +205,9 @@ async function reserve(nonce: string) {
 async function upload(
     attachmentId: string,
     attachmentRoot: AttachmentRoot,
-    failureInjection?: Parameters<typeof uploadHostedAttachment>[2]['failureInjection']
+    failureInjection?: Parameters<typeof uploadAttachment>[2]['failureInjection']
 ) {
-    return await uploadHostedAttachment(connection.db, attachmentRoot, {
+    return await uploadAttachment(connection.db, attachmentRoot, {
         attachmentId,
         declaredLength: null,
         failureInjection,

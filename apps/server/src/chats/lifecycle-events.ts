@@ -1,28 +1,23 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable } from '../postgres/schema.ts';
-import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
+import { allocateEventCursor } from './allocate-event-cursor.ts';
 
-export type HostedChatLifecycleAction =
-    | 'archived'
-    | 'created'
-    | 'deleted'
-    | 'unarchived'
-    | 'updated';
+export type ChatLifecycleAction = 'archived' | 'created' | 'deleted' | 'unarchived' | 'updated';
 
 /**
  * The one writer of `chat.lifecycle` rows. The Chat id lives in
  * `lifecycle_chat_id`, outside the live Chat foreign key, so a `deleted`
  * notification survives the purge that follows it.
  */
-export async function insertHostedLifecycleEvent(
+export async function insertLifecycleEvent(
     db: GrottoDatabase,
     input: { chatId: string; serverId: string },
-    action: HostedChatLifecycleAction,
+    action: ChatLifecycleAction,
     createdAt: Date
-): Promise<HostedDurableEvent> {
-    const cursor = await allocateHostedEventCursor(db, input.serverId);
+): Promise<ServerDurableEvent> {
+    const cursor = await allocateEventCursor(db, input.serverId);
     const [event] = await db
         .insert(chatEventsTable)
         .values({

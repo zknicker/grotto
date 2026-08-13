@@ -5,7 +5,7 @@ import { parseSkillReferenceTarget, parseTavernRichReferences } from '@tavern/ap
  * canonical in Server chat history; the addressed Agent receives only the
  * activation hint for skills that actually exist in its local library.
  */
-export function projectHostedMessageForAgent(input: {
+export function projectMessageForAgent(input: {
     content: string;
     enabledSkillIds: readonly string[];
 }) {

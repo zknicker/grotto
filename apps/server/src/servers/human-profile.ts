@@ -1,8 +1,4 @@
-import type {
-    HostedSyncHumanIdentityInput,
-    HostedUpdateHumanProfileInput,
-    ServerMember,
-} from '@tavern/api';
+import type { ServerMember, SyncHumanIdentityInput, UpdateHumanProfileInput } from '@tavern/api';
 import { eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { usersTable } from '../postgres/schema.ts';
@@ -16,7 +12,7 @@ import type { GrottoUser } from '../users/grotto-user.ts';
 export async function syncHumanIdentity(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: HostedSyncHumanIdentityInput
+    input: SyncHumanIdentityInput
 ): Promise<void> {
     if (!member) {
         throw new Error('Signing in is required to sync a human profile.');
@@ -47,7 +43,7 @@ export async function syncHumanIdentity(
 export async function updateHumanProfile(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: HostedUpdateHumanProfileInput
+    input: UpdateHumanProfileInput
 ): Promise<void> {
     if (!member) {
         throw new Error('Signing in is required to edit a human profile.');

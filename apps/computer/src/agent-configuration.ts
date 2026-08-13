@@ -7,12 +7,12 @@ import {
     validateCoveWorkspace,
 } from '@tavern/agent-workspace';
 import {
-    type HostedAgentConfigureCommand,
-    type HostedComputerInventory,
-    type HostedCoveApplyCommand,
-    type HostedCoveApplyResult,
-    hostedAgentConfigureCommandSchema,
-    hostedCoveApplyCommandSchema,
+    type AgentConfigureCommand,
+    agentConfigureCommandSchema,
+    type ComputerInventory,
+    type CoveApplyCommand,
+    type CoveApplyResult,
+    coveApplyCommandSchema,
 } from '@tavern/api';
 
 export interface AppliedAgentConfiguration {
@@ -26,18 +26,18 @@ export interface AgentSeedConfiguration {
     agentName: string;
     factoryKind: 'cove' | 'ordinary';
 }
-export function parseAgentConfigureCommand(frame: unknown): HostedAgentConfigureCommand | null {
-    const parsed = hostedAgentConfigureCommandSchema.safeParse(frame);
+export function parseAgentConfigureCommand(frame: unknown): AgentConfigureCommand | null {
+    const parsed = agentConfigureCommandSchema.safeParse(frame);
     return parsed.success ? parsed.data : null;
 }
-export function parseCoveApplyCommand(frame: unknown): HostedCoveApplyCommand | null {
-    const parsed = hostedCoveApplyCommandSchema.safeParse(frame);
+export function parseCoveApplyCommand(frame: unknown): CoveApplyCommand | null {
+    const parsed = coveApplyCommandSchema.safeParse(frame);
     return parsed.success ? parsed.data : null;
 }
 export async function applyAgentConfiguration(input: {
-    command: HostedAgentConfigureCommand;
+    command: AgentConfigureCommand;
     dataRoot: string;
-    inventory: HostedComputerInventory;
+    inventory: ComputerInventory;
     serverId: string;
 }): Promise<AppliedAgentConfiguration> {
     const applied = resolveConfiguration(input.command, input.inventory);
@@ -78,11 +78,11 @@ export async function applyAgentConfiguration(input: {
     return applied;
 }
 export async function applyCoveConfiguration(input: {
-    command: HostedCoveApplyCommand;
+    command: CoveApplyCommand;
     dataRoot: string;
-    inventory: HostedComputerInventory;
+    inventory: ComputerInventory;
     serverId: string;
-}): Promise<HostedCoveApplyResult> {
+}): Promise<CoveApplyResult> {
     const { command } = input;
     try {
         const applied = resolveConfiguration(command, input.inventory);
@@ -139,7 +139,7 @@ export async function applyCoveConfiguration(input: {
         };
     }
 }
-async function assertMatchingCoveConfiguration(agentRoot: string, command: HostedCoveApplyCommand) {
+async function assertMatchingCoveConfiguration(agentRoot: string, command: CoveApplyCommand) {
     const configuration = await readAppliedAgentConfiguration(agentRoot);
     const seed = await readAgentSeedConfiguration(agentRoot);
     if (
@@ -190,8 +190,8 @@ export async function readAgentSeedConfiguration(
 }
 
 function resolveConfiguration(
-    command: HostedAgentConfigureCommand | HostedCoveApplyCommand,
-    inventory: HostedComputerInventory
+    command: AgentConfigureCommand | CoveApplyCommand,
+    inventory: ComputerInventory
 ): AppliedAgentConfiguration {
     const runtime = inventory.runtimes.find((candidate) => candidate.id === command.runtimeId);
     if (!runtime) {
@@ -262,7 +262,7 @@ function isMissingFile(error: unknown): boolean {
     );
 }
 
-function assertMatchingCoveReceipt(receipt: CoveReceipt, command: HostedCoveApplyCommand) {
+function assertMatchingCoveReceipt(receipt: CoveReceipt, command: CoveApplyCommand) {
     if (
         receipt.agentId !== command.agentId ||
         receipt.applicationId !== command.applicationId ||

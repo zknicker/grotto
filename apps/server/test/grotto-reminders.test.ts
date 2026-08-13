@@ -4,16 +4,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import {
-    cancelHostedReminder,
-    listHostedReminderFires,
-    listHostedReminders,
+    cancelReminder,
     listReminderAgentAttention,
+    listReminderFires,
+    listReminders,
     ReminderVersionConflictError,
-    scheduleHostedReminder,
-    snoozeHostedReminder,
-    tickHostedReminders,
-    updateHostedReminder,
-} from '../src/reminders/hosted-reminders.ts';
+    scheduleReminder,
+    snoozeReminder,
+    tickReminders,
+    updateReminder,
+} from '../src/reminders/reminders.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
@@ -74,16 +74,16 @@ describe('hosted reminders', () => {
             title: 'Check deployment',
         };
 
-        const created = await scheduleHostedReminder(connection.db, agentId, input, {
+        const created = await scheduleReminder(connection.db, agentId, input, {
             now: () => new Date('2026-07-26T12:00:00.000Z'),
         });
-        const retried = await scheduleHostedReminder(connection.db, agentId, input, {
+        const retried = await scheduleReminder(connection.db, agentId, input, {
             now: () => new Date('2026-07-26T12:00:00.000Z'),
         });
 
         expect(created.idempotent).toBe(false);
         expect(retried).toEqual({ ...created, idempotent: true });
-        const listed = await listHostedReminders(connection.db, {
+        const listed = await listReminders(connection.db, {
             actor: { agentId, kind: 'agent' },
             serverId,
         });
@@ -125,10 +125,10 @@ describe('hosted reminders', () => {
             serverId,
             title: 'Original result',
         };
-        const created = await scheduleHostedReminder(connection.db, agentId, input, {
+        const created = await scheduleReminder(connection.db, agentId, input, {
             now: () => new Date('2026-07-26T12:00:00.000Z'),
         });
-        await updateHostedReminder(
+        await updateReminder(
             connection.db,
             agentId,
             {
@@ -141,7 +141,7 @@ describe('hosted reminders', () => {
             { now: () => new Date('2026-07-26T13:00:00.000Z') }
         );
 
-        const replayed = await scheduleHostedReminder(connection.db, agentId, input, {
+        const replayed = await scheduleReminder(connection.db, agentId, input, {
             now: () => new Date('2027-02-01T12:00:00.000Z'),
         });
 
@@ -159,10 +159,10 @@ describe('hosted reminders', () => {
         };
 
         const results = await Promise.all([
-            scheduleHostedReminder(connection.db, agentId, input, {
+            scheduleReminder(connection.db, agentId, input, {
                 now: () => new Date('2026-07-26T12:00:00.000Z'),
             }),
-            scheduleHostedReminder(connection.db, agentId, input, {
+            scheduleReminder(connection.db, agentId, input, {
                 now: () => new Date('2026-07-26T12:00:00.000Z'),
             }),
         ]);
@@ -180,7 +180,7 @@ describe('hosted reminders', () => {
         `;
 
         await expect(
-            scheduleHostedReminder(
+            scheduleReminder(
                 connection.db,
                 invalidAgentId,
                 {
@@ -205,7 +205,7 @@ describe('hosted reminders', () => {
             serverId,
             thread: { anchorMessageId },
         });
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -219,7 +219,7 @@ describe('hosted reminders', () => {
             { now: () => new Date('2026-07-26T12:00:00.000Z') }
         );
 
-        await tickHostedReminders(connection.db, {
+        await tickReminders(connection.db, {
             now: () => new Date('2026-07-26T13:00:00.000Z'),
         });
 
@@ -247,7 +247,7 @@ describe('hosted reminders', () => {
     test('fires once atomically, advances recurrence from now, and never executes scripts', async () => {
         const canaryPath = join(tmpdir(), `grotto-server-script-canary-${crypto.randomUUID()}`);
         const script = `touch ${canaryPath}`;
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -265,13 +265,13 @@ describe('hosted reminders', () => {
         const fireClock = { now: () => new Date('2026-07-26T14:00:00.000Z') };
 
         await Promise.all([
-            tickHostedReminders(connection.db, fireClock),
-            tickHostedReminders(connection.db, fireClock),
+            tickReminders(connection.db, fireClock),
+            tickReminders(connection.db, fireClock),
         ]);
 
         expect(existsSync(canaryPath)).toBe(false);
         expect(
-            await listHostedReminderFires(connection.db, {
+            await listReminderFires(connection.db, {
                 actor: { agentId, kind: 'agent' },
                 reminderId: scheduled.reminder.id,
                 serverId,
@@ -303,7 +303,7 @@ describe('hosted reminders', () => {
                 serverId,
             })
         );
-        const [updated] = await listHostedReminders(connection.db, {
+        const [updated] = await listReminders(connection.db, {
             actor: { agentId, kind: 'agent' },
             serverId,
         }).then((reminders) =>
@@ -326,7 +326,7 @@ describe('hosted reminders', () => {
     });
 
     test('makes cancellation idempotent and terminal before concurrent ticks', async () => {
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -347,17 +347,17 @@ describe('hosted reminders', () => {
             serverId,
         };
 
-        const canceled = await cancelHostedReminder(connection.db, agentId, cancelInput, {
+        const canceled = await cancelReminder(connection.db, agentId, cancelInput, {
             now: () => new Date('2026-07-28T13:00:00.000Z'),
         });
-        const retried = await cancelHostedReminder(connection.db, agentId, cancelInput, {
+        const retried = await cancelReminder(connection.db, agentId, cancelInput, {
             now: () => new Date('2026-07-28T13:01:00.000Z'),
         });
         await Promise.all([
-            tickHostedReminders(connection.db, {
+            tickReminders(connection.db, {
                 now: () => new Date('2026-08-28T13:00:00.000Z'),
             }),
-            tickHostedReminders(connection.db, {
+            tickReminders(connection.db, {
                 now: () => new Date('2026-08-28T13:00:00.000Z'),
             }),
         ]);
@@ -365,7 +365,7 @@ describe('hosted reminders', () => {
         expect(canceled.reminder.status).toBe('canceled');
         expect(retried).toEqual({ ...canceled, idempotent: true });
         expect(
-            await listHostedReminderFires(connection.db, {
+            await listReminderFires(connection.db, {
                 actor: { agentId, kind: 'agent' },
                 reminderId: scheduled.reminder.id,
                 serverId,
@@ -374,7 +374,7 @@ describe('hosted reminders', () => {
     });
 
     test('linearizes cancellation against a due fire', async () => {
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -389,7 +389,7 @@ describe('hosted reminders', () => {
         );
 
         const [cancelResult] = await Promise.allSettled([
-            cancelHostedReminder(
+            cancelReminder(
                 connection.db,
                 agentId,
                 {
@@ -400,17 +400,17 @@ describe('hosted reminders', () => {
                 },
                 { now: () => new Date('2026-07-28T13:00:00.000Z') }
             ),
-            tickHostedReminders(connection.db, {
+            tickReminders(connection.db, {
                 now: () => new Date('2026-07-28T13:00:00.000Z'),
             }),
         ]);
-        const [persisted] = await listHostedReminders(connection.db, {
+        const [persisted] = await listReminders(connection.db, {
             actor: { agentId, kind: 'agent' },
             serverId,
         }).then((reminders) =>
             reminders.filter((reminder) => reminder.id === scheduled.reminder.id)
         );
-        const fires = await listHostedReminderFires(connection.db, {
+        const fires = await listReminderFires(connection.db, {
             actor: { agentId, kind: 'agent' },
             reminderId: scheduled.reminder.id,
             serverId,
@@ -428,7 +428,7 @@ describe('hosted reminders', () => {
     });
 
     test('updates and snoozes a reminder with optimistic versions', async () => {
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -451,7 +451,7 @@ describe('hosted reminders', () => {
             serverId,
             title: 'Updated title',
         };
-        const updated = await updateHostedReminder(connection.db, agentId, updateInput, {
+        const updated = await updateReminder(connection.db, agentId, updateInput, {
             now: () => new Date('2026-07-29T12:30:00.000Z'),
         });
         const snoozeInput = {
@@ -461,13 +461,13 @@ describe('hosted reminders', () => {
             reminderId: scheduled.reminder.id,
             serverId,
         };
-        const snoozed = await snoozeHostedReminder(connection.db, agentId, snoozeInput, {
+        const snoozed = await snoozeReminder(connection.db, agentId, snoozeInput, {
             now: () => new Date('2026-07-29T13:00:00.000Z'),
         });
-        const retried = await snoozeHostedReminder(connection.db, agentId, snoozeInput, {
+        const retried = await snoozeReminder(connection.db, agentId, snoozeInput, {
             now: () => new Date('2026-07-29T14:00:00.000Z'),
         });
-        const replayedUpdate = await updateHostedReminder(connection.db, agentId, updateInput, {
+        const replayedUpdate = await updateReminder(connection.db, agentId, updateInput, {
             now: () => new Date('2026-08-01T14:00:00.000Z'),
         });
 
@@ -487,7 +487,7 @@ describe('hosted reminders', () => {
     });
 
     test('serializes concurrent retries of the same update command', async () => {
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -509,10 +509,10 @@ describe('hosted reminders', () => {
         };
 
         const results = await Promise.all([
-            updateHostedReminder(connection.db, agentId, input, {
+            updateReminder(connection.db, agentId, input, {
                 now: () => new Date('2026-07-29T13:00:00.000Z'),
             }),
-            updateHostedReminder(connection.db, agentId, input, {
+            updateReminder(connection.db, agentId, input, {
                 now: () => new Date('2026-07-29T13:00:00.000Z'),
             }),
         ]);
@@ -522,7 +522,7 @@ describe('hosted reminders', () => {
     });
 
     test('rejects an update whose recurrence cannot produce a supported future date', async () => {
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -537,7 +537,7 @@ describe('hosted reminders', () => {
         );
 
         await expect(
-            updateHostedReminder(
+            updateReminder(
                 connection.db,
                 agentId,
                 {
@@ -551,7 +551,7 @@ describe('hosted reminders', () => {
             )
         ).rejects.toThrow('supported date range');
 
-        const [persisted] = await listHostedReminders(connection.db, {
+        const [persisted] = await listReminders(connection.db, {
             actor: { agentId, kind: 'agent' },
             serverId,
         }).then((reminders) =>
@@ -561,7 +561,7 @@ describe('hosted reminders', () => {
     });
 
     test('does not resurrect a fired reminder without a new future fire time', async () => {
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -574,12 +574,12 @@ describe('hosted reminders', () => {
             },
             { now: () => new Date('2026-07-30T15:00:00.000Z') }
         );
-        await tickHostedReminders(connection.db, {
+        await tickReminders(connection.db, {
             now: () => new Date('2026-07-30T16:00:00.000Z'),
         });
 
         await expect(
-            updateHostedReminder(
+            updateReminder(
                 connection.db,
                 agentId,
                 {
@@ -593,7 +593,7 @@ describe('hosted reminders', () => {
             )
         ).rejects.toThrow('future fire time');
         expect(
-            await listHostedReminderFires(connection.db, {
+            await listReminderFires(connection.db, {
                 actor: { agentId, kind: 'agent' },
                 reminderId: scheduled.reminder.id,
                 serverId,
@@ -603,7 +603,7 @@ describe('hosted reminders', () => {
 
     test('uses a server-owned fire nonce that a Chat member cannot squat', async () => {
         const fireAt = new Date('2026-07-31T15:00:00.000Z');
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -623,10 +623,10 @@ describe('hosted reminders', () => {
             serverId,
         });
 
-        await tickHostedReminders(connection.db, { now: () => fireAt });
+        await tickReminders(connection.db, { now: () => fireAt });
 
         expect(
-            await listHostedReminderFires(connection.db, {
+            await listReminderFires(connection.db, {
                 actor: { agentId, kind: 'agent' },
                 reminderId: scheduled.reminder.id,
                 serverId,
@@ -635,7 +635,7 @@ describe('hosted reminders', () => {
     });
 
     test('allows exactly one concurrent update or snooze at a version', async () => {
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -650,7 +650,7 @@ describe('hosted reminders', () => {
         );
 
         const results = await Promise.allSettled([
-            updateHostedReminder(
+            updateReminder(
                 connection.db,
                 agentId,
                 {
@@ -662,7 +662,7 @@ describe('hosted reminders', () => {
                 },
                 { now: () => new Date('2026-07-29T13:00:00.000Z') }
             ),
-            snoozeHostedReminder(
+            snoozeReminder(
                 connection.db,
                 agentId,
                 {
@@ -679,7 +679,7 @@ describe('hosted reminders', () => {
         expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
         const [rejected] = results.filter((result) => result.status === 'rejected');
         expect(rejected?.reason).toBeInstanceOf(ReminderVersionConflictError);
-        const [persisted] = await listHostedReminders(connection.db, {
+        const [persisted] = await listReminders(connection.db, {
             actor: { agentId, kind: 'agent' },
             serverId,
         }).then((reminders) =>
@@ -691,7 +691,7 @@ describe('hosted reminders', () => {
     test('cancels a retired author and purges its unacknowledged attention', async () => {
         const retiredAgentId = 'agt_retired_reminder';
         await addAgent(retiredAgentId);
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             retiredAgentId,
             {
@@ -705,7 +705,7 @@ describe('hosted reminders', () => {
             },
             { now: () => new Date('2026-07-30T12:00:00.000Z') }
         );
-        await tickHostedReminders(connection.db, {
+        await tickReminders(connection.db, {
             now: () => new Date('2026-07-30T13:00:00.000Z'),
         });
         await harness.sql`
@@ -713,7 +713,7 @@ describe('hosted reminders', () => {
             where server_id = ${serverId} and id = ${retiredAgentId}
         `;
 
-        await tickHostedReminders(connection.db, {
+        await tickReminders(connection.db, {
             now: () => new Date('2026-07-30T14:00:00.000Z'),
         });
 
@@ -740,7 +740,7 @@ describe('hosted reminders', () => {
     test('cancels before firing when the author loses anchor access', async () => {
         const removedAgentId = 'agt_removed_from_channel';
         await addAgent(removedAgentId);
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             removedAgentId,
             {
@@ -759,7 +759,7 @@ describe('hosted reminders', () => {
         `;
 
         await expect(
-            snoozeHostedReminder(
+            snoozeReminder(
                 connection.db,
                 removedAgentId,
                 {
@@ -773,20 +773,20 @@ describe('hosted reminders', () => {
             )
         ).rejects.toThrow(/access the anchor Chat/i);
         await expect(
-            listHostedReminders(connection.db, {
+            listReminders(connection.db, {
                 actor: { agentId: removedAgentId, kind: 'agent' },
                 serverId,
             })
         ).rejects.toThrow(/access the anchor Chat/i);
         await expect(
-            listHostedReminderFires(connection.db, {
+            listReminderFires(connection.db, {
                 actor: { agentId: removedAgentId, kind: 'agent' },
                 reminderId: scheduled.reminder.id,
                 serverId,
             })
         ).rejects.toThrow(/access the anchor Chat/i);
         await expect(
-            cancelHostedReminder(
+            cancelReminder(
                 connection.db,
                 removedAgentId,
                 {
@@ -798,7 +798,7 @@ describe('hosted reminders', () => {
                 { now: () => new Date('2026-07-31T12:30:00.000Z') }
             )
         ).rejects.toThrow(/access the anchor Chat/i);
-        await tickHostedReminders(connection.db, {
+        await tickReminders(connection.db, {
             now: () => new Date('2026-07-31T13:00:00.000Z'),
         });
 
@@ -819,7 +819,7 @@ describe('hosted reminders', () => {
     test('keeps reminder state, mutations, and delivery isolated to its owning Agent', async () => {
         const otherAgentId = 'agt_other_reminder';
         await addAgent(otherAgentId);
-        const scheduled = await scheduleHostedReminder(
+        const scheduled = await scheduleReminder(
             connection.db,
             agentId,
             {
@@ -834,20 +834,20 @@ describe('hosted reminders', () => {
         );
 
         await expect(
-            listHostedReminders(connection.db, {
+            listReminders(connection.db, {
                 actor: { agentId: otherAgentId, kind: 'agent' },
                 serverId,
             })
         ).resolves.toEqual([]);
         await expect(
-            listHostedReminderFires(connection.db, {
+            listReminderFires(connection.db, {
                 actor: { agentId: otherAgentId, kind: 'agent' },
                 reminderId: scheduled.reminder.id,
                 serverId,
             })
         ).rejects.toThrow(/not owned by this Agent/i);
         await expect(
-            cancelHostedReminder(
+            cancelReminder(
                 connection.db,
                 otherAgentId,
                 {
@@ -860,7 +860,7 @@ describe('hosted reminders', () => {
             )
         ).rejects.toThrow(/not owned by this Agent/i);
         await expect(
-            updateHostedReminder(
+            updateReminder(
                 connection.db,
                 otherAgentId,
                 {
@@ -874,7 +874,7 @@ describe('hosted reminders', () => {
             )
         ).rejects.toThrow(/not owned by this Agent/i);
         await expect(
-            snoozeHostedReminder(
+            snoozeReminder(
                 connection.db,
                 otherAgentId,
                 {
@@ -888,7 +888,7 @@ describe('hosted reminders', () => {
             )
         ).rejects.toThrow(/not owned by this Agent/i);
 
-        await tickHostedReminders(connection.db, {
+        await tickReminders(connection.db, {
             now: () => new Date('2026-08-01T13:00:00.000Z'),
         });
         await expect(

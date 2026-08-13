@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { HostedChat } from '@tavern/api';
+import type { Chat } from '@tavern/api';
 import {
     resolveActiveSection,
     resolveChatSectionRoute,
@@ -13,7 +13,7 @@ describe('Server route state', () => {
         const chats = [
             { id: 'chat-all', isAll: true },
             { id: 'chat-product', isAll: false },
-        ] as HostedChat[];
+        ] as Chat[];
 
         expect(resolveChatSectionRoute(chats, 'chat-product', 'dev')).toBe(
             '/s/dev/chats/chat-product'

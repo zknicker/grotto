@@ -6,9 +6,9 @@ import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { startDeliveryRetrySweep } from './agent-delivery/retry-sweep.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
-import { reconcileHostedAttachments } from './attachments/reconcile-attachments.ts';
+import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
-import { purgeDeletedHostedChannels } from './chats/channel-lifecycle.ts';
+import { purgeDeletedChannels } from './chats/channel-lifecycle.ts';
 import { ComputerConnections } from './computers/connections.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
 import { markAllComputersOffline } from './computers/service.ts';
@@ -19,20 +19,20 @@ import { grottoRouter } from './grotto-api/router.ts';
 import { startGrottoWebSocketServer } from './grotto-api/ws.ts';
 import { registerGrottoHealth } from './grotto-health.ts';
 import { registerGrottoStaticApp } from './grotto-static-app.ts';
-import { registerHostedMcpOAuthCallback } from './hosted-mcp/oauth-callback-route.ts';
-import { HostedMcpOAuthRelay } from './hosted-mcp/oauth-relay.ts';
-import { HostedMcpRuntime } from './hosted-mcp/runtime.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
 import { type ClerkUsers, createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectGrottoDatabase } from './postgres/connection.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
 import {
-    createHostedReminderScheduler,
-    type HostedReminderScheduler,
+    createReminderScheduler,
+    type ReminderScheduler,
     type ReminderSchedulerTimers,
 } from './reminders/reminder-scheduler.ts';
-import { tickHostedReminders } from './reminders/scheduler.ts';
+import { tickReminders } from './reminders/scheduler.ts';
+import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
+import { McpOAuthRelay } from './server-mcp/oauth-relay.ts';
+import { McpRuntime } from './server-mcp/runtime.ts';
 import { purgeDeletedServers } from './servers/delete-server.ts';
 
 /**
@@ -75,19 +75,19 @@ export async function createGrottoServerApplication(
 ): Promise<GrottoServerApplication> {
     const grotto = await connectGrottoDatabase(options.databaseUrl);
     let app: FastifyInstance | null = null;
-    let reminderScheduler: HostedReminderScheduler | null = null;
+    let reminderScheduler: ReminderScheduler | null = null;
 
     try {
         const attachmentRoot = await openAttachmentRoot(options.attachmentRoot);
-        await reconcileHostedAttachments(grotto.db, attachmentRoot);
-        await purgeDeletedHostedChannels(grotto.db, attachmentRoot);
+        await reconcileAttachments(grotto.db, attachmentRoot);
+        await purgeDeletedChannels(grotto.db, attachmentRoot);
         await purgeDeletedServers(grotto.db, attachmentRoot);
         await markAllComputersOffline(grotto.db);
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
         const computerConnections = new ComputerConnections();
         const agentDelivery = new AgentDelivery(grotto.db, computerConnections);
-        const mcpRuntime = new HostedMcpRuntime(grotto.db);
-        const mcpOAuthRelay = new HostedMcpOAuthRelay(grotto.db, mcpRuntime);
+        const mcpRuntime = new McpRuntime(grotto.db);
+        const mcpOAuthRelay = new McpOAuthRelay(grotto.db, mcpRuntime);
         const createContext = createGrottoContextFactory({
             agentDelivery,
             appOrigin: options.appOrigin,
@@ -135,7 +135,7 @@ export async function createGrottoServerApplication(
             db: grotto.db,
             mcpRuntime,
         });
-        registerHostedMcpOAuthCallback(app, mcpOAuthRelay);
+        registerMcpOAuthCallback(app, mcpOAuthRelay);
 
         await app.register(fastifyTRPCPlugin, {
             prefix: '/trpc',
@@ -159,9 +159,9 @@ export async function createGrottoServerApplication(
         );
         const deliveryRetrySweep = startDeliveryRetrySweep(agentDelivery);
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
-        reminderScheduler = createHostedReminderScheduler({
+        reminderScheduler = createReminderScheduler({
             clock: reminderClock,
-            tick: () => tickHostedReminders(grotto.db, reminderClock, agentDelivery),
+            tick: () => tickReminders(grotto.db, reminderClock, agentDelivery),
             timers: options.reminderSchedulerTimers,
         });
         await reminderScheduler.start();

@@ -1,7 +1,7 @@
 import { Card } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
 import { FileEmpty02Icon } from '@hugeicons/core-free-icons';
-import type { HostedImportableSkill } from '@tavern/api';
+import type { ImportableSkill } from '@tavern/api';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import {
@@ -14,7 +14,7 @@ import { SkillsFileTree } from './skills-file-tree.tsx';
 
 export interface SkillSource {
     computerId: string;
-    skill: HostedImportableSkill;
+    skill: ImportableSkill;
 }
 
 export function SkillsBrowser({ sources }: { sources: SkillSource[] }) {

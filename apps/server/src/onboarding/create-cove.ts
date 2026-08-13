@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { HostedAgent, HostedCoveApplyCommand, HostedCoveApplyResult } from '@tavern/api';
+import type { Agent, CoveApplyCommand, CoveApplyResult } from '@tavern/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import coveAvatarPath from '../../../website/public/prototypes/cove-avatar.png' with {
     type: 'file',
@@ -7,11 +7,6 @@ import coveAvatarPath from '../../../website/public/prototypes/cove-avatar.png' 
 import { enqueuePendingWork } from '../agent-delivery/store.ts';
 import { createAvatarId } from '../avatars/avatar-bytes.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
-import {
-    assertRuntimeModelReported,
-    resolveAssignedComputer,
-} from '../hosted-agents/agent-inventory.ts';
-import { queryHostedAgents } from '../hosted-agents/query-agents.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -23,6 +18,11 @@ import {
     serverMembershipsTable,
     serverOnboardingTable,
 } from '../postgres/schema.ts';
+import {
+    assertRuntimeModelReported,
+    resolveAssignedComputer,
+} from '../server-agents/agent-inventory.ts';
+import { queryAgents } from '../server-agents/query-agents.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -35,7 +35,7 @@ export interface CreateCoveInput {
 }
 
 export interface CreateCoveResult {
-    agent: HostedAgent;
+    agent: Agent;
     applicationId: string;
     channelId: string;
     phase: 'applying' | 'complete';
@@ -150,7 +150,7 @@ export async function createCove(
         };
     });
 
-    const [agent] = await queryHostedAgents(db, member, input.serverId, reservation.agentId);
+    const [agent] = await queryAgents(db, member, input.serverId, reservation.agentId);
     if (!agent) {
         throw new CoveSetupError('Cove was reserved but could not be read.');
     }
@@ -160,7 +160,7 @@ export async function createCove(
 export async function readPendingCoveCommand(
     db: GrottoDatabase,
     computerId: string
-): Promise<HostedCoveApplyCommand | null> {
+): Promise<CoveApplyCommand | null> {
     const [row] = await db
         .select({
             agentDescription: agentsTable.description,
@@ -208,7 +208,7 @@ export async function sendPendingCoveApplication(
 export async function recordCoveApplyResult(
     db: GrottoDatabase,
     computerId: string,
-    result: HostedCoveApplyResult
+    result: CoveApplyResult
 ): Promise<string | null> {
     const [candidate] = await db
         .select({ serverId: serverOnboardingTable.serverId })

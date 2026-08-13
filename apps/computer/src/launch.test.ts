@@ -12,8 +12,8 @@ import {
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { setHarnessAgentFactoryForTesting } from './harness/executor.ts';
 import {
+    type AgentStartCommand,
     type Attachment,
-    type HostedAgentStartCommand,
     parseResetCommand,
     parseRestartCommand,
     resetAgentState,
@@ -124,7 +124,7 @@ test('runs a deterministic Agent launch that lands a durable hosted message', as
         serverId: 'srv_launchtest',
         slug: 'launch-test',
     };
-    const command: HostedAgentStartCommand = {
+    const command: AgentStartCommand = {
         agentId: 'agt_launchtest',
         chatId: 'cht_test',
         inbox: [
@@ -239,7 +239,7 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
         serverId: 'srv_launchtest',
         slug: 'launch-test',
     };
-    const base: HostedAgentStartCommand = {
+    const base: AgentStartCommand = {
         agentId: 'agt_launchtest',
         chatId: 'cht_test',
         inbox: [

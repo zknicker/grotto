@@ -1,6 +1,6 @@
 import { ChatMessage } from '@heroui-pro/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent, HostedAttachmentMetadata } from '@tavern/api';
+import type { Agent, AttachmentMetadata } from '@tavern/api';
 import {
     Attachment,
     AttachmentContent,
@@ -52,7 +52,7 @@ export function PendingChatMessageRows({
     authorName,
     messages,
 }: {
-    agents: readonly HostedAgent[];
+    agents: readonly Agent[];
     authorAvatarUrl: null | string;
     authorName: string;
     messages: readonly PendingChatMessage[];
@@ -96,7 +96,7 @@ export function PendingChatMessageRows({
 
 // Named, not downloadable: the bytes are still on their way up, so the pending
 // row carries no download action for the durable row's to collide with.
-function PendingAttachments({ attachments }: { attachments: readonly HostedAttachmentMetadata[] }) {
+function PendingAttachments({ attachments }: { attachments: readonly AttachmentMetadata[] }) {
     if (attachments.length === 0) {
         return null;
     }

@@ -4,16 +4,12 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTaskLabelsTable, messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import {
-    type HostedTaskMutationResult,
-    HostedTaskNotFoundError,
-    TaskConflictError,
-} from './claim-task.ts';
-import { insertHostedTaskEvent } from './task-events.ts';
-import { requireHostedTaskLabelIds } from './task-labels.ts';
-import { findHostedMessageTask } from './task-shape.ts';
+import { TaskConflictError, type TaskMutationResult, TaskNotFoundError } from './claim-task.ts';
+import { insertTaskEvent } from './task-events.ts';
+import { requireTaskLabelIds } from './task-labels.ts';
+import { findMessageTask } from './task-shape.ts';
 
-export async function updateHostedTask(
+export async function updateTask(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: {
@@ -26,15 +22,15 @@ export async function updateHostedTask(
         };
         serverId: string;
     }
-): Promise<HostedTaskMutationResult> {
+): Promise<TaskMutationResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         if (!member) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
-        const beforeLock = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const beforeLock = await findMessageTask(tx, input.serverId, input.messageId);
         if (!beforeLock) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
         await tx.execute(sql`
             select user_id from server_memberships
@@ -58,15 +54,15 @@ export async function updateHostedTask(
             for update
         `);
 
-        const current = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const current = await findMessageTask(tx, input.serverId, input.messageId);
         if (!current) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
         if (current.version !== input.expectedVersion) {
             throw new TaskConflictError('That task changed; refresh it before updating.');
         }
         if (input.patch.labelIds) {
-            await requireHostedTaskLabelIds(tx, input.serverId, input.patch.labelIds);
+            await requireTaskLabelIds(tx, input.serverId, input.patch.labelIds);
             await tx
                 .delete(messageTaskLabelsTable)
                 .where(
@@ -100,15 +96,15 @@ export async function updateHostedTask(
                     eq(messageTasksTable.messageId, input.messageId)
                 )
             );
-        const event = await insertHostedTaskEvent(tx, {
+        const event = await insertTaskEvent(tx, {
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: input.serverId,
             type: 'task.updated',
         });
-        const task = await findHostedMessageTask(tx, input.serverId, input.messageId);
+        const task = await findMessageTask(tx, input.serverId, input.messageId);
         if (!task) {
-            throw new HostedTaskNotFoundError();
+            throw new TaskNotFoundError();
         }
         return { event, task };
     });

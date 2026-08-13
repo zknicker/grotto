@@ -1,12 +1,12 @@
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import { HostedAgentTools } from '../../../routes/app/hosted-agent-tools.tsx';
+import { AgentTools as ServerAgentTools } from '../../../routes/app/agent-tools.tsx';
 import { SettingsPage, SettingsSection } from '../../settings/layout/settings-page.tsx';
 import { AgentSkills } from './agent-skills.tsx';
 
-export function AgentTools({ agent, server }: { agent: HostedAgent; server: ServerDetail }) {
+export function AgentTools({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const computers = useComputers(server.id);
     const connections = useConnections(server.id);
     const computer = computers.data?.find((candidate) => candidate.id === agent.computerId);
@@ -25,7 +25,7 @@ export function AgentTools({ agent, server }: { agent: HostedAgent; server: Serv
                         </p>
                     </SettingsSection>
                 ) : connections.data ? (
-                    <HostedAgentTools
+                    <ServerAgentTools
                         agent={agent}
                         connections={connections.data}
                         serverId={server.id}

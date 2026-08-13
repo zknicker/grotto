@@ -1,8 +1,8 @@
-import type { HostedChat } from '@tavern/api';
+import type { Chat } from '@tavern/api';
 import { threadAnchorShortId } from '../../chats/thread/thread-target.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
-export function threadTitles(chat: HostedChat, anchorMessageId: string, humans: HumanDirectory) {
+export function threadTitles(chat: Chat, anchorMessageId: string, humans: HumanDirectory) {
     const anchorReference = threadAnchorShortId(anchorMessageId);
 
     if (chat.kind === 'dm') {

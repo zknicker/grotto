@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { HostedAgentStartCommand, HostedAgentTurnFrame } from './launch.ts';
+import type { AgentStartCommand, AgentTurnFrame } from './launch.ts';
 
 /**
  * A Computer-local, restart-durable record of one run. `accepted` is written the
@@ -12,7 +12,7 @@ import type { HostedAgentStartCommand, HostedAgentTurnFrame } from './launch.ts'
  */
 export interface RunMarker {
     status: 'accepted' | 'settled';
-    summary?: HostedAgentTurnFrame;
+    summary?: AgentTurnFrame;
 }
 
 export interface StoredNoticeReceipt {
@@ -20,7 +20,7 @@ export interface StoredNoticeReceipt {
     runId: string;
 }
 
-export type StartDecision = { kind: 'replay'; summary: HostedAgentTurnFrame } | { kind: 'run' };
+export type StartDecision = { kind: 'replay'; summary: AgentTurnFrame } | { kind: 'run' };
 
 export async function purgeServerPartition(
     dataRoot: string,
@@ -94,7 +94,7 @@ export function releaseAgentRun(
 
 export async function readRunMarker(
     dataRoot: string,
-    command: Pick<HostedAgentStartCommand, 'runId'>,
+    command: Pick<AgentStartCommand, 'runId'>,
     serverId: string
 ): Promise<RunMarker | null> {
     try {

@@ -1,8 +1,8 @@
 import type {
     AgentActivityCategory,
+    AgentActivityEvent,
     AgentActivityPhase,
-    HostedAgentActivityEvent,
-    HostedAgentExecutionJournalResult,
+    AgentExecutionJournalResult,
 } from '@tavern/api';
 
 type ActivityCopy = Record<AgentActivityPhase, string>;
@@ -67,7 +67,7 @@ const activityCopy: Record<AgentActivityCategory, ActivityCopy> = {
 
 export type ActivityColor = 'danger' | 'success' | 'warning';
 
-export function formatAgentActivityEvent(event: HostedAgentActivityEvent): string {
+export function formatAgentActivityEvent(event: AgentActivityEvent): string {
     const copy = activityCopy[event.category][event.phase];
     if (event.category !== 'using_tool' || !event.toolRef) {
         return copy;
@@ -82,9 +82,7 @@ export function formatAgentActivityEvent(event: HostedAgentActivityEvent): strin
     return toolCopy[event.phase];
 }
 
-export function formatAgentActivityDiagnosticInfo(
-    events: readonly HostedAgentActivityEvent[]
-): string {
+export function formatAgentActivityDiagnosticInfo(events: readonly AgentActivityEvent[]): string {
     return events
         .map((event) => `${event.occurredAt} · ${formatAgentActivityEvent(event)}`)
         .join('\n');
@@ -143,12 +141,12 @@ export type TurnJournalPresentation =
           title: string;
       }
     | {
-          journal: Extract<HostedAgentExecutionJournalResult, { status: 'available' }>['journal'];
+          journal: Extract<AgentExecutionJournalResult, { status: 'available' }>['journal'];
           kind: 'available';
       };
 
 export function getTurnJournalPresentation(
-    result: HostedAgentExecutionJournalResult | null,
+    result: AgentExecutionJournalResult | null,
     requestedRunId: string | null
 ): TurnJournalPresentation {
     if (!(requestedRunId && result) || result.runId !== requestedRunId) {

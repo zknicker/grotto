@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { seedHostedDevelopmentServer } from '../src/development/seed-hosted-server.ts';
+import { seedDevelopmentServer } from '../src/development/seed-server.ts';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import {
@@ -37,8 +37,8 @@ afterAll(async () => {
 test('creates one idempotent Server-owned demo workspace', async () => {
     const computerDataRoot = await mkdtemp(join(tmpdir(), 'grotto-dev-computer-'));
     const options = { computerDataRoot, serverOrigin: 'http://127.0.0.1:43210' };
-    const first = await seedHostedDevelopmentServer(connection.db, 'clerk_dev', options);
-    const second = await seedHostedDevelopmentServer(connection.db, 'clerk_dev', options);
+    const first = await seedDevelopmentServer(connection.db, 'clerk_dev', options);
+    const second = await seedDevelopmentServer(connection.db, 'clerk_dev', options);
 
     expect(second).toEqual(first);
     expect(await connection.db.select().from(serversTable)).toHaveLength(1);

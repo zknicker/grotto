@@ -1,6 +1,6 @@
 import { parseTavernRichReferences, parseUserReferenceTarget } from '@tavern/api';
 import { and, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
-import { visibleHostedChats } from '../chats/chat-visibility.ts';
+import { visibleChats } from '../chats/chat-visibility.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     chatMessagesTable,
@@ -10,7 +10,7 @@ import {
     threadFollowsTable,
 } from '../postgres/schema.ts';
 
-export async function autoFollowHostedThreadMentions(
+export async function autoFollowThreadMentions(
     db: GrottoDatabase,
     input: { content: string; parentChatId: string; serverId: string; threadChatId: string }
 ) {
@@ -32,7 +32,7 @@ export async function autoFollowHostedThreadMentions(
                     eq(serverMembershipsTable.serverId, input.serverId),
                     eq(serverMembershipsTable.userId, userId),
                     isNull(serverMembershipsTable.revokedAt),
-                    visibleHostedChats(userId)
+                    visibleChats(userId)
                 )
             )
             .limit(1);
@@ -52,7 +52,7 @@ export async function autoFollowHostedThreadMentions(
     }
 }
 
-export async function readHostedThreadAttentionCounts(
+export async function readThreadAttentionCounts(
     db: GrottoDatabase,
     input: { parentChatIds: string[]; readerUserId: string; serverId: string }
 ) {

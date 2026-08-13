@@ -1,4 +1,4 @@
-import type { HostedChatMessage } from '@tavern/api';
+import type { ChatMessage } from '@tavern/api';
 import { and, desc, eq, getTableColumns, lt } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -8,13 +8,13 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
-import { listHostedMessageTaskMap } from '../tasks/task-shape.ts';
-import { listHostedThreadSummaries } from '../threads/list-thread-summaries.ts';
+import { listMessageTaskMap } from '../tasks/task-shape.ts';
+import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
-import { readStoredAuthorProfile, toHostedChatMessage } from './message-shape.ts';
+import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 
-export async function listHostedChatMessages(
+export async function listChatMessages(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: {
@@ -24,9 +24,9 @@ export async function listHostedChatMessages(
         serverId: string;
     }
 ): Promise<{
-    messages: HostedChatMessage[];
+    messages: ChatMessage[];
     nextBeforeSequence: number | null;
-    threads: Awaited<ReturnType<typeof listHostedThreadSummaries>>;
+    threads: Awaited<ReturnType<typeof listThreadSummaries>>;
 }> {
     await requireChatAccess(db, member, input);
 
@@ -75,10 +75,10 @@ export async function listHostedChatMessages(
     const messageIds = messageRows.map((message) => message.id);
     const [attachmentsByMessageId, taskByMessageId] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
-        listHostedMessageTaskMap(db, input.serverId, messageIds),
+        listMessageTaskMap(db, input.serverId, messageIds),
     ]);
     const messages = messageRows.map((message) => ({
-        ...toHostedChatMessage(
+        ...toChatMessage(
             message,
             attachmentsByMessageId.get(message.id) ?? [],
             readStoredAuthorProfile(message)
@@ -89,7 +89,7 @@ export async function listHostedChatMessages(
     return {
         messages,
         nextBeforeSequence: hasOlderMessages ? (messages[0]?.sequence ?? null) : null,
-        threads: await listHostedThreadSummaries(db, member, {
+        threads: await listThreadSummaries(db, member, {
             anchorMessageIds: messages.map((message) => message.id),
             parentChatId: input.chatId,
             serverId: input.serverId,

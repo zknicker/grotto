@@ -1,10 +1,10 @@
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
 import { cleanupEvalChats } from './cleanup-eval-chats.ts';
 
 type EvalHarness = Awaited<ReturnType<typeof createEvalHarness>>;
 
-export type FixtureAgent = HostedAgent & { name: string };
+export type FixtureAgent = Agent & { name: string };
 
 interface AgentProfile {
     description: string;
@@ -69,7 +69,7 @@ async function findTemplate(harness: EvalHarness, modelHint = 'terra') {
     while (Date.now() < deadline) {
         const agents = (await harness.trpc('agent.list', {
             serverId: harness.serverId,
-        })) as HostedAgent[];
+        })) as Agent[];
         const template = agents.find(
             (agent) =>
                 agent.status === 'applied' &&
@@ -87,7 +87,7 @@ async function findTemplate(harness: EvalHarness, modelHint = 'terra') {
 
 async function createAgent(
     harness: EvalHarness,
-    template: HostedAgent,
+    template: Agent,
     profile: AgentProfile,
     index: number
 ) {
@@ -102,17 +102,17 @@ async function createAgent(
         role: 'member',
         runtimeId: template.desiredRuntimeId,
         serverId: harness.serverId,
-    })) as { agent: HostedAgent };
+    })) as { agent: Agent };
     return { ...created.agent, name: created.agent.displayName };
 }
 
 async function waitForReadyAgent(harness: EvalHarness, agentId: string) {
     const deadline = Date.now() + 90_000;
-    let latest: HostedAgent | undefined;
+    let latest: Agent | undefined;
     while (Date.now() < deadline) {
         const agents = (await harness.trpc('agent.list', {
             serverId: harness.serverId,
-        })) as HostedAgent[];
+        })) as Agent[];
         latest = agents.find((agent) => agent.id === agentId);
         if (
             latest?.status === 'applied' &&
@@ -178,7 +178,7 @@ async function waitForRetiredAgent(harness: EvalHarness, agentId: string) {
     while (Date.now() < deadline) {
         const agents = (await harness.trpc('agent.list', {
             serverId: harness.serverId,
-        })) as HostedAgent[];
+        })) as Agent[];
         if (!agents.some((agent) => agent.id === agentId)) {
             return;
         }

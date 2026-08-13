@@ -1,7 +1,7 @@
 import { Separator } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
 import { Folder01Icon, Notification03Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { CopyButton } from '../../../components/copy-button.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -22,7 +22,7 @@ export { AgentActivity } from './agent-activity.tsx';
 export { AgentOverview };
 export { AgentTools } from './agent-tools.tsx';
 
-export function AgentReminders({ agent, server }: { agent: HostedAgent; server: ServerDetail }) {
+export function AgentReminders({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const reminders = useAgentReminders(server.id, agent.id, server.role !== 'member');
     const rows = reminders.data ?? [];
     if (server.role !== 'member' && reminders.isPending) {
@@ -70,7 +70,7 @@ export function AgentReminders({ agent, server }: { agent: HostedAgent; server: 
     );
 }
 
-export function AgentWorkspace({ agent, server }: { agent: HostedAgent; server: ServerDetail }) {
+export function AgentWorkspace({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const [selectedPath, setSelectedPath] = React.useState<string | null>(null);
     const workspace = useAgentWorkspace(server.id, agent.id, server.role !== 'member');
     if (server.role === 'member') {

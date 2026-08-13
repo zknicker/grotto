@@ -6,7 +6,7 @@ import type { GrottoUser } from '../users/grotto-user.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
 import { AttachmentUploadError } from './upload-attachment.ts';
 
-export async function openHostedAttachmentDownload(
+export async function openAttachmentDownload(
     db: GrottoDatabase,
     root: AttachmentRoot,
     member: GrottoUser | null,

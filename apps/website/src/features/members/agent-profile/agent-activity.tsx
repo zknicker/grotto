@@ -1,6 +1,6 @@
 import { Button, Chip, Separator } from '@heroui/react';
 import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
@@ -22,7 +22,7 @@ import {
 import { AgentChats } from './agent-chats.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 
-export function AgentActivity({ agent, server }: { agent: HostedAgent; server: ServerDetail }) {
+export function AgentActivity({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const activity = useAgentActivityHistory(server.id, agent.id);
     const connectionState = useGrottoServerConnectionState();
     const events = activity.events;

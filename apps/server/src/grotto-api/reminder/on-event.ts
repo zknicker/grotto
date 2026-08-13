@@ -1,7 +1,4 @@
-import {
-    hostedReminderChangedEventSchema,
-    hostedReminderEventSubscriptionInputSchema,
-} from '@tavern/api';
+import { reminderChangedEventSchema, reminderEventSubscriptionInputSchema } from '@tavern/api';
 import { TRPCError } from '@trpc/server';
 import { subscribeToDurableChatEvents } from '../../chats/durable-events.ts';
 import {
@@ -12,7 +9,7 @@ import { toMembershipLossError } from '../server/membership-loss.ts';
 import { reminderProcedure } from './procedure.ts';
 
 export const onReminderEventProcedure = reminderProcedure
-    .input(hostedReminderEventSubscriptionInputSchema)
+    .input(reminderEventSubscriptionInputSchema)
     .use(async ({ ctx, input, next }) => {
         await requireReminderOperator(ctx.grottoDb, ctx.member, input.serverId);
         return next();
@@ -39,6 +36,6 @@ export const onReminderEventProcedure = reminderProcedure
                 }
                 throw refusal;
             }
-            yield hostedReminderChangedEventSchema.parse(event);
+            yield reminderChangedEventSchema.parse(event);
         }
     });

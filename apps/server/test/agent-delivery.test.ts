@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { HostedAgentCommand, HostedAgentTurnSummary } from '@tavern/api';
+import type { AgentCommand, AgentTurnSummary } from '@tavern/api';
 import { and, eq, ne } from 'drizzle-orm';
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { markCursorSubsumedSeen, readAgentInboxCursor } from '../src/agent-delivery/cursors.ts';
@@ -44,13 +44,13 @@ afterAll(async () => {
 /** A Computer wire that records frames only for attached (online) Computers. */
 class FakeTransport implements DeliveryTransport {
     readonly online = new Set<string>();
-    readonly sent: { computerId: string; frame: HostedAgentCommand }[] = [];
+    readonly sent: { computerId: string; frame: AgentCommand }[] = [];
 
     isOnline(computerId: string): boolean {
         return this.online.has(computerId);
     }
 
-    send(computerId: string, frame: HostedAgentCommand): boolean {
+    send(computerId: string, frame: AgentCommand): boolean {
         if (!this.online.has(computerId)) {
             return false;
         }
@@ -58,12 +58,10 @@ class FakeTransport implements DeliveryTransport {
         return true;
     }
 
-    framesOfType<T extends HostedAgentCommand['type']>(type: T) {
+    framesOfType<T extends AgentCommand['type']>(type: T) {
         return this.sent
             .map((entry) => entry.frame)
-            .filter(
-                (frame): frame is Extract<HostedAgentCommand, { type: T }> => frame.type === type
-            );
+            .filter((frame): frame is Extract<AgentCommand, { type: T }> => frame.type === type);
     }
 }
 
@@ -124,8 +122,8 @@ function turnSummary(
     runId: string,
     status: 'completed' | 'failed',
     outputProduced: boolean = status === 'completed',
-    failureKind?: HostedAgentTurnSummary['failureKind']
-): HostedAgentTurnSummary {
+    failureKind?: AgentTurnSummary['failureKind']
+): AgentTurnSummary {
     return {
         agentId,
         endedAt: new Date().toISOString(),

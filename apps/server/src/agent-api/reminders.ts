@@ -1,14 +1,14 @@
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { Reminder } from '../reminders/reminder-model.ts';
 import {
-    cancelHostedReminder,
-    listHostedReminderFires,
-    listHostedReminders,
-    scheduleHostedReminder,
-    snoozeHostedReminder,
-    updateHostedReminder,
-} from '../reminders/hosted-reminders.ts';
-import type { HostedReminder } from '../reminders/reminder-model.ts';
+    cancelReminder,
+    listReminderFires,
+    listReminders,
+    scheduleReminder,
+    snoozeReminder,
+    updateReminder,
+} from '../reminders/reminders.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import { targetForChat } from './message-view.ts';
 
@@ -28,7 +28,7 @@ export async function scheduleAgentReminder(
 ) {
     const anchor = await resolveAgentMessage(db, runner, input.messageId);
     const fireAt = new Date(input.fireAt);
-    const result = await scheduleHostedReminder(
+    const result = await scheduleReminder(
         db,
         runner.agentId,
         {
@@ -51,7 +51,7 @@ export async function listAgentReminders(
     runner: ResolvedRunner,
     statuses?: string[]
 ) {
-    const reminders = await listHostedReminders(db, {
+    const reminders = await listReminders(db, {
         actor: { agentId: runner.agentId, kind: 'agent' },
         serverId: runner.serverId,
     });
@@ -71,7 +71,7 @@ export async function snoozeAgentReminder(
     input: { by: string; commandId: string; expectedVersion: number; id: string }
 ) {
     await ownedReminder(db, runner, input.id);
-    const result = await snoozeHostedReminder(
+    const result = await snoozeReminder(
         db,
         runner.agentId,
         commandInput(runner, input, { duration: input.by }),
@@ -94,7 +94,7 @@ export async function updateAgentReminder(
     }
 ) {
     await ownedReminder(db, runner, input.id);
-    const result = await updateHostedReminder(
+    const result = await updateReminder(
         db,
         runner.agentId,
         commandInput(runner, input, {
@@ -114,12 +114,7 @@ export async function cancelAgentReminder(
     input: { commandId: string; expectedVersion: number; id: string }
 ) {
     await ownedReminder(db, runner, input.id);
-    const result = await cancelHostedReminder(
-        db,
-        runner.agentId,
-        commandInput(runner, input, {}),
-        clock
-    );
+    const result = await cancelReminder(db, runner.agentId, commandInput(runner, input, {}), clock);
     return { reminder: await toCliReminder(db, runner.serverId, result.reminder) };
 }
 
@@ -130,14 +125,14 @@ export async function readAgentReminderLog(
 ) {
     const reminders = input.id
         ? [await ownedReminder(db, runner, input.id)]
-        : await listHostedReminders(db, {
+        : await listReminders(db, {
               actor: { agentId: runner.agentId, kind: 'agent' },
               serverId: runner.serverId,
           });
     const fires = (
         await Promise.all(
             reminders.map((reminder) =>
-                listHostedReminderFires(db, {
+                listReminderFires(db, {
                     actor: { agentId: runner.agentId, kind: 'agent' },
                     reminderId: reminder.id,
                     serverId: runner.serverId,
@@ -165,7 +160,7 @@ export async function readAgentReminderLog(
 }
 
 async function ownedReminder(db: GrottoDatabase, runner: ResolvedRunner, id: string) {
-    const reminders = await listHostedReminders(db, {
+    const reminders = await listReminders(db, {
         actor: { agentId: runner.agentId, kind: 'agent' },
         serverId: runner.serverId,
     });
@@ -190,7 +185,7 @@ function commandInput<Extra extends object>(
     };
 }
 
-async function toCliReminder(db: GrottoDatabase, serverId: string, reminder: HostedReminder) {
+async function toCliReminder(db: GrottoDatabase, serverId: string, reminder: Reminder) {
     return {
         anchorTarget: await targetForChat(db, serverId, reminder.anchorChatId),
         fireAt: reminder.fireAt,

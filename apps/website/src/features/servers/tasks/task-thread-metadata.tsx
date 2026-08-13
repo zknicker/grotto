@@ -1,10 +1,10 @@
-import type { HostedAgent, HostedMessageTask } from '@tavern/api';
+import type { Agent, MessageTask } from '@tavern/api';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useTaskUpdate } from '../../../hooks/servers/use-task-update.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
-import { useHostedServerContext } from '../hosted-server-context.ts';
 import type { HumanDirectory } from '../human-identity.ts';
+import { useServerContext } from '../server-context.ts';
 import { TaskAssignee } from './task-assignee.tsx';
 import { taskUpdateInput } from './task-input.ts';
 import { taskAssigneeName } from './task-model.ts';
@@ -16,10 +16,10 @@ export function TaskThreadMetadata({
     messageId,
 }: {
     chatId: string;
-    fallbackTask: HostedMessageTask;
+    fallbackTask: MessageTask;
     messageId: string;
 }) {
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const agents = useAgents(server.id);
     const humans = useHumanDirectory(server.id);
     const tasks = useTasks(server.id, chatId);
@@ -75,8 +75,8 @@ export function TaskThreadMetadata({
 }
 
 function taskCreatorName(
-    task: Pick<HostedMessageTask, 'createdByAgentId' | 'createdByUserId'>,
-    agents: HostedAgent[],
+    task: Pick<MessageTask, 'createdByAgentId' | 'createdByUserId'>,
+    agents: Agent[],
     humans: HumanDirectory
 ) {
     if (task.createdByAgentId) {

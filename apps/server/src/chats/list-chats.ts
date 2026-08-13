@@ -1,18 +1,18 @@
-import type { HostedChat } from '@tavern/api';
+import type { Chat } from '@tavern/api';
 import { and, eq, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable, serverOnboardingTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import { readHostedThreadAttentionCounts } from '../threads/thread-attention.ts';
+import { readThreadAttentionCounts } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { visibleHostedChats } from './chat-visibility.ts';
+import { visibleChats } from './chat-visibility.ts';
 
-export async function listHostedChats(
+export async function listChats(
     db: GrottoDatabase,
     member: GrottoUser | null,
     serverId: string,
     archive: 'active' | 'all' | 'archived' = 'active'
-): Promise<HostedChat[]> {
+): Promise<Chat[]> {
     await requireServerMembership(db, member, serverId);
 
     if (!member) {
@@ -135,12 +135,12 @@ export async function listHostedChats(
                     : archive === 'archived'
                       ? isNotNull(chatsTable.archivedAt)
                       : undefined,
-                visibleHostedChats(member.id)
+                visibleChats(member.id)
             )
         )
         .orderBy(sql`${chatsTable.lastActivityAt} desc nulls last`, chatsTable.createdAt);
 
-    const threadAttentionCounts = await readHostedThreadAttentionCounts(db, {
+    const threadAttentionCounts = await readThreadAttentionCounts(db, {
         parentChatIds: rows.map((chat) => chat.id),
         readerUserId: member.id,
         serverId,

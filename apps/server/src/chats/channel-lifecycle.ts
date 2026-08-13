@@ -1,7 +1,7 @@
 import type {
-    HostedChannelDeleteReceipt,
-    HostedChannelLifecycleReceipt,
-    HostedDurableEvent,
+    ChannelDeleteReceipt,
+    ChannelLifecycleReceipt,
+    ServerDurableEvent,
 } from '@tavern/api';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
@@ -10,10 +10,10 @@ import { agentPendingWorkTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { purgeDeletedHostedChannel } from './channel-deletion.ts';
-import { insertHostedLifecycleEvent } from './lifecycle-events.ts';
+import { purgeDeletedChannel } from './channel-deletion.ts';
+import { insertLifecycleEvent } from './lifecycle-events.ts';
 
-export { purgeDeletedHostedChannels } from './channel-deletion.ts';
+export { purgeDeletedChannels } from './channel-deletion.ts';
 
 export class ChannelLifecycleDeniedError extends Error {
     constructor(message = 'Only a Server Owner or Admin can manage channel lifecycle.') {
@@ -30,15 +30,15 @@ export class ChannelLifecycleConflictError extends Error {
 }
 
 interface LifecycleResult<Receipt> {
-    event: HostedDurableEvent | null;
+    event: ServerDurableEvent | null;
     receipt: Receipt;
 }
 
-export async function archiveHostedChannel(
+export async function archiveChannel(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { chatId: string; serverId: string }
-): Promise<LifecycleResult<HostedChannelLifecycleReceipt>> {
+): Promise<LifecycleResult<ChannelLifecycleReceipt>> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireOperator(tx, member, input.serverId);
@@ -60,7 +60,7 @@ export async function archiveHostedChannel(
             .set({ archivedAt, archivedByUserId: member?.id ?? null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         await discardQueuedChannelWork(tx, input);
-        const event = await insertHostedLifecycleEvent(tx, input, 'archived', archivedAt);
+        const event = await insertLifecycleEvent(tx, input, 'archived', archivedAt);
         return {
             event,
             receipt: {
@@ -72,11 +72,11 @@ export async function archiveHostedChannel(
     });
 }
 
-export async function unarchiveHostedChannel(
+export async function unarchiveChannel(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { chatId: string; serverId: string }
-): Promise<LifecycleResult<HostedChannelLifecycleReceipt>> {
+): Promise<LifecycleResult<ChannelLifecycleReceipt>> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireOperator(tx, member, input.serverId);
@@ -93,7 +93,7 @@ export async function unarchiveHostedChannel(
             .update(chatsTable)
             .set({ archivedAt: null, archivedByUserId: null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
-        const event = await insertHostedLifecycleEvent(tx, input, 'unarchived', changedAt);
+        const event = await insertLifecycleEvent(tx, input, 'unarchived', changedAt);
         return {
             event,
             receipt: { archivedAt: null, chatId: channel.id, serverId: input.serverId },
@@ -101,12 +101,12 @@ export async function unarchiveHostedChannel(
     });
 }
 
-export async function deleteHostedChannel(
+export async function deleteChannel(
     db: GrottoDatabase,
     attachmentRoot: AttachmentRoot,
     member: GrottoUser | null,
     input: { chatId: string; confirmation: string; serverId: string }
-): Promise<LifecycleResult<HostedChannelDeleteReceipt>> {
+): Promise<LifecycleResult<ChannelDeleteReceipt>> {
     const event = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireOperator(tx, member, input.serverId);
@@ -124,10 +124,10 @@ export async function deleteHostedChannel(
             .set({ deletedAt, deletedByUserId: member?.id ?? null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         await discardQueuedChannelWork(tx, input);
-        return await insertHostedLifecycleEvent(tx, input, 'deleted', deletedAt);
+        return await insertLifecycleEvent(tx, input, 'deleted', deletedAt);
     });
 
-    await purgeDeletedHostedChannel(db, attachmentRoot, input);
+    await purgeDeletedChannel(db, attachmentRoot, input);
     return { event, receipt: { chatId: input.chatId, serverId: input.serverId } };
 }
 

@@ -1,6 +1,6 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import { and, eq, isNull } from 'drizzle-orm';
-import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
+import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -17,7 +17,7 @@ export interface ReminderClock {
     now(): Date;
 }
 
-export interface HostedReminder {
+export interface Reminder {
     anchorChatId: string;
     anchorMessageId: string;
     createdAt: string;
@@ -35,7 +35,7 @@ export interface HostedReminder {
     version: number;
 }
 
-export interface ScheduleHostedReminderInput {
+export interface ScheduleReminderInput {
     anchorChatId: string;
     anchorMessageId: string;
     commandId: string;
@@ -165,7 +165,7 @@ export async function readReminder(
     if (!row) {
         throw new Error('The scheduled reminder could not be read.');
     }
-    return toHostedReminder(row.reminder, row.agent.handle);
+    return toReminder(row.reminder, row.agent.handle);
 }
 
 export async function insertMessageEvent(
@@ -178,8 +178,8 @@ export async function insertMessageEvent(
         sequence: number;
         serverId: string;
     }
-): Promise<HostedDurableEvent> {
-    const cursor = await allocateHostedEventCursor(db, input.serverId);
+): Promise<ServerDurableEvent> {
+    const cursor = await allocateEventCursor(db, input.serverId);
     const [event] = await db
         .insert(chatEventsTable)
         .values({
@@ -207,7 +207,7 @@ export async function insertMessageEvent(
 }
 
 export function validateScheduleInput(
-    input: ScheduleHostedReminderInput,
+    input: ScheduleReminderInput,
     parsed: { repeat: ReturnType<typeof parseReminderRepeat>; title: string }
 ) {
     if (parsed.title.length === 0 || parsed.title.length > 300) {
@@ -232,10 +232,10 @@ export function scheduleReceipt(
     return `🔔 @${ownerHandle} scheduled a reminder: "${title}" (fires ${fireAt.toISOString()}${cadence})`;
 }
 
-export function toHostedReminder(
+export function toReminder(
     reminder: typeof remindersTable.$inferSelect,
     ownerHandle: string
-): HostedReminder {
+): Reminder {
     return {
         anchorChatId: reminder.anchorChatId,
         anchorMessageId: reminder.anchorMessageId,

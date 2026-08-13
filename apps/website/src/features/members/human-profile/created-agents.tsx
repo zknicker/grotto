@@ -1,12 +1,12 @@
 import { Chip, Separator } from '@heroui/react';
-import type { HostedAgent } from '@tavern/api';
+import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { agentRoute } from '../../servers/server-routes.ts';
 import { SettingsGroup, SettingsSection } from '../../settings/layout/settings-page.tsx';
-import { hostedAvailabilityBadgeColor } from '../agent-avatar.tsx';
+import { availabilityBadgeColor } from '../agent-avatar.tsx';
 
 /** Agents created by one human, with its own focused list read. */
 export function CreatedAgents({
@@ -52,7 +52,7 @@ export function CreatedAgents({
     );
 }
 
-function CreatedAgentRow({ agent, slug }: { agent: HostedAgent; slug: string }) {
+function CreatedAgentRow({ agent, slug }: { agent: Agent; slug: string }) {
     const navigate = useNavigate();
 
     return (
@@ -67,7 +67,7 @@ function CreatedAgentRow({ agent, slug }: { agent: HostedAgent; slug: string }) 
             </span>
             <Chip
                 className="ml-auto capitalize"
-                color={hostedAvailabilityBadgeColor(agent.availability)}
+                color={availabilityBadgeColor(agent.availability)}
                 size="sm"
                 variant="soft"
             >

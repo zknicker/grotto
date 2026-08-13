@@ -1,4 +1,4 @@
-import type { HostedThreadSummary } from '@tavern/api';
+import type { ThreadSummary } from '@tavern/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -12,11 +12,11 @@ import type { GrottoUser } from '../users/grotto-user.ts';
 /** How many replies the anchor's preview block shows before "N replies ›". */
 const threadPreviewReplyCount = 3;
 
-export async function listHostedThreadSummaries(
+export async function listThreadSummaries(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { anchorMessageIds: string[]; parentChatId?: string; serverId: string }
-): Promise<HostedThreadSummary[]> {
+): Promise<ThreadSummary[]> {
     if (!(member && input.anchorMessageIds.length > 0)) {
         return [];
     }

@@ -1,13 +1,13 @@
-import { hostedTaskCreateInputSchema, hostedTaskPromotionSchema } from '@tavern/api';
+import { taskCreateInputSchema, taskPromotionSchema } from '@tavern/api';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
-import { createHostedTask } from '../../tasks/create-task.ts';
+import { createTask } from '../../tasks/create-task.ts';
 import { taskProcedure } from './procedure.ts';
 
 export const createTaskProcedure = taskProcedure
-    .input(hostedTaskCreateInputSchema)
-    .output(hostedTaskPromotionSchema)
+    .input(taskCreateInputSchema)
+    .output(taskPromotionSchema)
     .mutation(async ({ ctx, input }) => {
-        const result = await createHostedTask(ctx.grottoDb, ctx.member, input, ctx.agentDelivery);
+        const result = await createTask(ctx.grottoDb, ctx.member, input, ctx.agentDelivery);
 
         for (const event of result.events) {
             emitDurableChatEvent({ audienceUserId: null, event });

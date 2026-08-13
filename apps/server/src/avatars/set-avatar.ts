@@ -1,9 +1,4 @@
-import type {
-    HostedAvatar,
-    HostedAvatarTarget,
-    HostedClearAvatarInput,
-    HostedSetAvatarInput,
-} from '@tavern/api';
+import type { Avatar, AvatarTarget, ClearAvatarInput, SetAvatarInput } from '@tavern/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable, avatarsTable, usersTable } from '../postgres/schema.ts';
@@ -21,11 +16,11 @@ type AvatarWriter = Pick<GrottoDatabase, 'delete' | 'select' | 'update'>;
  * is dropped in the same transaction, so an avatar only ever exists while
  * something points at it.
  */
-export async function setHostedAvatar(
+export async function setAvatar(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: HostedSetAvatarInput
-): Promise<HostedAvatar> {
+    input: SetAvatarInput
+): Promise<Avatar> {
     const { bytes, sha256 } = readAvatarBytes(input.bytesBase64, input.mediaType);
 
     return await db.transaction(async (tx) => {
@@ -46,11 +41,11 @@ export async function setHostedAvatar(
 }
 
 /** Drops the avatar entirely; surfaces fall back to initials. */
-export async function clearHostedAvatar(
+export async function clearAvatar(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: HostedClearAvatarInput
-): Promise<HostedAvatar> {
+    input: ClearAvatarInput
+): Promise<Avatar> {
     return await db.transaction(async (tx) => {
         const owner = await authorizeAvatarWrite(tx, member, input.serverId, input.target);
         await assignAvatar(tx, owner, null);
@@ -61,7 +56,7 @@ export async function clearHostedAvatar(
 
 interface AvatarOwner {
     id: string;
-    kind: HostedAvatarTarget['kind'];
+    kind: AvatarTarget['kind'];
     serverId: string;
 }
 
@@ -69,7 +64,7 @@ async function authorizeAvatarWrite(
     tx: AvatarWriter & Pick<GrottoDatabase, 'execute'>,
     member: GrottoUser | null,
     serverId: string,
-    target: HostedAvatarTarget
+    target: AvatarTarget
 ): Promise<AvatarOwner> {
     await lockServerRow(tx, serverId);
     const server = await requireServerMembership(tx, member, serverId);

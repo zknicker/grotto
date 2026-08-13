@@ -1,4 +1,4 @@
-import type { HostedTaskAssignee } from '@tavern/api';
+import type { TaskAssignee } from '@tavern/api';
 import { and, asc, eq, isNull, or } from 'drizzle-orm';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -6,21 +6,21 @@ import { channelParticipantsTable, serverMembershipsTable } from '../postgres/sc
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { TaskAdminRequiredError } from './assign-task.ts';
-import { HostedTaskNotFoundError } from './claim-task.ts';
-import { findHostedMessageTask } from './task-shape.ts';
+import { TaskNotFoundError } from './claim-task.ts';
+import { findMessageTask } from './task-shape.ts';
 
-export async function listHostedTaskAssignees(
+export async function listTaskAssignees(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { messageId: string; serverId: string }
-): Promise<HostedTaskAssignee[]> {
+): Promise<TaskAssignee[]> {
     const server = await requireServerMembership(db, member, input.serverId);
     if (server.role !== 'owner' && server.role !== 'admin') {
         throw new TaskAdminRequiredError();
     }
-    const task = await findHostedMessageTask(db, input.serverId, input.messageId);
+    const task = await findMessageTask(db, input.serverId, input.messageId);
     if (!task) {
-        throw new HostedTaskNotFoundError();
+        throw new TaskNotFoundError();
     }
     const chat = await requireChatAccess(db, member, {
         chatId: task.chatId,
@@ -78,7 +78,7 @@ export async function listHostedTaskAssignees(
                   .orderBy(asc(serverMembershipsTable.userId));
 
     return memberships.map((candidate) => ({
-        role: candidate.role as HostedTaskAssignee['role'],
+        role: candidate.role as TaskAssignee['role'],
         userId: candidate.userId,
     }));
 }

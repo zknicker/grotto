@@ -1,4 +1,4 @@
-import type { HostedUsageOverview } from '@tavern/api';
+import type { UsageOverview } from '@tavern/api';
 import { getCodexUsage } from '@tavern/codex-usage';
 import { readOpenRouterUsage } from './openrouter-usage.ts';
 
@@ -9,7 +9,7 @@ export async function readComputerUsage(
         now?: () => Date;
         openRouterManagementKey?: string | null;
     } = {}
-): Promise<HostedUsageOverview> {
+): Promise<UsageOverview> {
     const now = options.now?.() ?? new Date();
     const loadCodexUsage = options.loadCodexUsage ?? getCodexUsage;
     const loadOpenRouterUsage = options.loadOpenRouterUsage ?? readOpenRouterUsage;
@@ -47,7 +47,7 @@ export async function readComputerUsage(
             },
             status: 'error' as const,
         }));
-    const connectedProviders: HostedUsageOverview['connectedProviders'] = [];
+    const connectedProviders: UsageOverview['connectedProviders'] = [];
     if (codex.status === 'ok') {
         connectedProviders.push('openai-codex');
     }

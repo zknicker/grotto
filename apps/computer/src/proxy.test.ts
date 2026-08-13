@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Server } from 'bun';
 import { readPendingInbox, readRunVisibleMessages, replacePendingInbox } from './inbox-store.ts';
-import type { HostedAgentInboxItem } from './launch.ts';
+import type { AgentInboxItem } from './launch.ts';
 import { startLoopbackProxy } from './proxy.ts';
 
 const servers: Server<unknown>[] = [];
@@ -496,7 +496,7 @@ function sendThrough(proxyUrl: string) {
     });
 }
 
-function inboxItem(id: string, sequence: number): HostedAgentInboxItem {
+function inboxItem(id: string, sequence: number): AgentInboxItem {
     return {
         chatId: 'cht_proxy',
         content: id,
@@ -509,7 +509,7 @@ function inboxItem(id: string, sequence: number): HostedAgentInboxItem {
     };
 }
 
-function agentMessage(item: HostedAgentInboxItem) {
+function agentMessage(item: AgentInboxItem) {
     return {
         attachments: [],
         author: { id: 'usr_operator', kind: 'user', label: 'Operator', metadata: {} },

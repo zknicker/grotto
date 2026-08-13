@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { InvalidTaskAssigneeError, TaskAdminRequiredError } from '../../tasks/assign-task.ts';
-import { HostedTaskNotFoundError, TaskConflictError } from '../../tasks/claim-task.ts';
+import { TaskConflictError, TaskNotFoundError } from '../../tasks/claim-task.ts';
 import { TaskMessageNotFoundError, UntaskableMessageError } from '../../tasks/promote-task.ts';
 import { TaskLabelAdminRequiredError, TaskLabelConflictError } from '../../tasks/task-labels.ts';
 import { chatProcedure } from '../chat/procedure.ts';
@@ -18,7 +18,7 @@ export const taskProcedure = chatProcedure.use(async ({ next }) => {
         throw new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
     }
 
-    if (cause instanceof HostedTaskNotFoundError) {
+    if (cause instanceof TaskNotFoundError) {
         throw new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
     }
 

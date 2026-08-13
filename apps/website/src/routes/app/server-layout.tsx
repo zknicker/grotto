@@ -24,7 +24,7 @@ import {
 import { TaskSidebar } from '../../features/servers/tasks/task-sidebar.tsx';
 import { AppRail, type AppRailSection } from '../../features/shell/app-rail.tsx';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
-import { HostedCommandMenu } from '../../features/shell/hosted-command-menu.tsx';
+import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
@@ -135,7 +135,7 @@ export function ServerLayout() {
                     <ChatEventListeners serverId={server.data.id} />
                     <SyncHumanIdentity serverId={server.data.id} />
                     <AppShellDragRegion />
-                    <HostedCommandMenu server={server.data} />
+                    <CommandMenu server={server.data} />
                     <div className="flex min-h-0 flex-1">
                         <AppRail
                             active={active}

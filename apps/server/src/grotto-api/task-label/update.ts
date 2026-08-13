@@ -1,13 +1,13 @@
-import { hostedTaskLabelMutationSchema, hostedTaskLabelUpdateInputSchema } from '@tavern/api';
+import { taskLabelMutationSchema, taskLabelUpdateInputSchema } from '@tavern/api';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
-import { updateHostedTaskLabel } from '../../tasks/task-labels.ts';
+import { updateTaskLabel } from '../../tasks/task-labels.ts';
 import { taskProcedure } from '../task/procedure.ts';
 
 export const updateTaskLabelProcedure = taskProcedure
-    .input(hostedTaskLabelUpdateInputSchema)
-    .output(hostedTaskLabelMutationSchema)
+    .input(taskLabelUpdateInputSchema)
+    .output(taskLabelMutationSchema)
     .mutation(async ({ ctx, input }) => {
-        const result = await updateHostedTaskLabel(ctx.grottoDb, ctx.member, input);
+        const result = await updateTaskLabel(ctx.grottoDb, ctx.member, input);
         emitDurableChatEvent({ audienceUserId: null, event: result.event });
         return { eventCursor: result.event.cursor, label: result.label };
     });

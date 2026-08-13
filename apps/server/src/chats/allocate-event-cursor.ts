@@ -8,7 +8,7 @@ type EventCursorWriter = Pick<GrottoDatabase, 'update'>;
  * Serializes durable event allocation per Server. The row lock is held through
  * commit, so a visible higher cursor can never precede an invisible lower one.
  */
-export async function allocateHostedEventCursor(
+export async function allocateEventCursor(
     db: EventCursorWriter,
     serverId: string
 ): Promise<bigint> {

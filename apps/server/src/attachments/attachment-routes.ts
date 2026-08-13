@@ -9,9 +9,9 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../servers/server-access.ts';
 import { findUserByClerkId } from '../users/grotto-user.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
-import { attachmentDisposition, openHostedAttachmentDownload } from './download-attachment.ts';
-import { hostedAttachmentMaxSizeBytes } from './reserve-attachment.ts';
-import { AttachmentUploadError, uploadHostedAttachment } from './upload-attachment.ts';
+import { attachmentDisposition, openAttachmentDownload } from './download-attachment.ts';
+import { attachmentMaxSizeBytes } from './reserve-attachment.ts';
+import { AttachmentUploadError, uploadAttachment } from './upload-attachment.ts';
 
 interface AttachmentRouteDependencies {
     clerkSessions: ClerkSessions;
@@ -37,7 +37,7 @@ export async function registerAttachmentRoutes(
                     request.headers.authorization
                 );
                 const member = await findUserByClerkId(dependencies.db, clerkUserId);
-                const download = await openHostedAttachmentDownload(
+                const download = await openAttachmentDownload(
                     dependencies.db,
                     dependencies.root,
                     member,
@@ -71,17 +71,13 @@ export async function registerAttachmentRoutes(
                     requireOctetStream(request.headers['content-type']);
                     const member = await findUserByClerkId(dependencies.db, clerkUserId);
                     const declaredLength = parseContentLength(request.headers['content-length']);
-                    const result = await uploadHostedAttachment(
-                        dependencies.db,
-                        dependencies.root,
-                        {
-                            attachmentId: request.params.attachmentId,
-                            declaredLength,
-                            member,
-                            serverId: request.params.serverId,
-                            stream: request.raw,
-                        }
-                    );
+                    const result = await uploadAttachment(dependencies.db, dependencies.root, {
+                        attachmentId: request.params.attachmentId,
+                        declaredLength,
+                        member,
+                        serverId: request.params.serverId,
+                        stream: request.raw,
+                    });
 
                     await reply.send(result);
                 } catch (error) {
@@ -117,7 +113,7 @@ function parseContentLength(value: string | undefined) {
     if (!Number.isSafeInteger(length)) {
         throw new RouteError('Content-Length is too large.', 413);
     }
-    if (length > hostedAttachmentMaxSizeBytes) {
+    if (length > attachmentMaxSizeBytes) {
         throw new RouteError('Attachment exceeds the 50 MiB limit.', 413);
     }
     return length;

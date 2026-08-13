@@ -1,20 +1,17 @@
-import {
-    hostedAgentExecutionJournalInputSchema,
-    hostedAgentExecutionJournalResultSchema,
-} from '@tavern/api';
+import { agentExecutionJournalInputSchema, agentExecutionJournalResultSchema } from '@tavern/api';
 import { TRPCError } from '@trpc/server';
 import {
     AgentExecutionJournalAccessError,
-    requestHostedAgentExecutionJournal,
-} from '../../hosted-agents/agent-execution-journal.ts';
+    requestAgentExecutionJournal,
+} from '../../server-agents/agent-execution-journal.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const agentExecutionJournalProcedure = memberProcedure
-    .input(hostedAgentExecutionJournalInputSchema)
-    .output(hostedAgentExecutionJournalResultSchema)
+    .input(agentExecutionJournalInputSchema)
+    .output(agentExecutionJournalResultSchema)
     .query(async ({ ctx, input }) => {
         try {
-            return await requestHostedAgentExecutionJournal(
+            return await requestAgentExecutionJournal(
                 ctx.grottoDb,
                 ctx.computerConnections,
                 ctx.member,

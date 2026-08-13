@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';
-import type { HostedAgentInboxItem } from './launch.ts';
+import type { AgentInboxItem } from './launch.ts';
 
 test('projects structured inbox rows into the specified drain envelope', () => {
     expect(
@@ -76,7 +76,7 @@ test('projects task and mention intent into both drain and busy-notice metadata'
     expect(composeInboxNotice([task])).toContain('· task #7 · you were mentioned');
 });
 
-function item(overrides: Partial<HostedAgentInboxItem> = {}): HostedAgentInboxItem {
+function item(overrides: Partial<AgentInboxItem> = {}): AgentInboxItem {
     return {
         chatId: 'cht_general',
         content: 'Ship it',

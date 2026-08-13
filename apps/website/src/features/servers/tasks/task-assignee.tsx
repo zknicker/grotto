@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useTaskAssign } from '../../../hooks/servers/use-task-assign.ts';
 import { useTaskAssignees } from '../../../hooks/servers/use-task-assignees.ts';
-import { useHostedServerContext } from '../hosted-server-context.ts';
+import { useServerContext } from '../server-context.ts';
 import { taskAssignmentInput } from './task-input.ts';
 import type { TaskItem } from './task-model.ts';
 
@@ -13,7 +13,7 @@ type TaskAssigneeTarget = Pick<
 >;
 
 export function TaskAssignee({ task }: { task: TaskAssigneeTarget }) {
-    const { server } = useHostedServerContext();
+    const { server } = useServerContext();
     const humans = useHumanDirectory(server.id);
     const canAssign = server.role === 'owner' || server.role === 'admin';
     const [open, setOpen] = React.useState(false);

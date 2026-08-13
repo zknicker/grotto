@@ -1,10 +1,4 @@
-import type {
-    HostedAgent,
-    HostedChat,
-    HostedChatMessage,
-    HostedTaskLabel,
-    HostedTaskListItem,
-} from '@tavern/api';
+import type { Agent, Chat, ChatMessage, TaskLabel, TaskListItem } from '@tavern/api';
 import type { TaskPriority, TaskStatus } from '../../tasks/task-presentation.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
@@ -20,13 +14,13 @@ export interface TaskItem {
     claimedAt: string | null;
     createdAt: string;
     id: string;
-    labels: HostedTaskLabel[];
-    message: HostedChatMessage;
+    labels: TaskLabel[];
+    message: ChatMessage;
     number: number;
     priority: TaskPriority;
     status: TaskStatus;
     threadChatId: string;
-    threadSummary: HostedTaskListItem['threadSummary'];
+    threadSummary: TaskListItem['threadSummary'];
     title: string;
     updatedAt: string;
     version: number;
@@ -57,7 +51,7 @@ export function taskClaimAction(
     return task.claimedAt === null ? 'claim-reservation' : 'unclaim';
 }
 
-export function taskChatOptions(chats: HostedChat[], humans: HumanDirectory) {
+export function taskChatOptions(chats: Chat[], humans: HumanDirectory) {
     return chats
         .filter((chat) => !chat.peerAgentRetired)
         .map((chat) => ({
@@ -71,7 +65,7 @@ export function taskChatOptions(chats: HostedChat[], humans: HumanDirectory) {
 
 export function taskAssigneeName(
     task: Pick<TaskItem, 'assigneeAgentId' | 'assigneeUserId'>,
-    agents: HostedAgent[],
+    agents: Agent[],
     humans: HumanDirectory
 ) {
     if (task.assigneeAgentId) {
@@ -86,7 +80,7 @@ export function taskAssigneeName(
 
 export function taskAssigneeAvatarUrl(
     task: Pick<TaskItem, 'assigneeAgentId' | 'assigneeUserId'>,
-    agents: HostedAgent[],
+    agents: Agent[],
     humans: HumanDirectory
 ) {
     if (task.assigneeAgentId) {
@@ -96,9 +90,9 @@ export function taskAssigneeAvatarUrl(
 }
 
 export function toTaskItem(
-    item: HostedTaskListItem,
+    item: TaskListItem,
     humans: HumanDirectory,
-    agents: HostedAgent[] = []
+    agents: Agent[] = []
 ): TaskItem {
     return {
         assigneeAgentId: item.task.assigneeAgentId,

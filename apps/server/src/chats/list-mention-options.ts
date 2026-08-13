@@ -1,7 +1,7 @@
 import {
     formatAgentReferenceTarget,
     formatSkillReferenceTarget,
-    type HostedMentionOption,
+    type MentionOption,
 } from '@tavern/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -14,11 +14,11 @@ import {
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
 
-export async function listHostedMentionOptions(
+export async function listMentionOptions(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: { agentIds: string[]; chatId: string; serverId: string }
-): Promise<{ options: HostedMentionOption[] }> {
+): Promise<{ options: MentionOption[] }> {
     const chat = await requireChatAccess(db, member, input);
     const participantAgentIds = await listParticipantAgentIds(db, {
         chatId: chat.kind === 'thread' ? (chat.parentChatId ?? chat.id) : chat.id,
@@ -58,7 +58,7 @@ export async function listHostedMentionOptions(
         .orderBy(agentsTable.createdAt);
 
     const agentOptions = rows.map(
-        (agent): HostedMentionOption => ({
+        (agent): MentionOption => ({
             description: 'Agent in this chat',
             id: formatAgentReferenceTarget(agent.id),
             insertText: `@${agent.displayName}`,
@@ -69,7 +69,7 @@ export async function listHostedMentionOptions(
         })
     );
     const skillScope = new Set(skillAgentIds);
-    const skillOptions = new Map<string, HostedMentionOption>();
+    const skillOptions = new Map<string, MentionOption>();
 
     for (const agent of rows) {
         if (!skillScope.has(agent.id)) {

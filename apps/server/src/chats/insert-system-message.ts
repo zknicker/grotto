@@ -1,11 +1,11 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
-import { allocateHostedEventCursor } from './allocate-event-cursor.ts';
+import { allocateEventCursor } from './allocate-event-cursor.ts';
 
-export type HostedSystemMessageAuthor = 'reminder' | 'session';
+export type SystemMessageAuthor = 'reminder' | 'session';
 
 type SystemMessageWriter = Pick<GrottoDatabase, 'insert' | 'update'>;
 
@@ -13,7 +13,7 @@ type SystemMessageWriter = Pick<GrottoDatabase, 'insert' | 'update'>;
  * Persists one Server-authored timeline message and its durable message.created event.
  * Callers own the surrounding transaction and any domain-specific copy or idempotency.
  */
-export async function insertHostedSystemMessage(
+export async function insertSystemMessage(
     db: SystemMessageWriter,
     input: {
         chatId: string;
@@ -21,9 +21,9 @@ export async function insertHostedSystemMessage(
         createdAt?: Date;
         nonce: string;
         serverId: string;
-        systemAuthor: HostedSystemMessageAuthor;
+        systemAuthor: SystemMessageAuthor;
     }
-): Promise<HostedDurableEvent> {
+): Promise<ServerDurableEvent> {
     const createdAt = input.createdAt ?? new Date();
     const [chat] = await db
         .update(chatsTable)
@@ -52,7 +52,7 @@ export async function insertHostedSystemMessage(
         systemAuthor: input.systemAuthor,
     });
 
-    const cursor = await allocateHostedEventCursor(db, input.serverId);
+    const cursor = await allocateEventCursor(db, input.serverId);
     const [event] = await db
         .insert(chatEventsTable)
         .values({

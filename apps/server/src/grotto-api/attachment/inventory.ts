@@ -1,13 +1,13 @@
-import { hostedAttachmentInventoryInputSchema, hostedAttachmentInventorySchema } from '@tavern/api';
-import { inventoryHostedServerAttachments } from '../../attachments/inventory-attachments.ts';
+import { attachmentInventoryInputSchema, attachmentInventorySchema } from '@tavern/api';
+import { inventoryServerAttachments } from '../../attachments/inventory-attachments.ts';
 import { attachmentProcedure } from './procedure.ts';
 
 export const inventoryAttachmentsProcedure = attachmentProcedure
-    .input(hostedAttachmentInventoryInputSchema)
-    .output(hostedAttachmentInventorySchema)
+    .input(attachmentInventoryInputSchema)
+    .output(attachmentInventorySchema)
     .query(
         async ({ ctx, input }) =>
-            await inventoryHostedServerAttachments(
+            await inventoryServerAttachments(
                 ctx.grottoDb,
                 ctx.attachmentRoot,
                 ctx.member,

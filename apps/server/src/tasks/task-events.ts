@@ -1,13 +1,13 @@
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import { and, eq } from 'drizzle-orm';
-import { allocateHostedEventCursor } from '../chats/allocate-event-cursor.ts';
+import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatMessagesTable } from '../postgres/schema.ts';
 
 type TaskEventWriter = Pick<GrottoDatabase, 'insert' | 'select' | 'update'>;
 
-export async function insertHostedTaskEvent(
+export async function insertTaskEvent(
     db: TaskEventWriter,
     input: {
         chatId: string;
@@ -15,7 +15,7 @@ export async function insertHostedTaskEvent(
         serverId: string;
         type: 'task.created' | 'task.updated';
     }
-): Promise<HostedDurableEvent> {
+): Promise<ServerDurableEvent> {
     const [message] = await db
         .select({ sequence: chatMessagesTable.sequence })
         .from(chatMessagesTable)
@@ -29,7 +29,7 @@ export async function insertHostedTaskEvent(
     if (!message) {
         throw new Error('The task event message does not exist.');
     }
-    const cursor = await allocateHostedEventCursor(db, input.serverId);
+    const cursor = await allocateEventCursor(db, input.serverId);
     const [event] = await db
         .insert(chatEventsTable)
         .values({

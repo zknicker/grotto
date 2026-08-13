@@ -1,4 +1,4 @@
-import type { HostedAttachmentMetadata } from '@tavern/api';
+import type { AttachmentMetadata } from '@tavern/api';
 import * as React from 'react';
 
 /**
@@ -9,7 +9,7 @@ import * as React from 'react';
  */
 export interface PendingChatMessage {
     /** Composer-local metadata; the bytes are still uploading behind this row. */
-    attachments: readonly HostedAttachmentMetadata[];
+    attachments: readonly AttachmentMetadata[];
     content: string;
     /** The durable id from the send receipt; null until the send resolves. */
     messageId: string | null;
@@ -26,7 +26,7 @@ const noPendingMessages: readonly PendingChatMessage[] = [];
  * no Thread chat id until its send receipt returns, so rows are keyed on the
  * anchor message, which is stable from the moment the panel opens: the row the
  * composer wrote is the row the Thread reads back, before and after the Thread
- * exists. Hosted chat ids are opaque, so the prefix cannot collide with one.
+ * exists.  chat ids are opaque, so the prefix cannot collide with one.
  */
 export function pendingThreadReplyKey(anchorMessageId: string) {
     return `thread:${anchorMessageId}`;

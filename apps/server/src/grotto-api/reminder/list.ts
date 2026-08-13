@@ -1,8 +1,8 @@
-import { hostedReminderListInputSchema, hostedReminderListSchema } from '@tavern/api';
+import { reminderListInputSchema, reminderListSchema } from '@tavern/api';
 import { listOperatorReminders } from '../../reminders/operator-reminders.ts';
 import { reminderProcedure } from './procedure.ts';
 
 export const listRemindersProcedure = reminderProcedure
-    .input(hostedReminderListInputSchema)
-    .output(hostedReminderListSchema)
+    .input(reminderListInputSchema)
+    .output(reminderListSchema)
     .query(async ({ ctx, input }) => listOperatorReminders(ctx.grottoDb, ctx.member, input));

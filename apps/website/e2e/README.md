@@ -6,7 +6,7 @@ This folder holds Playwright coverage for user-facing App behavior.
 
 - The default lane runs the website and hosted Server against throwaway PostgreSQL and Clerk fixtures.
 - Browser tests fake only external Computer/model effects, normally by reporting inventory or authoring through the public runner contract.
-- Real App-to-Computer-to-model behavior belongs to `bun run eval:agents`.
+- Real App-to-Computer-to-model behavior belongs to `bun run test:agents` and `bun run test:tracer`.
 - Tests stay user-shaped: drive behavior through the UI or a public product contract, then assert visible behavior over time.
 
 ## Layout

@@ -291,6 +291,7 @@ export async function createEvalHarness({ evalName, repositoryRoot = process.cwd
         scenario,
         send,
         serverId,
+        serverUrl,
         stamp,
         trpc,
         waitForAgentQuiet,

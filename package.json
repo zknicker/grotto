@@ -32,6 +32,7 @@
     "test:e2e:screenshot": "bun run --filter @tavern/website test:e2e:screenshot",
     "test:e2e:screenshot-failures": "bun run --filter @tavern/website test:e2e:screenshot-failures",
     "test:e2e:ui": "bun run --filter @tavern/website test:e2e:ui",
+    "test:agents": "bun scripts/agent-tests/cli.mjs",
     "eval:design": "bun scripts/design-eval.mjs",
     "eval:agents": "cd apps/website && bun x playwright test --config agent-e2e/playwright.config.ts",
     "eval:prompt": "bun scripts/prompt-eval.mjs",

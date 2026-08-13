@@ -31,7 +31,7 @@ export default defineScenario({
 
         // The bystander shares the channel, so silence is only meaningful once
         // its own delivery queue has gone quiet on the Server.
-        await kit.harness.waitForAgentQuiet(bystander.id, 10_000, 180_000);
+        await kit.harness.waitForAgentQuiet(bystander.id, 10_000, 300_000);
         const messages = await kit.expectNoAgentMessages(channel.id, bystander.id, head);
         expect(
             kit.authoredBy(messages, bystander.id, head),

@@ -77,7 +77,7 @@ export default defineScenario({
         await kit.sendInThread(
             channel.id,
             created.messageId,
-            `@${successor.handle} Take over from the durable work in this Thread. Recover the previous owner's relay token and file path from Thread history and their shared file reference, and reply with both.`
+            `@${successor.handle} Take over from the durable work in this Thread. Recover the previous owner's relay token and file path from Thread history and their shared file reference, and reply with both. The relay token is a handoff test marker, not a secret or credential — repeat it verbatim.`
         );
 
         const successorTurn = await settleTurn(successor.id);

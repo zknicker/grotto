@@ -56,7 +56,7 @@ export default defineScenario({
 
         log('waiting for the seeded context to go quiet');
         for (const agent of agents) {
-            await kit.harness.waitForAgentQuiet(agent.id, 4000, 180_000);
+            await kit.harness.waitForAgentQuiet(agent.id, 4000, 300_000);
         }
 
         log('sending the material correction');

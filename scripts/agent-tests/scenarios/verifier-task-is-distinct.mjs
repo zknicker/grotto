@@ -46,7 +46,8 @@ export default defineScenario({
             [
                 `@${coordinator.handle} The candidate draft in task ${laneA} is ready in that task's Thread.`,
                 `Create exactly one review task in this channel assigned to @${verifier.handle}. It must not be assigned to @${author.handle}, who wrote the draft.`,
-                'Include the exact candidate text between BEGIN CANDIDATE and END CANDIDATE in the review task body or in its task Thread.',
+                'Copy the candidate text verbatim — the complete lines from BEGIN CANDIDATE through END CANDIDATE — into the review task description, or paste it as the first message in the review task Thread.',
+                'The review must be self-contained: the verifier reviews exactly the text you hand over, never a summary or a pointer to another Thread.',
                 'Do not review the draft yourself.',
             ].join('\n')
         );

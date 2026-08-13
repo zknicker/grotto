@@ -45,6 +45,11 @@ const bridgeSpecs = {
             { assetName: 'index.mjs', bootstrapName: 'bridge.mjs' },
         ],
         packageName: '@ai-sdk/harness-codex',
+        postInstallCommands: [
+            // Constructing Codex runs the SDK's platform-binary resolution —
+            // the exact path that breaks when the optional dependency is lost.
+            `node --input-type=module -e 'const { Codex } = await import("@openai/codex-sdk"); new Codex();'`,
+        ],
     },
 } as const;
 
@@ -86,6 +91,21 @@ export async function validateComputerBridgeAssets(): Promise<void> {
     );
 }
 
+const installCommand = 'CI=true pnpm install --frozen-lockfile --store-dir .pnpm-store';
+
+/**
+ * pnpm exits 0 even when an OPTIONAL dependency (the runtime's platform
+ * binary) fails to download — observed live under concurrent first-time
+ * bootstraps, leaving a bridge that fails every turn. Each post-install
+ * command therefore doubles as the verification gate: on failure it retries
+ * once from a clean slate, and if that also fails the bootstrap fails loudly.
+ * A failed bootstrap writes no completion marker, so the next session start
+ * re-runs it rather than keeping a broken bridge forever.
+ */
+function verifiedCommand(command: string) {
+    return `(${command}) || (rm -rf node_modules .pnpm-store && ${installCommand} && (${command}))`;
+}
+
 async function readBridgeBootstrap(
     harnessId: BridgeHarnessId,
     spec: (typeof bridgeSpecs)[BridgeHarnessId]
@@ -93,11 +113,11 @@ async function readBridgeBootstrap(
     return {
         bootstrapDir: spec.bootstrapDir,
         commands: [
-            {
-                command: 'CI=true pnpm install --frozen-lockfile --store-dir .pnpm-store',
-            },
+            { command: installCommand },
             ...('postInstallCommands' in spec
-                ? spec.postInstallCommands.map((command) => ({ command }))
+                ? spec.postInstallCommands.map((command) => ({
+                      command: verifiedCommand(command),
+                  }))
                 : []),
         ],
         files: [

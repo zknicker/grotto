@@ -9,12 +9,14 @@ for (const bridge of [
         harnessId: 'codex' as const,
         nativeHarness: createCodex(),
         packageDependency: '"@openai/codex-sdk": "0.144.5"',
+        verifyFragment: 'new Codex();',
     },
     {
         bootstrapDir: '.harness-bootstrap/claude-code',
         harnessId: 'claude-code' as const,
         nativeHarness: createClaudeCode(),
         packageDependency: '"@anthropic-ai/claude-code"',
+        verifyFragment: './node_modules/.bin/claude --version',
     },
 ]) {
     test(`Computer ships the pinned ${bridge.harnessId} bridge bootstrap from its bootstrap directory`, async () => {
@@ -38,6 +40,16 @@ for (const bridge of [
         expect(bootstrap.commands?.[0]).toEqual({
             command: 'CI=true pnpm install --frozen-lockfile --store-dir .pnpm-store',
         });
+        // The post-install verify gates the bootstrap: a lost optional
+        // platform binary exits pnpm 0, so without this gate the completion
+        // marker would seal a permanently broken bridge. The verify retries
+        // once from a clean slate before failing the bootstrap loudly.
+        const verify = bootstrap.commands?.at(-1)?.command ?? '';
+        expect(bootstrap.commands).toHaveLength(2);
+        expect(verify).toContain(bridge.verifyFragment);
+        expect(verify).toContain(
+            '|| (rm -rf node_modules .pnpm-store && CI=true pnpm install --frozen-lockfile --store-dir .pnpm-store && ('
+        );
         expect(
             bootstrap.files?.find((file) => file.path.endsWith('/bridge.mjs'))?.content
         ).toBeTruthy();

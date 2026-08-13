@@ -4,6 +4,7 @@ import { agentChatsProcedure } from './chats.ts';
 import { configureAgentProcedure } from './configure.ts';
 import { createAgentProcedure } from './create.ts';
 import { deleteAgentProcedure } from './delete.ts';
+import { agentDeliveriesProcedure } from './deliveries.ts';
 import { agentDeliveryStateProcedure } from './delivery-state.ts';
 import { getAgentProcedure } from './get.ts';
 import { importAgentSkillProcedure } from './import-skill.ts';
@@ -18,6 +19,7 @@ import {
 } from './skill-file.ts';
 import { startAgentProcedure } from './start.ts';
 import { stopAgentProcedure } from './stop.ts';
+import { agentTurnsProcedure } from './turns.ts';
 import { updateAgentProfileProcedure } from './update-profile.ts';
 import { agentWorkspaceFileProcedure } from './workspace-file.ts';
 import { agentWorkspaceFilesProcedure } from './workspace-files.ts';
@@ -28,6 +30,7 @@ export const agentRouter = createRouter({
     configure: configureAgentProcedure,
     create: createAgentProcedure,
     delete: deleteAgentProcedure,
+    deliveries: agentDeliveriesProcedure,
     deliveryState: agentDeliveryStateProcedure,
     get: getAgentProcedure,
     importSkill: importAgentSkillProcedure,
@@ -39,6 +42,7 @@ export const agentRouter = createRouter({
     restart: restartAgentProcedure,
     start: startAgentProcedure,
     stop: stopAgentProcedure,
+    turns: agentTurnsProcedure,
     updateProfile: updateAgentProfileProcedure,
     updateSkillFile: updateAgentSkillFileProcedure,
     workspaceFile: agentWorkspaceFileProcedure,

@@ -363,6 +363,65 @@ export const hostedAgentDeliveryStateSchema = z
 export type HostedAgentDeliveryState = z.infer<typeof hostedAgentDeliveryStateSchema>;
 
 /**
+ * One settled Agent turn. `outputProduced` and `failureKind` are what make a
+ * silent turn readable: a completed turn with no output and no messages is
+ * positive proof the Agent chose to stay quiet, not evidence of a lost run.
+ */
+export const hostedAgentTurnSchema = z
+    .object({
+        agentId: hostedIdSchema,
+        endedAt: hostedTimestampSchema,
+        failureKind: z.string().trim().min(1).max(64).nullable(),
+        messageCount: z.number().int().nonnegative(),
+        outputProduced: z.boolean(),
+        runId: hostedIdSchema,
+        startedAt: hostedTimestampSchema,
+        status: z.enum(['completed', 'failed']),
+        summary: z.string().max(2000).nullable(),
+    })
+    .strict();
+
+export type HostedAgentTurn = z.infer<typeof hostedAgentTurnSchema>;
+
+export const hostedAgentTurnsInputSchema = hostedAgentDetailInputSchema.extend({
+    limit: z.number().int().min(1).max(50).default(10),
+});
+
+export type HostedAgentTurnsInput = z.infer<typeof hostedAgentTurnsInputSchema>;
+
+export const hostedAgentTurnsSchema = z.array(hostedAgentTurnSchema);
+
+/**
+ * One durable delivery of one message to one Agent. `seen` rows are retained
+ * after settlement with the `turnId` that consumed them, so an observer can
+ * tell "the Agent never received it" from "the Agent received it and said
+ * nothing".
+ */
+export const hostedAgentDeliveryRecordSchema = z
+    .object({
+        acceptedAt: hostedTimestampSchema.nullable(),
+        agentId: hostedIdSchema,
+        chatId: hostedIdSchema,
+        createdAt: hostedTimestampSchema,
+        messageId: z.string().trim().min(1).max(128),
+        seenAt: hostedTimestampSchema.nullable(),
+        servedAt: hostedTimestampSchema.nullable(),
+        state: z.enum(['queued', 'accepted', 'served', 'seen']),
+        turnId: z.string().trim().min(1).max(128).nullable(),
+    })
+    .strict();
+
+export type HostedAgentDeliveryRecord = z.infer<typeof hostedAgentDeliveryRecordSchema>;
+
+export const hostedAgentDeliveriesInputSchema = hostedAgentDetailInputSchema.extend({
+    limit: z.number().int().min(1).max(100).default(50),
+});
+
+export type HostedAgentDeliveriesInput = z.infer<typeof hostedAgentDeliveriesInputSchema>;
+
+export const hostedAgentDeliveriesSchema = z.array(hostedAgentDeliveryRecordSchema);
+
+/**
  * One Agent's Computer-reported effective state. A null runtime or model means
  * the Computer could not resolve the desired resource; `missingResources`
  * names each missing runtime, model, skill, or connection.

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+    boolean,
     check,
     foreignKey,
     index,
@@ -24,8 +25,12 @@ export const agentTurnsTable = pgTable(
         agentId: text('agent_id').notNull(),
         computerId: text('computer_id').notNull(),
         endedAt: timestamp('ended_at', { withTimezone: true }).notNull(),
+        /** The Computer's failure classification for a failed turn. */
+        failureKind: text('failure_kind'),
         id: text('id').primaryKey(),
         messageCount: integer('message_count').notNull().default(0),
+        /** Whether the turn produced model-visible output (any durable send). */
+        outputProduced: boolean('output_produced').notNull().default(false),
         reportedAt: timestamp('reported_at', { withTimezone: true }).notNull().defaultNow(),
         runId: text('run_id').notNull(),
         serverId: text('server_id')

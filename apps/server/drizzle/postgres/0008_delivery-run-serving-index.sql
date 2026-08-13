@@ -1,0 +1,1 @@
+CREATE INDEX "agent_pending_work_run_idx" ON "agent_pending_work" USING btree ("agent_id","run_id") WHERE "agent_pending_work"."state" <> 'seen';

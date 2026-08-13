@@ -30,7 +30,7 @@ import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
 import {
     advanceDeliveredCursor,
     advanceSeenForRun,
-    deleteSeenQueuedWork,
+    markCursorSubsumedSeen,
     recordAgentInboxPierce,
 } from './cursors.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
@@ -507,7 +507,7 @@ export class AgentDelivery {
                     runId: summary.runId,
                     serverId,
                 });
-                await store.deletePendingForRun(tx, {
+                await store.markPendingSeenForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                 });
@@ -531,7 +531,7 @@ export class AgentDelivery {
                     runId: summary.runId,
                     serverId,
                 });
-                await store.deletePendingForRun(tx, {
+                await store.markPendingSeenForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                 });
@@ -734,7 +734,7 @@ export class AgentDelivery {
         if (!this.transport.isOnline(config.computerId)) {
             return null;
         }
-        await deleteSeenQueuedWork(tx, { agentId, serverId: state.serverId });
+        await markCursorSubsumedSeen(tx, { agentId, serverId: state.serverId });
         if (state.activeRunId && state.activeRunComputerId) {
             if (!state.acceptedAt || options?.resendActive) {
                 await store.markDispatched(tx, { agentId, runId: state.activeRunId });

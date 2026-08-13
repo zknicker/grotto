@@ -3,6 +3,7 @@ import {
     attachQueuedPendingToRun,
     listPendingForRun,
     listQueuedMessagePending,
+    markPendingServed,
     readDeliveryState,
 } from '../agent-delivery/store.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -36,6 +37,11 @@ export async function pullAgentEvents(db: GrottoDatabase, runner: ResolvedRunner
             });
         }
         await attachQueuedPendingToRun(tx, {
+            agentId: runner.agentId,
+            pendingIds: selected.map((row) => row.id),
+            runId: runner.runId,
+        });
+        await markPendingServed(tx, {
             agentId: runner.agentId,
             pendingIds: selected.map((row) => row.id),
             runId: runner.runId,
@@ -104,6 +110,11 @@ export async function attestAgentEvents(
         await attachQueuedPendingToRun(tx, {
             agentId: runner.agentId,
             pendingIds: pending.filter((row) => requested.has(row.dedupeKey)).map((row) => row.id),
+            runId: runner.runId,
+        });
+        await markPendingServed(tx, {
+            agentId: runner.agentId,
+            pendingIds: selected.map((row) => row.id),
             runId: runner.runId,
         });
         await advanceVisibleCursors(tx, runner, selected, messages);

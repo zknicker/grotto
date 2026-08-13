@@ -151,9 +151,7 @@ export async function countQueuedPending(db: GrottoDatabase, agentId: string): P
     const [row] = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(agentPendingWorkTable)
-        .where(
-            and(eq(agentPendingWorkTable.agentId, agentId), isNull(agentPendingWorkTable.runId))
-        );
+        .where(queuedFor(agentId));
     return row?.total ?? 0;
 }
 
@@ -164,13 +162,7 @@ export async function countQueuedMessagePending(
     const [row] = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(agentPendingWorkTable)
-        .where(
-            and(
-                eq(agentPendingWorkTable.agentId, agentId),
-                isNull(agentPendingWorkTable.runId),
-                ne(agentPendingWorkTable.source, 'onboarding')
-            )
-        );
+        .where(and(queuedFor(agentId), ne(agentPendingWorkTable.source, 'onboarding')));
     return row?.total ?? 0;
 }
 
@@ -188,11 +180,52 @@ export async function attachQueuedPendingToRun(
     }
     await db
         .update(agentPendingWorkTable)
-        .set({ runId: input.runId })
+        .set({ runId: input.runId, state: 'accepted' })
+        .where(and(queuedFor(input.agentId), inArray(agentPendingWorkTable.id, input.pendingIds)));
+}
+
+/** Records the Computer ack for every row already attached to the acknowledged run. */
+async function markPendingAccepted(
+    db: GrottoDatabase,
+    input: { agentId: string; runId: string }
+): Promise<void> {
+    await db
+        .update(agentPendingWorkTable)
+        .set({ acceptedAt: new Date() })
         .where(
             and(
                 eq(agentPendingWorkTable.agentId, input.agentId),
-                isNull(agentPendingWorkTable.runId),
+                eq(agentPendingWorkTable.runId, input.runId),
+                isNull(agentPendingWorkTable.acceptedAt)
+            )
+        );
+}
+
+/**
+ * Records that exact attached rows were handed to the model during the run. A
+ * pull only reaches an accepted run, so a row attached after the ack takes its
+ * acceptance stamp here rather than losing it.
+ */
+export async function markPendingServed(
+    db: GrottoDatabase,
+    input: { agentId: string; pendingIds: string[]; runId: string }
+): Promise<void> {
+    if (input.pendingIds.length === 0) {
+        return;
+    }
+    const now = new Date();
+    await db
+        .update(agentPendingWorkTable)
+        .set({
+            acceptedAt: sql`coalesce(${agentPendingWorkTable.acceptedAt}, ${now})`,
+            servedAt: now,
+            state: 'served',
+        })
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                eq(agentPendingWorkTable.runId, input.runId),
+                ne(agentPendingWorkTable.state, 'seen'),
                 inArray(agentPendingWorkTable.id, input.pendingIds)
             )
         );
@@ -218,7 +251,8 @@ export async function listPendingForRun(
         .where(
             and(
                 eq(agentPendingWorkTable.agentId, input.agentId),
-                eq(agentPendingWorkTable.runId, input.runId)
+                eq(agentPendingWorkTable.runId, input.runId),
+                ne(agentPendingWorkTable.state, 'seen')
             )
         )
         .orderBy(agentPendingWorkTable.createdAt);
@@ -242,7 +276,7 @@ export async function listQueuedPending(
             source: agentPendingWorkTable.source,
         })
         .from(agentPendingWorkTable)
-        .where(and(eq(agentPendingWorkTable.agentId, agentId), isNull(agentPendingWorkTable.runId)))
+        .where(queuedFor(agentId))
         .orderBy(agentPendingWorkTable.createdAt)
         .limit(limit);
 }
@@ -265,11 +299,7 @@ export async function listPendingNoticedForRun(
         })
         .from(agentPendingWorkTable)
         .where(
-            and(
-                eq(agentPendingWorkTable.agentId, input.agentId),
-                eq(agentPendingWorkTable.startNoticeRunId, input.runId),
-                isNull(agentPendingWorkTable.runId)
-            )
+            and(queuedFor(input.agentId), eq(agentPendingWorkTable.startNoticeRunId, input.runId))
         )
         .orderBy(agentPendingWorkTable.createdAt);
 }
@@ -291,13 +321,7 @@ export async function listPendingOfferedForRun(
             source: agentPendingWorkTable.source,
         })
         .from(agentPendingWorkTable)
-        .where(
-            and(
-                eq(agentPendingWorkTable.agentId, input.agentId),
-                eq(agentPendingWorkTable.noticeRunId, input.runId),
-                isNull(agentPendingWorkTable.runId)
-            )
-        )
+        .where(and(queuedFor(input.agentId), eq(agentPendingWorkTable.noticeRunId, input.runId)))
         .orderBy(agentPendingWorkTable.createdAt);
 }
 
@@ -326,7 +350,10 @@ export async function listPendingByDedupeKeys(
                 eq(agentPendingWorkTable.agentId, input.agentId),
                 inArray(agentPendingWorkTable.dedupeKey, input.dedupeKeys),
                 or(
-                    isNull(agentPendingWorkTable.runId),
+                    and(
+                        isNull(agentPendingWorkTable.runId),
+                        eq(agentPendingWorkTable.state, 'queued')
+                    ),
                     eq(agentPendingWorkTable.runId, input.runId)
                 )
             )
@@ -352,13 +379,7 @@ export async function listQueuedMessagePending(
             source: agentPendingWorkTable.source,
         })
         .from(agentPendingWorkTable)
-        .where(
-            and(
-                eq(agentPendingWorkTable.agentId, agentId),
-                isNull(agentPendingWorkTable.runId),
-                ne(agentPendingWorkTable.source, 'onboarding')
-            )
-        )
+        .where(and(queuedFor(agentId), ne(agentPendingWorkTable.source, 'onboarding')))
         .orderBy(agentPendingWorkTable.createdAt)
         .limit(limit);
 }
@@ -377,13 +398,7 @@ export async function markPendingNoticed(
             noticeRunId: input.runId,
             ...(input.initial ? { startNoticeRunId: input.runId } : {}),
         })
-        .where(
-            and(
-                eq(agentPendingWorkTable.agentId, input.agentId),
-                isNull(agentPendingWorkTable.runId),
-                inArray(agentPendingWorkTable.id, input.pendingIds)
-            )
-        );
+        .where(and(queuedFor(input.agentId), inArray(agentPendingWorkTable.id, input.pendingIds)));
 }
 
 export async function clearPendingNotices(
@@ -395,8 +410,7 @@ export async function clearPendingNotices(
         .set({ noticeRunId: null, startNoticeRunId: null })
         .where(
             and(
-                eq(agentPendingWorkTable.agentId, input.agentId),
-                isNull(agentPendingWorkTable.runId),
+                queuedFor(input.agentId),
                 input.runId ? eq(agentPendingWorkTable.noticeRunId, input.runId) : undefined
             )
         );
@@ -420,13 +434,7 @@ export async function listUnnoticedQueuedPending(
             source: agentPendingWorkTable.source,
         })
         .from(agentPendingWorkTable)
-        .where(
-            and(
-                eq(agentPendingWorkTable.agentId, agentId),
-                isNull(agentPendingWorkTable.runId),
-                isNull(agentPendingWorkTable.noticeRunId)
-            )
-        )
+        .where(and(queuedFor(agentId), isNull(agentPendingWorkTable.noticeRunId)))
         .orderBy(agentPendingWorkTable.createdAt)
         .limit(limit);
 }
@@ -442,11 +450,10 @@ export async function deleteQueuedOrdinaryWork(
         .delete(agentPendingWorkTable)
         .where(
             and(
+                queuedFor(input.agentId),
                 eq(agentPendingWorkTable.serverId, input.serverId),
-                eq(agentPendingWorkTable.agentId, input.agentId),
                 inArray(agentPendingWorkTable.chatId, input.chatIds),
-                eq(agentPendingWorkTable.pierced, false),
-                isNull(agentPendingWorkTable.runId)
+                eq(agentPendingWorkTable.pierced, false)
             )
         );
 }
@@ -492,6 +499,7 @@ export async function markAccepted(
                 isNull(agentDeliveryTable.acceptedAt)
             )
         );
+    await markPendingAccepted(db, input);
 }
 
 export async function markDispatched(
@@ -558,16 +566,23 @@ export async function setAgentChainTurns(
         .where(eq(agentDeliveryTable.agentId, input.agentId));
 }
 
-export async function deletePendingForRun(
+/**
+ * Consumes a settled run's claimed work. The rows leave the live queue for
+ * good, but stay readable as the turn's delivery evidence: a turn that read a
+ * message and answered nothing is only provable from a retained `seen` row.
+ */
+export async function markPendingSeenForRun(
     db: GrottoDatabase,
     input: { agentId: string; runId: string }
 ): Promise<void> {
     await db
-        .delete(agentPendingWorkTable)
+        .update(agentPendingWorkTable)
+        .set({ seenAt: new Date(), settledRunId: input.runId, state: 'seen' })
         .where(
             and(
                 eq(agentPendingWorkTable.agentId, input.agentId),
-                eq(agentPendingWorkTable.runId, input.runId)
+                eq(agentPendingWorkTable.runId, input.runId),
+                ne(agentPendingWorkTable.state, 'seen')
             )
         );
 }
@@ -579,11 +594,12 @@ export async function requeuePendingForRun(
 ): Promise<void> {
     await db
         .update(agentPendingWorkTable)
-        .set({ runId: null })
+        .set({ acceptedAt: null, runId: null, servedAt: null, state: 'queued' })
         .where(
             and(
                 eq(agentPendingWorkTable.agentId, input.agentId),
-                eq(agentPendingWorkTable.runId, input.runId)
+                eq(agentPendingWorkTable.runId, input.runId),
+                ne(agentPendingWorkTable.state, 'seen')
             )
         );
 }
@@ -655,6 +671,7 @@ export async function listDispatchCandidates(
         .where(
             and(
                 isNull(agentPendingWorkTable.runId),
+                eq(agentPendingWorkTable.state, 'queued'),
                 isNull(agentDeliveryTable.activeRunId),
                 eq(agentDeliveryTable.stopped, false),
                 lt(agentDeliveryTable.consecutiveFailures, maxFailures),
@@ -667,4 +684,13 @@ export async function listDispatchCandidates(
         byAgent.set(row.agentId, row);
     }
     return [...byAgent.values()];
+}
+
+/** The live queue predicate: the only rows a dispatch may still deliver. */
+function queuedFor(agentId: string) {
+    return and(
+        eq(agentPendingWorkTable.agentId, agentId),
+        eq(agentPendingWorkTable.state, 'queued'),
+        isNull(agentPendingWorkTable.runId)
+    );
 }

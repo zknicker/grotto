@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentInboxCursorsTable,
@@ -90,7 +90,8 @@ export async function advanceSeenForRun(
             and(
                 eq(agentPendingWorkTable.serverId, input.serverId),
                 eq(agentPendingWorkTable.agentId, input.agentId),
-                eq(agentPendingWorkTable.runId, input.runId)
+                eq(agentPendingWorkTable.runId, input.runId),
+                ne(agentPendingWorkTable.state, 'seen')
             )
         );
     for (const row of rows) {
@@ -126,20 +127,24 @@ export async function advanceSeenForRun(
 }
 
 /**
- * Removes queued rows only after model-seen proof. `served` is a hold-decision
- * assist, never consumption authority: a pull followed by a crash must replay
- * from `seen` instead of deleting unseen work.
+ * Settles queued rows the seen cursor already covers, only after model-seen
+ * proof. `served` is a hold-decision assist, never consumption authority: a pull
+ * followed by a crash must replay from `seen` instead of consuming unseen work.
+ * The rows leave the live queue as ledger evidence rather than disappearing. No
+ * turn settled them — the cursor subsumed them — so `settled_run_id` stays null.
  */
-export async function deleteSeenQueuedWork(
+export async function markCursorSubsumedSeen(
     db: GrottoDatabase,
     input: { agentId: string; serverId: string }
 ) {
     const generation = await readAgentSessionGeneration(db, input.agentId);
     await db.execute(sql`
-        delete from agent_pending_work pending
-        using chat_messages message, agent_inbox_cursors cursor
+        update agent_pending_work pending
+        set state = 'seen', seen_at = now()
+        from chat_messages message, agent_inbox_cursors cursor
         where pending.server_id = ${input.serverId}
           and pending.agent_id = ${input.agentId}
+          and pending.state = 'queued'
           and pending.run_id is null
           and pending.pierced = false
           and message.server_id = pending.server_id

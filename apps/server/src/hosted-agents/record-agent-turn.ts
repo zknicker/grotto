@@ -30,8 +30,10 @@ export async function recordAgentTurnSummary(
             agentId: summary.agentId,
             computerId,
             endedAt: new Date(summary.endedAt),
+            failureKind: summary.failureKind ?? null,
             id: createOpaqueId('atn'),
             messageCount: summary.messageCount,
+            outputProduced: summary.outputProduced,
             runId: summary.runId,
             serverId: agent.serverId,
             startedAt: new Date(summary.startedAt),
@@ -41,7 +43,9 @@ export async function recordAgentTurnSummary(
         .onConflictDoUpdate({
             set: {
                 endedAt: new Date(summary.endedAt),
+                failureKind: summary.failureKind ?? null,
                 messageCount: summary.messageCount,
+                outputProduced: summary.outputProduced,
                 reportedAt: new Date(),
                 status: summary.status,
                 summary: summary.summary,

@@ -25,7 +25,7 @@ export async function assertAgentDeliveryAccess(
             'Only a Server Owner or Admin can Stop or Start an Agent.'
         );
     }
-    await requireAgent(db, input);
+    await requireHostedAgent(db, input);
 }
 
 /** Authorizes a human session or full reset of an active Agent. */
@@ -44,7 +44,7 @@ export async function readHostedAgentDeliveryState(
     input: HostedAgentDeliveryControlInput
 ): Promise<HostedAgentDeliveryState> {
     await requireServerMembership(db, member, input.serverId);
-    await requireAgent(db, input);
+    await requireHostedAgent(db, input);
     const [state, pending] = await Promise.all([
         readDeliveryState(db, input.agentId),
         countQueuedPending(db, input.agentId),
@@ -57,9 +57,10 @@ export async function readHostedAgentDeliveryState(
     };
 }
 
-async function requireAgent(
+/** Refuses any read or control targeting an id that is not a live Agent here. */
+export async function requireHostedAgent(
     db: GrottoDatabase,
-    input: HostedAgentDeliveryControlInput
+    input: { agentId: string; serverId: string }
 ): Promise<void> {
     const [agent] = await db
         .select({ id: agentsTable.id })

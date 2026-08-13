@@ -186,7 +186,8 @@ async function discardQueuedChannelWork(
                 agentPendingWorkTable.chatId,
                 chats.map(({ id }) => id)
             ),
-            isNull(agentPendingWorkTable.runId)
+            isNull(agentPendingWorkTable.runId),
+            eq(agentPendingWorkTable.state, 'queued')
         )
     );
 }

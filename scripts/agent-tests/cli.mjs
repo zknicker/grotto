@@ -15,8 +15,12 @@ import { buildSummary, buildTranscript, createReportWriter, runStamp } from './r
 import { createExpect, isScenario } from './scenario.mjs';
 import { describeSweep, sweepAgentTestLeftovers } from './sweep.mjs';
 
-/** Agents are per scenario, so provider throughput is what caps the lanes. */
-const defaultLaneCeiling = 8;
+/**
+ * Agents are per scenario, so machine + provider throughput caps the lanes:
+ * measured on a dev Mac, 3 lanes (≈6-10 concurrent codex sessions) holds
+ * ~90% pass; 8 lanes wedges turns en masse. Override with --lanes.
+ */
+const defaultLaneCeiling = 3;
 
 const scenariosDirectory = fileURLToPath(new URL('./scenarios/', import.meta.url));
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));

@@ -7,6 +7,7 @@ const {
     Menu,
     nativeTheme,
     safeStorage,
+    screen,
     session,
     shell,
     webContents,
@@ -22,6 +23,7 @@ const { registerEditContextMenuHandlers } = require('./edit-context-menu.cjs');
 const { registerExternalLinkHandlers } = require('./external-link-handlers.cjs');
 const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
 const { buildWindowUrl, isSafeWindowRoute, nextWindowBounds } = require('./window-routing.cjs');
+const { readWindowState, resolveInitialBounds, writeWindowState } = require('./window-state.cjs');
 
 // A broken stdout/stderr pipe (e.g. the dev launcher's reader went away, or a logging
 // library writes after the pipe closed) must never crash the app with an uncaught EPIPE.
@@ -60,6 +62,8 @@ let mainWindow = null;
 let updateCheckInterval = null;
 let availableDesktopUpdateVersion = null;
 const newWindowOffsetPx = 36;
+const minWindowWidth = 1100;
+const minWindowHeight = 760;
 
 if (process.env.TAVERN_ELECTRON_DEV_URL) {
     const stackId = (process.env.TAVERN_DEV_STACK_ID || 'default').replace(
@@ -89,15 +93,15 @@ if (useMockUpdater) {
 }
 
 function createWindow({ route, openerBounds } = {}) {
-    const bounds = nextWindowBounds(openerBounds, { offset: newWindowOffsetPx });
+    const bounds = initialWindowBounds(openerBounds);
     const window = new BrowserWindow({
         title: 'Grotto',
         width: bounds.width,
         height: bounds.height,
         x: bounds.x,
         y: bounds.y,
-        minWidth: 1100,
-        minHeight: 760,
+        minWidth: minWindowWidth,
+        minHeight: minWindowHeight,
         resizable: true,
         show: false,
         backgroundColor: '#00000000',
@@ -105,7 +109,9 @@ function createWindow({ route, openerBounds } = {}) {
         titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
         trafficLightPosition: process.platform === 'darwin' ? macosTrafficLightPosition : undefined,
         vibrancy: process.platform === 'darwin' ? 'menu' : undefined,
-        visualEffectState: process.platform === 'darwin' ? 'active' : undefined,
+        // followWindow lets macOS dim the vibrancy material when the window
+        // loses focus, matching native windows.
+        visualEffectState: process.platform === 'darwin' ? 'followWindow' : undefined,
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
@@ -120,6 +126,37 @@ function createWindow({ route, openerBounds } = {}) {
     window.once('ready-to-show', () => {
         window.show();
     });
+
+    window.on('focus', () => {
+        window.webContents.send('desktop:window:focus-state', true);
+    });
+
+    window.on('blur', () => {
+        window.webContents.send('desktop:window:focus-state', false);
+    });
+
+    if (process.platform === 'darwin') {
+        // "Swipe between pages" and mouse back/forward buttons. Electron
+        // reports the AppKit delta convention, not the physical finger
+        // direction: the back gesture arrives as 'left' (verified on device —
+        // do not "fix" this to match Safari intuition).
+        window.on('swipe', (_event, direction) => {
+            if (direction === 'left') {
+                window.webContents.send('desktop:window:history', 'back');
+            } else if (direction === 'right') {
+                window.webContents.send('desktop:window:history', 'forward');
+            }
+        });
+    }
+
+    // Last interaction wins, so the app reopens where the user left it. The
+    // end-of-operation events also cover force-quit, which skips 'close'.
+    const persistBounds = () => {
+        writeWindowState(windowStatePath(), window.getNormalBounds());
+    };
+    window.on('resized', persistBounds);
+    window.on('moved', persistBounds);
+    window.on('close', persistBounds);
 
     window.on('closed', () => {
         windows.delete(window);
@@ -137,6 +174,24 @@ function createWindow({ route, openerBounds } = {}) {
     void loadWindow(window, route);
 
     return window;
+}
+
+function windowStatePath() {
+    return path.join(app.getPath('userData'), 'window-state.json');
+}
+
+/** New windows offset from their opener; the first window restores saved bounds. */
+function initialWindowBounds(openerBounds) {
+    const defaults = nextWindowBounds(openerBounds, { offset: newWindowOffsetPx });
+    if (openerBounds) {
+        return defaults;
+    }
+
+    return resolveInitialBounds(
+        readWindowState(windowStatePath()),
+        screen.getAllDisplays().map((display) => display.workArea),
+        { minWidth: minWindowWidth, minHeight: minWindowHeight, defaults }
+    );
 }
 
 function installDevelopmentDockIcon() {
@@ -163,6 +218,12 @@ function installAppMenu() {
                       submenu: [
                           { role: 'about' },
                           { type: 'separator' },
+                          {
+                              accelerator: 'CmdOrCtrl+,',
+                              click: () => openSettingsWindow(),
+                              label: 'Settings…',
+                          },
+                          { type: 'separator' },
                           { role: 'services' },
                           { type: 'separator' },
                           { role: 'hide' },
@@ -175,6 +236,48 @@ function installAppMenu() {
               ]
             : []),
         {
+            label: 'File',
+            submenu: [
+                {
+                    accelerator: 'CmdOrCtrl+N',
+                    click: () => {
+                        const opener = BrowserWindow.getFocusedWindow();
+                        createWindow({ openerBounds: opener?.getBounds() });
+                    },
+                    label: 'New Window',
+                },
+                {
+                    accelerator: 'CmdOrCtrl+T',
+                    click: () => {
+                        BrowserWindow.getFocusedWindow()?.webContents.send(
+                            'desktop:window:new-tab'
+                        );
+                    },
+                    label: 'New Tab',
+                },
+                { type: 'separator' },
+                {
+                    // Not role: 'close' — the renderer closes an open artifact
+                    // tab first and only falls back to closing the window.
+                    accelerator: 'CmdOrCtrl+W',
+                    click: () => {
+                        const window = BrowserWindow.getFocusedWindow();
+                        if (!window) {
+                            return;
+                        }
+
+                        if (window.webContents.isCrashed()) {
+                            window.close();
+                            return;
+                        }
+
+                        window.webContents.send('desktop:window:close-request');
+                    },
+                    label: 'Close',
+                },
+            ],
+        },
+        {
             label: 'Edit',
             submenu: [
                 { role: 'undo' },
@@ -184,8 +287,40 @@ function installAppMenu() {
                 { role: 'copy' },
                 { role: 'paste' },
                 { role: 'selectAll' },
+                { type: 'separator' },
+                {
+                    accelerator: 'CmdOrCtrl+F',
+                    click: () => sendToFocusedWindow('desktop:search:open'),
+                    label: 'Find…',
+                },
             ],
         },
+        {
+            label: 'View',
+            submenu: [
+                { role: 'resetZoom' },
+                { role: 'zoomIn' },
+                { role: 'zoomOut' },
+                { type: 'separator' },
+                { role: 'togglefullscreen' },
+            ],
+        },
+        {
+            label: 'Go',
+            submenu: [
+                {
+                    accelerator: 'CmdOrCtrl+[',
+                    click: () => sendToFocusedWindow('desktop:window:history', 'back'),
+                    label: 'Back',
+                },
+                {
+                    accelerator: 'CmdOrCtrl+]',
+                    click: () => sendToFocusedWindow('desktop:window:history', 'forward'),
+                    label: 'Forward',
+                },
+            ],
+        },
+        { role: 'windowMenu' },
         {
             label: 'Developer',
             submenu: [
@@ -212,9 +347,33 @@ function installAppMenu() {
                 },
             ],
         },
+        {
+            role: 'help',
+            submenu: [
+                {
+                    click: () => shell.openExternal(productionAppUrl),
+                    label: 'Grotto Website',
+                },
+            ],
+        },
     ];
 
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+/** Routes the frontmost window (or a fresh one) to Settings for the ⌘, menu item. */
+function openSettingsWindow() {
+    const window = BrowserWindow.getFocusedWindow() ?? mainWindow;
+    if (!window) {
+        createWindow({ route: '/settings' });
+        return;
+    }
+
+    window.webContents.send('desktop:settings:open');
+}
+
+function sendToFocusedWindow(channel, ...args) {
+    BrowserWindow.getFocusedWindow()?.webContents.send(channel, ...args);
 }
 
 function registerIpcHandlers() {
@@ -246,6 +405,15 @@ function registerIpcHandlers() {
     ipcMain.handle('desktop:window:close', (event) => {
         assertTrustedRenderer(event, appUrl);
         BrowserWindow.fromWebContents(event.sender)?.close();
+    });
+
+    ipcMain.handle('desktop:dock:set-badge', (event, count) => {
+        assertTrustedRenderer(event, appUrl);
+        if (!Number.isInteger(count) || count < 0) {
+            return;
+        }
+
+        app.dock?.setBadge(count > 0 ? String(count) : '');
     });
 
     ipcMain.handle('desktop:window:set-theme', (event, theme) => {
@@ -414,13 +582,31 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+    // macOS apps keep running with no windows; the Dock icon reopens one.
+    // Dev-port cleanup then waits for real quit (before-quit covers it).
+    if (process.platform === 'darwin') {
+        return;
+    }
+
     cleanupDevPortsOnce();
     app.quit();
+});
+
+app.on('activate', () => {
+    if (windows.size === 0) {
+        createWindow();
+    }
 });
 
 app.on('before-quit', () => {
     if (updateCheckInterval) {
         clearInterval(updateCheckInterval);
+    }
+
+    // Quit can skip per-window close events, so capture geometry here too.
+    const window = BrowserWindow.getFocusedWindow() ?? mainWindow;
+    if (window && !window.isDestroyed()) {
+        writeWindowState(windowStatePath(), window.getNormalBounds());
     }
 
     cleanupDevPortsOnce();

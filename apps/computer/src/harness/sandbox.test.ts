@@ -14,18 +14,22 @@ test('provider credentials remain references to host-native auth, never copies',
     const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-'));
     roots.push(root);
     const hostHomeDir = join(root, 'host');
+    const hostGrokHomeDir = join(root, 'host-grok');
     const homeDir = join(root, 'agent-home');
     await mkdir(join(hostHomeDir, '.codex'), { recursive: true });
     await mkdir(join(hostHomeDir, '.claude'), { recursive: true });
     await mkdir(join(hostHomeDir, '.pi'), { recursive: true });
+    await mkdir(hostGrokHomeDir, { recursive: true });
     await writeFile(join(hostHomeDir, '.codex', 'auth.json'), '{"token":"codex-one"}');
     await writeFile(join(hostHomeDir, '.claude.json'), '{"token":"claude-one"}');
     await writeFile(join(hostHomeDir, '.claude', '.credentials.json'), '{"oauth":"one"}');
     await writeFile(join(hostHomeDir, '.pi', 'auth.json'), '{"token":"pi-one"}');
+    await writeFile(join(hostGrokHomeDir, 'auth.json'), '{"token":"grok-one"}');
 
     const provider = createLocalTrustedSandboxProvider({
-        authProfiles: ['codex', 'claude-code', 'pi'],
+        authProfiles: ['codex', 'claude-code', 'grok-build', 'pi'],
         homeDir,
+        hostGrokHomeDir,
         hostHomeDir,
         rootDir: join(root, 'workspace'),
     });
@@ -40,6 +44,7 @@ test('provider credentials remain references to host-native auth, never copies',
         join(homeDir, '.claude.json'),
         join(homeDir, '.claude', '.credentials.json'),
         join(homeDir, '.pi', 'auth.json'),
+        join(homeDir, '.grok', 'auth.json'),
     ];
     for (const reference of references) {
         expect((await lstat(reference)).isSymbolicLink()).toBe(true);
@@ -47,6 +52,9 @@ test('provider credentials remain references to host-native auth, never copies',
 
     await writeFile(join(hostHomeDir, '.codex', 'auth.json'), '{"token":"codex-two"}');
     expect(await readFile(join(homeDir, '.codex', 'auth.json'), 'utf8')).toContain('codex-two');
+    expect(await realpath(join(homeDir, '.grok', 'auth.json'))).toBe(
+        await realpath(join(hostGrokHomeDir, 'auth.json'))
+    );
 });
 
 test('sandbox file operations reject another Agent root', async () => {

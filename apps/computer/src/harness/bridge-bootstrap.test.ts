@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { createCodex } from '@ai-sdk/harness-codex';
+import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { validateComputerBridgeAssets, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 
 for (const bridge of [
@@ -46,4 +47,20 @@ for (const bridge of [
 
 test('Computer embeds every packaged harness bridge asset', async () => {
     await expect(validateComputerBridgeAssets()).resolves.toBeUndefined();
+});
+
+test('Grok Build bridge pins the private live-interjection contract', async () => {
+    const bootstrap = await createGrokBuild().getBootstrap?.();
+    const bridge = bootstrap?.files?.find(
+        (file) => file.path === '.harness-bootstrap/grok-build/bridge.mjs'
+    )?.content;
+
+    expect(bridge).toBeDefined();
+    expect(bridge).toContain('connection.agent.request("_x.ai/interject"');
+    expect(bridge).not.toContain('connection.agent.request("x.ai/interject"');
+    expect(bridge).toContain('await interjectionReady');
+    expect(bridge).toContain('message.kind === "session_update"');
+    expect(bridge).toContain('markInterjectionReady?.()');
+    expect(bridge).toContain('grok-interjection-accepted');
+    expect(bridge).toContain('grok-interjection-rejected');
 });

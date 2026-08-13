@@ -9,6 +9,7 @@ import {
 } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { createCodex } from '@ai-sdk/harness-codex';
+import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
@@ -39,8 +40,8 @@ import { readAgentSkills } from './skills.ts';
 /**
  * A ported copy of Runtime's `harness-agent-executor.ts`, adapted to the
  * Computer's launch boundary. It drives the real `@ai-sdk/harness` Codex, Claude
- * Code, and Pi adapters for one Agent turn: an isolated workspace/HOME/skills,
- * native host provider login (the sandbox seeds the machine's own session), the
+ * Code, Grok Build, and Pi adapters for one Agent turn: an isolated
+ * workspace/HOME/skills, native host provider login (the sandbox seeds the machine's own session), the
  * managed `grotto` wrapper as the sole output channel, the ported Grotto
  * operating/system prompt (`instructions.ts`) composed per turn and delivered
  * once on cold start, and the Agent's one global persistent session resumed
@@ -545,6 +546,18 @@ function createHarnessAgent(
 function sandboxOptions(input: HarnessTurnInput) {
     const rootDir = dirname(input.workspaceDir);
     const profile = authProfileFor(input.runtimeId);
+    if (input.runtimeId === 'grok-build') {
+        return {
+            authProfiles: ['grok-build'] as const,
+            env: {
+                ...input.env,
+                GROK_HOME: join(input.homeDir, '.grok'),
+                HOME: input.homeDir,
+            },
+            homeDir: input.homeDir,
+            rootDir,
+        };
+    }
     if (input.runtimeId !== 'codex') {
         return {
             ...(profile ? { authProfiles: [profile] as const } : {}),
@@ -568,7 +581,12 @@ function sandboxOptions(input: HarnessTurnInput) {
 }
 
 function authProfileFor(runtimeId: string) {
-    if (runtimeId === 'claude-code' || runtimeId === 'codex' || runtimeId === 'pi') {
+    if (
+        runtimeId === 'claude-code' ||
+        runtimeId === 'codex' ||
+        runtimeId === 'grok-build' ||
+        runtimeId === 'pi'
+    ) {
         return runtimeId;
     }
     return null;
@@ -604,6 +622,8 @@ function createHarnessForRuntime(
                 }),
                 'codex'
             ) as HarnessV1<ToolSet>;
+        case 'grok-build':
+            return createGrokBuild({ model: modelId }) as HarnessV1<ToolSet>;
         case 'pi':
             return createPi({ model: modelId }) as HarnessV1<ToolSet>;
         default:

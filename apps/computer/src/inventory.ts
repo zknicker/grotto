@@ -33,6 +33,13 @@ const knownRuntimes: { command: string; runtime: ComputerRuntime }[] = [
         command: 'pi',
         runtime: supportedRuntime('pi', [{ id: 'pi', label: 'Pi' }]),
     },
+    {
+        command: 'grok',
+        runtime: supportedRuntime('grok-build', [
+            { id: 'grok-4.6', label: 'Grok 4.6' },
+            { id: 'grok-4.5', label: 'Grok 4.5' },
+        ]),
+    },
 ];
 
 /**

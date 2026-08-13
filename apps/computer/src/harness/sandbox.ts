@@ -20,16 +20,18 @@ import type {
  * `local-trusted-sandbox.ts`. Commands run as real host child processes so the
  * managed `grotto` wrapper on PATH — the Agent's only output channel — reaches
  * the loopback proxy. Each launch gets an isolated logical HOME referencing the
- * host's native provider login (Codex OAuth, Claude, Pi). Provider credentials
- * remain host-owned (ADR 0019).
+ * host's native provider login (Codex OAuth, Claude, Grok Build, Pi).
+ * Provider credentials remain host-owned (ADR 0019).
  */
-export type LocalTrustedSandboxAuthProfile = 'claude-code' | 'codex' | 'pi';
+export type LocalTrustedSandboxAuthProfile = 'claude-code' | 'codex' | 'grok-build' | 'pi';
 
 interface LocalTrustedSandboxOptions {
     authProfiles?: readonly LocalTrustedSandboxAuthProfile[];
     env?: Record<string, string>;
     /** Where seeded auth profiles land; defaults to `<rootDir>/.home`. */
     homeDir?: string;
+    /** Physical Grok home used only as the source of the host-owned login. */
+    hostGrokHomeDir?: string;
     hostHomeDir?: string;
     rootDir: string;
 }
@@ -45,6 +47,9 @@ export function createLocalTrustedSandboxProvider(
             process.env.HOME ??
             os.homedir()
     );
+    const hostGrokHomeDir = path.resolve(
+        options.hostGrokHomeDir ?? process.env.GROK_HOME ?? path.join(hostHomeDir, '.grok')
+    );
 
     return {
         createSession: async (input = {}) => {
@@ -52,6 +57,7 @@ export function createLocalTrustedSandboxProvider(
                 authProfiles: options.authProfiles ?? [],
                 env: options.env ?? {},
                 homeDir,
+                hostGrokHomeDir,
                 hostHomeDir,
                 rootDir,
                 sessionId: input.sessionId,
@@ -69,6 +75,7 @@ export function createLocalTrustedSandboxProvider(
                 authProfiles: options.authProfiles ?? [],
                 env: options.env ?? {},
                 homeDir,
+                hostGrokHomeDir,
                 hostHomeDir,
                 rootDir,
                 sessionId: input.sessionId,
@@ -81,6 +88,7 @@ async function createLocalTrustedSandboxSession(input: {
     authProfiles: readonly LocalTrustedSandboxAuthProfile[];
     env: Record<string, string>;
     homeDir: string;
+    hostGrokHomeDir: string;
     hostHomeDir: string;
     rootDir: string;
     sessionId?: string;
@@ -90,6 +98,7 @@ async function createLocalTrustedSandboxSession(input: {
     await referenceAuthProfiles({
         authProfiles: input.authProfiles,
         homeDir: input.homeDir,
+        hostGrokHomeDir: input.hostGrokHomeDir,
         hostHomeDir: input.hostHomeDir,
     });
     const id = input.sessionId ?? `local_${randomUUID()}`;
@@ -247,6 +256,7 @@ function resolveLocalPath(rootDir: string, value: string) {
 async function referenceAuthProfiles(input: {
     authProfiles: readonly LocalTrustedSandboxAuthProfile[];
     homeDir: string;
+    hostGrokHomeDir: string;
     hostHomeDir: string;
 }) {
     if (input.authProfiles.includes('codex')) {
@@ -271,6 +281,12 @@ async function referenceAuthProfiles(input: {
         await linkIfExists({
             source: path.join(input.hostHomeDir, '.pi', 'auth.json'),
             target: path.join(input.homeDir, '.pi', 'auth.json'),
+        });
+    }
+    if (input.authProfiles.includes('grok-build')) {
+        await linkIfExists({
+            source: path.join(input.hostGrokHomeDir, 'auth.json'),
+            target: path.join(input.homeDir, '.grok', 'auth.json'),
         });
     }
 }

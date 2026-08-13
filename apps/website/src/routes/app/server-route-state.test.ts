@@ -34,7 +34,6 @@ describe('Server route state', () => {
 
     test('hides contextual navigation on full-width destinations', () => {
         expect(shouldShowSidebar('search', true)).toBe(false);
-        expect(shouldShowSidebar('reminders', true)).toBe(false);
         expect(shouldShowSidebar('computers', false)).toBe(false);
         expect(shouldShowSidebar('computers', true)).toBe(true);
         expect(shouldShowSidebar('members', true)).toBe(true);

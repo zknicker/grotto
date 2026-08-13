@@ -7,7 +7,6 @@ export const appRoutes = {
     archivedChats: '/chats/archived',
     tasks: '/tasks',
     activity: '/activity',
-    reminders: '/reminders',
     members: '/members',
     membersHumans: '/members/humans',
     memberAgent(agentId: string) {

@@ -16,7 +16,6 @@ import { ServerChoicePanel } from '../../features/servers/server-choice-panel.ts
 import {
     membersRoute,
     serverComputersRoute,
-    serverRemindersRoute,
     serverRoute,
     serverSearchRoute,
     serverSettingsRoute,
@@ -114,7 +113,6 @@ export function ServerLayout() {
             chat: chatSectionRoute,
             computers: serverComputersRoute(slug),
             members: membersRoute(slug),
-            reminders: serverRemindersRoute(slug),
             search: serverSearchRoute(slug),
             settings: serverSettingsRoute(slug),
             tasks: tasksRoute(slug),

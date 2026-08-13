@@ -6,14 +6,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 
-export type AppRailSection =
-    | 'chat'
-    | 'computers'
-    | 'members'
-    | 'reminders'
-    | 'search'
-    | 'settings'
-    | 'tasks';
+export type AppRailSection = 'chat' | 'computers' | 'members' | 'search' | 'settings' | 'tasks';
 
 /**
  * Far-left icon rail: a permanently collapsed HeroUI Sidebar (icon mode),
@@ -44,9 +37,6 @@ export function AppRail({
         { id: 'chat', label: 'Chat' },
         { id: 'tasks', label: 'Tasks' },
     ];
-    if (canOperate) {
-        items.push({ id: 'reminders', label: 'Reminders' });
-    }
     items.push({ id: 'members', label: 'Members' });
 
     return (

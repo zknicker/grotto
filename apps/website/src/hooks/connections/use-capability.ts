@@ -67,9 +67,6 @@ export const routeTabCapabilityRequirements = {
     activity: [],
     chat: [],
     members: [],
-    // Reminders is a static honest-empty page (specs/tasks.md) until the
-    // tasks-and-reminders workstream lands; it never gates on the runtime.
-    reminders: [],
     search: [],
     // Tasks is a static honest-empty page (specs/tasks.md) until the
     // chat-first tasks workstream lands; it never gates on the runtime.

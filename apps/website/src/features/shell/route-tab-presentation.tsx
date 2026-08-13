@@ -3,7 +3,6 @@ import {
     Activity03Icon,
     BubbleChatIcon,
     CheckListIcon,
-    Notification03Icon,
     Search01Icon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
@@ -32,8 +31,6 @@ export function getRouteTabIcon(tab: RouteTab): IconSvgElement {
             return BubbleChatIcon;
         case 'activity':
             return Activity03Icon;
-        case 'reminders':
-            return Notification03Icon;
         case 'members':
             return UserMultiple02Icon;
     }

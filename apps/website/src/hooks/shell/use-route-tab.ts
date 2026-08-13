@@ -7,7 +7,6 @@ export const routeTabs = [
     { id: 'chat', label: 'Chat', path: appRoutes.chats },
     { id: 'activity', label: 'Activity', path: appRoutes.activity },
     { id: 'tasks', label: 'Tasks', path: appRoutes.tasks },
-    { id: 'reminders', label: 'Reminders', path: appRoutes.reminders },
     { id: 'members', label: 'Members', path: appRoutes.members },
 ] as const;
 
@@ -22,10 +21,6 @@ function isRouteTab(value: string | null): value is RouteTab {
 export function getRouteTab(pathname: string): RouteTab | null {
     const segments = pathname.split('/').filter(Boolean);
     const primaryTab = segments[0] === 'dashboard' ? (segments[1] ?? null) : (segments[0] ?? null);
-
-    if (primaryTab === 'automations' || primaryTab === 'cron') {
-        return 'reminders';
-    }
 
     if (primaryTab === 'chats') {
         return 'chat';

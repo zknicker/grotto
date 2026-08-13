@@ -47,12 +47,10 @@ describe('hosted command groups', () => {
             'Settings',
             'Developer',
         ]);
-        expect(groups.flatMap((group) => group.commands.map((command) => command.title))).toContain(
-            'Focus Composer'
-        );
-        expect(groups.flatMap((group) => group.commands.map((command) => command.title))).toContain(
-            'Agent Profile'
-        );
+        const titles = groups.flatMap((group) => group.commands.map((command) => command.title));
+        expect(titles).toContain('Focus Composer');
+        expect(titles).toContain('Agent Profile');
+        expect(titles).not.toContain('Reminders');
         expect(groups.find((group) => group.id === 'developer')?.commands).toHaveLength(2);
 
         groups.find((group) => group.id === 'direct-messages')?.commands[0]?.run();

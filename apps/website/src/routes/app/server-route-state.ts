@@ -19,7 +19,7 @@ export function resolveSidebarPage(active: AppRailSection, canOperate: boolean) 
 }
 
 export function shouldShowSidebar(active: AppRailSection, canOperate: boolean) {
-    if (active === 'search' || active === 'reminders') {
+    if (active === 'search') {
         return false;
     }
     return active !== 'computers' || canOperate;
@@ -41,9 +41,6 @@ export function resolveActiveSection(pathname: string, slug: string): AppRailSec
     }
     if (suffix.startsWith('/computers')) {
         return 'computers';
-    }
-    if (suffix.startsWith('/reminders')) {
-        return 'reminders';
     }
     if (suffix.startsWith('/settings')) {
         return 'settings';

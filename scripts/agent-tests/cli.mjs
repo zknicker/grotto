@@ -132,12 +132,25 @@ async function runScenario(harness, { index, scenario }) {
         });
     } catch (cause) {
         error = cause;
-    } finally {
-        await kit.cleanup().catch(() => undefined);
-        lease?.release();
     }
 
+    // The verdict clock stops here: teardown is not scenario time. Cleanup is
+    // bounded — a chat delete stalled behind a still-active turn defers its
+    // ids to the next lease via the state ledger instead of stretching this
+    // run; the ledger only forgets ids the delete confirmed.
     const seconds = Math.round((Date.now() - startedAtScenario) / 1000);
+    await Promise.race([
+        kit.cleanup().catch((cause) => {
+            process.stderr.write(`\ncleanup deferred for ${key}: ${String(cause).slice(0, 200)}\n`);
+        }),
+        new Promise((resolve) => setTimeout(resolve, 60_000).unref?.()).then(() => {
+            process.stderr.write(
+                `\ncleanup for ${key} exceeded 60s; deferring to the next lease.\n`
+            );
+        }),
+    ]);
+    lease?.release();
+
     const result = {
         agents: lease?.agents.map((agent) => agent.handle) ?? [],
         assertions,

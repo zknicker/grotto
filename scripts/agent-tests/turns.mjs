@@ -57,11 +57,14 @@ export function createTurnObserver({ serverId, trpc }) {
     /**
      * Waits for one new settled turn: the Agent must start within `startWithin`
      * and the Server must record a new settled turn — with delivery quiet —
-     * within `settleWithin`.
+     * within `settleWithin`. An observably-running turn is honest waiting, so
+     * the settle budget is generous; hitting it means the turn is wedged and
+     * the failure is terminal — never retry it while the Agent may still be
+     * mid-turn.
      */
     async function settleTurn(
         agentId,
-        { onPhase, settleWithin = 240_000, startWithin = 15_000 } = {}
+        { onPhase, settleWithin = 600_000, startWithin = 15_000 } = {}
     ) {
         const known = new Set((await listTurns(agentId)).map((turn) => turn.runId));
         const startDeadline = Date.now() + startWithin;
@@ -87,8 +90,10 @@ export function createTurnObserver({ serverId, trpc }) {
         }
         onPhase?.('turn active');
 
-        const settleDeadline = Date.now() + settleWithin;
+        const activeSince = Date.now();
+        const settleDeadline = activeSince + settleWithin;
         let newest = null;
+        let lastHeartbeat = activeSince;
         const runIds = [];
         while (Date.now() < settleDeadline) {
             const [state, rows] = await Promise.all([deliveryState(agentId), listTurns(agentId)]);
@@ -103,10 +108,17 @@ export function createTurnObserver({ serverId, trpc }) {
             if (newest && !state.running && state.pending === 0) {
                 return { ...newest, runIds };
             }
+            if (Date.now() - lastHeartbeat >= 30_000) {
+                lastHeartbeat = Date.now();
+                onPhase?.(`working · ${asSeconds(Date.now() - activeSince)}s`);
+            }
             await sleep(settlePollMs);
         }
+        const stillRunning = lastState?.running === true;
         throw new Error(
-            `turn did not settle: Agent ${agentId} was still working after ${asSeconds(settleWithin)}s (${describeState(lastState)}, new turns ${runIds.length}).`
+            stillRunning
+                ? `turn wedged: Agent ${agentId} was still mid-turn after ${asSeconds(settleWithin)}s (${describeState(lastState)}, new turns ${runIds.length}). Terminal — do not retry while the turn may still be active.`
+                : `turn did not settle: Agent ${agentId} recorded no settled turn within ${asSeconds(settleWithin)}s (${describeState(lastState)}, new turns ${runIds.length}).`
         );
     }
 

@@ -68,7 +68,7 @@ export function taskChatOptions(chats: HostedChat[], humans: HumanDirectory) {
         }));
 }
 
-function taskAssigneeName(
+export function taskAssigneeName(
     task: Pick<TaskItem, 'assigneeAgentId' | 'assigneeUserId'>,
     agents: HostedAgent[],
     humans: HumanDirectory

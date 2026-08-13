@@ -17,6 +17,7 @@ import { ChatComposer } from '../chat/chat-composer.tsx';
 import { useChatTranscript } from '../chat/chat-transcript.tsx';
 import { PendingChatMessages } from '../chat/pending-messages.tsx';
 import { pendingThreadReplyKey, usePendingChatMessages } from '../chat/use-pending-messages.ts';
+import { TaskThreadMetadata } from '../tasks/task-thread-metadata.tsx';
 import { threadTitles } from './thread-target.ts';
 
 export function ThreadPanel({
@@ -172,6 +173,13 @@ function ThreadContent({
                 {/* px-5 matches the main chat viewport gutter so the
                             rows' full-width hover bleed stays contained. */}
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                    {anchor.task ? (
+                        <TaskThreadMetadata
+                            chatId={chat.id}
+                            fallbackTask={anchor.task}
+                            messageId={anchor.id}
+                        />
+                    ) : null}
                     {anchorEntries.map((entry) => (
                         <TranscriptEntryView
                             activeReply={null}
@@ -180,7 +188,9 @@ function ThreadContent({
                             key={entry.id}
                         />
                     ))}
-                    <ReplyDivider replyCount={replyCount} />
+                    {replyCount === 0 ? (
+                        <div className="py-8 text-center text-muted text-sm">No replies yet</div>
+                    ) : null}
                     {messages.hasOlderHistory ? (
                         <div className="mb-5 flex justify-center">
                             <Button
@@ -223,7 +233,6 @@ function ThreadContent({
                 <ChatComposer
                     chatId={chat.id}
                     chatName={titles.header}
-                    compositionChatId={threadChatId}
                     onThreadCreated={setCreatedThreadChatId}
                     pendingChatId={pendingThreadReplyKey(anchor.id)}
                     placeholder="Add a reply…"
@@ -231,23 +240,6 @@ function ThreadContent({
                     thread={{ anchorMessageId: anchor.id }}
                 />
             )}
-        </div>
-    );
-}
-
-function ReplyDivider({ replyCount }: { replyCount: number }) {
-    if (replyCount === 0) {
-        return <div className="py-8 text-center text-muted text-sm">No replies yet</div>;
-    }
-
-    return (
-        <div className="my-5 flex items-center gap-3 text-center text-muted text-xs">
-            <div className="h-px flex-1 bg-separator" />
-            <div>
-                <div>Beginning of replies</div>
-                <div>{`${String(replyCount)} ${replyCount === 1 ? 'reply' : 'replies'}`}</div>
-            </div>
-            <div className="h-px flex-1 bg-separator" />
         </div>
     );
 }

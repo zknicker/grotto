@@ -153,7 +153,7 @@ test('a hosted task message projects its status in the Chat and opens its Thread
         .getByText('Projected task message', { exact: true })
         .locator('xpath=ancestor::div[@data-message-id][1]');
     await expect(row.getByTestId('message-task-badge')).toBeVisible();
-    await expect(row.getByRole('button', { name: /Todo\. Open thread$/u })).toBeVisible();
+    await expect(row.getByRole('button', { name: 'Open task thread' })).toBeVisible();
 
     // Claiming advances status through the same task realtime invalidation; no reload.
     const claim = await client.task.claim.mutate({
@@ -165,11 +165,15 @@ test('a hosted task message projects its status in the Chat and opens its Thread
     if (!ownerSuffix) {
         throw new Error('The task projection flow did not resolve the claiming human.');
     }
-    await expect(row.getByRole('button', { name: /In progress.*Open thread$/u })).toBeVisible();
     await expect(row.getByTestId('message-task-badge')).toContainText(`Human ${ownerSuffix}`);
 
-    await row.getByRole('button', { name: /Open thread$/u }).click();
-    await expect(page.getByRole('complementary', { name: 'Thread' })).toBeVisible();
+    await row.getByRole('button', { name: 'Open task thread' }).click();
+    const thread = page.getByRole('complementary', { name: 'Thread' });
+    await expect(thread).toBeVisible();
+    await expect(thread.getByRole('region', { name: 'Task #1 details' })).toBeVisible();
+    await expect(thread.getByRole('button', { name: 'Status for task #1' })).toContainText(
+        'In progress'
+    );
 });
 
 function taskCard(page: Page) {

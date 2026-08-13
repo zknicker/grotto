@@ -5,15 +5,13 @@ import { useTaskUpdate } from '../../../hooks/servers/use-task-update.ts';
 import { LabelChip } from '../../tasks/label-chip.tsx';
 import {
     type TaskPriority,
-    type TaskStatus,
     taskPriorityLabels,
     taskPriorityOrder,
-    taskStatusLabels,
-    taskStatusOrder,
 } from '../../tasks/task-presentation.ts';
 import { useHostedServerContext } from '../hosted-server-context.ts';
 import { taskUpdateInput } from './task-input.ts';
 import type { TaskItem } from './task-model.ts';
+import { TaskStatusSelect } from './task-status-select.tsx';
 
 export function TaskMetadata({ task }: { task: TaskItem }) {
     const { server } = useHostedServerContext();
@@ -24,37 +22,13 @@ export function TaskMetadata({ task }: { task: TaskItem }) {
 
     return (
         <>
-            <Select
-                aria-label={`Status for task #${task.number}`}
+            <TaskStatusSelect
                 isDisabled={update.isPending}
-                onChange={(value) => {
-                    const status = value as TaskStatus;
-                    if (status && status !== task.status) {
-                        update.mutate(taskUpdateInput(server.id, task, { status }));
-                    }
-                }}
-                value={task.status}
-                variant="secondary"
-            >
-                <Select.Trigger>
-                    <Select.Value>{taskStatusLabels[task.status]}</Select.Value>
-                    <Select.Indicator />
-                </Select.Trigger>
-                <Select.Popover>
-                    <ListBox>
-                        {taskStatusOrder.map((status) => (
-                            <ListBox.Item
-                                id={status}
-                                key={status}
-                                textValue={taskStatusLabels[status]}
-                            >
-                                <Label>{taskStatusLabels[status]}</Label>
-                                <ListBox.ItemIndicator />
-                            </ListBox.Item>
-                        ))}
-                    </ListBox>
-                </Select.Popover>
-            </Select>
+                onStatusChange={(status) =>
+                    update.mutate(taskUpdateInput(server.id, task, { status }))
+                }
+                task={task}
+            />
             <Select
                 aria-label={`Priority for task #${task.number}`}
                 isDisabled={update.isPending}

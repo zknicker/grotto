@@ -3,7 +3,7 @@ summary: Hosted chat-first tasks — canonical messages with Server-owned lifecy
 read_when:
   - changing task promotion, claiming, assignment, statuses, priorities, or labels
   - changing hosted task authorization, events, or Thread work surfaces
-  - changing the Grotto App task board/list or managed task CLI contract
+  - changing the Server UI task board/list or managed task CLI contract
 ---
 
 # Tasks
@@ -29,13 +29,11 @@ lenses over the same message. Grotto does not keep a second task conversation or
   Only the current assignee can unclaim.
 - Done tasks cannot be claimed or unclaimed.
 
-Creating or promoting a task also appends one concise Server-authored system receipt to the
-parent Chat. The receipt identifies the task number and title (and, for conversion, the actor),
-uses the same centered system-message timeline presentation as other Server notices, and is
-informational only: the canonical task message and its Thread remain the work surface.
+Creating or promoting a task updates the canonical message projection and emits task events. It
+does not append a redundant system receipt to the parent Chat.
 
 Every lifecycle mutation after creation carries `expectedVersion`. Stale assignment or metadata
-writes fail and Grotto App waits for Server state rather than inventing durable optimistic task
+writes fail and the Server UI waits for Server state rather than inventing durable optimistic task
 records.
 
 ## Work surface and authorization
@@ -44,9 +42,10 @@ Promotion creates or resolves the deterministic hosted child Thread anchored to 
 message. Opening a task opens that Thread. The Thread has no independent membership: Server
 membership and parent-Chat participation remain the sole access authority.
 
-Agents post Task progress and execution updates in the Task Thread. Claiming a Task does not change
-reply routing: an Agent reply reuses the exact target from the received message, whether that target
-is a Channel, DM, or Thread.
+Agents use the Task Thread for progress and execution discussion. They deliver the final result
+there unless a human names another final-delivery target. That exception applies only to the final
+result, which is delivered once to the exact requested target. `Here` always means the human
+instruction message's target, never the Task Thread the Agent moved into.
 
 Task lists, eligible assignees, messages with task projections, task events, and Thread reads all
 apply the same hosted Server and parent-Chat authorization. Revoked members and humans who lose
@@ -55,17 +54,24 @@ Removing a human member or retiring an Agent releases their claims and assignmen
 or reactivation does not restore those links or access to task Threads from the former membership
 stint.
 
-## Grotto App and realtime
+## Server UI and realtime
 
-The hosted `/s/<slug>` Grotto App provides Board and List lenses with create, claim, unclaim,
+The hosted `/s/<slug>` Server UI provides Board and List lenses with create, claim, unclaim,
 assignment, status, priority, and task-label controls. Loading, empty, filtered-empty, and
 authorization failures are explicit. The Tasks topbar owns search, layout, and creation controls;
 the contextual sidebar owns saved views and label filters. Opening a row returns to its message
-and Thread.
+and Thread. A Task Thread shows the task number, current status, assignee, and creator beneath its
+anchor message. Status is editable there; Owners and Admins can also change or clear the human
+assignee. Both controls mutate the same authoritative task record used by Board and List views.
 
-Concrete durable events (`message.created` for the receipt, `task.created`, `task.updated`, and
-`task.label.updated`) notify Grotto App. The hosted realtime hook owns exact task-list, label-catalog,
+Concrete durable events (`message.created` for a newly composed task, `task.created`, `task.updated`, and
+`task.label.updated`) notify the Grotto App. The hosted realtime hook owns exact task-list, label-catalog,
 and affected-message invalidation; cursor catch-up applies the same invalidations after reconnect.
+
+In Chat, task metadata is compact and neutral: the task number owns the work-surface left edge,
+only the trailing status disc carries lifecycle color, and an assignee appears by avatar and display
+name. Every openable task uses the same recessed Thread surface; tasks with replies add the reply
+count and previews, while tasks without replies retain the same header padding and click target.
 
 There is no task calendar, due date, or `scheduledFor` field. Scheduling belongs to reminders, not
 tasks.
@@ -92,6 +98,5 @@ unknown. A missing reply is not approval, negative evidence, or completed work.
 
 ## Deliberate exclusions
 
-The task receipt is informational and does not replace the task row, durable task events, or its
-Thread. Also excluded: task scheduling, attachments, deletion, dependencies, epics, generic
+Also excluded: task scheduling, attachments, deletion, dependencies, epics, generic
 workflow machinery, and generic taxonomy infrastructure.

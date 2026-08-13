@@ -1,25 +1,21 @@
 diff --git a/dist/agent/index.d.ts b/dist/agent/index.d.ts
-index dcf8357e79aff9d23eca41dc9c20d18eddd7d8dd..e9106da0616d702a84368778f5e36f44e0a43701 100644
+index 99879fc6a2a0b64cae50fca2716e17ca39282b19..11ba1e12ae592ffe5a71cf5fde74c61cb0244169 100644
 --- a/dist/agent/index.d.ts
 +++ b/dist/agent/index.d.ts
-@@ -1377,6 +1377,12 @@ declare class HarnessAgentSession {
+@@ -1383,6 +1383,8 @@ declare class HarnessAgentSession {
       * the hood). Throws if the session has ended.
       */
      compact(customInstructions?: string): Promise<void>;
-+    /**
-+     * Deliver a user message into the turn currently in flight. Resolves true
-+     * when the adapter accepted the message; false when no turn is running or
-+     * the adapter does not support mid-turn input.
-+     */
++    /** Deliver a user message into the turn currently in flight. */
 +    sendUserMessage(text: string): Promise<boolean>;
      /**
       * Park the session, returning a payload the caller can persist and later
       * pass to `agent.createSession({ sessionId, resumeFrom })` to reconnect.
 diff --git a/dist/agent/index.js b/dist/agent/index.js
-index 342cf72d3124441648639f86f73ada1bf677aea3..23f0a41a3ccc2a441933d30d324fcf099a0dd036 100644
+index aaf221389c39a1da26ce1f85c433365413fe5065..febc6dd1acdb75cc60c62e167737faa6f79e1bfe 100644
 --- a/dist/agent/index.js
 +++ b/dist/agent/index.js
-@@ -1440,6 +1440,7 @@ function runPrompt(input) {
+@@ -1444,6 +1444,7 @@ function runPrompt(input) {
        return;
      }
      const { stream, control } = bridge;
@@ -27,7 +23,7 @@ index 342cf72d3124441648639f86f73ada1bf677aea3..23f0a41a3ccc2a441933d30d324fcf09
      const reader = stream.getReader();
      const toolCallsByToolCallId = /* @__PURE__ */ new Map();
      const rawToolCallsByToolCallId = /* @__PURE__ */ new Map();
-@@ -2172,6 +2173,7 @@ var HarnessAgentSession = class {
+@@ -2176,6 +2177,7 @@ var HarnessAgentSession = class {
      this.sessionState = "active";
      this.turnSequence = 0;
      this.activeTurnSequence = 0;
@@ -35,7 +31,7 @@ index 342cf72d3124441648639f86f73ada1bf677aea3..23f0a41a3ccc2a441933d30d324fcf09
      var _a4, _b4, _c;
      this.sessionId = options.sessionId;
      this.harness = options.harness;
-@@ -2253,10 +2255,15 @@ var HarnessAgentSession = class {
+@@ -2257,10 +2259,15 @@ var HarnessAgentSession = class {
          onToolResultSettled: (toolCallId) => {
            this.pendingToolResults.delete(toolCallId);
          },
@@ -51,7 +47,7 @@ index 342cf72d3124441648639f86f73ada1bf677aea3..23f0a41a3ccc2a441933d30d324fcf09
            this.finishTrackedTurn({ turnId });
          },
          isTurnSuspending: () => this.activeTurnSequence === turnId && this.suspendedTurnState != null,
-@@ -2264,6 +2271,7 @@ var HarnessAgentSession = class {
+@@ -2268,6 +2275,7 @@ var HarnessAgentSession = class {
        });
        return turn;
      } catch (error) {
@@ -59,7 +55,7 @@ index 342cf72d3124441648639f86f73ada1bf677aea3..23f0a41a3ccc2a441933d30d324fcf09
        this.finishTrackedTurn({ turnId });
        throw error;
      }
-@@ -2308,10 +2316,15 @@ var HarnessAgentSession = class {
+@@ -2312,10 +2320,15 @@ var HarnessAgentSession = class {
          onToolResultSettled: (toolCallId) => {
            this.pendingToolResults.delete(toolCallId);
          },
@@ -75,7 +71,7 @@ index 342cf72d3124441648639f86f73ada1bf677aea3..23f0a41a3ccc2a441933d30d324fcf09
            this.finishTrackedTurn({ turnId });
          },
          isTurnSuspending: () => this.activeTurnSequence === turnId && this.suspendedTurnState != null,
-@@ -2319,6 +2332,7 @@ var HarnessAgentSession = class {
+@@ -2323,6 +2336,7 @@ var HarnessAgentSession = class {
        });
        return turn;
      } catch (error) {
@@ -83,15 +79,11 @@ index 342cf72d3124441648639f86f73ada1bf677aea3..23f0a41a3ccc2a441933d30d324fcf09
        this.finishTrackedTurn({ turnId });
        throw error;
      }
-@@ -2336,6 +2350,22 @@ var HarnessAgentSession = class {
+@@ -2340,6 +2354,18 @@ var HarnessAgentSession = class {
    async compact(customInstructions) {
      await this.requireReusableSession().doCompact(customInstructions);
    }
-+  /**
-+   * Deliver a user message into the turn currently in flight. Resolves true
-+   * when the adapter accepted the message; false when no turn is running or
-+   * the adapter does not support mid-turn input.
-+   */
++  /** Deliver a user message into the turn currently in flight. */
 +  async sendUserMessage(text) {
 +    const control = this.activeTurnControl;
 +    if (!control || typeof control.submitUserMessage !== "function") {

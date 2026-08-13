@@ -1,0 +1,36 @@
+diff --git a/dist/index.js b/dist/index.js
+index 55d385f1c88cf94a4efaa068ec742cb4966ed9aa..3cdf9dddcc468b508562728dbefe6d4f45bbfcb3 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1,5 +1,4 @@
+ // src/grok-build-harness.ts
+-import { readFileSync } from "fs";
+ import {
+   commonTool
+ } from "@ai-sdk/harness";
+@@ -14,14 +13,6 @@ var VERSION = true ? "1.0.6" : "0.0.0-test";
+ 
+ // src/grok-build-harness.ts
+ var GROK_BUILD_CLIENT_APP = `ai-sdk/harness-grok-build/${VERSION}`;
+-var GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON = readFileSync(
+-  new URL("./bridge/package.json", import.meta.url),
+-  "utf8"
+-);
+-var GROK_BUILD_IMPLEMENTATION_PNPM_LOCK = readFileSync(
+-  new URL("./bridge/pnpm-lock.yaml", import.meta.url),
+-  "utf8"
+-);
+ var GROK_BUILD_BUILTIN_TOOLS = {
+   bash: commonTool("bash", {
+     nativeName: "run_terminal_command",
+@@ -257,9 +248,7 @@ function createGrokBuild(settings = {}) {
+       version: clientAppVersion
+     },
+     source: {
+-      type: "npm-locked",
+-      packageJson: GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON,
+-      pnpmLockYaml: GROK_BUILD_IMPLEMENTATION_PNPM_LOCK
++      type: "local"
+     },
+     executable: "grok",
+     args: ["agent", "stdio"],

@@ -1,0 +1,349 @@
+diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
+index 4bfb76a1eebf0baf57b62db5c9839594a8d25bbc..f401afadd470bc1a8c8717f17d33fc34967466cf 100644
+--- a/dist/bridge/index.mjs
++++ b/dist/bridge/index.mjs
+@@ -73,6 +73,8 @@ async function runBridge(options) {
+   let isFirstTurn = true;
+   let turnAbort;
+   let currentUserMessages;
++  let currentUserMessageHandler;
++  let currentUserMessageDelivery = Promise.resolve();
+   let debugConfig;
+   let consoleCaptureInstalled = false;
+   const envDebugEnabled = ENV_TRUTHY.has(
+@@ -301,6 +303,12 @@ async function runBridge(options) {
+             pendingToolApprovals.set(approvalId, resolve);
+           }),
+           pendingUserMessages: [],
++          onUserMessage: (handler) => {
++            currentUserMessageHandler = handler;
++            for (const message of currentUserMessages?.splice(0) ?? []) {
++              deliverUserMessage(message, handler);
++            }
++          },
+           abortSignal: turnAbort.signal,
+           firstTurn,
+           bridgeLog: (input) => {
+@@ -324,6 +332,7 @@ async function runBridge(options) {
+         } catch (err) {
+           emitError({ error: err, message: "bridge turn failed" });
+         } finally {
++          currentUserMessageHandler = void 0;
+           currentTurnState = "waiting";
+           void writeBridgeMeta("waiting");
+         }
+@@ -346,7 +355,11 @@ async function runBridge(options) {
+         return;
+       }
+       case "user-message":
+-        currentUserMessages?.push(msg.text);
++        if (currentUserMessageHandler) {
++          deliverUserMessage(msg, currentUserMessageHandler);
++        } else {
++          currentUserMessages?.push(msg);
++        }
+         return;
+       case "abort":
+         turnAbort?.abort();
+@@ -372,6 +385,27 @@ async function runBridge(options) {
+       }
+     }
+   };
++  const deliverUserMessage = (message, handler) => {
++    currentUserMessageDelivery = currentUserMessageDelivery.then(async () => {
++      try {
++        await handler(message.text);
++        emit({
++          type: "raw",
++          rawValue: { type: "grok-interjection-accepted", messageId: message.messageId }
++        });
++      } catch (error) {
++        emit({
++          type: "raw",
++          rawValue: {
++            type: "grok-interjection-rejected",
++            messageId: message.messageId,
++            error: error instanceof Error ? error.message : String(error)
++          }
++        });
++        emitError({ error, message: "live user message delivery failed" });
++      }
++    });
++  };
+   void writeBridgeMeta("init");
+   const wss = new WebSocketServer({ port: bridgeWsPort, host: "0.0.0.0" });
+   const exit = () => {
+@@ -3046,7 +3080,23 @@ async function runTurn(start, turn) {
+   };
+   hostToolRelay?.bindTurn({ turn: relayTurn });
+   try {
++    let markInterjectionReady;
++    const interjectionReady = new Promise((resolve) => {
++      markInterjectionReady = resolve;
++    });
+     void activeSession.prompt(start.prompt);
++    if (bridgeType === "grok-build") {
++      turn.onUserMessage(async (text) => {
++        await interjectionReady;
++        if (connection == null) {
++          throw new Error("ACP connection closed before Grok interjection.");
++        }
++        await connection.agent.request("_x.ai/interject", {
++          sessionId: activeSession.sessionId,
++          text
++        });
++      });
++    }
+     if (turn.abortSignal.aborted) {
+       await cancel();
+     } else {
+@@ -3074,6 +3124,8 @@ async function runTurn(start, turn) {
+         });
+       }
+       if (message.kind === "session_update") {
++        markInterjectionReady?.();
++        markInterjectionReady = void 0;
+         const captured = streamCapture?.takeForUpdate({
+           update: message.update
+         });
+@@ -3153,7 +3205,7 @@ async function ensureSession({
+     environment: createChildEnvironment({ launchEnv })
+   });
+   child = spawn(
+-    `${implementationDir}/node_modules/.bin/${implementation.executable}`,
++    implementation.local ? implementation.executable : `${implementationDir}/node_modules/.bin/${implementation.executable}`,
+     [...implementation.args],
+     {
+       cwd: workDir,
+@@ -3440,13 +3492,14 @@ async function readImplementationDescriptor({
+   const value = await new Response(text, {
+     headers: { "content-type": "application/json" }
+   }).json();
+-  if (!isRecord7(value) || typeof value.executable !== "string" || !Array.isArray(value.args) || !value.args.every((item) => typeof item === "string") || !Array.isArray(value.envKeys) || !value.envKeys.every((item) => typeof item === "string")) {
++  if (!isRecord7(value) || typeof value.executable !== "string" || !Array.isArray(value.args) || !value.args.every((item) => typeof item === "string") || !Array.isArray(value.envKeys) || !value.envKeys.every((item) => typeof item === "string") || typeof value.local !== "boolean") {
+     throw new Error("Invalid ACP implementation descriptor.");
+   }
+   return {
+     executable: value.executable,
+     args: value.args,
+-    envKeys: value.envKeys
++    envKeys: value.envKeys,
++    local: value.local
+   };
+ }
+ function parseArgs({ args: args2 }) {
+diff --git a/dist/bridge/package.json b/dist/bridge/package.json
+index c320b6f1dcf2bf35c3cec9cfff3e567797182a9b..46cd93c1c2b86753d7969671646d326e0e7c8bef 100644
+--- a/dist/bridge/package.json
++++ b/dist/bridge/package.json
+@@ -3,6 +3,7 @@
+   "version": "0.0.0",
+   "private": true,
+   "type": "module",
++  "packageManager": "pnpm@10.32.1",
+   "dependencies": {
+     "@agentclientprotocol/sdk": "1.2.1",
+     "@modelcontextprotocol/sdk": "1.29.0",
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index d9837a9551d6fc0fce6a17a82715f5877bd49655..e2d399f5c86db6ba6ff1e047947166c4942f0394 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -127,7 +127,10 @@ type ACPNpmLockedSource = {
+     readonly packageJson: string;
+     readonly pnpmLockYaml: string;
+ };
+-type ACPSource = ACPNpmSimpleSource | ACPNpmLockedSource;
++type ACPLocalSource = {
++    readonly type: 'local';
++};
++type ACPSource = ACPNpmSimpleSource | ACPNpmLockedSource | ACPLocalSource;
+ type ACPAuthentication = {
+     readonly methodId: string;
+     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
+@@ -232,4 +235,4 @@ declare function createACP<TBuiltinTools extends ToolSet = {}>(settings: ACPHarn
+ 
+ declare const VERSION: string;
+ 
+-export { type ACPAnnotations, type ACPAudioContent, type ACPAuthOptions, type ACPAuthentication, type ACPBlobResourceContents, type ACPClientApp, type ACPContentBlock, type ACPEmbeddedResource, type ACPHarnessSettings, type ACPImageContent, type ACPInstructionMapping, type ACPMetadata, type ACPNpmLockedSource, type ACPNpmSimpleSource, type ACPPermissionModeMapping, type ACPPermissionModeTarget, type ACPProfileValue, type ACPProviderAuthentication, type ACPProviderAuthenticationMode, type ACPResourceLink, type ACPRole, type ACPSerializablePrimitive, type ACPSerializableValue, type ACPSource, type ACPTextContent, type ACPTextResourceContents, type ACPToolCall, type ACPToolCallContent, type ACPToolCallLocation, type ACPToolCallStatus, type ACPToolKind, type ACPV1Settings, type ACPValueSource, VERSION, createACP };
++export { type ACPAnnotations, type ACPAudioContent, type ACPAuthOptions, type ACPAuthentication, type ACPBlobResourceContents, type ACPClientApp, type ACPContentBlock, type ACPEmbeddedResource, type ACPHarnessSettings, type ACPImageContent, type ACPInstructionMapping, type ACPLocalSource, type ACPMetadata, type ACPNpmLockedSource, type ACPNpmSimpleSource, type ACPPermissionModeMapping, type ACPPermissionModeTarget, type ACPProfileValue, type ACPProviderAuthentication, type ACPProviderAuthenticationMode, type ACPResourceLink, type ACPRole, type ACPSerializablePrimitive, type ACPSerializableValue, type ACPSource, type ACPTextContent, type ACPTextResourceContents, type ACPToolCall, type ACPToolCallContent, type ACPToolCallLocation, type ACPToolCallStatus, type ACPToolKind, type ACPV1Settings, type ACPValueSource, VERSION, createACP };
+diff --git a/dist/index.js b/dist/index.js
+index c40a4a88bf73f8c17d3da542ea4d852327865a75..bd649efaf92b4020da49612e517766831eadc731 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -6,6 +6,10 @@ import { createHash as createHash5, randomBytes } from "crypto";
+ import { readFile } from "fs/promises";
+ import { posix } from "path";
+ import { fileURLToPath } from "url";
++import acpBridge from "./bridge/index.mjs" with { type: "text" };
++import acpHostToolMcp from "./bridge/host-tool-mcp.mjs" with { type: "text" };
++import acpPackageJson from "./bridge/package.json" with { type: "text" };
++import acpPnpmLock from "./bridge/pnpm-lock.yaml" with { type: "text" };
+ import {
+   HarnessCapabilityUnsupportedError as HarnessCapabilityUnsupportedError2,
+   harnessV1DiagnosticFromBridgeFrame
+@@ -198,7 +202,7 @@ function validateACPV1Implementation(implementation) {
+     if (source.pnpmLockYaml.length === 0) {
+       throw new Error("ACP source.pnpmLockYaml must not be empty.");
+     }
+-  } else {
++  } else if (source.type === "npm-simple") {
+     validateNpmSimpleSource({ source });
+   }
+   if (!EXECUTABLE_NAME_REGEXP.test(implementation.executable)) {
+@@ -224,6 +228,7 @@ function createImplementationManifest({
+   if (source.type === "npm-locked") {
+     return source.packageJson;
+   }
++  if (source.type === "local") return;
+   return JSON.stringify(
+     {
+       name: "harness-acp-implementation",
+@@ -251,7 +256,8 @@ function createImplementationDescriptor({
+     {
+       executable: implementation.executable,
+       args: implementation.args ?? [],
+-      envKeys: getImplementationEnvironmentKeys({ implementation })
++      envKeys: getImplementationEnvironmentKeys({ implementation }),
++      local: implementation.source.type === "local"
+     },
+     null,
+     2
+@@ -266,7 +272,7 @@ function createImplementationIdentity({
+   permissionModeMapping
+ }) {
+   const { source } = implementation;
+-  const sourceIdentity = source.type === "npm-locked" ? {
++  const sourceIdentity = source.type === "local" ? { type: source.type } : source.type === "npm-locked" ? {
+     type: source.type,
+     packageJson: source.packageJson,
+     pnpmLockYaml: source.pnpmLockYaml
+@@ -302,7 +308,7 @@ function createImplementationInstallCommand({
+   storeDir,
+   implementation
+ }) {
+-  return `pnpm --dir ${implementationDir} install` + (implementation.source.type === "npm-locked" ? " --frozen-lockfile" : "") + ` --prod --store-dir ${storeDir}`;
++  return `pnpm --dir ${implementationDir} install --ignore-workspace` + (implementation.source.type === "npm-locked" ? " --frozen-lockfile" : "") + ` --prod --store-dir ${storeDir}`;
+ }
+ function resolveImplementationEnvironment({
+   implementation,
+@@ -963,6 +969,9 @@ function createACPV1({
+       const implementationLock = getImplementationLockfile({
+         implementation
+       });
++      const implementationManifest = createImplementationManifest({
++        implementation
++      });
+       cachedBootstrap = {
+         harnessId: settings.harnessId,
+         bootstrapDir: BOOTSTRAP_DIR,
+@@ -980,12 +989,10 @@ function createACPV1({
+             path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
+             content: hostToolMCP
+           },
+-          {
++          ...implementationManifest == null ? [] : [{
+             path: `${BOOTSTRAP_DIR}/implementation/package.json`,
+-            content: createImplementationManifest({
+-              implementation
+-            })
+-          },
++            content: implementationManifest
++          }],
+           {
+             path: `${BOOTSTRAP_DIR}/implementation/implementation.json`,
+             content: createImplementationDescriptor({
+@@ -1001,15 +1008,15 @@ function createACPV1({
+         ],
+         commands: [
+           {
+-            command: "pnpm install --frozen-lockfile --store-dir .pnpm-store"
++            command: "pnpm install --ignore-workspace --frozen-lockfile --store-dir .pnpm-store"
+           },
+-          {
++          ...implementation.source.type === "local" ? [] : [{
+             command: createImplementationInstallCommand({
+               implementationDir: "implementation",
+               storeDir: "../.pnpm-store",
+               implementation
+             })
+-          }
++          }]
+         ]
+       };
+       return cachedBootstrap;
+@@ -1411,6 +1418,13 @@ function createACPV1({
+   };
+ }
+ async function readBridgeAsset({ name }) {
++  const embeddedAssets = {
++    "host-tool-mcp.mjs": acpHostToolMcp,
++    "index.mjs": acpBridge,
++    "package.json": acpPackageJson,
++    "pnpm-lock.yaml": acpPnpmLock
++  };
++  if (embeddedAssets[name]) return embeddedAssets[name];
+   const candidates = resolveBridgeAssetCandidates({
+     name,
+     moduleUrl: import.meta.url
+@@ -1595,6 +1609,7 @@ function createSession({
+     let openBlock;
+     const dynamicToolCalls = /* @__PURE__ */ new Map();
+     const toolCallClassificationErrors = /* @__PURE__ */ new Map();
++    const pendingUserMessages = /* @__PURE__ */ new Map();
+     const subscriptions = [];
+     const forward = (event) => {
+       if (event.type === "text-start" || event.type === "reasoning-start") {
+@@ -1641,6 +1656,9 @@ function createSession({
+     const settle = ({ error }) => {
+       if (settled) return;
+       settled = true;
++      const pendingError = error ?? new Error(`${harnessId} turn ended before live user-message delivery completed.`);
++      for (const pending of pendingUserMessages.values()) pending.reject(pendingError);
++      pendingUserMessages.clear();
+       cleanup();
+       if (error === void 0) resolveDone();
+       else rejectDone(error);
+@@ -1693,6 +1711,21 @@ function createSession({
+         forward(dynamic ? { ...event, dynamic: true } : event);
+       })
+     );
++    subscriptions.push(
++      channel.on("raw", (event) => {
++        const value = event.rawValue;
++        if (value == null || typeof value !== "object") return;
++        const messageId = value.messageId;
++        if (typeof messageId !== "string") return;
++        const pending = pendingUserMessages.get(messageId);
++        if (pending == null) return;
++        pendingUserMessages.delete(messageId);
++        if (value.type === "grok-interjection-accepted") pending.resolve();
++        if (value.type === "grok-interjection-rejected") {
++          pending.reject(new Error(typeof value.error === "string" ? value.error : "Grok interjection was rejected."));
++        }
++      })
++    );
+     for (const type of eventTypes) {
+       subscriptions.push(channel.on(type, (event) => forward(event)));
+     }
+@@ -1753,6 +1786,21 @@ function createSession({
+           isError: input.isError
+         });
+       },
++      ...harnessId === "grok-build" ? {
++        submitUserMessage: async (text) => {
++          const messageId = randomBytes(8).toString("hex");
++          const delivered = new Promise((resolve, reject) => {
++            pendingUserMessages.set(messageId, { resolve, reject });
++          });
++          try {
++            channel.send({ type: "user-message", text, messageId });
++          } catch (error) {
++            pendingUserMessages.delete(messageId);
++            throw error;
++          }
++          await delivered;
++        }
++      } : {},
+       done
+     };
+   };

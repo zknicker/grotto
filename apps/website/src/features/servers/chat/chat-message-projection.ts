@@ -36,7 +36,7 @@ export const emptyChatMessageProjection: ChatMessageProjection = {
  *
  * React Query's structural sharing hands back the *same* message object for
  * every message the server returned unchanged, so source identity is the
- * change signal — hosted messages carry no version or `updatedAt` field. A row
+ * change signal — Server messages carry no version or `updatedAt` field. A row
  * is reprojected only when its message object, its thread summary, or (for a
  * task message) the Agent/human directories behind its assignee changed.
  * Everything else keeps its previous row object, which is what lets the

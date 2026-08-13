@@ -2,7 +2,7 @@ import * as z from 'zod';
 import { serverRoleSchema } from './member-authority.ts';
 
 /**
- * The hosted membership contract: invitations, the member directory, and the
+ * The Server membership contract: invitations, the member directory, and the
  * management inputs. The Owner/Admin/Member rule those inputs are judged by
  * lives in `member-authority.ts` and is re-exported here, so this module
  * is the one entrypoint both the Server and the App import.

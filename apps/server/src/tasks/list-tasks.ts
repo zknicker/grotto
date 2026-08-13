@@ -72,7 +72,7 @@ export async function listTasks(
         const task = toMessageTaskWithLabels(row.task, labels.get(row.task.messageId));
         const threadSummary = summaryByMessageId.get(row.task.messageId);
         if (!threadSummary) {
-            throw new Error('A hosted task must have its deterministic Thread.');
+            throw new Error('A task must have its deterministic Thread.');
         }
         tasks.push({
             chatKind: row.chatKind,

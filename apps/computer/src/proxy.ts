@@ -56,7 +56,7 @@ export interface LoopbackProxy {
 
 /**
  * The per-launch loopback proxy. The Agent authenticates to it with a local-only
- * token; the proxy forwards `/api/agent/*` to the hosted Server with the scoped
+ * token; the proxy forwards `/api/agent/*` to the Server with the scoped
  * runner credential. The runner credential never leaves this process, so the
  * Agent can act as itself without ever holding Server-valid authority.
  */

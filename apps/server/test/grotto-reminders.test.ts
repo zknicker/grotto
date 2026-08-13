@@ -60,7 +60,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-describe('hosted reminders', () => {
+describe('reminders', () => {
     test('schedules an author-owned reminder once and posts its visible receipt', async () => {
         const fireAt = new Date('2026-07-27T14:00:00.000Z');
         const input = {

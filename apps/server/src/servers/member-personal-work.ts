@@ -11,7 +11,7 @@ import {
 type PersonalWorkWriter = Pick<GrottoDatabase, 'delete' | 'insert' | 'select'>;
 
 /**
- * The hosted personal work one human holds on one Server today: Channel
+ * The personal work one human holds on one Server today: Channel
  * participation, read markers, and Thread follows. Authored messages, DMs, and
  * Threads are deliberately untouched — those are collaboration history, not
  * personal work, and the membership row stays in place so they keep resolving

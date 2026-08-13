@@ -19,7 +19,7 @@ const CurrentAgentActivityContext = React.createContext<CurrentAgentActivityCont
 );
 
 /**
- * Owns the one hosted current-activity read and committed activity listener
+ * Owns the one Server current-activity read and committed activity listener
  * for a persistent Server shell. Live events patch only this volatile cache;
  * Activity History remains an independent read and is never invalidated here.
  */

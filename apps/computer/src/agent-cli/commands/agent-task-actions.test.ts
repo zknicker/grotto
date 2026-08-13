@@ -21,7 +21,7 @@ test('a claim directs updates to the Task Thread without rerouting replies', asy
                                 metadata: {},
                             },
                             chat_id: 'cht_general',
-                            content: 'Audit the hosted export',
+                            content: 'Audit the Server export',
                             created_at: '2026-07-26T20:00:00.000Z',
                             deleted_at: null,
                             delivery_id: null,

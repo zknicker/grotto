@@ -6,18 +6,18 @@ import {
     serverdurableeventSchema,
 } from './chat.ts';
 
-test('hosted sends accept only client intent and never an authoritative actor', () => {
+test('Chat sends accept only client intent and never an authoritative actor', () => {
     expect(
         chatSendInputSchema.parse({
             chatId: 'cht_all',
-            content: 'Hello from the hosted Server.',
+            content: 'Hello from the Server.',
             nonce: 'send-1',
             serverId: 'srv_main',
         })
     ).toEqual({
         attachmentIds: [],
         chatId: 'cht_all',
-        content: 'Hello from the hosted Server.',
+        content: 'Hello from the Server.',
         nonce: 'send-1',
         serverId: 'srv_main',
     });
@@ -33,7 +33,7 @@ test('hosted sends accept only client intent and never an authoritative actor', 
     ).toThrow();
 });
 
-test('hosted reads derive the reader from the verified Clerk member', () => {
+test('Chat reads derive the reader from the verified Clerk member', () => {
     expect(
         chatMarkReadInputSchema.parse({
             chatId: 'cht_all',
@@ -51,7 +51,7 @@ test('hosted reads derive the reader from the verified Clerk member', () => {
     ).toThrow();
 });
 
-test('hosted messages and durable events keep stable Server and Chat identity', () => {
+test('Server messages and durable events keep stable Server and Chat identity', () => {
     const message = chatMessageSchema.parse({
         attachments: [],
         author: { kind: 'human', userId: 'usr_human' },
@@ -107,7 +107,7 @@ test('hosted messages and durable events keep stable Server and Chat identity', 
     ).toMatchObject({ action: 'archived', chatId: 'cht_all', type: 'chat.lifecycle' });
 });
 
-test('hosted message history can preserve a deleted author profile', () => {
+test('Server message history can preserve a deleted author profile', () => {
     const message = chatMessageSchema.parse({
         attachments: [],
         author: {
@@ -136,7 +136,7 @@ test('hosted message history can preserve a deleted author profile', () => {
     });
 });
 
-test('hosted message contracts reject the retired task system author', () => {
+test('Server message contracts reject the retired task system author', () => {
     expect(() =>
         chatMessageSchema.parse({
             attachments: [],
@@ -153,7 +153,7 @@ test('hosted message contracts reject the retired task system author', () => {
     ).toThrow();
 });
 
-test('hosted sends allow attachment-only messages but reject empty messages', () => {
+test('Chat sends allow attachment-only messages but reject empty messages', () => {
     expect(
         chatSendInputSchema.parse({
             attachmentIds: ['att_one'],

@@ -9,7 +9,7 @@ export type LocalReactionsByMessage = Record<
 const localReactionViewer = { handle: 'you', id: 'usr_tavern' } as const;
 
 /**
- * App-local reactions until the hosted reaction API lands: toggling only
+ * App-local reactions until the Server reaction API lands: toggling only
  * updates this in-memory map, so the reaction UI is fully exercisable today
  * and swaps to the server mutation later without UI changes.
  */

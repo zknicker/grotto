@@ -1971,7 +1971,7 @@ type ChatRow = NonNullable<ChatLogOutput>['rows'][number];
 
 /**
  * Renders the transcript the way a host does: project rows into entries and
- * hand the presentation a render context, mirroring the hosted
+ * hand the presentation a render context, mirroring the Server
  * `useChatTranscript` wiring in features/servers/chat.
  */
 function renderTranscript(rows: ChatRow[], overrides: Partial<TranscriptRenderContextValue> = {}) {

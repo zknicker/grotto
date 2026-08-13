@@ -26,7 +26,7 @@ function lazyRoute<TModule extends Record<string, unknown>>(
     };
 }
 
-/** The App is a hosted Server client; Electron supplies only native actions. */
+/** The App is a Server client; Electron supplies only native actions. */
 export function createAppRouter() {
     const createRouter = isElectronDesktopApp() ? createHashRouter : createBrowserRouter;
     return createRouter([

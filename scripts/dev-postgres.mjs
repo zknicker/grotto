@@ -199,7 +199,7 @@ function resolvePostgresBinaries() {
     }
 
     throw new Error(
-        'PostgreSQL 16 is required for the hosted dev Server. Install it with `brew install postgresql@16`.'
+        'PostgreSQL 16 is required for the development Server. Install it with `brew install postgresql@16`.'
     );
 }
 

@@ -51,7 +51,7 @@ const usage = {
     },
 };
 
-test('hosted Stats renders every Computer and keeps offline snapshots visible', () => {
+test('Stats renders every Computer and keeps offline snapshots visible', () => {
     const markup = renderToStaticMarkup(
         <Stats
             computers={[
@@ -86,7 +86,7 @@ test('hosted Stats renders every Computer and keeps offline snapshots visible', 
     expect(markup).toContain('Collecting');
 });
 
-test('hosted Stats distinguishes query failure from an empty Server', () => {
+test('Stats distinguishes query failure from an empty Server', () => {
     const failed = renderToStaticMarkup(
         <Stats
             computers={undefined}
@@ -101,7 +101,7 @@ test('hosted Stats distinguishes query failure from an empty Server', () => {
     expect(empty).toContain('Waiting for a Computer');
 });
 
-test('hosted Stats keeps cached usage visible during a failed refresh', () => {
+test('Stats keeps cached usage visible during a failed refresh', () => {
     const markup = renderToStaticMarkup(
         <Stats
             computers={[

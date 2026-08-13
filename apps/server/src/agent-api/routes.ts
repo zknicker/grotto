@@ -58,7 +58,7 @@ const directoryQuerySchema = z.object({
 const targetQuerySchema = z.object({ target: z.string().trim().min(1).max(200) });
 
 /**
- * The hosted agent surface behind the Computer's loopback proxy. A managed
+ * The Agent surface behind the Computer's loopback proxy. A managed
  * Agent's `grotto message send` reaches here with the scoped runner token the
  * Computer minted. The token fixes the author and Server; this route resolves
  * the product target and access Server-side and trusts no chat id from the body.

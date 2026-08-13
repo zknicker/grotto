@@ -66,7 +66,7 @@ export function ThreadContent({
     // anchor owns, so the very first reply — which has no Thread chat id until
     // its receipt lands — is carried the same way every later one is.
     const pendingReplies = usePendingChatMessages(pendingThreadReplyKey(anchor.id), replies);
-    // The thread renders through the same hosted transcript wiring as the
+    // The thread renders through the same Server transcript wiring as the
     // main chat, so anchor and replies look and feel like channel rows.
     const threadMessages = React.useMemo(() => [anchor, ...replies], [anchor, replies]);
     const { renderContext, rows } = useChatTranscript({

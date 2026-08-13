@@ -249,7 +249,7 @@ const agentLifecycleBaseSchema = z.object({
 });
 
 /**
- * Volatile execution projection for one hosted Agent run. Durable turn
+ * Volatile execution projection for one Agent run. Durable turn
  * evidence remains in `agent.activity`; this feed exists so Grotto App surfaces can
  * react immediately without inventing transcript rows.
  */

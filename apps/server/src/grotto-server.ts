@@ -14,7 +14,7 @@ import {
 } from './startup-log.ts';
 
 async function start() {
-    logStartupBanner('🟠 Grotto Server', 'Booting the hosted Grotto Server');
+    logStartupBanner('🟠 Grotto Server', 'Booting the Grotto Server');
     const release = env.GROTTO_RELEASE_MANIFEST
         ? readGrottoReleaseIdentity(env.GROTTO_RELEASE_MANIFEST)
         : null;

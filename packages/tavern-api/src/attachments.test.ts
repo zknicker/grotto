@@ -6,7 +6,7 @@ import {
     attachmentUploadResultSchema,
 } from './attachments.ts';
 
-test('hosted attachment reservations contain client intent but no storage authority', () => {
+test('attachment reservations contain client intent but no storage authority', () => {
     expect(
         attachmentReserveInputSchema.parse({
             chatId: 'cht_all',
@@ -36,7 +36,7 @@ test('hosted attachment reservations contain client intent but no storage author
     ).toThrow();
 });
 
-test('hosted attachment metadata never includes bytes, hashes, or storage paths', () => {
+test('attachment metadata never includes bytes, hashes, or storage paths', () => {
     const metadata = attachmentMetadataSchema.parse({
         filename: 'empty.txt',
         id: 'att_one',

@@ -9,7 +9,7 @@ const base = {
     serverId: 'srv_test',
 };
 
-describe('hosted Agent lifecycle contract', () => {
+describe('Agent lifecycle contract', () => {
     test.each(['working', 'reading'] as const)('accepts the %s phase', (phase) => {
         expect(agentLifecycleEventSchema.parse({ ...base, phase })).toEqual({
             ...base,

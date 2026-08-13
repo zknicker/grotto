@@ -26,7 +26,7 @@ const base: ConfiguredAgentRow = {
     stopped: false,
 };
 
-describe('hosted Agent availability', () => {
+describe('Agent availability', () => {
     test('an applied Agent is offline when its assigned Computer is offline', () => {
         expect(
             deriveAgentAvailability({

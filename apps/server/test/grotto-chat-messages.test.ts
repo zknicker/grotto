@@ -25,7 +25,7 @@ test('a human sends an immutable message to #all and reads it back by sequence',
 
     const sent = await client.trpc.chat.send.mutate({
         chatId,
-        content: 'Hello from hosted Grotto.',
+        content: 'Hello from Grotto.',
         nonce: 'message-send-1',
         serverId: server.id,
     });
@@ -34,7 +34,7 @@ test('a human sends an immutable message to #all and reads it back by sequence',
         idempotent: false,
         message: {
             chatId,
-            content: 'Hello from hosted Grotto.',
+            content: 'Hello from Grotto.',
             nonce: 'message-send-1',
             sequence: 1,
             serverId: server.id,

@@ -3,7 +3,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { serversTable } from '../postgres/schema.ts';
 
 /**
- * The Server row is the one serialization point for hosted durable writes, and
+ * The Server row is the one serialization point for durable writes, and
  * every transaction that needs it takes it **first, before authorizing**.
  *
  * Two things depend on that order. Authorizing after the lock means a write

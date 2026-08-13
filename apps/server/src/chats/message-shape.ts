@@ -90,7 +90,7 @@ function readAuthor(
         return { agentId: message.authorAgentId, kind: 'agent', profile };
     }
     if (message.authorUserId === null) {
-        throw new Error('A hosted Chat message must have an explicit author.');
+        throw new Error('A Chat message must have an explicit author.');
     }
     return { kind: 'human', profile, userId: message.authorUserId };
 }

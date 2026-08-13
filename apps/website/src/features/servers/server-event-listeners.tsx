@@ -9,7 +9,7 @@ import {
 } from './server-event-model.ts';
 
 /**
- * Keeps membership-loss listening alive across every hosted route. The current
+ * Keeps membership-loss listening alive across every Server route. The current
  * route contributes its Server before the list resolves; list state covers `/s`
  * and every other membership. One child owns one deduplicated subscription.
  */

@@ -105,7 +105,7 @@ export function assertDevStackPortsAvailable({ ports, repositoryRoot }) {
     const definitions = [
         {
             enabled: true,
-            label: 'hosted Server',
+            label: 'Server',
             port: Number(ports.grottoPort),
         },
         {

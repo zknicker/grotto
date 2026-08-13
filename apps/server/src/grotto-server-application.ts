@@ -36,7 +36,7 @@ import { McpRuntime } from './server-mcp/runtime.ts';
 import { purgeDeletedServers } from './servers/delete-server.ts';
 
 /**
- * The hosted Grotto Server. It serves only the Grotto Server contract over
+ * The Grotto Server. It serves only the Grotto Server contract over
  * HTTP and WebSocket, backed by PostgreSQL and Clerk.
  */
 export interface GrottoServerApplicationOptions {

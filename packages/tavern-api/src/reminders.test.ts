@@ -6,7 +6,7 @@ import {
     reminderSchema,
 } from './reminders.ts';
 
-describe('hosted reminder contracts', () => {
+describe('reminder contracts', () => {
     test('keeps operator state narrow and never exposes script contents', () => {
         const reminder = reminderSchema.parse({
             anchorChatId: 'cht_all',

@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { exportJWK, generateKeyPair, type KeyObject, SignJWT } from 'jose';
 
 /**
- * Serves a JWKS the hosted Server can verify against, so tests exercise real
+ * Serves a JWKS the Server can verify against, so tests exercise real
  * Clerk session-token verification instead of stubbing the identity boundary.
  * Tokens carry the `azp` authorized party Clerk puts on real session tokens:
  * the origin of the frontend that asked for them.
@@ -20,7 +20,7 @@ export interface ClerkTestIssuer {
     mintSessionToken(clerkUserId: string, claims?: Record<string, unknown>): Promise<string>;
     /**
      * Stands in for the Clerk Backend API's verified-email lookup, so the
-     * hosted Server can run its real invitation boundary against this issuer.
+     * Server can run its real invitation boundary against this issuer.
      */
     setVerifiedEmails(clerkUserId: string, emails: string[]): void;
     url: string;

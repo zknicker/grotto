@@ -5,7 +5,7 @@ import {
     parseReminderSnooze,
 } from '../src/reminders/cadence.ts';
 
-describe('hosted reminder cadence', () => {
+describe('reminder cadence', () => {
     test('accepts only the reminder grammar', () => {
         expect(parseReminderRepeat('every:15m')).toEqual({
             intervalMs: 900_000,

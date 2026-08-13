@@ -302,7 +302,7 @@ export function ChatComposer({
 }
 
 // The pending row names the files while their bytes are still uploading, so it
-// describes the local File rather than a reserved hosted attachment.
+// describes the local File rather than a reserved attachment.
 function pendingAttachment(attachment: ComposerAttachment) {
     return {
         filename: attachment.file.name,

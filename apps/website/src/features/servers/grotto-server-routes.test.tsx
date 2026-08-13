@@ -52,7 +52,7 @@ afterAll(() => {
     mock.module('../../lib/grotto-server.tsx', () => actualGrottoServer);
 });
 
-test('mounts authenticated hosted state inside the sign-in gate', () => {
+test('mounts authenticated Server state inside the sign-in gate', () => {
     const markup = renderToStaticMarkup(<GrottoServerRoutes />);
 
     expect(markup).toContain(

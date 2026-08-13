@@ -36,7 +36,7 @@ export function resolveDevPorts({
               ? defaultGrottoPort
               : String(portBase + 3));
     return {
-        grottoPort: parsePort(resolvedGrottoPort, 'hosted Server port'),
+        grottoPort: parsePort(resolvedGrottoPort, 'Server port'),
         websitePort: parsePort(resolvedWebsitePort, 'vite port'),
     };
 }

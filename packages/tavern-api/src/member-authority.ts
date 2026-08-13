@@ -70,7 +70,7 @@ export function requiresSlugConfirmation(
 }
 
 /**
- * The one Owner/Admin/Member authority rule, shared by the hosted Server and
+ * The one Owner/Admin/Member authority rule, shared by the Server and
  * the App so a rendered affordance can never disagree with the Server that
  * judges it. The Server still re-resolves this inside its transaction; the App
  * uses it for presentation only.

@@ -104,7 +104,7 @@ export const chatSendInputSchema = z
         if (input.content.length === 0 && input.attachmentIds.length === 0) {
             context.addIssue({
                 code: 'custom',
-                message: 'A hosted message needs text or an attachment.',
+                message: 'A Server message needs text or an attachment.',
                 path: ['content'],
             });
         }

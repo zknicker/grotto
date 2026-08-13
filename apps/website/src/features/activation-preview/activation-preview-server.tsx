@@ -9,7 +9,7 @@ import { resolveActivationFixture } from './activation-preview-fixtures.ts';
 /**
  * A Grotto client whose only link answers from activation fixtures. The real
  * activation components run their real hooks against it, so the preview never
- * needs a hosted Server, a Computer, or a signed-in session.
+ * needs a Server, a Computer, or a signed-in session.
  */
 export function ActivationPreviewServer({ children }: React.PropsWithChildren) {
     const [queryClient] = React.useState(

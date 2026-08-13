@@ -45,7 +45,7 @@ function names(invalidated: Invalidation[]) {
     return invalidated.map((entry) => entry.name);
 }
 
-test('computer events refresh hosted workspace reads without polling', () => {
+test('computer events refresh Server workspace reads without polling', () => {
     const { invalidated, utils } = recordingUtils();
 
     createServerUpdateHandler(utils, 'server-one', 'team-room')({ scope: 'computer' });

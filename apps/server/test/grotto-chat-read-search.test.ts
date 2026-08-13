@@ -46,7 +46,7 @@ beforeAll(async () => {
     });
     await owner.trpc.chat.send.mutate({
         chatId,
-        content: 'Second hosted message.',
+        content: 'Second Server message.',
         nonce: 'read-search-2',
         serverId,
     });
@@ -88,7 +88,7 @@ test('read state advances monotonically and survives a fresh HTTP query', async 
     expect(afterRead[0]).toMatchObject({ id: chatId, unreadCount: 1 });
 });
 
-test('PostgreSQL search returns only authorized hosted messages', async () => {
+test('PostgreSQL search returns only authorized Server messages', async () => {
     const results = await peer.trpc.chat.search.query({
         query: 'needle',
         serverId,

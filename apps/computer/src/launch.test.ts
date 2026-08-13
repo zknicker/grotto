@@ -116,7 +116,7 @@ afterEach(async () => {
     await rm(dataRoot, { force: true, recursive: true });
 });
 
-test('runs a deterministic Agent launch that lands a durable hosted message', async () => {
+test('runs a deterministic Agent launch that lands a durable Server message', async () => {
     const attachment: Attachment = {
         computerId: 'cmp_launchtest0000000',
         credential: 'launch-test-credential',

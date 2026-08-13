@@ -45,7 +45,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                 <SettingsSection title="Danger">
                     <SettingsGroup>
                         <SettingsRow
-                            description="Permanently delete this Server and its hosted data."
+                            description="Permanently delete this Server and its Server data."
                             error={remove.error?.message}
                             title="Delete Server"
                             trailingWidth="intrinsic"
@@ -63,7 +63,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     {deleting ? (
                         <DeleteDialog
                             confirmation={server.slug}
-                            description="This immediately disables the Server and permanently deletes its hosted data. Offline Computers do not block deletion."
+                            description="This immediately disables the Server and permanently deletes its Server data. Offline Computers do not block deletion."
                             onConfirm={() =>
                                 remove.mutate({
                                     confirmation: server.slug,

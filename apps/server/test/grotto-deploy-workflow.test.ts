@@ -142,7 +142,7 @@ test('promotes only published Grotto versions or an explicit published-version c
     });
 });
 
-test('documents version publication as the only hosted production promotion', () => {
+test('documents version publication as the only production promotion', () => {
     const releaseDocs = readFileSync(join(repoRoot, 'docs/operations/releases.md'), 'utf8');
     const deployDocs = readFileSync(
         join(repoRoot, 'docs/operations/grotto-server-deploy.md'),

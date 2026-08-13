@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { renderAgentInstructions } from './managed-instructions.ts';
 
-test('the hosted Agent prompt preserves the notice-to-pull contract', () => {
+test('the Agent prompt preserves the notice-to-pull contract', () => {
     const prompt = renderAgentInstructions({
         agentId: 'agt_prompt_test',
         agentName: 'Cove',

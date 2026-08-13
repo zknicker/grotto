@@ -7,6 +7,6 @@ test('invitation links use the configured browser-reachable Grotto App origin', 
     );
 });
 
-test('hosted search stays inside the current Server route', () => {
+test('search stays inside the current Server route', () => {
     expect(serverSearchRoute('dev')).toBe('/s/dev/search');
 });

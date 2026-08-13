@@ -48,7 +48,7 @@ export async function tickReminders(
         }
         if (!result) {
             if (failedReminderIds.length > 0) {
-                throw new Error('One or more hosted reminders could not fire.');
+                throw new Error('One or more reminders could not fire.');
             }
             return { fired };
         }
@@ -342,7 +342,7 @@ class ReminderFireError extends Error {
     readonly reminderId: string;
 
     constructor(reminderId: string, cause: unknown) {
-        super('A hosted reminder could not fire.', { cause });
+        super('A reminder could not fire.', { cause });
         this.name = 'ReminderFireError';
         this.reminderId = reminderId;
     }

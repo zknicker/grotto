@@ -27,7 +27,7 @@ export function useServerEvents(serverId: string | undefined, slug: string | und
                 }
 
                 // Losing membership arrives as a refusal, never as data, so
-                // nothing invalidates on its own. Every hosted cache naming this
+                // nothing invalidates on its own. Every Server cache naming this
                 // Server is cleared rather than invalidated: dropping the data
                 // outright is what stops a removed human seeing Chats, the
                 // directory, or the Server in their list while a refetch runs or

@@ -6,7 +6,7 @@ import { SignInGate } from '../auth/sign-in-gate.tsx';
 import { ServerEventListeners } from './server-event-listeners.tsx';
 
 /**
- * Grotto server routes talk straight to the hosted Server.
+ * Grotto server routes talk straight to the Server.
  */
 export function GrottoServerRoutes() {
     return (

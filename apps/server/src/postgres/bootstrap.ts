@@ -3,7 +3,7 @@ import { migrateGrottoDatabase } from './migrations.ts';
 import { assertGrottoDatabaseRole, grantGrottoRuntimePrivileges } from './roles.ts';
 
 /**
- * Creates a fresh hosted Grotto Server database from checked-in Drizzle
+ * Creates a fresh Grotto Server database from checked-in Drizzle
  * migrations. Schema changes never live in this bootstrap wrapper.
  */
 export async function bootstrapGrottoDatabase(

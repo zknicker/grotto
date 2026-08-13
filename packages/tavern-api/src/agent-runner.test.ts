@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { agentCommandSchema, coveApplyResultSchema } from './agent-runner.ts';
 
-test('hosted Agent restart carries only the Agent identity', () => {
+test('Agent restart carries only the Agent identity', () => {
     expect(
         agentCommandSchema.parse({
             agentId: 'agt_restart',

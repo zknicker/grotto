@@ -28,7 +28,7 @@ test('every observed Server carries the slug its detail read is cached under', (
     ]);
 });
 
-test('hosted Server paths identify the open Server independently of list state', () => {
+test('Server paths identify the open Server independently of list state', () => {
     expect(serverSlugFromPath('/s/team-room')).toBe('team-room');
     expect(serverSlugFromPath('/s/team-room/members')).toBe('team-room');
     expect(serverSlugFromPath('/s')).toBeNull();

@@ -1,6 +1,6 @@
 import { isElectronDesktopApp } from './desktop-bridge.ts';
 
-/** Legacy callers resolve the hosted Server too; Electron never launches one. */
+/** Legacy callers resolve the Server too; Electron never launches one. */
 export function isPackagedDesktopApp() {
     return (
         isElectronDesktopApp() &&

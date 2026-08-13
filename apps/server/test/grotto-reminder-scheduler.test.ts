@@ -48,7 +48,7 @@ afterEach(async () => {
     attachmentRoot = null;
 });
 
-describe('hosted reminder scheduler lifecycle', () => {
+describe('reminder scheduler lifecycle', () => {
     test('fresh schema indexes the global scheduled-due scan', async () => {
         cluster = await startPostgresCluster();
         await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');

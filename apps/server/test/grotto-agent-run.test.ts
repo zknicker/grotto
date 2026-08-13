@@ -168,7 +168,7 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     `) as { n: number }[];
     expect(dupCount[0]?.n).toBe(1);
 
-    // The durable message reads back through the ordinary hosted surface with
+    // The durable message reads back through the ordinary Server surface with
     // an Agent author, not a human one.
     const page = await owner.trpc.chat.messages.query({ chatId: dmChatId, serverId });
     const agentMessage = page.messages.find((message) => message.nonce === 'agent_nonce_1');

@@ -9,8 +9,8 @@ import {
 } from '@tavern/api/pane-links';
 
 // Pane targets and the grotto:// link scheme are the Runtime contract's; the
-// app-local alias adds the authoring Agent for hosted workspace targets. The
-// link itself remains portable; hosted chat derives ownership from the
+// app-local alias adds the authoring Agent for Server workspace targets. The
+// link itself remains portable; Server Chat derives ownership from the
 // durable message author rather than encoding identity in user-authored text.
 type WorkspaceResourceTarget = Extract<ChatPaneTarget, { kind: `workspace${string}` }> & {
     agentId?: string;

@@ -40,7 +40,7 @@ describe('dev.cleanupEvalChats', () => {
 
     test('requires authentication and membership in the requested Server', async () => {
         if (!(owner && outsider && signedOut)) {
-            throw new Error('Expected hosted Server test clients.');
+            throw new Error('Expected Server test clients.');
         }
         const server = await owner.trpc.server.create.mutate({
             displayName: 'Eval Cleanup Access',
@@ -67,7 +67,7 @@ describe('dev.cleanupEvalChats', () => {
 
     test('deletes only explicit chats from the requested Server and cascades their rows', async () => {
         if (!(harness && owner)) {
-            throw new Error('Expected hosted Server test harness and owner client.');
+            throw new Error('Expected Server test harness and owner client.');
         }
         const server = await owner.trpc.server.create.mutate({
             displayName: 'Eval Cleanup Target',

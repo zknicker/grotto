@@ -1,6 +1,6 @@
-// Shared hosted behavioral-eval plumbing. It authenticates as the configured
+// Shared Server behavioral-eval plumbing. It authenticates as the configured
 // development Clerk user, then drives real Server -> Computer -> model turns
-// through the public hosted tRPC contract.
+// through the public Server tRPC contract.
 import { createRequire } from 'node:module';
 import { appProtocolHeaders, appProtocolVersion } from '../packages/tavern-api/src/app-protocol.ts';
 import { resolveDevPorts } from './dev-ports.mjs';
@@ -457,7 +457,7 @@ function resolveFlag(name) {
 }
 
 export function selectServer(servers, requestedServerId) {
-    assert(Array.isArray(servers) && servers.length > 0, 'No hosted Servers are available');
+    assert(Array.isArray(servers) && servers.length > 0, 'No Servers are available');
     if (requestedServerId) {
         const server = servers.find((candidate) => candidate.id === requestedServerId);
         assert(server, `No accessible Server has id ${requestedServerId}`);

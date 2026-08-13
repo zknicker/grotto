@@ -93,21 +93,21 @@ test('getDefaultDatabasePath uses a temp database during tests', () => {
     }
 });
 
-test('hosted releases require a real Clerk secret before opening the Server', () => {
-    const hosted = {
+test('production releases require a real Clerk secret before opening the Server', () => {
+    const production = {
         ...process.env,
         CLERK_SECRET_KEY: undefined,
         GROTTO_RELEASE_MANIFEST: '/tmp/grotto-release.json',
         NODE_ENV: 'test',
     };
 
-    assert.throws(() => parseEnvironment(hosted), /CLERK_SECRET_KEY/u);
+    assert.throws(() => parseEnvironment(production), /CLERK_SECRET_KEY/u);
     assert.throws(
-        () => parseEnvironment({ ...hosted, CLERK_SECRET_KEY: 'INJECT_ON_HOST' }),
+        () => parseEnvironment({ ...production, CLERK_SECRET_KEY: 'INJECT_ON_HOST' }),
         /CLERK_SECRET_KEY/u
     );
     assert.equal(
-        parseEnvironment({ ...hosted, CLERK_SECRET_KEY: 'sk_test_fixture' }).CLERK_SECRET_KEY,
+        parseEnvironment({ ...production, CLERK_SECRET_KEY: 'sk_test_fixture' }).CLERK_SECRET_KEY,
         'sk_test_fixture'
     );
 });

@@ -25,8 +25,8 @@ const chats = [
     },
 ] as Chat[];
 
-describe('hosted command groups', () => {
-    test('preserves hosted navigation, chats, current-chat actions, settings, and developer groups', () => {
+describe('Server command groups', () => {
+    test('preserves Server navigation, Chats, current-Chat actions, settings, and developer groups', () => {
         const navigated: string[] = [];
         const groups = buildCommandGroups({
             agents: [agent],
@@ -57,7 +57,7 @@ describe('hosted command groups', () => {
         expect(navigated).toEqual(['/s/dev/chats/cht_cove']);
     });
 
-    test('recognizes hosted chat routes and omits operator commands for members', () => {
+    test('recognizes Server Chat routes and omits operator commands for members', () => {
         expect(getCurrentChatId('/s/dev/chats/cht_cove', 'dev')).toBe('cht_cove');
         expect(getCurrentChatId('/s/dev/tasks', 'dev')).toBeNull();
 

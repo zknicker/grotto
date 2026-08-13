@@ -21,7 +21,7 @@ export const publicProcedure = appProcedure;
 
 /**
  * Verifies the Clerk session and carries its external subject for this request
- * only. Every hosted operation — queries, mutations, and each subscription
+ * only. Every Server operation — queries, mutations, and each subscription
  * start — is judged against a current token, so an expired session cannot ride
  * an already-open WebSocket. It deliberately touches no database: minting a
  * User is part of Server creation's transaction, never a side effect of

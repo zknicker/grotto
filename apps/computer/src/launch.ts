@@ -34,7 +34,7 @@ export interface Attachment {
 
 /**
  * The Server→Computer launch command. The Computer owns its own copy of the
- * wire shapes (like `inventory.ts`) rather than importing the hosted contract
+ * wire shapes (like `inventory.ts`) rather than importing the Server contract
  * package, keeping the Computer artifact self-contained.
  */
 export interface AgentStartCommand {

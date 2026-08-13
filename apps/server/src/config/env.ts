@@ -165,7 +165,7 @@ const envSchema = z
         ) {
             context.addIssue({
                 code: 'custom',
-                message: 'CLERK_SECRET_KEY is required for a hosted Grotto release.',
+                message: 'CLERK_SECRET_KEY is required for a production Grotto release.',
                 path: ['CLERK_SECRET_KEY'],
             });
         }

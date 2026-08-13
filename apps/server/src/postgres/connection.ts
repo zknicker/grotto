@@ -11,7 +11,7 @@ export interface GrottoConnection {
     health(): Promise<boolean>;
 }
 
-/** Opens the hosted Server's DML-only PostgreSQL connection. */
+/** Opens the Server's DML-only PostgreSQL connection. */
 export async function connectGrottoDatabase(databaseUrl: string): Promise<GrottoConnection> {
     const client = new SQL(databaseUrl);
 

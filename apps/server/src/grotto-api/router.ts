@@ -17,7 +17,7 @@ import { threadRouter } from './thread/router.ts';
 import { createRouter } from './trpc.ts';
 
 /**
- * The whole hosted Grotto Server contract.
+ * The whole Grotto Server contract.
  */
 export const grottoRouter = createRouter({
     agent: agentRouter,

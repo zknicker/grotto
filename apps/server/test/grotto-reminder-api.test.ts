@@ -59,8 +59,8 @@ afterAll(async () => {
     await harness?.close();
 });
 
-describe('hosted reminder operator API', () => {
-    test('allows only Owner and Admin to list hosted state and fire logs', async () => {
+describe('reminder operator API', () => {
+    test('allows only Owner and Admin to list Server state and fire logs', async () => {
         const reminder = await schedule('operator-visible', 'Operator visible');
         await tickReminders(connection.db, {
             now: () => new Date('2026-07-27T15:00:00.000Z'),

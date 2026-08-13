@@ -15,7 +15,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('promotes one canonical hosted message into its deterministic Thread work surface', async () => {
+test('promotes one canonical Server message into its deterministic Thread work surface', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Server',
         slug: 'task-server',
@@ -23,7 +23,7 @@ test('promotes one canonical hosted message into its deterministic Thread work s
     const chatId = server.channels[0].id;
     const sent = await owner.trpc.chat.send.mutate({
         chatId,
-        content: 'Audit the hosted export',
+        content: 'Audit the Server export',
         nonce: 'task-promote-message',
         serverId: server.id,
     });
@@ -59,7 +59,7 @@ test('promotes one canonical hosted message into its deterministic Thread work s
     ]);
     await expect(owner.trpc.task.list.query({ serverId: server.id })).resolves.toMatchObject([
         {
-            message: { content: 'Audit the hosted export', id: sent.message.id },
+            message: { content: 'Audit the Server export', id: sent.message.id },
             task: { messageId: sent.message.id, number: 1 },
         },
     ]);
@@ -113,7 +113,7 @@ test('creates a task-message atomically and replays the same nonce idempotently'
     const chatId = server.channels[0].id;
     const input = {
         chatId,
-        content: 'Ship the hosted task lane',
+        content: 'Ship the task lane',
         nonce: 'task-create-once',
         serverId: server.id,
     };
@@ -805,7 +805,7 @@ test('recovers task state and exact invalidation events after a Server restart',
     });
     const created = await owner.trpc.task.create.mutate({
         chatId: server.channels[0].id,
-        content: 'Survive the hosted Server restart',
+        content: 'Survive the Server restart',
         nonce: 'task-recovery',
         serverId: server.id,
     });

@@ -131,7 +131,7 @@ test('keeps production state and credentials inside the canonical srv root', () 
     expect(source).not.toContain('/var/log/grotto-server');
 });
 
-test('starts the hosted Server with its provisioned attachment root', () => {
+test('starts the Server with its provisioned attachment root', () => {
     const runServer = readFileSync(join(serverRoot, 'operations', 'run-server'), 'utf8');
 
     expect(runServer).toContain(

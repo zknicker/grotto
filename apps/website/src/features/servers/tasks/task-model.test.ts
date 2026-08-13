@@ -11,18 +11,18 @@ import {
 
 const humans = humanDirectory([]);
 
-test('projects a hosted task from its canonical message', () => {
+test('projects a task from its canonical message', () => {
     const task = toTaskItem(item(), humans);
 
     expect(task.id).toBe('message_one');
-    expect(task.title).toBe('Ship the hosted board');
+    expect(task.title).toBe('Ship the Server board');
     expect(task.threadChatId).toBe('thread_one');
     expect(task.chatLabel).toBe('#all');
     expect(task.claimedAt).toBeNull();
     expect(task.threadSummary.replyCount).toBe(3);
 });
 
-test('filters hosted tasks by lifecycle and text without a second content store', () => {
+test('filters tasks by lifecycle and text without a second content store', () => {
     const todo = toTaskItem(item(), humans);
     const done = {
         ...todo,
@@ -32,11 +32,11 @@ test('filters hosted tasks by lifecycle and text without a second content store'
         title: 'Write docs',
     };
 
-    expect(filterTasks([todo, done], { query: 'hosted', view: 'active' })).toEqual([todo]);
+    expect(filterTasks([todo, done], { query: 'server', view: 'active' })).toEqual([todo]);
     expect(filterTasks([todo, done], { query: '#2', view: 'all' })).toEqual([done]);
 });
 
-test('filters hosted tasks by label id', () => {
+test('filters tasks by label id', () => {
     const labeled = {
         ...toTaskItem(item(), humans),
         labels: [{ color: 'red' as const, id: 'lbl_one', name: 'Bug' }],
@@ -260,7 +260,7 @@ function item(): TaskListItem {
             attachments: [],
             author: { kind: 'human', userId: 'user_one' },
             chatId: 'chat_one',
-            content: 'Ship the hosted board',
+            content: 'Ship the Server board',
             createdAt: '2026-07-26T12:00:00.000Z',
             id: 'message_one',
             nonce: 'nonce_one',

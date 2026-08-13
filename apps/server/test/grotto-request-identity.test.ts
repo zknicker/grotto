@@ -19,7 +19,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('hosted requests never write the shared Runtime session token', () => {
+test('Server requests never write the shared Runtime session token', () => {
     const createContext = createGrottoContextFactory({
         clerkSessions: unavailable('Clerk session verification'),
         grottoDb: unavailable('the Grotto PostgreSQL database'),

@@ -3,7 +3,7 @@ import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
 /**
- * Removal revokes access immediately and clears the hosted personal work a
+ * Removal revokes access immediately and clears the personal work a
  * human holds today — their Channel participation and read markers. What they
  * authored stays theirs, and the membership row survives as the anchor those
  * records point at.

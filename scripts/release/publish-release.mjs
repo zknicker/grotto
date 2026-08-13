@@ -95,7 +95,7 @@ function printUsage() {
         [
             'Usage: bun run release:publish [-- --push-branch main]',
             '',
-            'Builds the hosted Server and each declared release surface,',
+            'Builds the Server and each declared release surface,',
             'pushes the release commit and tag, and creates the GitHub Release.',
         ].join('\n')
     );

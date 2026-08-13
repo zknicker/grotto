@@ -23,7 +23,7 @@ async function request(protocolVersion: number | null) {
     return fetch(new URL('/trpc/server.list', harness.url), { headers });
 }
 
-test('admits only the exact App protocol before a hosted procedure runs', async () => {
+test('admits only the exact App protocol before a Server procedure runs', async () => {
     expect((await request(appProtocolVersion)).status).toBe(401);
 
     const response = await request(appProtocolVersion + 1);

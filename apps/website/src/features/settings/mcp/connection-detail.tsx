@@ -36,8 +36,10 @@ export function ConnectionDetail({
         connection: McpConnection;
         origin: string;
     } | null>(null);
-    const hosted = connections.data?.find((connection) => connection.id === connectionId);
-    const connection = hosted ? toConnectionView(hosted, agents.data ?? []) : null;
+    const serverConnection = connections.data?.find((connection) => connection.id === connectionId);
+    const connection = serverConnection
+        ? toConnectionView(serverConnection, agents.data ?? [])
+        : null;
 
     React.useEffect(() => {
         if (
@@ -127,7 +129,7 @@ export function ConnectionDetail({
                 startingOAuthId={
                     startOAuth.isPending ? (startOAuth.variables?.connectionId ?? null) : null
                 }
-                tools={(hosted?.tools ?? []).map((name) => ({
+                tools={(serverConnection?.tools ?? []).map((name) => ({
                     description: '',
                     name,
                     title: null,

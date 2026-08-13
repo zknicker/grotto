@@ -320,7 +320,7 @@ export class DevStackController extends EventEmitter {
             if (!migrated) {
                 const dataRoot = devStackEnvironment.GROTTO_POSTGRES_DATA_ROOT;
                 throw new Error(
-                    'Failed to migrate the hosted development Server database. ' +
+                    'Failed to migrate the development Server database. ' +
                         `If this dev database predates checked-in migrations, move ${dataRoot} aside and rerun.`
                 );
             }
@@ -336,7 +336,7 @@ export class DevStackController extends EventEmitter {
                 }
             );
             if (!bootstrapped) {
-                throw new Error('Failed to bootstrap the hosted development Server.');
+                throw new Error('Failed to bootstrap the development Server.');
             }
         }
 

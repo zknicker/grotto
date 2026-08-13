@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 /**
- * Runs a throwaway PostgreSQL cluster so hosted Server tests exercise real
+ * Runs a throwaway PostgreSQL cluster so Server tests exercise real
  * PostgreSQL instead of a mock. Each cluster owns its own data directory and
  * port, so parallel test files never share rows.
  *
@@ -168,7 +168,7 @@ function resolvePostgresBinaries(): PostgresBinaries {
     }
 
     throw new Error(
-        'PostgreSQL is required for hosted Server tests but its binaries were not found. Install PostgreSQL 16 (`brew install postgresql@16`) or point GROTTO_POSTGRES_BIN at its bin directory.'
+        'PostgreSQL is required for Server tests but its binaries were not found. Install PostgreSQL 16 (`brew install postgresql@16`) or point GROTTO_POSTGRES_BIN at its bin directory.'
     );
 }
 

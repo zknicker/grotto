@@ -1,4 +1,4 @@
-/** A hosted query cache whose data can be dropped, not just marked stale. */
+/** A Server query cache whose data can be dropped, not just marked stale. */
 export interface ClearableCache {
     reset(): unknown;
 }
@@ -15,7 +15,7 @@ export interface ServerCaches {
 }
 
 /**
- * Every hosted cache that must not outlive membership on one Server.
+ * Every Server cache that must not outlive membership on one Server.
  *
  * These are cleared rather than invalidated. Invalidating marks data stale and
  * refetches, but the existing data stays readable until the refetch lands — and

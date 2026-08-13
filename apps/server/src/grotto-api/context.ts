@@ -9,7 +9,7 @@ import type { McpOAuthRelay } from '../server-mcp/oauth-relay.ts';
 import type { McpRuntime } from '../server-mcp/runtime.ts';
 
 /**
- * Request context for the hosted Grotto Server. It carries the Clerk session
+ * Request context for the Grotto Server. It carries the Clerk session
  * for this request only — never process-shared identity — plus the Server's
  * PostgreSQL database.
  */

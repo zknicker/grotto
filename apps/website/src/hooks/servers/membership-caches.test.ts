@@ -3,7 +3,7 @@ import test from 'node:test';
 import { cachesClearedOnMembershipLoss } from './membership-caches.ts';
 
 /**
- * Every hosted cache named here has its data dropped when membership ends.
+ * Every Server cache named here has its data dropped when membership ends.
  * Anything left out stays readable while a refetch runs — and stays readable
  * indefinitely offline — which for Server data means a removed human keeps
  * seeing it.
@@ -23,7 +23,7 @@ function caches() {
     };
 }
 
-test('losing membership clears every hosted cache that names the Server', () => {
+test('losing membership clears every Server cache that names the Server', () => {
     const utils = caches();
     const cleared = new Set(cachesClearedOnMembershipLoss(utils));
 

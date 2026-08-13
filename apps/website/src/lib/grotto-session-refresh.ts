@@ -7,7 +7,7 @@ export interface GrottoSessionWatch {
 }
 
 /**
- * A hosted-Server WebSocket presents the Clerk session it was opened with, so
+ * A Server WebSocket presents the Clerk session it was opened with, so
  * an authenticated subscription would keep using an expiring token. Watch the
  * current session and reconnect when Clerk hands out a new one — the socket
  * re-reads its connection params on reconnect, and the Server keeps judging

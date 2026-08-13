@@ -11,7 +11,7 @@ test('keeps an older task anchor available when the latest transcript page omits
     expect(mergeTaskAnchor([anchor, latest], anchor)).toEqual([anchor, latest]);
 });
 
-test('projects hosted messages into the preserved transcript contract', () => {
+test('projects Server messages into the preserved transcript contract', () => {
     const human = message('message_human', 1);
     human.attachments = [
         {

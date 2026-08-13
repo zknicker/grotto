@@ -9,7 +9,7 @@ import {
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 /**
- * Watches every hosted query and mutation for the Server's protocol-mismatch
+ * Watches every Server query and mutation for the Server's protocol-mismatch
  * rejection. The gate covers the whole Grotto App because `server.list` and the
  * open Server run on load, so a stale client trips it before showing product
  * data. Hosted browser tabs and the current thin desktop shell reload the

@@ -4,7 +4,7 @@ import { threadTitles } from './thread-target.ts';
 
 const humans = humanDirectory([]);
 
-test('hosted Thread targets preserve non-canonical opaque anchor ids', () => {
+test('Thread targets preserve non-canonical opaque anchor ids', () => {
     expect(
         threadTitles(
             {

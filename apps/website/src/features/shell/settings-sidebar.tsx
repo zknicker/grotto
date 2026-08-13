@@ -8,7 +8,7 @@ import {
 } from '../settings/layout/navigation.ts';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
 
-/** Settings navigation sidebar for the hosted server settings routes. */
+/** Settings navigation sidebar for the Server settings routes. */
 export function SettingsSidebar({
     currentSection,
     slug,

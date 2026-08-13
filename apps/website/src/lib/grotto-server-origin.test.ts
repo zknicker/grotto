@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { resolveGrottoServerOrigin } from './grotto-server.tsx';
 
-describe('hosted Grotto Server origin', () => {
+describe('Grotto Server origin', () => {
     test('uses the browser origin when production does not configure a separate Server', () => {
         expect(resolveGrottoServerOrigin(undefined, 'https://grotto.sh')).toBe('https://grotto.sh');
     });
 
-    test('keeps the hosted browser origin authoritative over development configuration', () => {
+    test('keeps the browser origin authoritative over development configuration', () => {
         expect(resolveGrottoServerOrigin('http://127.0.0.1:8090', 'https://grotto.sh')).toBe(
             'https://grotto.sh'
         );

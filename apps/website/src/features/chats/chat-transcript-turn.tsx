@@ -342,7 +342,7 @@ function TurnHeader({
                 <button
                     aria-label={`Mention ${displayName}`}
                     className={cn(
-                        'shrink-0 cursor-pointer truncate font-semibold text-sm leading-5 hover:underline',
+                        'shrink-0 cursor-(--cursor-interactive) truncate font-semibold text-sm leading-5 hover:underline',
                         deleted ? 'text-muted' : 'text-foreground'
                     )}
                     onClick={() =>
@@ -355,7 +355,7 @@ function TurnHeader({
             ) : onClick ? (
                 <button
                     className={cn(
-                        'shrink-0 cursor-pointer truncate font-semibold text-sm leading-5 hover:underline',
+                        'shrink-0 cursor-(--cursor-interactive) truncate font-semibold text-sm leading-5 hover:underline',
                         deleted ? 'text-muted' : 'text-foreground'
                     )}
                     onClick={onClick}
@@ -561,7 +561,7 @@ function AgentTurnPresentation({
                             ? () => openAgentProfilePane(profilePaneChatId, actorId)
                             : undefined
                     }
-                    triggerButtonClassName="cursor-pointer rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    triggerButtonClassName="cursor-(--cursor-interactive) rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     // self-start keeps the trigger from stretching to the row
                     // height and re-centering the avatar it wraps.
                     triggerClassName="shrink-0 self-start"
@@ -576,7 +576,7 @@ function AgentTurnPresentation({
             ) : chatId && actorId && profilePaneChatId && !actorProfile?.deleted ? (
                 <button
                     aria-label={`Agent details: ${displayName}`}
-                    className="shrink-0 cursor-pointer self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    className="shrink-0 cursor-(--cursor-interactive) self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
                     type="button"
                 >

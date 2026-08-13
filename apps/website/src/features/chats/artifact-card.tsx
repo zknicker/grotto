@@ -21,7 +21,7 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
                 'group flex w-full max-w-[28rem] items-center gap-3 rounded-lg border border-border bg-surface-secondary/65 px-3.5 py-3 text-left',
                 'transition-colors',
                 openArtifactPanel
-                    ? 'cursor-pointer hover:border-border-secondary hover:bg-surface-tertiary/70'
+                    ? 'cursor-(--cursor-interactive) hover:border-border-secondary hover:bg-surface-tertiary/70'
                     : 'cursor-default'
             )}
             onClick={() => openArtifactPanel?.({ kind: 'workspaceFile', path: props.path })}

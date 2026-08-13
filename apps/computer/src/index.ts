@@ -58,6 +58,7 @@ import {
 } from './diagnostics.ts';
 import { readEffectiveAgentStates } from './effective-state.ts';
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
+import { prewarmBridgeStores } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
 import {
     acceptHostSkillImport,
@@ -369,6 +370,14 @@ async function main(args: string[]) {
             await markTerminalUnlinked(dataRoot, attachment);
             process.exitCode = computerMachineUnlinkedExitCode;
             return;
+        }
+        // Fire-and-forget: a warm store makes first Agent bootstraps local
+        // hard-links; a failed warm just means they fetch, as before. Tests
+        // exercise this daemon path and must not spawn real installs.
+        if (process.env.NODE_ENV !== 'test') {
+            void prewarmBridgeStores({
+                agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
+            });
         }
         await connect(attachment);
         return;

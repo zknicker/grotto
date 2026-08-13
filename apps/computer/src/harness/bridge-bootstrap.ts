@@ -88,6 +88,55 @@ export function withComputerBridgeBootstrap<T extends HarnessV1>(
     };
 }
 
+/** The one shared store location per server tree; executor and pre-warm must agree. */
+export function bridgeStoreDirForAgentsRoot(agentsRoot: string) {
+    return join(agentsRoot, '.harness-bridge-store');
+}
+
+/**
+ * Everything a boot-time pre-warm needs to populate the shared store before
+ * any Agent exists: the pinned manifest + lockfile and the same verified
+ * install the per-Agent bootstrap will later run (which then hard-links from
+ * the warm store instead of fetching).
+ */
+export async function readBridgePrewarmPlans(): Promise<
+    Array<{
+        command: (storeDir: string) => string;
+        files: Array<{ content: string; name: string }>;
+        harnessId: BridgeHarnessId;
+    }>
+> {
+    return await Promise.all(
+        (Object.keys(bridgeSpecs) as BridgeHarnessId[]).map(async (harnessId) => {
+            const spec = bridgeSpecs[harnessId];
+            return {
+                command: (storeDir: string) =>
+                    [
+                        installCommand(storeDir),
+                        ...('postInstallCommands' in spec
+                            ? spec.postInstallCommands.map((command) =>
+                                  verifiedCommand(command, storeDir)
+                              )
+                            : []),
+                    ].join(' && '),
+                files: await Promise.all(
+                    spec.files
+                        .filter((file) => file.assetName !== 'index.mjs')
+                        .map(async (file) => ({
+                            content: await readBridgeAsset(
+                                harnessId,
+                                spec.packageName,
+                                file.assetName
+                            ),
+                            name: file.bootstrapName,
+                        }))
+                ),
+                harnessId,
+            };
+        })
+    );
+}
+
 /** Release/doctor gate: embedded bridge files land where each adapter launches them. */
 export async function validateComputerBridgeAssets(): Promise<void> {
     await Promise.all(

@@ -2,7 +2,6 @@ import { Badge } from '@heroui/react';
 import type { HostedAgent } from '@tavern/api';
 import type React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { cn } from '../../lib/utils.ts';
 
 /** Hosted availability mapped onto the stock Badge colour vocabulary. */
@@ -38,19 +37,6 @@ export function hostedAvailabilityLabel(availability: HostedAgent['availability'
     }
 }
 
-export function resolveAgentAvatarAvailability(
-    availability: HostedAgent['availability'] | undefined,
-    isCurrentlyWorking: boolean | undefined
-) {
-    if (isCurrentlyWorking === true) {
-        return 'working' as const;
-    }
-    if (isCurrentlyWorking === false && availability === 'working') {
-        return 'idle' as const;
-    }
-    return availability;
-}
-
 /**
  * Rail avatar with the agent's presence dot pinned to its corner. The dot is
  * outset past the corner and ringed in the page background so it separates
@@ -70,13 +56,7 @@ export function AgentAvatar({
     className?: string;
     size?: number;
 }): React.ReactElement {
-    const currentActivity = useOptionalCurrentAgentActivity();
-    const availability = resolveAgentAvatarAvailability(
-        agent.availability,
-        agent.id && currentActivity?.isSnapshotReady
-            ? currentActivity.activityByAgentId.has(agent.id)
-            : undefined
-    );
+    const availability = agent.availability;
 
     return (
         <Badge.Anchor

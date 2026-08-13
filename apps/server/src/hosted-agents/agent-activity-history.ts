@@ -6,7 +6,12 @@ import type {
 } from '@tavern/api';
 import { and, asc, desc, eq, isNotNull, lt, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { agentActivityTable, agentDeliveryTable } from '../postgres/schema.ts';
+import {
+    agentActivityTable,
+    agentDeliveryTable,
+    agentsTable,
+    computersTable,
+} from '../postgres/schema.ts';
 
 export async function listHostedAgentActivityHistory(
     db: GrottoDatabase,
@@ -82,7 +87,21 @@ export async function readHostedActiveAgentActivity(
                 isNotNull(agentDeliveryTable.acceptedAt)
             )
         )
-        .where(eq(agentActivityTable.serverId, serverId))
+        .innerJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, agentActivityTable.serverId),
+                eq(agentsTable.id, agentActivityTable.agentId)
+            )
+        )
+        .innerJoin(
+            computersTable,
+            and(
+                eq(computersTable.serverId, agentsTable.serverId),
+                eq(computersTable.id, agentsTable.computerId)
+            )
+        )
+        .where(and(eq(agentActivityTable.serverId, serverId), eq(computersTable.health, 'healthy')))
         // `runOrder` is Agent-local for history pagination. The first recorded
         // event is the only cross-Agent turn-start ordering fact available to
         // this projection, so preserve each run's first-seen position while

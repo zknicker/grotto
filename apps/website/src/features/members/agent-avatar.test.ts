@@ -1,14 +1,5 @@
 import { expect, test } from 'bun:test';
-import {
-    hostedAvailabilityBadgeColor,
-    hostedAvailabilityLabel,
-    resolveAgentAvatarAvailability,
-} from './agent-avatar.tsx';
-
-test('current activity wins over a stale working availability', () => {
-    expect(resolveAgentAvatarAvailability('working', false)).toBe('idle');
-    expect(resolveAgentAvatarAvailability('idle', true)).toBe('working');
-});
+import { hostedAvailabilityBadgeColor, hostedAvailabilityLabel } from './agent-avatar.tsx';
 
 test('DM status copy uses concise global availability labels', () => {
     expect(hostedAvailabilityLabel('idle')).toBe('Online');

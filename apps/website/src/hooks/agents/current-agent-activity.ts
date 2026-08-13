@@ -1,4 +1,4 @@
-import type { HostedAgentActivityEvent } from '@tavern/api';
+import type { HostedAgent, HostedAgentActivityEvent } from '@tavern/api';
 
 export type CurrentAgentActivity = HostedAgentActivityEvent;
 
@@ -95,6 +95,17 @@ export function splitCurrentAgentActivity(
         hiddenCount: Math.max(0, activities.length - visible.length),
         visible,
     };
+}
+
+/** Semantic activity describes only Agents whose canonical availability is working. */
+export function filterCurrentAgentActivityByAvailability(
+    activities: readonly CurrentAgentActivity[],
+    agents: readonly Pick<HostedAgent, 'availability' | 'id'>[]
+) {
+    const workingAgentIds = new Set(
+        agents.filter((agent) => agent.availability === 'working').map((agent) => agent.id)
+    );
+    return activities.filter((activity) => workingAgentIds.has(activity.agentId));
 }
 
 function activityKey(activity: CurrentAgentActivity) {

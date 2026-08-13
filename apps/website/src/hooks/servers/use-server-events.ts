@@ -71,6 +71,7 @@ export function createServerUpdateHandler(
         if (event.scope === 'computer') {
             invalidateServerDetail(utils, slug);
             void utils.computer.list.invalidate({ serverId });
+            void utils.agent.activeActivity.invalidate({ serverId });
             invalidateAgentDetail(utils, serverId, event.agentId);
             void utils.agent.list.invalidate({ serverId });
             void utils.agent.skillFile.invalidate();

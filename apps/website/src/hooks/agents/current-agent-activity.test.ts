@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import type { HostedAgentActivityEvent } from '@tavern/api';
 import {
     applyCurrentAgentActivityEvent,
+    filterCurrentAgentActivityByAvailability,
     formatCurrentAgentActivityLabel,
     projectCurrentAgentActivitySnapshot,
     reconcileCurrentAgentActivity,
@@ -179,4 +180,21 @@ test('semantic activity labels use the product catalog', () => {
     expect(formatCurrentAgentActivityLabel(activity({ category: 'using_tool' }))).toBe(
         'Using a tool…'
     );
+});
+
+test('semantic activity never overrides canonical Agent availability', () => {
+    const activities = [activity(), activity({ agentId: 'agt_two', runId: 'run_two' })];
+
+    expect(
+        filterCurrentAgentActivityByAvailability(activities, [
+            { availability: 'offline', id: 'agt_one' },
+            { availability: 'working', id: 'agt_two' },
+        ])
+    ).toEqual([activities[1]]);
+    expect(
+        filterCurrentAgentActivityByAvailability(activities, [
+            { availability: 'error', id: 'agt_one' },
+            { availability: 'stopped', id: 'agt_two' },
+        ])
+    ).toEqual([]);
 });

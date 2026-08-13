@@ -1,14 +1,15 @@
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
+import { useAgents } from '../members/use-agents.ts';
 import {
     type CurrentAgentActivity,
+    filterCurrentAgentActivityByAvailability,
     reconcileCurrentAgentActivity,
 } from './current-agent-activity.ts';
 
 export interface CurrentAgentActivityContextValue {
     activities: readonly CurrentAgentActivity[];
-    activityByAgentId: ReadonlyMap<string, CurrentAgentActivity>;
     isSnapshotReady: boolean;
     serverId: string | undefined;
 }
@@ -84,19 +85,22 @@ export function AgentActivityProvider({
     serverId: string;
 }) {
     const query = useCurrentAgentActivity(serverId);
-    const activities = query.data?.activities ?? [];
-    const activityByAgentId = React.useMemo(
-        () => new Map(activities.map((activity) => [activity.agentId, activity])),
-        [activities]
+    const agents = useAgents(serverId);
+    const activities = React.useMemo(
+        () =>
+            filterCurrentAgentActivityByAvailability(
+                query.data?.activities ?? [],
+                agents.data ?? []
+            ),
+        [agents.data, query.data?.activities]
     );
     const value = React.useMemo<CurrentAgentActivityContextValue>(
         () => ({
             activities,
-            activityByAgentId,
-            isSnapshotReady: query.isSuccess,
+            isSnapshotReady: query.isSuccess && agents.isSuccess,
             serverId,
         }),
-        [activities, activityByAgentId, query.isSuccess, serverId]
+        [activities, agents.isSuccess, query.isSuccess, serverId]
     );
 
     return <CurrentAgentActivityContext value={value}>{children}</CurrentAgentActivityContext>;

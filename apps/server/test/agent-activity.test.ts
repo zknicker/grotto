@@ -92,6 +92,7 @@ async function seedActivity(): Promise<Seed> {
     await connection.db.insert(computersTable).values({
         attachedByUserId: userId,
         credentialHash: randomBytes(32).toString('hex'),
+        health: 'healthy',
         id: computerId,
         serverId,
     });
@@ -285,6 +286,18 @@ test('rejects wrong identities and settled runs, while active snapshot recovers 
     const snapshot = await readHostedActiveAgentActivity(connection.db, seed.serverId);
     expect(snapshot.activities).toHaveLength(1);
     expect(snapshot.activities[0]).toEqual(accepted);
+
+    await connection.db
+        .update(computersTable)
+        .set({ health: 'offline' })
+        .where(eq(computersTable.id, seed.computerId));
+    expect((await readHostedActiveAgentActivity(connection.db, seed.serverId)).activities).toEqual(
+        []
+    );
+    await connection.db
+        .update(computersTable)
+        .set({ health: 'healthy' })
+        .where(eq(computersTable.id, seed.computerId));
 
     await delivery.onTurnSettled(seed.computerId, summary(seed, frame.runId));
     const stale = await recordComputerAgentActivity(connection.db, {

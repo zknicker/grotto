@@ -9,7 +9,6 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { useOptionalCurrentAgentActivity } from '../../../hooks/agents/use-current-agent-activity.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import {
     useChannelArchive,
@@ -21,10 +20,7 @@ import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { HostedDeleteDialog } from '../../../routes/app/hosted-delete-dialog.tsx';
 import { ChannelDialog } from '../../chats/channel-dialog.tsx';
 import { ChatViewSwitcher, type ChatViewTab } from '../../chats/chat-view-tabs.tsx';
-import {
-    hostedAvailabilityLabel,
-    resolveAgentAvatarAvailability,
-} from '../../members/agent-avatar.tsx';
+import { hostedAvailabilityLabel } from '../../members/agent-avatar.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
 import { serverRoute } from '../server-routes.ts';
 
@@ -85,14 +81,7 @@ export function ChatTopbar({
 }
 
 function DmAgentStatus({ agent }: { agent: HostedAgent }) {
-    const currentActivity = useOptionalCurrentAgentActivity();
-    const availability = resolveAgentAvatarAvailability(
-        agent.availability,
-        currentActivity?.isSnapshotReady
-            ? currentActivity.activityByAgentId.has(agent.id)
-            : undefined
-    );
-    return hostedAvailabilityLabel(availability);
+    return hostedAvailabilityLabel(agent.availability);
 }
 
 function ChannelParticipants({

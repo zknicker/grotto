@@ -16,6 +16,7 @@ function recordingUtils() {
         invalidated,
         utils: {
             agent: {
+                activeActivity: { invalidate: invalidate('agent.activeActivity') },
                 deliveryState: { invalidate: invalidate('agent.deliveryState') },
                 get: { invalidate: invalidate('agent.get') },
                 list: { invalidate: invalidate('agent.list') },
@@ -52,6 +53,7 @@ test('computer events refresh hosted workspace reads without polling', () => {
     expect(names(invalidated)).toEqual([
         'server.bySlug',
         'computer.list',
+        'agent.activeActivity',
         'agent.get',
         'agent.list',
         'agent.skillFile',
@@ -105,7 +107,7 @@ test('a named Agent on a Computer event refreshes that Agent exactly', () => {
         'team-room'
     )({ agentId: 'agt_scout', scope: 'computer' });
 
-    expect(invalidated[2]).toEqual({
+    expect(invalidated[3]).toEqual({
         input: { agentId: 'agt_scout', serverId: 'server-one' },
         name: 'agent.get',
     });

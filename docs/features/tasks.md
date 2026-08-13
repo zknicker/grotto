@@ -56,11 +56,16 @@ stint.
 
 ## Server UI and realtime
 
-The hosted `/s/<slug>` Server UI provides Board and List lenses with create, claim, unclaim,
-assignment, status, priority, and task-label controls. Loading, empty, filtered-empty, and
+The hosted `/s/<slug>` Server UI provides List and Board lenses; the Linear-style List is the
+default. List rows are dense and display-only — priority glyph, task number, status disc, title,
+labels, origin Chat, updated time, and assignee avatar — while create, claim, unclaim, assignment,
+status, priority, and task-label controls live on the Board cards and the Task Thread. Both lenses
+order each status group by priority, urgent first. Loading, empty, filtered-empty, and
 authorization failures are explicit. The Tasks topbar owns search, layout, and creation controls;
-the contextual sidebar owns saved views and label filters. Opening a row returns to its message
-and Thread. A Task Thread shows the task number, current status, assignee, and creator beneath its
+the contextual sidebar owns saved views and label filters. Opening a task from either lens shows
+its Thread work surface in a dialog over the tasks page — `?task=<messageId>` owns the open task,
+so deep links and Back work — while "View in channel" and artifact opens navigate to the parent
+Chat. Inside a Chat, opening a task still uses the chat-owned Thread side pane. A Task Thread shows the task number, current status, assignee, and creator beneath its
 anchor message. Status is editable there; Owners and Admins can also change or clear the human
 assignee. Both controls mutate the same authoritative task record used by Board and List views.
 

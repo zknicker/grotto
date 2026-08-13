@@ -213,9 +213,16 @@ Use this lane when the release decision marks Computer **publish**:
 The publisher creates the annotated Computer tag and GitHub Release. It never
 promotes `latest.json` before the immutable public artifact passes signature,
 notarization, digest, version, protocol, and source-revision checks.
-The compiled artifact must also load every embedded Codex and Claude Code
-harness bridge payload. The publisher runs that check from the standalone
+The compiled artifact must also load every embedded Codex, Claude Code, and Grok Build harness
+bridge payload, including Grok Build's live interjection extension. Grok Build itself remains the
+user's detected local installation. The publisher runs the bridge check from the standalone
 executable, so source-tree fallback files cannot make a broken release pass.
+
+The deterministic bridge contract test pins the private `_x.ai/interject` method, its first-update
+readiness gate, and its accepted/rejected acknowledgement handshake. The Computer suite
+automatically runs an authenticated smoke against the separately installed Grok executable when
+`grok models` confirms a usable local login. CI and developer machines without Grok or a usable
+login skip only that live smoke; no opt-in flag is required.
 
 If publication is interrupted after an immutable object uploads but before
 promotion, rerun the same command from the same source revision. The publisher

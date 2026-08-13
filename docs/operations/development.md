@@ -48,7 +48,7 @@ predates the checked-in migration baseline: move
 the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
 `#product` Channels, starter messages, a Thread, two tasks, and one MCP
 connection — enough to open any surface without hand-building data. Computer
-then runs their real Agent turns using the host's Codex, Claude Code, or Pi
+then runs their real Agent turns using the host's Codex, Claude Code, Grok Build, or Pi
 sign-in.
 
 Seeding runs once per Server. To pick up changes to

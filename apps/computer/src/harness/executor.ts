@@ -14,7 +14,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import type { HostedAgentInboxItem } from '../launch.ts';
-import { withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
+import { bridgeStoreDirForAgentsRoot, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { projectHostedMessageForAgent } from './rich-reference-projection.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
@@ -218,7 +218,9 @@ async function executeHarnessTurn(
         let observation: HarnessTurnResult;
         try {
             await storedNoticeReady.promise;
-            observation = await observeTurnStream(turn.fullStream, noticeCoordinator.flush);
+            observation = await observeTurnStream(turn.fullStream, noticeCoordinator.flush, {
+                stallLabel: `${input.runtimeId} agent=${input.agentId}`,
+            });
         } finally {
             unregisterNoticeSink?.();
             noticeCoordinator.close();
@@ -392,24 +394,58 @@ function pendingNoticePath(agentRoot: string) {
  */
 async function observeTurnStream(
     stream: AsyncIterable<unknown>,
-    onToolBoundary?: () => Promise<void>
+    onToolBoundary?: () => Promise<void>,
+    { stallLabel, stallAfterMs = 120_000 }: { stallAfterMs?: number; stallLabel?: string } = {}
 ): Promise<HarnessTurnResult> {
     let contextTokens: number | null = null;
     let streamError: unknown;
     let aborted = false;
     const toolNames = new Set<string>();
-    for await (const part of stream) {
-        if (!isRecord(part) || typeof part.type !== 'string') {
-            continue;
+    // Wedge telemetry: long silences separate provider latency (events flowed,
+    // then stopped after a known part) from a hung bridge (nothing ever came).
+    let lastPartAt = Date.now();
+    let lastPartType = 'none yet';
+    let partCount = 0;
+    const stallTimer = stallLabel
+        ? setInterval(() => {
+              const silentForMs = Date.now() - lastPartAt;
+              if (silentForMs >= stallAfterMs) {
+                  console.error(
+                      `[harness-stall] ${stallLabel}: no stream events for ${Math.round(silentForMs / 1000)}s (${partCount} events so far, last: ${lastPartType})`
+                  );
+              }
+          }, 60_000)
+        : null;
+    stallTimer?.unref?.();
+    try {
+        for await (const part of stream) {
+            if (!isRecord(part) || typeof part.type !== 'string') {
+                continue;
+            }
+            lastPartAt = Date.now();
+            lastPartType = part.type;
+            partCount += 1;
+            handlePart({ ...part, type: part.type });
+            if (part.type === 'tool-result') {
+                await onToolBoundary?.();
+            }
         }
+    } finally {
+        if (stallTimer) {
+            clearInterval(stallTimer);
+        }
+    }
+    if (streamError && !aborted) {
+        throw streamError instanceof Error ? streamError : new Error(String(streamError));
+    }
+    return { contextTokens, toolNames: [...toolNames] };
+
+    function handlePart(part: Record<string, unknown> & { type: string }) {
         switch (part.type) {
             case 'tool-call':
                 if (typeof part.toolName === 'string' && toolNames.size < 6) {
                     toolNames.add(part.toolName.slice(0, 128));
                 }
-                break;
-            case 'tool-result':
-                await onToolBoundary?.();
                 break;
             case 'finish-step':
                 contextTokens = usageContextTokens(part.usage) ?? contextTokens;
@@ -428,10 +464,6 @@ async function observeTurnStream(
                 break;
         }
     }
-    if (streamError && !aborted) {
-        throw streamError instanceof Error ? streamError : new Error(String(streamError));
-    }
-    return { contextTokens, toolNames: [...toolNames] };
 }
 
 // The construction seam. Tests inject a fake harness Agent to exercise the
@@ -521,11 +553,12 @@ function authProfileFor(runtimeId: string) {
  */
 /**
  * One content-addressed pnpm store per Computer server tree, shared by every
- * Agent's bridge bootstrap: the runtime's platform binary downloads once, and
- * later Agents hard-link from the store instead of hitting the network.
+ * Agent's bridge bootstrap: the runtime's platform binary downloads once
+ * (pre-warmed at attach), and Agents hard-link from the store instead of
+ * hitting the network.
  */
 function bridgeStoreDir(input: HarnessTurnInput) {
-    return join(dirname(dirname(input.workspaceDir)), '.harness-bridge-store');
+    return bridgeStoreDirForAgentsRoot(dirname(dirname(input.workspaceDir)));
 }
 
 function createHarnessForRuntime(

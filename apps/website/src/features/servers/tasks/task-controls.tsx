@@ -52,8 +52,8 @@ export function TaskControls({ chatId }: { chatId?: string }) {
                 selectionMode="single"
                 size="sm"
             >
-                <ToggleButton id="board">Board</ToggleButton>
                 <ToggleButton id="list">List</ToggleButton>
+                <ToggleButton id="board">Board</ToggleButton>
             </ToggleButtonGroup>
             <Button
                 isDisabled={chatOptions.length === 0}

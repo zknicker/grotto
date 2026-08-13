@@ -2,9 +2,11 @@ import { Kanban } from '@heroui-pro/react';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { RelativeTime } from '../../../components/time/relative-time.tsx';
+import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { LabelChip } from '../../tasks/label-chip.tsx';
 import { taskPriorityLabels, taskStatusLabels } from '../../tasks/task-presentation.ts';
+import { TaskPriorityIcon } from '../../tasks/task-priority-icon.tsx';
 import { TaskStatusDisc } from '../../tasks/task-status-disc.tsx';
 import { TaskActions } from './task-actions.tsx';
 import { groupTasks, type TaskItem } from './task-model.ts';
@@ -95,7 +97,9 @@ function TaskListGroup({
     const [open, setOpen] = React.useState(true);
 
     return (
-        <section>
+        // Each group closes with its own border: row dividers stop after the
+        // last row, and this seam doubles as the line before the next header.
+        <section className="border-separator border-b">
             <div className="sticky top-0 z-10 flex h-9 items-center gap-2 border-separator border-b bg-background/80 px-3 backdrop-blur">
                 <button
                     aria-expanded={open}
@@ -148,32 +152,44 @@ function TaskListRow({
 }) {
     return (
         <button
-            aria-label={`Open task #${task.number} ${task.title}`}
+            aria-label={rowAriaLabel(task, assigneeLabel)}
             className="flex h-9 w-full cursor-[var(--cursor-interactive)] items-center gap-2 px-3 text-left outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
             onClick={() => onOpen(task)}
             type="button"
         >
+            <TaskPriorityIcon className="size-4 text-muted" priority={task.priority} />
             <span className="w-10 shrink-0 text-right font-mono text-muted text-xs tabular-nums">
                 #{task.number}
             </span>
+            <TaskStatusDisc className="size-4" status={task.status} />
             <span className="min-w-0 flex-1 truncate text-foreground text-sm">{task.title}</span>
             <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
                 {task.labels.map((label) => (
                     <LabelChip color={label.color} key={label.id} name={label.name} />
                 ))}
-                {task.priority === 'none' ? null : (
-                    <span className="text-muted text-xs">{taskPriorityLabels[task.priority]}</span>
-                )}
                 <span className="text-muted text-xs">{task.chatLabel}</span>
             </div>
             <span className="hidden shrink-0 text-muted text-xs tabular-nums sm:inline">
                 <RelativeTime value={task.updatedAt} />
             </span>
-            <span className="w-24 shrink-0 truncate text-right text-muted text-xs">
-                {assigneeLabel}
+            <span className="shrink-0" title={assigneeLabel}>
+                {task.assigneeAgentId !== null || task.assigneeUserId !== null ? (
+                    <EntityAvatar name={assigneeLabel} size={20} src={task.assigneeAvatarUrl} />
+                ) : (
+                    <span
+                        aria-hidden="true"
+                        className="block size-5 rounded-full border border-separator border-dashed"
+                    />
+                )}
             </span>
         </button>
     );
+}
+
+function rowAriaLabel(task: TaskItem, assigneeLabel: string) {
+    const priority =
+        task.priority === 'none' ? '' : `, ${taskPriorityLabels[task.priority]} priority`;
+    return `Open task #${task.number} ${task.title}, ${assigneeLabel}${priority}`;
 }
 
 // The task's own open affordance. Board cards and list rows both carry inline

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { HostedTaskListItem } from '@tavern/api';
+import type { HostedAgent, HostedTaskListItem } from '@tavern/api';
 import { humanDirectory } from '../human-identity.ts';
 import {
     filterTasks,
@@ -63,6 +63,34 @@ test('groups every lifecycle column in stable order', () => {
         'closed',
     ]);
     expect(groups[0]?.tasks).toHaveLength(1);
+});
+
+test('orders each status group by priority, urgent first and unset last', () => {
+    const base = toTaskItem(item(), humans);
+    const none = { ...base, id: 'message_none', number: 2 };
+    const low = { ...base, id: 'message_low', number: 3, priority: 'low' as const };
+    const urgent = { ...base, id: 'message_urgent', number: 4, priority: 'urgent' as const };
+
+    const groups = groupTasks([none, low, urgent]);
+
+    expect(groups[0]?.tasks.map((task) => task.id)).toEqual([
+        'message_urgent',
+        'message_low',
+        'message_none',
+    ]);
+});
+
+test('projects the assignee avatar from the agent directory', () => {
+    const assigned = {
+        ...item(),
+        task: { ...item().task, assigneeAgentId: 'agent_owner' },
+    };
+
+    const task = toTaskItem(assigned, humans, [agent()]);
+
+    expect(task.assigneeLabel).toBe('Fen');
+    expect(task.assigneeAvatarUrl).toBe('/api/avatars/avt_fen');
+    expect(toTaskItem(item(), humans).assigneeAvatarUrl).toBeNull();
 });
 
 test('shows claim controls only when the viewer can perform the action', () => {
@@ -197,6 +225,31 @@ test('identifies a DM task by its peer', () => {
         ).chatLabel
     ).toBe('Direct · Human r_peer');
 });
+
+function agent(): HostedAgent {
+    return {
+        availability: 'idle',
+        avatarUrl: '/api/avatars/avt_fen',
+        computerId: 'cmp_one',
+        createdAt: '2026-07-26T12:00:00.000Z',
+        createdByUserId: 'user_one',
+        description: null,
+        desiredModelId: 'model_one',
+        desiredRuntimeId: 'runtime_one',
+        displayName: 'Fen',
+        dmChatId: null,
+        effectiveModelId: null,
+        effectiveReportedAt: null,
+        effectiveRuntimeId: null,
+        factoryKind: 'ordinary',
+        handle: 'fen',
+        id: 'agent_owner',
+        missingResources: [],
+        role: 'member',
+        serverId: 'server_one',
+        status: 'pending',
+    };
+}
 
 function item(): HostedTaskListItem {
     return {

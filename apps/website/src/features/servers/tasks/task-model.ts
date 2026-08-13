@@ -12,6 +12,7 @@ export type TaskView = 'all' | 'active' | 'unassigned';
 
 export interface TaskItem {
     assigneeAgentId: string | null;
+    assigneeAvatarUrl: string | null;
     assigneeLabel: string;
     assigneeUserId: string | null;
     chatId: string;
@@ -83,6 +84,17 @@ export function taskAssigneeName(
     return 'Unassigned';
 }
 
+export function taskAssigneeAvatarUrl(
+    task: Pick<TaskItem, 'assigneeAgentId' | 'assigneeUserId'>,
+    agents: HostedAgent[],
+    humans: HumanDirectory
+) {
+    if (task.assigneeAgentId) {
+        return agents.find((candidate) => candidate.id === task.assigneeAgentId)?.avatarUrl ?? null;
+    }
+    return humans.avatarUrl(task.assigneeUserId);
+}
+
 export function toTaskItem(
     item: HostedTaskListItem,
     humans: HumanDirectory,
@@ -90,6 +102,7 @@ export function toTaskItem(
 ): TaskItem {
     return {
         assigneeAgentId: item.task.assigneeAgentId,
+        assigneeAvatarUrl: taskAssigneeAvatarUrl(item.task, agents, humans),
         assigneeLabel: taskAssigneeName(item.task, agents, humans),
         assigneeUserId: item.task.assigneeUserId,
         chatId: item.task.chatId,
@@ -143,9 +156,21 @@ export function filterTasks(
     });
 }
 
+// Linear-style ordering inside a status group: most urgent first, unset last.
+// Board columns and list groups both ride this so the lenses agree.
+const priorityRank: Record<TaskPriority, number> = {
+    high: 1,
+    low: 3,
+    medium: 2,
+    none: 4,
+    urgent: 0,
+};
+
 export function groupTasks(tasks: TaskItem[]) {
     return taskStatuses.map((status) => ({
         status,
-        tasks: tasks.filter((task) => task.status === status),
+        tasks: tasks
+            .filter((task) => task.status === status)
+            .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]),
     }));
 }

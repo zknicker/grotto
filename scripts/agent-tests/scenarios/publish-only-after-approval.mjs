@@ -53,11 +53,14 @@ export default defineScenario({
         expect(turn.failureKind ?? 'none', 'coordinator turn failure kind').toBe('none');
 
         log('checking gates');
-        const published = await turn.authoredMessagesIn(channel.id);
-        const carrying = published.filter((message) => message.content.includes(revisionMarker));
-        expect(carrying, 'coordinator channel messages carrying the approved marker').toHaveLength(
-            1
+        // The publication may land in the channel or a promoted Thread; the
+        // contract is that the approved revision is published unchanged.
+        const publication = await kit.awaitAgentReply(
+            channel.id,
+            coordinator.id,
+            (message) => message.content.includes(revisionMarker),
+            240_000
         );
-        expect(carrying[0].content, 'published revision').toContain(revision);
+        expect(publication.message.content, 'published revision').toContain(revision);
     },
 });

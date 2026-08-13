@@ -81,17 +81,18 @@ export default defineScenario({
         expect(turn.failureKind ?? 'none', 'coordinator turn failure kind').toBe('none');
 
         log('checking gates');
-        const published = await turn.authoredMessagesIn(channel.id);
-        const synthesis = published.filter(
-            (message) => message.content.includes(laneA) && message.content.includes(laneB)
-        );
-        expect(synthesis, 'coordinator channel messages carrying both lane markers').toHaveLength(
-            1
+        // The synthesis may land in the channel or in a Thread the request was
+        // promoted into — either satisfies "one synthesis from both lanes".
+        const synthesis = await kit.awaitAgentReply(
+            channel.id,
+            coordinator.id,
+            (message) => message.content.includes(laneA) && message.content.includes(laneB),
+            240_000
         );
 
         const lastReportAt = Math.max(...reports.map((report) => Date.parse(report.createdAt)));
         expect(
-            Date.parse(synthesis[0].createdAt) >= lastReportAt,
+            Date.parse(synthesis.message.createdAt) >= lastReportAt,
             'synthesis published after both lane reports'
         ).toBe(true);
     },

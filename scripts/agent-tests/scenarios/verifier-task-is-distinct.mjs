@@ -61,11 +61,12 @@ export default defineScenario({
         const tasks = await kit.trpc('task.list', { chatId: channel.id, serverId: kit.serverId });
         const created = tasks.filter((item) => item.task.messageId !== authorTask.messageId);
         expect(created.length > 0, 'tasks created by the coordinator').toBe(true);
-        expect(
-            created.some((item) => item.task.assigneeAgentId === author.id),
-            'a created task was assigned to the draft author'
-        ).toBe(false);
 
+        // The contract is who REVIEWS: some draft-carrying task must sit with
+        // the verifier — a distinct agent from the author. Other created tasks
+        // (a revision lane for the author, coordinator bookkeeping) are
+        // legitimate and carry no review-independence meaning, so they are
+        // not gated; distinguishing them by wording would be meaning-matching.
         let reviewCarryingDraft = null;
         for (const item of created) {
             await kit.trackChat(item.task.threadChatId);

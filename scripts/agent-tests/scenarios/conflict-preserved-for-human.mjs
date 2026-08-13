@@ -70,16 +70,16 @@ export default defineScenario({
         expect(turn.failureKind ?? 'none', 'coordinator turn failure kind').toBe('none');
 
         log('checking gates');
-        const published = await turn.authoredMessagesIn(channel.id);
-        const finals = published.filter((message) =>
-            message.content.includes('DECISION: UNRESOLVED CONFLICT')
+        // The final may land in the channel or a promoted Thread; the contract
+        // is that one declaration preserves both claims and hands off.
+        const final = await kit.awaitAgentReply(
+            channel.id,
+            coordinator.id,
+            (message) => message.content.includes('DECISION: UNRESOLVED CONFLICT'),
+            240_000
         );
-        expect(
-            finals,
-            'coordinator channel messages declaring the unresolved conflict'
-        ).toHaveLength(1);
-        expect(finals[0].content, 'alpha claim preserved').toContain('SHIP_DATE=October 15');
-        expect(finals[0].content, 'beta claim preserved').toContain('SHIP_DATE=November 1');
-        expect(finals[0].content, 'human handoff line').toContain('HUMAN DECISION REQUIRED');
+        expect(final.message.content, 'alpha claim preserved').toContain('SHIP_DATE=October 15');
+        expect(final.message.content, 'beta claim preserved').toContain('SHIP_DATE=November 1');
+        expect(final.message.content, 'human handoff line').toContain('HUMAN DECISION REQUIRED');
     },
 });

@@ -98,16 +98,20 @@ describe('cleanup expansion', () => {
     const tasks = [{ task: { chatId: 'cht_parent', threadChatId: 'cht_thread' } }];
 
     test('adds the Threads owned by a requested parent Chat', () => {
-        expect(expandEvalCleanupChatIds(['cht_parent'], tasks)).toEqual([
-            'cht_parent',
-            'cht_thread',
-        ]);
+        expect(expandEvalCleanupChatIds(['cht_parent'], tasks)).toEqual({
+            chatIds: ['cht_parent', 'cht_thread'],
+            retained: [],
+        });
     });
 
-    test('deletes an explicitly tracked Thread without claiming its parent', () => {
-        // A Thread promoted from a standing Owner DM is scenario-owned while
-        // the DM itself is preserved: the Thread alone is a legal cleanup set.
-        expect(expandEvalCleanupChatIds(['cht_thread'], tasks)).toEqual(['cht_thread']);
+    test('retains a task Thread whose parent is not in the set', () => {
+        // Deleting a task's thread chat alone orphans the durable task row and
+        // 500s task.list server-wide (observed live). The thread is retained
+        // and reported resolved so cleanup state stops retrying it.
+        expect(expandEvalCleanupChatIds(['cht_thread'], tasks)).toEqual({
+            chatIds: [],
+            retained: ['cht_thread'],
+        });
     });
 
     test('chunks ids to the twenty id server limit', () => {

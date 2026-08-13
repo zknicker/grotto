@@ -2,7 +2,7 @@
 summary: Live multi-Agent behavior contract for applying material owner corrections during coordinated work.
 read_when:
   - changing Agent task delegation, busy delivery, freshness, or task-Thread behavior
-  - changing multi-Agent coordination behavior or live Agent E2E coverage
+  - changing multi-Agent coordination behavior or agent-test coverage
 ---
 
 # Mid-flight correction
@@ -19,7 +19,7 @@ coordinator treats the correction as new authoritative context:
 5. The coordinator withholds recommendations based only on the original
    criteria and publishes one synthesis that reflects the corrected constraint.
 
-The live Agent E2E scenario compares two product candidates, then makes EU data
+The agent-test scenario compares two product candidates, then makes EU data
 residency and complete standard-format export hard gates after both candidate
 lanes have acknowledged and claimed their work. It proves durable propagation,
 ordering, stale-recommendation suppression, and the final result through the

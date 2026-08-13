@@ -3,6 +3,7 @@ summary: Testing strategy for choosing focused lanes, writing durable tests, kee
 read_when:
   - adding tests, changing execution-runtime contracts, or choosing a verification lane
   - changing OpenAPI, Server stores, SDK, App e2e, or Computer execution behavior
+  - adding or changing an agent-behavior scenario under scripts/agent-tests/
 ---
 
 # Testing
@@ -48,8 +49,8 @@ Each package gate includes its tests and typecheck:
 | `apps/website` | `@tavern/website test` + `typecheck` |
 | `packages/tavern-api` | `@tavern/api check`, plus typecheck of the consuming apps you touched |
 | `packages/tavern-sdk` | `@tavern/sdk test` + `typecheck` |
-| Browser-level contracts (navigation, reload, websocket, chat flows, layout) | `bun run test:e2e`, scoped to the affected spec file when possible |
-| Execution runtimes, harness adapters, provider auth wiring, or `@ai-sdk/harness-*` bumps | `@tavern/computer test` + `typecheck`; add scoped Live Agent E2E when deterministic proof is insufficient |
+| Browser-level contracts (navigation, reload, websocket, chat flows, layout) | `bun run test:app`, scoped to the affected spec file when possible |
+| Execution runtimes, harness adapters, provider auth wiring, or `@ai-sdk/harness-*` bumps | `@tavern/computer test` + `typecheck`; add a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
 
 Rules that keep runs cheap and honest:
 
@@ -79,11 +80,12 @@ that matches multiple rows, run the union of their required proof.
 | React query, mutation, cache, realtime, optimistic UI, or shared state | Focused regression plus website gate | Add scoped App e2e for reload, reconnect, navigation, or a complete user flow. |
 | Route tree, persistent shell, navigation, side pane, or layout-critical behavior | Website gate plus scoped App e2e | Use the full App e2e suite for broad shell or cross-flow changes. |
 | Hosted Server API, authorization, PostgreSQL state, or realtime | Focused regression plus server gate | Add App e2e when the public browser flow or reconnect behavior changed. |
-| Computer execution, delivery, or local capability behavior | Focused regression plus computer gate | Add scoped Live Agent E2E when deterministic proof cannot cover the observable model-driven behavior. |
-| Computer execution-runtime mapping, delivery semantics, or agent behavior | Focused regression plus Computer gate | Add provider smoke or Live Agent E2E for executor/provider-boundary changes. |
+| Computer execution, delivery, or local capability behavior | Focused regression plus computer gate | Add a scoped `test:agents` scenario when deterministic proof cannot cover the observable model-driven behavior. |
+| Computer execution-runtime mapping, delivery semantics, or agent behavior | Focused regression plus Computer gate | Add provider smoke or a `test:agents` scenario for executor/provider-boundary changes. |
 | API or SDK contract | API or SDK gate plus affected consumer typechecks | Add Server, Computer, or App coverage when behavior changed behind the contract. |
 | Agent prompt or managed instructions | Prompt contract and snapshot review plus owning package gate | Run `eval:prompt` after meaningful prompt-text changes, as required by AGENTS.md. |
-| Live Agent behavior, fixture, or eval harness | Run the affected `eval:agents` spec after deterministic support tests | Run the full Live Agent E2E suite only when shared behavior can affect several specs or for release confidence. |
+| Live Agent behavior, agent-test kit, or eval harness | Run the affected scenario with `bun run test:agents --only <name>` after deterministic support tests | Run the full `test:agents` set when shared kit or prompt behavior can affect several scenarios or for release confidence. |
+| App-to-Computer-to-model path through the real browser | `bun run test:tracer` | Nothing else escalates here; behavior belongs in `test:agents`. |
 
 ## Test Lanes
 
@@ -95,7 +97,8 @@ that matches multiple rows, run the union of their required proof.
 | Contract/API/SDK gates | `packages/tavern-api`, OpenAPI, SDK client shape, generated types, or cross-boundary request/response contracts. | Run `@tavern/api check`, SDK tests/typecheck, and update docs with the product contract. |
 | App component/hook tests | React state rules, cache invalidation, optimistic UI, row models, filters, keyboard behavior, or rendering transforms. | Prefer hook/model/component tests before e2e. Use the `architect-react-features` skill for nontrivial React architecture. |
 | App e2e | Browser-level app contracts: navigation, reload recovery, websocket reconnect, full chat identity, user flows, or layout-critical behavior. | Use deterministic Playwright against isolated ports and a throwaway PostgreSQL cluster. |
-| Computer executor tests | Execution-runtime mapping, event projection, delivery semantics, local sandbox behavior, or capability degradation. | Verify with Computer fixtures, deterministic fake executors, or opt-in Live Agent E2E. |
+| Computer executor tests | Execution-runtime mapping, event projection, delivery semantics, local sandbox behavior, or capability degradation. | Verify with Computer fixtures, deterministic fake executors, or an opt-in `test:agents` scenario. |
+| Agent tests | Observable Agent behavior across real Server, Computer, and model: attention, routing, tasks, coordination, skills, workspace, reminders, and proven silence. | Headless scenarios under `scripts/agent-tests/scenarios/`. Assert structural Server state plus literal markers; never prose shape. |
 | Live/manual smoke | Real provider behavior, local environment diagnosis, or release confidence that deterministic lanes cannot cover. | Keep opt-in. Record temporary chat ids/titles and clean up only those records. |
 
 ## Writing Tests
@@ -131,14 +134,14 @@ Chat E2E should prove identity and recovery, not styling details:
 * completed messages and Threads remain available as durable history
 * Agent-authored effects use the public runner contract rather than a real model
 
-The e2e wrapper runs preflight before Playwright starts service readiness
+The App test wrapper runs preflight before Playwright starts service readiness
 timers. Preflight verifies Playwright Chromium and builds the SDK with visible
 terminal progress.
 
 Browser E2E uses the hosted product boundary by default:
 
 ```bash
-bun run test:e2e
+bun run test:app
 ```
 
 Run one spec while repairing a focused surface:
@@ -151,7 +154,7 @@ The lane starts only the hosted Server, throwaway PostgreSQL, Clerk issuer, and
 website. Computer inventory and Agent-authored effects use deterministic
 fixtures or public runner contracts; no model runs. The membership spec still
 drives the real invitation round trip across two Clerk identities. Actual
-App-to-Computer-to-model behavior belongs to the live Agent E2E lane below.
+App-to-Computer-to-model behavior belongs to the agent-test lanes below.
 
 ### Fresh-Server onboarding proof
 
@@ -190,35 +193,64 @@ message such as `Codex smoke <timestamp>: <purpose>`, record the created chat
 ids, and delete only those chats before finishing. If cleanup fails, report the
 exact chat ids or titles left behind.
 
-Live Agent E2E teardown uses the localhost-only `dev.cleanupEvalChats`
+Agent-test teardown uses the localhost-only `dev.cleanupEvalChats`
 procedure to delete exact test-created Chat ids. This is an authenticated,
 non-production test seam, not a product Chat archive or deletion contract.
 
-## Live Agent E2E
+## Agent Tests
 
-`bun run eval:agents` drives the real App, hosted Server, Computer, and model.
-Use it for Agent behavior that deterministic lanes cannot prove, then scope
-iteration to one Playwright spec:
+`bun run test:agents` is the lane for observable Agent behavior. It is
+headless: scenarios drive the same hosted tRPC and Agent API contracts the App
+uses, against the real Server, Computer, and model. No browser is involved.
 
 ```sh
-bun run eval:agents -- task-lifecycle.spec.ts
+bun run test:agents                            # every scenario
+bun run test:agents --only mention             # scenarios whose name contains "mention"
+bun run test:agents --list                     # scenario names, no live turns
+bun run test:agents --json                     # machine-readable run summary
+bun run test:agents --pool                     # provision the standing pool and exit
 ```
 
-Each behavioral test gets disposable Agents from `agent-fixture.ts` and exact
-test-owned Chats. Share an Agent across cases only when the story explicitly
-proves session, workspace, or skill continuity. Wait for the fixture's applied,
-idle configuration before sending work; do not duplicate weaker readiness
-polls in a spec.
+A scenario is one file under `scripts/agent-tests/scenarios/`, exporting a
+`name`, a one-sentence `contract` stating exactly what must be true, and a
+`run` that receives the kit. Keep a scenario to one to three live turns; a
+longer story belongs in several scenarios or in a deterministic lane.
 
-An Agent may answer an ordinary request in its Chat or promote that request to
-a Task Thread. Use the shared reply helper when either location satisfies the
-product contract. Assertions about a specific delivery location remain in the
-spec when location is the behavior under test.
+The lane runs against a standing Agent pool — `eval-worker-1`, `eval-worker-2`,
+`eval-worker-3`, and `eval-coordinator` — created once and reused. Isolation
+comes from wiping an Agent when a scenario leases it (session reset plus
+leftover chat cleanup), not from creating and deleting Agents per scenario. The
+three workers cap lane concurrency; a leased Agent is released and its chats
+deleted by exact id when the scenario ends, including on failure.
 
-Fixture cleanup deletes ordinary Threads, Task Threads, parent Chats, and
-Agents by exact id. Never sweep by display name, prefix, age, or broad query.
-After an interrupted run, inspect intermediate Agent, Task, and Chat state
-before rerunning; remove only the exact temporary resources left by that run.
+Two rules keep assertions honest:
+
+* Settle the turn, do not poll for prose. `settleTurn` waits for the Server's
+  turn record to settle through `agent.turns`, then the scenario asserts against
+  the collaboration that turn produced.
+* Assert structural Server state plus literal marker containment — the exact
+  chat, thread, task state, assignee, message count, ordering, and a random
+  marker string the prompt asked for. Never assert phrasing, tone, or length.
+
+Silence is proven, not assumed: a settled turn with `outputProduced` false, no
+authored messages in the chat, and a delivery row in state `seen` distinguishes
+"received it and chose to stay quiet" from "never received it".
+
+Each run writes `summary.json` plus one `transcript.json` per scenario under
+`.context/agent-tests/<run>/`, carrying the contract, assertions, observed
+messages, and settled turns. Read the transcript before rerunning a failure.
+
+Like `eval:prompt`, the lane needs `bun run dev` and configured development
+Clerk keys, plus one applied online Agent to copy Computer, runtime, and model
+from when the pool is first created.
+
+## Full-Stack Tracer
+
+`bun run test:tracer` is the one Playwright spec that still drives the real
+browser against the real Server, Computer, and model
+(`apps/website/agent-e2e/tests/live-tracer.spec.ts`): a mention typed into the
+App composer reaches the Agent and its reply renders in the chat. It proves the
+wire end to end, nothing more. Agent behavior belongs in `test:agents`.
 
 ## Prompt Behavior Evals
 

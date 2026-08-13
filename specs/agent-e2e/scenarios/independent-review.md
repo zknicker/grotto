@@ -2,7 +2,7 @@
 summary: Live multi-Agent behavior contract for passing authored work through an independent verifier.
 read_when:
   - changing Agent task delegation, peer assignment, or task-Thread delivery
-  - changing multi-Agent coordination behavior or live Agent E2E coverage
+  - changing multi-Agent coordination behavior or agent-test coverage
 ---
 
 # Independent review
@@ -21,7 +21,7 @@ verification:
 6. The coordinator publishes the approved revision unchanged to the parent
    Chat.
 
-The live Agent E2E scenario drives the request through the App composer and
+The agent-test scenario sends the request through the hosted chat contract and
 observes the durable tasks, task Threads, revision, approval, and final
 parent-Chat result. It tests role separation, artifact handoff, and versioned
 approval, not a particular implementation or fixed model wording.

@@ -2,7 +2,7 @@
 summary: Live Agent behavior contract for continuing sourced work across owners after a fresh session.
 read_when:
   - changing Agent session reset, Thread recovery, workspace artifacts, or cross-Agent handoff
-  - changing live Agent E2E coverage for durable continuation
+  - changing agent-test coverage for durable continuation
 ---
 
 # Durable relay
@@ -18,11 +18,11 @@ model context:
 4. Agent B recovers the Thread, artifact identity, and evidence, then verifies
    or amends the decision and delivers a concrete next step.
 
-The live Agent E2E scenario targets recovery with an Agent-A-generated relay
+The agent-test scenario targets recovery with an Agent-A-generated relay
 token that is absent from the human prompt to Agent B. It verifies the artifact
 bytes through the owning Agent's workspace boundary and requires Agent B to
-carry forward the artifact path and at least one exact source URL. The lane is
-enabled in the normal Agent E2E suite. Deterministic Server coverage separately
+carry forward the artifact path and at least one exact source URL. It runs in
+the normal `test:agents` set. Deterministic Server coverage separately
 owns the task-Thread idempotency invariant.
 
 Cross-Agent workspace reads are not part of this contract. Workspace files

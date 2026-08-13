@@ -3,7 +3,7 @@ summary: Grotto Computer Agent daemon lifecycle, structured delivery, cursor pro
 read_when:
   - changing Computer Agent execution or AI SDK Harness session lifecycle
   - changing Server-to-Computer Agent delivery or busy notices
-  - changing accepted, served, or seen semantics
+  - changing accepted, served, or seen semantics, or the retained delivery ledger
   - changing Agent-authored chain limits or turn failure retry policy
 ---
 
@@ -42,6 +42,13 @@ Server queued work
   -> Server seen cursor + consumption
 ```
 
+Each queued row carries that lifecycle as durable state:
+`queued -> accepted -> served -> seen`, stamped with `accepted_at`,
+`served_at`, and `seen_at`. Attaching a row to a run makes it `accepted`; a
+model pull makes it `served`; settlement makes it `seen` and records the
+consuming run in `settled_run_id`. Requeueing an unsettled run returns its rows
+to `queued` and clears the accepted and served stamps.
+
 Acceptance means only that Computer durably stored the run inbox. It is not
 model-seen proof. An accepted run that loses its process before settlement is
 replayed at least once. Duplicate effects are preferable to silently dropping
@@ -55,6 +62,23 @@ so already-handled work does not start a redundant turn. If the process crashes
 first, the attached rows remain durable under the unsettled run and replay with
 it. A failed turn advances `seen` only when a durable Agent send proves the
 model handled that prompt.
+
+## Delivery Ledger
+
+Settlement retires rows into a ledger instead of deleting them: a settled row
+becomes `state = 'seen'` with `settled_run_id` set to the consuming run. A turn
+that read a message and answered nothing is only provable from a retained row,
+so `agent_pending_work` is the durable evidence behind `agent.deliveries`. Rows
+the seen cursor subsumes are also marked `seen`, but no turn settled them, so
+their `settled_run_id` stays null.
+
+Retention must not slow the live path, so every dispatch, count, and queue read
+gates on `state = 'queued'` with a null `run_id`, and run-scoped reads exclude
+`seen`. Two partial indexes keep those reads as cheap as deletion did:
+`agent_pending_work_queued_idx` over `(server_id, agent_id, created_at)` where
+the state is `queued`, and `agent_pending_work_run_idx` over
+`(agent_id, run_id)` where the state is not `seen`. Ledger history therefore
+accumulates outside every index the live queue touches.
 
 ## Model Projection
 
@@ -191,6 +215,8 @@ presentation plumbing.
 | Server resends accepted in-flight work after reconnect | `apps/server/test/agent-delivery.test.ts` |
 | Busy pull settles with its active run; unsettled pull replays | `apps/server/test/agent-delivery.test.ts` |
 | `served` cannot consume without `seen` | `apps/server/test/agent-delivery.test.ts` |
+| Settled and cursor-subsumed rows are retained as `seen` ledger evidence | `apps/server/test/agent-delivery.test.ts` |
+| `agent.turns` and `agent.deliveries` are member-scoped and deny as `NOT_FOUND` | `apps/server/test/grotto-agent-observability.test.ts` |
 | Chain ceiling preserves rows and human input releases it | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |

@@ -2,7 +2,7 @@
 summary: Live multi-Agent behavior contract for reconciling overlapping deliverables without silently merging contradictory evidence.
 read_when:
   - changing Agent task delegation, ownership, or task-Thread delivery
-  - changing multi-Agent coordination behavior or live Agent E2E coverage
+  - changing multi-Agent coordination behavior or agent-test coverage
 ---
 
 # Conflicting deliverables
@@ -20,7 +20,7 @@ evidence, the coordinator must preserve the disagreement as decision context:
    resolve the conflict, state the unresolved conflict and hand the decision
    to the human instead of inventing a winner.
 
-The live Agent E2E scenario assigns the same launch-date deliverable to two
+The agent-test scenario assigns the same launch-date deliverable to two
 real Agents with equally authoritative, contradictory source claims. It drives
 the request through the App composer and observes task assignees, task Threads,
 worker-authored evidence, and the final parent-Chat handoff. Temporary Chats

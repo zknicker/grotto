@@ -22,12 +22,12 @@
     "test": "bun test src",
     "lint": "ultracite check src e2e",
     "lint:fix": "ultracite fix src e2e",
-    "test:e2e": "bun e2e/run-playwright.ts",
-    "test:e2e:debug": "bun e2e/run-playwright.ts --debug",
-    "test:e2e:headed": "bun e2e/run-playwright.ts --headed",
-    "test:e2e:screenshot": "bun e2e/run-playwright.ts --screenshot on",
-    "test:e2e:screenshot-failures": "bun e2e/run-playwright.ts --screenshot only-on-failure",
-    "test:e2e:ui": "bun e2e/run-playwright.ts --ui",
+    "test:app": "bun e2e/run-playwright.ts",
+    "test:app:debug": "bun e2e/run-playwright.ts --debug",
+    "test:app:headed": "bun e2e/run-playwright.ts --headed",
+    "test:app:screenshot": "bun e2e/run-playwright.ts --screenshot on",
+    "test:app:screenshot-failures": "bun e2e/run-playwright.ts --screenshot only-on-failure",
+    "test:app:ui": "bun e2e/run-playwright.ts --ui",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

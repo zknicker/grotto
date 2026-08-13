@@ -1,6 +1,7 @@
-// Exact-set eval chat cleanup. A task Thread is only deleted together with the
-// parent Chat that owns it, so a scenario can never delete collaboration it did
-// not create. Ported from the Playwright agent-e2e support lane.
+// Exact-set eval chat cleanup. Chats in the set expand to the task Threads
+// they own. A Thread may also appear in the set on its own: scenarios track
+// Threads promoted from a standing Owner DM, where the parent is deliberately
+// preserved — the Thread is scenario-owned, the DM is not.
 
 const chunkSize = 20;
 
@@ -9,11 +10,6 @@ export function expandEvalCleanupChatIds(chatIds, tasks) {
 
     for (const entry of tasks) {
         const { chatId, threadChatId } = entry.task;
-        if (requestedChatIds.has(threadChatId) && !requestedChatIds.has(chatId)) {
-            throw new Error(
-                `Refusing agent-test cleanup for task Thread ${threadChatId}: its parent Chat ${chatId} is not in the exact cleanup set.`
-            );
-        }
         if (requestedChatIds.has(chatId)) {
             requestedChatIds.add(threadChatId);
         }

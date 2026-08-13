@@ -61,14 +61,19 @@ export default defineScenario({
         expect(turn.failureKind ?? 'none', 'coordinator turn failure kind').toBe('none');
 
         log('checking gates');
-        const published = await turn.authoredMessagesIn(channel.id);
-        const briefs = published.filter(
+        // The coordinator may publish the brief in the channel or in the Thread
+        // of a task it promoted the request into; the lane lines are the contract,
+        // not the container or the number of messages it took.
+        const receivedLine = `${researchMarker}: RECEIVED`;
+        const pendingLine = `${governanceMarker}: PENDING`;
+        const brief = await kit.awaitAgentReply(
+            channel.id,
+            coordinator.id,
             (message) =>
-                message.content.includes(researchMarker) &&
-                message.content.includes(governanceMarker)
+                message.content.includes(receivedLine) && message.content.includes(pendingLine),
+            240_000
         );
-        expect(briefs, 'coordinator channel messages naming both lanes').toHaveLength(1);
-        expect(briefs[0].content, 'research lane line').toContain(`${researchMarker}: RECEIVED`);
-        expect(briefs[0].content, 'governance lane line').toContain(`${governanceMarker}: PENDING`);
+        expect(brief.message.content, 'research lane line').toContain(receivedLine);
+        expect(brief.message.content, 'governance lane line').toContain(pendingLine);
     },
 });

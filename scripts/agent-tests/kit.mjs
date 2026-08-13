@@ -112,11 +112,14 @@ export function createAgentTestKit(
             }
             const tasks = await trpc('task.list', { serverId });
             for (const entry of tasks.filter((item) => item.task.chatId === chatId)) {
-                await trackChat(entry.task.threadChatId);
                 const inThread = record(await harness.readMessages(entry.task.threadChatId)).find(
                     matches
                 );
                 if (inThread) {
+                    // Track only the matched thread: it answers this scenario's
+                    // own prompt. Merely-inspected threads (a shared DM can
+                    // carry others) are not ours to claim or delete.
+                    await trackChat(entry.task.threadChatId);
                     return {
                         container: 'thread',
                         message: inThread,

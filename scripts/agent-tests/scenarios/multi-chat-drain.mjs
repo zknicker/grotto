@@ -7,7 +7,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'An Agent addressed in two channels answers each channel with that channel’s marker and never leaks the other channel’s marker across.',
+        'An Agent addressed in two channels answers each one — in the channel or in a task Thread promoted from it — with that channel’s marker, and never leaks the other channel’s marker across.',
     name: 'multi-chat-drain',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [worker] = agents;
@@ -45,20 +45,49 @@ export default defineScenario({
             repliesB = kit.authoredBy(await kit.readMessages(channelB.id), worker.id, headB);
         }
 
+        log('waiting for both answers');
+        // Either request may have been promoted to a task, so the answer can sit
+        // in the channel or in that channel's task Thread; both satisfy it.
+        const answerA = await kit.awaitAgentReply(
+            channelA.id,
+            worker.id,
+            (message) => message.content.includes(tokenA),
+            240_000
+        );
+        const answerB = await kit.awaitAgentReply(
+            channelB.id,
+            worker.id,
+            (message) => message.content.includes(tokenB),
+            240_000
+        );
+
         log('checking gates');
-        expect(joined(repliesA), 'replies in channel A').toContain(tokenA);
-        expect(joined(repliesB), 'replies in channel B').toContain(tokenB);
-        expect(joined(repliesA).includes(tokenB), 'channel B marker leaked into channel A').toBe(
-            false
-        );
-        expect(joined(repliesB).includes(tokenA), 'channel A marker leaked into channel B').toBe(
-            false
-        );
+        expect(answerA.message.content, 'answer for channel A').toContain(tokenA);
+        expect(answerB.message.content, 'answer for channel B').toContain(tokenB);
+
+        // Containment is checked over everything the channel owns — its own
+        // messages plus every task Thread promoted from it.
+        const sweptA = await sweepChannel(kit, channelA.id);
+        const sweptB = await sweepChannel(kit, channelB.id);
+        expect(sweptA.includes(tokenB), 'channel B marker leaked into channel A').toBe(false);
+        expect(sweptB.includes(tokenA), 'channel A marker leaked into channel B').toBe(false);
     },
 });
 
 function joined(replies) {
     return replies.join('\n');
+}
+
+/** Every message the channel owns, its task Threads included, as one string. */
+async function sweepChannel(kit, chatId) {
+    const contents = (await kit.readMessages(chatId)).map((message) => message.content);
+    const tasks = await kit.trpc('task.list', { serverId: kit.serverId });
+    for (const entry of tasks.filter((item) => item.task.chatId === chatId)) {
+        await kit.trackChat(entry.task.threadChatId);
+        const thread = await kit.readMessages(entry.task.threadChatId);
+        contents.push(...thread.map((message) => message.content));
+    }
+    return contents.join('\n');
 }
 
 /** A drained queue starts no second turn; that is a pass, not an error. */

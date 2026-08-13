@@ -72,8 +72,11 @@ export default defineScenario({
         await waitForAgentReady(kit, successor.id);
 
         const threadHead = await kit.readHead(created.threadChatId);
-        await kit.harness.send(
-            created.threadChatId,
+        // A Thread reply is addressed to the parent chat plus its anchor message;
+        // sending straight at the Thread chat is rejected.
+        await kit.sendInThread(
+            channel.id,
+            created.messageId,
             `@${successor.handle} Take over from the durable work in this Thread. Recover the previous owner's relay token and file path from Thread history and their shared file reference, and reply with both.`
         );
 

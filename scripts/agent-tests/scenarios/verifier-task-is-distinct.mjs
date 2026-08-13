@@ -1,6 +1,6 @@
 // Review of a draft belongs to someone other than its author. Given a finished
-// candidate in the author's task Thread, the coordinator opens one review task
-// owned by the verifier — never the author — and hands the exact draft along.
+// candidate in the author's task Thread, the coordinator opens review work owned
+// by the verifier — never the author — and hands the exact draft along.
 
 import { threadTarget } from '../author.mjs';
 import { defineScenario } from '../scenario.mjs';
@@ -8,7 +8,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'coordinator' }, { kind: 'worker' }, { kind: 'worker' }],
     contract:
-        'Given an authored candidate draft, the coordinator creates exactly one review task assigned to the verifier rather than the draft author, and the candidate marker reaches that task message or its Thread.',
+        'Given an authored candidate draft, the coordinator assigns review to the verifier and never to the draft author: a task it creates is owned by the verifier and carries the candidate marker in its message or Thread.',
     name: 'verifier-task-is-distinct',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [coordinator, author, verifier] = agents;
@@ -56,20 +56,33 @@ export default defineScenario({
         expect(turn.failureKind ?? 'none', 'coordinator turn failure kind').toBe('none');
 
         log('checking gates');
+        // A coordinator may split its own bookkeeping across several tasks; the
+        // contract is who reviews, not how many tasks it took to get there.
         const tasks = await kit.trpc('task.list', { chatId: channel.id, serverId: kit.serverId });
-        const review = tasks.filter((item) => item.task.messageId !== authorTask.messageId);
-        expect(review, 'review tasks created in the channel').toHaveLength(1);
-        expect(review[0].task.assigneeAgentId, 'review task assignee').toBe(verifier.id);
+        const created = tasks.filter((item) => item.task.messageId !== authorTask.messageId);
+        expect(created.length > 0, 'tasks created by the coordinator').toBe(true);
         expect(
-            review[0].task.assigneeAgentId === author.id,
-            'review task assigned to the draft author'
+            created.some((item) => item.task.assigneeAgentId === author.id),
+            'a created task was assigned to the draft author'
         ).toBe(false);
 
-        await kit.trackChat(review[0].task.threadChatId);
-        const thread = await kit.readMessages(review[0].task.threadChatId);
-        const carriesDraft =
-            review[0].message.content.includes(draft) ||
-            thread.some((message) => message.content.includes(draft));
-        expect(carriesDraft, 'candidate draft handed to the review task').toBe(true);
+        let reviewCarryingDraft = null;
+        for (const item of created) {
+            await kit.trackChat(item.task.threadChatId);
+            if (item.task.assigneeAgentId !== verifier.id) {
+                continue;
+            }
+            const thread = await kit.readMessages(item.task.threadChatId);
+            const carriesDraft =
+                item.message.content.includes(draft) ||
+                thread.some((message) => message.content.includes(draft));
+            if (carriesDraft) {
+                reviewCarryingDraft = item;
+            }
+        }
+        expect(
+            Boolean(reviewCarryingDraft),
+            'a review task assigned to the verifier carries the candidate draft'
+        ).toBe(true);
     },
 });

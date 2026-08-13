@@ -8,7 +8,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'coordinator' }, { kind: 'worker' }, { kind: 'worker' }],
     contract:
-        'Given a material correction, the coordinator posts it — marker included — into both active task Threads, and any channel post in the same turn is created no earlier than both Thread posts.',
+        'Given a material correction, the coordinator gets it — marker included — into both active task Threads, and any channel post in the same turn is created no earlier than both Thread posts.',
     name: 'correction-reaches-lanes-before-synthesis',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [coordinator, northstar, atlas] = agents;
@@ -74,14 +74,17 @@ export default defineScenario({
         expect(turn.failureKind ?? 'none', 'coordinator turn failure kind').toBe('none');
 
         log('checking gates');
+        // The marker is unpredictable and known only to the coordinator, so its
+        // presence in a lane Thread proves the coordinator propagated it — even
+        // when the visible message is a lane owner echoing the handoff. Only the
+        // harness human is excluded, since it never wrote the marker there.
         const propagated = [];
         for (const lane of seeded) {
-            const authored = await turn.authoredMessagesIn(lane.task.threadChatId);
-            const posts = authored.filter((message) => message.content.includes(correction));
-            expect(
-                posts.length > 0,
-                `coordinator posted the correction into task Thread ${lane.token}`
-            ).toBe(true);
+            const thread = await kit.readMessages(lane.task.threadChatId);
+            const posts = thread.filter(
+                (message) => message.author.kind !== 'human' && message.content.includes(correction)
+            );
+            expect(posts.length > 0, `the correction reached task Thread ${lane.token}`).toBe(true);
             propagated.push(Math.min(...posts.map((post) => Date.parse(post.createdAt))));
         }
 

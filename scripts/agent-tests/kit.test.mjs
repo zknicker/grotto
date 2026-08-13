@@ -104,8 +104,10 @@ describe('cleanup expansion', () => {
         ]);
     });
 
-    test('refuses to delete a Thread without its parent', () => {
-        expect(() => expandEvalCleanupChatIds(['cht_thread'], tasks)).toThrow(/Refusing/u);
+    test('deletes an explicitly tracked Thread without claiming its parent', () => {
+        // A Thread promoted from a standing Owner DM is scenario-owned while
+        // the DM itself is preserved: the Thread alone is a legal cleanup set.
+        expect(expandEvalCleanupChatIds(['cht_thread'], tasks)).toEqual(['cht_thread']);
     });
 
     test('chunks ids to the twenty id server limit', () => {

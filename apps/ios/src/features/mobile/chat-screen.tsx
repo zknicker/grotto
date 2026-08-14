@@ -69,7 +69,12 @@ export function ChatScreen({
             </AppLayout.Content>
             <AppLayout.Footer>
                 {chatSummary ? (
-                    <Composer chatTitle={title} isChannel={chatSummary.kind === 'channel'} />
+                    <Composer
+                        chatId={chatSummary.id}
+                        chatTitle={title}
+                        isChannel={chatSummary.kind === 'channel'}
+                        serverId={serverId}
+                    />
                 ) : null}
             </AppLayout.Footer>
         </AppLayout.Root>

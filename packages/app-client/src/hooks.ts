@@ -1,3 +1,6 @@
+import { type InfiniteData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { getQueryKey } from '@trpc/react-query';
+import * as React from 'react';
 import { grottoTrpc } from './grotto-client.tsx';
 import { queryPolicy } from './query-policy.ts';
 
@@ -34,6 +37,118 @@ export function useChatMessages(serverId: string | undefined, chatId: string | u
             enabled: serverId !== undefined && chatId !== undefined,
         }
     );
+}
+
+type ChatMessagePage = import('./grotto-client.tsx').GrottoOutputs['chat']['messages'];
+
+export function useChatMessagePages(serverId: string | undefined, chatId: string | undefined) {
+    const utils = grottoTrpc.useUtils();
+    const input = { chatId: chatId ?? '', limit: 50, serverId: serverId ?? '' };
+    const queryKey = chatMessagePagesQueryKey(input.serverId, input.chatId);
+    const query = useInfiniteQuery<
+        ChatMessagePage,
+        Error,
+        InfiniteData<ChatMessagePage>,
+        typeof queryKey,
+        number | undefined
+    >({
+        ...queryPolicy.syncedSnapshot,
+        enabled: serverId !== undefined && chatId !== undefined,
+        getNextPageParam: (lastPage) => lastPage.nextBeforeSequence ?? undefined,
+        initialPageParam: undefined as number | undefined,
+        queryFn: async ({ pageParam }) =>
+            await utils.client.chat.messages.query({
+                ...input,
+                ...(pageParam === undefined ? {} : { beforeSequence: pageParam }),
+            }),
+        queryKey,
+    });
+    const messages = React.useMemo(
+        () => mergeChatMessagePages(query.data?.pages),
+        [query.data?.pages]
+    );
+    const threads = React.useMemo(
+        () => query.data?.pages.flatMap((page) => page.threads) ?? [],
+        [query.data?.pages]
+    );
+
+    return {
+        ...query,
+        fetchOlderHistory: query.fetchNextPage,
+        hasOlderHistory: Boolean(query.hasNextPage),
+        isFetchingOlderHistory: query.isFetchingNextPage,
+        messages,
+        threads,
+    };
+}
+
+export function chatMessagePagesQueryKey(serverId: string, chatId: string) {
+    return getQueryKey(grottoTrpc.chat.messages, { chatId, limit: 50, serverId }, 'infinite');
+}
+
+export function mergeChatMessagePages<Message extends { id: string }>(
+    pages: Array<{ messages: Message[] }> | undefined
+) {
+    const messagesById = new Map<string, Message>();
+
+    for (let index = (pages?.length ?? 0) - 1; index >= 0; index -= 1) {
+        for (const message of pages?.[index]?.messages ?? []) {
+            messagesById.set(message.id, message);
+        }
+    }
+
+    return [...messagesById.values()];
+}
+
+export function useChatMessageSend() {
+    const queryClient = useQueryClient();
+    const utils = grottoTrpc.useUtils();
+
+    return grottoTrpc.chat.send.useMutation({
+        onSuccess: (result, input) => {
+            const chatIds = [input.chatId, ...(result.threadChatId ? [result.threadChatId] : [])];
+
+            for (const chatId of chatIds) {
+                void utils.chat.messages.invalidate({ chatId, serverId: input.serverId });
+                void queryClient.invalidateQueries({
+                    queryKey: chatMessagePagesQueryKey(input.serverId, chatId),
+                });
+            }
+        },
+    });
+}
+
+export function useChatRead(input: {
+    chatId: string | undefined;
+    enabled?: boolean;
+    sequence: number | undefined;
+    serverId: string | undefined;
+}) {
+    const mutation = grottoTrpc.chat.markRead.useMutation();
+    const mutate = mutation.mutate;
+    const lastMarkedRef = React.useRef<string | null>(null);
+    const viewKey =
+        (input.enabled ?? true) &&
+        input.chatId !== undefined &&
+        input.sequence !== undefined &&
+        input.serverId !== undefined
+            ? `${input.serverId}:${input.chatId}:${input.sequence}`
+            : null;
+
+    React.useEffect(() => {
+        if (!viewKey || viewKey === lastMarkedRef.current) {
+            return;
+        }
+
+        lastMarkedRef.current = viewKey;
+        mutate({
+            chatId: input.chatId as string,
+            sequence: input.sequence as number,
+            serverId: input.serverId as string,
+        });
+    }, [input.chatId, input.sequence, input.serverId, mutate, viewKey]);
+
+    return mutation;
 }
 
 export function useAgents(serverId: string | undefined) {

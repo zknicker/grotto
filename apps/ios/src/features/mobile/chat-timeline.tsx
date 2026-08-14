@@ -1,6 +1,6 @@
 import { BubbleChatIcon } from '@hugeicons-pro/core-solid-rounded';
 import type { HostedChatMessage } from '@tavern/api';
-import { useAgents, useChatMessages } from '@tavern/app-client';
+import { useAgents, useChatMessagePages, useChatRead, useMembers } from '@tavern/app-client';
 import { useRouter } from 'expo-router';
 import { PressableFeedback } from 'heroui-native/pressable-feedback';
 import { Spinner } from 'heroui-native/spinner';
@@ -11,31 +11,28 @@ import { AgentAvatar } from './agent-avatar';
 import { AppIcon } from './app-icon';
 import { EntityAvatar } from './entity-avatar';
 import { toAgentSummary } from './mobile-data';
+import { type PendingMessage, usePendingMessages } from './pending-messages';
 import type { ActorSummary, AgentSummary } from './types';
 
 function MessageRow({
-    agents,
-    message,
+    actor,
+    content,
+    createdAt,
+    messageId,
+    pending = false,
     replies,
 }: {
-    agents: Map<string, AgentSummary>;
-    message: HostedChatMessage;
+    actor: ActorSummary;
+    content: string;
+    createdAt: string;
+    messageId: string;
+    pending?: boolean;
     replies: number;
 }) {
     const router = useRouter();
 
-    if (message.author.kind === 'system') {
-        return (
-            <View className="items-center px-8 py-2">
-                <Text className="text-center text-muted text-sm">{message.content}</Text>
-            </View>
-        );
-    }
-
-    const actor = getMessageActor(message, agents);
-
     return (
-        <View className="flex-row items-start gap-3 px-4 py-1.5">
+        <View className={`flex-row items-start gap-3 px-4 py-1.5 ${pending ? 'opacity-60' : ''}`}>
             <MessageAvatar actor={actor} />
             <View className="min-w-0 flex-1 gap-1">
                 <View className="flex-row items-baseline gap-2">
@@ -43,11 +40,18 @@ function MessageRow({
                         {actor.displayName}
                     </Text>
                     <Text className="text-muted text-xs tabular-nums">
-                        {formatTimestamp(message.createdAt)}
+                        {formatTimestamp(createdAt)}
                     </Text>
                 </View>
 
-                <Text className="text-base text-foreground leading-5">{message.content}</Text>
+                <Text className="text-base text-foreground leading-5">{content}</Text>
+
+                {pending ? (
+                    <View className="flex-row items-center gap-1.5">
+                        <Spinner size="sm" />
+                        <Text className="text-muted text-xs">Sending</Text>
+                    </View>
+                ) : null}
 
                 {replies > 0 ? (
                     <PressableFeedback
@@ -56,7 +60,7 @@ function MessageRow({
                         className="min-h-7 flex-row items-center gap-1.5 self-start"
                         hitSlop={10}
                         onPress={() =>
-                            router.push({ pathname: '/thread/[id]', params: { id: message.id } })
+                            router.push({ pathname: '/thread/[id]', params: { id: messageId } })
                         }
                     >
                         <AppIcon icon={BubbleChatIcon} size={16} tone="accent" />
@@ -83,16 +87,28 @@ export function ChatTimeline({
     chatId: string | undefined;
     serverId: string;
 }) {
-    const messages = useChatMessages(serverId, chatId);
+    const messages = useChatMessagePages(serverId, chatId);
     const agents = useAgents(serverId).data?.map(toAgentSummary) ?? [];
+    const members = useMembers(serverId).data;
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
+    const viewer = members?.members.find((member) => member.userId === members.viewerUserId);
+    const pendingMessages = usePendingMessages(chatId ?? '', messages.messages);
     const timelineMessages = useMemo(
-        () => [...(messages.data?.messages ?? [])].reverse(),
-        [messages.data?.messages]
+        () =>
+            [
+                ...messages.messages.map((message) => ({ kind: 'durable' as const, message })),
+                ...pendingMessages.map((message) => ({ kind: 'pending' as const, message })),
+            ].reverse(),
+        [messages.messages, pendingMessages]
     );
     const replyCountByMessage = new Map(
-        messages.data?.threads.map((thread) => [thread.anchorMessageId, thread.replyCount]) ?? []
+        messages.threads.map((thread) => [thread.anchorMessageId, thread.replyCount])
     );
+    useChatRead({
+        chatId,
+        sequence: messages.messages.at(-1)?.sequence,
+        serverId,
+    });
 
     if (!chatId) {
         return (
@@ -126,18 +142,66 @@ export function ChatTimeline({
             inverted
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) =>
+                item.kind === 'durable' ? item.message.id : `pending:${item.message.nonce}`
+            }
+            maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
             maxToRenderPerBatch={8}
-            renderItem={({ item }) => (
-                <MessageRow
-                    agents={agentById}
-                    message={item}
-                    replies={replyCountByMessage.get(item.id) ?? 0}
-                />
-            )}
+            onEndReached={() => {
+                if (messages.hasOlderHistory && !messages.isFetchingOlderHistory) {
+                    void messages.fetchOlderHistory();
+                }
+            }}
+            onEndReachedThreshold={0.3}
+            renderItem={({ item }) => {
+                if (item.kind === 'pending') {
+                    return (
+                        <PendingMessageRow
+                            message={item.message}
+                            viewer={{
+                                avatarUrl: viewer?.avatarUrl ?? null,
+                                displayName: viewer?.displayName ?? 'You',
+                                id: members?.viewerUserId ?? 'viewer',
+                                kind: 'human',
+                            }}
+                        />
+                    );
+                }
+                if (item.message.author.kind === 'system') {
+                    return (
+                        <View className="items-center px-8 py-2">
+                            <Text className="text-center text-muted text-sm">
+                                {item.message.content}
+                            </Text>
+                        </View>
+                    );
+                }
+                return (
+                    <MessageRow
+                        actor={getMessageActor(item.message, agentById)}
+                        content={item.message.content}
+                        createdAt={item.message.createdAt}
+                        messageId={item.message.id}
+                        replies={replyCountByMessage.get(item.message.id) ?? 0}
+                    />
+                );
+            }}
             showsVerticalScrollIndicator={false}
             style={{ flex: 1 }}
             windowSize={7}
+        />
+    );
+}
+
+function PendingMessageRow({ message, viewer }: { message: PendingMessage; viewer: ActorSummary }) {
+    return (
+        <MessageRow
+            actor={viewer}
+            content={message.content}
+            createdAt={message.createdAt}
+            messageId={message.nonce}
+            pending
+            replies={0}
         />
     );
 }

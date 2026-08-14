@@ -23,10 +23,17 @@ Shared API contracts, query options, view models, and capability hooks should li
 packages or modules. React DOM and React Native rendering diverge at their component boundary; shared
 hooks must not return DOM or native elements.
 
-`@tavern/app-client` owns the shared typed tRPC client, React Query policy, and focused Server, Chat,
-message, Agent, and member hooks. The website supplies its browser transport and realtime lifecycle;
-the iPhone app supplies its native authenticated HTTP transport. Native feature leaves call the focused
-hooks and project platform view models instead of receiving one screen-wide fetched graph.
+`@tavern/app-client` owns the shared typed tRPC client, authenticated HTTP and WebSocket transports,
+React Query policy, durable Chat event catch-up primitives, and focused Server, Chat, message, Agent,
+and member hooks. Each product surface owns its platform lifecycle: the iPhone app reconnects after
+foregrounding and mounts one durable event cursor per active Server. Native feature leaves call the
+focused hooks and project platform view models instead of receiving one screen-wide fetched graph.
+
+The native Chat timeline uses cursor-based infinite queries. Durable event listeners invalidate the
+exact active Chat cache, while reconnect catch-up replays missed Server events before live delivery
+continues. Optimistic sends remain app-local and are keyed by the client nonce. A pending row retires
+only after the canonical Server message arrives; a failed send restores its content to the composer for
+an explicit retry. Optimistic rows never patch durable history.
 
 Clerk owns native authentication. The production instance uses Google as its only sign-in strategy, so
 Grotto starts Clerk's direct Google SSO flow from a native HeroUI action instead of routing through the

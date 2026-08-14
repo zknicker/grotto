@@ -310,12 +310,16 @@ export function registerAgentApiRoutes(
                 'The message send request was invalid.'
             );
         }
+        const input = {
+            ...parsed.data,
+            content: parsed.data.content?.trimEnd(),
+        };
 
         try {
             const committed = await options.db.transaction(async (tx) => {
                 await lockServerRow(tx, runner.serverId);
-                const chatId = await resolveAgentSendTarget(tx, runner, parsed.data.target);
-                const prepared = await prepareAgentSend(tx, runner, chatId, parsed.data);
+                const chatId = await resolveAgentSendTarget(tx, runner, input.target);
+                const prepared = await prepareAgentSend(tx, runner, chatId, input);
                 if (prepared.kind === 'held') {
                     return { kind: 'held' as const, response: prepared.response };
                 }
@@ -326,10 +330,10 @@ export function registerAgentApiRoutes(
                         attachmentIds: prepared.outgoing.attachmentIds,
                         chatId,
                         content: prepared.outgoing.content,
-                        nonce: parsed.data.nonce,
+                        nonce: input.nonce,
                         runId: runner.runId,
                         serverId: runner.serverId,
-                        target: parsed.data.target,
+                        target: input.target,
                     },
                     options.agentDelivery
                 );
@@ -346,7 +350,7 @@ export function registerAgentApiRoutes(
             publishAgentLifecycle({
                 agentId: runner.agentId,
                 chatId,
-                compositionId: parsed.data.compositionId ?? runner.runId,
+                compositionId: input.compositionId ?? runner.runId,
                 phase: 'sending',
                 runId: runner.runId,
                 serverId: runner.serverId,

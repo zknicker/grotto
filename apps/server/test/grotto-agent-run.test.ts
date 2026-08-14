@@ -178,6 +178,32 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     });
 });
 
+test('Agent sends remove terminal whitespace while preserving leading and internal whitespace', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_send_whitespace_1' });
+    const sent = await agentSend(minted.runnerToken, {
+        content: '  Leading indentation\n\n    internal code  \n\nFinal line \t\n',
+        nonce: 'agent_send_whitespace_1',
+        target: 'dm:@operator',
+    });
+
+    expect(sent).toMatchObject({
+        body: {
+            message: {
+                content: '  Leading indentation\n\n    internal code  \n\nFinal line',
+            },
+            state: 'sent',
+        },
+        status: 200,
+    });
+    const rows = (await harness.sql`
+        select content from chat_messages
+        where server_id = ${serverId} and chat_id = ${dmChatId} and nonce = 'agent_send_whitespace_1'
+    `) as { content: string }[];
+    expect(rows).toEqual([
+        { content: '  Leading indentation\n\n    internal code  \n\nFinal line' },
+    ]);
+});
+
 test('an Agent send resolves its target instead of writing into the launch chat', async () => {
     const channelId = 'cht_targetchannel01';
     await harness.sql`
@@ -602,7 +628,7 @@ test('a channel send holds a durable draft until the Agent catches up', async ()
     });
 
     const held = await agentSend(minted.runnerToken, {
-        content: 'This exact reply should be held.',
+        content: '  This exact reply\n\n    keeps internal formatting.  \n\nHeld ending \t\n',
         nonce: 'agent_hold_nonce_1',
         target: '#dispatch',
     });
@@ -616,6 +642,13 @@ test('a channel send holds a durable draft until the Agent catches up', async ()
     expect(held.body.shownMessages?.[0]).toMatchObject({
         content: 'New peer context before the reply.',
     });
+    const drafts = (await harness.sql`
+        select content from agent_message_drafts
+        where server_id = ${serverId} and agent_id = ${agentId} and chat_id = ${channelId}
+    `) as { content: string }[];
+    expect(drafts).toEqual([
+        { content: '  This exact reply\n\n    keeps internal formatting.  \n\nHeld ending' },
+    ]);
 
     await owner.trpc.chat.send.mutate({
         chatId: channelId,
@@ -641,7 +674,9 @@ test('a channel send holds a durable draft until the Agent catches up', async ()
         target: '#dispatch',
     });
     expect(released.body).toMatchObject({
-        message: { content: 'This exact reply should be held.' },
+        message: {
+            content: '  This exact reply\n\n    keeps internal formatting.  \n\nHeld ending',
+        },
         state: 'sent',
     });
 });

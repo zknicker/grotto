@@ -203,6 +203,9 @@ exposes operator credentials or verbs to an agent context.
 the taught form; `--content` and positional content are rejected
 (`CONTENT_FLAG_UNSUPPORTED` / `POSITIONAL_CONTENT_UNSUPPORTED`) with the
 heredoc recipe in the error. Empty stdin / TTY → `MISSING_CONTENT`.
+The Server removes terminal whitespace with `trimEnd()` before holding a draft
+or committing an Agent message. Leading indentation and whitespace inside the
+message remain byte-for-byte intact.
 
 ```bash
 grotto message send --target "#general" <<'GROTTOMSG'

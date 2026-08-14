@@ -25,11 +25,14 @@ import {
     useStableChatMessageRows,
 } from './chat-message-projection.ts';
 import { MessageAttachments } from './message-attachments.tsx';
+import { PendingMessageAttachments, projectPendingChatMessageRows } from './pending-messages.tsx';
+import type { PendingChatMessage } from './use-pending-messages.ts';
 
 const conversationLayout = {
     showAgentIdentity: true,
     showHumanIdentity: true,
 } as const;
+const emptyPendingMessages: readonly PendingChatMessage[] = [];
 
 interface ChatTranscriptInput {
     chatId: string;
@@ -37,9 +40,11 @@ interface ChatTranscriptInput {
     onOpenArtifact: (target: TavernResourceTarget) => void;
     onOpenThread?: (message: ChatMessage, summary: ThreadSummary | null) => void;
     onStartDm?: (userId: string) => void;
+    pendingMessages?: readonly PendingChatMessage[];
     serverId: string;
     threads?: readonly ThreadSummary[];
     turnDetailsAccess?: 'journal' | 'summary';
+    viewerUserId?: string;
 }
 
 export function ChatTranscript({
@@ -89,9 +94,11 @@ export function useChatTranscript({
     onOpenArtifact,
     onOpenThread,
     onStartDm,
+    pendingMessages = emptyPendingMessages,
     serverId,
     threads = emptyChatThreads,
     turnDetailsAccess = 'summary',
+    viewerUserId,
 }: ChatTranscriptInput) {
     const messageList = messages ?? emptyChatMessages;
     const agents = useAgents(serverId);
@@ -105,9 +112,17 @@ export function useChatTranscript({
         messages: messageList,
         threads,
     });
-    const rows = React.useMemo(
+    const durableRows = React.useMemo(
         () => applyLocalReactions(projectedRows, reactions),
         [projectedRows, reactions]
+    );
+    const pendingRows = React.useMemo(
+        () => (viewerUserId ? projectPendingChatMessageRows(pendingMessages, viewerUserId) : []),
+        [pendingMessages, viewerUserId]
+    );
+    const rows = React.useMemo(
+        () => (pendingRows.length === 0 ? durableRows : [...durableRows, ...pendingRows]),
+        [durableRows, pendingRows]
     );
     const agentsById = React.useMemo(
         () => new Map(agentList.map((agent) => [agent.id, agent])),
@@ -121,6 +136,10 @@ export function useChatTranscript({
             () => new Map(messageList.map((message) => [message.id, message])),
             [messageList]
         ),
+        pendingById: React.useMemo(
+            () => new Map(pendingMessages.map((message) => [`pending:${message.nonce}`, message])),
+            [pendingMessages]
+        ),
         threads,
     });
     const resolveActorProfile = useResolveActorProfile({
@@ -133,6 +152,12 @@ export function useChatTranscript({
     const renderMessageAttachments = React.useCallback(
         (message: TranscriptMessage) => {
             const sourceMessage = lookupRef.current.messagesById.get(message.id);
+
+            const pendingMessage = lookupRef.current.pendingById.get(message.id);
+
+            if (pendingMessage) {
+                return <PendingMessageAttachments attachments={pendingMessage.attachments} />;
+            }
 
             return sourceMessage?.attachments.length ? (
                 <MessageAttachments

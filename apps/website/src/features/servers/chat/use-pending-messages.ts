@@ -15,6 +15,8 @@ export interface PendingChatMessage {
     messageId: string | null;
     /** The send nonce, and this row's stable local identity. */
     nonce: string;
+    /** Client submission time, reserved so confirmation never adds header geometry. */
+    submittedAt: string;
 }
 
 const pendingByChat = new Map<string, readonly PendingChatMessage[]>();
@@ -75,11 +77,11 @@ export function readPendingChatMessages(chatId: string): readonly PendingChatMes
 
 export function addPendingChatMessage(
     chatId: string,
-    message: Omit<PendingChatMessage, 'messageId'>
+    message: Omit<PendingChatMessage, 'messageId' | 'submittedAt'>
 ) {
     writePendingChatMessages(chatId, [
         ...readPendingChatMessages(chatId),
-        { ...message, messageId: null },
+        { ...message, messageId: null, submittedAt: new Date().toISOString() },
     ]);
 }
 

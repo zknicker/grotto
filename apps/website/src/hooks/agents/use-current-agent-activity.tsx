@@ -4,7 +4,9 @@ import { queryPolicy } from '../../lib/query-policy.ts';
 import { useAgents } from '../members/use-agents.ts';
 import {
     type CurrentAgentActivity,
+    type CurrentAgentActivityLiveOverlay,
     filterCurrentAgentActivityByAvailability,
+    mergeCurrentAgentActivityLiveEvent,
     reconcileCurrentAgentActivity,
 } from './current-agent-activity.ts';
 
@@ -26,7 +28,7 @@ const CurrentAgentActivityContext = React.createContext<CurrentAgentActivityCont
 export function useCurrentAgentActivity(serverId: string | undefined) {
     const utils = grottoTrpc.useUtils();
     const [liveState, setLiveState] = React.useState<{
-        byAgentId: ReadonlyMap<string, CurrentAgentActivity>;
+        byAgentId: ReadonlyMap<string, CurrentAgentActivityLiveOverlay>;
         serverId: string | undefined;
     }>({ byAgentId: new Map(), serverId });
     const query = grottoTrpc.agent.activeActivity.useQuery(
@@ -49,11 +51,12 @@ export function useCurrentAgentActivity(serverId: string | undefined) {
                     const currentEvents =
                         current.serverId === event.serverId ? current.byAgentId : new Map();
                     const previous = currentEvents.get(event.agentId);
-                    if (previous?.runId === event.runId && previous.position >= event.position) {
+                    const merged = mergeCurrentAgentActivityLiveEvent(previous, event);
+                    if (merged === previous) {
                         return current;
                     }
                     const next = new Map(currentEvents);
-                    next.set(event.agentId, event);
+                    next.set(event.agentId, merged);
                     return { byAgentId: next, serverId: event.serverId };
                 });
             },
@@ -70,7 +73,9 @@ export function useCurrentAgentActivity(serverId: string | undefined) {
         () =>
             reconcileCurrentAgentActivity(
                 query.data?.activities ?? [],
-                liveState.serverId === serverId ? [...liveState.byAgentId.values()] : []
+                liveState.serverId === serverId
+                    ? [...liveState.byAgentId.values()].map((overlay) => overlay.event)
+                    : []
             ),
         [liveState, query.data?.activities, serverId]
     );

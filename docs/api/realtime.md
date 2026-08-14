@@ -143,6 +143,10 @@ History plus the current unsettled-Agent snapshot before applying later live upd
 uses one Server-scoped `agent.onActivity` subscription; `agent.activityHistory` and
 `agent.activeActivity` are the durable history and reconnect snapshot reads. Activity positions
 are assigned under the Server row lock and are never derived from producer timestamps.
+A Server `sending_message:completed` activity is committed with the Agent message and presents the
+run as `Finishing up…`. Terminal lifecycle proof owns both sidebar-row removal and the Agent's
+working-to-idle transition, keeping those surfaces synchronized. Trailing completion events preserve
+the finishing state; a later started operation replaces it.
 
 Hosted durable event kinds are `message.created`, `chat.read`, `chat.lifecycle`, the
 reader-private `thread.follow.updated`, `task.created`, `task.updated`, and

@@ -74,11 +74,13 @@ person. The runtime write path is `PATCH /agents/:id/avatar` with
 - Avatar shape and styling are HeroUI defaults. Do not override `.avatar`
   globally or introduce an app-specific radius token. `ChannelIconBox` uses
   the stock `rounded-lg` utility for the adjacent Channel mark.
-- `AgentAvatar` composes `EntityAvatar` inside HeroUI `Badge.Anchor` and uses
-  an empty HeroUI `Badge` for availability. Availability decoration belongs
-  there; do not add a second status-dot primitive. Offline uses the theme's
-  stronger `muted` fill because HeroUI's pale `default` fill disappears on
-  sidebar surfaces.
+- `AgentAvatar` composes `EntityAvatar` with the stock HeroUI `Badge.Anchor` and
+  an empty `Badge` availability dot. Its live-Agent input requires the
+  canonical `Agent.availability`; it has no unknown or missing-status variant.
+  Historical or unresolved authors render `EntityAvatar` without a status
+  badge. Availability decoration belongs here; do not add a second status-dot
+  primitive. Offline uses the theme's stronger `muted` fill because HeroUI's
+  pale `default` fill disappears on sidebar surfaces.
 - `getEntityInitials(name)` is the single initials algorithm: empty → `?`, one
   word → its first two letters, otherwise first + last initial. Handle an empty
   display name at the call site (e.g. `name={displayName || 'You'}`) rather

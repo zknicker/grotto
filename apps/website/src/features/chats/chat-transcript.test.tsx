@@ -109,6 +109,7 @@ test('ChatTranscript mutes deleted authors and labels their historical messages'
                       isSelf: false,
                       kind: 'agent',
                       name: 'Cove',
+                      availability: { kind: 'none' },
                   }
                 : null,
     });
@@ -166,6 +167,8 @@ test('ChatTranscript animates only local optimistic user messages', () => {
 
     assert.match(markup, /Can you check this\?/);
     assert.match(markup, /data-slot="chat-message-assistant"/);
+    assert.match(markup, /data-slot="pending-chat-message"/);
+    assert.doesNotMatch(markup, /aria-label="Copy message"/);
     // Every message shares the left roster; the optimistic row still animates.
     assert.match(markup, /style="transform-origin:bottom left;opacity:0;transform/);
 });

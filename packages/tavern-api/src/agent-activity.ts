@@ -69,6 +69,38 @@ export const agentActivityEventSchema = z
 
 export type AgentActivityEvent = z.infer<typeof agentActivityEventSchema>;
 
+/** Projects one journal event into the visible activity for its accepted run. */
+export function projectAgentCurrentActivity(
+    current: AgentActivityEvent | null,
+    event: AgentActivityEvent
+): AgentActivityEvent | null {
+    if (isAgentCurrentActivityTerminalEvent(event)) {
+        return null;
+    }
+    if (current && isAgentFinishingActivityEvent(current) && event.phase !== 'started') {
+        return current;
+    }
+    if (event.phase === 'started') {
+        return event;
+    }
+    if (isAgentFinishingActivityEvent(event)) {
+        return event;
+    }
+    return current ? { ...event, category: 'working', phase: 'started' } : null;
+}
+
+export function isAgentCurrentActivityTerminalEvent(event: AgentActivityEvent) {
+    return event.producer === 'server' && event.category === 'working' && event.phase !== 'started';
+}
+
+export function isAgentFinishingActivityEvent(event: AgentActivityEvent) {
+    return (
+        event.producer === 'server' &&
+        event.category === 'sending_message' &&
+        event.phase === 'completed'
+    );
+}
+
 export const agentActivityCursorSchema = z
     .object({
         position: positiveSequenceSchema,

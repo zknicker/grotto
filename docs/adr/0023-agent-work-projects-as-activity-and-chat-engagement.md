@@ -53,6 +53,10 @@ in for the Agent's broader work status.
 ## Consequences
 
 - The sidebar can show current work across the Server without exposing raw execution.
+- A committed Agent message changes that run's current sidebar activity to `Finishing up…`.
+  Canonical Agent availability and sidebar-row membership both remain working until terminal
+  lifecycle proof, so the row exits when the Agent's status dot leaves working. Trailing completion
+  events preserve the finishing state; a later started operation replaces it.
 - Activity History survives Computer downtime and reloads.
 - Turn Details can show summarized Server evidence to authorized Chat readers and detailed local
   evidence only to Owners/Admins while Computer is online.

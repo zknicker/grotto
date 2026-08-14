@@ -1,108 +1,68 @@
-import { ChatMessage } from '@heroui-pro/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { Agent, AttachmentMetadata } from '@tavern/api';
+import type { AttachmentMetadata } from '@tavern/api';
 import {
     Attachment,
     AttachmentContent,
-    AttachmentGroup,
     AttachmentMedia,
     AttachmentTitle,
 } from '../../../components/chats/attachment.tsx';
-import { getEntityInitials } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { useAgents } from '../../../hooks/members/use-agents.ts';
-import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
-import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
-import {
-    applyAgentMentionAppearance,
-    readMentionsFromMarkdown,
-} from '../../mentions/mention-metadata.ts';
+import { withLocalTimelineMessageMetadata } from '../../../hooks/chats/chat-timeline-messages.ts';
+import type { ProjectedChatMessageRow } from './chat-message-model.ts';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
-export function PendingChatMessages({
-    messages,
-    serverId,
-    viewerUserId,
-}: {
-    messages: readonly PendingChatMessage[];
-    serverId: string;
-    viewerUserId: string;
-}) {
-    const agents = useAgents(serverId);
-    const humans = useHumanDirectory(serverId);
-
-    return (
-        <PendingChatMessageRows
-            agents={agents.data ?? []}
-            authorAvatarUrl={humans.avatarUrl(viewerUserId)}
-            authorName={humans.name(viewerUserId)}
-            messages={messages}
-        />
-    );
-}
-
 /**
- * The sender's own message, shown the instant they send it and retired when
- * its durable row arrives. Muted so it reads as in flight rather than as
- * history, and never written into the chat's message cache.
+ * Projects local sends into the same transcript input as durable messages.
+ * The transcript therefore owns ordering, grouping, and shared turn chrome for
+ * both representations instead of reconciling two independently rendered lists.
  */
-export function PendingChatMessageRows({
-    agents,
-    authorAvatarUrl,
-    authorName,
-    messages,
-}: {
-    agents: readonly Agent[];
-    authorAvatarUrl: null | string;
-    authorName: string;
-    messages: readonly PendingChatMessage[];
-}) {
-    const agentsById = new Map(agents.map((agent) => [agent.id, agent]));
+export function projectPendingChatMessageRows(
+    messages: readonly PendingChatMessage[],
+    viewerUserId: string
+): ProjectedChatMessageRow[] {
+    const actor = { id: viewerUserId, kind: 'participant' as const };
 
-    return messages.map((message) => (
-        <ChatMessage.Assistant
-            className="opacity-70"
-            data-slot="pending-chat-message"
-            key={message.nonce}
-        >
-            <ChatMessage.Avatar
-                alt={`${authorName} avatar`}
-                fallback={getEntityInitials(authorName)}
-                src={authorAvatarUrl ?? undefined}
-            />
-            <ChatMessage.Body>
-                <span className="font-semibold text-foreground text-sm leading-5">
-                    {authorName}
-                </span>
-                <ChatMessage.Content>
-                    <ChatMarkdownText
-                        content={message.content}
-                        mentions={applyAgentMentionAppearance(
-                            readMentionsFromMarkdown(message.content),
-                            (agentId) => ({
-                                avatarUrl:
-                                    (agentId ? agentsById.get(agentId) : undefined)?.avatarUrl ??
-                                    null,
-                                primaryColor: null,
-                            })
-                        )}
-                    />
-                </ChatMessage.Content>
-                <PendingAttachments attachments={message.attachments} />
-            </ChatMessage.Body>
-        </ChatMessage.Assistant>
-    ));
+    return messages.map((message) => {
+        const id = `pending:${message.nonce}`;
+
+        return {
+            actor,
+            connectsToNext: false,
+            connectsToPrevious: false,
+            id,
+            isFirstInGroup: true,
+            kind: 'message',
+            message: {
+                actor,
+                attachments: [],
+                content: message.content,
+                id,
+                metadata: withLocalTimelineMessageMetadata(),
+                sender: 'You',
+                senderType: 'user',
+                sourceSessionId: null,
+                sourceSessionKey: 'hosted:human',
+                task: null,
+                timestamp: message.submittedAt,
+            },
+            thread: null,
+        } satisfies ProjectedChatMessageRow;
+    });
 }
 
 // Named, not downloadable: the bytes are still on their way up, so the pending
 // row carries no download action for the durable row's to collide with.
-function PendingAttachments({ attachments }: { attachments: readonly AttachmentMetadata[] }) {
+export function PendingMessageAttachments({
+    attachments,
+}: {
+    attachments: readonly AttachmentMetadata[];
+}) {
     if (attachments.length === 0) {
         return null;
     }
 
     return (
-        <AttachmentGroup>
+        <>
             {attachments.map((attachment) => (
                 <Attachment key={attachment.id} size="sm">
                     <AttachmentMedia>
@@ -113,6 +73,6 @@ function PendingAttachments({ attachments }: { attachments: readonly AttachmentM
                     </AttachmentContent>
                 </Attachment>
             ))}
-        </AttachmentGroup>
+        </>
     );
 }

@@ -1,7 +1,6 @@
 import { Chip, Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { Agent } from '@tavern/api';
 import { splitVisualFences } from '@tavern/api/widgets/visual';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
@@ -59,6 +58,7 @@ import {
 } from './chat-transcript-render-context.tsx';
 import type { SessionNoticeRow } from './chat-transcript-row-model.ts';
 import { RuntimeNoticeEntry, SessionNoticeAction } from './chat-transcript-system-step.tsx';
+import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
 import { ChatTurnDrawer } from './chat-turn-drawer.tsx';
 import { AgentWidget } from './legacy-widget-row.tsx';
 import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
@@ -74,10 +74,8 @@ import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
 // the wash span the full chat width past the viewport's px-5 gutter. The
 // wash also holds while a bar-owned popover (the emoji picker) is open, so
 // moving the pointer into the portaled popover doesn't unwash the row.
-const turnRowClassName =
-    'group/turn -mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2 hover:bg-background-hover has-[[data-turn-actions]_[aria-expanded=true]]:bg-background-hover';
-const turnBodyClassName = 'gap-0';
-const turnAvatarOffsetClassName = 'mt-1.5';
+const turnInteractionClassName =
+    'group/turn hover:bg-background-hover has-[[data-turn-actions]_[aria-expanded=true]]:bg-background-hover';
 // Stock action buttons are composer-sized; transcript rows want the compact
 // footprint with slightly smaller glyphs.
 const turnActionClassName = 'size-7 [&_svg]:size-4';
@@ -221,19 +219,27 @@ function UserTurnPresentation({
 }) {
     const context = useTranscriptRenderContextOptional();
     const displayName = actorProfile?.name ?? getTurnFallbackName(entry) ?? 'You';
-    const lastMessageRow = getLastMessageRow(entry.items);
+    const hasPendingMessage = entry.items.some(
+        (item) =>
+            item.kind === 'row' &&
+            item.row.kind === 'message' &&
+            isLocalTimelineMessageMetadata(item.row.message.metadata)
+    );
+    const lastMessageRow = hasPendingMessage ? null : getLastMessageRow(entry.items);
 
     // Every human turn — the app owner's included — shares the same
     // left-aligned Slack-style roster row as agents: avatar, name header,
     // plain text. No right-anchored self bubbles.
     return (
-        <ChatMessage.Assistant className={turnRowClassName}>
+        <ChatMessage.Assistant
+            className={cn(transcriptTurnGeometry.row, lastMessageRow && turnInteractionClassName)}
+        >
             <TurnAvatar
                 avatarUrl={actorProfile?.avatarUrl}
                 deleted={actorProfile?.deleted}
                 name={displayName}
             />
-            <ChatMessage.Body className={turnBodyClassName}>
+            <ChatMessage.Body className={transcriptTurnGeometry.body}>
                 {layout.showHumanIdentity ? (
                     <TurnHeader
                         deleted={actorProfile?.deleted}
@@ -283,41 +289,41 @@ function getActiveReplyText(items: TranscriptItem[]) {
 // Agents and people share one identity mark: the uploaded square image when
 // there is one, initials otherwise.
 function TurnAvatar({
-    agentId,
-    availability,
     avatarUrl,
     deleted = false,
     name,
 }: {
-    agentId?: null | string;
-    availability?: Agent['availability'];
     avatarUrl?: string | null;
     deleted?: boolean;
     name: string;
 }) {
-    if (agentId && !deleted) {
+    return (
+        <ChatMessage.Avatar
+            alt={`${name} avatar`}
+            className={cn(transcriptTurnGeometry.avatar, deleted && 'opacity-50 grayscale')}
+            fallback={getEntityInitials(name)}
+            src={avatarUrl ?? undefined}
+        />
+    );
+}
+
+function AgentTurnAvatar({ profile, name }: { profile: ActorProfile | null; name: string }) {
+    if (profile?.availability.kind === 'live') {
         return (
             <AgentAvatar
                 agent={{
-                    availability,
-                    avatarUrl: avatarUrl ?? null,
+                    availability: profile.availability.value,
+                    avatarUrl: profile.avatarUrl,
                     displayName: name,
-                    id: agentId,
+                    id: profile.id,
                 }}
-                className={turnAvatarOffsetClassName}
+                className={transcriptTurnGeometry.avatar}
                 size={32}
             />
         );
     }
 
-    return (
-        <ChatMessage.Avatar
-            alt={`${name} avatar`}
-            className={cn(turnAvatarOffsetClassName, deleted && 'opacity-50 grayscale')}
-            fallback={getEntityInitials(name)}
-            src={avatarUrl ?? undefined}
-        />
-    );
+    return <TurnAvatar avatarUrl={profile?.avatarUrl} deleted={profile?.deleted} name={name} />;
 }
 
 // Bios stay one quiet line: hard-capped well past any reasonable blurb, then
@@ -342,12 +348,13 @@ function TurnHeader({
     timestamp: string | null;
 }) {
     return (
-        <div className="flex min-w-0 max-w-full items-center gap-2 text-muted text-xs">
+        <div className={transcriptTurnGeometry.header}>
             {mentionAgentId && composerId ? (
                 <button
                     aria-label={`Mention ${displayName}`}
                     className={cn(
-                        'shrink-0 cursor-(--cursor-interactive) truncate font-semibold text-sm leading-5 hover:underline',
+                        transcriptTurnGeometry.name,
+                        'cursor-(--cursor-interactive) hover:underline',
                         deleted ? 'text-muted' : 'text-foreground'
                     )}
                     onClick={() =>
@@ -360,7 +367,8 @@ function TurnHeader({
             ) : onClick ? (
                 <button
                     className={cn(
-                        'shrink-0 cursor-(--cursor-interactive) truncate font-semibold text-sm leading-5 hover:underline',
+                        transcriptTurnGeometry.name,
+                        'cursor-(--cursor-interactive) hover:underline',
                         deleted ? 'text-muted' : 'text-foreground'
                     )}
                     onClick={onClick}
@@ -371,7 +379,7 @@ function TurnHeader({
             ) : (
                 <span
                     className={cn(
-                        'shrink-0 truncate font-semibold text-sm leading-5',
+                        transcriptTurnGeometry.name,
                         deleted ? 'text-muted' : 'text-foreground'
                     )}
                 >
@@ -554,7 +562,11 @@ function AgentTurnPresentation({
 
     return (
         <ChatMessage.Assistant
-            className={cn(turnRowClassName, !showIdentity && followsRuntimeNotice && 'mt-0')}
+            className={cn(
+                transcriptTurnGeometry.row,
+                turnInteractionClassName,
+                !showIdentity && followsRuntimeNotice && 'mt-0'
+            )}
         >
             {chatId && actorId && !disableAgentHoverCard && !actorProfile?.deleted ? (
                 <AgentHoverCard
@@ -571,12 +583,7 @@ function AgentTurnPresentation({
                     // height and re-centering the avatar it wraps.
                     triggerClassName="shrink-0 self-start"
                 >
-                    <TurnAvatar
-                        agentId={actorId}
-                        availability={actorProfile?.availability}
-                        avatarUrl={actorProfile?.avatarUrl}
-                        name={displayName}
-                    />
+                    <AgentTurnAvatar name={displayName} profile={actorProfile} />
                 </AgentHoverCard>
             ) : chatId && actorId && profilePaneChatId && !actorProfile?.deleted ? (
                 <button
@@ -585,23 +592,12 @@ function AgentTurnPresentation({
                     onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
                     type="button"
                 >
-                    <TurnAvatar
-                        agentId={actorId}
-                        availability={actorProfile?.availability}
-                        avatarUrl={actorProfile?.avatarUrl}
-                        name={displayName}
-                    />
+                    <AgentTurnAvatar name={displayName} profile={actorProfile} />
                 </button>
             ) : (
-                <TurnAvatar
-                    agentId={actorId}
-                    availability={actorProfile?.availability}
-                    avatarUrl={actorProfile?.avatarUrl}
-                    deleted={actorProfile?.deleted}
-                    name={displayName}
-                />
+                <AgentTurnAvatar name={displayName} profile={actorProfile} />
             )}
-            <ChatMessage.Body className={turnBodyClassName}>
+            <ChatMessage.Body className={transcriptTurnGeometry.body}>
                 {showIdentity ? (
                     <TurnHeader
                         bio={actorProfile?.bio}
@@ -844,6 +840,7 @@ function UserTurnItem({ from, item }: { from: 'assistant' | 'user'; item: Transc
     }
 
     const message = item.row.message;
+    const pending = isLocalTimelineMessageMetadata(message.metadata);
     const attachments = context?.renderMessageAttachments
         ? context.renderMessageAttachments(message)
         : renderTranscriptMessageAttachments(message.attachments);
@@ -853,17 +850,23 @@ function UserTurnItem({ from, item }: { from: 'assistant' | 'user'; item: Transc
         <ChatTranscriptMessageContent message={message} textClassName="text-current" />
     );
 
-    return body ? (
-        <ThreadMessageSurface row={item.row}>
-            <TranscriptMessageBlock
-                animateEnter={isLocalTimelineMessageMetadata(message.metadata) || animateLiveEnter}
-                attachments={attachments}
-                from={from}
-            >
-                {body}
-            </TranscriptMessageBlock>
-        </ThreadMessageSurface>
-    ) : null;
+    if (!body) {
+        return null;
+    }
+
+    const block = (
+        <TranscriptMessageBlock
+            {...(pending ? { animate: { opacity: 0.7, scale: 1, y: 0 } } : {})}
+            animateEnter={pending || animateLiveEnter}
+            attachments={attachments}
+            data-slot={pending ? 'pending-chat-message' : undefined}
+            from={from}
+        >
+            {body}
+        </TranscriptMessageBlock>
+    );
+
+    return pending ? block : <ThreadMessageSurface row={item.row}>{block}</ThreadMessageSurface>;
 }
 
 // Whether this item is a message landing at the transcript's live edge right

@@ -4,6 +4,7 @@ import type {
     AgentActivityHistoryInput,
     AgentActivityHistoryPage,
 } from '@tavern/api';
+import { projectAgentCurrentActivity } from '@tavern/api/agent-activity';
 import { and, asc, desc, eq, isNotNull, lt, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -105,17 +106,21 @@ export async function readActiveAgentActivity(
         // `runOrder` is Agent-local for history pagination. The first recorded
         // event is the only cross-Agent turn-start ordering fact available to
         // this projection, so preserve each run's first-seen position while
-        // replacing it with the latest semantic event.
+        // projecting its complete semantic sequence.
         .orderBy(asc(agentActivityTable.recordedAt), asc(agentActivityTable.id));
-    const latestByRun = new Map<string, typeof agentActivityTable.$inferSelect>();
+    const eventsByRun = new Map<string, AgentActivityEvent[]>();
     for (const { activity } of rows) {
         const key = `${activity.agentId}:${activity.runId}`;
-        const latest = latestByRun.get(key);
-        if (!latest || activity.position > latest.position) {
-            latestByRun.set(key, activity);
-        }
+        const events = eventsByRun.get(key) ?? [];
+        events.push(toAgentActivityEvent(activity));
+        eventsByRun.set(key, events);
     }
-    const activities = [...latestByRun.values()].map(toAgentActivityEvent);
+    const activities = [...eventsByRun.values()].flatMap((events) => {
+        const current = [...events]
+            .sort((left, right) => left.position - right.position)
+            .reduce<AgentActivityEvent | null>(projectAgentCurrentActivity, null);
+        return current ? [current] : [];
+    });
     return { activities };
 }
 

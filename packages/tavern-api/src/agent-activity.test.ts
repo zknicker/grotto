@@ -3,6 +3,7 @@ import {
     agentActivityCategorySchema,
     agentActivityEventSchema,
     agentActivityFrameSchema,
+    projectAgentCurrentActivity,
 } from './agent-activity.ts';
 
 const frame = {
@@ -52,4 +53,60 @@ test('committed events add Server identity and presentation position', () => {
             serverId: 'srv_one',
         })
     ).toMatchObject({ position: 3, producer: 'computer', serverId: 'srv_one' });
+});
+
+test('current activity finishes after a committed message until the turn settles', () => {
+    const event = agentActivityEventSchema.parse({
+        agentId: frame.agentId,
+        category: 'running_command',
+        occurredAt: frame.occurredAt,
+        phase: 'started',
+        producerSequence: frame.producerSequence,
+        runId: frame.runId,
+        id: 'aev_started',
+        position: 1,
+        producer: 'computer',
+        producerId: 'cmp_one',
+        serverId: 'srv_one',
+    });
+    const committedMessage = {
+        ...event,
+        category: 'sending_message' as const,
+        id: 'aev_message',
+        phase: 'completed' as const,
+        position: 2,
+        producer: 'server' as const,
+        producerId: 'server',
+    };
+    const lateCompletion = {
+        ...event,
+        id: 'aev_completed',
+        phase: 'completed' as const,
+        position: 3,
+        producerSequence: 2,
+    };
+    const nextOperation = {
+        ...event,
+        category: 'thinking' as const,
+        id: 'aev_thinking',
+        position: 4,
+        producerSequence: 3,
+    };
+    const settled = {
+        ...event,
+        category: 'working' as const,
+        id: 'aev_settled',
+        phase: 'completed' as const,
+        position: 5,
+        producer: 'server' as const,
+        producerId: 'server',
+    };
+
+    const started = projectAgentCurrentActivity(null, event);
+    const afterMessage = projectAgentCurrentActivity(started, committedMessage);
+
+    expect(afterMessage).toEqual(committedMessage);
+    expect(projectAgentCurrentActivity(afterMessage, lateCompletion)).toEqual(committedMessage);
+    expect(projectAgentCurrentActivity(afterMessage, nextOperation)).toEqual(nextOperation);
+    expect(projectAgentCurrentActivity(afterMessage, settled)).toBeNull();
 });

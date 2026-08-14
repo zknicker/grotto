@@ -38,15 +38,7 @@ export function useResolveActorProfile({
                 const agent = agentsById.get(actor.id);
 
                 return agent
-                    ? {
-                          avatarUrl: agent.avatarUrl,
-                          bio: agent.description,
-                          deleted: false,
-                          id: agent.id,
-                          isSelf: false,
-                          kind: 'agent',
-                          name: agent.displayName,
-                      }
+                    ? liveAgentActorProfile(agent)
                     : (historicalProfiles.get(`agent:${actor.id}`) ?? null);
             }
 
@@ -65,10 +57,24 @@ export function useResolveActorProfile({
                 isSelf: humans.isSelf(actor.id),
                 kind: actor.kind,
                 name: humans.name(actor.id),
+                availability: { kind: 'none' },
             };
         },
         [agentsById, historicalProfiles, humans]
     );
+}
+
+export function liveAgentActorProfile(agent: Agent): ActorProfile {
+    return {
+        avatarUrl: agent.avatarUrl,
+        bio: agent.description,
+        deleted: false,
+        id: agent.id,
+        isSelf: false,
+        kind: 'agent',
+        name: agent.displayName,
+        availability: { kind: 'live', value: agent.availability },
+    };
 }
 
 /**
@@ -108,15 +114,30 @@ function useHistoricalActorProfiles(messages: readonly ChatMessage[], humans: Hu
         const profiles = new Map<string, ActorProfile>();
 
         for (const [key, source] of sources) {
-            profiles.set(key, {
-                avatarUrl: source.profile.avatarUrl,
-                bio: source.profile.description,
-                deleted: source.profile.deleted,
-                id: source.id,
-                isSelf: source.kind === 'human' && humans.isSelf(source.id),
-                kind: source.kind === 'agent' ? 'agent' : 'participant',
-                name: source.profile.displayName,
-            });
+            profiles.set(
+                key,
+                source.kind === 'agent'
+                    ? {
+                          avatarUrl: source.profile.avatarUrl,
+                          bio: source.profile.description,
+                          deleted: source.profile.deleted,
+                          id: source.id,
+                          isSelf: false,
+                          kind: 'agent',
+                          name: source.profile.displayName,
+                          availability: { kind: 'none' },
+                      }
+                    : {
+                          avatarUrl: source.profile.avatarUrl,
+                          bio: source.profile.description,
+                          deleted: source.profile.deleted,
+                          id: source.id,
+                          isSelf: humans.isSelf(source.id),
+                          kind: 'participant',
+                          name: source.profile.displayName,
+                          availability: { kind: 'none' },
+                      }
+            );
         }
 
         cacheRef.current = { humans, profiles, sources };

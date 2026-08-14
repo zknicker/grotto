@@ -279,6 +279,37 @@ test('rejects wrong identities and settled runs, while active snapshot recovers 
     expect(snapshot.activities).toHaveLength(1);
     expect(snapshot.activities[0]).toEqual(accepted);
 
+    const finishing = await connection.db.transaction(async (tx) => {
+        await lockServerRow(tx, seed.serverId);
+        return await appendServerAgentActivity(tx, {
+            agentId: seed.agentId,
+            category: 'sending_message',
+            phase: 'completed',
+            runId: frame.runId,
+            serverId: seed.serverId,
+        });
+    });
+    await recordComputerAgentActivity(connection.db, {
+        computerId: seed.computerId,
+        frame: {
+            ...activityFrame(seed, frame.runId, 2),
+            phase: 'completed',
+        },
+        serverId: seed.serverId,
+    });
+    expect((await readActiveAgentActivity(connection.db, seed.serverId)).activities).toEqual([
+        finishing,
+    ]);
+
+    const resumed = await recordComputerAgentActivity(connection.db, {
+        computerId: seed.computerId,
+        frame: activityFrame(seed, frame.runId, 3),
+        serverId: seed.serverId,
+    });
+    expect((await readActiveAgentActivity(connection.db, seed.serverId)).activities).toEqual([
+        resumed,
+    ]);
+
     await connection.db
         .update(computersTable)
         .set({ health: 'offline' })

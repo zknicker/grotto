@@ -14,7 +14,6 @@ import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
 import { ChatAgentComposition } from '../chat/agent-composition.tsx';
 import { ChatComposer } from '../chat/chat-composer.tsx';
 import { useChatTranscript } from '../chat/chat-transcript.tsx';
-import { PendingChatMessages } from '../chat/pending-messages.tsx';
 import { pendingThreadReplyKey, usePendingChatMessages } from '../chat/use-pending-messages.ts';
 import { TaskThreadMetadata } from '../tasks/task-thread-metadata.tsx';
 import { threadTitles } from './thread-target.ts';
@@ -73,8 +72,10 @@ export function ThreadContent({
         chatId: threadChatId ?? chat.id,
         messages: threadMessages,
         onOpenArtifact,
+        pendingMessages: pendingReplies,
         serverId: chat.serverId,
         turnDetailsAccess,
+        viewerUserId,
     });
     const anchorEntries = React.useMemo(
         () => buildTranscriptEntries({ rows: rows.slice(0, 1) }),
@@ -162,13 +163,6 @@ export function ThreadContent({
                                 key={entry.id}
                             />
                         ))}
-                        {viewerUserId ? (
-                            <PendingChatMessages
-                                messages={pendingReplies}
-                                serverId={chat.serverId}
-                                viewerUserId={viewerUserId}
-                            />
-                        ) : null}
                         <ChatAgentComposition chatId={threadChatId} serverId={chat.serverId} />
                     </div>
                 </div>

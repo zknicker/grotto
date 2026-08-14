@@ -1,4 +1,9 @@
-import type { Agent, AgentActivityEvent } from '@tavern/api';
+import type { Agent, AgentActivityEvent, AgentLifecycleEvent } from '@tavern/api';
+import {
+    isAgentCurrentActivityTerminalEvent,
+    isAgentFinishingActivityEvent,
+    projectAgentCurrentActivity,
+} from '@tavern/api/agent-activity';
 
 export type CurrentAgentActivity = AgentActivityEvent;
 
@@ -17,6 +22,9 @@ const activityLabels: Record<AgentActivityEvent['category'], string> = {
 };
 
 export function formatCurrentAgentActivityLabel(activity: CurrentAgentActivity) {
+    if (isAgentFinishingActivityEvent(activity)) {
+        return 'Finishing up…';
+    }
     return activityLabels[activity.category];
 }
 
@@ -35,8 +43,13 @@ export function applyCurrentAgentActivityEvent(
     if (current && event.position <= current.position) {
         return [...activities];
     }
+    // Lifecycle settlement owns row removal alongside Agent availability. Keep
+    // the last semantic state until that event turns the Agent non-working.
+    if (current && isAgentCurrentActivityTerminalEvent(event)) {
+        return [...activities];
+    }
 
-    const projected = projectCurrentAgentActivityEvent(event);
+    const projected = projectAgentCurrentActivity(current ?? null, event);
     if (!projected) {
         return index < 0
             ? [...activities]
@@ -58,22 +71,12 @@ export function applyCurrentAgentActivityEvent(
  * Semantic completion means the Agent is between operations; only the
  * Server-owned working completion is authoritative turn settlement.
  */
-export function projectCurrentAgentActivityEvent(
-    event: CurrentAgentActivity
-): CurrentAgentActivity | null {
-    if (isTerminalAgentActivityEvent(event)) {
-        return null;
-    }
-    return event.phase === 'started' ? event : { ...event, category: 'working', phase: 'started' };
-}
-
 export function projectCurrentAgentActivitySnapshot(
     activities: readonly CurrentAgentActivity[]
 ): CurrentAgentActivity[] {
-    return activities.flatMap((activity) => {
-        const projected = projectCurrentAgentActivityEvent(activity);
-        return projected ? [projected] : [];
-    });
+    return activities.filter(
+        (activity) => activity.phase === 'started' || isAgentFinishingActivityEvent(activity)
+    );
 }
 
 export function reconcileCurrentAgentActivity(
@@ -84,6 +87,36 @@ export function reconcileCurrentAgentActivity(
         applyCurrentAgentActivityEvent,
         projectCurrentAgentActivitySnapshot(snapshot)
     );
+}
+
+/** Compacts the live overlay to one event per Agent without losing event ordering. */
+export interface CurrentAgentActivityLiveOverlay {
+    event: CurrentAgentActivity;
+    latestPosition: number;
+}
+
+export function mergeCurrentAgentActivityLiveEvent(
+    previous: CurrentAgentActivityLiveOverlay | undefined,
+    event: CurrentAgentActivity
+): CurrentAgentActivityLiveOverlay {
+    if (previous?.event.runId === event.runId && previous.latestPosition >= event.position) {
+        return previous;
+    }
+    if (previous?.event.runId === event.runId && isAgentCurrentActivityTerminalEvent(event)) {
+        return { ...previous, latestPosition: event.position };
+    }
+    if (
+        previous?.event.runId === event.runId &&
+        isAgentFinishingActivityEvent(previous.event) &&
+        event.phase !== 'started'
+    ) {
+        return { ...previous, latestPosition: event.position };
+    }
+    if (previous?.event.runId === event.runId && previous.event.phase === 'started') {
+        const projected = projectAgentCurrentActivity(previous.event, event);
+        return { event: projected ?? event, latestPosition: event.position };
+    }
+    return { event, latestPosition: event.position };
 }
 
 export function splitCurrentAgentActivity(
@@ -108,14 +141,17 @@ export function filterCurrentAgentActivityByAvailability(
     return activities.filter((activity) => workingAgentIds.has(activity.agentId));
 }
 
-function activityKey(activity: CurrentAgentActivity) {
-    return `${activity.agentId}:${activity.runId}`;
+/** Never carry one run's semantic presentation into a newer active lifecycle. */
+export function filterCurrentAgentActivityByLifecycle(
+    activities: readonly CurrentAgentActivity[],
+    lifecycles: ReadonlyMap<string, AgentLifecycleEvent>
+) {
+    return activities.filter((activity) => {
+        const lifecycle = lifecycles.get(activity.agentId);
+        return !lifecycle || lifecycle.phase === 'settled' || lifecycle.runId === activity.runId;
+    });
 }
 
-function isTerminalAgentActivityEvent(activity: CurrentAgentActivity) {
-    return (
-        activity.producer === 'server' &&
-        activity.category === 'working' &&
-        activity.phase !== 'started'
-    );
+function activityKey(activity: CurrentAgentActivity) {
+    return `${activity.agentId}:${activity.runId}`;
 }

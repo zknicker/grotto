@@ -5,6 +5,7 @@
   "packageManager": "bun@1.3.5",
   "exports": {
     ".": "./src/index.ts",
+    "./agent-activity": "./src/agent-activity.ts",
     "./app-protocol": "./src/app-protocol.ts",
     "./avatar": "./src/avatar.ts",
     "./config": "./src/runtime/config.ts",

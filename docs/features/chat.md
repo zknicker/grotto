@@ -27,10 +27,11 @@ and [Agent Inbox](../../specs/inbox.md).
   workspace. Hosted attachments are not Chat artifacts.
 * **Sending.** A human send is instant. The draft leaves the composer the
   moment it is sent, the composer stays enabled for the next message, and an
-  app-local pending row carries the text at the tail of the transcript until
-  the durable message arrives. Rapid sends queue as separate pending rows,
-  each matched to its durable message by send nonce; a failed send drops its
-  row and restores the whole draft, attachments included. Thread replies send
+  app-local pending message carries the text at the tail of the transcript until
+  the durable message arrives. Pending and durable messages pass through the same
+  transcript grouping, so rapid sends keep the same avatar and name structure when
+  they commit. Each pending message is matched to its durable message by send nonce;
+  a failed send drops its message and restores the whole draft, attachments included. Thread replies send
   the same way, including the first reply, whose pending row belongs to the
   anchor message until the Thread it creates exists. Pending rows are never
   written into durable chat history.

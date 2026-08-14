@@ -1,4 +1,4 @@
-import type { Agent } from '@tavern/api';
+import type { AgentAvailability } from '@tavern/api';
 import { useMemo } from 'react';
 import type { HistoryActorOutput } from '../../lib/trpc.tsx';
 import { useAgentList } from '../agents/use-agent-list.ts';
@@ -6,16 +6,30 @@ import { useCurrentUser } from '../identity/use-current-user.ts';
 import { useParticipantList } from '../participants/use-participant-list.ts';
 import { useUserProfilePreference } from '../shell/use-user-profile-preference.ts';
 
-export interface ActorProfile {
-    availability?: Agent['availability'];
+interface ActorProfileBase {
     avatarUrl: string | null;
     bio: string | null;
-    deleted: boolean;
     id: string;
     isSelf: boolean;
-    kind: HistoryActorOutput['kind'];
     name: string;
 }
+
+export type ActorProfile =
+    | (ActorProfileBase & {
+          deleted: false;
+          kind: 'agent';
+          availability: { kind: 'live'; value: AgentAvailability };
+      })
+    | (ActorProfileBase & {
+          deleted: boolean;
+          kind: 'agent';
+          availability: { kind: 'none' };
+      })
+    | (ActorProfileBase & {
+          deleted: boolean;
+          kind: Exclude<HistoryActorOutput['kind'], 'agent'>;
+          availability: { kind: 'none' };
+      });
 
 const selfProfileActorId = 'profile:self';
 // Keyless chat uses this synthetic participant. Owner-scoped session evidence
@@ -60,6 +74,7 @@ export function useActorProfile(actor: HistoryActorOutput | null) {
                       isSelf: false,
                       kind: 'agent',
                       name: agent.name,
+                      availability: { kind: 'none' },
                   } satisfies ActorProfile)
                 : null;
         }
@@ -75,6 +90,7 @@ export function useActorProfile(actor: HistoryActorOutput | null) {
                 isSelf: true,
                 kind: actor.kind,
                 name: userProfile.displayName ?? 'You',
+                availability: { kind: 'none' },
             } satisfies ActorProfile;
         }
 
@@ -95,6 +111,7 @@ export function useActorProfile(actor: HistoryActorOutput | null) {
                   isSelf: false,
                   kind: 'participant',
                   name: participant.name,
+                  availability: { kind: 'none' },
               } satisfies ActorProfile)
             : null;
     }, [

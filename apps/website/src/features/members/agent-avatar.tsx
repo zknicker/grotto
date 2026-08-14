@@ -1,11 +1,11 @@
 import { Badge } from '@heroui/react';
-import type { Agent } from '@tavern/api';
+import type { Agent, AgentAvailability } from '@tavern/api';
 import type React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { cn } from '../../lib/utils.ts';
 
-/**  availability mapped onto the stock Badge colour vocabulary. */
-export function availabilityBadgeColor(availability: Agent['availability'] | undefined) {
+/** Agent availability mapped onto the stock Badge color vocabulary. */
+export function availabilityBadgeColor(availability: AgentAvailability) {
     switch (availability) {
         case 'idle':
             return 'success' as const;
@@ -13,12 +13,13 @@ export function availabilityBadgeColor(availability: Agent['availability'] | und
             return 'warning' as const;
         case 'error':
             return 'danger' as const;
-        default:
+        case 'offline':
+        case 'stopped':
             return 'default' as const;
     }
 }
 
-export function availabilityLabel(availability: Agent['availability'] | undefined) {
+export function availabilityLabel(availability: AgentAvailability) {
     switch (availability) {
         case 'idle':
             return 'Online';
@@ -30,8 +31,6 @@ export function availabilityLabel(availability: Agent['availability'] | undefine
             return 'Stopped';
         case 'error':
             return 'Needs attention';
-        default:
-            return null;
     }
 }
 
@@ -46,10 +45,10 @@ export function AgentAvatar({
     size = 20,
 }: {
     agent: {
-        availability?: Agent['availability'];
+        availability: AgentAvailability;
         avatarUrl: Agent['avatarUrl'];
         displayName: Agent['displayName'];
-        id?: Agent['id'];
+        id: Agent['id'];
     };
     className?: string;
     size?: number;
@@ -60,7 +59,7 @@ export function AgentAvatar({
         <Badge.Anchor
             className={className}
             data-agent-id={agent.id}
-            data-agent-status={availability ?? 'unknown'}
+            data-agent-status={availability}
             style={{ height: size, width: size }}
         >
             <EntityAvatar name={agent.displayName} size={size} src={agent.avatarUrl} />
@@ -74,7 +73,7 @@ export function AgentAvatar({
                 color={availabilityBadgeColor(availability)}
                 placement="bottom-right"
                 size="sm"
-                title={availabilityLabel(availability) ?? undefined}
+                title={availabilityLabel(availability)}
             />
         </Badge.Anchor>
     );

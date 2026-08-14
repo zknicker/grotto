@@ -27,7 +27,6 @@ import { ChatFiles } from './chat-files.tsx';
 import { mergeTaskAnchor } from './chat-message-model.ts';
 import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
-import { PendingChatMessages } from './pending-messages.tsx';
 import { useChatArtifactPanel } from './use-artifact-panel.ts';
 import { usePendingChatMessages } from './use-pending-messages.ts';
 
@@ -299,23 +298,18 @@ export function ChatView({
                     <ChatTranscript
                         chatId={chat.id}
                         composition={
-                            <>
-                                <PendingChatMessages
-                                    messages={pendingMessages}
-                                    serverId={chat.serverId}
-                                    viewerUserId={server.viewerUserId}
-                                />
-                                <ChatAgentComposition chatId={chat.id} serverId={chat.serverId} />
-                            </>
+                            <ChatAgentComposition chatId={chat.id} serverId={chat.serverId} />
                         }
                         messages={transcriptMessages}
                         onOpenArtifact={openArtifact}
                         onOpenThread={openThread}
                         onStartDm={startDm}
+                        pendingMessages={pendingMessages}
                         scrollContentRef={scrollContentRef}
                         serverId={chat.serverId}
                         threads={messages.data?.threads}
                         turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
+                        viewerUserId={server.viewerUserId}
                     />
                 )}
             />

@@ -32,6 +32,13 @@ export function isLocalTimelineMessageMetadata(
     return metadata?.[localTimelineMessageMetadataKey] === true;
 }
 
+export function withLocalTimelineMessageMetadata(metadata?: Record<string, unknown>) {
+    return {
+        ...(metadata ?? {}),
+        [localTimelineMessageMetadataKey]: true,
+    };
+}
+
 function getRowTimestampMs(row: ChatLogRow) {
     const timestamp =
         row.kind === 'message'
@@ -134,10 +141,7 @@ function buildUserMessageRow(
             attachments: input.attachments,
             content: input.content,
             id: input.id,
-            metadata: {
-                ...(input.metadata ?? {}),
-                [localTimelineMessageMetadataKey]: true,
-            },
+            metadata: withLocalTimelineMessageMetadata(input.metadata),
             sender: 'You',
             senderType: 'user',
             sourceSessionId: null,

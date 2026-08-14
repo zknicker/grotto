@@ -1,0 +1,53 @@
+---
+summary: Ownership, dependency, navigation, and rendering boundaries for the native Grotto iPhone app.
+read_when:
+  - changing the iPhone app, mobile navigation, or native rendering architecture
+  - deciding whether mobile behavior belongs in shared logic, native UI, or an artifact web canvas
+  - adding a dependency to apps/ios
+---
+
+# Grotto for iPhone
+
+`apps/ios` is Grotto's native iPhone client. It is an Expo and React Native application, not a wrapper
+around the website. Expo Router owns native routes and HeroUI Native is the approved component system.
+Android is not a supported target.
+
+## Ownership
+
+Grotto Server remains the canonical owner of collaboration state. Grotto Computer does not know whether
+a request came from desktop or iPhone. The iPhone app owns only presentation state, settings, optimistic
+UI, and its React Query cache. When connectivity is lost, persistent UI renders only server data already
+present in that cache.
+
+Shared API contracts, query options, view models, and capability hooks should live in platform-neutral
+packages or modules. React DOM and React Native rendering diverge at their component boundary; shared
+hooks must not return DOM or native elements.
+
+## Rendering boundary
+
+The app shell, navigation, chat timeline, composer, threads, settings, and artifact controls are native.
+An interactive artifact may use an isolated web canvas inside its native route when the artifact runtime
+requires browser APIs. That canvas receives a narrow serialized contract and does not own authentication,
+navigation, server queries, or durable app state.
+
+## Native shell
+
+`AppShell` owns the persistent chat drawer and its gesture state, and projects the selected Chat from
+the current route. `AppLayout` owns the shared screen geometry: safe-area handling, keyboard avoidance,
+header, content, and footer slots. Screens compose those static slots directly; the layout has no data
+context or route knowledge. Expo Router owns Chat selection so navigation and restoration do not depend
+on a mounted component's local state. Drawer openness and gesture progress remain volatile shell state.
+
+## Dependencies
+
+HeroUI Native is the only general UI component library. Discuss and approve any additional UI library
+before adding it. Native infrastructure dependencies required by Expo, Expo Router, or HeroUI Native are
+allowed when they implement platform capability rather than a second visual system.
+
+HugeIcons Pro Rounded is the approved native icon family. Use Solid Rounded for content and action icons,
+and Stroke Rounded for small disclosure arrows so their shape remains legible at compact sidebar sizes.
+`AppIcon` bridges both sets to HeroUI semantic colors so icons and their surrounding HeroUI controls share
+one theme-aware foreground. Import individual icons so Metro can tree-shake unused assets.
+
+The generated `apps/ios/ios` directory is ignored. After app configuration or native dependency changes,
+regenerate it with `bunx expo prebuild --platform ios --clean` and prove the result in an iPhone Simulator.

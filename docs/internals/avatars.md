@@ -76,9 +76,12 @@ projections emit.
   an empty `Badge` availability dot. Its live-Agent input requires the
   canonical `Agent.availability`; it has no unknown or missing-status variant.
   Historical or unresolved authors render `EntityAvatar` without a status
-  badge. Availability decoration belongs here; do not add a second status-dot
-  primitive. Offline uses the theme's stronger `muted` fill because HeroUI's
-  pale `default` fill disappears on sidebar surfaces.
+  badge. HeroUI Native does not currently ship a Badge, so the iPhone
+  `AgentAvatar` composes `EntityAvatar` with the single native
+  `AvatarStatusBadge` analogue. Availability decoration belongs in these
+  platform-level compositions; do not draw status dots at call sites. Offline
+  uses the theme's stronger `muted` fill because HeroUI's pale `default` fill
+  disappears on sidebar surfaces.
 - `getEntityInitials(name)` is the single initials algorithm: empty → `?`, one
   word → its first two letters, otherwise first + last initial. Handle an empty
   display name at the call site (e.g. `name={displayName || 'You'}`) rather

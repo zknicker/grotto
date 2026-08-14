@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Grotto",
+    "slug": "grotto-ios",
+    "version": "0.1.0",
+    "platforms": ["ios"],
+    "orientation": "portrait",
+    "scheme": "grotto",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "build.grotto.ios",
+      "icon": "../../assets/mac-icon.icon",
+      "supportsTablet": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#00184A"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

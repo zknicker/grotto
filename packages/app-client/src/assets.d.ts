@@ -1,9 +1,9 @@
 declare module '*.jpg' {
-    const source: number;
+    const source: string;
     export default source;
 }
 
 declare module '*.png' {
-    const source: number;
+    const source: string;
     export default source;
 }

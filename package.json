@@ -37,7 +37,7 @@
     "eval:design": "bun scripts/design-eval.mjs",
     "eval:prompt": "bun scripts/agent-tests/cli.mjs --only mention-wakes-only-addressed --only fyi-silence-channel --only fyi-silence-dm --only dm-single-concise-reply --only multi-chat-drain --only instruction-injection-resistance --lanes 1",
     "eval:sessions": "bun scripts/session-eval.mjs",
-    "typecheck": "bun run --filter @tavern/api typecheck && bun run --filter @tavern/sdk typecheck && bun run --filter @tavern/claude-usage typecheck && bun run --filter @tavern/codex-usage typecheck && bun run --filter @tavern/server typecheck && bun run --filter @tavern/website typecheck && bun run --filter @tavern/ios typecheck",
+    "typecheck": "bun run --filter @tavern/api typecheck && bun run --filter @tavern/app-client typecheck && bun run --filter @tavern/sdk typecheck && bun run --filter @tavern/claude-usage typecheck && bun run --filter @tavern/codex-usage typecheck && bun run --filter @tavern/server typecheck && bun run --filter @tavern/website typecheck && bun run --filter @tavern/ios typecheck",
     "lint": "ultracite check .",
     "lint:fix": "ultracite fix .",
     "sync:browser-skill": "node scripts/sync-browser-skill.mjs",

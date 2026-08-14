@@ -1,7 +1,10 @@
+import { useChats, useServerList } from '@tavern/app-client';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Button } from 'heroui-native/button';
 import { useThemeColor } from 'heroui-native/hooks';
-import { useState } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Spinner } from 'heroui-native/spinner';
+import { type ReactNode, useState } from 'react';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
     interpolate,
@@ -11,13 +14,36 @@ import Animated, {
     withSpring,
 } from 'react-native-reanimated';
 import { ChatScreen } from './chat-screen';
-import { chats } from './fixtures';
 import { Sidebar } from './sidebar';
 
 const SPRING = { damping: 26, mass: 0.82, stiffness: 260 };
 
 export function AppShell() {
+    const servers = useServerList();
+
+    if (servers.isPending && !servers.data) {
+        return <CenteredState content={<Spinner />} />;
+    }
+    if (servers.isError && !servers.data) {
+        return (
+            <CenteredState
+                action={<Button onPress={() => servers.refetch()}>Try again</Button>}
+                content="Grotto could not reach the Server."
+            />
+        );
+    }
+
+    const server = servers.data[0];
+    if (!server) {
+        return <CenteredState content="You do not have a Grotto Server yet." />;
+    }
+
+    return <ServerShell serverId={server.id} />;
+}
+
+function ServerShell({ serverId }: { serverId: string }) {
     const router = useRouter();
+    const chats = useChats(serverId);
     const { chat: chatParam } = useLocalSearchParams<{ chat?: string | string[] }>();
     const { width } = useWindowDimensions();
     const background = useThemeColor('background');
@@ -26,11 +52,11 @@ export function AppShell() {
     const offset = useSharedValue(0);
     const gestureStart = useSharedValue(0);
     const requestedChat = Array.isArray(chatParam) ? chatParam[0] : chatParam;
+    const allChat = chats.data?.find((chat) => chat.isAll);
     const activeChatId =
-        requestedChat && chats.some((chat) => chat.id === requestedChat)
+        requestedChat && chats.data?.some((chat) => chat.id === requestedChat)
             ? requestedChat
-            : 'channel-all';
-    const activeChat = chats.find((chat) => chat.id === activeChatId) ?? chats[0];
+            : (allChat?.id ?? chats.data?.[0]?.id);
 
     const settleDrawer = (open: boolean) => {
         setIsOpen(open);
@@ -65,10 +91,6 @@ export function AppShell() {
         borderTopLeftRadius: interpolate(offset.value, [0, drawerWidth], [0, 42]),
     }));
 
-    if (!activeChat) {
-        return null;
-    }
-
     const selectChat = (id: string) => {
         router.setParams({ chat: id });
         settleDrawer(false);
@@ -86,6 +108,7 @@ export function AppShell() {
                     activeChat={activeChatId}
                     onNavigate={() => settleDrawer(false)}
                     onSelectChat={selectChat}
+                    serverId={serverId}
                 />
             </View>
             <GestureDetector gesture={drawerGesture}>
@@ -98,13 +121,27 @@ export function AppShell() {
                         ]}
                     >
                         <ChatScreen
-                            chat={activeChat}
+                            chatId={activeChatId}
                             isSidebarOpen={isOpen}
                             onToggleSidebar={() => settleDrawer(!isOpen)}
+                            serverId={serverId}
                         />
                     </Animated.View>
                 </Animated.View>
             </GestureDetector>
+        </View>
+    );
+}
+
+function CenteredState({ action, content }: { action?: ReactNode; content: ReactNode }) {
+    return (
+        <View className="flex-1 items-center justify-center gap-4 bg-background px-8">
+            {typeof content === 'string' ? (
+                <Text className="text-center text-base text-muted">{content}</Text>
+            ) : (
+                content
+            )}
+            {action}
         </View>
     );
 }

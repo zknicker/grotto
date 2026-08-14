@@ -1,11 +1,12 @@
 import { Add01Icon, Archive02Icon, HashtagIcon } from '@hugeicons-pro/core-solid-rounded';
 import { ArrowDown01Icon, ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { useAgents, useChats } from '@tavern/app-client';
 import { Button } from 'heroui-native/button';
 import { type ReactNode, useState } from 'react';
 import { View } from 'react-native';
 import { AgentAvatar } from './agent-avatar';
 import { AppIcon } from './app-icon';
-import { agents, chats } from './fixtures';
+import { toAgentSummary, toChatSummary } from './mobile-data';
 import type { AgentSummary, ChatSummary } from './types';
 
 export function ChatNavigation({
@@ -13,14 +14,20 @@ export function ChatNavigation({
     onCreateChannel,
     onOpenArchived,
     onSelectChat,
+    serverId,
 }: {
-    activeChat: string;
+    activeChat: string | undefined;
     onCreateChannel: () => void;
     onOpenArchived: () => void;
     onSelectChat: (id: string) => void;
+    serverId: string;
 }) {
     const [areChannelsOpen, setAreChannelsOpen] = useState(true);
     const [areDirectMessagesOpen, setAreDirectMessagesOpen] = useState(true);
+    const agentQuery = useAgents(serverId);
+    const chatQuery = useChats(serverId);
+    const agents = agentQuery.data?.map(toAgentSummary) ?? [];
+    const chats = chatQuery.data?.map(toChatSummary).filter(isChatSummary) ?? [];
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
     const channels = chats.filter((chat) => chat.kind === 'channel');
     const directMessages = chats.filter((chat) => chat.kind === 'dm');
@@ -78,6 +85,10 @@ export function ChatNavigation({
     );
 }
 
+function isChatSummary(chat: ChatSummary | null): chat is ChatSummary {
+    return chat !== null;
+}
+
 function NavigationSection({
     action,
     children,
@@ -121,7 +132,7 @@ function ChatRows({
     chats: rows,
     onSelectChat,
 }: {
-    activeChat: string;
+    activeChat: string | undefined;
     agentById: Map<string, AgentSummary>;
     chats: ChatSummary[];
     onSelectChat: (id: string) => void;

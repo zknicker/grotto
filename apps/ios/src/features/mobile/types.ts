@@ -27,7 +27,7 @@ export interface ServerSummary {
 
 interface ChatSummaryBase {
     id: string;
-    unread?: number;
+    unread: number;
 }
 
 export interface ChannelSummary extends ChatSummaryBase {
@@ -41,12 +41,3 @@ export interface AgentDmSummary extends ChatSummaryBase {
 }
 
 export type ChatSummary = AgentDmSummary | ChannelSummary;
-
-export interface ChatMessage {
-    artifact?: { id: string; title: string; kind: string };
-    authorId: string;
-    body: string;
-    id: string;
-    replies?: number;
-    timestamp: string;
-}

@@ -23,6 +23,24 @@ Shared API contracts, query options, view models, and capability hooks should li
 packages or modules. React DOM and React Native rendering diverge at their component boundary; shared
 hooks must not return DOM or native elements.
 
+`@tavern/app-client` owns the shared typed tRPC client, React Query policy, and focused Server, Chat,
+message, Agent, and member hooks. The website supplies its browser transport and realtime lifecycle;
+the iPhone app supplies its native authenticated HTTP transport. Native feature leaves call the focused
+hooks and project platform view models instead of receiving one screen-wide fetched graph.
+
+Clerk owns native authentication. The production instance uses Google as its only sign-in strategy, so
+Grotto starts Clerk's direct Google SSO flow from a native HeroUI action instead of routing through the
+hosted Account Portal. The provider browser returns through the production-authorized
+`grotto://sso-callback` product URL. Grotto intentionally excludes Clerk's native UI/client bridge from
+Expo autolinking; the JavaScript SSO flow does not use that second native session owner. `ClerkProvider`
+persists its JS session through Expo
+SecureStore, while the authenticated Grotto provider reads a fresh Clerk token for every request and
+keys the QueryClient to the active user id. A user change therefore discards the previous user's
+in-memory Server cache.
+React Query keeps successful Server snapshots visible through background transport failures. The native
+cache is currently process-memory only; cold-start offline access needs an explicit secure auth bootstrap
+contract before persisted query data can be enabled safely.
+
 ## Rendering boundary
 
 The app shell, navigation, chat timeline, composer, threads, settings, and artifact controls are native.

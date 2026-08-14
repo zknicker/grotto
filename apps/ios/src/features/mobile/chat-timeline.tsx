@@ -1,28 +1,38 @@
-import { BubbleChatIcon, File01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { BubbleChatIcon } from '@hugeicons-pro/core-solid-rounded';
+import type { HostedChatMessage } from '@tavern/api';
+import { useAgents, useChatMessages } from '@tavern/app-client';
 import { useRouter } from 'expo-router';
-import { Button } from 'heroui-native/button';
 import { PressableFeedback } from 'heroui-native/pressable-feedback';
+import { Spinner } from 'heroui-native/spinner';
+import { useMemo } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 import { AgentAvatar } from './agent-avatar';
 import { AppIcon } from './app-icon';
 import { EntityAvatar } from './entity-avatar';
-import { actors, messages } from './fixtures';
-import type { ActorSummary, ChatMessage } from './types';
+import { toAgentSummary } from './mobile-data';
+import type { ActorSummary, AgentSummary } from './types';
 
-const actorById = new Map(actors.map((actor) => [actor.id, actor]));
-const unknownActor: ActorSummary = {
-    avatarUrl: null,
-    displayName: 'Unknown participant',
-    id: 'unknown',
-    kind: 'human',
-};
-
-function MessageRow({ message }: { message: ChatMessage }) {
+function MessageRow({
+    agents,
+    message,
+    replies,
+}: {
+    agents: Map<string, AgentSummary>;
+    message: HostedChatMessage;
+    replies: number;
+}) {
     const router = useRouter();
-    const artifact = message.artifact;
-    const actor = actorById.get(message.authorId) ?? unknownActor;
+
+    if (message.author.kind === 'system') {
+        return (
+            <View className="items-center px-8 py-2">
+                <Text className="text-center text-muted text-sm">{message.content}</Text>
+            </View>
+        );
+    }
+
+    const actor = getMessageActor(message, agents);
 
     return (
         <View className="flex-row items-start gap-3 px-4 py-1.5">
@@ -32,38 +42,16 @@ function MessageRow({ message }: { message: ChatMessage }) {
                     <Text className="font-semibold text-foreground" numberOfLines={1}>
                         {actor.displayName}
                     </Text>
-                    <Text className="text-muted text-xs tabular-nums">{message.timestamp}</Text>
+                    <Text className="text-muted text-xs tabular-nums">
+                        {formatTimestamp(message.createdAt)}
+                    </Text>
                 </View>
 
-                <Text className="text-base text-foreground leading-5">{message.body}</Text>
+                <Text className="text-base text-foreground leading-5">{message.content}</Text>
 
-                {artifact ? (
-                    <Button
-                        accessibilityLabel={`Open ${artifact.title}`}
-                        className="w-full justify-start"
-                        onPress={() =>
-                            router.push({
-                                pathname: '/artifact/[id]',
-                                params: { id: artifact.id },
-                            })
-                        }
-                        size="sm"
-                        variant="secondary"
-                    >
-                        <AppIcon icon={File01Icon} size={16} tone="accent" />
-                        <View className="min-w-0 flex-1">
-                            <Text className="font-medium text-foreground" numberOfLines={1}>
-                                {artifact.title}
-                            </Text>
-                            <Text className="text-muted text-xs">{artifact.kind}</Text>
-                        </View>
-                        <AppIcon icon={ArrowRight01Icon} size={16} tone="muted" />
-                    </Button>
-                ) : null}
-
-                {message.replies ? (
+                {replies > 0 ? (
                     <PressableFeedback
-                        accessibilityLabel={`${message.replies} replies`}
+                        accessibilityLabel={`${replies} replies`}
                         accessibilityRole="button"
                         className="min-h-7 flex-row items-center gap-1.5 self-start"
                         hitSlop={10}
@@ -72,9 +60,7 @@ function MessageRow({ message }: { message: ChatMessage }) {
                         }
                     >
                         <AppIcon icon={BubbleChatIcon} size={16} tone="accent" />
-                        <Text className="font-medium text-accent text-sm">
-                            {message.replies} replies
-                        </Text>
+                        <Text className="font-medium text-accent text-sm">{replies} replies</Text>
                     </PressableFeedback>
                 ) : null}
             </View>
@@ -90,20 +76,108 @@ function MessageAvatar({ actor }: { actor: ActorSummary }) {
     return <EntityAvatar avatarUrl={actor.avatarUrl} name={actor.displayName} size={36} />;
 }
 
-export function ChatTimeline() {
+export function ChatTimeline({
+    chatId,
+    serverId,
+}: {
+    chatId: string | undefined;
+    serverId: string;
+}) {
+    const messages = useChatMessages(serverId, chatId);
+    const agents = useAgents(serverId).data?.map(toAgentSummary) ?? [];
+    const agentById = new Map(agents.map((agent) => [agent.id, agent]));
+    const timelineMessages = useMemo(
+        () => [...(messages.data?.messages ?? [])].reverse(),
+        [messages.data?.messages]
+    );
+    const replyCountByMessage = new Map(
+        messages.data?.threads.map((thread) => [thread.anchorMessageId, thread.replyCount]) ?? []
+    );
+
+    if (!chatId) {
+        return (
+            <View className="flex-1 items-center justify-center px-8">
+                <Text className="text-center text-muted">No chat selected.</Text>
+            </View>
+        );
+    }
+
+    if (messages.isPending && !messages.data) {
+        return (
+            <View className="flex-1 items-center justify-center">
+                <Spinner />
+            </View>
+        );
+    }
+
+    if (messages.isError && !messages.data) {
+        return (
+            <View className="flex-1 items-center justify-center px-8">
+                <Text className="text-center text-muted">Messages are unavailable.</Text>
+            </View>
+        );
+    }
+
     return (
         <FlatList
             contentContainerClassName="gap-2 py-3"
-            data={messages}
+            data={timelineMessages}
             initialNumToRender={10}
+            inverted
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             keyExtractor={(item) => item.id}
             maxToRenderPerBatch={8}
-            renderItem={({ item }) => <MessageRow message={item} />}
+            renderItem={({ item }) => (
+                <MessageRow
+                    agents={agentById}
+                    message={item}
+                    replies={replyCountByMessage.get(item.id) ?? 0}
+                />
+            )}
             showsVerticalScrollIndicator={false}
             style={{ flex: 1 }}
             windowSize={7}
         />
+    );
+}
+
+function getMessageActor(
+    message: HostedChatMessage,
+    agents: Map<string, AgentSummary>
+): ActorSummary {
+    const { author } = message;
+    if (author.kind === 'agent') {
+        return (
+            agents.get(author.agentId) ?? {
+                availability: 'offline',
+                avatarUrl: author.profile?.avatarUrl ?? null,
+                displayName: author.profile?.displayName ?? 'Deleted agent',
+                id: author.agentId,
+                kind: 'agent',
+            }
+        );
+    }
+
+    if (author.kind === 'human') {
+        return {
+            avatarUrl: author.profile?.avatarUrl ?? null,
+            displayName: author.profile?.displayName ?? 'Grotto member',
+            id: author.userId,
+            kind: 'human',
+        };
+    }
+
+    return {
+        avatarUrl: null,
+        displayName: author.system === 'reminder' ? 'Reminder' : 'Grotto',
+        id: message.id,
+        kind: 'human',
+    };
+}
+
+function formatTimestamp(value: string) {
+    return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(
+        new Date(value)
     );
 }

@@ -1,29 +1,33 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
 import {
+    type GrottoInputs,
+    type GrottoOutputs,
+    grottoTrpc,
+    queryClientDefaultOptions,
+    type ServerDetail,
+    type ServerSummary,
+} from '@tavern/app-client';
+import {
     createWSClient,
     httpBatchLink,
     splitLink,
     type TRPCWebSocketClient,
     wsLink,
 } from '@trpc/client';
-import { createTRPCReact } from '@trpc/react-query';
-import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import * as React from 'react';
-import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
 import { UpdateRequiredGate } from '../features/servers/update-required-gate.tsx';
 import { getClerkSessionToken } from './clerk.tsx';
 import { watchGrottoSession } from './grotto-session-refresh.ts';
-import { queryClientDefaultOptions } from './query-policy.ts';
 import { type ConnectionState, createQueryReconnectHandler } from './query-reconnect-recovery.ts';
 
-/** The App's authenticated HTTP and WebSocket connection to Grotto Server. */
-export const grottoTrpc = createTRPCReact<GrottoRouter>();
-
-export type GrottoOutputs = inferRouterOutputs<GrottoRouter>;
-export type GrottoInputs = inferRouterInputs<GrottoRouter>;
-export type ServerSummary = GrottoOutputs['server']['list'][number];
-export type ServerDetail = GrottoOutputs['server']['bySlug'];
+/**
+ * The App's direct connection to the Grotto Server. It is separate from
+ * the pre-WS6 local sidecar client on purpose: a different origin, a different
+ * contract, and Clerk identity attached per request and per connection.
+ */
+export { grottoTrpc };
+export type { GrottoInputs, GrottoOutputs, ServerDetail, ServerSummary };
 export type GrottoServerConnectionState = ConnectionState;
 
 const sessionWatchIntervalMs = 30_000;

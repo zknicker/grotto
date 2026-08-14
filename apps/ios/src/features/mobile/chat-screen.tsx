@@ -1,5 +1,6 @@
 import { HashtagIcon, Menu01Icon, Search01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { useAgents, useChats } from '@tavern/app-client';
 import { useRouter } from 'expo-router';
 import { Button } from 'heroui-native/button';
 
@@ -8,21 +9,27 @@ import { AppIcon } from './app-icon';
 import { AppLayout } from './app-layout';
 import { ChatTimeline } from './chat-timeline';
 import { Composer } from './composer';
-import { agents, getChatTitle } from './fixtures';
 import { IconButton } from './icon-button';
-import type { ChatSummary } from './types';
+import { getChatTitle, toAgentSummary, toChatSummary } from './mobile-data';
+import type { AgentSummary, ChatSummary } from './types';
 
 export function ChatScreen({
-    chat,
+    chatId,
     isSidebarOpen,
     onToggleSidebar,
+    serverId,
 }: {
-    chat: ChatSummary;
+    chatId: string | undefined;
     isSidebarOpen: boolean;
     onToggleSidebar: () => void;
+    serverId: string;
 }) {
     const router = useRouter();
-    const title = getChatTitle(chat.id);
+    const chats = useChats(serverId);
+    const agents = useAgents(serverId).data?.map(toAgentSummary) ?? [];
+    const chat = chats.data?.find((candidate) => candidate.id === chatId);
+    const chatSummary = chat ? toChatSummary(chat) : null;
+    const title = getChatTitle(chatSummary ?? undefined, agents);
     return (
         <AppLayout.Root>
             <AppLayout.Header>
@@ -40,7 +47,7 @@ export function ChatScreen({
                     size="sm"
                     variant="ghost"
                 >
-                    <ChatIdentity chat={chat} />
+                    <ChatIdentity agents={agents} chat={chatSummary} />
                     <Button.Label
                         className="min-w-0 shrink font-semibold text-foreground"
                         numberOfLines={1}
@@ -58,16 +65,21 @@ export function ChatScreen({
                 />
             </AppLayout.Header>
             <AppLayout.Content>
-                <ChatTimeline />
+                <ChatTimeline chatId={chatId} serverId={serverId} />
             </AppLayout.Content>
             <AppLayout.Footer>
-                <Composer chatTitle={title} isChannel={chat.kind === 'channel'} />
+                {chatSummary ? (
+                    <Composer chatTitle={title} isChannel={chatSummary.kind === 'channel'} />
+                ) : null}
             </AppLayout.Footer>
         </AppLayout.Root>
     );
 }
 
-function ChatIdentity({ chat }: { chat: ChatSummary }) {
+function ChatIdentity({ agents, chat }: { agents: AgentSummary[]; chat: ChatSummary | null }) {
+    if (!chat) {
+        return null;
+    }
     if (chat.kind === 'channel') {
         return <AppIcon icon={HashtagIcon} size={18} tone="muted" />;
     }

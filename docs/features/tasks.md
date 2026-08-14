@@ -62,6 +62,7 @@ labels, origin Chat, updated time, and assignee avatar — while create, claim, 
 status, priority, and task-label controls live on the Board cards and the Task Thread. Both lenses
 order each status group by priority, urgent first. Loading, empty, filtered-empty, and
 authorization failures are explicit. The Tasks topbar owns search, layout, and creation controls;
+the ordinary Chat composer sends messages only, while existing top-level messages can be promoted;
 the contextual sidebar owns saved views and label filters. Opening a task from either lens shows
 its Thread work surface in a dialog over the tasks page — `?task=<messageId>` owns the open task,
 so deep links and Back work — while "View in channel" and artifact opens navigate to the parent

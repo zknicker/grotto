@@ -31,15 +31,6 @@ export function shouldSubmitChatComposerKey(event: ChatComposerKeyInput) {
     );
 }
 
-export function shouldSubmitChatComposerAsTaskKey(event: ChatComposerKeyInput) {
-    return (
-        event.key === 'Enter' &&
-        Boolean(event.metaKey || event.ctrlKey) &&
-        Boolean(event.shiftKey) &&
-        !event.nativeEvent?.isComposing
-    );
-}
-
 export function shouldInsertChatComposerLineBreak(event: ChatComposerKeyInput) {
     return event.key === 'Enter' && Boolean(event.shiftKey) && !event.nativeEvent?.isComposing;
 }

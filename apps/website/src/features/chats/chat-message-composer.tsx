@@ -1,4 +1,4 @@
-import { Switch, Tooltip } from '@heroui/react';
+import { Tooltip } from '@heroui/react';
 import { PromptInput } from '@heroui-pro/react';
 import * as React from 'react';
 import {
@@ -81,7 +81,6 @@ export function ChatMessageComposer({
     const composerDraft = useChatComposerDraftState({ boundAgentIds, chatId: draftKey });
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
     const [attachmentError, setAttachmentError] = React.useState<string | null>(null);
-    const [asTask, setAsTask] = React.useState(false);
     const { agentId, attachments, content, mentions } = composerDraft.draft;
     const { setAttachments, setContent, setMentions } = composerDraft;
     const isCompact = variant === 'compact';
@@ -126,11 +125,6 @@ export function ChatMessageComposer({
         onSubmit: () => {
             void handleSubmit();
         },
-        onSubmitAsTask: threadTarget
-            ? undefined
-            : () => {
-                  void handleSubmit(undefined, true);
-              },
         onMentionsChange: setMentions,
     });
     const focusTextEditorRef = React.useRef(mentionComposer.focusTextEditor);
@@ -178,7 +172,7 @@ export function ChatMessageComposer({
     );
     useChatComposerMentionRequest(canAutoFocusComposer ? draftKey : null, handleComposerMention);
 
-    async function handleSubmit(event?: React.FormEvent<HTMLFormElement>, forceAsTask = false) {
+    async function handleSubmit(event?: React.FormEvent<HTMLFormElement>) {
         event?.preventDefault();
 
         if (!canSubmit) {
@@ -197,12 +191,8 @@ export function ChatMessageComposer({
             chatId,
             clientMessageId: `msg_${crypto.randomUUID()}`,
             content: submission.content,
-            ...(!threadTarget && (forceAsTask || asTask) ? { asTask: true } : {}),
             ...(threadTarget ? { thread: threadTarget } : {}),
         });
-        if (!threadTarget) {
-            setAsTask(false);
-        }
 
         if (threadTarget && result.threadChatId) {
             setThreadPaneChatId(chatId, threadTarget.anchorMessageId, result.threadChatId);
@@ -323,21 +313,6 @@ export function ChatMessageComposer({
                             />
                         </PromptInput.ToolbarStart>
                         <PromptInput.ToolbarEnd>
-                            {threadTarget ? null : (
-                                <Switch
-                                    aria-label="Send as task (⌘/Ctrl-Shift-Enter)"
-                                    isSelected={asTask}
-                                    onChange={setAsTask}
-                                    size="sm"
-                                >
-                                    <Switch.Content>
-                                        <Switch.Control>
-                                            <Switch.Thumb />
-                                        </Switch.Control>
-                                        As Task
-                                    </Switch.Content>
-                                </Switch>
-                            )}
                             {contextFullness ? (
                                 <ChatComposerContextFullness fullness={contextFullness} />
                             ) : null}

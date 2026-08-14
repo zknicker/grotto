@@ -2,7 +2,6 @@ import { expect, test } from 'vitest';
 import {
     getChatComposerLineBreakUpdate,
     shouldInsertChatComposerLineBreak,
-    shouldSubmitChatComposerAsTaskKey,
     shouldSubmitChatComposerKey,
 } from './chat-composer-keyboard.ts';
 
@@ -12,16 +11,6 @@ test('chat composer submits on Enter without modifiers', () => {
     expect(shouldSubmitChatComposerKey({ ctrlKey: true, key: 'Enter' })).toBe(false);
     expect(shouldSubmitChatComposerKey({ key: 'Enter', shiftKey: true })).toBe(false);
     expect(shouldSubmitChatComposerKey({ key: 'a' })).toBe(false);
-});
-
-test('Cmd/Ctrl-Shift-Enter submits as a task', () => {
-    expect(shouldSubmitChatComposerAsTaskKey({ key: 'Enter', metaKey: true, shiftKey: true })).toBe(
-        true
-    );
-    expect(shouldSubmitChatComposerAsTaskKey({ ctrlKey: true, key: 'Enter', shiftKey: true })).toBe(
-        true
-    );
-    expect(shouldSubmitChatComposerAsTaskKey({ key: 'Enter', shiftKey: true })).toBe(false);
 });
 
 test('chat composer keeps IME composition Enter out of submit and line break handling', () => {

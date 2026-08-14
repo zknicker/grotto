@@ -25,7 +25,6 @@ export function useChatSend() {
                 },
             },
             session: utils.session,
-            task: utils.task,
         })
     );
 }

@@ -4,7 +4,6 @@ import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { trpc } from '../../lib/trpc.tsx';
-import { shouldSubmitChatComposerAsTaskKey } from '../chats/chat-composer-keyboard.ts';
 import { MentionEditor, type MentionEditorHandle } from './mention-editor.tsx';
 import { MentionPicker } from './mention-picker.tsx';
 import type { ActiveMentionQuery, Mention, MentionOption } from './mention-types.ts';
@@ -39,7 +38,6 @@ export function useMentionComposer({
     mentionableAgentIds = [],
     onTextChange,
     onSubmit,
-    onSubmitAsTask,
     onMentionsChange,
 }: {
     agentId: string;
@@ -48,7 +46,6 @@ export function useMentionComposer({
     mentionableAgentIds?: readonly string[];
     onTextChange: (content: string) => void;
     onSubmit?: () => void;
-    onSubmitAsTask?: () => void;
     onMentionsChange?: (mentions: Mention[]) => void;
 }) {
     const scaffold = useMentionComposerScaffold({
@@ -82,7 +79,6 @@ export function useMentionComposer({
         mentionOptionsState,
         onMentionsChange,
         onSubmit,
-        onSubmitAsTask,
         onTextChange,
         prefetchMentionOptions,
         scaffold,
@@ -96,7 +92,6 @@ export function useServerMentionComposer({
     mentionableAgentIds,
     onMentionsChange,
     onSubmit,
-    onSubmitAsTask,
     onTextChange,
     serverId,
 }: {
@@ -106,7 +101,6 @@ export function useServerMentionComposer({
     mentionableAgentIds: readonly string[];
     onMentionsChange?: (mentions: Mention[]) => void;
     onSubmit?: () => void;
-    onSubmitAsTask?: () => void;
     onTextChange: (content: string) => void;
     serverId: string;
 }) {
@@ -167,7 +161,6 @@ export function useServerMentionComposer({
         },
         onMentionsChange,
         onSubmit,
-        onSubmitAsTask,
         onTextChange,
         prefetchMentionOptions,
         scaffold,
@@ -220,7 +213,6 @@ function useMentionComposerController({
     mentionOptionsState,
     onMentionsChange,
     onSubmit,
-    onSubmitAsTask,
     onTextChange,
     prefetchMentionOptions,
     scaffold,
@@ -233,7 +225,6 @@ function useMentionComposerController({
     };
     onMentionsChange?: (mentions: Mention[]) => void;
     onSubmit?: () => void;
-    onSubmitAsTask?: () => void;
     onTextChange: (content: string) => void;
     prefetchMentionOptions: () => void;
     scaffold: MentionComposerScaffold;
@@ -346,20 +337,6 @@ function useMentionComposerController({
     }
 
     function handleSubmitKeyDown(event: KeyboardEvent) {
-        if (
-            onSubmitAsTask &&
-            shouldSubmitChatComposerAsTaskKey({
-                ctrlKey: event.ctrlKey,
-                key: event.key,
-                metaKey: event.metaKey,
-                nativeEvent: { isComposing: event.isComposing },
-                shiftKey: event.shiftKey,
-            })
-        ) {
-            event.preventDefault();
-            onSubmitAsTask();
-            return true;
-        }
         if (
             event.key !== 'Enter' ||
             event.metaKey ||

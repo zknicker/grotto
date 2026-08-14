@@ -32,11 +32,6 @@ export interface ChatSendMutationUtils {
             invalidate: () => Promise<unknown>;
         };
     };
-    task?: {
-        list: {
-            invalidate: () => Promise<unknown>;
-        };
-    };
     timelineMessage: {
         add: (input: {
             attachments?: ChatMessageAttachmentInput[];
@@ -57,7 +52,6 @@ export interface ChatSendMutationUtils {
 export function createChatSendMutationHandlers(utils: ChatSendMutationUtils) {
     return {
         onMutate: async (input: {
-            asTask?: boolean;
             attachments?: ChatMessageAttachmentInput[];
             chatId: string;
             clientMessageId?: string;
@@ -104,7 +98,6 @@ export function createChatSendMutationHandlers(utils: ChatSendMutationUtils) {
                 utils.chat.list.invalidate(),
                 utils.chat.log.list.invalidate(),
                 utils.session.list.invalidate(),
-                utils.task?.list.invalidate(),
             ]);
         },
     };

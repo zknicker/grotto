@@ -1,4 +1,3 @@
-import { Switch } from '@heroui/react';
 import { PromptInput } from '@heroui-pro/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { Agent } from '@tavern/api';
@@ -12,7 +11,6 @@ import { useChatComposerMentionRequest } from '../../../commands/chat-composer-m
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useChatMessageSend } from '../../../hooks/servers/use-chat-message-send.ts';
-import { useTaskCreate } from '../../../hooks/servers/use-task-create.ts';
 import { useUploadServerAttachment } from '../../../hooks/servers/use-upload-server-attachment.ts';
 import { buildChatComposerSubmission } from '../../chats/chat-message-composer.tsx';
 import type { Mention } from '../../mentions/mention-types.ts';
@@ -58,7 +56,6 @@ export function ChatComposer({
     const agentList = agents.data ?? emptyAgents;
     const [draft, setDraft] = React.useState('');
     const [mentions, setMentions] = React.useState<Mention[]>([]);
-    const [asTask, setAsTask] = React.useState(false);
     const {
         add: addAttachments,
         attachments,
@@ -73,7 +70,6 @@ export function ChatComposer({
     const submissionRef = React.useRef({ attachments, draft, mentions });
     submissionRef.current = { attachments, draft, mentions };
     const send = useChatMessageSend();
-    const createTask = useTaskCreate();
     const upload = useUploadServerAttachment();
     const mentionableAgentIds = React.useMemo(
         () => agentList.map((agent) => agent.id),
@@ -88,11 +84,6 @@ export function ChatComposer({
         onSubmit: () => {
             void handleSubmit();
         },
-        onSubmitAsTask: thread
-            ? undefined
-            : () => {
-                  void handleSubmit(undefined, true);
-              },
         onTextChange: setDraft,
         serverId,
     });
@@ -118,19 +109,14 @@ export function ChatComposer({
     // Sending is optimistic: the draft leaves the editor immediately and the
     // transcript's pending row carries it, so nothing here waits on a round
     // trip. A failed send puts the whole draft back, ready to retry.
-    async function handleSubmit(event?: React.FormEvent, forceAsTask = false) {
+    async function handleSubmit(event?: React.FormEvent) {
         event?.preventDefault();
-        const submitted = { asTask, ...submissionRef.current };
+        const submitted = submissionRef.current;
         const { content } = buildChatComposerSubmission({
             content: submitted.draft,
             mentions: submitted.mentions,
         });
-        const submitAsTask = forceAsTask || asTask;
-
-        if (
-            (content.length === 0 && submitted.attachments.length === 0) ||
-            (submitAsTask && content.length === 0)
-        ) {
+        if (content.length === 0 && submitted.attachments.length === 0) {
             return;
         }
 
@@ -138,15 +124,9 @@ export function ChatComposer({
         submissionRef.current = { attachments: [], draft: '', mentions: [] };
         setDraft('');
         setMentions([]);
-        setAsTask(false);
         clearAttachments();
 
         try {
-            if (submitAsTask && !thread) {
-                await createTask.mutateAsync({ chatId, content, nonce, serverId });
-                return;
-            }
-
             if (pendingChatId) {
                 addPendingChatMessage(pendingChatId, {
                     attachments: submitted.attachments.map(pendingAttachment),
@@ -190,7 +170,6 @@ export function ChatComposer({
             }
             setDraft(submitted.draft);
             setMentions(submitted.mentions);
-            setAsTask(submitted.asTask);
             if (submitted.attachments.length > 0) {
                 addAttachments(submitted.attachments.map((attachment) => attachment.file));
             }
@@ -198,12 +177,8 @@ export function ChatComposer({
         }
     }
 
-    const errorMessage =
-        attachmentError ??
-        upload.error?.message ??
-        createTask.error?.message ??
-        send.error?.message;
-    const canSubmit = draft.trim().length > 0 || (!asTask && attachments.length > 0);
+    const errorMessage = attachmentError ?? upload.error?.message ?? send.error?.message;
+    const canSubmit = draft.trim().length > 0 || attachments.length > 0;
 
     return (
         <div className="shrink-0 px-5 pb-4">
@@ -256,21 +231,6 @@ export function ChatComposer({
                             </PromptInput.Action>
                         </PromptInput.ToolbarStart>
                         <PromptInput.ToolbarEnd>
-                            {thread ? null : (
-                                <Switch
-                                    aria-label="Send as task"
-                                    isSelected={asTask}
-                                    onChange={setAsTask}
-                                    size="sm"
-                                >
-                                    <Switch.Content>
-                                        <Switch.Control>
-                                            <Switch.Thumb />
-                                        </Switch.Control>
-                                        As Task
-                                    </Switch.Content>
-                                </Switch>
-                            )}
                             <PromptInput.Send aria-label="Send" isDisabled={!canSubmit} />
                         </PromptInput.ToolbarEnd>
                     </PromptInput.Toolbar>

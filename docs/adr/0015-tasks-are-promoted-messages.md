@@ -2,7 +2,7 @@
 summary: Decision to model tasks as chat messages promoted with task metadata, with claim-before-work as the concurrency lock and board/priority/labels as lenses.
 read_when:
   - changing task storage, numbering, claiming, statuses, receipts, or the task CLI
-  - changing the Tasks views, task chips, As-Task composer flow, or Convert to Task
+  - changing the Tasks views, task creation, task chips, or Convert to Task
   - considering a separate work tracker, dispatch queue, or task scheduling
 ---
 
@@ -36,6 +36,8 @@ create receipt messages.
   `tasks_*` engine tools all retired with the old tracker.
 - Thread and system messages cannot become tasks; task numbers are
   per-conversation and rendered `task #N`.
+- The ordinary Chat composer sends messages only. Humans create tasks from the
+  Tasks surface or promote an existing top-level message with Convert to Task.
 - The old `tasks`/`task_*` tables and their repair/migration machinery were
   deleted from the fresh schema; live databases drop the orphaned tables at
   the WS5 manual cutover.

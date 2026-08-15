@@ -6,8 +6,8 @@ import { Button } from 'heroui-native/button';
 import { InputGroup } from 'heroui-native/input-group';
 import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
+import { AppIcon } from '../../components/app-icon.tsx';
 import { useGrottoConnectionState } from '../../lib/grotto-server-provider.tsx';
-import { AppIcon } from './app-icon.tsx';
 import {
     addPendingMessage,
     dropPendingMessage,

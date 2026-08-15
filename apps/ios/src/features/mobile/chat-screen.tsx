@@ -3,9 +3,8 @@ import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useAgents, useChats } from '@tavern/app-client';
 import { useRouter } from 'expo-router';
 import { Button } from 'heroui-native/button';
-
+import { AppIcon } from '../../components/app-icon.tsx';
 import { AgentAvatar } from './agent-avatar.tsx';
-import { AppIcon } from './app-icon.tsx';
 import { AppLayout } from './app-layout.tsx';
 import { ChatTimeline } from './chat-timeline.tsx';
 import { ChatComposer } from './composer.tsx';

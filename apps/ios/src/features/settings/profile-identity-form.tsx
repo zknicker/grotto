@@ -1,7 +1,4 @@
-import { useBottomSheetAwareHandlers } from 'heroui-native';
-import { BottomSheet } from 'heroui-native/bottom-sheet';
 import { Button } from 'heroui-native/button';
-import { Description } from 'heroui-native/description';
 import { FieldError } from 'heroui-native/field-error';
 import { Input } from 'heroui-native/input';
 import { Label } from 'heroui-native/label';
@@ -10,8 +7,7 @@ import { Spinner } from 'heroui-native/spinner';
 import { TextField } from 'heroui-native/text-field';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-
-type ProfileField = 'description' | 'displayName';
+import { TextEditorSheet } from '../../components/text-editor-sheet.tsx';
 
 export function ProfileIdentityForm({
     description,
@@ -28,87 +24,111 @@ export function ProfileIdentityForm({
     isPending: boolean;
     onSave: (profile: { description: string; displayName: string }) => Promise<unknown>;
 }) {
-    const [activeField, setActiveField] = useState<ProfileField | null>(null);
-    const [draft, setDraft] = useState('');
+    const [nameDraft, setNameDraft] = useState(displayName);
+    const [descriptionDraft, setDescriptionDraft] = useState(description);
+    const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
+    const trimmedName = nameDraft.trim();
+    const isNameInvalid = nameDraft.length > 0 && trimmedName.length === 0;
+    const didNameChange = trimmedName !== displayName;
 
-    const edit = (field: ProfileField) => {
-        setDraft(field === 'displayName' ? displayName : description);
-        setActiveField(field);
+    const saveName = async () => {
+        try {
+            await onSave({ description, displayName: nameDraft });
+        } catch {
+            // The mutation error remains visible beside the field.
+        }
+    };
+
+    const editDescription = () => {
+        setDescriptionDraft(description);
+        setIsDescriptionOpen(true);
     };
 
     return (
         <>
-            <ListGroup>
-                <ListGroup.Item
-                    accessibilityLabel="Edit name"
-                    accessibilityRole="button"
-                    onPress={() => edit('displayName')}
-                >
-                    <ListGroup.ItemContent>
-                        <ListGroup.ItemTitle>Name</ListGroup.ItemTitle>
-                        <ListGroup.ItemDescription numberOfLines={1}>
-                            {displayName}
-                        </ListGroup.ItemDescription>
-                    </ListGroup.ItemContent>
-                    <ListGroup.ItemSuffix />
-                </ListGroup.Item>
-                <ListGroup.Item
-                    accessibilityLabel="Edit description"
-                    accessibilityRole="button"
-                    onPress={() => edit('description')}
-                >
-                    <ListGroup.ItemContent>
-                        <ListGroup.ItemTitle>Description</ListGroup.ItemTitle>
-                        <ListGroup.ItemDescription numberOfLines={2}>
-                            {description || 'No description yet.'}
-                        </ListGroup.ItemDescription>
-                    </ListGroup.ItemContent>
-                    <ListGroup.ItemSuffix />
-                </ListGroup.Item>
-            </ListGroup>
+            <View className="gap-4">
+                <TextField isInvalid={isNameInvalid} isRequired>
+                    <Label>Name</Label>
+                    <View className="flex-row items-center gap-2">
+                        <Input
+                            autoCapitalize="words"
+                            containerClassName="flex-1"
+                            isDisabled={isPending}
+                            maxLength={80}
+                            onChangeText={setNameDraft}
+                            onSubmitEditing={() => {
+                                if (didNameChange && !isNameInvalid && trimmedName.length > 0) {
+                                    void saveName();
+                                }
+                            }}
+                            returnKeyType="done"
+                            value={nameDraft}
+                            variant="secondary"
+                        />
+                        {didNameChange ? (
+                            <Button
+                                isDisabled={isPending || isNameInvalid || trimmedName.length === 0}
+                                onPress={() => void saveName()}
+                                size="sm"
+                                variant="primary"
+                            >
+                                {isPending ? <Spinner size="sm" /> : null}
+                                <Button.Label>Save</Button.Label>
+                            </Button>
+                        ) : null}
+                    </View>
+                    <FieldError>Name cannot be blank.</FieldError>
+                </TextField>
 
-            <BottomSheet
-                isOpen={activeField !== null}
+                <ListGroup>
+                    <ListGroup.Item
+                        accessibilityLabel="Edit description"
+                        accessibilityRole="button"
+                        onPress={editDescription}
+                    >
+                        <ListGroup.ItemContent>
+                            <ListGroup.ItemTitle>Description</ListGroup.ItemTitle>
+                            <ListGroup.ItemDescription numberOfLines={2}>
+                                {description || 'No description yet.'}
+                            </ListGroup.ItemDescription>
+                        </ListGroup.ItemContent>
+                        <ListGroup.ItemSuffix />
+                    </ListGroup.Item>
+                </ListGroup>
+                {error ? <Text className="text-danger text-sm">{error}</Text> : null}
+            </View>
+
+            <DescriptionEditor
+                description={description}
+                descriptionHint={descriptionHint}
+                displayName={displayName}
+                draft={descriptionDraft}
+                error={error}
+                isOpen={isDescriptionOpen}
+                isPending={isPending}
+                onChange={setDescriptionDraft}
                 onOpenChange={(isOpen) => {
                     if (!(isOpen || isPending)) {
-                        setActiveField(null);
+                        setIsDescriptionOpen(false);
                     }
                 }}
-            >
-                <BottomSheet.Portal>
-                    <BottomSheet.Overlay />
-                    <BottomSheet.Content>
-                        <BottomSheet.Close isDisabled={isPending} />
-                        {activeField ? (
-                            <ProfileFieldEditor
-                                description={description}
-                                descriptionHint={descriptionHint}
-                                displayName={displayName}
-                                draft={draft}
-                                error={error}
-                                field={activeField}
-                                isPending={isPending}
-                                onChange={setDraft}
-                                onSave={onSave}
-                                onSaved={() => setActiveField(null)}
-                            />
-                        ) : null}
-                    </BottomSheet.Content>
-                </BottomSheet.Portal>
-            </BottomSheet>
+                onSave={onSave}
+                onSaved={() => setIsDescriptionOpen(false)}
+            />
         </>
     );
 }
 
-function ProfileFieldEditor({
+function DescriptionEditor({
     description,
     descriptionHint,
     displayName,
     draft,
     error,
-    field,
+    isOpen,
     isPending,
     onChange,
+    onOpenChange,
     onSave,
     onSaved,
 }: {
@@ -117,62 +137,48 @@ function ProfileFieldEditor({
     displayName: string;
     draft: string;
     error: string | null;
-    field: ProfileField;
+    isOpen: boolean;
     isPending: boolean;
     onChange: (value: string) => void;
+    onOpenChange: (isOpen: boolean) => void;
     onSave: (profile: { description: string; displayName: string }) => Promise<unknown>;
     onSaved: () => void;
 }) {
-    const inputHandlers = useBottomSheetAwareHandlers();
-    const isName = field === 'displayName';
-    const trimmedDraft = draft.trim();
-    const isInvalid = isName && trimmedDraft.length === 0;
-    const didChange = trimmedDraft !== (isName ? displayName : description);
-
     const save = async () => {
+        if (draft.trim() === description) {
+            onSaved();
+            return;
+        }
+
         try {
-            await onSave({
-                description: isName ? description : draft,
-                displayName: isName ? draft : displayName,
-            });
+            await onSave({ description: draft, displayName });
             onSaved();
         } catch {
-            // The mutation error remains visible in this sheet.
+            // The mutation error remains visible in this editor.
         }
     };
 
     return (
-        <View className="gap-5">
-            <View className="pr-10">
-                <BottomSheet.Title>{isName ? 'Edit name' : 'Edit description'}</BottomSheet.Title>
-            </View>
-            <TextField isInvalid={isInvalid} isRequired={isName}>
-                <Label>{isName ? 'Name' : 'Description'}</Label>
-                <Input
-                    {...inputHandlers}
-                    autoCapitalize={isName ? 'words' : 'sentences'}
-                    autoFocus
-                    maxLength={isName ? 80 : 500}
-                    multiline={!isName}
-                    numberOfLines={isName ? 1 : 6}
-                    onChangeText={onChange}
-                    placeholder={isName ? 'Name' : 'No description yet.'}
-                    style={isName ? undefined : { minHeight: 144, textAlignVertical: 'top' }}
-                    value={draft}
-                    variant="secondary"
+        <TextEditorSheet.Root isOpen={isOpen} onOpenChange={onOpenChange}>
+            <TextEditorSheet.Title>Description</TextEditorSheet.Title>
+            <TextEditorSheet.Textarea
+                accessibilityHint={descriptionHint}
+                accessibilityLabel="Description"
+                autoCapitalize="sentences"
+                isDisabled={isPending}
+                maxLength={500}
+                onChangeText={onChange}
+                placeholder="Add a description…"
+                value={draft}
+            />
+            {error ? <TextEditorSheet.Error>{error}</TextEditorSheet.Error> : null}
+            <TextEditorSheet.Actions>
+                <TextEditorSheet.Submit
+                    accessibilityLabel="Save description"
+                    isPending={isPending}
+                    onPress={() => void save()}
                 />
-                {isName ? <FieldError>Name cannot be blank.</FieldError> : null}
-                {isName ? null : <Description>{descriptionHint}</Description>}
-            </TextField>
-            {error ? <Text className="text-danger text-sm">{error}</Text> : null}
-            <Button
-                isDisabled={isPending || isInvalid || !didChange}
-                onPress={() => void save()}
-                variant="primary"
-            >
-                {isPending ? <Spinner size="sm" /> : null}
-                <Button.Label>{isPending ? 'Saving…' : 'Save'}</Button.Label>
-            </Button>
-        </View>
+            </TextEditorSheet.Actions>
+        </TextEditorSheet.Root>
     );
 }

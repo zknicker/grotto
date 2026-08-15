@@ -1,7 +1,7 @@
 import { Task01Icon } from '@hugeicons-pro/core-solid-rounded';
 import type { MessageTask } from '@tavern/api';
 import { Chip } from 'heroui-native/chip';
-import { AppIcon } from './app-icon.tsx';
+import { AppIcon } from '../../components/app-icon.tsx';
 
 const taskStatusLabels: Record<MessageTask['status'], string> = {
     closed: 'Closed',

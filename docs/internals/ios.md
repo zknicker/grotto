@@ -90,6 +90,14 @@ the settings list. Desktop-only operational surfaces such as model inventory, Sk
 Browser supervision, and destructive administration stay out of the iPhone information architecture
 until a concrete mobile workflow needs them.
 
+`apps/ios/src/components` owns reusable native presentation composed on top of HeroUI Native. These
+components expose explicit compound slots and stable interaction behavior; feature code keeps its
+drafts, mutations, validation, and product copy at the assembly site. `TextEditorSheet`, for example,
+owns the HeroUI bottom sheet, borderless multiline input, delayed focus, keyboard-frame layout, and
+confirmation control, while a Profile or future settings feature composes its title, textarea, error,
+and submit action. Do not clone that sheet behavior inside feature folders or add product-mode boolean
+props to the shared component.
+
 ## Dependencies
 
 HeroUI Native is the only general UI component library. Discuss and approve any additional UI library

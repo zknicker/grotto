@@ -4,8 +4,8 @@ import { useAgents, useChats } from '@tavern/app-client';
 import { Button } from 'heroui-native/button';
 import { type ReactNode, useState } from 'react';
 import { View } from 'react-native';
+import { AppIcon } from '../../components/app-icon.tsx';
 import { AgentAvatar } from './agent-avatar';
-import { AppIcon } from './app-icon';
 import { toAgentSummary, toChatSummary } from './mobile-data';
 import type { AgentSummary, ChatSummary } from './types';
 

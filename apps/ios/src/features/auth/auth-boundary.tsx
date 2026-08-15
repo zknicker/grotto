@@ -8,7 +8,7 @@ import { Text, View } from 'react-native';
 import { GrottoLogo } from '@/components/grotto-logo';
 import { appConfig } from '@/lib/app-config';
 import { GrottoServerProvider } from '@/lib/grotto-server-provider';
-import { AppIcon } from '../mobile/app-icon';
+import { AppIcon } from '../../components/app-icon.tsx';
 import { startGoogleSignIn } from './google-sign-in';
 
 export function AuthBoundary({ children }: { children: ReactNode }) {

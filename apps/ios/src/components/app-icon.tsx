@@ -5,6 +5,7 @@ export type AppIconTone =
     | 'accent'
     | 'accent-foreground'
     | 'accent-soft-foreground'
+    | 'background'
     | 'default-foreground'
     | 'muted'
     | 'success';

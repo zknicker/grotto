@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Button } from 'heroui-native/button';
 import { Surface } from 'heroui-native/surface';
 import { ScrollView, Text, View } from 'react-native';
-import { AppIcon } from './app-icon.tsx';
+import { AppIcon } from '../../components/app-icon.tsx';
 import { AppLayout } from './app-layout.tsx';
 import { ChatNavigation } from './chat-navigation.tsx';
 

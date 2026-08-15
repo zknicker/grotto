@@ -13,7 +13,7 @@ import {
 import { useLocalSearchParams } from 'expo-router';
 import { Card } from 'heroui-native/card';
 import { View } from 'react-native';
-import { AppIcon } from './app-icon.tsx';
+import { AppIcon } from '../../components/app-icon.tsx';
 import { AppLayout } from './app-layout.tsx';
 import { BackHeader } from './back-header.tsx';
 

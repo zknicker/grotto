@@ -1,7 +1,7 @@
 import { Camera01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { Button } from 'heroui-native/button';
 import { Spinner } from 'heroui-native/spinner';
-import { AppIcon } from '../mobile/app-icon.tsx';
+import { AppIcon } from '../../components/app-icon.tsx';
 import { type PickedAvatarImage, pickAvatarImage } from './pick-avatar-image.ts';
 
 export function AvatarUploadButton({

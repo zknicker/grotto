@@ -2,7 +2,7 @@ import { ArrowLeft02Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useRouter } from 'expo-router';
 import { Button } from 'heroui-native/button';
 import { Text } from 'react-native';
-import { AppIcon } from './app-icon.tsx';
+import { AppIcon } from '../../components/app-icon.tsx';
 import { AppLayout } from './app-layout.tsx';
 
 export function BackHeader({ onBack, title }: { onBack?: () => void; title: string }) {

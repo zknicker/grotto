@@ -2,17 +2,17 @@ import { ArrowLeft02Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useRouter } from 'expo-router';
 import { Button } from 'heroui-native/button';
 import { Text } from 'react-native';
-import { AppIcon } from './app-icon';
-import { AppLayout } from './app-layout';
+import { AppIcon } from './app-icon.tsx';
+import { AppLayout } from './app-layout.tsx';
 
-export function BackHeader({ title }: { title: string }) {
+export function BackHeader({ onBack, title }: { onBack?: () => void; title: string }) {
     const router = useRouter();
     return (
         <AppLayout.Header>
             <Button
                 accessibilityLabel="Go back"
                 isIconOnly
-                onPress={() => router.back()}
+                onPress={onBack ?? (() => router.back())}
                 size="sm"
                 variant="ghost"
             >

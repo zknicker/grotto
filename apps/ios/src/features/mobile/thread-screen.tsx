@@ -8,6 +8,7 @@ import { BackHeader } from './back-header.tsx';
 import { ThreadComposer } from './composer.tsx';
 import { MessageTimelineList } from './message-timeline-list.tsx';
 import { threadPendingKey, usePendingMessages } from './pending-messages.ts';
+import { resolveThreadChatId } from './thread-screen-model.ts';
 
 export function ThreadScreen() {
     const params = useLocalSearchParams<{
@@ -22,8 +23,13 @@ export function ThreadScreen() {
     const serverId = firstParam(params.serverId);
     const routeThreadChatId = firstParam(params.threadChatId);
     const [createdThreadChatId, setCreatedThreadChatId] = useState<string>();
-    const threadChatId = routeThreadChatId ?? createdThreadChatId;
     const parentMessages = useChatMessagePages(serverId, parentChatId);
+    const threadChatId = resolveThreadChatId({
+        anchorMessageId,
+        createdThreadChatId,
+        routeThreadChatId,
+        threads: parentMessages.threads,
+    });
     const replies = useChatMessagePages(serverId, threadChatId);
     const anchor = parentMessages.messages.find((message) => message.id === anchorMessageId);
     const pendingReplies = usePendingMessages(
@@ -55,6 +61,12 @@ export function ThreadScreen() {
         parentMessages.data,
     ]);
 
+    useEffect(() => {
+        if (!routeThreadChatId && threadChatId) {
+            router.setParams({ threadChatId });
+        }
+    }, [routeThreadChatId, router, threadChatId]);
+
     useChatRead({
         chatId: threadChatId,
         sequence: replies.messages.at(-1)?.sequence,
@@ -67,8 +79,8 @@ export function ThreadScreen() {
         (parentMessages.isPending || Boolean(threadChatId && replies.isPending));
     const unavailable =
         invalidIdentity ||
-        parentMessages.isError ||
-        Boolean(threadChatId && replies.isError) ||
+        (parentMessages.isError && !parentMessages.data) ||
+        Boolean(threadChatId && replies.isError && !replies.data) ||
         (parentMessages.data && !anchor && !parentMessages.hasOlderHistory);
     const timelineMessages = [
         ...(anchor && !replies.hasOlderHistory ? [anchor] : []),
@@ -77,7 +89,15 @@ export function ThreadScreen() {
 
     return (
         <AppLayout.Root>
-            <BackHeader title="Thread" />
+            <BackHeader
+                onBack={() =>
+                    router.navigate({
+                        pathname: '/',
+                        params: { chat: parentChatId ?? '' },
+                    })
+                }
+                title="Thread"
+            />
             <AppLayout.Content>
                 {loading ? (
                     <ThreadState loading />
@@ -103,7 +123,6 @@ export function ThreadScreen() {
                         onThreadCreated={(createdId) => {
                             if (!threadChatId) {
                                 setCreatedThreadChatId(createdId);
-                                router.setParams({ threadChatId: createdId });
                             }
                         }}
                         parentChatId={parentChatId}

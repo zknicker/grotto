@@ -43,7 +43,12 @@ created. The route also carries the parent Chat id and may carry a resolved Thre
 unthreaded message therefore needs no speculative Server write: the first reply sends the parent Chat
 id plus the anchor message id, adopts the returned child Chat id, and continues on the same screen.
 Thread optimistic rows stay keyed by the anchor across that transition. Existing Threads reuse the
-same route and shared timeline presentation with their child Chat id already resolved.
+same route and shared timeline presentation with their child Chat id already resolved. If another
+client creates the Thread while that route is open, the refreshed parent summary supplies the child
+Chat id and the native screen adopts it without remounting. Back navigation carries the parent Chat id
+explicitly so app reloads cannot return to a default Chat, while ordinary stack navigation preserves
+the mounted parent timeline and scroll position. Task metadata renders on its canonical anchor message;
+the native timeline does not invent a second task receipt row.
 
 Clerk owns native authentication. The production instance uses Google as its only sign-in strategy, so
 Grotto starts Clerk's direct Google SSO flow from a native HeroUI action instead of routing through the

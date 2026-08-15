@@ -1,5 +1,5 @@
 import { BubbleChatIcon } from '@hugeicons-pro/core-solid-rounded';
-import type { ChatMessage, ThreadSummary } from '@tavern/api';
+import type { ChatMessage, MessageTask, ThreadSummary } from '@tavern/api';
 import { useAgents, useMembers } from '@tavern/app-client';
 import { useRouter } from 'expo-router';
 import { PressableFeedback } from 'heroui-native/pressable-feedback';
@@ -9,6 +9,7 @@ import { ActionSheetIOS, FlatList, Text, View } from 'react-native';
 import { AgentAvatar } from './agent-avatar.tsx';
 import { AppIcon } from './app-icon.tsx';
 import { EntityAvatar } from './entity-avatar.tsx';
+import { MessageTaskChip } from './message-task-chip.tsx';
 import { isVisibleTimelineMessage, toAgentSummary } from './mobile-data.ts';
 import type { PendingMessage } from './pending-messages.ts';
 import type { ActorSummary, AgentSummary } from './types.ts';
@@ -100,6 +101,7 @@ export function MessageTimelineList({
                         messageId={item.message.id}
                         parentChatId={parentChatId}
                         serverId={serverId}
+                        task={item.message.task}
                         thread={threadByMessageId.get(item.message.id)}
                     />
                 );
@@ -119,6 +121,7 @@ function MessageRow({
     parentChatId,
     pending = false,
     serverId,
+    task,
     thread,
 }: {
     actor: ActorSummary;
@@ -128,6 +131,7 @@ function MessageRow({
     parentChatId?: string;
     pending?: boolean;
     serverId?: string;
+    task?: MessageTask | null;
     thread?: ThreadSummary;
 }) {
     const router = useRouter();
@@ -187,6 +191,11 @@ function MessageRow({
                         </Text>
                     </View>
                     <Text className="text-base text-foreground leading-5">{renderedContent}</Text>
+                    {task ? (
+                        <View className="flex-row self-start">
+                            <MessageTaskChip task={task} />
+                        </View>
+                    ) : null}
                     {pending ? (
                         <View className="flex-row items-center gap-1.5">
                             <Spinner size="sm" />

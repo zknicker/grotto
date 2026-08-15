@@ -7,6 +7,7 @@ import type { ListGroupItemProps, ListGroupItemTitleProps } from 'heroui-native/
 import { ListGroup } from 'heroui-native/list-group';
 import type { TextFieldRootProps } from 'heroui-native/text-field';
 import { TextField } from 'heroui-native/text-field';
+import { cn } from 'heroui-native/utils';
 import type { PropsWithChildren } from 'react';
 import { View } from 'react-native';
 
@@ -26,8 +27,8 @@ function SettingsFieldControl({ children }: PropsWithChildren) {
     return <View className="flex-row items-center gap-2">{children}</View>;
 }
 
-function SettingsFieldInput(props: Omit<InputProps, 'variant'>) {
-    return <Input variant="primary" {...props} />;
+function SettingsFieldInput({ className, ...props }: Omit<InputProps, 'variant'>) {
+    return <Input className={cn('min-h-13 px-4', className)} variant="primary" {...props} />;
 }
 
 function SettingsFieldIngress({ children, ...props }: ListGroupItemProps) {

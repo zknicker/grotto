@@ -12,6 +12,7 @@ import { ListGroup } from 'heroui-native/list-group';
 import { Spinner } from 'heroui-native/spinner';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { KeyboardDismissArea } from '../../components/keyboard-dismiss-area.tsx';
 import { SettingsSection } from '../../components/settings-section.tsx';
 import { AppLayout } from '../mobile/app-layout.tsx';
 import { BackHeader } from '../mobile/back-header.tsx';
@@ -71,7 +72,7 @@ function ProfileSettingsContent({ member, serverId }: { member: ServerMember; se
 
     return (
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <View className="gap-6 px-4 pt-3 pb-10">
+            <KeyboardDismissArea className="gap-6 px-4 pt-3 pb-10">
                 <View className="items-center gap-3 py-2">
                     <EntityAvatar avatarUrl={member.avatarUrl} name={displayName} size={80} />
                     <View className="items-center gap-0.5">
@@ -120,7 +121,7 @@ function ProfileSettingsContent({ member, serverId }: { member: ServerMember; se
                         <ProfileValue label="Joined" value={formatDate(member.joinedAt)} />
                     </ListGroup>
                 </SettingsSection>
-            </View>
+            </KeyboardDismissArea>
         </ScrollView>
     );
 }

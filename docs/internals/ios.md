@@ -93,11 +93,11 @@ until a concrete mobile workflow needs them.
 `apps/ios/src/components` owns reusable native presentation composed on top of HeroUI Native. These
 components expose explicit compound slots and stable interaction behavior; feature code keeps its
 drafts, mutations, validation, and product copy at the assembly site. `SettingsField` and
-`SettingsSection` own the shared label inset, typography, and HeroUI field treatment. `TextEditorSheet`
-owns the HeroUI bottom sheet, borderless multiline input, delayed focus, keyboard-frame layout, and
-confirmation control, while a Profile or future settings feature composes its title, textarea, error,
-and submit action. Do not clone that behavior inside feature folders or add product-mode boolean props
-to shared components.
+`SettingsSection` own the shared label inset, typography, HeroUI inline controls, and labeled ingress
+rows. `TextEditorSheet` owns the HeroUI bottom sheet, borderless multiline input, delayed focus,
+keyboard-frame layout, and confirmation control, while a Profile or future settings feature composes
+its title, textarea, error, and submit action. Do not clone that behavior inside feature folders or add
+product-mode boolean props to shared components.
 
 ## Dependencies
 

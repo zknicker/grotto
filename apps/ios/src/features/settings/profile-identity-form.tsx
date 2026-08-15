@@ -1,5 +1,4 @@
 import { Button } from 'heroui-native/button';
-import { ListGroup } from 'heroui-native/list-group';
 import { Spinner } from 'heroui-native/spinner';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
@@ -76,21 +75,24 @@ export function ProfileIdentityForm({
                     <SettingsField.Error>Name cannot be blank.</SettingsField.Error>
                 </SettingsField.Root>
 
-                <ListGroup>
-                    <ListGroup.Item
+                <SettingsField.Root>
+                    <SettingsField.Label>Description</SettingsField.Label>
+                    <SettingsField.Ingress
                         accessibilityLabel="Edit description"
                         accessibilityRole="button"
                         onPress={editDescription}
                     >
-                        <ListGroup.ItemContent>
-                            <ListGroup.ItemTitle>Description</ListGroup.ItemTitle>
-                            <ListGroup.ItemDescription numberOfLines={2}>
-                                {description || 'No description yet.'}
-                            </ListGroup.ItemDescription>
-                        </ListGroup.ItemContent>
-                        <ListGroup.ItemSuffix />
-                    </ListGroup.Item>
-                </ListGroup>
+                        {description ? (
+                            <SettingsField.Value numberOfLines={2}>
+                                {description}
+                            </SettingsField.Value>
+                        ) : (
+                            <SettingsField.Placeholder>
+                                No description yet.
+                            </SettingsField.Placeholder>
+                        )}
+                    </SettingsField.Ingress>
+                </SettingsField.Root>
                 {error ? <Text className="text-danger text-sm">{error}</Text> : null}
             </View>
 

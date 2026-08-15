@@ -41,7 +41,11 @@ export function SettingsSidebar({
                                     textValue={item.label}
                                 >
                                     <Sidebar.MenuIcon>
-                                        <Icon aria-hidden="true" icon={item.icon} />
+                                        <Icon
+                                            aria-hidden="true"
+                                            className="size-4.5"
+                                            icon={item.icon}
+                                        />
                                     </Sidebar.MenuIcon>
                                     <Sidebar.MenuItemContent>
                                         <Sidebar.MenuLabel>{item.label}</Sidebar.MenuLabel>

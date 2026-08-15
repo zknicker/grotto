@@ -1,10 +1,11 @@
 import { Button, Description, Dropdown, Label } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
-import { ComputerIcon, Setting07Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { ComputerTerminal01Icon, Settings01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
+import { sidebarHeaderBandClassName } from './section-header.tsx';
 
 export type AppRailSection = 'chat' | 'computers' | 'members' | 'search' | 'settings' | 'tasks';
 
@@ -32,8 +33,10 @@ export function AppRail({
     onSwitchServer: (slug: string) => void;
     servers: ServerSummary[];
 }) {
-    const items: { id: Exclude<AppRailSection, 'settings' | 'computers'>; label: string }[] = [
-        { id: 'search', label: 'Search' },
+    const items: {
+        id: Exclude<AppRailSection, 'settings' | 'computers' | 'search'>;
+        label: string;
+    }[] = [
         { id: 'chat', label: 'Chat' },
         { id: 'tasks', label: 'Tasks' },
     ];
@@ -49,7 +52,7 @@ export function AppRail({
         >
             <Sidebar aria-label="App sections">
                 <Sidebar.Header>
-                    <div className="-mt-2 flex min-h-8 items-center justify-center">
+                    <div className={`${sidebarHeaderBandClassName} justify-center`}>
                         <ServerSwitcher
                             currentServer={currentServer}
                             onManageServers={onManageServers}
@@ -72,7 +75,11 @@ export function AppRail({
                                 textValue={item.label}
                                 tooltip={item.label}
                             >
-                                <Sidebar.MenuIcon>
+                                <Sidebar.MenuIcon
+                                    className={
+                                        active === item.id ? undefined : 'text-foreground/70'
+                                    }
+                                >
                                     <RouteTabIcon className="size-4.5" tab={item.id} />
                                 </Sidebar.MenuIcon>
                                 <Sidebar.MenuItemContent>
@@ -88,11 +95,15 @@ export function AppRail({
                                 textValue="Computers"
                                 tooltip="Computers"
                             >
-                                <Sidebar.MenuIcon>
+                                <Sidebar.MenuIcon
+                                    className={
+                                        active === 'computers' ? undefined : 'text-foreground/70'
+                                    }
+                                >
                                     <Icon
                                         aria-hidden="true"
                                         className="size-4.5"
-                                        icon={ComputerIcon}
+                                        icon={ComputerTerminal01Icon}
                                         size={20}
                                     />
                                 </Sidebar.MenuIcon>
@@ -112,11 +123,13 @@ export function AppRail({
                             textValue="Settings"
                             tooltip="Settings"
                         >
-                            <Sidebar.MenuIcon>
+                            <Sidebar.MenuIcon
+                                className={active === 'settings' ? undefined : 'text-foreground/70'}
+                            >
                                 <Icon
                                     aria-hidden="true"
                                     className="size-4.5"
-                                    icon={Setting07Icon}
+                                    icon={Settings01Icon}
                                     size={20}
                                 />
                             </Sidebar.MenuIcon>

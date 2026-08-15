@@ -156,7 +156,7 @@ function taskFilterHref(route: string, view: TaskView, labelId?: string) {
 }
 
 function countForView(tasks: TaskItem[], view: TaskView) {
-    return filterTasks(tasks, { query: '', view }).length;
+    return filterTasks(tasks, { view }).length;
 }
 
 function countForLabel(tasks: TaskItem[], labelId: string) {

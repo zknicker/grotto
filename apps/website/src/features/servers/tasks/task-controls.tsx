@@ -1,4 +1,4 @@
-import { Button, SearchField, ToggleButton, ToggleButtonGroup } from '@heroui/react';
+import { Button, ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import * as React from 'react';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
@@ -6,25 +6,6 @@ import { useServerContext } from '../server-context.ts';
 import { NewTaskDialog } from './new-task-dialog.tsx';
 import { taskChatOptions } from './task-model.ts';
 import { useTaskView } from './task-view.ts';
-
-export function TaskSearch() {
-    const { filters, setQuery } = useTaskView();
-
-    return (
-        <SearchField
-            aria-label="Search tasks"
-            className="w-60"
-            onChange={setQuery}
-            value={filters.query}
-        >
-            <SearchField.Group>
-                <SearchField.SearchIcon />
-                <SearchField.Input placeholder="Search tasks..." />
-                <SearchField.ClearButton />
-            </SearchField.Group>
-        </SearchField>
-    );
-}
 
 export function TaskControls({ chatId }: { chatId?: string }) {
     const { server } = useServerContext();

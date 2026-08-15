@@ -1,5 +1,5 @@
 import { TaskContent } from '../../features/servers/tasks/task-content.tsx';
-import { TaskControls, TaskSearch } from '../../features/servers/tasks/task-controls.tsx';
+import { TaskControls } from '../../features/servers/tasks/task-controls.tsx';
 import { TaskThreadDialog } from '../../features/servers/tasks/task-thread-dialog.tsx';
 import { useTaskView } from '../../features/servers/tasks/task-view.ts';
 import { SectionHeader } from '../../features/shell/section-header.tsx';
@@ -14,7 +14,6 @@ export function TasksPage() {
         <section aria-label="Tasks" className="flex min-h-0 flex-1 flex-col">
             <PageTopbar>
                 <SectionHeader>
-                    <TaskSearch />
                     <TaskControls />
                 </SectionHeader>
             </PageTopbar>

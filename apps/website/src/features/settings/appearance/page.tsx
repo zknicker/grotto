@@ -48,12 +48,13 @@ export function AppearanceSettings() {
                                         <Icon
                                             aria-hidden="true"
                                             className={cn(
+                                                'shrink-0',
                                                 isActive
                                                     ? 'text-accent'
                                                     : 'text-muted group-hover:text-foreground'
                                             )}
                                             icon={option.icon}
-                                            size={24}
+                                            size={20}
                                         />
                                         <div className="min-w-0">
                                             <div className="truncate font-semibold text-foreground text-sm leading-none">

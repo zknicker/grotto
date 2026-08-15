@@ -22,7 +22,7 @@ test('projects a task from its canonical message', () => {
     expect(task.threadSummary.replyCount).toBe(3);
 });
 
-test('filters tasks by lifecycle and text without a second content store', () => {
+test('filters tasks by lifecycle without a second content store', () => {
     const todo = toTaskItem(item(), humans);
     const done = {
         ...todo,
@@ -32,8 +32,8 @@ test('filters tasks by lifecycle and text without a second content store', () =>
         title: 'Write docs',
     };
 
-    expect(filterTasks([todo, done], { query: 'server', view: 'active' })).toEqual([todo]);
-    expect(filterTasks([todo, done], { query: '#2', view: 'all' })).toEqual([done]);
+    expect(filterTasks([todo, done], { view: 'active' })).toEqual([todo]);
+    expect(filterTasks([todo, done], { view: 'all' })).toEqual([todo, done]);
 });
 
 test('filters tasks by label id', () => {
@@ -43,13 +43,8 @@ test('filters tasks by label id', () => {
     };
     const bare = { ...toTaskItem(item(), humans), id: 'message_two', labels: [], number: 2 };
 
-    expect(filterTasks([labeled, bare], { labelId: 'lbl_one', query: '', view: 'all' })).toEqual([
-        labeled,
-    ]);
-    expect(filterTasks([labeled, bare], { labelId: null, query: '', view: 'all' })).toEqual([
-        labeled,
-        bare,
-    ]);
+    expect(filterTasks([labeled, bare], { labelId: 'lbl_one', view: 'all' })).toEqual([labeled]);
+    expect(filterTasks([labeled, bare], { labelId: null, view: 'all' })).toEqual([labeled, bare]);
 });
 
 test('groups every lifecycle column in stable order', () => {
@@ -119,7 +114,7 @@ test('shows claim controls only when the viewer can perform the action', () => {
 test('treats Agent-owned tasks as assigned in task filters', () => {
     const task = { ...toTaskItem(item(), humans), assigneeAgentId: 'agent_owner' };
 
-    expect(filterTasks([task], { query: '', view: 'unassigned' })).toEqual([]);
+    expect(filterTasks([task], { view: 'unassigned' })).toEqual([]);
 });
 
 test('offers writable Channels and DMs as task creation work surfaces', () => {

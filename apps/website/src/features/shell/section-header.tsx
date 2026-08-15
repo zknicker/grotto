@@ -7,6 +7,12 @@ import type { ReactNode } from 'react';
 export const bandHeightClassName = 'h-12';
 
 /**
+ * Adapts HeroUI Sidebar.Header's section padding into the shell's fixed header band.
+ * The transparent seam mirrors SectionBar's border box so controls share one midline.
+ */
+export const sidebarHeaderBandClassName = `-mt-4 -mb-2 flex ${bandHeightClassName} items-center border-transparent border-b`;
+
+/**
  * The one topbar band chrome: fixed height, bottom hairline, gutter. The
  * shell renders exactly one of these above the routed content
  * (ShellTopbar); embedded surfaces that need a local band (a panel, a tab
@@ -15,7 +21,7 @@ export const bandHeightClassName = 'h-12';
 export function SectionBar({ children }: { children?: ReactNode }) {
     return (
         <header
-            className={`flex ${bandHeightClassName} shrink-0 items-center border-separator border-b px-4`}
+            className={`flex ${bandHeightClassName} shrink-0 items-center border-separator border-b px-4 has-[[data-shell-topbar-seam=hidden]]:border-b-transparent`}
         >
             {children}
         </header>

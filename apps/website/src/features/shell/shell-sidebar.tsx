@@ -14,10 +14,12 @@ export function ShellSidebar({
     activePage,
     children,
     footer,
+    header,
 }: {
     activePage: ShellSidebarPageId;
     children: React.ReactNode;
     footer?: React.ReactNode;
+    header?: React.ReactNode;
 }) {
     let activePageContent: ShellSidebarPageProps | undefined;
     React.Children.forEach(children, (child) => {
@@ -38,6 +40,7 @@ export function ShellSidebar({
 
     return (
         <Sidebar aria-label={activePageContent.ariaLabel}>
+            {header ? <Sidebar.Header>{header}</Sidebar.Header> : null}
             {activePageContent.children}
             {footer ? <Sidebar.Footer>{footer}</Sidebar.Footer> : null}
         </Sidebar>

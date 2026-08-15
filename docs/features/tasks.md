@@ -61,7 +61,8 @@ default. List rows are dense and display-only — priority glyph, task number, s
 labels, origin Chat, updated time, and assignee avatar — while create, claim, unclaim, assignment,
 status, priority, and task-label controls live on the Board cards and the Task Thread. Both lenses
 order each status group by priority, urgent first. Loading, empty, filtered-empty, and
-authorization failures are explicit. The Tasks topbar owns search, layout, and creation controls;
+authorization failures are explicit. The Tasks topbar owns layout and creation controls; Server-wide
+search opens from the contextual sidebar and finds tasks through their canonical Chat messages;
 the ordinary Chat composer sends messages only, while existing top-level messages can be promoted;
 the contextual sidebar owns saved views and label filters. Opening a task from either lens shows
 its Thread work surface in a dialog over the tasks page — `?task=<messageId>` owns the open task,

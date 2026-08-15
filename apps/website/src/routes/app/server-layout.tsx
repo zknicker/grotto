@@ -30,6 +30,7 @@ import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pa
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { SidebarAgentActivityStrip } from '../../features/shell/sidebar-agent-activity-strip.tsx';
+import { SidebarSearchTrigger } from '../../features/shell/sidebar-search-trigger.tsx';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
 import { useDesktopMenuNavigation } from '../../hooks/desktop/use-desktop-menu-navigation.ts';
@@ -163,6 +164,12 @@ export function ServerLayout() {
                                                         slug={slug}
                                                     />
                                                 ) : null
+                                            }
+                                            header={
+                                                <SidebarSearchTrigger
+                                                    onPreload={() => preloadServerSection('search')}
+                                                    onPress={() => selectSection('search')}
+                                                />
                                             }
                                         >
                                             <ShellSidebarPage ariaLabel="Server" value="server">

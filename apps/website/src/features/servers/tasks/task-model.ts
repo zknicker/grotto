@@ -120,12 +120,7 @@ export function toTaskItem(
     };
 }
 
-export function filterTasks(
-    tasks: TaskItem[],
-    input: { labelId?: string | null; query: string; view: TaskView }
-) {
-    const query = input.query.trim().toLowerCase();
-
+export function filterTasks(tasks: TaskItem[], input: { labelId?: string | null; view: TaskView }) {
     return tasks.filter((task) => {
         if (input.view === 'active' && (task.status === 'done' || task.status === 'closed')) {
             return false;
@@ -139,14 +134,7 @@ export function filterTasks(
         if (input.labelId && !task.labels.some((label) => label.id === input.labelId)) {
             return false;
         }
-        if (!query) {
-            return true;
-        }
-        return (
-            task.title.toLowerCase().includes(query) ||
-            `#${task.number}` === query ||
-            task.labels.some((label) => label.name.toLowerCase().includes(query))
-        );
+        return true;
     });
 }
 

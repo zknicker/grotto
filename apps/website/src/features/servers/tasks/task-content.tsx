@@ -20,14 +20,14 @@ export function TaskContent({
     const tasksQuery = useTasks(server.id, chatId);
     const humans = useHumanDirectory(server.id);
     const { filters, layout } = useTaskView();
-    const { labelId, query, view } = filters;
+    const { labelId, view } = filters;
     const tasks = React.useMemo(
         () => tasksQuery.data?.map((item) => toTaskItem(item, humans, agents.data ?? [])) ?? [],
         [agents.data, humans, tasksQuery.data]
     );
     const filtered = React.useMemo(
-        () => filterTasks(tasks, { labelId, query, view }),
-        [labelId, query, tasks, view]
+        () => filterTasks(tasks, { labelId, view }),
+        [labelId, tasks, view]
     );
 
     if (tasksQuery.error) {
@@ -57,7 +57,7 @@ export function TaskContent({
     if (filtered.length === 0) {
         return (
             <TaskState
-                description="Change the view or search to see more tasks."
+                description="Change the view or label filter to see more tasks."
                 title="No matching tasks"
             />
         );

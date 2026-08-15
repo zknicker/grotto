@@ -22,7 +22,6 @@ export function useTaskView() {
         },
         filters: {
             labelId: searchParams.get('label'),
-            query: searchParams.get('q') ?? '',
             view: resolveTaskView(searchParams.get('view')),
         },
         layout,
@@ -34,20 +33,6 @@ export function useTaskView() {
             });
         },
         openTaskId: searchParams.get('task'),
-        setQuery: (query: string) => {
-            setSearchParams(
-                (params) => {
-                    const next = new URLSearchParams(params);
-                    if (query) {
-                        next.set('q', query);
-                    } else {
-                        next.delete('q');
-                    }
-                    return next;
-                },
-                { replace: true }
-            );
-        },
         setLayout: (nextLayout: TaskLayout) => {
             setSearchParams(
                 (params) => {

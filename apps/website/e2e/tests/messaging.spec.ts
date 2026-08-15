@@ -117,7 +117,7 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     await expect(page.getByText('First durable human message', { exact: true })).toBeVisible();
     await expect(page.getByText('Second durable human message', { exact: true })).toBeVisible();
 
-    await openSection(page, 'Search');
+    await page.getByPlaceholder('Search', { exact: true }).click();
     await page.getByPlaceholder('Search messages').fill('First durable');
     await page.getByPlaceholder('Search messages').press('Enter');
     await expect(

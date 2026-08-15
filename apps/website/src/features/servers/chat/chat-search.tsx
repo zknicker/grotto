@@ -11,7 +11,6 @@ import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { getDesktopBridge } from '../../../lib/desktop-bridge.ts';
 import { formatRelativeTime, truncate } from '../../../lib/format.ts';
-import { SectionHeader } from '../../shell/section-header.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import {
     ChatSearchFilterRow,
@@ -61,31 +60,27 @@ export function ChatSearch({
     return (
         <section aria-label="Search" className="flex min-h-0 flex-1 flex-col">
             <PageTopbar>
-                <SectionHeader
-                    center={
-                        <SearchField
-                            aria-label="Search messages"
-                            autoFocus
-                            className="w-full max-w-96"
-                            onChange={setDraft}
-                            onClear={() => setQuery('')}
-                            onSubmit={(value) => setQuery(value.trim())}
-                            value={draft}
-                        >
-                            <SearchField.Group>
-                                <SearchField.SearchIcon />
-                                <SearchField.Input
-                                    placeholder="Search messages..."
-                                    ref={inputRef}
-                                />
-                                <SearchField.ClearButton />
-                            </SearchField.Group>
-                        </SearchField>
-                    }
-                />
+                <div className="flex min-w-0 flex-1" data-shell-topbar-seam="hidden">
+                    <SearchField
+                        aria-label="Search messages"
+                        autoFocus
+                        fullWidth
+                        onChange={setDraft}
+                        onClear={() => setQuery('')}
+                        onSubmit={(value) => setQuery(value.trim())}
+                        value={draft}
+                        variant="secondary"
+                    >
+                        <SearchField.Group>
+                            <SearchField.SearchIcon />
+                            <SearchField.Input placeholder="Search messages..." ref={inputRef} />
+                            <SearchField.ClearButton />
+                        </SearchField.Group>
+                    </SearchField>
+                </div>
             </PageTopbar>
             <div className="min-h-0 flex-1 overflow-y-auto">
-                <div className="flex min-h-full w-full flex-col px-6 py-6">
+                <div className="flex min-h-full w-full flex-col px-4 py-6">
                     <div className="mb-4">
                         <ChatSearchFilterRow
                             agents={agents.data ?? []}

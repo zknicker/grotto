@@ -12,12 +12,12 @@ import { Spinner } from 'heroui-native/spinner';
 import type { ReactNode } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { AppIcon } from '../../components/app-icon.tsx';
+import { SettingsSection } from '../../components/settings-section.tsx';
 import { AgentAvatar } from '../mobile/agent-avatar.tsx';
 import { AppLayout } from '../mobile/app-layout.tsx';
 import { BackHeader } from '../mobile/back-header.tsx';
 import { EntityAvatar } from '../mobile/entity-avatar.tsx';
 import { toAgentSummary } from '../mobile/mobile-data.ts';
-import { SettingsSection } from './settings-section.tsx';
 
 export function SettingsScreen() {
     const router = useRouter();

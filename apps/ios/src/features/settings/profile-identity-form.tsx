@@ -1,12 +1,9 @@
 import { Button } from 'heroui-native/button';
-import { FieldError } from 'heroui-native/field-error';
-import { Input } from 'heroui-native/input';
-import { Label } from 'heroui-native/label';
 import { ListGroup } from 'heroui-native/list-group';
 import { Spinner } from 'heroui-native/spinner';
-import { TextField } from 'heroui-native/text-field';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
+import { SettingsField } from '../../components/settings-field.tsx';
 import { TextEditorSheet } from '../../components/text-editor-sheet.tsx';
 
 export function ProfileIdentityForm({
@@ -47,10 +44,10 @@ export function ProfileIdentityForm({
     return (
         <>
             <View className="gap-4">
-                <TextField isInvalid={isNameInvalid} isRequired>
-                    <Label>Name</Label>
-                    <View className="flex-row items-center gap-2">
-                        <Input
+                <SettingsField.Root isInvalid={isNameInvalid} isRequired>
+                    <SettingsField.Label>Name</SettingsField.Label>
+                    <SettingsField.Control>
+                        <SettingsField.Input
                             autoCapitalize="words"
                             containerClassName="flex-1"
                             isDisabled={isPending}
@@ -63,7 +60,6 @@ export function ProfileIdentityForm({
                             }}
                             returnKeyType="done"
                             value={nameDraft}
-                            variant="secondary"
                         />
                         {didNameChange ? (
                             <Button
@@ -76,9 +72,9 @@ export function ProfileIdentityForm({
                                 <Button.Label>Save</Button.Label>
                             </Button>
                         ) : null}
-                    </View>
-                    <FieldError>Name cannot be blank.</FieldError>
-                </TextField>
+                    </SettingsField.Control>
+                    <SettingsField.Error>Name cannot be blank.</SettingsField.Error>
+                </SettingsField.Root>
 
                 <ListGroup>
                     <ListGroup.Item

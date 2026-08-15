@@ -11,6 +11,7 @@ import { ListGroup } from 'heroui-native/list-group';
 import { Spinner } from 'heroui-native/spinner';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { SettingsSection } from '../../components/settings-section.tsx';
 import { AgentAvatar } from '../mobile/agent-avatar.tsx';
 import { AppLayout } from '../mobile/app-layout.tsx';
 import { getAvailabilityLabel } from '../mobile/avatar-status-badge.tsx';
@@ -18,7 +19,6 @@ import { BackHeader } from '../mobile/back-header.tsx';
 import { toAgentSummary } from '../mobile/mobile-data.ts';
 import { AvatarUploadButton } from './avatar-upload-button.tsx';
 import { ProfileIdentityForm } from './profile-identity-form.tsx';
-import { SettingsSection } from './settings-section.tsx';
 
 export function AgentProfileScreen() {
     const { id: idParam, server: serverParam } = useLocalSearchParams<{
@@ -131,17 +131,15 @@ export function AgentProfileScreen() {
                             </View>
 
                             {canEdit ? (
-                                <SettingsSection title="Profile">
-                                    <ProfileIdentityForm
-                                        description={agent.data.description ?? ''}
-                                        descriptionHint="Shapes this Agent’s role and personality."
-                                        displayName={agent.data.displayName}
-                                        error={profile.error?.message ?? null}
-                                        isPending={profile.isPending}
-                                        key={`${agent.data.displayName}:${agent.data.description}`}
-                                        onSave={profile.save}
-                                    />
-                                </SettingsSection>
+                                <ProfileIdentityForm
+                                    description={agent.data.description ?? ''}
+                                    descriptionHint="Shapes this Agent’s role and personality."
+                                    displayName={agent.data.displayName}
+                                    error={profile.error?.message ?? null}
+                                    isPending={profile.isPending}
+                                    key={`${agent.data.displayName}:${agent.data.description}`}
+                                    onSave={profile.save}
+                                />
                             ) : null}
 
                             <SettingsSection title="Details">
@@ -188,7 +186,7 @@ function ProfileValue({ label, value }: { label: string; value: string }) {
                 <ListGroup.ItemTitle>{label}</ListGroup.ItemTitle>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix>
-                <Text className="max-w-52 text-right text-muted text-sm" numberOfLines={1}>
+                <Text className="max-w-52 text-right text-base text-muted" numberOfLines={1}>
                     {value}
                 </Text>
             </ListGroup.ItemSuffix>

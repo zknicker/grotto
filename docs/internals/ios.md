@@ -84,19 +84,20 @@ routes. Human and Agent profiles read focused detail snapshots at their screen l
 Server-backed identity and avatar mutations live in focused shared App-client hooks and refresh the
 matching detail plus directory caches. Native image selection center-crops and downsizes to the shared
 avatar contract before upload; the iPhone app never stores a second identity record. Settings compose
-stock HeroUI Native grouped lists and controls. Profile pages remain read-oriented: tapping an editable
-identity row opens a focused HeroUI bottom-sheet editor rather than embedding a desktop-style form in
-the settings list. Desktop-only operational surfaces such as model inventory, Skills, MCP connections,
+stock HeroUI Native grouped lists and controls. Profile pages keep short identity values such as names
+editable inline and open long-form values such as descriptions in a focused HeroUI bottom-sheet editor.
+Desktop-only operational surfaces such as model inventory, Skills, MCP connections,
 Browser supervision, and destructive administration stay out of the iPhone information architecture
 until a concrete mobile workflow needs them.
 
 `apps/ios/src/components` owns reusable native presentation composed on top of HeroUI Native. These
 components expose explicit compound slots and stable interaction behavior; feature code keeps its
-drafts, mutations, validation, and product copy at the assembly site. `TextEditorSheet`, for example,
+drafts, mutations, validation, and product copy at the assembly site. `SettingsField` and
+`SettingsSection` own the shared label inset, typography, and HeroUI field treatment. `TextEditorSheet`
 owns the HeroUI bottom sheet, borderless multiline input, delayed focus, keyboard-frame layout, and
 confirmation control, while a Profile or future settings feature composes its title, textarea, error,
-and submit action. Do not clone that sheet behavior inside feature folders or add product-mode boolean
-props to the shared component.
+and submit action. Do not clone that behavior inside feature folders or add product-mode boolean props
+to shared components.
 
 ## Dependencies
 

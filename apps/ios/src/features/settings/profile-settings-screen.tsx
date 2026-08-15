@@ -12,12 +12,12 @@ import { ListGroup } from 'heroui-native/list-group';
 import { Spinner } from 'heroui-native/spinner';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { SettingsSection } from '../../components/settings-section.tsx';
 import { AppLayout } from '../mobile/app-layout.tsx';
 import { BackHeader } from '../mobile/back-header.tsx';
 import { EntityAvatar } from '../mobile/entity-avatar.tsx';
 import { AvatarUploadButton } from './avatar-upload-button.tsx';
 import { ProfileIdentityForm } from './profile-identity-form.tsx';
-import { SettingsSection } from './settings-section.tsx';
 
 export function ProfileSettingsScreen() {
     const { server: serverParam } = useLocalSearchParams<{ server?: string | string[] }>();
@@ -99,17 +99,15 @@ function ProfileSettingsContent({ member, serverId }: { member: ServerMember; se
                     ) : null}
                 </View>
 
-                <SettingsSection title="Identity">
-                    <ProfileIdentityForm
-                        description={member.description ?? ''}
-                        descriptionHint="Shown on your Server profile."
-                        displayName={displayName}
-                        error={profile.error?.message ?? null}
-                        isPending={profile.isPending}
-                        key={`${member.displayName}:${member.description}`}
-                        onSave={profile.save}
-                    />
-                </SettingsSection>
+                <ProfileIdentityForm
+                    description={member.description ?? ''}
+                    descriptionHint="Shown on your Server profile."
+                    displayName={displayName}
+                    error={profile.error?.message ?? null}
+                    isPending={profile.isPending}
+                    key={`${member.displayName}:${member.description}`}
+                    onSave={profile.save}
+                />
 
                 <SettingsSection title="Account">
                     <ListGroup>
@@ -134,7 +132,7 @@ function ProfileValue({ label, value }: { label: string; value: string }) {
                 <ListGroup.ItemTitle>{label}</ListGroup.ItemTitle>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix>
-                <Text className="max-w-52 text-right text-muted text-sm" numberOfLines={1}>
+                <Text className="max-w-52 text-right text-base text-muted" numberOfLines={1}>
                     {value}
                 </Text>
             </ListGroup.ItemSuffix>

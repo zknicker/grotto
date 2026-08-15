@@ -62,6 +62,9 @@ projections emit.
   A stock HeroUI `Avatar` at `sm` (32px), `md` (40px), or `lg` (48px), with
   `<Avatar.Image>` only when `src` is set and an always-present initials
   fallback. `className` is for layout offsets only, never for restyling.
+  The iPhone `EntityAvatar` resolves a Server-relative `avatarUrl` against the
+  configured Server origin before passing it to React Native; it does not copy,
+  replace, or persist a second avatar value.
   Pass a **number** for slots below HeroUI's 32px floor (contextual sidebar rows
   at 24px, mention chips at 16px, thread reply previews at 20px); the exact box
   arrives as inline style, which is the one place this primitive reaches past

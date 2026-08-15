@@ -1,4 +1,6 @@
 import { Avatar } from 'heroui-native/avatar';
+import { appConfig } from '../../lib/app-config.ts';
+import { resolveAvatarUrl } from './avatar-url.ts';
 
 export function EntityAvatar({
     avatarUrl,
@@ -9,9 +11,11 @@ export function EntityAvatar({
     name: string;
     size?: number;
 }) {
+    const resolvedAvatarUrl = resolveAvatarUrl(avatarUrl, appConfig.serverOrigin);
+
     return (
         <Avatar alt={`${name} avatar`} size="sm" style={{ height: size, width: size }}>
-            {avatarUrl ? <Avatar.Image source={{ uri: avatarUrl }} /> : null}
+            {resolvedAvatarUrl ? <Avatar.Image source={{ uri: resolvedAvatarUrl }} /> : null}
             <Avatar.Fallback styles={{ text: { fontSize: Math.max(8, Math.round(size * 0.42)) } }}>
                 {getEntityInitials(name)}
             </Avatar.Fallback>

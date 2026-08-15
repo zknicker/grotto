@@ -78,6 +78,13 @@ header, content, and footer slots. Screens compose those static slots directly; 
 context or route knowledge. Expo Router owns Chat selection so navigation and restoration do not depend
 on a mounted component's local state. Drawer openness and gesture progress remain volatile shell state.
 
+Native settings use Expo Router destinations rather than drawer-local disclosure state. The Settings
+hub reads lightweight Server, Agent, and member lists and carries the active Server id into profile
+routes. An Agent profile reads its focused `agent.get` snapshot at the screen leaf; future identity,
+avatar, and execution mutations belong in focused shared App-client hooks that refresh that same detail
+record. Settings compose stock HeroUI Native grouped lists and controls, while desktop-only operational
+surfaces stay out of the iPhone information architecture.
+
 ## Dependencies
 
 HeroUI Native is the only general UI component library. Discuss and approve any additional UI library

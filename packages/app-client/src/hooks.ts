@@ -158,6 +158,16 @@ export function useAgents(serverId: string | undefined) {
     );
 }
 
+export function useAgent(serverId: string | undefined, agentId: string | undefined) {
+    return grottoTrpc.agent.get.useQuery(
+        { agentId: agentId ?? '', serverId: serverId ?? '' },
+        {
+            ...queryPolicy.syncedSnapshot,
+            enabled: serverId !== undefined && agentId !== undefined,
+        }
+    );
+}
+
 export function useMembers(serverId: string | undefined, options?: { enabled?: boolean }) {
     return grottoTrpc.member.list.useQuery(
         { serverId: serverId ?? '' },

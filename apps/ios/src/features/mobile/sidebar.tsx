@@ -5,9 +5,9 @@ import { useRouter } from 'expo-router';
 import { Button } from 'heroui-native/button';
 import { Surface } from 'heroui-native/surface';
 import { ScrollView, Text, View } from 'react-native';
-import { AppIcon } from './app-icon';
-import { AppLayout } from './app-layout';
-import { ChatNavigation } from './chat-navigation';
+import { AppIcon } from './app-icon.tsx';
+import { AppLayout } from './app-layout.tsx';
+import { ChatNavigation } from './chat-navigation.tsx';
 
 export function Sidebar({
     activeChat,
@@ -31,6 +31,10 @@ export function Sidebar({
             : ' ';
     const openSection = (id: string) => {
         onNavigate();
+        if (id === 'settings') {
+            router.push({ pathname: '/settings', params: { server: serverId } });
+            return;
+        }
         router.push({ pathname: '/section/[id]', params: { id } });
     };
 

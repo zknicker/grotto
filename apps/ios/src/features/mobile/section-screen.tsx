@@ -7,16 +7,15 @@ import {
     ComputerIcon,
     MoreHorizontalIcon,
     Search01Icon,
-    Settings01Icon,
     Task01Icon,
     UserGroupIcon,
 } from '@hugeicons-pro/core-solid-rounded';
 import { useLocalSearchParams } from 'expo-router';
 import { Card } from 'heroui-native/card';
 import { View } from 'react-native';
-import { AppIcon } from './app-icon';
-import { AppLayout } from './app-layout';
-import { BackHeader } from './back-header';
+import { AppIcon } from './app-icon.tsx';
+import { AppLayout } from './app-layout.tsx';
+import { BackHeader } from './back-header.tsx';
 
 interface SectionDescriptor {
     detail: string;
@@ -64,11 +63,6 @@ const sections: Record<string, SectionDescriptor> = {
         detail: 'Search chats, messages, and artifacts.',
         icon: Search01Icon,
         title: 'Search',
-    },
-    settings: {
-        detail: 'Account, skills, connections, and app settings.',
-        icon: Settings01Icon,
-        title: 'Settings',
     },
     tasks: { detail: 'Assigned and agent-owned work.', icon: Task01Icon, title: 'Tasks' },
 };

@@ -17,7 +17,6 @@ export const appRoutes = {
     settingsAppearance: '/settings/appearance',
     settingsProfile: '/settings/profile',
     settingsUpdates: '/settings/updates',
-    settingsStats: '/settings/stats',
     settingsSkills: '/settings/skills',
     settingsBrowser: '/settings/browser',
     settingsConnections: '/settings/connections',

@@ -3,12 +3,22 @@ import { serverUsageOverviewSchema, usageReportSchema } from './stats.ts';
 
 const usage = {
     capturedAt: '2026-07-28T20:00:00.000Z',
+    claude: {
+        error: { code: 'request' as const, message: 'offline', name: 'Error' },
+        provider: 'claude' as const,
+        status: 'error' as const,
+    },
     codex: {
         error: { code: 'request' as const, message: 'offline', name: 'Error' },
         provider: 'codex' as const,
         status: 'error' as const,
     },
     connectedProviders: [],
+    grok: {
+        error: { code: 'request' as const, message: 'offline', name: 'Error' },
+        provider: 'grok' as const,
+        status: 'error' as const,
+    },
     openRouter: {
         error: null,
         overview: {
@@ -24,6 +34,35 @@ const usage = {
         },
         status: 'ok' as const,
     },
+    runtimeUsage: [
+        {
+            runtimeId: 'grok-build' as const,
+            snapshot: {
+                capturedAt: '2026-07-28T20:00:00.000Z',
+                days: 30 as const,
+                models: [
+                    {
+                        cacheReadTokens: 80,
+                        cacheWriteTokens: 0,
+                        inputTokens: 100,
+                        modelId: 'grok-4.6-build',
+                        outputTokens: 20,
+                        totalTokens: 120,
+                    },
+                ],
+                runtimeId: 'grok-build' as const,
+                source: 'grok-build-jsonl' as const,
+                totals: {
+                    cacheReadTokens: 80,
+                    cacheWriteTokens: 0,
+                    inputTokens: 100,
+                    outputTokens: 20,
+                    totalTokens: 120,
+                },
+            },
+            status: 'ok' as const,
+        },
+    ],
 };
 
 test('Computer usage reports carry one validated snapshot', () => {
@@ -58,6 +97,17 @@ test('Server usage reads keep every Computer and its latest durable snapshot', (
                     usage: null,
                 },
             ],
+            tokenUsage: {
+                breakdown: [],
+                days: 90,
+                totals: {
+                    cacheReadTokens: 0,
+                    cacheWriteTokens: 0,
+                    inputTokens: 0,
+                    outputTokens: 0,
+                    totalTokens: 0,
+                },
+            },
         })
     ).not.toThrow();
 });

@@ -1,18 +1,18 @@
-import { Chip } from '@heroui/react';
-import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { ModelProviderBadge } from '../../components/badges/model-provider-badge.tsx';
-import { Icon } from '../../components/ui/icon.tsx';
+import { ItemCardGroup } from '@heroui-pro/react';
+import {
+    Calendar01Icon,
+    ComputerActivityIcon,
+    CpuIcon,
+    SoftwareIcon,
+} from '@hugeicons-pro/core-stroke-rounded';
+import type { ComputerRuntimeId } from '@tavern/api';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
-import { getModelProviderConfig } from '../../lib/model-provider-config.ts';
+import { ComputerUsageCapacity } from '../usage/computer-usage-capacity.tsx';
+import { RuntimeSectionHeader } from '../usage/runtime-section-header.tsx';
 import { ComputerActions } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
-import {
-    computerHealthColor,
-    computerHealthLabel,
-    computerLabel,
-    computerRuntimePresentations,
-    computerSystemLabel,
-} from './presentation.ts';
+import { ComputerInfo } from './computer-info.tsx';
+import { computerRuntimePresentations, computerSystemLabel } from './presentation.ts';
 
 export function ComputerDetail({
     computerId,
@@ -33,55 +33,56 @@ export function ComputerDetail({
     }
 
     const runtimes = computerRuntimePresentations(computer.reportedInventory);
+    const detectedRuntimeIds = runtimes
+        .filter(
+            (
+                runtime
+            ): runtime is typeof runtime & {
+                id: ComputerRuntimeId;
+            } => runtime.detected && isComputerRuntimeId(runtime.id)
+        )
+        .map((runtime) => runtime.id);
 
     return (
         <div className="w-full pb-8">
-            <header className="flex h-10 items-center gap-2 border-separator border-b px-5 sm:px-7">
-                <Icon
-                    aria-hidden="true"
-                    className="size-4 shrink-0 text-muted"
-                    icon={ComputerIcon}
-                />
-                <h1 className="min-w-0 truncate font-semibold text-sm">
-                    {computerLabel(computer)}
-                </h1>
-                <Chip
-                    className="ms-auto"
-                    color={computerHealthColor(computer.health)}
-                    size="sm"
-                    variant="soft"
-                >
-                    {computerHealthLabel(computer.health)}
-                </Chip>
-            </header>
-
             <div className="px-5 sm:px-7">
-                <section className="grid gap-4 py-5">
-                    <h2 className="font-medium text-muted text-sm">Info</h2>
-                    <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <Fact label="System" value={computerSystemLabel(computer)} />
-                        <Fact
-                            label="Computer version"
-                            value={computer.productVersion ? `v${computer.productVersion}` : '—'}
+                <ComputerInfo
+                    facts={[
+                        {
+                            icon: CpuIcon,
+                            label: 'System',
+                            value: computerSystemLabel(computer),
+                        },
+                        {
+                            icon: SoftwareIcon,
+                            label: 'Computer version',
+                            value: computer.productVersion ? `v${computer.productVersion}` : '—',
+                        },
+                        {
+                            icon: ComputerActivityIcon,
+                            label: 'Last connected',
+                            value: computer.lastConnectedAt
+                                ? formatTimestamp(computer.lastConnectedAt)
+                                : 'Never',
+                        },
+                        {
+                            icon: Calendar01Icon,
+                            label: 'Created',
+                            value: formatDate(computer.createdAt),
+                        },
+                    ]}
+                />
+
+                <section className="py-5">
+                    <ItemCardGroup variant="transparent">
+                        <RuntimeSectionHeader detectedRuntimeIds={detectedRuntimeIds} />
+                        <ComputerUsageCapacity
+                            computerId={computerId}
+                            detectedRuntimeIds={detectedRuntimeIds}
+                            serverId={serverId}
+                            serverSlug={serverSlug}
                         />
-                        <Fact
-                            label="Last connected"
-                            value={
-                                computer.lastConnectedAt
-                                    ? formatTimestamp(computer.lastConnectedAt)
-                                    : 'Never'
-                            }
-                        />
-                        <Fact label="Created" value={formatDate(computer.createdAt)} />
-                    </dl>
-                    <div className="grid gap-2">
-                        <p className="text-muted text-sm">Detected runtimes</p>
-                        <div className="flex flex-wrap gap-1.5">
-                            {runtimes.map((runtime) => (
-                                <RuntimeBadge key={runtime.id} runtime={runtime} />
-                            ))}
-                        </div>
-                    </div>
+                    </ItemCardGroup>
                 </section>
 
                 <ComputerAgents
@@ -100,39 +101,8 @@ export function ComputerDetail({
     );
 }
 
-function RuntimeBadge({
-    runtime,
-}: {
-    runtime: ReturnType<typeof computerRuntimePresentations>[number];
-}) {
-    const provider = getModelProviderConfig(runtime.id);
-    const state = runtime.detected ? 'Detected' : 'Not detected';
-
-    return (
-        <ModelProviderBadge
-            aria-label={`${runtime.label}: ${state}`}
-            className={runtime.detected ? undefined : 'opacity-50 grayscale'}
-            color={provider.color}
-            icon={provider.icon}
-            label={runtime.detected ? runtime.label : `${runtime.label} · Not detected`}
-            logo={provider.logo}
-            size="sm"
-            title={
-                runtime.detected
-                    ? runtime.models.map((model) => model.label).join(', ') || 'No models reported'
-                    : `${runtime.label} is supported but was not detected on this Computer.`
-            }
-        />
-    );
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="grid gap-1">
-            <dt className="text-muted text-sm">{label}</dt>
-            <dd className="font-medium text-foreground text-sm">{value}</dd>
-        </div>
-    );
+function isComputerRuntimeId(value: string): value is ComputerRuntimeId {
+    return value === 'codex' || value === 'claude-code' || value === 'grok-build' || value === 'pi';
 }
 
 function formatTimestamp(value: Date | string) {

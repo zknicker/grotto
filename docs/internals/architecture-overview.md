@@ -27,6 +27,8 @@ The App never connects directly to Computer. Server sends typed delivery and con
 the Agent's assigned Computer. Computer reports availability, state, progress, and bounded turn
 summaries back to Server. Full prompts, transcripts, tool traces, provider credentials, and Agent
 workspace files remain on the machine unless a specific product contract says otherwise.
+Normalized per-turn token counters are part of the bounded summary; they do not
+carry prompt or transcript content.
 
 “Runtime” means a Computer-local execution runtime such as Codex, Claude Code, Grok Build, or Pi. There is no
 standalone Grotto Runtime service, release, compatibility floor, updater, or deployment surface.

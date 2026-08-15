@@ -167,7 +167,7 @@ narrow human-management endpoints; attachment sockets and execution never use it
 
 Every compatible Computer also reports a sanitized provider-usage snapshot
 after attaching and once per minute. The Server stores the latest snapshot and
-its receipt time on that Computer row. All Server members can read these Stats,
+its receipt time on that Computer row. All Server members can read these usage snapshots,
 including when the Computer is offline; Computer inventory and lifecycle
 management remain Owner/Admin-only.
 

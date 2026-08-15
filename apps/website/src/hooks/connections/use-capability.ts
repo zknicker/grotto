@@ -51,7 +51,6 @@ export const settingsCapabilityRequirements = {
     models: ['apiServer'],
     sessions: ['apiServer'],
     skills: ['apiServer', 'skills'],
-    stats: ['modelExecution'],
     updates: [],
 } as const satisfies Record<string, readonly RuntimeCapabilityId[]>;
 

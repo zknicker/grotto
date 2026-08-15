@@ -25,6 +25,21 @@ export function membersRoute(slug: string) {
     return `${serverRoute(slug)}/members`;
 }
 
+export function membersUsageRoute(
+    slug: string,
+    filters: { computerId?: string; runtimeId?: string } = {}
+) {
+    const query = new URLSearchParams();
+    if (filters.computerId) {
+        query.set('computer', filters.computerId);
+    }
+    if (filters.runtimeId) {
+        query.set('runtime', filters.runtimeId);
+    }
+    const suffix = query.toString();
+    return `${membersRoute(slug)}${suffix ? `?${suffix}` : ''}`;
+}
+
 export function agentRoute(slug: string, agentId: string, tab = 'overview') {
     return `${membersRoute(slug)}/agents/${encodeURIComponent(agentId)}/${tab}`;
 }

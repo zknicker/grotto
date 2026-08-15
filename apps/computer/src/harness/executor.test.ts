@@ -5,9 +5,11 @@ import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { composeInboxNotice } from '../inbox-format.ts';
 import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
+import { readClaudePlanUsageState } from '../usage/claude-plan-usage-state.ts';
 import { readComputerExecutionJournal } from './execution-journal.ts';
 import {
     AgentSessionResumeRejectedError,
+    HarnessTurnFailedError,
     type HarnessTurnInput,
     runHarnessTurn,
     setHarnessAgentFactoryForTesting,
@@ -32,6 +34,9 @@ let rejectResume: boolean;
 let sentUserMessages: string[];
 let stoppedSessions: number;
 let streamIncludesToolBoundary: boolean;
+let streamProviderMetadata: Record<string, unknown> | undefined;
+let streamFails: boolean;
+let streamUsageScale: number;
 let streamedPrompts: string[];
 let streamToolNames: string[];
 
@@ -43,6 +48,9 @@ beforeEach(async () => {
     sentUserMessages = [];
     stoppedSessions = 0;
     streamIncludesToolBoundary = false;
+    streamProviderMetadata = undefined;
+    streamFails = false;
+    streamUsageScale = 1;
     streamedPrompts = [];
     streamToolNames = [];
     restore = setHarnessAgentFactoryForTesting((_input, _options) => fakeAgent());
@@ -106,11 +114,35 @@ function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
                     }
                     yield {
                         type: 'finish-step',
-                        usage: { inputTokens: { total: 10 }, outputTokens: { total: 5 } },
+                        usage: streamFails ? publicUsage(streamUsageScale) : publicUsage(0),
                     };
+                    if (streamFails) {
+                        yield { error: new Error('provider failed'), type: 'error' };
+                    } else {
+                        yield {
+                            providerMetadata: streamProviderMetadata,
+                            totalUsage: publicUsage(streamUsageScale),
+                            type: 'finish',
+                        };
+                    }
                 })(),
             };
         }) as unknown as HarnessAgent['stream'],
+    };
+}
+
+function publicUsage(scale = 1) {
+    return {
+        inputTokenDetails: {
+            cacheReadTokens: 8 * scale,
+            cacheWriteTokens: 2 * scale,
+            noCacheTokens: 2 * scale,
+        },
+        inputTokens: 10 * scale,
+        outputTokenDetails: { reasoningTokens: undefined, textTokens: 5 * scale },
+        outputTokens: 5 * scale,
+        raw: undefined,
+        totalTokens: 15 * scale,
     };
 }
 
@@ -132,6 +164,7 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
         agentId: 'agt_test',
         agentName: 'Cove',
         agentRoot,
+        dataRoot: agentRoot,
         env: {},
         homeDir: join(agentRoot, 'home'),
         homeTimezone: 'UTC',
@@ -169,6 +202,13 @@ async function readSession(): Promise<AgentSessionState> {
 test('cold-starts a fresh Agent then resumes its one global session', async () => {
     const first = await runHarnessTurn(turnInput());
     expect(first.contextTokens).toBe(15);
+    expect(first.tokenUsage).toEqual({
+        cacheReadTokens: 8,
+        cacheWriteTokens: 2,
+        inputTokens: 10,
+        outputTokens: 5,
+        totalTokens: 15,
+    });
     expect(first.aborted).toBe(false);
     // Cold start: no resume payload, generation 1, engine session + resume state
     // persisted for the next turn.
@@ -183,10 +223,63 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     expect(streamedPrompts).toHaveLength(1);
     expect(sentUserMessages).toEqual([]);
 
-    await runHarnessTurn(turnInput());
+    streamUsageScale = 2;
+    const second = await runHarnessTurn(turnInput());
     // Second turn resumes: the stored resume state is handed back to the engine.
     expect(createSessionCalls[1]?.resumeFrom).toMatchObject({ type: 'resume-session' });
     expect((await readSession()).generation).toBe(1);
+    expect(second.tokenUsage).toEqual(first.tokenUsage);
+});
+
+test('persists Claude plan limits emitted by the managed SDK turn', async () => {
+    streamProviderMetadata = {
+        'claude-code': {
+            planUsage: {
+                rate_limits: {
+                    five_hour: {
+                        resets_at: '2026-08-14T20:00:00.000Z',
+                        utilization: 12,
+                    },
+                    seven_day: {
+                        resets_at: '2026-08-20T20:00:00.000Z',
+                        utilization: 34,
+                    },
+                },
+                rate_limits_available: true,
+                subscription_type: 'max',
+            },
+        },
+    };
+
+    const result = await runHarnessTurn(turnInput({ runtimeId: 'claude-code' }));
+
+    expect(result.claudePlanUsage).toMatchObject({
+        source: 'claude-code-sdk-usage',
+        subscriptionType: 'max',
+        windows: [
+            { id: 'current-session', usedPercent: 12 },
+            { id: 'current-week-all-models', usedPercent: 34 },
+        ],
+    });
+    expect((await readClaudePlanUsageState(agentRoot)).snapshot).toEqual(result.claudePlanUsage);
+});
+
+test('seeds a Codex cumulative baseline when upgrading an existing session', async () => {
+    await runHarnessTurn(turnInput());
+    const { cumulativeTokenUsage: _removed, ...legacySession } = await readSession();
+    await writeFile(join(agentRoot, 'session.json'), `${JSON.stringify(legacySession)}\n`);
+    streamUsageScale = 2;
+
+    const migrated = await runHarnessTurn(turnInput());
+
+    expect(migrated.tokenUsage).toBeNull();
+    expect((await readSession()).cumulativeTokenUsage).toEqual({
+        cacheReadTokens: 16,
+        cacheWriteTokens: 4,
+        inputTokens: 20,
+        outputTokens: 10,
+        totalTokens: 30,
+    });
 });
 
 test('keeps detailed tool evidence local instead of returning raw tool names', async () => {
@@ -206,6 +299,21 @@ test('keeps detailed tool evidence local instead of returning raw tool names', a
     expect(result).not.toHaveProperty('toolNames');
     const journal = await readComputerExecutionJournal(agentRoot, 'run_test');
     expect(journal?.tools.map((tool) => tool.toolName)).toEqual(streamToolNames);
+});
+
+test('keeps billable token usage when a provider fails after reporting usage', async () => {
+    streamFails = true;
+
+    await expect(runHarnessTurn(turnInput())).rejects.toMatchObject({
+        name: HarnessTurnFailedError.name,
+        tokenUsage: {
+            cacheReadTokens: 8,
+            cacheWriteTokens: 2,
+            inputTokens: 10,
+            outputTokens: 5,
+            totalTokens: 15,
+        },
+    });
 });
 
 test('projects tool stream boundaries into safe semantic activity', async () => {

@@ -391,11 +391,14 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             agentId: first.agent.id,
             endedAt: new Date().toISOString(),
             messageCount: 0,
+            modelId: greetingStart.modelId,
             outputProduced: false,
             runId: greetingStart.runId,
+            runtimeId: greetingStart.runtimeId,
             startedAt: new Date().toISOString(),
             status: 'failed',
             summary: 'provider unavailable',
+            tokenUsage: null,
             type: 'turn',
         })
     );
@@ -443,11 +446,14 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             agentId: first.agent.id,
             endedAt: new Date().toISOString(),
             messageCount: 1,
+            modelId: retryStart.modelId,
             outputProduced: true,
             runId: retryStart.runId,
+            runtimeId: retryStart.runtimeId,
             startedAt: new Date().toISOString(),
             status: 'completed',
             summary: 'greeted',
+            tokenUsage: null,
             type: 'turn',
         })
     );

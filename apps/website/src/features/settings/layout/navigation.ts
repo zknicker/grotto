@@ -1,6 +1,5 @@
 import type { IconSvgElement } from '@hugeicons/react';
 import {
-    Activity01Icon,
     AiBrain01Icon,
     BrowserIcon,
     PaintBrush03Icon,
@@ -36,12 +35,6 @@ export const staticSettingsNavItems = [
         id: 'updates',
         label: 'Updates',
         to: appRoutes.settingsUpdates,
-    },
-    {
-        icon: Activity01Icon,
-        id: 'stats',
-        label: 'Stats',
-        to: appRoutes.settingsStats,
     },
     {
         icon: AiBrain01Icon,
@@ -90,11 +83,6 @@ export const settingsNavSections = [
             'browser',
         ],
         label: 'General',
-    },
-    {
-        id: 'activity',
-        itemIds: ['stats'],
-        label: 'Activity',
     },
 ] as const;
 

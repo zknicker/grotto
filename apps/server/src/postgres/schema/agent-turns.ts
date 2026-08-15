@@ -29,16 +29,24 @@ export const agentTurnsTable = pgTable(
         failureKind: text('failure_kind'),
         id: text('id').primaryKey(),
         messageCount: integer('message_count').notNull().default(0),
+        modelId: text('model_id'),
         /** Whether the turn produced model-visible output (any durable send). */
         outputProduced: boolean('output_produced').notNull().default(false),
         reportedAt: timestamp('reported_at', { withTimezone: true }).notNull().defaultNow(),
         runId: text('run_id').notNull(),
+        runtimeId: text('runtime_id'),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
         startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
         status: text('status').notNull().$type<'completed' | 'failed'>(),
         summary: text('summary').notNull(),
+        cacheReadTokens: integer('cache_read_tokens').notNull().default(0),
+        cacheWriteTokens: integer('cache_write_tokens').notNull().default(0),
+        inputTokens: integer('input_tokens').notNull().default(0),
+        outputTokens: integer('output_tokens').notNull().default(0),
+        tokenUsageReported: boolean('token_usage_reported').notNull().default(false),
+        totalTokens: integer('total_tokens').notNull().default(0),
     },
     (table) => [
         uniqueIndex('agent_turns_run_key').on(table.serverId, table.agentId, table.runId),
@@ -55,6 +63,16 @@ export const agentTurnsTable = pgTable(
         }).onDelete('cascade'),
         check('agent_turns_status', sql`${table.status} in ('completed', 'failed')`),
         check('agent_turns_message_count', sql`${table.messageCount} >= 0`),
+        check(
+            'agent_turns_token_counts',
+            sql`
+            ${table.cacheReadTokens} >= 0 and
+            ${table.cacheWriteTokens} >= 0 and
+            ${table.inputTokens} >= 0 and
+            ${table.outputTokens} >= 0 and
+            ${table.totalTokens} >= 0
+        `
+        ),
         check('agent_turns_id_shape', sql`${table.id} ~ '^atn_[A-Za-z0-9_-]{16}$'`),
     ]
 );

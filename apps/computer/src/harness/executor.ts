@@ -12,10 +12,15 @@ import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@tavern/claude-usage';
 import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import type { AgentInboxItem } from '../launch.ts';
+import {
+    claimClaudeSdkUsageRefresh,
+    saveClaudePlanUsageSnapshot,
+} from '../usage/claude-plan-usage-state.ts';
 import {
     createComputerActivityProjector,
     createComputerActivityRegistry,
@@ -31,6 +36,7 @@ import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { clearSessionRestartRequest, isSessionRestartRequested } from './session-restart.ts';
 import {
     type AgentSessionState,
+    type AgentSessionTokenUsage,
     readAgentSessionState,
     resolveTurnSession,
     writeAgentSessionState,
@@ -55,6 +61,7 @@ export interface HarnessTurnInput {
     agentName: string;
     /** The Agent's local partition root: `<serverId>/agents/<agentId>`. */
     agentRoot: string;
+    dataRoot: string;
     /** Sandbox env: `grotto` on PATH, proxy/MCP identity, HOME. */
     env: Record<string, string>;
     homeDir: string;
@@ -86,8 +93,12 @@ export type NoticeSinkRegistrar = (sink: (notice: string) => Promise<boolean>) =
 
 export interface HarnessTurnResult {
     aborted: boolean;
+    claudePlanUsage: ClaudeUsageSnapshot | null;
     contextTokens: number | null;
+    tokenUsage: HarnessTokenUsage | null;
 }
+
+export type HarnessTokenUsage = AgentSessionTokenUsage;
 
 /** Resume was rejected; the caller rotates the generation and cold-starts once. */
 export class AgentSessionResumeRejectedError extends Error {
@@ -97,6 +108,20 @@ export class AgentSessionResumeRejectedError extends Error {
     ) {
         super(`Agent ${agentId} could not resume its stored runtime session.`, options);
         this.name = 'AgentSessionResumeRejectedError';
+    }
+}
+
+/** A settled provider failure that may still have billable token usage. */
+export class HarnessTurnFailedError extends Error {
+    constructor(
+        readonly tokenUsage: HarnessTokenUsage | null,
+        options: { cause: unknown }
+    ) {
+        super(
+            options.cause instanceof Error ? options.cause.message : String(options.cause),
+            options
+        );
+        this.name = 'HarnessTurnFailedError';
     }
 }
 
@@ -145,7 +170,15 @@ async function executeHarnessTurn(
         webAccess: input.webAccess,
         workspacePath: input.workspaceDir,
     });
-    const agent = harnessAgentFactory(input, { instructions, skills });
+    const collectClaudePlanUsage =
+        input.runtimeId === 'claude-code' && (await claimClaudeSdkUsageRefresh(input.dataRoot));
+    const effectiveInput = collectClaudePlanUsage
+        ? {
+              ...input,
+              env: { ...input.env, GROTTO_CLAUDE_USAGE_REFRESH: '1' },
+          }
+        : input;
+    const agent = harnessAgentFactory(effectiveInput, { instructions, skills });
     let live: HarnessAgentSession | undefined;
     try {
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
@@ -279,6 +312,12 @@ async function executeHarnessTurn(
                     stallLabel: `${input.runtimeId} agent=${input.agentId}`,
                 }
             );
+            if (observation.claudePlanUsage) {
+                await saveClaudePlanUsageSnapshot(
+                    input.dataRoot,
+                    observation.claudePlanUsage
+                ).catch(() => undefined);
+            }
             input.onActivity?.({
                 category: 'thinking',
                 phase: observation.aborted ? 'failed' : 'completed',
@@ -296,15 +335,29 @@ async function executeHarnessTurn(
         // process alive. The next delivery reattaches to this same per-Agent
         // daemon instead of cold-spawning a new runtime.
         const resumeState = await live.detach();
+        const normalizedUsage = normalizeRuntimeUsage(
+            input.runtimeId,
+            observation.tokenUsage,
+            session.cumulativeTokenUsage
+        );
         await writeAgentSessionState(input.agentRoot, {
+            cumulativeTokenUsage: normalizedUsage.cumulative,
             effectiveModel: { modelId: input.modelId, runtimeId: input.runtimeId },
             generation: session.generation,
             resumeState: resumeState as Record<string, unknown>,
             runtimeSessionId: live.sessionId,
         });
-        return observation;
+        return { ...observation, tokenUsage: normalizedUsage.turn };
     } catch (error) {
         await live?.destroy().catch(() => undefined);
+        if (error instanceof HarnessTurnFailedError) {
+            const normalizedUsage = normalizeRuntimeUsage(
+                input.runtimeId,
+                error.tokenUsage,
+                session.cumulativeTokenUsage
+            );
+            throw new HarnessTurnFailedError(normalizedUsage.turn, { cause: error.cause });
+        }
         throw error;
     }
 }
@@ -469,6 +522,9 @@ async function observeTurnStream(
     }: { onFirstPart?: () => void; stallAfterMs?: number; stallLabel?: string } = {}
 ): Promise<HarnessTurnResult> {
     let contextTokens: number | null = null;
+    let finalTokenUsage: HarnessTokenUsage | null = null;
+    let claudePlanUsage: ClaudeUsageSnapshot | null = null;
+    let stepTokenUsage: HarnessTokenUsage | null = null;
     let streamError: unknown;
     let aborted = false;
     // Wedge telemetry: long silences separate provider latency (events flowed,
@@ -513,9 +569,12 @@ async function observeTurnStream(
                     break;
                 case 'finish-step':
                     contextTokens = usageContextTokens(part.usage) ?? contextTokens;
+                    stepTokenUsage = addTokenUsage(stepTokenUsage, readTokenUsage(part.usage));
                     break;
                 case 'finish':
-                    contextTokens ??= usageContextTokens(part.totalUsage);
+                    contextTokens = usageContextTokens(part.totalUsage) ?? contextTokens;
+                    finalTokenUsage = readTokenUsage(part.totalUsage);
+                    claudePlanUsage = readClaudePlanUsageMetadata(part.providerMetadata);
                     break;
                 case 'error':
                     streamError ??=
@@ -537,14 +596,49 @@ async function observeTurnStream(
     }
     if (aborted) {
         await projector?.finish('interrupted', streamError);
-        return { aborted: true, contextTokens };
+        return {
+            aborted: true,
+            claudePlanUsage,
+            contextTokens,
+            tokenUsage: finalTokenUsage ?? stepTokenUsage,
+        };
     }
     if (streamError) {
         await projector?.finish('failed', streamError);
-        throw streamError instanceof Error ? streamError : new Error(String(streamError));
+        throw new HarnessTurnFailedError(finalTokenUsage ?? stepTokenUsage, {
+            cause: streamError,
+        });
     }
     await projector?.finish('completed');
-    return { aborted: false, contextTokens };
+    return {
+        aborted: false,
+        claudePlanUsage,
+        contextTokens,
+        tokenUsage: finalTokenUsage ?? stepTokenUsage,
+    };
+}
+
+function readClaudePlanUsageMetadata(value: unknown): ClaudeUsageSnapshot | null {
+    if (!isRecord(value)) {
+        return null;
+    }
+    const claude = value['claude-code'];
+    if (!(isRecord(claude) && isRecord(claude.planUsage))) {
+        return null;
+    }
+    const usage = claude.planUsage;
+    if (usage.rate_limits_available !== true || !isRecord(usage.rate_limits)) {
+        return null;
+    }
+    try {
+        return normalizeClaudeUsageResponse(usage.rate_limits, {
+            source: 'claude-code-sdk-usage',
+            subscriptionType:
+                typeof usage.subscription_type === 'string' ? usage.subscription_type : null,
+        });
+    } catch {
+        return null;
+    }
 }
 
 // The construction seam. Tests inject a fake harness Agent to exercise the
@@ -699,19 +793,99 @@ function usageContextTokens(usage: unknown): number | null {
     if (!isRecord(usage)) {
         return null;
     }
-    const inputTotal = tokenTotal(usage.inputTokens);
-    const outputTotal = tokenTotal(usage.outputTokens);
+    const inputTotal = tokenCount(usage.inputTokens);
+    const outputTotal = tokenCount(usage.outputTokens);
     if (inputTotal === null && outputTotal === null) {
         return null;
     }
     return (inputTotal ?? 0) + (outputTotal ?? 0);
 }
 
-function tokenTotal(group: unknown): number | null {
-    if (!isRecord(group)) {
+function readTokenUsage(usage: unknown): HarnessTokenUsage | null {
+    if (!isRecord(usage)) {
         return null;
     }
-    return typeof group.total === 'number' && Number.isFinite(group.total) ? group.total : null;
+    const inputDetails = isRecord(usage.inputTokenDetails) ? usage.inputTokenDetails : null;
+    const inputTokens = tokenCount(usage.inputTokens);
+    const outputTokens = tokenCount(usage.outputTokens);
+    const cacheReadTokens = tokenCount(inputDetails?.cacheReadTokens);
+    const cacheWriteTokens = tokenCount(inputDetails?.cacheWriteTokens);
+    if (
+        inputTokens === null &&
+        outputTokens === null &&
+        cacheReadTokens === null &&
+        cacheWriteTokens === null
+    ) {
+        return null;
+    }
+    return {
+        cacheReadTokens: cacheReadTokens ?? 0,
+        cacheWriteTokens: cacheWriteTokens ?? 0,
+        inputTokens: inputTokens ?? 0,
+        outputTokens: outputTokens ?? 0,
+        totalTokens: (inputTokens ?? 0) + (outputTokens ?? 0),
+    };
+}
+
+function addTokenUsage(
+    current: HarnessTokenUsage | null,
+    next: HarnessTokenUsage | null
+): HarnessTokenUsage | null {
+    if (!next) {
+        return current;
+    }
+    if (!current) {
+        return next;
+    }
+    return {
+        cacheReadTokens: current.cacheReadTokens + next.cacheReadTokens,
+        cacheWriteTokens: current.cacheWriteTokens + next.cacheWriteTokens,
+        inputTokens: current.inputTokens + next.inputTokens,
+        outputTokens: current.outputTokens + next.outputTokens,
+        totalTokens: current.totalTokens + next.totalTokens,
+    };
+}
+
+function normalizeRuntimeUsage(
+    runtimeId: string,
+    observed: HarnessTokenUsage | null,
+    previous: HarnessTokenUsage | null
+): { cumulative: HarnessTokenUsage | null; turn: HarnessTokenUsage | null } {
+    if (runtimeId !== 'codex' || observed === null) {
+        return { cumulative: previous, turn: observed };
+    }
+    if (previous === null) {
+        // Older Computer state predates the cumulative baseline. Seed it without
+        // attributing the entire persistent Codex session to this one turn.
+        return { cumulative: observed, turn: null };
+    }
+    const fields = tokenFields;
+    const counterReset = fields.some((field) => observed[field] < previous[field]);
+    if (counterReset) {
+        return { cumulative: observed, turn: observed };
+    }
+    const turn = emptyTokenUsage();
+    for (const field of fields) {
+        turn[field] = observed[field] - previous[field];
+    }
+    turn.totalTokens = turn.inputTokens + turn.outputTokens;
+    return { cumulative: observed, turn };
+}
+
+const tokenFields = ['cacheReadTokens', 'cacheWriteTokens', 'inputTokens', 'outputTokens'] as const;
+
+function emptyTokenUsage(): HarnessTokenUsage {
+    return {
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+    };
+}
+
+function tokenCount(value: unknown): number | null {
+    return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

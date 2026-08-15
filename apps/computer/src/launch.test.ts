@@ -288,7 +288,16 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
                     fullStream: (async function* () {
                         yield {
                             type: 'finish-step',
-                            usage: { inputTokens: { total: 1 }, outputTokens: { total: 1 } },
+                            usage: {
+                                inputTokenDetails: {
+                                    cacheReadTokens: 0,
+                                    cacheWriteTokens: 0,
+                                    noCacheTokens: 1,
+                                },
+                                inputTokens: 1,
+                                outputTokens: 1,
+                                totalTokens: 2,
+                            },
                         };
                     })(),
                 };

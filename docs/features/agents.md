@@ -46,9 +46,9 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 
 ## Product surfaces
 
-- Members lists Agents and Humans. Selecting an Agent opens Overview,
-  Activity with Chat memberships, Reminders, Tools for MCP access and Skills,
-  and Workspace.
+- Members lists Agents and Humans. Its Agents Overview compares usage across Agents. Selecting an
+  Agent opens Overview with scoped usage and execution configuration, Activity with Chat
+  memberships, Reminders, Tools for MCP access and Skills, and Workspace.
 - Member lists stay lightweight; Agent and human profile routes load one focused
   detail record so profile refreshes do not rebuild the directory.
 - Clicking an Agent avatar in Chat opens the same Agent profile context.

@@ -20,6 +20,6 @@ proxy.
 | MCP connections | [Connections](connections.md) |
 | Agent manual | [Manual](manual.md) |
 | Agent skills | [Skills](skills.md) |
-| Usage and health | [Stats](stats.md) |
+| Usage and health | [Usage](stats.md) |
 
 There is no standalone SDK package or Runtime-hosted API.

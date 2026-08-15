@@ -10,21 +10,22 @@ test('Members forwards the Server route context to profile routes', () => {
         server: { slug: 'dev' },
     } as ServerContextValue;
 
-    expect(() =>
-        renderToStaticMarkup(
-            <MemoryRouter initialEntries={['/members/agents/blippy']}>
-                <Routes>
-                    <Route element={<Outlet context={context} />}>
-                        <Route>
-                            <Route element={<MembersPage />} path="members">
-                                <Route element={<ServerProbe />} path="agents/:agentId" />
-                            </Route>
+    const html = renderToStaticMarkup(
+        <MemoryRouter initialEntries={['/members/agents/blippy']}>
+            <Routes>
+                <Route element={<Outlet context={context} />}>
+                    <Route>
+                        <Route element={<MembersPage />} path="members">
+                            <Route element={<ServerProbe />} path="agents/:agentId" />
                         </Route>
                     </Route>
-                </Routes>
-            </MemoryRouter>
-        )
-    ).not.toThrow();
+                </Route>
+            </Routes>
+        </MemoryRouter>
+    );
+
+    expect(html).toContain('overflow-y-auto');
+    expect(html).toContain('scrollbar-gutter:stable');
 });
 
 function ServerProbe() {

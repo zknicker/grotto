@@ -10,10 +10,19 @@ import { join } from 'node:path';
  * next turn cold-starts (specs/sessions.md).
  */
 export interface AgentSessionState {
+    cumulativeTokenUsage: AgentSessionTokenUsage | null;
     effectiveModel: { modelId: string; runtimeId: string };
     generation: number;
     resumeState: Record<string, unknown> | null;
     runtimeSessionId: string | null;
+}
+
+export interface AgentSessionTokenUsage {
+    cacheReadTokens: number;
+    cacheWriteTokens: number;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
 }
 
 const sessionFileName = 'session.json';
@@ -27,7 +36,10 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
             typeof parsed.effectiveModel?.modelId === 'string' &&
             typeof parsed.effectiveModel?.runtimeId === 'string'
         ) {
-            return parsed;
+            return {
+                ...parsed,
+                cumulativeTokenUsage: parseTokenUsage(parsed.cumulativeTokenUsage),
+            };
         }
         return null;
     } catch {
@@ -63,6 +75,7 @@ export function resolveTurnSession(
             stored.effectiveModel.modelId !== assigned.modelId);
     if (stored === null || modelChanged || stored.generation !== assigned.generation) {
         return {
+            cumulativeTokenUsage: emptyTokenUsage(),
             effectiveModel: { modelId: assigned.modelId, runtimeId: assigned.runtimeId },
             generation: assigned.generation,
             resumeState: null,
@@ -70,4 +83,37 @@ export function resolveTurnSession(
         };
     }
     return stored;
+}
+
+function parseTokenUsage(value: unknown): AgentSessionTokenUsage | null {
+    if (!(value && typeof value === 'object')) {
+        return null;
+    }
+    const usage = value as Record<keyof AgentSessionTokenUsage, unknown>;
+    if (tokenUsageFields.every((field) => isTokenCount(usage[field]))) {
+        return usage as AgentSessionTokenUsage;
+    }
+    return null;
+}
+
+const tokenUsageFields = [
+    'cacheReadTokens',
+    'cacheWriteTokens',
+    'inputTokens',
+    'outputTokens',
+    'totalTokens',
+] as const;
+
+function isTokenCount(value: unknown): value is number {
+    return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+function emptyTokenUsage(): AgentSessionTokenUsage {
+    return {
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+    };
 }

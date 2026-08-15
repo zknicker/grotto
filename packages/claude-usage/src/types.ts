@@ -37,7 +37,7 @@ export interface ClaudeUsageSnapshot {
     capturedAt: string;
     extraUsage: ClaudeExtraUsage | null;
     provider: 'claude';
-    source: 'anthropic-oauth-usage';
+    source: 'anthropic-oauth-usage' | 'claude-code-sdk-usage';
     subscriptionType: string | null;
     windows: ClaudeUsageWindow[];
 }
@@ -47,6 +47,8 @@ export interface ClaudeCredentialsLoadOptions {
     environment?: NodeJS.ProcessEnv;
     homeDir?: string;
     keychainService?: string;
+    now?: Date;
+    platform?: NodeJS.Platform;
     readKeychain?: (service: string) => Promise<string | null>;
     useKeychain?: boolean;
 }
@@ -54,7 +56,6 @@ export interface ClaudeCredentialsLoadOptions {
 export interface ClaudeUsageOptions extends ClaudeCredentialsLoadOptions {
     credentials?: ClaudeCredentials;
     fetch?: typeof fetch;
-    now?: Date;
     signal?: AbortSignal;
     timeoutMs?: number;
 }

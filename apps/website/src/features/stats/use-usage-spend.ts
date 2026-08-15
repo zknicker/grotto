@@ -1,15 +1,12 @@
+import type { UsageOverview } from '@tavern/api';
 import { useMemo } from 'react';
-import type { UsageOverview } from './usage-modules.tsx';
 
-const keyColors = [
-    '#f97316',
-    '#38bdf8',
-    '#a78bfa',
-    '#34d399',
-    '#fb7185',
-    '#facc15',
-    '#06b6d4',
-    '#f472b6',
+export const openRouterKeyColors = [
+    'var(--chart-1)',
+    'var(--chart-2)',
+    'var(--chart-3)',
+    'var(--chart-4)',
+    'var(--chart-5)',
 ];
 
 export interface UsageKeyStat {
@@ -20,9 +17,9 @@ export interface UsageKeyStat {
     total: number;
 }
 
-export function useUsageSpend(liveUsage: UsageOverview | undefined) {
-    const openRouter = liveUsage?.openRouter;
-    const activity = openRouter?.overview;
+export function useUsageSpend(liveUsage: UsageOverview) {
+    const openRouter = liveUsage.openRouter;
+    const activity = openRouter.overview;
     const keys = activity?.keys ?? [];
     const series = activity?.series ?? [];
     const latestReportedDate = series.at(-1)?.date ?? null;
@@ -42,7 +39,7 @@ export function useUsageSpend(liveUsage: UsageOverview | undefined) {
         }
 
         const totals = keys.map((key, index) => ({
-            color: keyColors[index % keyColors.length],
+            color: openRouterKeyColors[index % openRouterKeyColors.length],
             id: key.id,
             label: key.label,
             percent: 0,

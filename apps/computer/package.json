@@ -24,6 +24,7 @@
     "@ai-sdk/provider-utils": "5.0.27",
     "@tavern/api": "workspace:*",
     "@tavern/agent-workspace": "workspace:*",
+    "@tavern/claude-usage": "workspace:*",
     "@tavern/codex-usage": "workspace:*",
     "yaml": "2.9.0",
     "zod": "4.1.11"

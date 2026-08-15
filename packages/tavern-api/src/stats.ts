@@ -44,6 +44,86 @@ const codexUsageStateSchema = z.discriminatedUnion('status', [
         })
         .strict(),
 ]);
+const claudeUsageWindowSchema = z
+    .object({
+        id: z.enum([
+            'current-session',
+            'current-week-all-models',
+            'current-week-opus',
+            'current-week-sonnet',
+        ]),
+        label: z.string(),
+        remainingPercent: z.number().min(0).max(100),
+        resetsAt: timestampSchema.nullable(),
+        usedPercent: z.number().min(0).max(100),
+    })
+    .strict();
+const claudeUsageSnapshotSchema = z
+    .object({
+        capturedAt: timestampSchema,
+        extraUsage: z
+            .object({
+                monthlyLimitUsd: z.number().nonnegative().nullable(),
+                usedUsd: z.number().nonnegative(),
+            })
+            .strict()
+            .nullable(),
+        provider: z.literal('claude'),
+        source: z.enum(['anthropic-oauth-usage', 'claude-code-sdk-usage']),
+        subscriptionType: z.string().nullable(),
+        windows: z.array(claudeUsageWindowSchema),
+    })
+    .strict();
+const claudeUsageStateSchema = z.discriminatedUnion('status', [
+    z
+        .object({
+            error: usageErrorSchema,
+            provider: z.literal('claude'),
+            status: z.literal('error'),
+        })
+        .strict(),
+    z
+        .object({
+            provider: z.literal('claude'),
+            snapshot: claudeUsageSnapshotSchema,
+            status: z.literal('ok'),
+        })
+        .strict(),
+]);
+const grokUsageSnapshotSchema = z
+    .object({
+        capturedAt: timestampSchema,
+        provider: z.literal('grok'),
+        source: z.literal('grok-build-credits'),
+        windows: z.array(
+            z
+                .object({
+                    id: z.literal('current-period'),
+                    label: z.string(),
+                    remainingPercent: z.number().min(0).max(100),
+                    resetsAt: timestampSchema.nullable(),
+                    usedPercent: z.number().min(0).max(100),
+                })
+                .strict()
+        ),
+    })
+    .strict();
+const grokUsageStateSchema = z.discriminatedUnion('status', [
+    z
+        .object({
+            error: usageErrorSchema,
+            provider: z.literal('grok'),
+            status: z.literal('error'),
+        })
+        .strict(),
+    z
+        .object({
+            provider: z.literal('grok'),
+            snapshot: grokUsageSnapshotSchema,
+            status: z.literal('ok'),
+        })
+        .strict(),
+]);
 const openRouterOverviewSchema = z
     .object({
         days: z.number().int().nonnegative(),
@@ -79,6 +159,43 @@ const openRouterUsageStateSchema = z
         status: z.enum(['error', 'ok']),
     })
     .strict();
+const runtimeTokenTotalsSchema = z
+    .object({
+        cacheReadTokens: z.number().int().nonnegative(),
+        cacheWriteTokens: z.number().int().nonnegative(),
+        inputTokens: z.number().int().nonnegative(),
+        outputTokens: z.number().int().nonnegative(),
+        totalTokens: z.number().int().nonnegative(),
+    })
+    .strict();
+const runtimeTokenUsageSnapshotSchema = z
+    .object({
+        capturedAt: timestampSchema,
+        days: z.literal(30),
+        models: z.array(
+            runtimeTokenTotalsSchema.extend({ modelId: z.string().trim().min(1) }).strict()
+        ),
+        runtimeId: z.enum(['claude-code', 'grok-build']),
+        source: z.enum(['claude-code-jsonl', 'grok-build-jsonl']),
+        totals: runtimeTokenTotalsSchema,
+    })
+    .strict();
+const runtimeTokenUsageStateSchema = z.discriminatedUnion('status', [
+    z
+        .object({
+            error: usageErrorSchema,
+            runtimeId: z.enum(['claude-code', 'grok-build']),
+            status: z.literal('error'),
+        })
+        .strict(),
+    z
+        .object({
+            runtimeId: z.enum(['claude-code', 'grok-build']),
+            snapshot: runtimeTokenUsageSnapshotSchema,
+            status: z.literal('ok'),
+        })
+        .strict(),
+]);
 
 export const serverStatsInputSchema = z.object({ serverId: z.string().trim().min(1) }).strict();
 
@@ -89,9 +206,14 @@ export const serverStatsInputSchema = z.object({ serverId: z.string().trim().min
 export const usageOverviewSchema = z
     .object({
         capturedAt: timestampSchema,
+        claude: claudeUsageStateSchema,
         codex: codexUsageStateSchema,
-        connectedProviders: z.array(z.enum(['openai-codex', 'openrouter'])),
+        connectedProviders: z.array(
+            z.enum(['claude-code', 'grok-build', 'openai-codex', 'openrouter'])
+        ),
+        grok: grokUsageStateSchema,
         openRouter: openRouterUsageStateSchema,
+        runtimeUsage: z.array(runtimeTokenUsageStateSchema).default([]),
     })
     .strict();
 
@@ -114,11 +236,45 @@ export const computerUsageSchema = z
     })
     .strict();
 
+const tokenTotalsSchema = z
+    .object({
+        cacheReadTokens: z.number().int().nonnegative(),
+        cacheWriteTokens: z.number().int().nonnegative(),
+        inputTokens: z.number().int().nonnegative(),
+        outputTokens: z.number().int().nonnegative(),
+        totalTokens: z.number().int().nonnegative(),
+    })
+    .strict();
+
+const tokenBreakdownSchema = tokenTotalsSchema.extend({
+    agentAvatarUrl: z.string().nullable(),
+    agentHandle: z.string(),
+    agentId: z.string().trim().min(1),
+    agentName: z.string(),
+    date: z.iso.date(),
+    modelId: z.string().trim().min(1),
+    runtimeId: z.string().trim().min(1),
+});
+
+export const tokenUsageOverviewSchema = z
+    .object({
+        breakdown: z.array(tokenBreakdownSchema),
+        days: z.literal(90),
+        totals: tokenTotalsSchema,
+    })
+    .strict();
+
 export const serverUsageOverviewSchema = z
-    .object({ computers: z.array(computerUsageSchema) })
+    .object({
+        computers: z.array(computerUsageSchema),
+        tokenUsage: tokenUsageOverviewSchema,
+    })
     .strict();
 
 export type ComputerUsage = z.infer<typeof computerUsageSchema>;
 export type ServerUsageOverview = z.infer<typeof serverUsageOverviewSchema>;
+export type TokenUsageOverview = z.infer<typeof tokenUsageOverviewSchema>;
 export type UsageOverview = z.infer<typeof usageOverviewSchema>;
 export type UsageReport = z.infer<typeof usageReportSchema>;
+export type RuntimeTokenUsageSnapshot = z.infer<typeof runtimeTokenUsageSnapshotSchema>;
+export type RuntimeTokenUsageState = z.infer<typeof runtimeTokenUsageStateSchema>;

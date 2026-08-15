@@ -22,25 +22,27 @@ export function UsageSpendSummary({ grandTotal, stats }: UsageSpendSummaryProps)
                             className="size-2 shrink-0 rounded-full"
                             style={{ backgroundColor: stat.color }}
                         />
-                        <span className="truncate text-foreground text-sm">{stat.label}</span>
+                        <p className="truncate text-base text-foreground">{stat.label}</p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                        <span className="min-w-[4.5rem] text-right text-foreground tabular-nums">
+                    <div className="flex items-center gap-4 text-base">
+                        <p className="min-w-[4.5rem] text-right text-foreground tabular-nums">
                             ${stat.total.toFixed(2)}
-                        </span>
-                        <span className="min-w-[2.5rem] text-right text-muted tabular-nums">
+                        </p>
+                        <p className="min-w-[2.5rem] text-right text-muted text-sm tabular-nums">
                             {stat.percent.toFixed(0)}%
-                        </span>
+                        </p>
                     </div>
                 </div>
             ))}
             <div className="flex items-center justify-between py-2.5">
-                <span className="font-medium text-foreground text-sm">Total</span>
-                <div className="flex items-center gap-4 text-sm">
-                    <span className="min-w-[4.5rem] text-right font-medium text-foreground tabular-nums">
+                <p className="font-medium text-base text-foreground">Total</p>
+                <div className="flex items-center gap-4 text-base">
+                    <p className="min-w-[4.5rem] text-right font-medium text-foreground tabular-nums">
                         ${grandTotal.toFixed(2)}
-                    </span>
-                    <span className="min-w-[2.5rem] text-right text-muted tabular-nums">100%</span>
+                    </p>
+                    <p className="min-w-[2.5rem] text-right text-muted text-sm tabular-nums">
+                        100%
+                    </p>
                 </div>
             </div>
         </div>

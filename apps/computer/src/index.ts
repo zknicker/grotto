@@ -124,11 +124,11 @@ import {
     parseComputerUpdateCommand,
 } from './update-contract.ts';
 import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-render.ts';
+import { createComputerUsageCache } from './usage/computer-usage-cache.ts';
 import {
     readOpenRouterManagementKey,
     saveOpenRouterManagementKey,
 } from './usage/openrouter-settings.ts';
-import { readComputerUsage } from './usage/read-usage.ts';
 import { parseAgentWorkspaceRequest, runAgentWorkspaceRequest } from './workspace-files.ts';
 
 interface AttachResponse {
@@ -139,6 +139,7 @@ interface AttachResponse {
 }
 
 const dataRoot = process.env.GROTTO_COMPUTER_DATA_ROOT ?? join(homedir(), '.grotto', 'computer');
+const readCachedComputerUsage = createComputerUsageCache({ dataRoot });
 const serverOrigin = process.env.GROTTO_SERVER_ORIGIN ?? 'https://grotto.sh';
 
 // Commands that open with the one-line header on a TTY. The freshness status
@@ -1150,7 +1151,7 @@ async function connect(attachment: Attachment) {
                     if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1' && usageTimer === null) {
                         usageTimer = setInterval(() => {
                             void trackWriter(sendUsageReport(socket).catch(reportStateError));
-                        }, 60_000);
+                        }, 15 * 60_000);
                     }
                     return;
                 }
@@ -1646,7 +1647,7 @@ async function sendComputerReport(socket: WebSocket, serverId: string, computerN
 }
 
 async function sendUsageReport(socket: WebSocket) {
-    const usage = await readComputerUsage({
+    const usage = await readCachedComputerUsage({
         openRouterManagementKey: await readOpenRouterManagementKey(dataRoot),
     });
     if (socket.readyState === WebSocket.OPEN) {
@@ -1669,11 +1670,14 @@ function launchCrashTurn(
         agentId: command.agentId,
         endedAt: new Date().toISOString(),
         messageCount: 0,
+        modelId: command.modelId,
         outputProduced: false,
         runId: command.runId,
+        runtimeId: command.runtimeId,
         startedAt,
         status: 'failed',
         summary: `The Agent launch failed: ${error instanceof Error ? error.message : String(error)}`,
+        tokenUsage: null,
         type: 'turn',
         visibleMessages: [],
     };

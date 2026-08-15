@@ -1574,11 +1574,14 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
         agentId,
         endedAt: '2026-07-27T00:00:01.000Z',
         messageCount: 0,
+        modelId: 'gpt-test',
         outputProduced: false,
         runId,
+        runtimeId: 'codex',
         startedAt: '2026-07-27T00:00:00.000Z',
         status: 'completed',
         summary: 'ok',
+        tokenUsage: null,
         type: 'turn',
     });
     expect(starts()).toHaveLength(2);
@@ -2025,20 +2028,44 @@ test('records a compact turn summary and fails closed on cross-Computer claims',
         agentId,
         endedAt: '2026-07-27T00:00:01.000Z',
         messageCount: 1,
+        modelId: 'gpt-test',
         outputProduced: true,
         runId: 'run_turn_1',
+        runtimeId: 'codex',
         startedAt: '2026-07-27T00:00:00.000Z',
         status: 'completed' as const,
         summary: 'Sent 1 message(s).',
+        tokenUsage: {
+            cacheReadTokens: 8,
+            cacheWriteTokens: 2,
+            inputTokens: 10,
+            outputTokens: 5,
+            totalTokens: 15,
+        },
         type: 'turn' as const,
     };
     await recordAgentTurnSummary(connection.db, computerId, summary);
     const rows = (await harness.sql`
-        select status, message_count from agent_turns
+        select status, message_count, model_id, runtime_id, total_tokens, token_usage_reported
+        from agent_turns
         where server_id = ${serverId} and agent_id = ${agentId} and run_id = 'run_turn_1'
-    `) as { message_count: number; status: string }[];
+    `) as {
+        message_count: number;
+        model_id: string;
+        runtime_id: string;
+        status: string;
+        token_usage_reported: boolean;
+        total_tokens: number;
+    }[];
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ message_count: 1, status: 'completed' });
+    expect(rows[0]).toMatchObject({
+        message_count: 1,
+        model_id: 'gpt-test',
+        runtime_id: 'codex',
+        status: 'completed',
+        token_usage_reported: true,
+        total_tokens: 15,
+    });
 
     // A summary from a Computer that does not own the Agent writes nothing.
     await recordAgentTurnSummary(connection.db, 'cmp_notowner00000000', {

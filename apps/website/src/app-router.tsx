@@ -126,7 +126,7 @@ export function createAppRouter() {
                                                             index: true,
                                                             lazy: lazyRoute(
                                                                 serverRouteModules.members,
-                                                                'MembersEmptyPage'
+                                                                'AgentsOverviewPage'
                                                             ),
                                                         },
                                                         {

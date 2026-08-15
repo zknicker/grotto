@@ -10,7 +10,6 @@ import { ProfileSettings } from '../../features/settings/profile/page.tsx';
 import { ServerSettings } from '../../features/settings/server/page.tsx';
 import { UpdatesSettings } from '../../features/settings/updates/page.tsx';
 import { SkillsSettings } from '../../features/skills/skills-settings.tsx';
-import { StatsSettings } from '../../features/stats/stats.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 
 interface SectionContext {
@@ -26,7 +25,6 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,
     server: ({ server }) => <ServerSettings server={server} />,
     skills: ({ server }) => <SkillsSettings serverId={server.id} />,
-    stats: ({ server }) => <StatsSettings serverId={server.id} />,
     updates: ({ server }) => (
         <UpdatesSettings computerSettingsHref={serverComputersRoute(server.slug)} />
     ),

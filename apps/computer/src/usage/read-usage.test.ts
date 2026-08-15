@@ -3,12 +3,41 @@ import { readComputerUsage } from './read-usage.ts';
 
 test('Computer reports only provider usage sources it can actually read', async () => {
     const usage = await readComputerUsage({
+        loadClaudeUsage: async () => ({
+            capturedAt: '2026-07-28T20:00:00.000Z',
+            extraUsage: null,
+            provider: 'claude',
+            source: 'anthropic-oauth-usage',
+            subscriptionType: 'max',
+            windows: [],
+        }),
+        loadClaudeLocalUsage: async () => null,
         loadCodexUsage: async () => ({
             capturedAt: '2026-07-28T20:00:00.000Z',
             creditsBalance: null,
             planType: 'pro',
             provider: 'codex',
             source: 'chatgpt-wham-usage',
+            windows: [],
+        }),
+        loadGrokLocalUsage: async () => ({
+            capturedAt: '2026-07-28T20:00:00.000Z',
+            days: 30,
+            models: [],
+            runtimeId: 'grok-build',
+            source: 'grok-build-jsonl',
+            totals: {
+                cacheReadTokens: 0,
+                cacheWriteTokens: 0,
+                inputTokens: 100,
+                outputTokens: 20,
+                totalTokens: 120,
+            },
+        }),
+        loadGrokUsage: async () => ({
+            capturedAt: '2026-07-28T20:00:00.000Z',
+            provider: 'grok',
+            source: 'grok-build-credits',
             windows: [],
         }),
         loadOpenRouterUsage: async () => ({
@@ -26,13 +55,27 @@ test('Computer reports only provider usage sources it can actually read', async 
     });
 
     expect(usage.codex.status).toBe('ok');
-    expect(usage.connectedProviders).toEqual(['openai-codex', 'openrouter']);
+    expect(usage.connectedProviders).toEqual([
+        'claude-code',
+        'openai-codex',
+        'grok-build',
+        'openrouter',
+    ]);
+    expect(usage.runtimeUsage).toHaveLength(1);
 });
 
 test('Computer does not claim Codex is connected after an auth/read failure', async () => {
     const usage = await readComputerUsage({
+        loadClaudeUsage: async () => {
+            throw new Error('No Claude session');
+        },
+        loadClaudeLocalUsage: async () => null,
         loadCodexUsage: async () => {
             throw new Error('No Codex session');
+        },
+        loadGrokLocalUsage: async () => null,
+        loadGrokUsage: async () => {
+            throw new Error('No Grok session');
         },
         loadOpenRouterUsage: async () => ({
             days: 30,
@@ -60,8 +103,16 @@ test('Computer does not claim Codex is connected after an auth/read failure', as
 
 test('Computer does not claim OpenRouter is connected after a request failure', async () => {
     const usage = await readComputerUsage({
+        loadClaudeUsage: async () => {
+            throw new Error('No Claude session');
+        },
+        loadClaudeLocalUsage: async () => null,
         loadCodexUsage: async () => {
             throw new Error('No Codex session');
+        },
+        loadGrokLocalUsage: async () => null,
+        loadGrokUsage: async () => {
+            throw new Error('No Grok session');
         },
         loadOpenRouterUsage: async () => {
             throw new Error('OpenRouter unavailable');
@@ -75,4 +126,36 @@ test('Computer does not claim OpenRouter is connected after a request failure', 
     });
     expect(JSON.stringify(usage)).not.toContain('OpenRouter unavailable');
     expect(usage.connectedProviders).toEqual([]);
+});
+
+test('Computer classifies an expired Grok login as an authentication failure', async () => {
+    const usage = await readComputerUsage({
+        loadClaudeUsage: async () => {
+            throw new Error('No Claude session');
+        },
+        loadClaudeLocalUsage: async () => null,
+        loadCodexUsage: async () => {
+            throw new Error('No Codex session');
+        },
+        loadGrokLocalUsage: async () => null,
+        loadGrokUsage: async () => {
+            throw new Error('No current Grok login is available.');
+        },
+        loadOpenRouterUsage: async () => ({
+            days: 30,
+            keys: [],
+            message: 'Not configured',
+            note: null,
+            series: [],
+            status: 'unconfigured',
+            totalByokUsageUsd: 0,
+            totalRequests: 0,
+            totalUsageUsd: 0,
+        }),
+    });
+
+    expect(usage.grok).toMatchObject({
+        error: { code: 'auth' },
+        status: 'error',
+    });
 });

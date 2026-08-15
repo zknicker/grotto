@@ -1,6 +1,7 @@
 import { Button, Tooltip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
+import { Activity01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useMatch, useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
@@ -9,7 +10,7 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { humanDisplayName } from '../servers/human-identity.ts';
-import { agentRoute, humanRoute } from '../servers/server-routes.ts';
+import { agentRoute, humanRoute, membersRoute } from '../servers/server-routes.ts';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
 import { AgentAvatar } from './agent-avatar.tsx';
 import { CreateAgentDialog } from './create-agent-dialog.tsx';
@@ -18,6 +19,7 @@ import { CreateAgentDialog } from './create-agent-dialog.tsx';
 export function MembersSidebar({ isActive, server }: { isActive: boolean; server: ServerSummary }) {
     const navigate = useNavigate();
     const agentMatch = useMatch('/s/:slug/members/agents/:agentId/:tab');
+    const agentsOverviewMatch = useMatch('/s/:slug/members');
     const humanMatch = useMatch('/s/:slug/members/humans/:userId');
     const agents = useAgents(isActive ? server.id : undefined);
     const directory = useMembers(server.id, { enabled: isActive });
@@ -53,6 +55,37 @@ export function MembersSidebar({ isActive, server }: { isActive: boolean; server
             }
         >
             <Sidebar.Group>
+                <Sidebar.Menu aria-label="Agents" className="gap-0">
+                    <Sidebar.MenuItem
+                        href={membersRoute(server.slug)}
+                        id="agents-overview"
+                        isCurrent={Boolean(agentsOverviewMatch)}
+                        textValue="Overview"
+                    >
+                        <Sidebar.MenuIcon>
+                            <Icon aria-hidden="true" icon={Activity01Icon} size={16} />
+                        </Sidebar.MenuIcon>
+                        <Sidebar.MenuItemContent>
+                            <Sidebar.MenuLabel>Overview</Sidebar.MenuLabel>
+                        </Sidebar.MenuItemContent>
+                    </Sidebar.MenuItem>
+                    {agentItems.map((agent) => (
+                        <Sidebar.MenuItem
+                            href={agentRoute(server.slug, agent.id)}
+                            id={agent.id}
+                            isCurrent={agent.id === selectedAgentId}
+                            key={agent.id}
+                            textValue={agent.displayName}
+                        >
+                            <Sidebar.MenuIcon>
+                                <AgentAvatar agent={agent} size={24} />
+                            </Sidebar.MenuIcon>
+                            <Sidebar.MenuItemContent>
+                                <Sidebar.MenuLabel>{agent.displayName}</Sidebar.MenuLabel>
+                            </Sidebar.MenuItemContent>
+                        </Sidebar.MenuItem>
+                    ))}
+                </Sidebar.Menu>
                 {agents.isPending ? (
                     <div aria-busy="true">
                         <span className="sr-only">Loading Agents</span>
@@ -61,26 +94,7 @@ export function MembersSidebar({ isActive, server }: { isActive: boolean; server
                     <p className="px-2 py-1 text-muted text-sm" role="alert">
                         Couldn’t load Agents
                     </p>
-                ) : (
-                    <Sidebar.Menu aria-label="Agents" className="gap-0">
-                        {agentItems.map((agent) => (
-                            <Sidebar.MenuItem
-                                href={agentRoute(server.slug, agent.id)}
-                                id={agent.id}
-                                isCurrent={agent.id === selectedAgentId}
-                                key={agent.id}
-                                textValue={agent.displayName}
-                            >
-                                <Sidebar.MenuIcon>
-                                    <AgentAvatar agent={agent} size={24} />
-                                </Sidebar.MenuIcon>
-                                <Sidebar.MenuItemContent>
-                                    <Sidebar.MenuLabel>{agent.displayName}</Sidebar.MenuLabel>
-                                </Sidebar.MenuItemContent>
-                            </Sidebar.MenuItem>
-                        ))}
-                    </Sidebar.Menu>
-                )}
+                ) : null}
             </Sidebar.Group>
             <Sidebar.Group>
                 <Sidebar.GroupLabel>

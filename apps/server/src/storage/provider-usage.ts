@@ -30,7 +30,7 @@ const claudeUsageSnapshotSchema = z.object({
         })
         .nullable(),
     provider: z.literal('claude'),
-    source: z.literal('anthropic-oauth-usage'),
+    source: z.enum(['anthropic-oauth-usage', 'claude-code-sdk-usage']),
     subscriptionType: z.string().nullable(),
     windows: z.array(claudeUsageWindowSchema),
 });

@@ -729,12 +729,23 @@ export const agentTurnFailureKindSchema = z.enum([
     'unknown',
 ]);
 
+export const agentTokenUsageSchema = z
+    .object({
+        cacheReadTokens: z.number().int().nonnegative(),
+        cacheWriteTokens: z.number().int().nonnegative(),
+        inputTokens: z.number().int().nonnegative(),
+        outputTokens: z.number().int().nonnegative(),
+        totalTokens: z.number().int().nonnegative(),
+    })
+    .strict();
+
 export const agentTurnSummarySchema = z
     .object({
         agentId: idSchema,
         endedAt: timestampSchema,
         failureKind: agentTurnFailureKindSchema.optional(),
         messageCount: z.number().int().nonnegative().max(10_000),
+        modelId: z.string().trim().min(1),
         /**
          * Whether the turn produced model-visible output (any durable send).
          * A failed turn that produced output must not have its work requeued —
@@ -743,9 +754,11 @@ export const agentTurnSummarySchema = z
          */
         outputProduced: z.boolean(),
         runId: idSchema,
+        runtimeId: z.string().trim().min(1),
         startedAt: timestampSchema,
         status: agentTurnStatusSchema,
         summary: z.string().max(2000),
+        tokenUsage: agentTokenUsageSchema.nullable(),
         type: z.literal('turn'),
         visibleMessages: z
             .array(
@@ -761,3 +774,4 @@ export const agentTurnSummarySchema = z
     .strict();
 
 export type AgentTurnSummary = z.infer<typeof agentTurnSummarySchema>;
+export type AgentTokenUsage = z.infer<typeof agentTokenUsageSchema>;

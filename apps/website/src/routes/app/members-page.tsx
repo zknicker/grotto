@@ -6,6 +6,7 @@ import { HumanProfile } from '../../features/members/human-profile/human-profile
 import { HumanDirectory } from '../../features/servers/human-directory.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { agentRoute, membersRoute } from '../../features/servers/server-routes.ts';
+import { AgentsUsageOverview } from '../../features/usage/agents-usage-overview.tsx';
 import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useMember } from '../../hooks/members/use-member.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
@@ -17,14 +18,16 @@ export function MembersPage() {
     useWindowTitle('Members');
 
     return (
-        <main className="flex min-h-0 flex-1">
+        <main className="flex min-h-0 min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
             <Outlet context={context} />
         </main>
     );
 }
 
-export function MembersEmptyPage() {
-    return <p className="m-auto text-muted text-sm">Select a member</p>;
+export function AgentsOverviewPage() {
+    const { server } = useServerContext();
+    useWindowTitle('Agents Overview');
+    return <AgentsUsageOverview serverId={server.id} />;
 }
 
 export function AgentPage() {

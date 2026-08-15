@@ -1,0 +1,86 @@
+diff --git a/src/bridge/index.ts b/src/bridge/index.ts
+index f610c83..de1570a 100644
+--- a/src/bridge/index.ts
++++ b/src/bridge/index.ts
+@@ -379,6 +379,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+   });
+   let turnUsage: Record<string, unknown> | undefined;
+   let totalCostUsd: number | undefined;
++  let planUsage: Record<string, unknown> | undefined;
+   let emittedTerminalError = false;
+   let emittedTerminalFinish = false;
+ 
+@@ -431,6 +432,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+               emit,
+               usage: harnessUsage ?? streamEventState.pendingStepUsage,
+             });
++          }
++          if (start.env?.GROTTO_CLAUDE_USAGE_REFRESH === '1') {
++            try {
++              planUsage =
++                await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
++            } catch {
++              // Usage evidence is auxiliary; never fail an Agent turn for it.
++            }
+           }
+           queryInput.close();
+           break;
+@@ -461,8 +470,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+     type: 'finish',
+     finishReason: { unified: 'stop', raw: 'stop' },
+     totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
+-    ...(totalCostUsd !== undefined
+-      ? { harnessMetadata: { 'claude-code': { costUsd: totalCostUsd } } }
++    ...(totalCostUsd !== undefined || planUsage !== undefined
++      ? {
++          harnessMetadata: {
++            'claude-code': {
++              ...(totalCostUsd !== undefined ? { costUsd: totalCostUsd } : {}),
++              ...(planUsage !== undefined ? { planUsage } : {}),
++            },
++          },
++        }
+       : {}),
+   });
+ }
+diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
+index 03ec01a..7fe0c23 100644
+--- a/dist/bridge/index.mjs
++++ b/dist/bridge/index.mjs
+@@ -1167,6 +1167,7 @@ async function runTurn(start, turn) {
+   });
+   let turnUsage;
+   let totalCostUsd;
++  let planUsage;
+   let emittedTerminalError = false;
+   let emittedTerminalFinish = false;
+   const emitTerminalError = (message) => {
+@@ -1214,6 +1215,12 @@ async function runTurn(start, turn) {
+               usage: harnessUsage ?? streamEventState.pendingStepUsage
+             });
+           }
++          if (start.env?.GROTTO_CLAUDE_USAGE_REFRESH === "1") {
++            try {
++              planUsage = await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
++            } catch {
++            }
++          }
+           queryInput.close();
+           break;
+         } else {
+@@ -1239,7 +1246,14 @@ async function runTurn(start, turn) {
+     type: "finish",
+     finishReason: { unified: "stop", raw: "stop" },
+     totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
+-    ...totalCostUsd !== void 0 ? { harnessMetadata: { "claude-code": { costUsd: totalCostUsd } } } : {}
++    ...totalCostUsd !== void 0 || planUsage !== void 0 ? {
++      harnessMetadata: {
++        "claude-code": {
++          ...totalCostUsd !== void 0 ? { costUsd: totalCostUsd } : {},
++          ...planUsage !== void 0 ? { planUsage } : {}
++        }
++      }
++    } : {}
+   });
+ }
+ function createQueryInput({

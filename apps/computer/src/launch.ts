@@ -14,6 +14,7 @@ import { computerEntrypoint } from './build-identity.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
 import {
     AgentSessionResumeRejectedError,
+    HarnessTurnFailedError,
     type NoticeSinkRegistrar,
     runHarnessTurn,
 } from './harness/executor.ts';
@@ -118,12 +119,21 @@ export interface AgentTurnFrame {
     endedAt: string;
     failureKind?: RuntimeFailureKind;
     messageCount: number;
+    modelId: string;
     /** Whether the turn produced any durable send — governs safe requeue. */
     outputProduced: boolean;
     runId: string;
+    runtimeId: string;
     startedAt: string;
     status: 'completed' | 'failed';
     summary: string;
+    tokenUsage: {
+        cacheReadTokens: number;
+        cacheWriteTokens: number;
+        inputTokens: number;
+        outputTokens: number;
+        totalTokens: number;
+    } | null;
     type: 'turn';
     visibleMessages: Array<{ chatId: string; id: string; sequence: number }>;
 }
@@ -266,6 +276,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     let result: {
         failureKind?: RuntimeFailureKind;
         status: 'completed' | 'failed';
+        tokenUsage?: AgentTurnFrame['tokenUsage'];
     } = {
         status: 'failed',
     };
@@ -277,6 +288,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                       status: await runFakeRuntime({
                           agentEnv,
                           command,
+                          dataRoot: options.dataRoot,
                           dirs,
                           signal: options.signal,
                       }),
@@ -285,6 +297,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                       agentEnv,
                       agentRoot,
                       command,
+                      dataRoot: options.dataRoot,
                       dirs,
                       onStoredNoticeDelivered: options.onStoredNoticeDelivered,
                       onActivity: sendActivity,
@@ -563,6 +576,7 @@ function reportTurn(
         startedAt: string;
         status: 'completed' | 'failed';
         summary: string;
+        tokenUsage?: AgentTurnFrame['tokenUsage'];
         visibleMessages?: Array<{ chatId: string; id: string; sequence: number }>;
     }
 ): AgentTurnFrame {
@@ -571,11 +585,14 @@ function reportTurn(
         endedAt: new Date().toISOString(),
         ...(input.failureKind ? { failureKind: input.failureKind } : {}),
         messageCount: input.messageCount,
+        modelId: options.command.modelId,
         outputProduced: input.messageCount > 0,
         runId: options.command.runId,
+        runtimeId: options.command.runtimeId,
         startedAt: input.startedAt,
         status: input.status,
         summary: input.summary,
+        tokenUsage: input.tokenUsage ?? null,
         type: 'turn',
         visibleMessages: input.visibleMessages ?? [],
     };
@@ -586,6 +603,7 @@ function reportTurn(
 interface RuntimeExecutionInput {
     agentEnv: Record<string, string>;
     command: AgentStartCommand;
+    dataRoot: string;
     dirs: { home: string; runtime: string; skills: string; workspace: string };
     onActivity?: (activity: ComputerAgentActivityUpdate) => void;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
@@ -637,6 +655,7 @@ async function runRealRuntime(
 ): Promise<{
     failureKind?: RuntimeFailureKind;
     status: 'completed' | 'failed';
+    tokenUsage?: AgentTurnFrame['tokenUsage'];
 }> {
     const { command } = input;
     try {
@@ -646,6 +665,7 @@ async function runRealRuntime(
             // the managed contract intact when a facet is omitted.
             agentName: command.agentName ?? command.agentId,
             agentRoot: input.agentRoot,
+            dataRoot: input.dataRoot,
             env: input.agentEnv,
             homeDir: input.dirs.home,
             homeTimezone: command.homeTimezone ?? 'UTC',
@@ -667,15 +687,20 @@ async function runRealRuntime(
             tools: input.tools,
         });
         await writeTrace(input, 'Harness turn completed.\n');
-        return { status: turn.aborted ? 'failed' : 'completed' };
+        return {
+            status: turn.aborted ? 'failed' : 'completed',
+            tokenUsage: turn.tokenUsage,
+        };
     } catch (error) {
         await writeTrace(input, `Harness turn failed: ${messageOf(error)}\n`);
+        const failure = error instanceof HarnessTurnFailedError ? error.cause : error;
         return {
             failureKind:
-                error instanceof AgentSessionResumeRejectedError
+                failure instanceof AgentSessionResumeRejectedError
                     ? 'session-resume'
-                    : classifyRuntimeFailure(error),
+                    : classifyRuntimeFailure(failure),
             status: 'failed',
+            tokenUsage: error instanceof HarnessTurnFailedError ? error.tokenUsage : null,
         };
     }
 }

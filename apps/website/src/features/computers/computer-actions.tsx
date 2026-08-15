@@ -1,8 +1,14 @@
-import { Button, Disclosure, Tooltip } from '@heroui/react';
-import { CodeSnippet } from '../../components/code-snippet.tsx';
+import { Button, Separator, Tooltip } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { CodeBlock } from '@heroui-pro/react/code-block';
+import { useState } from 'react';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { ComputerUpdateControls } from './computer-update-controls.tsx';
+import {
+    ComputerUpdatePreviewMenu,
+    type ComputerUpdatePreviewState,
+} from './computer-update-preview.tsx';
 
 type ComputerRemovalAvailability =
     | { status: 'checking' }
@@ -23,6 +29,8 @@ export function ComputerActions({
 }) {
     const agents = useAgents(serverId);
     const computers = useComputers(serverId);
+    const [updatePreviewState, setUpdatePreviewState] =
+        useState<ComputerUpdatePreviewState>('live');
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
 
     if (!computer) {
@@ -43,39 +51,60 @@ export function ComputerActions({
     }
 
     return (
-        <section className="grid gap-4 py-5">
-            <h2 className="font-medium text-muted text-sm">Actions</h2>
-            <div className="grid gap-5">
-                <ComputerUpdateControls computer={computer} serverId={serverId} />
-                <Disclosure>
-                    <Disclosure.Heading>
-                        <Button slot="trigger" variant="ghost">
-                            Recovery Commands
-                            <Disclosure.Indicator />
-                        </Button>
-                    </Disclosure.Heading>
-                    <Disclosure.Content>
-                        <Disclosure.Body>
-                            <div className="grid gap-3">
-                                <p className="text-muted text-sm">
-                                    If the App and this Computer disagree, check the machine
-                                    directly.
-                                </p>
-                                <CodeSnippet
-                                    lines={[
-                                        'grotto-computer status',
-                                        'grotto-computer doctor',
-                                        `grotto-computer restart /${serverSlug}`,
-                                        'grotto-computer upgrade --rollback',
-                                    ]}
-                                />
-                            </div>
-                        </Disclosure.Body>
-                    </Disclosure.Content>
-                </Disclosure>
-                <ComputerRemovalAction availability={removalAvailability} onRemove={onRemove} />
-            </div>
+        <section className="grid gap-8 py-5">
+            <ItemCardGroup variant="transparent">
+                <ItemCardGroup.Header className="flex items-center justify-between">
+                    <ItemCardGroup.Title>Computer Management</ItemCardGroup.Title>
+                    {import.meta.env.DEV ? (
+                        <ComputerUpdatePreviewMenu
+                            onChange={setUpdatePreviewState}
+                            value={updatePreviewState}
+                        />
+                    ) : null}
+                </ItemCardGroup.Header>
+                <ItemCardGroup className="overflow-hidden">
+                    <ComputerUpdateControls
+                        computer={computer}
+                        previewState={updatePreviewState}
+                        serverId={serverId}
+                    />
+                    <Separator />
+                    <ComputerRemovalAction availability={removalAvailability} onRemove={onRemove} />
+                </ItemCardGroup>
+            </ItemCardGroup>
+            <RecoveryCommands serverSlug={serverSlug} />
         </section>
+    );
+}
+
+export function RecoveryCommands({ serverSlug }: { serverSlug: string }) {
+    const commands = [
+        '# Check whether each Server attachment is stopped or running',
+        'grotto-computer status',
+        '',
+        '# Check local files and Server credential acceptance',
+        'grotto-computer doctor',
+        '',
+        '# Restart this attachment if it stops responding',
+        `grotto-computer restart /${serverSlug}`,
+        '',
+        '# Restore the previous verified Computer release',
+        'grotto-computer upgrade --rollback',
+    ].join('\n');
+
+    return (
+        <ItemCardGroup variant="transparent">
+            <ItemCardGroup.Header>
+                <ItemCardGroup.Title>Recovery Commands</ItemCardGroup.Title>
+            </ItemCardGroup.Header>
+            <CodeBlock>
+                <CodeBlock.Header>
+                    <span className="text-muted text-xs">Shell</span>
+                    <CodeBlock.CopyButton aria-label="Copy recovery commands" code={commands} />
+                </CodeBlock.Header>
+                <CodeBlock.Code code={commands} language="shellscript" />
+            </CodeBlock>
+        </ItemCardGroup>
     );
 }
 
@@ -95,25 +124,29 @@ export function ComputerRemovalAction({
     );
 
     return (
-        <div className="flex flex-col gap-3 border-separator border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h3 className="font-medium text-foreground text-sm">Remove Computer</h3>
-                <p className="text-muted text-sm">{description}</p>
-            </div>
-            {isBlocked ? (
-                <Tooltip delay={0}>
-                    <Tooltip.Trigger aria-label={description}>
-                        <span className="inline-flex cursor-not-allowed">{button}</span>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content showArrow>
-                        <Tooltip.Arrow />
-                        <p className="max-w-xs">{description}</p>
-                    </Tooltip.Content>
-                </Tooltip>
-            ) : (
-                button
-            )}
-        </div>
+        <ItemCard>
+            <ItemCard.Content>
+                <ItemCard.Title>Remove Computer</ItemCard.Title>
+                <ItemCard.Description>
+                    Permanently remove this Computer. All Agents must be deleted first.
+                </ItemCard.Description>
+            </ItemCard.Content>
+            <ItemCard.Action>
+                {isBlocked ? (
+                    <Tooltip delay={0}>
+                        <Tooltip.Trigger aria-label={description}>
+                            <span className="inline-flex cursor-not-allowed">{button}</span>
+                        </Tooltip.Trigger>
+                        <Tooltip.Content showArrow>
+                            <Tooltip.Arrow />
+                            <p className="max-w-xs">{description}</p>
+                        </Tooltip.Content>
+                    </Tooltip>
+                ) : (
+                    button
+                )}
+            </ItemCard.Action>
+        </ItemCard>
     );
 }
 

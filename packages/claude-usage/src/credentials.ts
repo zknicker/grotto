@@ -57,17 +57,28 @@ export async function loadClaudeCredentials(
     options: ClaudeCredentialsLoadOptions = {}
 ): Promise<ClaudeLoadedCredentials | null> {
     const credentialsPath = resolveClaudeCredentialsPath(options);
+    const keychainFirst = (options.platform ?? process.platform) === 'darwin';
+
+    if (keychainFirst) {
+        const keychain = await loadKeychainCredentials(options);
+        if (keychain && !credentialsExpired(keychain.credentials, options.now)) {
+            return keychain;
+        }
+    }
 
     try {
         const raw = await readFile(credentialsPath, 'utf8');
         const parsed = parseClaudeCredentialsDocument(JSON.parse(raw));
 
-        return {
+        const loaded: ClaudeLoadedCredentials = {
             credentials: parsed.credentials,
             document: parsed.document,
             path: credentialsPath,
             source: 'file',
         };
+        if (!credentialsExpired(loaded.credentials, options.now)) {
+            return loaded;
+        }
     } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
             if (error instanceof SyntaxError || error instanceof z.ZodError) {
@@ -78,28 +89,10 @@ export async function loadClaudeCredentials(
         }
     }
 
-    if (options.useKeychain !== false) {
-        const keychainJson = await (options.readKeychain ?? readClaudeKeychain)(
-            options.keychainService ?? DEFAULT_KEYCHAIN_SERVICE
-        );
-
-        if (keychainJson) {
-            try {
-                const parsed = parseClaudeCredentialsDocument(JSON.parse(keychainJson));
-
-                return {
-                    credentials: parsed.credentials,
-                    document: parsed.document,
-                    path: null,
-                    source: 'keychain',
-                };
-            } catch (error) {
-                if (error instanceof SyntaxError || error instanceof z.ZodError) {
-                    throw new ClaudeUsageParseError('Invalid Claude credentials in Keychain');
-                }
-
-                throw error;
-            }
+    if (!keychainFirst) {
+        const keychain = await loadKeychainCredentials(options);
+        if (keychain && !credentialsExpired(keychain.credentials, options.now)) {
+            return keychain;
         }
     }
 
@@ -121,6 +114,38 @@ export async function loadClaudeCredentials(
     };
 }
 
+async function loadKeychainCredentials(
+    options: ClaudeCredentialsLoadOptions
+): Promise<ClaudeLoadedCredentials | null> {
+    if (options.useKeychain === false) {
+        return null;
+    }
+    const keychainJson = await (options.readKeychain ?? readClaudeKeychain)(
+        options.keychainService ?? DEFAULT_KEYCHAIN_SERVICE
+    );
+    if (!keychainJson) {
+        return null;
+    }
+    try {
+        const parsed = parseClaudeCredentialsDocument(JSON.parse(keychainJson));
+        return {
+            credentials: parsed.credentials,
+            document: parsed.document,
+            path: null,
+            source: 'keychain',
+        };
+    } catch (error) {
+        if (error instanceof SyntaxError || error instanceof z.ZodError) {
+            throw new ClaudeUsageParseError('Invalid Claude credentials in Keychain');
+        }
+        throw error;
+    }
+}
+
+function credentialsExpired(credentials: ClaudeCredentials, now = new Date()): boolean {
+    return credentials.expiresAt !== null && credentials.expiresAt <= now.getTime();
+}
+
 async function readClaudeKeychain(service: string): Promise<string | null> {
     try {
         const { stdout } = await execFileAsync('/usr/bin/security', [
@@ -138,6 +163,6 @@ async function readClaudeKeychain(service: string): Promise<string | null> {
             return null;
         }
 
-        return null;
+        throw error;
     }
 }

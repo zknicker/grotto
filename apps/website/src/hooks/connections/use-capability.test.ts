@@ -47,10 +47,6 @@ describe('Runtime capability gates', () => {
         expect(routeTabCapabilityRequirements.members).toEqual([]);
     });
 
-    test('gates Stats settings on model execution', () => {
-        expect(settingsCapabilityRequirements.stats).toEqual(['modelExecution']);
-    });
-
     test('keeps Models settings reachable when model credentials need setup', () => {
         expect(settingsCapabilityRequirements.models).toEqual(['apiServer']);
     });

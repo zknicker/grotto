@@ -20,6 +20,7 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
     const appliedRoot = join(agentsRoot, 'agt_applied');
     await mkdir(appliedRoot, { recursive: true });
     await writeAgentSessionState(appliedRoot, {
+        cumulativeTokenUsage: null,
         effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
         generation: 1,
         resumeState: { threadId: 'thread-local' },

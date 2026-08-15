@@ -88,6 +88,7 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
                             serverId: event.serverId,
                         }),
                         utils.agent.list.invalidate({ serverId: event.serverId }),
+                        utils.stats.live.invalidate({ serverId: event.serverId }),
                     ]);
                 }
             },

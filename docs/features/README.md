@@ -22,7 +22,7 @@ implementation ownership, and runtime details live under
 | Reminders | [Reminders](reminders.md) |
 | Skills and Tools | [Skills and Tools](skills.md) |
 | Connections | [Connections](connections.md) |
-| Stats | [Stats](stats.md) |
+| Usage | [Usage](usage.md) |
 | Pets and rewards | [Pets and rewards](pets.md) |
 
 Memory, Wiki, cron automations, and the first task tracker were retired; see

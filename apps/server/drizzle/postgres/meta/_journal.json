@@ -64,6 +64,13 @@
       "when": 1786653574199,
       "tag": "0008_agent-observability-ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786764303944,
+      "tag": "0009_secret_karnak",
+      "breakpoints": true
     }
   ]
 }

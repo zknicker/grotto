@@ -10,6 +10,11 @@ let serverId: string;
 const computerId = 'cmp_1234567890123456';
 const usage = {
     capturedAt: '2026-07-28T20:00:00.000Z',
+    claude: {
+        error: { code: 'auth', message: 'Not signed in', name: 'UsageError' },
+        provider: 'claude',
+        status: 'error',
+    },
     codex: {
         provider: 'codex',
         snapshot: {
@@ -38,6 +43,19 @@ const usage = {
         },
         status: 'ok',
     },
+};
+const normalizedUsage = {
+    ...usage,
+    grok: {
+        error: {
+            code: 'unknown',
+            message: 'Grok usage has not been reported by this Computer yet.',
+            name: 'UsageError',
+        },
+        provider: 'grok',
+        status: 'error',
+    },
+    runtimeUsage: [],
 };
 
 beforeAll(async () => {
@@ -69,6 +87,26 @@ beforeAll(async () => {
             ${usage}::jsonb, '2026-07-28T20:00:01.000Z'
         )
     `;
+    await harness.sql`
+        insert into agents (
+            id, server_id, computer_id, desired_runtime_id, desired_model_id,
+            display_name, handle, home_timezone, role
+        ) values (
+            'agt_1234567890abcdef', ${serverId}, ${computerId}, 'codex', 'gpt-5.6-sol',
+            'Cove', 'cove', 'UTC', 'member'
+        )
+    `;
+    await harness.sql`
+        insert into agent_turns (
+            id, server_id, agent_id, computer_id, run_id, started_at, ended_at,
+            status, summary, model_id, runtime_id, token_usage_reported,
+            input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_tokens
+        ) values (
+            'atn_1234567890abcdef', ${serverId}, 'agt_1234567890abcdef', ${computerId},
+            'run_stats_usage', now() - interval '1 minute', now(), 'completed', 'done',
+            'gpt-5.6-sol', 'codex', true, 100, 25, 80, 10, 125
+        )
+    `;
 });
 
 afterAll(async () => {
@@ -89,9 +127,45 @@ test('Members read every durable Computer usage snapshot while Computers are off
             operatingSystem: 'darwin',
             productVersion: '1.1.0',
             reportedAt: '2026-07-28T20:00:01.000Z',
-            usage,
+            usage: normalizedUsage,
         },
     ]);
+    expect(overview.tokenUsage).toMatchObject({
+        breakdown: [
+            {
+                agentHandle: 'cove',
+                agentId: 'agt_1234567890abcdef',
+                agentName: 'Cove',
+                cacheReadTokens: 80,
+                inputTokens: 100,
+                modelId: 'gpt-5.6-sol',
+                outputTokens: 25,
+                runtimeId: 'codex',
+                totalTokens: 125,
+            },
+        ],
+        days: 90,
+        totals: {
+            cacheReadTokens: 80,
+            cacheWriteTokens: 10,
+            inputTokens: 100,
+            outputTokens: 25,
+            totalTokens: 125,
+        },
+    });
+
+    await harness.sql`
+        update agent_turns
+        set input_tokens = 140, output_tokens = 30, total_tokens = 170
+        where run_id = 'run_stats_usage'
+    `;
+    const corrected = await member.trpc.stats.live.query({ serverId });
+    expect(corrected.tokenUsage.totals).toMatchObject({
+        inputTokens: 140,
+        outputTokens: 30,
+        totalTokens: 170,
+    });
+    expect(corrected.tokenUsage.breakdown).toHaveLength(1);
 });
 
 test('Stats remain readable after the Server restarts', async () => {
@@ -101,7 +175,7 @@ test('Stats remain readable after the Server restarts', async () => {
     member = createGrottoClient(harness, await harness.clerk.mintSessionToken('user_stats_member'));
 
     await expect(member.trpc.stats.live.query({ serverId })).resolves.toMatchObject({
-        computers: [{ computerId, health: 'offline', usage }],
+        computers: [{ computerId, health: 'offline', usage: normalizedUsage }],
     });
 });
 

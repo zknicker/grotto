@@ -214,12 +214,22 @@ test('a compatible Computer report becomes the durable Server usage snapshot', a
             type: 'usage-report',
             usage: {
                 capturedAt: '2026-07-28T20:00:00.000Z',
+                claude: {
+                    error: { code: 'auth', message: 'Not signed in', name: 'UsageError' },
+                    provider: 'claude',
+                    status: 'error',
+                },
                 codex: {
                     error: { code: 'auth', message: 'Not signed in', name: 'UsageError' },
                     provider: 'codex',
                     status: 'error',
                 },
                 connectedProviders: [],
+                grok: {
+                    error: { code: 'auth', message: 'Not signed in', name: 'UsageError' },
+                    provider: 'grok',
+                    status: 'error',
+                },
                 openRouter: {
                     error: null,
                     overview: {

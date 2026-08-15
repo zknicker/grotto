@@ -77,6 +77,18 @@ test('Computer embeds every packaged harness bridge asset', async () => {
     await expect(validateComputerBridgeAssets()).resolves.toBeUndefined();
 });
 
+test('Claude Code bridge captures structured plan usage only when Computer leases a refresh', async () => {
+    const bootstrap = await withComputerBridgeBootstrap(
+        createClaudeCode(),
+        'claude-code'
+    ).getBootstrap?.();
+    const bridge = bootstrap?.files?.find((file) => file.path.endsWith('/bridge.mjs'))?.content;
+
+    expect(bridge).toContain('GROTTO_CLAUDE_USAGE_REFRESH');
+    expect(bridge).toContain('usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET');
+    expect(bridge).toContain('planUsage');
+});
+
 test('Grok Build bridge pins the private live-interjection contract', async () => {
     const bootstrap = await createGrokBuild().getBootstrap?.();
     const bridge = bootstrap?.files?.find(

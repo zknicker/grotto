@@ -12,6 +12,7 @@ import {
 } from '../../computers/presentation.ts';
 import { serverComputersRoute } from '../../servers/server-routes.ts';
 import { SettingsPage } from '../../settings/layout/settings-page.tsx';
+import { AgentUsageOverview } from '../../usage/agent-usage-overview.tsx';
 import { availabilityBadgeColor } from '../agent-avatar.tsx';
 import { MemberProfileFact, MemberProfileFacts } from '../member-profile-header.tsx';
 import { AgentDanger } from './agent-danger.tsx';
@@ -101,6 +102,7 @@ export function AgentOverview({
                         />
                     </MemberProfileFacts>
                 </AgentIdentity>
+                <AgentUsageOverview agent={agent} serverId={server.id} />
                 <AgentRuntime
                     agent={agent}
                     canEdit={canEdit}

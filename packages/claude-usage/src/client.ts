@@ -39,6 +39,7 @@ export function normalizeClaudeUsageResponse(
     input: unknown,
     options: {
         capturedAt?: Date;
+        source?: ClaudeUsageSnapshot['source'];
         subscriptionType?: string | null;
     } = {}
 ): ClaudeUsageSnapshot {
@@ -75,7 +76,7 @@ export function normalizeClaudeUsageResponse(
         capturedAt: (options.capturedAt ?? new Date()).toISOString(),
         extraUsage,
         provider: 'claude',
-        source: 'anthropic-oauth-usage',
+        source: options.source ?? 'anthropic-oauth-usage',
         subscriptionType: options.subscriptionType ?? null,
         windows,
     };
@@ -115,7 +116,8 @@ export async function getClaudeUsage(
     if (usageResponse.status !== 200) {
         throw new ClaudeUsageRequestError(
             `Claude usage request failed with HTTP ${usageResponse.status}`,
-            usageResponse.status
+            usageResponse.status,
+            parseRetryAfter(usageResponse.headers.get('retry-after'), options.now ?? new Date())
         );
     }
 
@@ -132,6 +134,18 @@ export async function getClaudeUsage(
 
         throw error;
     }
+}
+
+function parseRetryAfter(value: string | null, now: Date): number | null {
+    if (!value) {
+        return null;
+    }
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+        return seconds * 1000;
+    }
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? Math.max(0, timestamp - now.getTime()) : null;
 }
 
 function appendWindow(

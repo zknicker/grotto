@@ -16,7 +16,7 @@ the migration command.
 | Store | Owner | Contents |
 | --- | --- | --- |
 | Server PostgreSQL | Grotto Server | Users, Servers, membership, Chats, Messages, threads, Tasks, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, and authorization. |
-| Computer data root | Grotto Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, and effective execution evidence. |
+| Computer data root | Grotto Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
 | Browser/App storage | Grotto App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 
 Server stores bounded turn summaries and effective-state reports needed for product presentation. It

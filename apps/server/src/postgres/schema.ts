@@ -6,6 +6,7 @@ export * from './schema/agent-delivery.ts';
 export * from './schema/agent-inbox.ts';
 export * from './schema/agent-manual-audit.ts';
 export * from './schema/agent-runner-credentials.ts';
+export * from './schema/agent-token-usage-daily.ts';
 export * from './schema/agent-turns.ts';
 export * from './schema/agents.ts';
 export * from './schema/attachments.ts';

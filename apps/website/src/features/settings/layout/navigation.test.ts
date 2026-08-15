@@ -20,3 +20,8 @@ test('settings navigation uses current agent configuration vocabulary', () => {
 test('settings navigation exposes Server administration', () => {
     assert.ok(settingsNavItems.some((item) => item.id === 'server' && item.label === 'Server'));
 });
+
+test('settings navigation keeps operational usage out of configuration', () => {
+    const ids: string[] = settingsNavItems.map((item) => item.id);
+    assert.ok(!ids.includes('stats'));
+});

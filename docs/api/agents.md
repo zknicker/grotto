@@ -45,6 +45,11 @@ Managed Agent commands use `/api/agent/*`. The injected `grotto` wrapper calls a
 Computer loopback proxy. Computer serves eligible inbox reads locally or forwards the request with
 the scoped runner credential. The Agent process never receives a Server-valid credential.
 
+Each settled turn summary includes its runtime and model plus normalized input,
+output, cache-read, and cache-write counts when the runtime reports them. Server
+persists those bounded counters for usage aggregation; raw usage payloads and
+execution traces remain Computer-local.
+
 Wire schemas live in `packages/tavern-api`; Server handlers live in `apps/server/src/agent-api/`
 and `apps/server/src/grotto-api/agent/`; Computer proxy and launch behavior live in
 `apps/computer/src/`.

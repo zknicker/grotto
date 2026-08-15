@@ -368,11 +368,14 @@ describe('reminder scheduler lifecycle', () => {
             agentId: start.agentId,
             endedAt: '2026-07-26T14:00:02.000Z',
             messageCount: 1,
+            modelId: 'gpt-test',
             outputProduced: true,
             runId: start.runId,
+            runtimeId: 'codex',
             startedAt: '2026-07-26T14:00:01.000Z',
             status: 'completed',
             summary: 'followed up',
+            tokenUsage: null,
             type: 'turn',
         });
 

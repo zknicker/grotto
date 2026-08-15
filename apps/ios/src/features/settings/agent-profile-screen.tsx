@@ -1,15 +1,23 @@
-import { useAgent, useServerList } from '@tavern/app-client';
+import {
+    useAgent,
+    useAgentAvatarUpdate,
+    useAgentProfileUpdate,
+    useServerList,
+} from '@tavern/app-client';
 import { useLocalSearchParams } from 'expo-router';
 import { Button } from 'heroui-native/button';
 import { Chip } from 'heroui-native/chip';
 import { ListGroup } from 'heroui-native/list-group';
 import { Spinner } from 'heroui-native/spinner';
+import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { AgentAvatar } from '../mobile/agent-avatar.tsx';
 import { AppLayout } from '../mobile/app-layout.tsx';
 import { getAvailabilityLabel } from '../mobile/avatar-status-badge.tsx';
 import { BackHeader } from '../mobile/back-header.tsx';
 import { toAgentSummary } from '../mobile/mobile-data.ts';
+import { AvatarUploadButton } from './avatar-upload-button.tsx';
+import { ProfileIdentityForm } from './profile-identity-form.tsx';
 import { SettingsSection } from './settings-section.tsx';
 
 export function AgentProfileScreen() {
@@ -20,10 +28,14 @@ export function AgentProfileScreen() {
     const agentId = singleParam(idParam);
     const servers = useServerList();
     const requestedServerId = singleParam(serverParam);
-    const serverId =
-        servers.data?.find((server) => server.id === requestedServerId)?.id ??
-        servers.data?.[0]?.id;
+    const server =
+        servers.data?.find((candidate) => candidate.id === requestedServerId) ?? servers.data?.[0];
+    const serverId = server?.id;
     const agent = useAgent(serverId, agentId);
+    const profile = useAgentProfileUpdate(serverId ?? '', agentId ?? '');
+    const avatar = useAgentAvatarUpdate(serverId ?? '', agentId ?? '');
+    const [avatarError, setAvatarError] = useState<string | null>(null);
+    const canEdit = server?.role === 'owner' || server?.role === 'admin';
 
     if (servers.isError && !servers.data) {
         return (
@@ -97,11 +109,43 @@ export function AgentProfileScreen() {
                                         {agent.data.description}
                                     </Text>
                                 ) : null}
+                                {canEdit ? (
+                                    <AvatarUploadButton
+                                        isPending={avatar.isPending}
+                                        label={`Change ${agent.data.displayName} photo`}
+                                        onError={setAvatarError}
+                                        onSelect={async (image) => {
+                                            await avatar.mutateAsync({
+                                                ...image,
+                                                serverId: serverId ?? '',
+                                                target: { agentId: agent.data.id, kind: 'agent' },
+                                            });
+                                        }}
+                                    />
+                                ) : null}
+                                {(avatarError ?? avatar.error?.message) ? (
+                                    <Text className="text-center text-danger text-sm">
+                                        {avatarError ?? avatar.error?.message}
+                                    </Text>
+                                ) : null}
                             </View>
 
-                            <SettingsSection title="Identity">
+                            {canEdit ? (
+                                <SettingsSection title="Profile">
+                                    <ProfileIdentityForm
+                                        description={agent.data.description ?? ''}
+                                        descriptionHint="Shapes this Agent’s role and personality."
+                                        displayName={agent.data.displayName}
+                                        error={profile.error?.message ?? null}
+                                        isPending={profile.isPending}
+                                        key={`${agent.data.displayName}:${agent.data.description}`}
+                                        onSave={profile.save}
+                                    />
+                                </SettingsSection>
+                            ) : null}
+
+                            <SettingsSection title="Details">
                                 <ListGroup>
-                                    <ProfileValue label="Name" value={agent.data.displayName} />
                                     <ProfileValue label="Handle" value={`@${agent.data.handle}`} />
                                     <ProfileValue
                                         label="Role"

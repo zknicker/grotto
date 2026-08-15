@@ -80,10 +80,15 @@ on a mounted component's local state. Drawer openness and gesture progress remai
 
 Native settings use Expo Router destinations rather than drawer-local disclosure state. The Settings
 hub reads lightweight Server, Agent, and member lists and carries the active Server id into profile
-routes. An Agent profile reads its focused `agent.get` snapshot at the screen leaf; future identity,
-avatar, and execution mutations belong in focused shared App-client hooks that refresh that same detail
-record. Settings compose stock HeroUI Native grouped lists and controls, while desktop-only operational
-surfaces stay out of the iPhone information architecture.
+routes. Human and Agent profiles read focused detail snapshots at their screen leaves. Their existing
+Server-backed identity and avatar mutations live in focused shared App-client hooks and refresh the
+matching detail plus directory caches. Native image selection center-crops and downsizes to the shared
+avatar contract before upload; the iPhone app never stores a second identity record. Settings compose
+stock HeroUI Native grouped lists and controls. Profile pages remain read-oriented: tapping an editable
+identity row opens a focused HeroUI bottom-sheet editor rather than embedding a desktop-style form in
+the settings list. Desktop-only operational surfaces such as model inventory, Skills, MCP connections,
+Browser supervision, and destructive administration stay out of the iPhone information architecture
+until a concrete mobile workflow needs them.
 
 ## Dependencies
 

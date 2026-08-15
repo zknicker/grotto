@@ -12,13 +12,12 @@ export function EntityAvatar({
     size?: number;
 }) {
     const resolvedAvatarUrl = resolveAvatarUrl(avatarUrl, appConfig.serverOrigin);
+    const avatarSize = size >= 64 ? 'lg' : size >= 48 ? 'md' : 'sm';
 
     return (
-        <Avatar alt={`${name} avatar`} size="sm" style={{ height: size, width: size }}>
+        <Avatar alt={`${name} avatar`} size={avatarSize} style={{ height: size, width: size }}>
             {resolvedAvatarUrl ? <Avatar.Image source={{ uri: resolvedAvatarUrl }} /> : null}
-            <Avatar.Fallback styles={{ text: { fontSize: Math.max(8, Math.round(size * 0.42)) } }}>
-                {getEntityInitials(name)}
-            </Avatar.Fallback>
+            <Avatar.Fallback>{getEntityInitials(name)}</Avatar.Fallback>
         </Avatar>
     );
 }

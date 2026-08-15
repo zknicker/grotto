@@ -168,6 +168,41 @@ export function useAgent(serverId: string | undefined, agentId: string | undefin
     );
 }
 
+export function useAgentProfileUpdate(serverId: string, agentId: string) {
+    const utils = grottoTrpc.useUtils();
+    const mutation = grottoTrpc.agent.updateProfile.useMutation({
+        onSuccess: async () => {
+            await Promise.all([
+                utils.agent.get.invalidate({ agentId, serverId }),
+                utils.agent.list.invalidate({ serverId }),
+            ]);
+        },
+    });
+
+    return {
+        ...mutation,
+        save: async (profile: { description: string; displayName: string }) =>
+            await mutation.mutateAsync({
+                agentId,
+                description: profile.description.trim() || null,
+                displayName: profile.displayName.trim(),
+                serverId,
+            }),
+    };
+}
+
+export function useAgentAvatarUpdate(serverId: string, agentId: string) {
+    const utils = grottoTrpc.useUtils();
+    return grottoTrpc.avatar.set.useMutation({
+        onSuccess: async () => {
+            await Promise.all([
+                utils.agent.get.invalidate({ agentId, serverId }),
+                utils.agent.list.invalidate({ serverId }),
+            ]);
+        },
+    });
+}
+
 export function useMembers(serverId: string | undefined, options?: { enabled?: boolean }) {
     return grottoTrpc.member.list.useQuery(
         { serverId: serverId ?? '' },
@@ -176,4 +211,47 @@ export function useMembers(serverId: string | undefined, options?: { enabled?: b
             enabled: serverId !== undefined && options?.enabled !== false,
         }
     );
+}
+
+export function useMember(serverId: string | undefined, userId: string | undefined) {
+    return grottoTrpc.member.get.useQuery(
+        { serverId: serverId ?? '', userId: userId ?? '' },
+        {
+            ...queryPolicy.syncedSnapshot,
+            enabled: serverId !== undefined && userId !== undefined,
+        }
+    );
+}
+
+export function useMemberProfileUpdate(serverId: string, userId: string) {
+    const utils = grottoTrpc.useUtils();
+    const mutation = grottoTrpc.member.updateProfile.useMutation({
+        onSuccess: async () => {
+            await Promise.all([
+                utils.member.get.invalidate({ serverId, userId }),
+                utils.member.list.invalidate({ serverId }),
+            ]);
+        },
+    });
+
+    return {
+        ...mutation,
+        save: async (profile: { description: string; displayName: string }) =>
+            await mutation.mutateAsync({
+                description: profile.description.trim() || null,
+                displayName: profile.displayName.trim(),
+            }),
+    };
+}
+
+export function useMemberAvatarUpdate(serverId: string, userId: string) {
+    const utils = grottoTrpc.useUtils();
+    return grottoTrpc.avatar.set.useMutation({
+        onSuccess: async () => {
+            await Promise.all([
+                utils.member.get.invalidate({ serverId, userId }),
+                utils.member.list.invalidate({ serverId }),
+            ]);
+        },
+    });
 }

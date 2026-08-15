@@ -1,6 +1,7 @@
 import {
     ComputerIcon,
     InformationCircleIcon,
+    UserCircleIcon,
     UserGroupIcon,
 } from '@hugeicons-pro/core-solid-rounded';
 import { useAgents, useMembers, useServerList } from '@tavern/app-client';
@@ -28,6 +29,9 @@ export function SettingsScreen() {
     const serverId = server?.id;
     const agents = useAgents(serverId);
     const members = useMembers(serverId);
+    const viewer = members.data?.members.find(
+        (member) => member.userId === members.data.viewerUserId
+    );
 
     if (servers.isPending && !servers.data) {
         return <SettingsRouteState content={<Spinner />} title="Settings" />;
@@ -51,6 +55,42 @@ export function SettingsScreen() {
             <AppLayout.Content>
                 <ScrollView showsVerticalScrollIndicator={false}>
                     <View className="gap-6 px-4 pt-2 pb-10">
+                        <SettingsSection title="You">
+                            <ListGroup>
+                                <ListGroup.Item
+                                    accessibilityLabel="Open your profile"
+                                    accessibilityRole="button"
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: '/settings/profile',
+                                            params: { server: server.id },
+                                        })
+                                    }
+                                >
+                                    <ListGroup.ItemPrefix>
+                                        {viewer ? (
+                                            <EntityAvatar
+                                                avatarUrl={viewer.avatarUrl}
+                                                name={viewer.displayName ?? viewer.email ?? 'You'}
+                                                size={36}
+                                            />
+                                        ) : (
+                                            <AppIcon icon={UserCircleIcon} />
+                                        )}
+                                    </ListGroup.ItemPrefix>
+                                    <ListGroup.ItemContent>
+                                        <ListGroup.ItemTitle>Profile</ListGroup.ItemTitle>
+                                        <ListGroup.ItemDescription>
+                                            {viewer?.displayName ??
+                                                viewer?.email ??
+                                                'Your identity'}
+                                        </ListGroup.ItemDescription>
+                                    </ListGroup.ItemContent>
+                                    <ListGroup.ItemSuffix />
+                                </ListGroup.Item>
+                            </ListGroup>
+                        </SettingsSection>
+
                         <SettingsSection title="Grotto">
                             <ListGroup>
                                 <ListGroup.Item>

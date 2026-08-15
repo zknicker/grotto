@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { HostedChat } from '@tavern/api';
-import { getChatTitle, toChatSummary } from './mobile-data.ts';
+import type { Chat, ChatMessage } from '@tavern/api';
+import { getChatTitle, isVisibleTimelineMessage, toChatSummary } from './mobile-data.ts';
 
 const baseChat = {
     archivedAt: null,
@@ -18,7 +18,7 @@ const baseChat = {
     peerUserId: null,
     serverId: 'server-1',
     unreadCount: 0,
-} satisfies Omit<HostedChat, 'id' | 'kind' | 'name'>;
+} satisfies Omit<Chat, 'id' | 'kind' | 'name'>;
 
 test('toChatSummary keeps channels and their unread state', () => {
     const summary = toChatSummary({
@@ -69,5 +69,41 @@ test('getChatTitle resolves an Agent DM through the shared Agent directory', () 
             },
         ]),
         'Blippy'
+    );
+});
+
+test('timeline hides retired task receipts without hiding supported system messages', () => {
+    const message = {
+        attachments: [],
+        chatId: 'chat-1',
+        content: 'System notice',
+        createdAt: '2026-08-14T12:00:00.000Z',
+        id: 'message-1',
+        nonce: 'notice-1',
+        runId: null,
+        sequence: 1,
+        serverId: 'server-1',
+    };
+
+    assert.equal(
+        isVisibleTimelineMessage({
+            ...message,
+            author: { kind: 'system', system: 'reminder' },
+        }),
+        true
+    );
+    assert.equal(
+        isVisibleTimelineMessage({
+            ...message,
+            author: { kind: 'system', system: 'session' },
+        }),
+        true
+    );
+    assert.equal(
+        isVisibleTimelineMessage({
+            ...message,
+            author: { kind: 'system', system: 'task' },
+        } as unknown as ChatMessage),
+        false
     );
 });

@@ -6,8 +6,9 @@ import { tokenCache } from '@clerk/expo/token-cache';
 import { Stack } from 'expo-router';
 import { HeroUINativeProvider } from 'heroui-native/provider';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AuthBoundary } from '@/features/auth/auth-boundary';
-import { appConfig } from '@/lib/app-config';
+import { AuthBoundary } from '@/features/auth/auth-boundary.tsx';
+import { ServerEventBoundary } from '@/features/mobile/server-event-boundary.tsx';
+import { appConfig } from '@/lib/app-config.ts';
 
 export default function RootLayout() {
     return (
@@ -15,7 +16,9 @@ export default function RootLayout() {
             <ClerkProvider publishableKey={appConfig.clerkPublishableKey} tokenCache={tokenCache}>
                 <HeroUINativeProvider>
                     <AuthBoundary>
-                        <Stack screenOptions={{ headerShown: false }} />
+                        <ServerEventBoundary>
+                            <Stack screenOptions={{ headerShown: false }} />
+                        </ServerEventBoundary>
                     </AuthBoundary>
                 </HeroUINativeProvider>
             </ClerkProvider>

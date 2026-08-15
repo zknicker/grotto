@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import type { HostedDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@tavern/api';
 import {
     type ChatEventHandler,
     type ChatEventRegistry,
@@ -48,7 +48,7 @@ function ChatEventStreamProvider({
     const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const dispatchEvents = useCallback(
-        async (events: HostedDurableEvent[]) => await registry.dispatch(events, serverId),
+        async (events: ServerDurableEvent[]) => await registry.dispatch(events, serverId),
         [registry, serverId]
     );
     const flushEventBatch = useCallback(() => {

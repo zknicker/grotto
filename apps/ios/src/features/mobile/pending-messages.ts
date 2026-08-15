@@ -11,6 +11,10 @@ const pendingByChat = new Map<string, readonly PendingMessage[]>();
 const listeners = new Set<() => void>();
 const noPendingMessages: readonly PendingMessage[] = [];
 
+export function threadPendingKey(anchorMessageId: string) {
+    return `thread:${anchorMessageId}`;
+}
+
 export function usePendingMessages(
     chatId: string,
     delivered: readonly { id: string; nonce: string }[] | undefined

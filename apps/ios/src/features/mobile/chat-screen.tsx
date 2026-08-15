@@ -4,14 +4,14 @@ import { useAgents, useChats } from '@tavern/app-client';
 import { useRouter } from 'expo-router';
 import { Button } from 'heroui-native/button';
 
-import { AgentAvatar } from './agent-avatar';
-import { AppIcon } from './app-icon';
-import { AppLayout } from './app-layout';
-import { ChatTimeline } from './chat-timeline';
-import { Composer } from './composer';
-import { IconButton } from './icon-button';
-import { getChatTitle, toAgentSummary, toChatSummary } from './mobile-data';
-import type { AgentSummary, ChatSummary } from './types';
+import { AgentAvatar } from './agent-avatar.tsx';
+import { AppIcon } from './app-icon.tsx';
+import { AppLayout } from './app-layout.tsx';
+import { ChatTimeline } from './chat-timeline.tsx';
+import { ChatComposer } from './composer.tsx';
+import { IconButton } from './icon-button.tsx';
+import { getChatTitle, toAgentSummary, toChatSummary } from './mobile-data.ts';
+import type { AgentSummary, ChatSummary } from './types.ts';
 
 export function ChatScreen({
     chatId,
@@ -69,10 +69,11 @@ export function ChatScreen({
             </AppLayout.Content>
             <AppLayout.Footer>
                 {chatSummary ? (
-                    <Composer
+                    <ChatComposer
                         chatId={chatSummary.id}
                         chatTitle={title}
                         isChannel={chatSummary.kind === 'channel'}
+                        key={chatSummary.id}
                         serverId={serverId}
                     />
                 ) : null}

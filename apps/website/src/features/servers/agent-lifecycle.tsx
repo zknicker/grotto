@@ -1,8 +1,5 @@
+import { type AgentLifecycles, useAgentLifecycleEvents } from '@tavern/app-client';
 import * as React from 'react';
-import {
-    type AgentLifecycles,
-    useAgentLifecycleEvents,
-} from '../../hooks/servers/use-agent-lifecycle.ts';
 
 const AgentLifecycleContext = React.createContext<AgentLifecycles | null>(null);
 

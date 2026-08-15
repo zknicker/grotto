@@ -1,7 +1,7 @@
-import type { HostedAgent, HostedChat } from '@tavern/api';
-import type { AgentSummary, ChatSummary } from './types';
+import type { Agent, Chat, ChatMessage } from '@tavern/api';
+import type { AgentSummary, ChatSummary } from './types.ts';
 
-export function toAgentSummary(agent: HostedAgent): AgentSummary {
+export function toAgentSummary(agent: Agent): AgentSummary {
     return {
         availability: agent.availability,
         avatarUrl: agent.avatarUrl,
@@ -11,7 +11,7 @@ export function toAgentSummary(agent: HostedAgent): AgentSummary {
     };
 }
 
-export function toChatSummary(chat: HostedChat): ChatSummary | null {
+export function toChatSummary(chat: Chat): ChatSummary | null {
     if (chat.kind === 'channel') {
         return {
             id: chat.id,
@@ -39,4 +39,18 @@ export function getChatTitle(chat: ChatSummary | undefined, agents: AgentSummary
         return chat.name;
     }
     return agents.find((agent) => agent.id === chat.peerAgentId)?.displayName ?? 'Direct message';
+}
+
+export function isVisibleTimelineMessage(message: ChatMessage): boolean {
+    if (message.author.kind !== 'system') {
+        return true;
+    }
+
+    // Older Servers emitted a second task receipt after decorating the original
+    // message with task metadata. Current Servers retired that redundant row.
+    return readSystemKind(message.author) !== 'task';
+}
+
+function readSystemKind(author: { system: 'reminder' | 'session' }): string {
+    return author.system;
 }

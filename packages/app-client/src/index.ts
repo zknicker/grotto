@@ -1,3 +1,4 @@
+export * from './agent-lifecycle.tsx';
 export * from './chat-events.ts';
 export * from './connection.ts';
 export * from './grotto-client.tsx';

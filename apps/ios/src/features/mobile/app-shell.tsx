@@ -13,9 +13,8 @@ import Animated, {
     useSharedValue,
     withSpring,
 } from 'react-native-reanimated';
-import { ChatEventListeners } from './chat-events';
-import { ChatScreen } from './chat-screen';
-import { Sidebar } from './sidebar';
+import { ChatScreen } from './chat-screen.tsx';
+import { Sidebar } from './sidebar.tsx';
 
 const SPRING = { damping: 26, mass: 0.82, stiffness: 260 };
 
@@ -99,7 +98,6 @@ function ServerShell({ serverId }: { serverId: string }) {
 
     return (
         <View className="flex-1 bg-background">
-            <ChatEventListeners key={serverId} serverId={serverId} />
             <View
                 accessibilityElementsHidden={!isOpen}
                 importantForAccessibility={isOpen ? 'auto' : 'no-hide-descendants'}

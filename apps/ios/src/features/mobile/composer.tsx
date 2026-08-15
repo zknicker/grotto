@@ -6,11 +6,16 @@ import { Button } from 'heroui-native/button';
 import { InputGroup } from 'heroui-native/input-group';
 import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useGrottoConnectionState } from '../../lib/grotto-server-provider';
-import { AppIcon } from './app-icon';
-import { addPendingMessage, dropPendingMessage, settlePendingMessage } from './pending-messages';
+import { useGrottoConnectionState } from '../../lib/grotto-server-provider.tsx';
+import { AppIcon } from './app-icon.tsx';
+import {
+    addPendingMessage,
+    dropPendingMessage,
+    settlePendingMessage,
+    threadPendingKey,
+} from './pending-messages.ts';
 
-export function Composer({
+export function ChatComposer({
     chatId,
     chatTitle,
     isChannel,
@@ -21,6 +26,61 @@ export function Composer({
     isChannel: boolean;
     serverId: string;
 }) {
+    return (
+        <MessageComposer
+            placeholder={`Message ${isChannel ? '#' : ''}${chatTitle}`}
+            serverId={serverId}
+            target={{ chatId, kind: 'chat' }}
+        />
+    );
+}
+
+export function ThreadComposer({
+    anchorMessageId,
+    onThreadCreated,
+    parentChatId,
+    serverId,
+}: {
+    anchorMessageId: string;
+    onThreadCreated: (threadChatId: string) => void;
+    parentChatId: string;
+    serverId: string;
+}) {
+    return (
+        <MessageComposer
+            onSent={(receipt) => {
+                if (receipt.threadChatId) {
+                    onThreadCreated(receipt.threadChatId);
+                }
+            }}
+            placeholder="Reply to thread"
+            serverId={serverId}
+            target={{ anchorMessageId, kind: 'thread', parentChatId }}
+        />
+    );
+}
+
+type MessageTarget =
+    | { chatId: string; kind: 'chat' }
+    | {
+          anchorMessageId: string;
+          kind: 'thread';
+          parentChatId: string;
+      };
+
+function MessageComposer({
+    onSent,
+    placeholder,
+    serverId,
+    target,
+}: {
+    onSent?: (
+        receipt: Awaited<ReturnType<ReturnType<typeof useChatMessageSend>['mutateAsync']>>
+    ) => void;
+    placeholder: string;
+    serverId: string;
+    target: MessageTarget;
+}) {
     const router = useRouter();
     const connectionState = useGrottoConnectionState();
     const [draft, setDraft] = useState('');
@@ -28,7 +88,9 @@ export function Composer({
     const [error, setError] = useState<string | null>(null);
     const send = useChatMessageSend();
     const canSend = Boolean(draft.trim());
-    const placeholder = `Message ${isChannel ? '#' : ''}${chatTitle}`;
+    const pendingChatId =
+        target.kind === 'chat' ? target.chatId : threadPendingKey(target.anchorMessageId);
+    const sendChatId = target.kind === 'chat' ? target.chatId : target.parentChatId;
 
     const submit = async () => {
         const content = draftRef.current.trim();
@@ -40,7 +102,7 @@ export function Composer({
         draftRef.current = '';
         setDraft('');
         setError(null);
-        addPendingMessage(chatId, {
+        addPendingMessage(pendingChatId, {
             content,
             createdAt: new Date().toISOString(),
             nonce,
@@ -49,14 +111,22 @@ export function Composer({
         try {
             const receipt = await send.mutateAsync({
                 attachmentIds: [],
-                chatId,
+                chatId: sendChatId,
                 content,
                 nonce,
                 serverId,
+                ...(target.kind === 'thread'
+                    ? { thread: { anchorMessageId: target.anchorMessageId } }
+                    : {}),
             });
-            settlePendingMessage({ chatId, messageId: receipt.message.id, nonce });
+            settlePendingMessage({
+                chatId: pendingChatId,
+                messageId: receipt.message.id,
+                nonce,
+            });
+            onSent?.(receipt);
         } catch {
-            dropPendingMessage(chatId, nonce);
+            dropPendingMessage(pendingChatId, nonce);
             setDraft((current) => {
                 const restoredDraft = current ? `${content}\n${current}` : content;
                 draftRef.current = restoredDraft;

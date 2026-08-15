@@ -1,6 +1,6 @@
 import type { Agent, AgentLifecycleEvent } from '@tavern/api';
 import * as React from 'react';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { grottoTrpc } from './grotto-client.tsx';
 
 export type AgentLifecycles = ReadonlyMap<string, AgentLifecycleEvent>;
 
@@ -65,6 +65,11 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
                     }, compositionExpiryDelay(event.emittedAt));
                     expiryTimersRef.current.set(event.agentId, timer);
                 }
+                void utils.agent.list.cancel({ serverId: event.serverId });
+                void utils.agent.get.cancel({
+                    agentId: event.agentId,
+                    serverId: event.serverId,
+                });
                 utils.agent.list.setData({ serverId: event.serverId }, (agents) =>
                     agents ? projectAgentAvailability(agents, event) : agents
                 );

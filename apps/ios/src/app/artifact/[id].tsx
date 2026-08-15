@@ -1,5 +1,3 @@
-import { DetailScreen } from '@/features/mobile/detail-screen';
+import { ArtifactScreen } from '@/features/mobile/artifact-screen.tsx';
 
-export default function ArtifactScreen() {
-    return <DetailScreen kind="artifact" />;
-}
+export default ArtifactScreen;

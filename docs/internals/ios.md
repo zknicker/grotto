@@ -24,16 +24,26 @@ packages or modules. React DOM and React Native rendering diverge at their compo
 hooks must not return DOM or native elements.
 
 `@tavern/app-client` owns the shared typed tRPC client, authenticated HTTP and WebSocket transports,
-React Query policy, durable Chat event catch-up primitives, and focused Server, Chat, message, Agent,
-and member hooks. Each product surface owns its platform lifecycle: the iPhone app reconnects after
-foregrounding and mounts one durable event cursor per active Server. Native feature leaves call the
-focused hooks and project platform view models instead of receiving one screen-wide fetched graph.
+React Query policy, durable Chat event catch-up primitives, Agent lifecycle cache projection, and
+focused Server, Chat, message, Agent, and member hooks. Each product surface owns its platform
+lifecycle: the iPhone app reconnects after foregrounding and mounts one durable Chat event cursor plus
+one volatile Agent lifecycle listener per active Server. Lifecycle events project every active phase to
+`Agent.availability = working`; only the terminal `settled` event clears it. Reconnect refetches the
+durable Agent list, whose active-run state restores the same availability. Native feature leaves call
+the focused hooks and project platform view models instead of receiving one screen-wide fetched graph.
 
 The native Chat timeline uses cursor-based infinite queries. Durable event listeners invalidate the
 exact active Chat cache, while reconnect catch-up replays missed Server events before live delivery
 continues. Optimistic sends remain app-local and are keyed by the client nonce. A pending row retires
 only after the canonical Server message arrives; a failed send restores its content to the composer for
 an explicit retry. Optimistic rows never patch durable history.
+
+Native Thread routes are anchored by the parent message id, which exists before the child Chat is
+created. The route also carries the parent Chat id and may carry a resolved Thread Chat id. Opening an
+unthreaded message therefore needs no speculative Server write: the first reply sends the parent Chat
+id plus the anchor message id, adopts the returned child Chat id, and continues on the same screen.
+Thread optimistic rows stay keyed by the anchor across that transition. Existing Threads reuse the
+same route and shared timeline presentation with their child Chat id already resolved.
 
 Clerk owns native authentication. The production instance uses Google as its only sign-in strategy, so
 Grotto starts Clerk's direct Google SSO flow from a native HeroUI action instead of routing through the

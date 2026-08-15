@@ -1,5 +1,3 @@
-import { DetailScreen } from '@/features/mobile/detail-screen';
+import { ThreadScreen } from '@/features/mobile/thread-screen.tsx';
 
-export default function ThreadScreen() {
-    return <DetailScreen kind="thread" />;
-}
+export default ThreadScreen;

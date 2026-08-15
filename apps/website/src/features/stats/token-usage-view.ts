@@ -164,9 +164,7 @@ function buildAgents(
     return [...agents.values()].sort((a, b) => b.totalTokens - a.totalTokens);
 }
 
-function buildConfigurations(
-    breakdown: TokenUsageOverview['breakdown']
-): ConfigurationUsage[] {
+function buildConfigurations(breakdown: TokenUsageOverview['breakdown']): ConfigurationUsage[] {
     const configurations = new Map<string, ConfigurationUsage>();
     for (const item of breakdown) {
         const id = configurationId(item.agentId, item.runtimeId, item.modelId);

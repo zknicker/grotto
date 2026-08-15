@@ -106,9 +106,7 @@ function retainLastSuccess<T extends UsageOverview['claude' | 'codex' | 'grok']>
 
 async function readUsageCache(path: string): Promise<UsageOverview | null> {
     try {
-        const parsed = usageOverviewSchema.safeParse(
-            JSON.parse(await readFile(path, 'utf8'))
-        );
+        const parsed = usageOverviewSchema.safeParse(JSON.parse(await readFile(path, 'utf8')));
         return parsed.success ? parsed.data : null;
     } catch {
         return null;

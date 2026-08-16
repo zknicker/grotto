@@ -117,9 +117,10 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     await expect(page.getByText('First durable human message', { exact: true })).toBeVisible();
     await expect(page.getByText('Second durable human message', { exact: true })).toBeVisible();
 
-    await page.getByPlaceholder('Search', { exact: true }).click();
-    await page.getByPlaceholder('Search messages').fill('First durable');
-    await page.getByPlaceholder('Search messages').press('Enter');
+    // The sidebar renders as a treegrid, so its search row is a row, not a button.
+    await page.getByRole('row', { name: 'Search' }).click();
+    await page.getByPlaceholder('Search or run a command').fill('First durable');
+    await page.getByText('See all results').click();
     await expect(
         page.getByRole('row', { exact: true, name: 'First durable human message' })
     ).toBeVisible();

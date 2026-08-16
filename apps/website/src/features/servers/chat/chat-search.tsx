@@ -11,6 +11,7 @@ import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { getDesktopBridge } from '../../../lib/desktop-bridge.ts';
 import { formatRelativeTime, truncate } from '../../../lib/format.ts';
+import { SectionHeader } from '../../shell/section-header.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import {
     ChatSearchFilterRow,
@@ -20,14 +21,16 @@ import {
 } from './chat-search-filters.tsx';
 
 export function ChatSearch({
+    initialQuery = '',
     onOpenChat,
     serverId,
 }: {
+    initialQuery?: string;
     onOpenChat(chatId: string): void;
     serverId: string;
 }) {
-    const [draft, setDraft] = React.useState('');
-    const [query, setQuery] = React.useState('');
+    const [draft, setDraft] = React.useState(initialQuery);
+    const [query, setQuery] = React.useState(initialQuery);
     const [filterSelection, setFilterSelection] = React.useState(defaultSearchFilterSelection);
     const apiFilters = useSearchApiFilters(filterSelection);
     const search = useChatSearch(serverId, query, apiFilters);
@@ -60,27 +63,31 @@ export function ChatSearch({
     return (
         <section aria-label="Search" className="flex min-h-0 flex-1 flex-col">
             <PageTopbar>
-                <div className="flex min-w-0 flex-1" data-shell-topbar-seam="hidden">
-                    <SearchField
-                        aria-label="Search messages"
-                        autoFocus
-                        fullWidth
-                        onChange={setDraft}
-                        onClear={() => setQuery('')}
-                        onSubmit={(value) => setQuery(value.trim())}
-                        value={draft}
-                        variant="secondary"
-                    >
-                        <SearchField.Group>
-                            <SearchField.SearchIcon />
-                            <SearchField.Input placeholder="Search messages..." ref={inputRef} />
-                            <SearchField.ClearButton />
-                        </SearchField.Group>
-                    </SearchField>
-                </div>
+                <SectionHeader
+                    center={
+                        <SearchField
+                            aria-label="Search messages"
+                            autoFocus
+                            className="w-full max-w-96"
+                            onChange={setDraft}
+                            onClear={() => setQuery('')}
+                            onSubmit={(value) => setQuery(value.trim())}
+                            value={draft}
+                        >
+                            <SearchField.Group>
+                                <SearchField.SearchIcon />
+                                <SearchField.Input
+                                    placeholder="Search messages..."
+                                    ref={inputRef}
+                                />
+                                <SearchField.ClearButton />
+                            </SearchField.Group>
+                        </SearchField>
+                    }
+                />
             </PageTopbar>
             <div className="min-h-0 flex-1 overflow-y-auto">
-                <div className="flex min-h-full w-full flex-col px-4 py-6">
+                <div className="flex min-h-full w-full flex-col px-6 py-6">
                     <div className="mb-4">
                         <ChatSearchFilterRow
                             agents={agents.data ?? []}
@@ -250,7 +257,7 @@ function SearchEmptyState({
     );
 }
 
-function messageAuthor(message: ChatSearchResult): {
+export function messageAuthor(message: ChatSearchResult): {
     avatarUrl: string | null;
     name: string;
 } {

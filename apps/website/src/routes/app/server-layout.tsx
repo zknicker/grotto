@@ -24,6 +24,7 @@ import {
 import { TaskSidebar } from '../../features/servers/tasks/task-sidebar.tsx';
 import { AppRail, type AppRailSection } from '../../features/shell/app-rail.tsx';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
+import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
 import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
@@ -132,112 +133,124 @@ export function ServerLayout() {
     return (
         <SidePaneProvider>
             <TopbarProvider>
-                <AppShell className="w-full">
-                    <ChatEventListeners serverId={server.data.id} />
-                    <SyncHumanIdentity serverId={server.data.id} />
-                    <AppShellDragRegion />
-                    <CommandMenu server={server.data} />
-                    <div className="flex min-h-0 flex-1">
-                        <AppRail
-                            active={active}
-                            canOperate={canOperate}
-                            currentServer={server.data}
-                            onCreateServer={() => setServerDialog('create')}
-                            onJoinServer={() => setServerDialog('join')}
-                            onPreload={preloadServerSection}
-                            onSelect={selectSection}
-                            onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
-                            servers={serverChoices}
-                        />
-                        <AgentLifecycleProvider serverId={server.data.id}>
-                            <AgentActivityProvider serverId={server.data.id}>
-                                <AppLayout
-                                    className="h-full min-h-0 min-w-0 flex-1"
-                                    navigate={navigate}
-                                    scrollMode="content"
-                                    sidebar={
-                                        <ShellSidebar
-                                            activePage={activeSidebarPage}
-                                            footer={
-                                                showSidebar ? (
-                                                    <SidebarAgentActivityStrip
-                                                        serverId={server.data.id}
-                                                        slug={slug}
+                <CommandMenuProvider>
+                    <AppShell className="w-full">
+                        <ChatEventListeners serverId={server.data.id} />
+                        <SyncHumanIdentity serverId={server.data.id} />
+                        <AppShellDragRegion />
+                        <CommandMenu server={server.data} />
+                        <div className="flex min-h-0 flex-1">
+                            <AppRail
+                                active={active}
+                                canOperate={canOperate}
+                                currentServer={server.data}
+                                hasContextualSidebar={showSidebar}
+                                onCreateServer={() => setServerDialog('create')}
+                                onJoinServer={() => setServerDialog('join')}
+                                onPreload={preloadServerSection}
+                                onSelect={selectSection}
+                                onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
+                                servers={serverChoices}
+                            />
+                            <AgentLifecycleProvider serverId={server.data.id}>
+                                <AgentActivityProvider serverId={server.data.id}>
+                                    <AppLayout
+                                        className="h-full min-h-0 min-w-0 flex-1"
+                                        navigate={navigate}
+                                        scrollMode="content"
+                                        sidebar={
+                                            <ShellSidebar
+                                                activePage={activeSidebarPage}
+                                                footer={
+                                                    showSidebar ? (
+                                                        <SidebarAgentActivityStrip
+                                                            serverId={server.data.id}
+                                                            slug={slug}
+                                                        />
+                                                    ) : null
+                                                }
+                                                header={
+                                                    <SidebarSearchTrigger
+                                                        onPreload={() =>
+                                                            preloadServerSection('search')
+                                                        }
                                                     />
-                                                ) : null
-                                            }
-                                            header={
-                                                <SidebarSearchTrigger
-                                                    onPreload={() => preloadServerSection('search')}
-                                                    onPress={() => selectSection('search')}
-                                                />
-                                            }
-                                        >
-                                            <ShellSidebarPage ariaLabel="Server" value="server">
-                                                <AppSidebar
-                                                    currentServer={server.data}
-                                                    selectedChatId={selectedChatId}
-                                                />
-                                            </ShellSidebarPage>
-                                            <ShellSidebarPage ariaLabel="Tasks" value="tasks">
-                                                <TaskSidebar
-                                                    canManage={canOperate}
-                                                    isActive={activeSidebarPage === 'tasks'}
-                                                    serverId={server.data.id}
-                                                    slug={slug}
-                                                />
-                                            </ShellSidebarPage>
-                                            <ShellSidebarPage ariaLabel="Members" value="members">
-                                                <MembersSidebar
-                                                    isActive={activeSidebarPage === 'members'}
-                                                    server={server.data}
-                                                />
-                                            </ShellSidebarPage>
-                                            {canOperate ? (
-                                                <ShellSidebarPage
-                                                    ariaLabel="Computers"
-                                                    value="computers"
-                                                >
-                                                    <ComputersSidebar
-                                                        isActive={activeSidebarPage === 'computers'}
+                                                }
+                                            >
+                                                <ShellSidebarPage ariaLabel="Server" value="server">
+                                                    <AppSidebar
+                                                        currentServer={server.data}
+                                                        selectedChatId={selectedChatId}
+                                                    />
+                                                </ShellSidebarPage>
+                                                <ShellSidebarPage ariaLabel="Tasks" value="tasks">
+                                                    <TaskSidebar
+                                                        canManage={canOperate}
+                                                        isActive={activeSidebarPage === 'tasks'}
                                                         serverId={server.data.id}
                                                         slug={slug}
                                                     />
                                                 </ShellSidebarPage>
-                                            ) : null}
-                                            <ShellSidebarPage ariaLabel="Settings" value="settings">
-                                                <SettingsSidebar
-                                                    currentSection={settingsSection}
-                                                    slug={slug}
-                                                />
-                                            </ShellSidebarPage>
-                                        </ShellSidebar>
-                                    }
-                                    sidebarCollapsible="offcanvas"
-                                    sidebarOpen={showSidebar}
-                                    toggleShortcut={false}
-                                >
-                                    <ShellFrame>
-                                        <ShellTopbar />
-                                        <ConnectionNotice
-                                            serverError={Boolean(server.error)}
-                                            serverId={server.data.id}
-                                        />
-                                        <Outlet context={{ server: server.data }} />
-                                    </ShellFrame>
-                                </AppLayout>
-                            </AgentActivityProvider>
-                        </AgentLifecycleProvider>
-                    </div>
-                    <CreateServerDialog
-                        isOpen={serverDialog === 'create'}
-                        onOpenChange={(isOpen) => setServerDialog(isOpen ? 'create' : null)}
-                    />
-                    <JoinServerDialog
-                        isOpen={serverDialog === 'join'}
-                        onOpenChange={(isOpen) => setServerDialog(isOpen ? 'join' : null)}
-                    />
-                </AppShell>
+                                                <ShellSidebarPage
+                                                    ariaLabel="Members"
+                                                    value="members"
+                                                >
+                                                    <MembersSidebar
+                                                        isActive={activeSidebarPage === 'members'}
+                                                        server={server.data}
+                                                    />
+                                                </ShellSidebarPage>
+                                                {canOperate ? (
+                                                    <ShellSidebarPage
+                                                        ariaLabel="Computers"
+                                                        value="computers"
+                                                    >
+                                                        <ComputersSidebar
+                                                            isActive={
+                                                                activeSidebarPage === 'computers'
+                                                            }
+                                                            serverId={server.data.id}
+                                                            slug={slug}
+                                                        />
+                                                    </ShellSidebarPage>
+                                                ) : null}
+                                                <ShellSidebarPage
+                                                    ariaLabel="Settings"
+                                                    value="settings"
+                                                >
+                                                    <SettingsSidebar
+                                                        currentSection={settingsSection}
+                                                        slug={slug}
+                                                    />
+                                                </ShellSidebarPage>
+                                            </ShellSidebar>
+                                        }
+                                        sidebarCollapsible="offcanvas"
+                                        sidebarOpen={showSidebar}
+                                        toggleShortcut={false}
+                                    >
+                                        <ShellFrame>
+                                            <ShellTopbar />
+                                            <ConnectionNotice
+                                                serverError={Boolean(server.error)}
+                                                serverId={server.data.id}
+                                            />
+                                            <Outlet context={{ server: server.data }} />
+                                        </ShellFrame>
+                                    </AppLayout>
+                                </AgentActivityProvider>
+                            </AgentLifecycleProvider>
+                        </div>
+                        <CreateServerDialog
+                            isOpen={serverDialog === 'create'}
+                            onOpenChange={(isOpen) => setServerDialog(isOpen ? 'create' : null)}
+                        />
+                        <JoinServerDialog
+                            isOpen={serverDialog === 'join'}
+                            onOpenChange={(isOpen) => setServerDialog(isOpen ? 'join' : null)}
+                        />
+                    </AppShell>
+                </CommandMenuProvider>
             </TopbarProvider>
         </SidePaneProvider>
     );

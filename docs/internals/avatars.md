@@ -71,6 +71,9 @@ person. The runtime write path is `PATCH /agents/:id/avatar` with
   at 24px, mention chips at 16px, thread reply previews at 20px); the exact box
   arrives as inline style, which is the one place this primitive reaches past
   the variant. Do not add a second avatar component for small sizes.
+- Servers currently use initials rather than an uploaded image. Every Server
+  surface renders those initials through `EntityAvatar` at the stock `sm`
+  size; do not pass an exact numeric size from a Server call site.
 - Avatar shape and styling are HeroUI defaults. Do not override `.avatar`
   globally or introduce an app-specific radius token. `ChannelIconBox` uses
   the stock `rounded-lg` utility for the adjacent Channel mark.

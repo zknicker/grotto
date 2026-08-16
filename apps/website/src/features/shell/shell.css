@@ -1,4 +1,16 @@
 @layer base {
+    :root {
+        /*
+         * The height every top-of-column band shares: the shell topbar, local
+         * SectionBars, the sidebar header band, and the native titlebar that
+         * hosts the macOS traffic lights. Declared as a length rather than a
+         * spacing-scale step because the native window must center its traffic
+         * lights on the same number (electron/main.cjs topbarHeightPx), and
+         * that side cannot read the theme's density.
+         */
+        --app-shell-band-height: 3rem;
+    }
+
     html.macos-electron,
     html.macos-electron body,
     html.macos-electron #root {
@@ -111,8 +123,31 @@
         background: transparent;
     }
 
+    /*
+     * The native titlebar band is the shared shell band seen from the window's
+     * side, so it reads the same value rather than restating a height that can
+     * drift. electron/main.cjs centers the traffic lights on it too. The gutter
+     * clears the three 12px lights inset 17px from the window edge.
+     */
     html.macos-electron .app-shell {
-        --app-shell-titlebar-inset: 3rem;
+        --app-shell-titlebar-inset: var(--app-shell-band-height);
+        --app-shell-traffic-light-gutter: 5rem;
+    }
+
+    /*
+     * Desktop hoists the sidebar's header band into the titlebar so it sits
+     * beside the traffic lights instead of below them. It rides above the
+     * ::before band, which keeps painting the background and hairline.
+     */
+    html.macos-electron .app-shell-titlebar-slot {
+        position: absolute;
+        z-index: 2;
+        inset-block-start: 0;
+        inset-inline-start: var(--app-shell-traffic-light-gutter);
+        inset-inline-end: calc(var(--spacing) * 3);
+        display: flex;
+        height: var(--app-shell-titlebar-inset);
+        align-items: center;
     }
 
     /*

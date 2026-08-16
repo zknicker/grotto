@@ -1,6 +1,6 @@
 import { Button, Chip, Dropdown, Label, Tooltip, toast } from '@heroui/react';
 import {
-    MoreHorizontalIcon,
+    ArrowDown01Icon,
     SidebarRightIcon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
@@ -8,6 +8,7 @@ import type { Agent, Chat } from '@tavern/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
+import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import {
@@ -48,20 +49,48 @@ export function ChatTopbar({
             : null;
 
     return (
+        // The chat's name and the views of it are one unit on the leading edge:
+        // adjacency is what says the tabs belong to this chat. The switcher
+        // rides in `meta` so it stays glued to the name instead of being pushed
+        // right with the actions.
         <SectionHeader
-            center={<ChatViewSwitcher onValueChange={onViewTabChange} value={viewTab} />}
-            description={peerAgent ? <DmAgentStatus agent={peerAgent} /> : undefined}
-            leading={chat.kind === 'channel' ? <ChannelIconBox size="topbar" /> : null}
-            meta={
-                chat.kind === 'dm' && chat.peerAgentRetired ? (
-                    <Chip size="sm">Retired</Chip>
-                ) : chat.archivedAt ? (
-                    <Chip size="sm">Archived</Chip>
-                ) : null
+            leading={
+                chat.kind === 'channel' ? (
+                    <ChannelActions
+                        agents={agents.data ?? []}
+                        chat={chat}
+                        chatName={chatName}
+                        server={server}
+                    />
+                ) : (
+                    <EntityAvatar
+                        name={peerAgent?.displayName ?? chatName}
+                        size="sm"
+                        src={peerAgent?.avatarUrl ?? null}
+                    />
+                )
             }
-            title={chatName}
+            meta={
+                <>
+                    {peerAgent ? (
+                        <span className="shrink-0 text-muted text-xs">
+                            <DmAgentStatus agent={peerAgent} />
+                        </span>
+                    ) : null}
+                    {chat.kind === 'dm' && chat.peerAgentRetired ? (
+                        <Chip size="sm">Retired</Chip>
+                    ) : chat.archivedAt ? (
+                        <Chip size="sm">Archived</Chip>
+                    ) : null}
+                </>
+            }
+            title={chat.kind === 'dm' ? chatName : undefined}
         >
-            <ChannelParticipants agents={agents.data ?? []} chat={chat} server={server} />
+            {/* A channel's name lives inside the actions trigger, so the page
+                would otherwise have no heading at all. DMs get theirs from the
+                title slot above. */}
+            {chat.kind === 'channel' ? <h1 className="sr-only">{chatName}</h1> : null}
+            <ChatViewSwitcher onValueChange={onViewTabChange} value={viewTab} />
             <Tooltip>
                 <Button
                     aria-label={artifactVisible ? 'Hide artifacts' : 'Show artifacts'}
@@ -84,13 +113,15 @@ function DmAgentStatus({ agent }: { agent: Agent }) {
     return availabilityLabel(agent.availability);
 }
 
-function ChannelParticipants({
+function ChannelActions({
     agents,
     chat,
+    chatName,
     server,
 }: {
     agents: Agent[];
     chat: Chat;
+    chatName: string;
     server: ServerDetail;
 }) {
     const navigate = useNavigate();
@@ -106,14 +137,10 @@ function ChannelParticipants({
             : chat.participantUserIds.length;
 
     if (chat.kind !== 'channel') {
-        return (
-            <span className="flex items-center gap-1 text-muted text-xs">
-                <Icon aria-hidden="true" className="size-4" icon={UserMultiple02Icon} />
-                {count}
-            </span>
-        );
+        return null;
     }
 
+    // Everyone can reach participants; only managers can reshape the channel.
     const canManage = server.role === 'owner' || server.role === 'admin';
     const lifecyclePending = archive.isPending || unarchive.isPending || deleteChannel.isPending;
     const runLifecycleAction = (key: React.Key) => {
@@ -138,66 +165,63 @@ function ChannelParticipants({
 
     return (
         <>
-            <Tooltip>
+            <Dropdown>
                 <Button
-                    aria-label="Edit participants"
-                    isDisabled={Boolean(chat.archivedAt)}
-                    onPress={() => {
-                        updateChannel.reset();
-                        setEditing(true);
-                    }}
+                    aria-label={`${chatName} — channel actions`}
+                    // Match the sidebar row's hover pill: 2 units of inner
+                    // padding so the hash sits as close to the pill edge there as
+                    // it does here, and an equal negative margin so the ink still
+                    // starts on the band gutter, level across the divider.
+                    className="-ms-2 min-w-0 gap-2 px-2"
                     size="sm"
                     variant="ghost"
                 >
-                    <Icon aria-hidden="true" icon={UserMultiple02Icon} size={16} />
-                    {count}
+                    <ChannelIconBox size="topbar" />
+                    <span className="truncate font-semibold text-sm">{chatName}</span>
+                    <Icon
+                        aria-hidden="true"
+                        className="text-muted"
+                        icon={ArrowDown01Icon}
+                        size={15}
+                    />
                 </Button>
-                <Tooltip.Content>Edit participants</Tooltip.Content>
-            </Tooltip>
-            {canManage ? (
-                <Dropdown>
-                    <Tooltip>
-                        <Button aria-label="Channel actions" isIconOnly size="sm" variant="ghost">
-                            <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={18} />
-                        </Button>
-                        <Tooltip.Content>Channel actions</Tooltip.Content>
-                    </Tooltip>
-                    <Dropdown.Popover placement="bottom end">
-                        <Dropdown.Menu onAction={runLifecycleAction}>
+                <Dropdown.Popover placement="bottom start">
+                    <Dropdown.Menu onAction={runLifecycleAction}>
+                        <Dropdown.Item
+                            id="edit"
+                            isDisabled={Boolean(chat.archivedAt)}
+                            textValue="Channel participants"
+                        >
+                            <Label>Channel participants</Label>
+                            <span className="ms-auto flex shrink-0 items-center gap-1 text-muted text-xs tabular-nums">
+                                <Icon aria-hidden="true" icon={UserMultiple02Icon} size={14} />
+                                {count}
+                            </span>
+                        </Dropdown.Item>
+                        {chat.isAll || !canManage ? null : (
                             <Dropdown.Item
-                                id="edit"
-                                isDisabled={Boolean(chat.archivedAt)}
-                                textValue="Edit channel"
+                                id={chat.archivedAt ? 'restore' : 'archive'}
+                                isDisabled={lifecyclePending}
+                                textValue={chat.archivedAt ? 'Restore channel' : 'Archive channel'}
                             >
-                                <Label>Edit channel</Label>
+                                <Label>
+                                    {chat.archivedAt ? 'Restore channel' : 'Archive channel'}
+                                </Label>
                             </Dropdown.Item>
-                            {chat.isAll ? null : (
-                                <Dropdown.Item
-                                    id={chat.archivedAt ? 'restore' : 'archive'}
-                                    isDisabled={lifecyclePending}
-                                    textValue={
-                                        chat.archivedAt ? 'Restore channel' : 'Archive channel'
-                                    }
-                                >
-                                    <Label>
-                                        {chat.archivedAt ? 'Restore channel' : 'Archive channel'}
-                                    </Label>
-                                </Dropdown.Item>
-                            )}
-                            {chat.isAll ? null : (
-                                <Dropdown.Item
-                                    id="delete"
-                                    isDisabled={lifecyclePending}
-                                    textValue="Delete channel"
-                                    variant="danger"
-                                >
-                                    <Label>Delete channel</Label>
-                                </Dropdown.Item>
-                            )}
-                        </Dropdown.Menu>
-                    </Dropdown.Popover>
-                </Dropdown>
-            ) : null}
+                        )}
+                        {chat.isAll || !canManage ? null : (
+                            <Dropdown.Item
+                                id="delete"
+                                isDisabled={lifecyclePending}
+                                textValue="Delete channel"
+                                variant="danger"
+                            >
+                                <Label>Delete channel</Label>
+                            </Dropdown.Item>
+                        )}
+                    </Dropdown.Menu>
+                </Dropdown.Popover>
+            </Dropdown>
             <ChannelDialog
                 agents={agents.map((agent) => ({
                     avatarUrl: agent.avatarUrl,

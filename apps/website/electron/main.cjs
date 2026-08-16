@@ -40,6 +40,8 @@ const openDevtoolsMenuId = 'open-devtools';
 const productionAppUrl = 'https://grotto.sh';
 // Matches --topbar-height in the renderer so the traffic lights center in
 // the shell's headroom band.
+// Matches --app-shell-band-height in src/features/shell/shell.css, the height
+// every top-of-column band shares.
 const topbarHeightPx = 48;
 const macosTrafficLightDiameterPx = 12;
 const macosTrafficLightPosition = {

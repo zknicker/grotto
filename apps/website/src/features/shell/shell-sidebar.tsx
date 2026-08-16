@@ -1,5 +1,6 @@
 import { Sidebar } from '@heroui-pro/react';
 import * as React from 'react';
+import { useIsDesktopApp } from '../../hooks/shell/use-is-desktop-app.ts';
 
 export type ShellSidebarPageId = 'computers' | 'members' | 'server' | 'settings' | 'tasks';
 
@@ -21,6 +22,7 @@ export function ShellSidebar({
     footer?: React.ReactNode;
     header?: React.ReactNode;
 }) {
+    const isDesktopApp = useIsDesktopApp();
     let activePageContent: ShellSidebarPageProps | undefined;
     React.Children.forEach(children, (child) => {
         if (child === null) {
@@ -40,10 +42,39 @@ export function ShellSidebar({
 
     return (
         <Sidebar aria-label={activePageContent.ariaLabel}>
-            {header ? <Sidebar.Header>{header}</Sidebar.Header> : null}
+            {header ? (
+                <ShellSidebarSearchSlot isDesktopApp={isDesktopApp}>
+                    {header}
+                </ShellSidebarSearchSlot>
+            ) : null}
             {activePageContent.children}
             {footer ? <Sidebar.Footer>{footer}</Sidebar.Footer> : null}
         </Sidebar>
+    );
+}
+
+/**
+ * Where the search trigger sits. The desktop App hoists it into the window's
+ * titlebar band, beside the macOS traffic lights. The browser has no such band,
+ * so it belongs to the sidebar's own list — sharing the content gutter with the
+ * rows beneath it rather than sitting in a separate zone above them.
+ */
+function ShellSidebarSearchSlot({
+    children,
+    isDesktopApp,
+}: {
+    children: React.ReactNode;
+    isDesktopApp: boolean;
+}) {
+    if (isDesktopApp) {
+        return <div className="app-shell-titlebar-slot">{children}</div>;
+    }
+
+    // Centred in the shell's band height, the same way the rail's server
+    // avatar and the content topbar's controls are — so all three columns'
+    // first element shares one midline.
+    return (
+        <div className="flex h-[var(--app-shell-band-height)] items-center px-3">{children}</div>
     );
 }
 

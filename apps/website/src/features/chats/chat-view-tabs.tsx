@@ -38,7 +38,7 @@ export function ChatViewSwitcher({
             aria-label="Chat views"
             onSelectionChange={(key) => onValueChange(key as ChatViewTab)}
             selectedKey={value}
-            size="sm"
+            size="md"
             variant="ghost"
         >
             {chatViewTabs.map((tab) => (

@@ -35,7 +35,7 @@ test('Agent usage uses the HeroUI Pro dashboard primitives', () => {
     expect(html).toContain('data-slot="widget-content"');
     expect(html).toContain('data-slot="kpi-group"');
     expect(html).toContain('data-slot="item-card-group-header"');
-    expect(html).toContain('Agent Configurations');
+    expect(html).toContain('Token usage detail');
     expect(html).not.toContain('Agent × runtime × model');
     expect(html.match(/data-slot="kpi"/g)).toHaveLength(4);
 });

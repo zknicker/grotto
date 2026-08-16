@@ -53,6 +53,12 @@ export interface TokenUsageAgentIdentity {
 
 export interface TokenUsageScope {
     agentIds?: string[];
+    /**
+     * Agents known to the Server regardless of whether they billed tokens. Usage
+     * rows alone cannot describe a roster, so a quiet Agent would otherwise
+     * vanish from the per-Agent filters instead of reading as zero.
+     */
+    knownAgents?: TokenUsageAgentIdentity[];
     runtimeId?: string;
 }
 
@@ -75,7 +81,11 @@ export function buildTokenUsageView(
             (!scope.runtimeId || item.runtimeId === scope.runtimeId)
     );
     const rangeConfigurations = buildConfigurations(rangeBreakdown);
-    const agents = buildAgents(rangeBreakdown, rangeConfigurations);
+    const agents = buildAgents(
+        rangeBreakdown,
+        rangeConfigurations,
+        (scope.knownAgents ?? []).filter((agent) => !agentIds || agentIds.has(agent.agentId))
+    );
     const selectedAgent = agents.find((agent) => agent.agentId === selectedAgentId) ?? null;
     const effectiveAgentId = selectedAgent?.agentId ?? null;
     const scopedBreakdown = effectiveAgentId
@@ -140,7 +150,8 @@ export function buildAgentTokenUsageView(
 
 function buildAgents(
     breakdown: TokenUsageOverview['breakdown'],
-    configurations: ConfigurationUsage[]
+    configurations: ConfigurationUsage[],
+    knownAgents: TokenUsageAgentIdentity[] = []
 ): AgentUsage[] {
     const agentColors = new Map<string, string>();
     for (const configuration of configurations) {
@@ -149,6 +160,13 @@ function buildAgents(
         }
     }
     const agents = new Map<string, AgentUsage>();
+    for (const known of knownAgents) {
+        agents.set(known.agentId, {
+            ...known,
+            color: agentColors.get(known.agentId) ?? 'var(--color-accent)',
+            ...emptyTotals(),
+        });
+    }
     for (const item of breakdown) {
         const agent = agents.get(item.agentId) ?? {
             agentAvatarUrl: item.agentAvatarUrl,
@@ -161,7 +179,9 @@ function buildAgents(
         addTotals(agent, item);
         agents.set(item.agentId, agent);
     }
-    return [...agents.values()].sort((a, b) => b.totalTokens - a.totalTokens);
+    return [...agents.values()].sort(
+        (a, b) => b.totalTokens - a.totalTokens || a.agentName.localeCompare(b.agentName)
+    );
 }
 
 function buildConfigurations(breakdown: TokenUsageOverview['breakdown']): ConfigurationUsage[] {

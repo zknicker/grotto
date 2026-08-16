@@ -10,14 +10,37 @@ export function TokenUsageChart({
     emptyMessage?: string;
     view: TokenUsageView;
 }) {
+    // An empty range still has real dates and a real scale, so draw the chart
+    // rather than a placeholder panel: the frame is the answer, and the caption
+    // says why it is flat.
     if (view.totals.totalTokens === 0) {
         return (
             <Widget>
                 <Widget.Header>
                     <Widget.Title>Daily processed tokens</Widget.Title>
                 </Widget.Header>
-                <Widget.Content className="flex min-h-80 items-center justify-center text-center">
-                    <p className="max-w-sm text-base text-muted">{emptyMessage}</p>
+                <Widget.Content className="grid gap-3">
+                    <BarChart
+                        data={view.chartData.map((point) => ({ ...point, empty: 0 }))}
+                        height={220}
+                    >
+                        <BarChart.Grid vertical={false} />
+                        <BarChart.XAxis
+                            dataKey="date"
+                            tickFormatter={(value: string) => formatChartDate(value)}
+                            tickMargin={8}
+                        />
+                        <BarChart.YAxis
+                            domain={[0, 1]}
+                            tickFormatter={(value: number) => formatTokens(value)}
+                            ticks={[0]}
+                            width={48}
+                        />
+                        {/* Recharts derives the numeric scale from the series, so
+                            a zero-height bar is what keeps the baseline drawn. */}
+                        <BarChart.Bar dataKey="empty" fill="transparent" />
+                    </BarChart>
+                    <p className="text-muted text-sm">{emptyMessage}</p>
                 </Widget.Content>
             </Widget>
         );

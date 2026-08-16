@@ -1,6 +1,8 @@
-import { Chip } from '@heroui/react';
-import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react';
+import { Card, Chip } from '@heroui/react';
+import { DataGrid, type DataGridColumn, EmptyState, ItemCardGroup } from '@heroui-pro/react';
+import { ChartHistogramIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
 import type { ConfigurationUsage } from './token-usage-view.ts';
 import { formatPercent, formatTokens } from './usage-format.ts';
 
@@ -80,17 +82,39 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Agent Configurations</ItemCardGroup.Title>
+                <ItemCardGroup.Title>Token usage detail</ItemCardGroup.Title>
             </ItemCardGroup.Header>
-            <DataGrid
-                aria-label="Token usage by agent, runtime, and model"
-                columns={columns}
-                contentClassName="min-w-[800px]"
-                data={rows}
-                defaultSortDescriptor={{ column: 'totalTokens', direction: 'descending' }}
-                getRowId={(item) => item.id}
-                renderEmptyState={() => 'No configurations reported usage in this range.'}
-            />
+            {rows.length > 0 ? (
+                <DataGrid
+                    aria-label="Token usage by agent, runtime, and model"
+                    columns={columns}
+                    contentClassName="min-w-[800px]"
+                    data={rows}
+                    defaultSortDescriptor={{ column: 'totalTokens', direction: 'descending' }}
+                    getRowId={(item) => item.id}
+                />
+            ) : (
+                // Column headers with no rows read as a broken table, and the
+                // seven-column scroll floor would push the message off a narrow
+                // viewport, so the empty range drops the grid and keeps only the
+                // panel the grid would have filled.
+                <Card>
+                    <Card.Content className="flex justify-center py-12">
+                        <EmptyState>
+                            <EmptyState.Header>
+                                <EmptyState.Media variant="icon">
+                                    <Icon className="size-5" icon={ChartHistogramIcon} />
+                                </EmptyState.Media>
+                                <EmptyState.Title>No token usage yet</EmptyState.Title>
+                                <EmptyState.Description className="max-w-sm text-pretty">
+                                    Once an Agent processes tokens in this range, this breaks the
+                                    total down by Agent, runtime, and model.
+                                </EmptyState.Description>
+                            </EmptyState.Header>
+                        </EmptyState>
+                    </Card.Content>
+                </Card>
+            )}
         </ItemCardGroup>
     );
 }

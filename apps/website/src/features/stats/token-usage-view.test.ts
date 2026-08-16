@@ -118,6 +118,66 @@ test('scopes usage by immutable Computer assignment and runtime', () => {
     expect(view.configurations.map((item) => item.runtimeId)).toEqual(['claude-code']);
 });
 
+test('keeps quiet Agents in the picker at zero instead of dropping them', () => {
+    const view = buildTokenUsageView(
+        { breakdown: [], days: 90, totals: zero },
+        7,
+        null,
+        new Date('2026-08-13T18:00:00.000Z'),
+        {
+            knownAgents: [
+                {
+                    agentAvatarUrl: null,
+                    agentHandle: 'tiny',
+                    agentId: 'agt_tiny',
+                    agentName: 'Tiny',
+                },
+                {
+                    agentAvatarUrl: null,
+                    agentHandle: 'blippy',
+                    agentId: 'agt_blippy',
+                    agentName: 'Blippy',
+                },
+            ],
+        }
+    );
+
+    expect(view.agents.map((agent) => agent.agentName)).toEqual(['Blippy', 'Tiny']);
+    expect(view.agents.every((agent) => agent.totalTokens === 0)).toBe(true);
+});
+
+test('counts a known Agent usage exactly once', () => {
+    const view = buildTokenUsageView(usage, 7, null, new Date('2026-08-13T18:00:00.000Z'), {
+        knownAgents: [
+            {
+                agentAvatarUrl: '/api/avatars/cove',
+                agentHandle: 'cove',
+                agentId: 'agt_cove',
+                agentName: 'Cove',
+            },
+        ],
+    });
+
+    expect(view.agents.find((agent) => agent.agentId === 'agt_cove')?.totalTokens).toBe(100);
+    expect(view.agents.filter((agent) => agent.agentId === 'agt_cove')).toHaveLength(1);
+});
+
+test('leaves out known Agents excluded by the Computer scope', () => {
+    const view = buildTokenUsageView(usage, 7, null, new Date('2026-08-13T18:00:00.000Z'), {
+        agentIds: ['agt_scout'],
+        knownAgents: [
+            {
+                agentAvatarUrl: null,
+                agentHandle: 'cove',
+                agentId: 'agt_cove',
+                agentName: 'Cove',
+            },
+        ],
+    });
+
+    expect(view.agents.map((agent) => agent.agentId)).toEqual(['agt_scout']);
+});
+
 test('assigns distinct stable colors to each visible Agent and model configuration', () => {
     const sameModelUsage: TokenUsageOverview = {
         ...usage,

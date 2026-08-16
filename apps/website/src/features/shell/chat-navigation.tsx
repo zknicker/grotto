@@ -66,7 +66,7 @@ export function ChatNavigation({
 
 function ChatNavigationBand({ onCreateChannel }: { onCreateChannel: () => void }) {
     return (
-        <div className="flex w-full items-center justify-between pe-1">
+        <div className="flex w-full items-center justify-between">
             <Sidebar.GroupLabel>Channels</Sidebar.GroupLabel>
             <Button
                 aria-label="New channel"

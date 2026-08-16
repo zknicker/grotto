@@ -36,10 +36,13 @@ export function TaskControls({ chatId }: { chatId?: string }) {
                 <ToggleButton id="list">List</ToggleButton>
                 <ToggleButton id="board">Board</ToggleButton>
             </ToggleButtonGroup>
+            {/* The active view pill already spends this page's one accent; a
+                second filled button competes with it. */}
             <Button
                 isDisabled={chatOptions.length === 0}
                 onPress={() => setComposeOpen(true)}
                 size="sm"
+                variant="secondary"
             >
                 New Task
             </Button>

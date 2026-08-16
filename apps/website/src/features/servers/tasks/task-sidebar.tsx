@@ -82,7 +82,7 @@ export function TaskSidebar({
             </Sidebar.Group>
             {(labelsQuery.data && labelsQuery.data.length > 0) || canManage ? (
                 <Sidebar.Group>
-                    <div className="flex items-center justify-between pe-1">
+                    <div className="flex items-center justify-between">
                         <Sidebar.GroupLabel>Labels</Sidebar.GroupLabel>
                         {canManage ? (
                             <Tooltip delay={0}>

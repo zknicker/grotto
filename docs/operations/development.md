@@ -21,6 +21,13 @@ Local authentication comes from `bunx heroui-pro@latest login` and the system
 keychain. CI or another non-interactive environment must provide
 `HEROUI_AUTH_TOKEN`. Codex worktrees run this command through their environment
 setup hook, and Claude Code runs it from the repository's `SessionStart` hook.
+A cold worktree install moves multiple gigabytes, so that hook allows a long
+timeout; cutting it short leaves the HeroUI bootstrap package in place without
+its downloaded artifacts.
+
+`bun run dev` refuses to start when those artifacts are missing. Vite otherwise
+caches a broken `@heroui-pro/react` resolution that outlives a restart, so
+rerun `bun run setup:worktree` and start the stack again.
 
 ## Local Stack
 

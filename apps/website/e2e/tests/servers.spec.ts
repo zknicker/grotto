@@ -23,7 +23,8 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await expect(createServerStep.or(serverSwitcher)).toBeVisible();
     if (await serverSwitcher.isVisible()) {
         await serverSwitcher.click();
-        await page.getByRole('menuitem', { name: 'Switch or create Server…' }).click();
+        await expect(page.getByRole('menuitem', { name: 'Join server' })).toBeVisible();
+        await page.getByRole('menuitem', { name: 'Create server' }).click();
     } else {
         await createServerStep.click();
     }

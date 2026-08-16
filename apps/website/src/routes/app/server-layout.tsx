@@ -1,4 +1,3 @@
-import { Modal } from '@heroui/react';
 import { AppLayout } from '@heroui-pro/react';
 import * as React from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -7,12 +6,13 @@ import { ComputersSidebar } from '../../features/computers/computers-sidebar.tsx
 import { MembersSidebar } from '../../features/members/members-sidebar.tsx';
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
+import { CreateServerDialog } from '../../features/servers/create-server-dialog.tsx';
+import { JoinServerDialog } from '../../features/servers/join-server-dialog.tsx';
 import {
     readLastChatId,
     rememberLastChatId,
     rememberLastServerSlug,
 } from '../../features/servers/server-choice.ts';
-import { ServerChoicePanel } from '../../features/servers/server-choice-panel.tsx';
 import {
     membersRoute,
     serverComputersRoute,
@@ -58,7 +58,7 @@ export function ServerLayout() {
     const chats = useChats(server.data?.id);
     const currentServerSlug = server.data?.slug;
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
-    const [managingServers, setManagingServers] = React.useState(false);
+    const [serverDialog, setServerDialog] = React.useState<'create' | 'join' | null>(null);
 
     useDesktopMenuNavigation({
         searchRoute: serverSearchRoute(slug),
@@ -142,7 +142,8 @@ export function ServerLayout() {
                             active={active}
                             canOperate={canOperate}
                             currentServer={server.data}
-                            onManageServers={() => setManagingServers(true)}
+                            onCreateServer={() => setServerDialog('create')}
+                            onJoinServer={() => setServerDialog('join')}
                             onPreload={preloadServerSection}
                             onSelect={selectSection}
                             onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
@@ -228,28 +229,14 @@ export function ServerLayout() {
                             </AgentActivityProvider>
                         </AgentLifecycleProvider>
                     </div>
-                    <Modal isOpen={managingServers} onOpenChange={setManagingServers}>
-                        <Modal.Backdrop isDismissable>
-                            <Modal.Container scroll="outside" size="lg">
-                                <Modal.Dialog>
-                                    <Modal.CloseTrigger />
-                                    <Modal.Header>
-                                        <Modal.Heading>Servers</Modal.Heading>
-                                        <p className="mt-1 text-muted text-sm">
-                                            Switch to a joined Server, create one, or accept an
-                                            invitation.
-                                        </p>
-                                    </Modal.Header>
-                                    <Modal.Body>
-                                        <ServerChoicePanel
-                                            onServerSelect={() => setManagingServers(false)}
-                                            servers={serverChoices}
-                                        />
-                                    </Modal.Body>
-                                </Modal.Dialog>
-                            </Modal.Container>
-                        </Modal.Backdrop>
-                    </Modal>
+                    <CreateServerDialog
+                        isOpen={serverDialog === 'create'}
+                        onOpenChange={(isOpen) => setServerDialog(isOpen ? 'create' : null)}
+                    />
+                    <JoinServerDialog
+                        isOpen={serverDialog === 'join'}
+                        onOpenChange={(isOpen) => setServerDialog(isOpen ? 'join' : null)}
+                    />
                 </AppShell>
             </TopbarProvider>
         </SidePaneProvider>

@@ -1,4 +1,4 @@
-import { Button, Form, Input, Label, TextField } from '@heroui/react';
+import { Input, Label, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { parseInvitationToken } from './server-choice.ts';
@@ -44,27 +44,5 @@ export function JoinServerFields({ form }: { form: JoinServerFormState }) {
                 placeholder="https://app.grotto.com/invite/…"
             />
         </TextField>
-    );
-}
-
-/** Accepts an invitation link or bare token and opens its invitation page. */
-export function JoinServerForm() {
-    const form = useJoinServerForm();
-
-    return (
-        <Form
-            className="flex flex-col items-stretch gap-4"
-            onSubmit={(event) => {
-                event.preventDefault();
-                form.submit();
-            }}
-        >
-            <JoinServerFields form={form} />
-            <div className="mt-1">
-                <Button isDisabled={!form.isSubmittable} type="submit" variant="secondary">
-                    Continue
-                </Button>
-            </div>
-        </Form>
     );
 }

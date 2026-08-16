@@ -1,11 +1,10 @@
-import { Button, Description, Dropdown, Label } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { ComputerTerminal01Icon, Settings01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 import { sidebarHeaderBandClassName } from './section-header.tsx';
+import { ServerMenu } from './server-menu.tsx';
 
 export type AppRailSection = 'chat' | 'computers' | 'members' | 'search' | 'settings' | 'tasks';
 
@@ -18,7 +17,8 @@ export function AppRail({
     active,
     canOperate,
     currentServer,
-    onManageServers,
+    onCreateServer,
+    onJoinServer,
     onPreload,
     onSelect,
     onSwitchServer,
@@ -27,7 +27,8 @@ export function AppRail({
     active: AppRailSection;
     canOperate: boolean;
     currentServer: ServerSummary;
-    onManageServers: () => void;
+    onCreateServer: () => void;
+    onJoinServer: () => void;
     onPreload: (section: AppRailSection) => void;
     onSelect: (section: AppRailSection) => void;
     onSwitchServer: (slug: string) => void;
@@ -53,9 +54,10 @@ export function AppRail({
             <Sidebar aria-label="App sections">
                 <Sidebar.Header>
                     <div className={`${sidebarHeaderBandClassName} justify-center`}>
-                        <ServerSwitcher
+                        <ServerMenu
                             currentServer={currentServer}
-                            onManageServers={onManageServers}
+                            onCreateServer={onCreateServer}
+                            onJoinServer={onJoinServer}
                             onSwitchServer={onSwitchServer}
                             servers={servers}
                         />
@@ -141,58 +143,5 @@ export function AppRail({
                 </Sidebar.Footer>
             </Sidebar>
         </Sidebar.Provider>
-    );
-}
-
-function ServerSwitcher({
-    currentServer,
-    onManageServers,
-    onSwitchServer,
-    servers,
-}: {
-    currentServer: ServerSummary;
-    onManageServers: () => void;
-    onSwitchServer: (slug: string) => void;
-    servers: ServerSummary[];
-}) {
-    return (
-        <Dropdown>
-            <Button
-                aria-label={`Switch Server (current: ${currentServer.slug})`}
-                isIconOnly
-                variant="ghost"
-            >
-                {/* The Server wears the same mark as its Agents and people. */}
-                <EntityAvatar name={currentServer.displayName || currentServer.slug} size="sm" />
-            </Button>
-            <Dropdown.Popover placement="right top">
-                <Dropdown.Menu
-                    onAction={(key) => {
-                        if (key === 'manage-servers') {
-                            onManageServers();
-                            return;
-                        }
-                        onSwitchServer(String(key));
-                    }}
-                >
-                    {servers.map((server) => (
-                        <Dropdown.Item
-                            id={server.slug}
-                            key={server.id}
-                            textValue={server.displayName}
-                        >
-                            <EntityAvatar name={server.displayName || server.slug} size={24} />
-                            <span className="grid min-w-0">
-                                <Label>{server.displayName}</Label>
-                                <Description>/{server.slug}</Description>
-                            </span>
-                        </Dropdown.Item>
-                    ))}
-                    <Dropdown.Item id="manage-servers" textValue="Switch or create Server">
-                        <Label>Switch or create Server…</Label>
-                    </Dropdown.Item>
-                </Dropdown.Menu>
-            </Dropdown.Popover>
-        </Dropdown>
     );
 }

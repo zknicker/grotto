@@ -1,4 +1,4 @@
-import { Button, FieldError, Form, Input, Label, TextField } from '@heroui/react';
+import { FieldError, Input, Label, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateServer } from '../../hooks/servers/use-create-server.ts';
@@ -85,27 +85,5 @@ export function CreateServerFields({ form }: { form: CreateServerFormState }) {
                 {form.error ? <FieldError>{form.error.message}</FieldError> : null}
             </TextField>
         </>
-    );
-}
-
-/** Creates a Grotto server and opens it at its new address. */
-export function CreateServerForm({ onCreated }: { onCreated?: () => void } = {}) {
-    const form = useCreateServerForm(onCreated);
-
-    return (
-        <Form
-            className="flex flex-col items-stretch gap-4"
-            onSubmit={(event) => {
-                event.preventDefault();
-                form.submit();
-            }}
-        >
-            <CreateServerFields form={form} />
-            <div className="mt-1">
-                <Button isDisabled={!form.isSubmittable} isPending={form.isPending} type="submit">
-                    Create Server
-                </Button>
-            </div>
-        </Form>
     );
 }

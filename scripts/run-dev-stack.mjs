@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { resolveDevPorts } from './dev-ports.mjs';
 import { DevStackController } from './dev-stack-controller.mjs';
 import { DevStackScreen } from './dev-stack-screen.mjs';
+import { HEROUI_PACKAGE_PATH, hasHeroUiArtifacts, heroUiPackageRoot } from './heroui-artifacts.mjs';
 
 function main() {
     const mode = process.argv[2] ?? 'web';
@@ -12,6 +13,14 @@ function main() {
         process.exit(1);
     }
     const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    // Starting vite without these artifacts caches a broken @heroui-pro/react
+    // resolution that survives a restart, so refuse the boot instead.
+    if (!hasHeroUiArtifacts(heroUiPackageRoot(repositoryRoot))) {
+        console.error(
+            `${HEROUI_PACKAGE_PATH} is missing its downloaded artifacts. Run \`bun run setup:worktree\` before starting the dev stack.`
+        );
+        process.exit(1);
+    }
     const ports = resolveDevPorts({ repositoryRoot });
     const clerkEnvironmentOverrides = getDevEnvironmentOverrides(repositoryRoot);
     const controller = new DevStackController({

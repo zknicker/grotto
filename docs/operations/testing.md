@@ -211,6 +211,8 @@ bun run test:agents --json                     # machine-readable run summary
 bun run test:agents --lanes 4                  # override the lane count
 ```
 
+Repeat `--only` to run a small named subset in one process.
+
 A scenario is one file under `scripts/agent-tests/scenarios/`, exporting a
 `name`, a one-sentence `contract` stating exactly what must be true, and a
 `run` that receives the kit. Keep a scenario to one to three live turns; a
@@ -221,7 +223,7 @@ the lane creates them for that scenario and retires them after the verdict.
 Isolation is by construction: a fresh Agent has a fresh session, a fresh
 workspace, and a fresh Owner DM, so nothing carries over between scenarios.
 Creation is bounded to two concurrent Agent applies process-wide — more races
-the Computer into an Agent missing its session. Lanes default to eight, capped
+the Computer into an Agent missing its session. Lanes default to three, capped
 by scenario count; `--lanes` overrides it without a clamp.
 
 Every created Agent and chat id is recorded in `.context/agent-tests/state.json`
@@ -262,20 +264,17 @@ wire end to end, nothing more. Agent behavior belongs in `test:agents`.
 
 ## Prompt Behavior Evals
 
-The composed agent system prompt has two guard layers. Text loss is caught in
-CI by the Computer harness instruction tests under `apps/computer/src/harness/`. Behavior loss
-is caught on demand by `bun run eval:prompt`. The live lane signs in as the
-configured development Clerk user and drives real hosted
-Server-to-Computer-to-model turns through the public tRPC contract. It checks
-mention handoff, explicit silence in channels and DMs, multi-chat draining,
-and instruction-injection resistance.
+The composed Agent system prompt has two guard layers. Text loss is caught in CI by the Computer
+harness instruction tests under `apps/computer/src/harness/`. Behavior loss is caught on demand by
+`bun run eval:prompt`. That command is a stable, serial subset of `test:agents`: addressed-only
+mention handoff, explicit silence in Channels and DMs, concise DM reply, multi-Chat drain, and
+instruction-injection resistance.
 
-The lane uses the seeded `#all` and `#product` channels plus each Agent's
-ordinary Owner DM. It does not call the retired Runtime API or create
-undeletable temporary chats. Run it after prompt-text edits and before
-releases. Use `--only <substring>` to rerun one scenario, `--server <url>` to
-target another hosted dev endpoint, or `--server-id <id>` to select a Server.
-See AGENTS.md ("Agent System Prompt Changes").
+The lane provisions fresh isolated Agents and exact cleanup-tracked Chats through the same Server
+→ Computer → model path as the full Agent suite; it never depends on seeded Agents or shared demo
+conversations. Run it after prompt-text edits and before releases. Use
+`bun run test:agents --only <substring> --lanes 1` to isolate one failing scenario. See AGENTS.md
+("Agent System Prompt Changes").
 
 ## Session Behavior Evals
 
@@ -287,10 +286,10 @@ It restores changed Agent configuration afterward. Internal generation and
 resume bookkeeping remain covered by deterministic Computer tests; this live
 lane asserts only behavior exposed by the hosted product contract.
 
-Both evals require `bun run dev`, configured development Clerk keys, two
-applied online Agents, and the seeded channels. Authentication uses a
-localhost development sign-in ticket and Clerk's headless session refresh; it
-does not use an auth bypass. Both scripts share `scripts/eval-harness.mjs`.
+Both evals require `bun run dev` and configured development Clerk keys. Prompt eval provisions its
+own Agents and Chats; session eval still requires two applied online Agents and the seeded Channels.
+Authentication uses a localhost development sign-in ticket and Clerk's headless session refresh;
+it does not use an auth bypass. Both lanes share `scripts/eval-harness.mjs`.
 
 ## Design Battery
 

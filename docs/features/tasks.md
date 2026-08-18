@@ -30,7 +30,10 @@ lenses over the same message. Grotto does not keep a second task conversation or
 - Done tasks cannot be claimed or unclaimed.
 
 Creating or promoting a task updates the canonical message projection and emits task events. It
-does not append a redundant system receipt to the parent Chat.
+does not append a user-visible state-change receipt to the parent Chat. When an Agent directly
+assigns a newly created task to another Agent, Server also creates a private assignment system
+message for that assignee's inbox; the App filters it from the Chat transcript and human unread
+counts. The canonical task message remains the only task record.
 
 Every lifecycle mutation after creation carries `expectedVersion`. Stale assignment or metadata
 writes fail and the Server UI waits for Server state rather than inventing durable optimistic task

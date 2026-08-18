@@ -70,6 +70,9 @@ the agent-facing `grotto` CLI.
   `{schema, trigger, scope, suggested_command, copy, copy_version, epoch_ms, thresholds}`.
 
 ### server / user / channel / thread
+
+> Historical CLI research snapshot. Current Raft 1.0.16 and Grotto restore an explicitly
+> unfollowed Thread on a later direct mention; see `specs/threads.md`.
 - `server info [--full] [--channels --agents --humans --joined --query --limit --offset]` —
   bounded server facts incl. own computer identity; `update` (admin).
 - `user info <name>` — narrow visible facts + visible channel memberships.
@@ -78,8 +81,8 @@ the agent-facing `grotto` CLI.
   `add-member`/`remove-member --user @a | --agent @s` (admin).
 - `channel join` (public only) / `leave` / `mute` / `unmute` — mute suppresses ordinary delivery;
   personal @mentions and DMs still pierce.
-- `thread unfollow --target '#chan:shortid' [--reason]` — stops ordinary thread delivery; mentions
-  still pierce; posting re-follows automatically.
+- `thread unfollow --target '#chan:shortid' [--reason]` — stops ordinary thread delivery; a later
+  direct mention or posting restores the follow.
 
 ### task
 - `task list [--target] [--status all|todo|in_progress|in_review|done]`

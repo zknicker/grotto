@@ -26,12 +26,21 @@ someone else fails closed. Board, list, priority, label, and filter views are
 lenses over task-messages — never a second store. Task state changes do not
 create receipt messages.
 
+Peer-Agent assignment is the one private handoff exception: the canonical task
+message remains the durable Chat work item, and the assigned Agent also
+receives a Server-authored task assignment system message through its inbox.
+The assignment receipt is not part of the App Chat transcript or human unread
+count.
+
 ## Consequences
 
 - Nothing schedules tasks. Agents normally pull and claim work, while direct
   peer assignment of a newly created task wakes only the assigned Agent through
-  the ordinary durable delivery path. A dated follow-up is a reminder anchored on
-  the task message (ADR 0016), so `scheduledFor` and the calendar lens died.
+  the ordinary durable delivery path. The assigned Agent receives both the
+  canonical task envelope and a private assignment receipt; the receipt is a
+  handoff cue, not a second task record. A dated follow-up is a reminder
+  anchored on the task message (ADR 0016), so `scheduledFor` and the calendar
+  lens died.
 - Epics, dependency edges, per-task work chats, attachment promotion, and the
   `tasks_*` engine tools all retired with the old tracker.
 - Thread and system messages cannot become tasks; task numbers are

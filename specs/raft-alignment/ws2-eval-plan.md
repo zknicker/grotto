@@ -1,7 +1,7 @@
 # WS2 eval plan — prompt-behavior evals across the flip
 
-What `bun run eval:prompt` (scripts/prompt-eval.mjs, real model turns against
-a dev stack) must cover after the flip. Evals run only once WS2+WS4 are landed
+What `bun run eval:prompt` (a stable serial subset of `scripts/agent-tests/scenarios/`, running
+real model turns against a dev stack) must cover after the flip. Evals run only once WS2+WS4 are landed
 on a dev stack — most scenarios now assert *CLI actions taken* (sends, claims,
 holds) rather than reply text, so the harness gains a helper that inspects the
 turn's shell calls and resulting chat state.
@@ -14,8 +14,8 @@ thread-aware grading the default (D8: claimed tasks report in their thread).
 Still deferred pending a turn-trace surface: heredoc discipline,
 one-command-per-call, freshness-hold staging, notice-deferral honesty,
 no-polling. WS-MCP scenarios (granted-server use; no-grant honesty) arrive
-with that workstream. scripts/prompt-eval.mjs is the source of truth for
-the current scenario list.
+with that workstream. The `eval:prompt` script in `package.json` names the current scenario list;
+each scenario's module owns its executable contract.
 
 ## Existing scenarios: keep / rewrite / retire
 

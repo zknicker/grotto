@@ -31,8 +31,8 @@ pointers, and per-participant follow records derived from parent membership.
   (`cht_thr_<anchor message id without msg_>`), and its own per-chat sequence space. First
   reply creates it; no nesting; membership always derives from the parent.
 - `thread_follows` records attention per participant, humans and agents
-  identically: participate/@mention auto-follows, posting re-follows,
-  mentions pierce without re-following.
+  identically: participation and direct mentions auto-follow, posting re-follows, and a direct
+  mention restores an earlier explicit unfollow.
 - Inline replies retire completely: `parent_message_id`, `thread_root_id`,
   and the `Reply context:` prompt section are deleted, not deprecated.
 - Full message immutability posture: no edit/delete paths, no tombstones.

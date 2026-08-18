@@ -1,5 +1,5 @@
 ---
-summary: The uniform avatar system — one uploaded square image (or initials) for agents and people alike, the shared contract, hosted vs local storage, and the shared React components.
+summary: The uniform avatar system — one uploaded square image (or initials) for agents and people alike, its Server storage contract, and the shared React components.
 read_when:
   - rendering an identity mark for an agent or a person anywhere in the app
   - changing avatar upload rules, storage, or the avatar URL contract
@@ -29,7 +29,7 @@ agent-vs-human branch at any call site.
 Every record that can wear an avatar exposes **`avatarUrl: string | null`** —
 an absolute-or-relative URL a surface drops straight into an `<img src>`. Call
 sites never see an avatar id, media type, or byte payload. This holds for
-`Agent`, `ServerMember`, and the local agent catalog item alike.
+`Agent` and `ServerMember` alike.
 
 ## Storage
 
@@ -54,11 +54,6 @@ Reads are `GET /api/avatars/:avatarId`, unauthenticated on purpose — an `<img>
 cannot carry a bearer token, ids are opaque, and every replacement mints a fresh
 id. The response is `immutable`-cached for a year. `avatarUrlFor` builds the URL
 projections emit.
-
-**Local (SQLite).** The local app is single-user, so `agents.avatar_url` stores
-a small `data:` URL directly; `identity_users.avatar_url` does the same for the
-person. The runtime write path is `PATCH /agents/:id/avatar` with
-`{ avatarUrl: string | null }`, which returns the updated agent.
 
 ## Rendering
 

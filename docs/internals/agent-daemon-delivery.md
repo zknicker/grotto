@@ -1,5 +1,5 @@
 ---
-summary: Grotto Computer Agent daemon lifecycle, structured delivery, cursor proofs, crash recovery, and invariant tests.
+summary: Grotto Computer Agent daemon lifecycle, structured delivery, exact visibility proofs, crash recovery, and invariant tests.
 read_when:
   - changing Computer Agent execution or AI SDK Harness session lifecycle
   - changing Server-to-Computer Agent delivery or busy notices
@@ -17,8 +17,8 @@ the Server and Computer implementation.
 
 ## Ownership
 
-- Server owns canonical Chats, messages, pending work, delivery state,
-  accepted/seen cursors, and the 16-turn Agent chain budget.
+- Server owns canonical Chats, messages, pending work, exact model visibility,
+  verified contiguous seen boundaries, and the 16-turn Agent chain budget.
 - Computer owns one isolated execution host per assigned Agent: workspace,
   HOME, skills, durable inbox acceptance, AI SDK Harness session state, and a
   resident loopback proxy.
@@ -39,7 +39,7 @@ Server queued work
   -> Agent-chosen local message check
   -> exact visibility receipt
   -> settled proof
-  -> Server seen cursor + consumption
+  -> Server exact seen evidence + consumption
 ```
 
 Each queued row carries that lifecycle as durable state:
@@ -54,9 +54,10 @@ model-seen proof. An accepted run that loses its process before settlement is
 replayed at least once. Duplicate effects are preferable to silently dropping
 unseen human work.
 
-`seen` is the only consumption authority. A CLI pull serves Computer-local
-bodies first, attaches exact identities to that run, and advances `served` for
-freshness holds. Settlement advances `seen` for exact pulled identities and
+Settled exact visibility is the only consumption authority. A CLI pull serves Computer-local
+bodies first, attaches exact identities to that run, and records those identities for
+same-run freshness. Settlement marks exact pulled identities seen, including history messages
+that never had pending rows, and
 for concrete typed-attention or replay identities proven visible in that turn,
 so already-handled work does not start a redundant turn. If the process crashes
 first, the attached rows remain durable under the unsettled run and replay with
@@ -69,7 +70,7 @@ Settlement retires rows into a ledger instead of deleting them: a settled row
 becomes `state = 'seen'` with `settled_run_id` set to the consuming run. A turn
 that read a message and answered nothing is only provable from a retained row,
 so `agent_pending_work` is the durable evidence behind `agent.deliveries`. Rows
-the seen cursor subsumes are also marked `seen`, but no turn settled them, so
+the verified contiguous boundary subsumes are also marked `seen`, but no turn settled them, so
 their `settled_run_id` stays null.
 
 Retention must not slow the live path, so every dispatch, count, and queue read
@@ -85,7 +86,9 @@ accumulates outside every index the live queue touches.
 Server sends structured inbox rows, never a preformatted model prompt.
 Computer renders the exact target, short message id, home-timezone timestamp,
 sender type, sender handle, optional sender description, and body defined by
-the turn-shape spec.
+the turn-shape spec. Server also preserves whether this Agent was personally
+mentioned as immutable per-recipient attention metadata; delivery suppression and model
+visibility do not infer from that flag.
 
 A fresh session uses its initial content-free notice as the first prompt;
 `Start.` is used only when no delivery is pending. A reset recovery line
@@ -119,17 +122,21 @@ Computer replay. It is intentionally absent from Chat cursor accounting. Its
 owning Server record prevents recreation after settlement; the Computer still
 replays the same run id until its durable marker is settled.
 
-Task messages use the same inbox path as ordinary messages and carry their
-canonical task number, state, priority, and assignee metadata. A mention may
-pierce a Channel mute or explicit Thread unfollow exactly once. That pierce is
-stored separately from the ordinary Chat cursor, so direct attention neither
-unmutes the Channel nor re-follows the Thread. Muting or unfollowing purges
-already-queued ordinary work for that attention scope.
+Task messages use the same exact inbox path as ordinary messages and carry their
+canonical task number, state, priority, and assignee metadata. A mention may bypass a Channel mute
+without unmuting it. A direct Thread mention restores an explicit unfollow; the recipient's pending
+row persists the `threadFollowReactivated` effect so Computer can repeat the restoration notice and
+exact unfollow command on replay without changing canonical Chat content. Muting or unfollowing purges already-queued
+ambient work on that exact target while preserving personal mentions, assigned tasks, and reminder
+receipts by their canonical domain relationships. Muting a parent Channel does not purge or suppress
+ordinary work from its followed Threads.
 
-An Agent-created peer assignment is direct attention without a synthetic
-receipt message. The Server creates the canonical task message once, reserves
+An Agent-created peer assignment creates the canonical task message once, reserves
 its single ownership slot for the peer, follows the deterministic task Thread
-for that peer, and enqueues a pierced delivery for only that Agent.
+for that peer, and enqueues that exact task for the assigned Agent even when ambient Channel
+delivery is muted. A separate assignee-only system receipt points the Agent back to that canonical
+task and carries the personal-attention signal without creating a second task. Neither system needs
+a generic delivery-bypass flag.
 
 ## Long-Horizon Continuity
 
@@ -216,18 +223,18 @@ message and its composition id.
 | One concurrent turn per Agent | `apps/computer/src/delivery.test.ts` |
 | Server resends accepted in-flight work after reconnect | `apps/server/test/agent-delivery.test.ts` |
 | Busy pull settles with its active run; unsettled pull replays | `apps/server/test/agent-delivery.test.ts` |
-| `served` cannot consume without `seen` | `apps/server/test/agent-delivery.test.ts` |
-| Settled and cursor-subsumed rows are retained as `seen` ledger evidence | `apps/server/test/agent-delivery.test.ts` |
+| Exact exposure cannot consume without settled `seen` | `apps/server/test/agent-delivery.test.ts` |
+| Settled and verified-boundary-subsumed rows are retained as `seen` ledger evidence | `apps/server/test/agent-delivery.test.ts` |
 | `agent.turns` and `agent.deliveries` are member-scoped and deny as `NOT_FOUND` | `apps/server/test/grotto-agent-observability.test.ts` |
 | Chain ceiling preserves rows and human input releases it | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
 | `As Task` enters the inbox with canonical task metadata | `apps/server/test/grotto-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
 | Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/grotto-agent-run.test.ts` |
-| Mute/unfollow purge ordinary work; mentions pierce without changing attention state | `apps/server/test/grotto-agent-run.test.ts` |
+| Mute purges ordinary work without blocking personal mentions; a Thread mention restores an unfollow | `apps/server/test/grotto-agent-run.test.ts` |
 | Freshness validation and Agent send commit share one Server lock | `apps/server/test/grotto-agent-run.test.ts` |
 | Human and Agent claims share one ownership lock | `apps/server/test/grotto-agent-run.test.ts` |
-| Agent peer assignment is idempotent, follows its Thread, and wakes only the peer | `apps/server/test/grotto-agent-run.test.ts` |
+| Agent peer assignment is idempotent and delivers the exact canonical task identity to a muted peer | `apps/server/test/grotto-agent-run.test.ts` |
 | Agent retirement releases task ownership and emits durable updates | `apps/server/test/grotto-agents.test.ts` |
 
 These tests are protocol guards. Live Raft-versus-Grotto behavioral scenarios

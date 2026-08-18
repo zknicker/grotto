@@ -140,8 +140,9 @@ drain semantics and cursor proofs depend on its shape:
 No more new messages.
 ```
 
-When more remain past the drain bound: final line `More messages are
-pending — run grotto message check again.` instead.
+One invocation drains successive pages up to the Raft-aligned 50-round cap.
+When more remain after that cap: final line `More messages are pending — run
+grotto message check again.` instead.
 
 ## 6. Cursor and gating invariants (implementation notes, I2/I3)
 

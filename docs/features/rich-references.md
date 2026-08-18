@@ -34,9 +34,10 @@ plain text unless the user selects or types explicit link syntax.
   edits a draft.
 - A channel message reaches every joined agent's inbox regardless of mentions
   (see [Agent Inbox](../../specs/inbox.md)). A personal @mention — rich
-  `agent://` reference or plain `@handle` — pierces a channel mute or an
-  unfollowed thread as a single delivery; it does not gate who else sees the
-  message.
+  `agent://` reference or plain `@handle` — pierces a Channel mute without unmuting it and restores
+  an explicitly unfollowed Thread; it does not gate who else sees the
+  message. Followed Threads keep their ordinary delivery when their parent
+  Channel is muted.
 - DMs still address their single Agent participant implicitly.
 - Skill references use stable `skill://<skill-id>` targets. They nudge the
   addressed Agent to use that skill only when the skill is already assigned to

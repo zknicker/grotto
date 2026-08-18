@@ -1,8 +1,8 @@
 ---
-summary: Agent inbox — delivery planning, the two-cursor ledger, notice turns, and local-first pulls. Supersedes steering.md and addressing.md.
+summary: Agent inbox — exact delivery planning, model-visibility accounting, notice turns, and local-first pulls. Supersedes steering.md and addressing.md.
 read_when:
   - changing which agents wake for a chat message, mute/follow semantics, or mention piercing
-  - changing delivered/seen cursors, freshness catch-up, or pull acknowledgement
+  - changing exact model visibility, freshness catch-up, or pull acknowledgement
   - changing mid-turn notices, drain batching, or chain limits
   - changing Agent status surfaces derived from inbox delivery
 ---
@@ -10,8 +10,8 @@ read_when:
 # Agent Inbox
 
 How messages reach agents after the flip (ADR 0014): a delivery planner
-queues per attention rules, notice turns preserve Agent pull discretion, and the
-two-cursor ledger is the only truth about what an agent has seen. Decisions
+queues per attention rules, notice turns preserve Agent pull discretion, and exact
+visibility plus a verified contiguous boundary are the only truth about what an agent has seen. Decisions
 I1–I4 in [raft-alignment/README.md](raft-alignment/README.md); wire surface in
 [grotto-cli.md](grotto-cli.md).
 
@@ -23,32 +23,32 @@ A durable `message.created` is planned once by Server delivery
 - Ordinary delivery reaches joined channels, followed threads, and DMs.
   The author never receives their own message.
 - A channel mute (`agent_channel_mutes`, agent-owned via `grotto channel
-  mute`) suppresses the channel and its threads; thread follow records
-  survive a mute.
-- Personal @mentions (rich reference or plain `@handle`) pierce mutes and
-  unfollows as single messages (`agent_inbox_pierces`) that do not
-  re-follow and never move the muted target's `delivered` cursor.
+  mute`) suppresses ordinary delivery from that channel itself. Followed
+  threads keep delivering independently, so the Agent unfollows a specific
+  thread to stop its ordinary delivery.
+- Personal @mentions (rich reference or plain `@handle`) bypass Channel mutes without unmuting the
+  Channel. In a Thread, a direct mention restores an explicit unfollow and the recipient's exact
+  pending delivery carries that replay-safe restoration fact.
+- Mention identity is resolved once when delivery is planned and persists independently from
+  suppression. An ordinarily delivered mention still tells only the named Agent `you were mentioned`;
+  other eligible Channel participants retain ambient visibility without that attention flag.
+- A direct task assignment to another Agent keeps the canonical task message as ordinary work and
+  adds a separate Server-authored task assignment receipt to only the assignee's pending set. That
+  receipt is `mentioned=true`, so it is actionable even through a mute, and is visible in Agent
+  history/inbox envelopes while remaining filtered from the human App transcript, search, and unread
+  counts.
 - After planning, an idle agent gets a notice turn; a busy agent receives the
   same notice in its live turn. Humans keep their own read/unread system; the inbox
   is agent-only state.
 
-## Two-cursor ledger (I3)
+## Visibility ledger (I3)
 
-Per (session, target) in `agent_inbox_cursors`:
-
-- `delivered` — transport state: what the inbox has queued. Muted targets
-  never advance it.
-- `seen` — the sole model-seen authority for freshness holds and catch-up.
-  Advances only on proof: concrete typed system attention when the turn settles;
-  exact pull outputs recorded against the active turn
-  (observed as served-cursor movement between turn start and settle); hold
-  catch-up rows when shown. Notices and wakes advance nothing, ever.
-
-`served` (`agent_session_served_cursors`) remains the hold-decision assist
-(ruling W1a): pulls advance it immediately so a pull-then-send never
-spuriously holds. A turn that pulled and died leaves `served > seen`;
-catch-up re-delivers from `seen` — duplicate envelopes after crashes are by
-design. Session resets start fresh cursor horizons.
+Transport debt is the exact queued set in `agent_pending_work`; delivery never advances a scalar
+high-water mark. Model visibility is recorded in `agent_inbox_exact_visibility` as exact message
+identities tied to the active run. Freshness treats an identity as visible when it settled in this
+session generation or was served to the current run. A verified contiguous boundary in
+`agent_inbox_cursors` is only an optional compaction/baseline; exact identities beyond it never
+consume the gaps between them. Notices and wakes advance nothing, ever.
 
 ## Notice turns and system attention (I1)
 
@@ -88,15 +88,16 @@ injection, and identity consumption share one serialized boundary, so a stale
 notice cannot reintroduce work that the current run or a tool result already
 showed. The Computer retains those identities for the session generation
 because a notice is only a bounded pending window; session reset clears them.
-This is runner-local projection state; Server cursors remain the canonical
-delivery and seen ledger.
+This is runner-local projection state; Server exact pending and visibility rows remain canonical.
 
 ## Pulls
 
 `grotto message check` serves Computer-local pending envelopes first and falls
-through to Server only when that local cache is empty. Exact local identities
-are durably recorded for the active turn, best-effort attested immediately to
-advance `served`, and carried again in the turn summary so settlement remains
+through to Server only when that local cache is empty. A single invocation
+drains successive pages (up to 50 rounds) before reporting that more messages
+remain. Exact local identities
+are durably recorded for the active turn, best-effort attested immediately as
+exact run visibility, and carried again in the turn summary so settlement remains
 sound across Server outages. Computer removes only those exact identities from
 its notice projection. Server advances `seen` only at settlement; a pull then
 crash/no-output clears stale local visibility evidence and re-exposes the
@@ -114,12 +115,12 @@ Server queues canonical work
   -> Computer durably caches the full envelope
   -> Agent sees a content-free notice
   -> Agent chooses whether to pull
-  -> pull returns exact bodies and advances served
+  -> pull returns exact bodies and records exact run visibility
   -> turn settlement advances seen for proven-visible identities
 ```
 
 The boundaries matter: transport acceptance is not model visibility; a notice
-is not a request; `served` is not consumption; and only `seen` removes ordinary
+is not a request; exact exposure is not settled consumption; and only settled `seen` removes ordinary
 work from catch-up. An unpulled row remains pending without immediately waking
 the Agent again. A pull followed by a crash replays from canonical Server state.
 

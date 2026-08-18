@@ -36,7 +36,7 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
 
 ## Cursors
 
-The two-cursor ledger (`delivered` + `seen` per (session, target)) is
+The exact-visibility ledger plus a verified contiguous seen boundary per (session, target) is
 specified in [inbox.md](inbox.md). `seen` is the sole model-seen authority;
 the freshness gate lives on the CLI send path exactly once
 ([grotto-cli.md](grotto-cli.md) §6).

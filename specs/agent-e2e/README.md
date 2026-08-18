@@ -74,9 +74,10 @@ Status values:
 | A2 | An explicit no-response FYI in a Channel produces no Agent message. | `test:agents fyi-silence-channel` | passing |
 | A3 | An explicit no-response FYI in a DM produces no Agent message. | `test:agents fyi-silence-dm` | passing |
 | A4 | An ordinary DM receives one concise answer without routine narration. | `test:agents dm-single-concise-reply` | passing |
-| A5 | Muting or unfollowing suppresses ordinary work while a later direct mention can wake the Agent once. | `test:agents mute-on-request` + deterministic attention | passing |
+| A5 | Muting a Channel suppresses ordinary work while a direct mention still reaches the Agent. | `test:agents mute-on-request` + deterministic attention | passing |
 | A6 | A Thread delivery is answered in that exact Thread rather than its parent Chat. | `test:agents thread-reply-stays-in-thread` | passing |
 | A7 | Agent-authored handoff targets the intended Chat or member and wakes the recipient. | `test:agents peer-handoff` + deterministic authorization | passing |
+| A8 | After an explicit Thread unfollow, a direct mention restores the follow and later ordinary Thread work is delivered again. | `test:agents thread-refollow-on-mention` + deterministic attention | passing |
 
 ### Tranche 3 — Task ownership and work lifecycle
 

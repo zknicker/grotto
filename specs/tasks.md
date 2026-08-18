@@ -17,8 +17,10 @@ Server tenant. `chat_messages.task` and task-list reads project the same row.
 
 Only top-level Channel or DM messages can be promoted. Promotion is idempotent by canonical
 message identity. Atomic create uses the message nonce for replay and creates the message, task,
-Thread, and durable events in one transaction. Creation and promotion do not append a separate
-system message; the canonical task message and deterministic Thread remain the work surface.
+Thread, and durable events in one transaction. Creation and promotion do not append a user-visible
+state-change message; the canonical task message and deterministic Thread remain the work surface.
+A direct Agent-to-Agent assignment additionally writes a private `task` system message, routed only
+to the assigned Agent's inbox and filtered from App Chat history/search and human unread counts.
 
 ## Authority and concurrency
 

@@ -54,6 +54,12 @@ Promote reusable chat, Agent, task, reminder, or stats code to its matching
 capability. Avoid generic `shared`, `common`, `helpers`, and `misc` buckets when
 a product owner exists. Prefer short names scoped by folders.
 
+Presentation contracts belong to the App capability that renders them. Server
+adapters project first-party `@tavern/api` results into those contracts at the
+feature boundary. App components and presentation helpers must not import a
+Server router or transport-specific response type merely to share a row, actor,
+composer, or drawer model.
+
 ## Routes
 
 ### Loading and navigation
@@ -78,11 +84,9 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   loaders between router navigation and preloading. The persistent shell warms
   them while idle; rail hover warms the destination before selection.
 * Treat empty synced database results as valid rendered states.
-* Keep hosted Server routes structurally separate from local Runtime providers;
-  do not suppress local requests after those providers have mounted.
-* Keep `/s/*` in the hosted route-tree branch. It may mount hosted tRPC and
-  Server hooks, but not local command menus, Runtime gates, sidecar hooks, or
-  Electron IPC.
+* Keep `/s/*` on the Grotto Server route tree. It may mount Server hooks and
+  Computer-backed capability surfaces, but it must not invent direct execution
+  runtime routing or use Electron IPC for product data.
 
 ## Shell
 

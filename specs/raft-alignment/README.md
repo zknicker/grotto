@@ -300,7 +300,8 @@ inbox. Human **Start** resumes the current session and drains that work.
   metadata (`[task #N status=…]` envelope suffix); the message's thread is the work surface;
   claim-before-work is the concurrency lock; statuses `todo → in_progress → in_review → done`
   (+ reversible `closed`); assignee independent of status. Pull replaces push dispatch: assigned
-  creation sends a piercing mention → agent wakes → claims → works (chain budgets govern).
+  creation sends the canonical task plus an assignee-only system receipt → agent wakes → claims →
+  works (chain budgets govern).
   **Priority and label metadata plus the board view are in scope and ship with the tasks
   workstream** — as lenses over task-messages, never a second store. Dropped: epics, dependency
   edges, `scheduledFor` (a reminder anchored on the task message covers it), attachment
@@ -346,8 +347,8 @@ inbox. Human **Start** resumes the current session and drains that work.
   separate thread list in v1. Task threads use the same panel — D8's work surface.
 - **I1 — Inbox delivery replaces evaluation dispatch; turns float on the session.** Message
   lands → queued per attention rules (ordinary delivery: joined channels, followed threads,
-  DMs; mute suppresses a channel + its threads; @mentions and DMs pierce mutes/unfollows as
-  single messages that do not re-follow). The Server sends a canonical message envelope to the
+  DMs; mute suppresses the channel itself while followed threads remain active; @mentions and DMs pierce mutes, and a direct
+  Thread mention restores its recipient's follow). The Server sends a canonical message envelope to the
   Computer over its typed socket. The Computer accepts it into the Agent's local pending inbox
   and wakes or steers the Agent with a content-free target summary. `grotto message check`
   drains full pending bodies from that local inbox first and falls through to the Server only
@@ -376,18 +377,12 @@ inbox. Human **Start** resumes the current session and drains that work.
   the full socket-delivered envelope; content-free describes the runtime input, not the
   Computer transport. Notice flushing copies the daemon's gating: only at tool boundaries,
   never while compacting or with outstanding tool uses.
-- **I3 — Two durable cursors, model-seen authority** (re-derived from daemon source;
-  `cursorAuthority: "model_seen_only"` is Raft's own literal). Per (session, target):
-  `delivered` (inbox/transport state; muted targets never advance it) and `seen` (sole
-  authority for freshness holds and catch-up). `seen` advances only on proof: prompt-embedded
-  envelopes and exact CLI pull identities → turn settle. Pulls advance Grotto's durable
-  `served` horizon immediately so a pull-then-send does not spuriously hold; `served` never
-  replaces `seen` for catch-up or consumption. This settlement requirement is Grotto's stricter
-  proof contract; current Raft Computer behavior is observable, but Raft Server cursor
-  reconciliation is not. Notices and
-  wakes advance nothing, ever (their wake proofs stamp `cursorImpact: {deliveryAck: false,
-  modelSeen: false, read: false}` — adopted as a contract test). A turn that pulled and died
-  leaves `served > seen`; catch-up re-delivers from `seen`.
+- **I3 — Exact model visibility plus a verified contiguous boundary.** Server pending rows are
+  exact transport debt. Every path that exposes a message to the model records its exact identity
+  for the active run; settlement makes that visibility authoritative for later turns. An optional
+  per-target contiguous boundary advances only for a proven complete range, never for one sparse
+  message beyond an unseen gap. Notices and wakes advance nothing. This matches Raft Computer's
+  observable boundary-plus-exact-ID semantics without claiming Raft Server's private schema.
 - **W1 — WS1 wire-contract gate rulings (2026-07-21; managed transport corrected
   2026-07-25 against `raft-computer` 1.0.13).** (a) Freshness-hold drafts are
   **server-held** — approved divergence from shipped Raft's client-local tmpdir drafts (found in
@@ -479,7 +474,7 @@ section; `## Chat History` tool teaching; all prompt-taught tool catalogs.
 | Identity/roster/description | Not pushed; `server info` / `channel info` pulls (D6) |
 | Current time | Envelope timestamps only; home-timezone rule lives in the prompt |
 | Freshness | Attested sends: bounded catch-up + revise / `--send-draft` / silent / `--anyway` paths. Drafts are held **server-side** — a decided divergence: shipped Raft parks drafts client-side (tmpdir, 10-min TTL, client-supplied cursors) on an API its own manifest calls interim |
-| Cursors | Two per (session, target): `delivered` + `seen` (model-seen authority, proof-based advancement per I3); notices and wakes advance nothing |
+| Visibility | Exact model-visible identities plus an optional verified contiguous boundary per I3; notices and wakes advance nothing |
 
 ## 3. Grotto agent CLI
 
@@ -592,7 +587,7 @@ wake gated on `delivered > seen`.
 Rewritten or retired by this program (each within the workstream that lands the change; until
 then they describe the pre-Raft system): `specs/tasks.md` (superseded by D8), `specs/cron.md`
 (D4), `specs/memories.md` + memory specs (D3), Wiki specs (D3b), `specs/steering.md` (I2 —
-notices replace body pushes), `specs/sessions.md` (I1/I3 — floating turns, two-cursor ledger;
+notices replace body pushes), `specs/sessions.md` (I1/I3 — floating turns, exact visibility ledger;
 global-session core survives), the retired Runtime CLI and skill specs, ADR 0011 (amended by I1),
 prompt contract + snapshots (WS2). New ADRs accompany each landing per `docs/adr/` convention.
 
@@ -633,9 +628,9 @@ deployment, so intermediate brokenness is not a constraint.
   pointers, follows per participant), immutability posture per T2, side-panel UI + badges +
   rail rollup per T3, `thread unfollow`, auto-follow semantics, inline-reply retirement.
   Unblocks full target grammar and D8's work surfaces.
-- **WS4 — Agent inbox.** Delivery planner + attention rules per I1 (mute/unfollow stores,
-  piercing), content-free notice pipeline with tool-boundary flush gating per I2, two-cursor
-  ledger per I3 (`delivered`/`seen`, proof-based advancement, wake-advances-nothing contract
+- **WS4 — Agent inbox.** Delivery planner + attention rules per I1 (Channel mute bypass and Thread
+  follow restoration), content-free notice pipeline with tool-boundary flush gating per I2, exact
+  visibility ledger per I3 (exact identities plus a verified contiguous boundary, wake-advances-nothing contract
   test), `inbox check` + `message check` — **replacing WS1's honest stubs** (grotto-cli.md §7
   marks them; their outputs teach that cursor semantics arrive with WS4) — read-only inbox card
   on agent detail per I4; retire pushed "Unread elsewhere". Security note riding the program:

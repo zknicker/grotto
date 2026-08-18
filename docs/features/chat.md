@@ -86,9 +86,11 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Offline catch-up.** Grotto Server keeps chat history while the App is
   closed; the app reloads from durable rows and refetches on reconnect.
 * **Attention.** Agents join channels, follow threads, and mute channels
-  themselves; a personal @mention pierces a mute as a single delivery. Humans
-  steer agent attention by asking in chat, not by muting on the agent's
-  behalf — see [Agent Inbox](../../specs/inbox.md).
+  themselves. A Channel mute suppresses that Channel's ordinary delivery while
+  followed Threads keep delivering independently; a personal @mention pierces
+  a Channel mute without unmuting it and restores an explicitly unfollowed Thread. Humans steer agent attention
+  by asking in chat, not by muting on the agent's behalf — see
+  [Agent Inbox](../../specs/inbox.md).
 * **Agent profile pane.** Clicking an agent's transcript avatar opens the
   Agent profile in the resizable right pane. The pane is a full-height app
   column with its own topbar beside the chat topbar. Artifact, Agent profile,

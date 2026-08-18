@@ -164,7 +164,7 @@ are the enforced dead list.
 | thread target grammar | `` `#general:00000000` (thread in #general) `` | full |
 | reply in same thread target | `**always reply using that same target**` | full |
 | thread auto-creation | `The thread will be auto-created` | full |
-| unfollow discipline | `do not unfollow solely to mute the parent channel` | full |
+| unfollow discipline | `a parent channel mute does not suppress ordinary delivery from threads you follow` | full |
 | no thread nesting | `Threads cannot be nested` | full |
 
 ### Discovery, channels, history

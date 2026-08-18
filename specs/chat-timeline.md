@@ -11,7 +11,8 @@ rows at all.
 
 - A chat reads like a conversation between participants. Humans and agents
   contribute messages; Server-authored system receipts such as session resets render as quiet
-  centered lines; nothing else appears as a timeline unit.
+  centered lines; private task assignment receipts are Agent-inbox messages and never appear in
+  the App timeline.
 - An agent message is an explicit send, immutable once committed. There are
   no edits, no streamed replacements, no silent-turn placeholders.
 

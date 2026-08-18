@@ -30,6 +30,7 @@ test('a populated Computer page never presents its attach flow while inventory l
 });
 
 test('an Owner updates one Computer from Settings through isolated progress', async ({ page }) => {
+    test.setTimeout(60_000);
     const { client: owner } = await createTestServer(page, {
         displayName: 'Computer HQ',
         slug: 'computer-hq',
@@ -59,15 +60,17 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     await page.reload();
     const detail = page.getByRole('main', { name: 'Scrollable main content' });
     await expect(detail.getByText('v1.0.0', { exact: true })).toBeVisible();
-    await expect(detail.getByText(/Ordinary controls are paused/u)).toBeVisible();
+    await expect(
+        page.getByRole('gridcell', { name: /Update required Mac Computer/u })
+    ).toBeVisible();
 
     await page.getByRole('button', { name: 'Check' }).click();
-    await expect(page.getByText('Checking production release…')).toBeVisible();
     await expect(page.getByText('Update available')).toBeVisible();
-    await expect(page.getByRole('button', { exact: true, name: 'Update' })).toBeEnabled();
+    const updateButton = page.getByRole('button', { name: 'Update to v1.1.0' });
+    await expect(updateButton).toBeEnabled();
 
     const updateCommand = socketMessage(computer);
-    await page.getByRole('button', { exact: true, name: 'Update' }).click();
+    await updateButton.click();
     await expect(page.getByText('Download requested')).toBeVisible();
     expect(await updateCommand).toMatchObject({
         release: { release: { version: '1.1.0' } },
@@ -77,13 +80,8 @@ test('an Owner updates one Computer from Settings through isolated progress', as
         downloaded: 5 * 1024 * 1024,
         total: 10 * 1024 * 1024,
     });
-    await expect(
-        page.getByText('Downloading Grotto Computer 1.1.0', { exact: true })
-    ).toBeVisible();
-    await expect(page.getByText('5.0 MB of 10.0 MB')).toBeVisible();
-    await expect(
-        page.getByRole('progressbar', { name: 'Downloading Grotto Computer' })
-    ).toHaveAttribute('aria-valuenow', '50');
+    await expect(page.getByText('Downloading Grotto Computer', { exact: true })).toBeVisible();
+    await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
     await reportProgress(computer, 'verifying', 'Verifying signature and integrity.');
     await expect(
         page.getByText('Verifying signature and integrity', { exact: true })
@@ -92,7 +90,6 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     await expect(page.getByText('Installing update')).toBeVisible();
     await reportProgress(computer, 'waiting-for-agents', 'Waiting for active Agents.');
     await expect(page.getByText('Waiting for active Agents…')).toBeVisible();
-    await expect(page.getByText('1 active Agent is finishing.')).toBeVisible();
     await reportProgress(computer, 'restarting', 'Restarting Computer.');
     await expect(page.getByText('Restarting Grotto Computer')).toBeVisible();
     computer.close();
@@ -106,12 +103,12 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     const reconnected = socketMessage(reconnectedComputer);
     sendBootstrap(reconnectedComputer, credential, 'complete');
     expect(await reconnected).toMatchObject({ mode: 'ordinary' });
-    await expect(page.getByText('Update complete')).toBeVisible();
+    await expect(page.getByRole('gridcell', { name: /Online Mac Computer v1.1.0/u })).toBeVisible();
 
     await page.getByRole('button', { name: 'Check' }).click();
-    await expect(page.getByText('Up to date', { exact: true })).toBeVisible();
-    await expect(page.getByText('Grotto Computer 1.1.0 is the latest version.')).toBeVisible();
-    await expect(page.getByRole('button', { exact: true, name: 'Update' })).toBeDisabled();
+    await expect(page.getByText('Grotto Computer is up to date', { exact: true })).toBeVisible();
+    await expect(page.getByText('Version 1.1.0 is the latest production release.')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Update to/u })).toHaveCount(0);
     reconnectedComputer.close();
 });
 

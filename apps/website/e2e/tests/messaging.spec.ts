@@ -183,7 +183,7 @@ test('an Agent-authored artifact fence in a Thread opens the chat Artifact Pane'
     await openChannel(page, 'all');
     await page.setViewportSize({ height: 720, width: 800 });
 
-    await page.getByRole('button', { name: /^1 reply/u }).click();
+    await page.getByRole('button', { name: 'Open thread, 1 reply' }).click();
 
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expect(thread).toBeVisible();
@@ -198,7 +198,7 @@ test('an Agent-authored artifact fence in a Thread opens the chat Artifact Pane'
     await expect(artifacts.getByText('Unable to browse this workspace.')).toBeVisible();
 
     await artifacts.getByRole('button', { name: 'Hide artifacts' }).click();
-    await page.getByRole('button', { name: '1 reply' }).click();
+    await page.getByRole('button', { name: 'Open thread, 1 reply' }).click();
     await expect(thread.getByRole('textbox', { name: /Message Thread/u })).toHaveText(
         'Preserved draft'
     );

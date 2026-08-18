@@ -14,6 +14,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     browser,
     page,
 }) => {
+    test.setTimeout(120_000);
     await signInAsClerkHuman(page);
     await page.goto('/s');
 

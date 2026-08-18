@@ -25,6 +25,7 @@ export const agentInboxItemSchema = z
         sequence: z.number().int().positive(),
         task: messageTaskSchema.optional(),
         target: z.string().trim().min(1).max(200),
+        threadFollowReactivated: z.boolean().optional(),
     })
     .strict();
 

@@ -76,6 +76,7 @@ export interface AgentInboxItem {
         priority: 'high' | 'low' | 'medium' | 'none' | 'urgent';
         status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
     };
+    threadFollowReactivated?: boolean;
 }
 
 /** Server→Computer command to terminate the named in-flight run. */
@@ -545,6 +546,8 @@ function parseInbox(value: unknown): AgentInboxItem[] | null {
                 (item.senderDescription === undefined ||
                     typeof item.senderDescription === 'string') &&
                 (item.message === undefined || isRecord(item.message)) &&
+                (item.threadFollowReactivated === undefined ||
+                    typeof item.threadFollowReactivated === 'boolean') &&
                 ['agent', 'human', 'system'].includes(item.senderType as string)
             ) ||
             typeof item.sequence !== 'number' ||

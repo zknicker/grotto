@@ -1,7 +1,27 @@
-import type { ChatToolOutput, SessionToolOutput } from '../../../lib/trpc.tsx';
 import { parseToolRecord } from './tool-detail-value.ts';
 
-export type ToolDrawerDetails = ChatToolOutput | SessionToolOutput;
+export interface ToolDrawerDetails {
+    actions: Array<{
+        kind: string;
+        label?: string;
+        sessionKey: string;
+        subtitle?: string | null;
+        title: string;
+        tone?: 'amber' | 'neutral' | 'sky';
+    }>;
+    arguments: unknown;
+    completedAt: string | null;
+    result: unknown;
+    startedAt: string | null;
+    toolCall: {
+        callId: string | null;
+        facts: Array<{ label: string; tone: 'danger' | 'default' | 'success'; value: string }>;
+        label: string | null;
+        name: string;
+        status: string | null;
+        summaryParts: string[];
+    };
+}
 
 /** Normalized tool call data shared by every drawer body renderer. */
 export interface ToolDrawerCall {

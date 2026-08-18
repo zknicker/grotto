@@ -244,10 +244,11 @@ export async function sendChatMessage(
                 chatId: writeChatId,
                 content: input.content,
                 dedupeKey: message.id,
-                pierced: recipient.pierced,
+                mentioned: recipient.mentioned,
                 sequence: message.sequence,
                 serverId: input.serverId,
                 source: 'human',
+                threadFollowReactivated: recipient.threadFollowReactivated,
             });
         }
 

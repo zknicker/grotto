@@ -93,7 +93,13 @@ export const agentSendResponseSchema: z.ZodType<TavernAgentSendResponse> = z.dis
 );
 
 export const agentMessageCheckResponseSchema = z.object({
-    messages: z.array(z.object({ message: agentMessageSchema, target: z.string().min(1) })),
+    messages: z.array(
+        z.object({
+            message: agentMessageSchema,
+            target: z.string().min(1),
+            threadFollowReactivated: z.boolean().optional(),
+        })
+    ),
     more: z.boolean(),
 });
 
@@ -128,6 +134,7 @@ export const agentHistoryResponseSchema = z.object({
     last_read: z.object({ after: z.number().int().nonnegative(), unread_after: z.number().int() }),
     messages: z.array(agentMessageSchema),
     target: z.string().min(1),
+    thread_follow_reactivated_message_ids: z.array(z.string().min(1)).default([]),
 });
 
 const directoryPersonSchema = z.object({

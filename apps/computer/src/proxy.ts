@@ -269,7 +269,11 @@ async function localAgentEvents(location: AgentInboxLocation) {
     const selected = visible.slice(0, 40);
     return {
         identities: selected.map(({ message }) => identity(message)),
-        messages: selected.map(({ item, message }) => ({ message, target: item.target })),
+        messages: selected.map(({ item, message }) => ({
+            message,
+            target: item.target,
+            ...(item.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
+        })),
         more: pending.totalPending > selected.length,
     };
 }

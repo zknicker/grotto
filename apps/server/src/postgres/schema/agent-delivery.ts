@@ -90,11 +90,12 @@ export const agentPendingWorkTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         dedupeKey: text('dedupe_key').notNull(),
         id: text('id').primaryKey(),
+        /** Whether this Agent was personally named when the immutable message was planned. */
+        mentioned: boolean('mentioned').notNull().default(false),
         /** The Agent turn that was offered this identity without exposing its body. */
         noticeRunId: text('notice_run_id'),
         /** The notice-only turn whose first prompt contained this identity. */
         startNoticeRunId: text('start_notice_run_id'),
-        pierced: boolean('pierced').notNull().default(false),
         runId: text('run_id'),
         /** When the model was shown this body. */
         seenAt: timestamp('seen_at', { withTimezone: true }),
@@ -109,6 +110,8 @@ export const agentPendingWorkTable = pgTable(
             .notNull()
             .default('queued')
             .$type<'queued' | 'accepted' | 'served' | 'seen'>(),
+        /** A direct Thread mention changed this recipient's explicit unfollow back to followed. */
+        threadFollowReactivated: boolean('thread_follow_reactivated').notNull().default(false),
     },
     (table) => [
         foreignKey({

@@ -1,6 +1,8 @@
-import type { SessionHistoryArtifactRowOutput } from '../../../../lib/trpc.tsx';
+import type { TranscriptSystemRow } from '../../../chats/transcript-contract.ts';
 
-export function ArtifactLogEntry({ entry }: { entry: SessionHistoryArtifactRowOutput }) {
+type ArtifactRow = Extract<TranscriptSystemRow, { systemKind: 'artifact' }>;
+
+export function ArtifactLogEntry({ entry }: { entry: ArtifactRow }) {
     const label = getArtifactLabel(entry.artifact);
 
     return (
@@ -13,7 +15,7 @@ export function ArtifactLogEntry({ entry }: { entry: SessionHistoryArtifactRowOu
     );
 }
 
-function getArtifactLabel(entry: SessionHistoryArtifactRowOutput['artifact']) {
+function getArtifactLabel(entry: ArtifactRow['artifact']) {
     const payload =
         entry.payload && typeof entry.payload === 'object' && !Array.isArray(entry.payload)
             ? (entry.payload as Record<string, unknown>)

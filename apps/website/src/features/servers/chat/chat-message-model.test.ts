@@ -97,6 +97,20 @@ test('preserves one global Agent run identity when messages come from multiple C
     ).toEqual([runId, runId]);
 });
 
+test('keeps private task assignment receipts out of the App transcript', () => {
+    const taskReceipt: ChatMessage = {
+        ...message('message_assignment_receipt', 2),
+        author: { kind: 'system', system: 'task' },
+        content: '📌 Assigned @scout to task #3 "Audit the release notes."',
+        sequence: 2,
+    };
+
+    const rows = projectChatMessages([message('message_task', 1), taskReceipt], []);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.kind === 'message' ? rows[0].id : null).toBe('message_task');
+});
+
 function message(id: string, sequence: number): ChatMessage {
     return {
         attachments: [],

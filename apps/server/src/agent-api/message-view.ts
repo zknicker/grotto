@@ -20,7 +20,7 @@ export interface MessageRow {
     id: string;
     nonce: string;
     sequence: number;
-    systemAuthor: 'reminder' | 'session' | null;
+    systemAuthor: 'reminder' | 'session' | 'task' | null;
 }
 
 export const messageSelection = {
@@ -80,7 +80,8 @@ export async function toAgentMessages(
     return rows.map((row) => {
         const agent = row.authorAgentId ? agentById.get(row.authorAgentId) : undefined;
         const system = row.systemAuthor !== null;
-        const handle = agent?.handle ?? (system ? null : 'operator');
+        const handle =
+            agent?.handle ?? (row.systemAuthor === 'task' ? 'system' : system ? null : 'operator');
         const label = agent?.displayName ?? (system ? 'Grotto' : 'Operator');
         const task = tasksByMessage.get(row.id);
         const taskAssigneeAgent = task?.assigneeAgentId

@@ -1,7 +1,9 @@
 import { formatShortTime } from '../../../../lib/format.ts';
-import type { SessionHistoryAccessEventRowOutput } from '../../../../lib/trpc.tsx';
+import type { TranscriptSystemRow } from '../../../chats/transcript-contract.ts';
 
-export function AccessEventLogEntry({ entry }: { entry: SessionHistoryAccessEventRowOutput }) {
+type AccessEventRow = Extract<TranscriptSystemRow, { systemKind: 'accessEvent' }>;
+
+export function AccessEventLogEntry({ entry }: { entry: AccessEventRow }) {
     return (
         <div className="rounded-md border border-warning-soft bg-warning-soft px-3 py-1.5">
             <div className="flex items-center gap-2">

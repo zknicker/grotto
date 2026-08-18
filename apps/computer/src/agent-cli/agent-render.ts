@@ -1,5 +1,6 @@
 import type { TavernAgentSendResponse } from '@tavern/api';
 import type { z } from 'zod';
+import { formatThreadFollowRestoration } from '../inbox-format.ts';
 import type {
     AgentCliMessage,
     agentChannelMembersSchema,
@@ -29,11 +30,17 @@ export function renderSendResponse(target: string, response: AgentSendResponse):
 }
 
 export function renderHistory(response: AgentHistoryResponse): string {
+    const reactivated = new Set(response.thread_follow_reactivated_message_ids);
     const lines = [
         `## Message History for ${response.target} (${response.messages.length} messages)`,
         `Last read through seq ${response.last_read.after}; use --after ${response.last_read.unread_after} to see only unread messages.`,
         '',
-        ...response.messages.map(formatHistoryLine),
+        ...response.messages.flatMap((message) => [
+            ...(reactivated.has(message.id)
+                ? [formatThreadFollowRestoration(response.target)]
+                : []),
+            formatHistoryLine(message),
+        ]),
     ];
     const footer = historyFooter(response);
     if (footer) {

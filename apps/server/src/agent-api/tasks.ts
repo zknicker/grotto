@@ -4,6 +4,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
+import { insertSystemMessage } from '../chats/insert-system-message.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -18,6 +19,7 @@ import {
 } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { taskAssignmentReceiptContent } from '../tasks/task-assignment-receipt.ts';
 import { insertTaskEvent } from '../tasks/task-events.ts';
 import { agentOwnsTask, taskHasOtherOwnerForAgent } from '../tasks/task-ownership.ts';
 import { ensureThreadRecord } from '../threads/ensure-thread.ts';
@@ -172,6 +174,30 @@ export async function createAgentTasks(
                 message.id,
                 assigneeAgentId ?? runner.agentId
             );
+            let assignmentReceipt: {
+                content: string;
+                event: Extract<ServerDurableEvent, { type: 'message.created' }>;
+            } | null = null;
+            if (assigneeAgentId && assigneeAgentId !== runner.agentId) {
+                const content = taskAssignmentReceiptContent({
+                    assigneeHandle: await agentHandle(tx, {
+                        agentId: assigneeAgentId,
+                        serverId: runner.serverId,
+                    }),
+                    number: numberedChat.taskNumber,
+                    title: title.trim(),
+                });
+                assignmentReceipt = {
+                    content,
+                    event: await insertSystemMessage(tx, {
+                        chatId,
+                        content,
+                        nonce: `task-assignment:${message.id}`,
+                        serverId: runner.serverId,
+                        systemAuthor: 'task',
+                    }),
+                };
+            }
             const recipients = await planAgentMessageRecipients(tx, {
                 authorAgentId: runner.agentId,
                 chatId,
@@ -179,7 +205,11 @@ export async function createAgentTasks(
                 serverId: runner.serverId,
             });
             if (assigneeAgentId && assigneeAgentId !== runner.agentId) {
-                recipients.push({ agentId: assigneeAgentId, pierced: true });
+                recipients.push({
+                    agentId: assigneeAgentId,
+                    mentioned: false,
+                    threadFollowReactivated: false,
+                });
             }
             for (const recipient of dedupeRecipients(recipients)) {
                 await agentDelivery.enqueue(tx, {
@@ -187,12 +217,26 @@ export async function createAgentTasks(
                     chatId,
                     content: title.trim(),
                     dedupeKey: message.id,
-                    pierced: recipient.pierced,
+                    mentioned: recipient.mentioned,
                     sequence: message.sequence,
                     serverId: runner.serverId,
                     source: `agent:${await agentHandle(tx, runner)}`,
+                    threadFollowReactivated: recipient.threadFollowReactivated,
                 });
                 wakes.add(recipient.agentId);
+            }
+            if (assignmentReceipt && assigneeAgentId) {
+                await agentDelivery.enqueue(tx, {
+                    agentId: assigneeAgentId,
+                    chatId,
+                    content: assignmentReceipt.content,
+                    dedupeKey: assignmentReceipt.event.messageId,
+                    mentioned: true,
+                    sequence: assignmentReceipt.event.sequence,
+                    serverId: runner.serverId,
+                    source: 'system',
+                });
+                wakes.add(assigneeAgentId);
             }
             events.push(
                 await insertAgentMessageCreatedEvent(tx, {
@@ -206,7 +250,8 @@ export async function createAgentTasks(
                     messageId: message.id,
                     serverId: runner.serverId,
                     type: 'task.created',
-                })
+                }),
+                ...(assignmentReceipt ? [assignmentReceipt.event] : [])
             );
             const [task] = await tx
                 .select()
@@ -703,13 +748,25 @@ async function replayAgentTasks(
     );
 }
 
-function dedupeRecipients(recipients: Array<{ agentId: string; pierced: boolean }>) {
-    const byAgent = new Map<string, { agentId: string; pierced: boolean }>();
+function dedupeRecipients(
+    recipients: Array<{
+        agentId: string;
+        mentioned: boolean;
+        threadFollowReactivated: boolean;
+    }>
+) {
+    const byAgent = new Map<
+        string,
+        { agentId: string; mentioned: boolean; threadFollowReactivated: boolean }
+    >();
     for (const recipient of recipients) {
         const current = byAgent.get(recipient.agentId);
         byAgent.set(recipient.agentId, {
             agentId: recipient.agentId,
-            pierced: Boolean(current?.pierced || recipient.pierced),
+            mentioned: Boolean(current?.mentioned || recipient.mentioned),
+            threadFollowReactivated: Boolean(
+                current?.threadFollowReactivated || recipient.threadFollowReactivated
+            ),
         });
     }
     return [...byAgent.values()];

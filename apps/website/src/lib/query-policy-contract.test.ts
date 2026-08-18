@@ -21,15 +21,8 @@ const sourceRoot = join(import.meta.dir, '..');
  * riding the 30s default floor instead. Every entry states why.
  */
 const defaultFloorAllowlist: Record<string, string> = {
-    'features/auth/membership-gate.tsx':
-        'identity gate; deliberately refetches on window focus to catch revoked membership',
-    'features/chats/chat-turn-drawer.tsx': 'debug drawer; one-off inspection reads',
-    'hooks/connections/use-poll-model-provider-oauth.ts':
-        'interval-driven OAuth poll; refetchInterval bypasses staleness',
-    'hooks/pane/use-chat-pane-state.ts': 'pane-local presentation state',
     'hooks/servers/use-accept-invitation.ts':
         'invitation preview answers "is this token good right now"; mount refetch is correctness',
-    'hooks/skills/use-tool-setup.ts': 'settings one-off',
 };
 
 function listSourceFiles(dir: string): string[] {

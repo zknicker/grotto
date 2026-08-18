@@ -199,7 +199,6 @@ export function useChatTranscript({
                 chatId,
                 conversationLayout,
                 defaultOpenWorkGroups: false,
-                disableAgentHoverCard: true,
                 flashMessageId: null,
                 turnDetails: {
                     access: turnDetailsAccess,
@@ -245,7 +244,6 @@ export function useChatTranscript({
                 resolveActorProfile,
                 shouldAnimateItemEnter: () => false,
                 threadActionsEnabled: Boolean(onOpenThread),
-                turnEvidenceSource: 'embedded',
             }) satisfies TranscriptRenderContextValue,
         [
             agentsById,

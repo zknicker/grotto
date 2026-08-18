@@ -1,4 +1,6 @@
-import type { TaskLabelColor } from '../../lib/trpc.tsx';
+import type { TaskLabel } from '@tavern/api';
+
+export type TaskLabelColor = TaskLabel['color'];
 
 // The nine palette colors, in swatch order. Matches the runtime label color
 // enum so any catalog color resolves to a chip style below.

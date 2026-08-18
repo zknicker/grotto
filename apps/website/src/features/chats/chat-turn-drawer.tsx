@@ -1,13 +1,9 @@
 import { Badge, Drawer } from '@heroui/react';
-import { useDevMode } from '../../components/dev-mode-provider.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { useChatTurnPrompt } from '../../hooks/chats/use-chat-turn-prompt.ts';
 import { formatShortTime, formatTimestamp } from '../../lib/format.ts';
-import { trpc } from '../../lib/trpc.tsx';
 import { isActivityItem } from './chat-transcript-activity-utils.ts';
 import { groupAgentItems } from './chat-transcript-item-utils.ts';
 import {
-    getItemRunId,
     getItemTimestamp,
     type TranscriptItem,
     type TranscriptTurnEntry,
@@ -55,7 +51,6 @@ export function ChatTurnDrawer({
                             <ChatTurnItems
                                 chatId={chatId}
                                 items={entry?.items ?? []}
-                                showPromptEvidence={false}
                                 turnActive={turnActive}
                                 turnStartedAt={entry?.timestamp ?? null}
                             />
@@ -124,17 +119,10 @@ export function ChatTurnBody({
     entry: TranscriptTurnEntry | null;
     turnActive?: boolean;
 }) {
-    const evidenceItems = useTurnEvidenceItems({
-        chatId: chatId ?? null,
-        responseId: entry?.responseId ?? null,
-        turnActive,
-    });
-    const items = mergeTurnItems(evidenceItems, entry?.items ?? []);
-
     return (
         <ChatTurnItems
             chatId={chatId}
-            items={items}
+            items={entry?.items ?? []}
             turnActive={turnActive}
             turnStartedAt={entry?.timestamp ?? null}
         />
@@ -146,17 +134,14 @@ export function ChatTurnBody({
 export function ChatTurnItems({
     chatId,
     items,
-    showPromptEvidence = true,
     turnActive = false,
     turnStartedAt = null,
 }: {
     chatId?: string;
     items: readonly TranscriptItem[];
-    showPromptEvidence?: boolean;
     turnActive?: boolean;
     turnStartedAt?: string | null;
 }) {
-    const runId = items.map(getItemRunId).find((value) => value !== null) ?? null;
     const segments = groupAgentItems([...items]);
 
     if (segments.length === 0) {
@@ -188,70 +173,6 @@ export function ChatTurnItems({
                     />
                 )
             )}
-            {showPromptEvidence ? <TurnPromptEvidence runId={runId} /> : null}
-        </div>
-    );
-}
-
-// Live turns carry their evidence in the entry itself (the status stack
-// builds it from streamed run evidence); completed turns fetch the durable
-// execution record on demand.
-function useTurnEvidenceItems(input: {
-    chatId: string | null;
-    responseId: string | null;
-    turnActive: boolean;
-}): TranscriptItem[] {
-    const evidenceQuery = trpc.chat.turn.evidence.useQuery(
-        { chatId: input.chatId ?? '', responseId: input.responseId ?? '' },
-        { enabled: Boolean(input.chatId && input.responseId && !input.turnActive) }
-    );
-    const rows = input.turnActive ? [] : (evidenceQuery.data?.rows ?? []);
-
-    return rows.map((row) => ({ kind: 'row' as const, row }));
-}
-
-// Evidence rows and the entry's own conversation items (reply, widgets) can
-// overlap; the entry's copy wins so the pane and drawer agree, and the merged
-// set reads in execution order.
-function mergeTurnItems(evidenceItems: TranscriptItem[], entryItems: readonly TranscriptItem[]) {
-    const entryIds = new Set(
-        entryItems.flatMap((item) => (item.kind === 'row' ? [item.row.id] : []))
-    );
-    const merged = [
-        ...evidenceItems.filter((item) => item.kind !== 'row' || !entryIds.has(item.row.id)),
-        ...entryItems,
-    ];
-
-    return merged.sort((left, right) => {
-        const leftTime = Date.parse(getItemTimestamp(left) ?? '');
-        const rightTime = Date.parse(getItemTimestamp(right) ?? '');
-
-        return (
-            (Number.isNaN(leftTime) ? Number.MAX_SAFE_INTEGER : leftTime) -
-            (Number.isNaN(rightTime) ? Number.MAX_SAFE_INTEGER : rightTime)
-        );
-    });
-}
-
-// The composed instructions and per-turn prompt are dev-mode-only runtime
-// evidence (specs/chat-timeline.md); the turn's Wiki recall is gone with
-// the Wiki retirement.
-function TurnPromptEvidence({ runId }: { runId: string | null }) {
-    const { devMode } = useDevMode();
-    const evidence = useChatTurnPrompt(runId);
-
-    if (!(evidence.data && devMode)) {
-        return null;
-    }
-
-    return (
-        <div className="flex min-w-0 flex-col gap-3">
-            <section className="grid gap-1.5">
-                <h4 className="font-medium text-muted text-sm">Prompt (dev mode)</h4>
-                <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-surface-secondary px-3 py-2 font-mono text-muted text-sm">
-                    {`${evidence.data.instructions}\n\n--- turn prompt ---\n\n${evidence.data.prompt}`}
-                </pre>
-            </section>
         </div>
     );
 }

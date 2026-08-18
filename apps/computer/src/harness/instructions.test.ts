@@ -36,8 +36,25 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     expect(instructions).toContain(
         '`--assignee @peer` reserves a `todo` task for another Agent in that Channel'
     );
-    expect(instructions).toContain('The peer must still claim it before starting work.');
+    expect(instructions).toContain(
+        'The peer receives an assignment receipt pointing to the canonical task; inspect and claim that task before working.'
+    );
+    expect(instructions).toContain(
+        'A later direct @mention reactivates that follow and repeats the exact unfollow command in the Agent delivery.'
+    );
     expect(instructions).not.toContain('A server owner/admin may use `--assignee @someone-else`');
+    expect(instructions).toContain('An assignee-only receipt that names you is actionable');
+    expect(instructions).toContain(
+        'A failed claim is a concurrency lock, not a ruling on lane ownership'
+    );
+    expect(instructions).toContain('correct the routing in the original thread');
+    expect(instructions).toContain('Default every message to the shortest useful form');
+    expect(instructions).toContain('Do not paste execution logs into chat');
+    expect(instructions).toContain('A completion message should lead with the outcome');
+    expect(instructions).toContain(
+        'Fresh-read it immediately before acting — or continuing to withhold — (Grotto: current message/task; PR: current repo/PR)'
+    );
+    expect(instructions).toContain('checks on the exact head');
     expect(instructions).toContain(
         'explicit FYI / no-response-needed messages should settle with zero sends'
     );

@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import type { AgentCommand, AgentTurnSummary } from '@tavern/api';
 import { and, eq, ne } from 'drizzle-orm';
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
-import { markCursorSubsumedSeen, readAgentInboxCursor } from '../src/agent-delivery/cursors.ts';
+import { markCursorSubsumedSeen } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { countQueuedPending, readDeliveryState } from '../src/agent-delivery/store.ts';
@@ -13,6 +13,7 @@ import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentDeliveryTable,
     agentInboxCursorsTable,
+    agentInboxExactVisibilityTable,
     agentPendingWorkTable,
     agentRunnerCredentialsTable,
     agentsTable,
@@ -177,6 +178,17 @@ async function readDeliveryLedger(agentId: string) {
         .where(eq(agentPendingWorkTable.agentId, agentId));
 }
 
+async function readExactVisibility(agentId: string) {
+    return await connection.db
+        .select({
+            messageId: agentInboxExactVisibilityTable.messageId,
+            seenAt: agentInboxExactVisibilityTable.seenAt,
+            servedRunId: agentInboxExactVisibilityTable.servedRunId,
+        })
+        .from(agentInboxExactVisibilityTable)
+        .where(eq(agentInboxExactVisibilityTable.agentId, agentId));
+}
+
 async function insertHumanMessage(seed: Seed, content: string, sequence: number): Promise<string> {
     const messageId = createOpaqueId('msg');
     await connection.db.insert(chatMessagesTable).values({
@@ -282,6 +294,29 @@ test('offers ordinary Chat work as a notice and does not loop when it is deferre
         'new identity',
     ]);
     lifecycleController.abort();
+});
+
+test('preserves direct-attention metadata independently through wire replay', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: '@ada please inspect this.',
+        dedupeKey: 'msg-mentioned-replay',
+        mentioned: true,
+        serverId: seed.serverId,
+        threadFollowReactivated: true,
+    });
+    await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
+
+    const starts = transport.framesOfType('start');
+    expect(starts).toHaveLength(2);
+    expect(starts.map((frame) => frame.inbox[0]?.mentioned)).toEqual([true, true]);
+    expect(starts.map((frame) => frame.inbox[0]?.threadFollowReactivated)).toEqual([true, true]);
 });
 
 test('keeps a queued message bound to its retired author after handle reuse', async () => {
@@ -606,25 +641,16 @@ test('settles explicitly pulled busy work with the active run without a second t
         serverId: seed.serverId,
     });
     expect(pulled.messages.map((row) => row.message.content)).toEqual(['first', 'follow up']);
-    expect(
-        await readAgentInboxCursor(connection.db, {
-            agentId: seed.agentId,
-            chatId: seed.chatId,
-            serverId: seed.serverId,
-        })
-    ).toMatchObject({ seen: 0, served: 2 });
+    expect(await readExactVisibility(seed.agentId)).toMatchObject([
+        { messageId: firstMessageId, seenAt: null, servedRunId: runId },
+        { messageId: followUpMessageId, seenAt: null, servedRunId: runId },
+    ]);
 
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
 
     expect(transport.framesOfType('start')).toHaveLength(1);
     expect(await countUnsettledPending(seed.agentId)).toBe(0);
-    expect(
-        await readAgentInboxCursor(connection.db, {
-            agentId: seed.agentId,
-            chatId: seed.chatId,
-            serverId: seed.serverId,
-        })
-    ).toMatchObject({ seen: 2, served: 2 });
+    expect((await readExactVisibility(seed.agentId)).every((row) => row.seenAt)).toBe(true);
 });
 
 test('settles exact Computer-local visibility carried by the turn summary', async () => {
@@ -650,13 +676,10 @@ test('settles exact Computer-local visibility carried by the turn summary', asyn
     });
 
     expect(await countUnsettledPending(seed.agentId)).toBe(0);
-    expect(
-        await readAgentInboxCursor(connection.db, {
-            agentId: seed.agentId,
-            chatId: seed.chatId,
-            serverId: seed.serverId,
-        })
-    ).toMatchObject({ seen: 1 });
+    expect(await readExactVisibility(seed.agentId)).toMatchObject([
+        { messageId, servedRunId: runId },
+    ]);
+    expect((await readExactVisibility(seed.agentId))[0]?.seenAt).not.toBeNull();
 });
 
 test('settlement tolerates valid visibility whose pending row was already removed', async () => {
@@ -779,7 +802,7 @@ test('accepts a repeated Computer-local visibility receipt after a committed rec
             ...identities,
             { chatId: seed.chatId, id: oldHistoryId, sequence: 2 },
         ])
-    ).resolves.toEqual({ accepted: [messageId] });
+    ).resolves.toEqual({ accepted: [messageId, oldHistoryId] });
     await expect(attestAgentEvents(connection.db, runner, identities)).resolves.toEqual({
         accepted: [messageId],
     });
@@ -945,13 +968,10 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
         status: 'in_progress',
     });
     expect(await countUnsettledPending(seed.agentId)).toBe(2);
-    expect(
-        await readAgentInboxCursor(connection.db, {
-            agentId: seed.agentId,
-            chatId: seed.chatId,
-            serverId: seed.serverId,
-        })
-    ).toMatchObject({ seen: 0, served: 2 });
+    expect(await readExactVisibility(seed.agentId)).toMatchObject([
+        { messageId: firstMessageId, seenAt: null, servedRunId: runId },
+        { messageId: followUpMessageId, seenAt: null, servedRunId: runId },
+    ]);
 });
 
 test('Stop persists across a restart, suppresses wakes, and keeps accumulating', async () => {
@@ -1569,7 +1589,7 @@ test('a failed turn that produced output does not requeue its work', async () =>
     expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
 });
 
-test('served cursor never consumes queued work without seen proof', async () => {
+test('only a contiguous seen boundary subsumes queued work', async () => {
     const seed = await seedAgent();
     const messageId = createOpaqueId('msg');
     await connection.db.insert(chatMessagesTable).values({
@@ -1593,9 +1613,7 @@ test('served cursor never consumes queued work without seen proof', async () => 
     await connection.db.insert(agentInboxCursorsTable).values({
         agentId: seed.agentId,
         chatId: seed.chatId,
-        deliveredUpToSequence: 1,
         seenUpToSequence: 0,
-        servedUpToSequence: 1,
         serverId: seed.serverId,
         sessionGeneration: 1,
     });
@@ -1825,7 +1843,7 @@ test('retains a settled delivery as proof the Agent read an FYI and answered not
     expect(transport.framesOfType('start')).toHaveLength(1);
 });
 
-test('retains a delivery the seen cursor subsumed instead of erasing it', async () => {
+test('exact visibility does not consume an unseen message across a gap', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
@@ -1846,8 +1864,8 @@ test('retains a delivery the seen cursor subsumed instead of erasing it', async 
     const runId = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
-    // Only the later message is attested, so the earlier one is proven read by
-    // the seen cursor rather than by its own run attachment.
+    // Only the later message is attested. Exact visibility must not imply that
+    // the earlier message was seen.
     await attestAgentEvents(
         connection.db,
         {
@@ -1865,12 +1883,13 @@ test('retains a delivery the seen cursor subsumed instead of erasing it', async 
         turnSummary(seed.agentId, runId, 'completed', false)
     );
 
-    expect(await countQueuedPending(connection.db, seed.agentId)).toBe(0);
+    expect(await countQueuedPending(connection.db, seed.agentId)).toBe(1);
     const ledger = await readDeliveryLedger(seed.agentId);
     expect(ledger).toHaveLength(2);
-    const subsumed = ledger.find((row) => row.dedupeKey === firstMessageId);
-    expect(subsumed).toMatchObject({ settledRunId: null, state: 'seen' });
-    expect(subsumed?.seenAt).not.toBeNull();
+    expect(ledger.find((row) => row.dedupeKey === firstMessageId)).toMatchObject({
+        settledRunId: null,
+        state: 'queued',
+    });
     expect(ledger.find((row) => row.dedupeKey === secondMessageId)).toMatchObject({
         settledRunId: runId,
         state: 'seen',

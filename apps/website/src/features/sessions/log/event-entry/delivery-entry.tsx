@@ -1,4 +1,4 @@
-import type { SessionHistoryDeliveryOutput } from '../../../../lib/trpc.tsx';
+import type { TranscriptDelivery } from '../../../chats/transcript-contract.ts';
 import { DeliveryCard } from '../delivery-card.tsx';
 
 export function DeliveryLogEntry({
@@ -6,7 +6,7 @@ export function DeliveryLogEntry({
     delivery,
 }: {
     currentSessionKey: string;
-    delivery: SessionHistoryDeliveryOutput;
+    delivery: TranscriptDelivery;
 }) {
     return <DeliveryCard currentSessionKey={currentSessionKey} delivery={delivery} />;
 }

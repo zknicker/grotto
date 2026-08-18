@@ -1,7 +1,6 @@
-import type { AgentRuntimeSaveBrowserSettings } from '@tavern/api';
-import type { BrowserSettingsOutput } from '../../../lib/trpc.tsx';
+import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@tavern/api';
 
-type BrowserSettings = NonNullable<BrowserSettingsOutput>;
+type BrowserSettings = AgentRuntimeBrowserSettings;
 
 export interface BrowserSettingsDraft {
     enabled: boolean;

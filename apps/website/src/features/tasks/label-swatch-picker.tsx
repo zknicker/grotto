@@ -1,9 +1,13 @@
 import { Button, Popover } from '@heroui/react';
 import * as React from 'react';
-import type { TaskLabelColor } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
 import { LabelDot } from './label-chip.tsx';
-import { taskLabelColorNames, taskLabelColors, taskLabelDotClass } from './label-colors.ts';
+import {
+    type TaskLabelColor,
+    taskLabelColorNames,
+    taskLabelColors,
+    taskLabelDotClass,
+} from './label-colors.ts';
 
 // A small popover of the nine palette swatches. The trigger shows the current
 // color; picking one closes the popover.

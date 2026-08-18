@@ -51,8 +51,12 @@ export interface GrottoServerHarness {
 
 export const harnessAppOrigin = 'https://app.grotto.test';
 
-export async function startGrottoServerHarness(): Promise<GrottoServerHarness> {
-    const cluster: PostgresCluster = await startPostgresCluster();
+export async function startGrottoServerHarness(
+    options: { postgresIcuLocale?: string } = {}
+): Promise<GrottoServerHarness> {
+    const cluster: PostgresCluster = await startPostgresCluster({
+        icuLocale: options.postgresIcuLocale,
+    });
     const attachmentRoot = await mkdtemp(join(tmpdir(), 'grotto-server-attachments-'));
     const clerkUsers = createClerkVerifiedEmails();
     let clerk: ClerkTestIssuer | null = null;

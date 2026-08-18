@@ -1,5 +1,5 @@
 import { parseAgentReferenceTarget, parseTavernRichReferences } from '@tavern/api';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentChannelMutesTable,
@@ -11,7 +11,8 @@ import {
 
 export interface AgentMessageRecipientPlan {
     agentId: string;
-    pierced: boolean;
+    mentioned: boolean;
+    threadFollowReactivated: boolean;
 }
 
 export async function planAgentMessageRecipients(
@@ -53,7 +54,12 @@ export async function planAgentMessageRecipients(
             .limit(1);
         if (parent?.kind === 'dm') {
             return parent.dmAgentId && parent.dmAgentId !== input.authorAgentId
-                ? await activeDmRecipient(db, input.serverId, parent.dmAgentId)
+                ? await activeDmThreadRecipient(db, {
+                      agentId: parent.dmAgentId,
+                      content: input.content,
+                      serverId: input.serverId,
+                      threadChatId: input.chatId,
+                  })
                 : [];
         }
     }
@@ -116,10 +122,12 @@ export async function planAgentMessageRecipients(
     const muted = new Set(mutes.map((row) => row.agentId));
     const followByAgent = new Map(follows.map((row) => [row.agentId, row.followed]));
     const mentioned = mentionedAgentIds(input.content, agents);
+    const reactivated = new Set<string>();
 
     if (chat.kind === 'thread') {
         for (const agentId of mentioned) {
-            if (agentIds.includes(agentId) && followByAgent.get(agentId) === undefined) {
+            const previousFollow = followByAgent.get(agentId);
+            if (agentIds.includes(agentId) && previousFollow !== true) {
                 await db
                     .insert(agentThreadFollowsTable)
                     .values({
@@ -127,7 +135,17 @@ export async function planAgentMessageRecipients(
                         serverId: input.serverId,
                         threadChatId: input.chatId,
                     })
-                    .onConflictDoNothing();
+                    .onConflictDoUpdate({
+                        set: { followed: true, updatedAt: sql`now()` },
+                        target: [
+                            agentThreadFollowsTable.serverId,
+                            agentThreadFollowsTable.agentId,
+                            agentThreadFollowsTable.threadChatId,
+                        ],
+                    });
+                if (previousFollow === false) {
+                    reactivated.add(agentId);
+                }
                 followByAgent.set(agentId, true);
             }
         }
@@ -135,12 +153,18 @@ export async function planAgentMessageRecipients(
 
     return agentIds.flatMap((agentId) => {
         const isMentioned = mentioned.has(agentId);
-        const isMuted = muted.has(agentId);
+        const isMuted = chat.kind !== 'thread' && muted.has(agentId);
         const followed = chat.kind !== 'thread' || followByAgent.get(agentId) === true;
         if (!isMentioned && (isMuted || !followed)) {
             return [];
         }
-        return [{ agentId, pierced: isMentioned && (isMuted || !followed) }];
+        return [
+            {
+                agentId,
+                mentioned: isMentioned,
+                threadFollowReactivated: reactivated.has(agentId),
+            },
+        ];
     });
 }
 
@@ -164,7 +188,67 @@ async function activeDmRecipient(
             )
         )
         .limit(1);
-    return agent ? [{ agentId, pierced: false }] : [];
+    return agent ? [{ agentId, mentioned: false, threadFollowReactivated: false }] : [];
+}
+
+async function activeDmThreadRecipient(
+    db: GrottoDatabase,
+    input: { agentId: string; content: string; serverId: string; threadChatId: string }
+): Promise<AgentMessageRecipientPlan[]> {
+    const [agent] = await db
+        .select({ handle: agentsTable.handle, id: agentsTable.id })
+        .from(agentsTable)
+        .where(
+            and(
+                eq(agentsTable.serverId, input.serverId),
+                eq(agentsTable.id, input.agentId),
+                isNull(agentsTable.retiredAt)
+            )
+        )
+        .limit(1);
+    if (!agent) {
+        return [];
+    }
+    const [follow] = await db
+        .select({ followed: agentThreadFollowsTable.followed })
+        .from(agentThreadFollowsTable)
+        .where(
+            and(
+                eq(agentThreadFollowsTable.serverId, input.serverId),
+                eq(agentThreadFollowsTable.agentId, input.agentId),
+                eq(agentThreadFollowsTable.threadChatId, input.threadChatId)
+            )
+        )
+        .limit(1);
+    const mentioned = mentionedAgentIds(input.content, [agent]).has(input.agentId);
+    if (follow?.followed === false && !mentioned) {
+        return [];
+    }
+    const reactivated = follow?.followed === false;
+    if (follow?.followed !== true) {
+        await db
+            .insert(agentThreadFollowsTable)
+            .values({
+                agentId: input.agentId,
+                serverId: input.serverId,
+                threadChatId: input.threadChatId,
+            })
+            .onConflictDoUpdate({
+                set: { followed: true, updatedAt: sql`now()` },
+                target: [
+                    agentThreadFollowsTable.serverId,
+                    agentThreadFollowsTable.agentId,
+                    agentThreadFollowsTable.threadChatId,
+                ],
+            });
+    }
+    return [
+        {
+            agentId: input.agentId,
+            mentioned,
+            threadFollowReactivated: reactivated,
+        },
+    ];
 }
 
 function mentionedAgentIds(

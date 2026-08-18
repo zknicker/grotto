@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpLink } from '@trpc/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import {
@@ -10,14 +8,11 @@ import {
     MessageScrollerViewport,
 } from '../../components/chats/message-scroller.tsx';
 import { DevModeProvider } from '../../components/dev-mode-provider.tsx';
-import { mergeTimelineMessages } from '../../hooks/chats/chat-timeline-messages.ts';
-import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
-import { type ChatLogOutput, trpc } from '../../lib/trpc.tsx';
 import { ArtifactLogEntry } from '../sessions/log/event-entry/artifact-entry.tsx';
 import { ToolDrawerBody } from '../sessions/tools/tool-drawer-body.tsx';
 import { ChatTranscriptPresentation } from './chat-transcript.tsx';
 import { groupAgentItems } from './chat-transcript-item-utils.ts';
-import type { TranscriptItem } from './chat-transcript-model.ts';
+import type { TranscriptItem, TranscriptRow } from './chat-transcript-model.ts';
 import type { TranscriptRenderContextValue } from './chat-transcript-render-context.tsx';
 import { SystemStep } from './chat-transcript-system-step.tsx';
 import {
@@ -26,7 +21,9 @@ import {
     resolveMentionAgentId,
 } from './chat-transcript-turn.tsx';
 import { ChatTurnItems } from './chat-turn-drawer.tsx';
+import { withLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ToolStep } from './tool-steps/registry.tsx';
+import type { TranscriptActiveReply } from './transcript-contract.ts';
 
 test('ChatTranscript renders hover time and copy action without session or usage badges', () => {
     const markup = renderTranscript([
@@ -98,7 +95,6 @@ test('ChatTranscript mutes deleted authors and labels their historical messages'
     const markup = renderTranscript(rows, {
         chatId: 'chat-history',
         composerId: 'chat-history',
-        disableAgentHoverCard: true,
         resolveActorProfile: (actor) =>
             actor?.kind === 'agent'
                 ? {
@@ -152,18 +148,26 @@ test('archived transcripts render agent names without mention actions', () => {
 });
 
 test('ChatTranscript animates only local optimistic user messages', () => {
-    const localTimeline = mergeTimelineMessages({
-        limit: 10,
-        logged: undefined,
-        messages: [
-            {
+    const localTimeline: ChatRow[] = [
+        {
+            actor: { id: 'usr_tavern', kind: 'participant' },
+            connectsToNext: false,
+            connectsToPrevious: false,
+            id: 'msg-local',
+            isFirstInGroup: true,
+            kind: 'message',
+            message: {
                 content: 'Can you check this?',
                 id: 'msg-local',
+                metadata: withLocalTimelineMessageMetadata(),
+                sender: 'You',
+                senderType: 'user',
+                sourceSessionKey: '',
                 timestamp: '2026-03-31T15:00:00.000Z',
             },
-        ],
-    });
-    const markup = renderTranscript(localTimeline?.rows ?? []);
+        },
+    ];
+    const markup = renderTranscript(localTimeline);
 
     assert.match(markup, /Can you check this\?/);
     assert.match(markup, /data-slot="chat-message-assistant"/);
@@ -1970,7 +1974,7 @@ function narrationMessageRow(id: string, content: string, timestampMs: number): 
     };
 }
 
-type ChatRow = NonNullable<ChatLogOutput>['rows'][number];
+type ChatRow = TranscriptRow;
 
 /**
  * Renders the transcript the way a host does: project rows into entries and
@@ -1978,10 +1982,6 @@ type ChatRow = NonNullable<ChatLogOutput>['rows'][number];
  * `useChatTranscript` wiring in features/servers/chat.
  */
 function renderTranscript(rows: ChatRow[], overrides: Partial<TranscriptRenderContextValue> = {}) {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const client = trpc.createClient({
-        links: [httpLink({ url: 'http://127.0.0.1:1/trpc' })],
-    });
     const context: TranscriptRenderContextValue = {
         canRequestMention: true,
         conversationLayout: { showAgentIdentity: true, showHumanIdentity: true },
@@ -1998,30 +1998,23 @@ function renderTranscript(rows: ChatRow[], overrides: Partial<TranscriptRenderCo
     };
 
     return renderToStaticMarkup(
-        <trpc.Provider client={client} queryClient={queryClient}>
-            <QueryClientProvider client={queryClient}>
-                <MemoryRouter>
-                    <DevModeProvider>
-                        <MessageScrollerProvider>
-                            <MessageScroller>
-                                <MessageScrollerViewport>
-                                    <ChatTranscriptPresentation
-                                        renderContext={context}
-                                        rows={rows}
-                                    />
-                                </MessageScrollerViewport>
-                            </MessageScroller>
-                        </MessageScrollerProvider>
-                    </DevModeProvider>
-                </MemoryRouter>
-            </QueryClientProvider>
-        </trpc.Provider>
+        <MemoryRouter>
+            <DevModeProvider>
+                <MessageScrollerProvider>
+                    <MessageScroller>
+                        <MessageScrollerViewport>
+                            <ChatTranscriptPresentation renderContext={context} rows={rows} />
+                        </MessageScrollerViewport>
+                    </MessageScroller>
+                </MessageScrollerProvider>
+            </DevModeProvider>
+        </MemoryRouter>
     );
 }
 
 // Renders the turn-drawer body for the last agent turn — the surface tool
 // work moved to now that the chat pane is prose-only.
-function renderTurnBody(rows: ChatRow[], activeReply: ChatActiveReply | null = null) {
+function renderTurnBody(rows: ChatRow[], activeReply: TranscriptActiveReply | null = null) {
     // The drawer merges turn-scoped evidence with the entry's conversation
     // items; tests feed that merged view directly.
     const items: TranscriptItem[] = rows.map((row) => ({ kind: 'row' as const, row }));
@@ -2030,39 +2023,16 @@ function renderTurnBody(rows: ChatRow[], activeReply: ChatActiveReply | null = n
         items.push({ kind: 'activeReply', reply: activeReply });
     }
 
-    const queryClient = new QueryClient({
-        defaultOptions: {
-            queries: {
-                retry: false,
-            },
-        },
-    });
-    const client = trpc.createClient({
-        links: [
-            httpLink({
-                url: 'http://127.0.0.1:1/trpc',
-            }),
-        ],
-    });
-
     return renderToStaticMarkup(
-        <trpc.Provider client={client} queryClient={queryClient}>
-            <QueryClientProvider client={queryClient}>
-                <MemoryRouter>
-                    <DevModeProvider>
-                        <ChatTurnItems
-                            chatId="cht_test"
-                            items={items}
-                            turnActive={Boolean(activeReply)}
-                        />
-                    </DevModeProvider>
-                </MemoryRouter>
-            </QueryClientProvider>
-        </trpc.Provider>
+        <MemoryRouter>
+            <DevModeProvider>
+                <ChatTurnItems chatId="cht_test" items={items} turnActive={Boolean(activeReply)} />
+            </DevModeProvider>
+        </MemoryRouter>
     );
 }
 
-function renderActiveTurnBody(activeReply: ChatActiveReply, rows: ChatRow[] = []) {
+function renderActiveTurnBody(activeReply: TranscriptActiveReply, rows: ChatRow[] = []) {
     return renderTurnBody(rows, activeReply);
 }
 

@@ -67,7 +67,7 @@ test('concurrent first replies converge on one deterministic child Thread', asyn
     ).resolves.toEqual([]);
 });
 
-test('explicit unfollow suppresses ordinary attention while one direct mention pierces', async () => {
+test('a direct mention restores an explicit Thread unfollow', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Thread Attention',
         slug: 'thread-attention',
@@ -150,12 +150,12 @@ test('explicit unfollow suppresses ordinary attention while one direct mention p
         thread: { anchorMessageId: anchor.message.id },
     });
     await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([
-        { id: parentChatId, unreadCount: 1 },
+        { id: parentChatId, unreadCount: 4 },
     ]);
     await expect(
         owner.trpc.chat.messages.query({ chatId: parentChatId, serverId: server.id })
     ).resolves.toMatchObject({
-        threads: [{ followed: false, replyCount: 4, unreadCount: 4 }],
+        threads: [{ followed: true, replyCount: 4, unreadCount: 4 }],
     });
 
     await owner.trpc.chat.markRead.mutate({
@@ -167,25 +167,31 @@ test('explicit unfollow suppresses ordinary attention while one direct mention p
         { id: parentChatId, unreadCount: 0 },
     ]);
 
-    await owner.trpc.chat.send.mutate({
-        chatId: parentChatId,
-        content: 'Posting follows me again',
-        nonce: 'attention-refollow',
-        serverId: server.id,
-        thread: { anchorMessageId: anchor.message.id },
-    });
-    await expect(
-        owner.trpc.chat.messages.query({ chatId: parentChatId, serverId: server.id })
-    ).resolves.toMatchObject({ threads: [{ followed: true }] });
     await peer.client.trpc.chat.send.mutate({
         chatId: parentChatId,
         content: 'Ordinary attention restored',
-        nonce: 'attention-restored',
+        nonce: 'attention-refollow',
         serverId: server.id,
         thread: { anchorMessageId: anchor.message.id },
     });
     await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([
         { id: parentChatId, unreadCount: 1 },
+    ]);
+
+    await owner.trpc.thread.setFollow.mutate({
+        follow: false,
+        serverId: server.id,
+        threadChatId,
+    });
+    await peer.client.trpc.chat.send.mutate({
+        chatId: parentChatId,
+        content: 'Suppressed again after a later explicit unfollow',
+        nonce: 'attention-suppressed-again',
+        serverId: server.id,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+    await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([
+        { id: parentChatId, unreadCount: 0 },
     ]);
 
     peer.client.close();

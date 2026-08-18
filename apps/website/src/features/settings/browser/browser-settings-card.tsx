@@ -1,9 +1,8 @@
 import { Button, Chip, Skeleton } from '@heroui/react';
 import { BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { AgentRuntimeSaveBrowserSettings } from '@tavern/api';
+import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@tavern/api';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
-import type { BrowserSettingsOutput } from '../../../lib/trpc.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { SettingsRow } from '../layout/settings-page.tsx';
 import { BrowserEnablementSwitch } from './browser-enablement-switch.tsx';
@@ -20,7 +19,7 @@ import {
     toSaveInput,
 } from './browser-settings-model.ts';
 
-type BrowserSettings = NonNullable<BrowserSettingsOutput>;
+type BrowserSettings = AgentRuntimeBrowserSettings;
 type BrowserSettingsControlRender = (control: {
     openSettingsDialog: (nextDraft?: Partial<BrowserSettingsDraft>) => void;
     requestSave: (input: AgentRuntimeSaveBrowserSettings) => void;

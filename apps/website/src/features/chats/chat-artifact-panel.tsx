@@ -2,8 +2,8 @@ import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopTabPane } from '../../hooks/desktop/use-desktop-window-commands.ts';
-import type { ChatArtifactPanelState } from '../../hooks/pane/use-chat-pane-state.ts';
 import { ArtifactPanelChrome } from './chat-artifact-panel-chrome.tsx';
+import type { ChatArtifactPanelState } from './chat-artifact-panel-state.ts';
 import { WorkspaceBrowserContent } from './chat-artifact-workspace-content.tsx';
 import { ChatSidePaneShell } from './chat-side-pane-shell.tsx';
 import {
@@ -21,7 +21,7 @@ export function ChatArtifactPanel({
 }: {
     agentId: string;
     open?: boolean;
-    serverId?: string;
+    serverId: string;
     state: ChatArtifactPanelState;
     takeover?: boolean;
 }) {
@@ -70,7 +70,7 @@ function ArtifactPanelBody({
     width,
 }: {
     agentId: string;
-    serverId?: string;
+    serverId: string;
     state: ChatArtifactPanelState;
     width?: number;
 }) {
@@ -135,7 +135,7 @@ function ArtifactPanelContent({
 }: {
     agentId: string;
     onOpenTarget: (target: TavernResourceTarget) => void;
-    serverId?: string;
+    serverId: string;
     target: TavernResourceTarget;
 }) {
     // Stable identity: browser effects key on this callback.

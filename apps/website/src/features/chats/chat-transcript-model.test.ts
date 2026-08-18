@@ -1,9 +1,8 @@
 import { expect, test } from 'bun:test';
-import type { ChatLogOutput } from '../../lib/trpc.tsx';
 import type { TranscriptRow } from './chat-transcript-model.ts';
 import { buildTranscriptEntries, getItemRunId } from './chat-transcript-model.ts';
 
-type ChatRow = NonNullable<ChatLogOutput>['rows'][number];
+type ChatRow = TranscriptRow;
 type ToolChatRow = Extract<ChatRow, { kind: 'tool' }>;
 
 test('clarification tool rows join their turn comment by response id', () => {

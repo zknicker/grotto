@@ -1,7 +1,6 @@
 import type { Agent, ChatMessage } from '@tavern/api';
 import * as React from 'react';
-import type { ActorProfile } from '../../../hooks/actors/use-actor.ts';
-import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
+import type { TranscriptActor, TranscriptActorProfile } from '../../chats/transcript-contract.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
 type IdentifiedAuthor = Extract<ChatMessage['author'], { kind: 'agent' | 'human' }>;
@@ -29,7 +28,7 @@ export function useResolveActorProfile({
     const historicalProfiles = useHistoricalActorProfiles(messages, humans);
 
     return React.useCallback(
-        (actor: TranscriptActor): ActorProfile | null => {
+        (actor: TranscriptActor): TranscriptActorProfile | null => {
             if (!actor) {
                 return null;
             }
@@ -64,7 +63,7 @@ export function useResolveActorProfile({
     );
 }
 
-export function liveAgentActorProfile(agent: Agent): ActorProfile {
+export function liveAgentActorProfile(agent: Agent): TranscriptActorProfile {
     return {
         avatarUrl: agent.avatarUrl,
         bio: agent.description,
@@ -86,7 +85,7 @@ export function liveAgentActorProfile(agent: Agent): ActorProfile {
 function useHistoricalActorProfiles(messages: readonly ChatMessage[], humans: HumanDirectory) {
     const cacheRef = React.useRef<{
         humans: HumanDirectory | null;
-        profiles: ReadonlyMap<string, ActorProfile>;
+        profiles: ReadonlyMap<string, TranscriptActorProfile>;
         sources: ReadonlyMap<string, ProfileSource>;
     }>({ humans: null, profiles: new Map(), sources: new Map() });
 
@@ -111,7 +110,7 @@ function useHistoricalActorProfiles(messages: readonly ChatMessage[], humans: Hu
             return cache.profiles;
         }
 
-        const profiles = new Map<string, ActorProfile>();
+        const profiles = new Map<string, TranscriptActorProfile>();
 
         for (const [key, source] of sources) {
             profiles.set(

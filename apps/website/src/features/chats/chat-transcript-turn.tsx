@@ -8,15 +8,11 @@ import { requestChatComposerMention } from '../../commands/chat-composer-mention
 import { RelativeTime } from '../../components/time/relative-time.tsx';
 import { getEntityInitials } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { type ActorProfile, useActorProfile } from '../../hooks/actors/use-actor.ts';
-import { isLocalTimelineMessageMetadata } from '../../hooks/chats/chat-timeline-messages.ts';
-import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import { openAgentProfilePane } from '../../hooks/pane/use-agent-profile-pane.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { formatShortTime } from '../../lib/format.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
-import { AgentHoverCard } from './agent-hover-card.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { useStreamingTextRanges } from './chat-streaming-text-ranges.ts';
@@ -59,11 +55,12 @@ import {
 import type { SessionNoticeRow } from './chat-transcript-row-model.ts';
 import { RuntimeNoticeEntry, SessionNoticeAction } from './chat-transcript-system-step.tsx';
 import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
-import { ChatTurnDrawer } from './chat-turn-drawer.tsx';
 import { AgentWidget } from './legacy-widget-row.tsx';
+import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
 import { MessageReactionActions } from './thread/message-reactions.tsx';
 import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
+import type { TranscriptActiveReply, TranscriptActorProfile } from './transcript-contract.ts';
 import { useRevealedText } from './use-revealed-text.ts';
 import { VisualCard } from './visual-card.tsx';
 import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
@@ -109,7 +106,7 @@ export function TranscriptEntryView({
     sessionNotice = null,
     turnStartedAt,
 }: {
-    activeReply: ChatActiveReply | null;
+    activeReply: TranscriptActiveReply | null;
     chatId?: string;
     conversationLayout: ConversationMessageLayout;
     currentSessionKey?: string | null;
@@ -181,31 +178,15 @@ function UserTurn({
     entry: Extract<TranscriptEntry, { kind: 'turn' }>;
     layout: ConversationMessageLayout;
 }) {
-    const context = useTranscriptRenderContextOptional();
+    const context = useTranscriptRenderContext();
 
-    if (context?.resolveActorProfile) {
-        return (
-            <UserTurnPresentation
-                actorProfile={context.resolveActorProfile(entry.actor)}
-                entry={entry}
-                layout={layout}
-            />
-        );
-    }
-
-    return <LocalUserTurn entry={entry} layout={layout} />;
-}
-
-function LocalUserTurn({
-    entry,
-    layout,
-}: {
-    entry: Extract<TranscriptEntry, { kind: 'turn' }>;
-    layout: ConversationMessageLayout;
-}) {
-    const actorProfile = useActorProfile(entry.actor);
-
-    return <UserTurnPresentation actorProfile={actorProfile} entry={entry} layout={layout} />;
+    return (
+        <UserTurnPresentation
+            actorProfile={context.resolveActorProfile?.(entry.actor) ?? null}
+            entry={entry}
+            layout={layout}
+        />
+    );
 }
 
 function UserTurnPresentation({
@@ -213,7 +194,7 @@ function UserTurnPresentation({
     entry,
     layout,
 }: {
-    actorProfile: ActorProfile | null;
+    actorProfile: TranscriptActorProfile | null;
     entry: Extract<TranscriptEntry, { kind: 'turn' }>;
     layout: ConversationMessageLayout;
 }) {
@@ -307,7 +288,13 @@ function TurnAvatar({
     );
 }
 
-function AgentTurnAvatar({ profile, name }: { profile: ActorProfile | null; name: string }) {
+function AgentTurnAvatar({
+    profile,
+    name,
+}: {
+    profile: TranscriptActorProfile | null;
+    name: string;
+}) {
     if (profile?.availability.kind === 'live') {
         return (
             <AgentAvatar
@@ -428,26 +415,10 @@ function AgentTurn({
 }: AgentTurnProps) {
     const context = useTranscriptRenderContext();
 
-    if (context.resolveActorProfile) {
-        return (
-            <AgentTurnPresentation
-                activeReply={activeReply}
-                actorProfile={context.resolveActorProfile(entry.actor)}
-                chatId={chatId}
-                currentSessionKey={currentSessionKey}
-                defaultOpenWorkGroups={defaultOpenWorkGroups}
-                entry={entry}
-                followsRuntimeNotice={followsRuntimeNotice}
-                layout={layout}
-                sessionNotice={sessionNotice}
-                turnStartedAt={turnStartedAt}
-            />
-        );
-    }
-
     return (
-        <LocalAgentTurn
+        <AgentTurnPresentation
             activeReply={activeReply}
+            actorProfile={context.resolveActorProfile?.(entry.actor) ?? null}
             chatId={chatId}
             currentSessionKey={currentSessionKey}
             defaultOpenWorkGroups={defaultOpenWorkGroups}
@@ -461,7 +432,7 @@ function AgentTurn({
 }
 
 interface AgentTurnProps {
-    activeReply: ChatActiveReply | null;
+    activeReply: TranscriptActiveReply | null;
     chatId?: string;
     currentSessionKey?: string | null;
     defaultOpenWorkGroups: boolean;
@@ -470,12 +441,6 @@ interface AgentTurnProps {
     layout: ConversationMessageLayout;
     sessionNotice?: SessionNoticeRow | null;
     turnStartedAt?: string | null;
-}
-
-function LocalAgentTurn(props: AgentTurnProps) {
-    const actorProfile = useActorProfile(props.entry.actor);
-
-    return <AgentTurnPresentation actorProfile={actorProfile} {...props} />;
 }
 
 function AgentTurnPresentation({
@@ -489,7 +454,7 @@ function AgentTurnPresentation({
     layout,
     sessionNotice,
     turnStartedAt,
-}: AgentTurnProps & { actorProfile: ActorProfile | null }) {
+}: AgentTurnProps & { actorProfile: TranscriptActorProfile | null }) {
     const actorId = entry.actor?.id ?? null;
     const items = entry.items;
     const displayName = actorProfile?.name ?? getTurnFallbackName(entry) ?? 'Agent';
@@ -500,12 +465,10 @@ function AgentTurnPresentation({
     const {
         canRequestMention,
         composerId,
-        disableAgentHoverCard,
         turnDetails,
         onToggleReaction,
         profilePaneChatId,
         repliedRunIds,
-        turnEvidenceSource,
     } = useTranscriptRenderContext();
     const segments = groupAgentItems(items);
     const visibleSegments = filterPaneSegments(segments, repliedRunIds);
@@ -568,24 +531,7 @@ function AgentTurnPresentation({
                 !showIdentity && followsRuntimeNotice && 'mt-0'
             )}
         >
-            {chatId && actorId && !disableAgentHoverCard && !actorProfile?.deleted ? (
-                <AgentHoverCard
-                    agentId={actorId}
-                    agentName={displayName}
-                    chatId={chatId}
-                    onOpenProfile={
-                        profilePaneChatId
-                            ? () => openAgentProfilePane(profilePaneChatId, actorId)
-                            : undefined
-                    }
-                    triggerButtonClassName="cursor-(--cursor-interactive) rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                    // self-start keeps the trigger from stretching to the row
-                    // height and re-centering the avatar it wraps.
-                    triggerClassName="shrink-0 self-start"
-                >
-                    <AgentTurnAvatar name={displayName} profile={actorProfile} />
-                </AgentHoverCard>
-            ) : chatId && actorId && profilePaneChatId && !actorProfile?.deleted ? (
+            {chatId && actorId && profilePaneChatId && !actorProfile?.deleted ? (
                 <button
                     aria-label={`Agent details: ${displayName}`}
                     className="shrink-0 cursor-(--cursor-interactive) self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -631,30 +577,17 @@ function AgentTurnPresentation({
                 </ChatMessageActions>
             </ChatMessage.Body>
             {/* Mounted on first use so long transcripts don't pay a drawer per turn. */}
-            {inspectMounted ? (
-                turnDetails ? (
-                    <ServerTurnDetailsDrawer
-                        access={turnDetails.access}
-                        agentAvatarUrl={actorProfile?.avatarUrl ?? null}
-                        agentId={actorId}
-                        agentName={displayName}
-                        onOpenChange={setInspectOpen}
-                        open={inspectOpen}
-                        runId={turnRunId}
-                        serverId={turnDetails.serverId}
-                    />
-                ) : (
-                    <ChatTurnDrawer
-                        agentAvatarUrl={actorProfile?.avatarUrl ?? null}
-                        agentName={displayName}
-                        chatId={chatId}
-                        embeddedEvidence={turnEvidenceSource === 'embedded'}
-                        entry={entry}
-                        onOpenChange={setInspectOpen}
-                        open={inspectOpen}
-                        turnActive={turnActive}
-                    />
-                )
+            {inspectMounted && turnDetails ? (
+                <ServerTurnDetailsDrawer
+                    access={turnDetails.access}
+                    agentAvatarUrl={actorProfile?.avatarUrl ?? null}
+                    agentId={actorId}
+                    agentName={displayName}
+                    onOpenChange={setInspectOpen}
+                    open={inspectOpen}
+                    runId={turnRunId}
+                    serverId={turnDetails.serverId}
+                />
             ) : null}
         </ChatMessage.Assistant>
     );
@@ -1170,7 +1103,7 @@ function getAssistantMessageRevealKey(message: TranscriptMessage) {
     return typeof runId === 'string' && runId.trim().length > 0 ? runId : message.id;
 }
 
-function isStreamingActiveReply(reply: ChatActiveReply) {
+function isStreamingActiveReply(reply: TranscriptActiveReply) {
     return !reply.completedAt;
 }
 
@@ -1255,7 +1188,7 @@ function getLastMessage(items: TranscriptItem[]) {
 
 function isActiveTurn(
     items: TranscriptItem[],
-    activeReply: ChatActiveReply | null,
+    activeReply: TranscriptActiveReply | null,
     lastMessage: Extract<TranscriptRow, { kind: 'message' }>['message'] | null
 ) {
     if (!activeReply || activeReply.completedAt || hasStoppedTurn(items, activeReply.runId)) {

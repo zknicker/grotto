@@ -7,7 +7,7 @@ import {
     AttachmentTitle,
 } from '../../../components/chats/attachment.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { withLocalTimelineMessageMetadata } from '../../../hooks/chats/chat-timeline-messages.ts';
+import { withLocalTimelineMessageMetadata } from '../../chats/local-timeline-message.ts';
 import type { ProjectedChatMessageRow } from './chat-message-model.ts';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 

@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createGrottoContextFactory } from '../src/grotto-api/context.ts';
-import { getCurrentSessionToken } from '../src/identity/session-token-store.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
@@ -19,7 +18,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('Server requests never write the shared Runtime session token', () => {
+test('Server requests keep the Clerk session on the request context', () => {
     const createContext = createGrottoContextFactory({
         clerkSessions: unavailable('Clerk session verification'),
         grottoDb: unavailable('the Grotto PostgreSQL database'),
@@ -30,7 +29,6 @@ test('Server requests never write the shared Runtime session token', () => {
     });
 
     expect(context.clerkSessionToken).toBe('clerk-session-from-one-human');
-    expect(getCurrentSessionToken()).toBeNull();
 });
 
 test('concurrent humans each see only their own Servers', async () => {
@@ -52,8 +50,6 @@ test('concurrent humans each see only their own Servers', async () => {
             who === 'ada' ? 'ada-hq' : 'grace-hq',
         ]);
     }
-
-    expect(getCurrentSessionToken()).toBeNull();
 });
 
 /** Building a context must read no dependency; touching one is the failure. */

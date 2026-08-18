@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { advanceServedCursor } from '../src/agent-delivery/cursors.ts';
+import { attestAgentEvents } from '../src/agent-api/inbox.ts';
+import { readAgentInboxCursor, recordExactMessagesServed } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
@@ -279,6 +280,25 @@ test('an Agent send creates the canonical Thread for a visible fresh anchor', as
         where server_id = ${serverId} and id = ${sent.body.message?.chat_id ?? ''}
     `) as Array<{ anchor_message_id: string; parent_chat_id: string }>;
     expect(threads).toEqual([{ anchor_message_id: anchor.message.id, parent_chat_id: channelId }]);
+
+    await owner.trpc.thread.setFollow.mutate({
+        follow: false,
+        serverId,
+        threadChatId: sent.body.message?.chat_id ?? '',
+    });
+    const mentioned = await agentSend(minted.runnerToken, {
+        content: `[@Operator](user://${ownerUserId}) please rejoin this Thread.`,
+        nonce: 'fresh_thread_human_refollow',
+        target: `#fresh-thread:${shortAnchor}`,
+    });
+    expect(mentioned.status).toBe(200);
+    const humanFollow = (await harness.sql`
+        select followed from thread_follows
+        where server_id = ${serverId}
+          and thread_chat_id = ${sent.body.message?.chat_id ?? ''}
+          and user_id = ${ownerUserId}
+    `) as Array<{ followed: boolean }>;
+    expect(humanFollow).toEqual([{ followed: true }]);
 });
 
 test('an Agent resolves an exact DM thread target and fails closed on wrong peers or anchors', async () => {
@@ -297,13 +317,14 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         thread: { anchorMessageId: created.task.messageId },
     });
     const [pending] = (await harness.sql`
-        select agent_id, chat_id
+        select agent_id, chat_id, thread_follow_reactivated
         from agent_pending_work
         where server_id = ${serverId} and dedupe_key = ${humanReply.message.id}
-    `) as Array<{ agent_id: string; chat_id: string }>;
+    `) as Array<{ agent_id: string; chat_id: string; thread_follow_reactivated: boolean }>;
     expect(pending).toEqual({
         agent_id: agentId,
         chat_id: created.task.threadChatId,
+        thread_follow_reactivated: false,
     });
 
     const minted = await mintRunner({
@@ -379,6 +400,78 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
             status: 404,
         });
     }
+
+    const target = `dm:@operator:${shortAnchor}`;
+    await agentPost(minted.runnerToken, '/api/agent/threads/unfollow', { target });
+    const suppressed = await owner.trpc.chat.send.mutate({
+        chatId: dmChatId,
+        content: 'Ordinary DM Thread reply after unfollow.',
+        nonce: 'dm_thread_suppressed_after_unfollow',
+        serverId,
+        thread: { anchorMessageId: created.task.messageId },
+    });
+    const [suppressedCount] = (await harness.sql`
+        select count(*)::int as count from agent_pending_work
+        where server_id = ${serverId}
+          and agent_id = ${agentId}
+          and dedupe_key = ${suppressed.message.id}
+    `) as Array<{ count: number }>;
+    expect(suppressedCount?.count).toBe(0);
+
+    const restored = await owner.trpc.chat.send.mutate({
+        chatId: dmChatId,
+        content: '@sage please rejoin this DM Thread.',
+        nonce: 'dm_thread_mention_reactivation',
+        serverId,
+        thread: { anchorMessageId: created.task.messageId },
+    });
+    const restoredState = (await harness.sql`
+        select follow.followed, pending.thread_follow_reactivated
+        from agent_thread_follows follow
+        join agent_pending_work pending
+          on pending.server_id = follow.server_id
+         and pending.agent_id = follow.agent_id
+        where follow.server_id = ${serverId}
+          and follow.agent_id = ${agentId}
+          and follow.thread_chat_id = ${created.task.threadChatId}
+          and pending.dedupe_key = ${restored.message.id}
+    `) as Array<{ followed: boolean; thread_follow_reactivated: boolean }>;
+    expect(restoredState).toEqual([{ followed: true, thread_follow_reactivated: true }]);
+    const restoredHistory = await agentGet(minted.runnerToken, '/api/agent/history', {
+        around: restored.message.id,
+        limit: '3',
+        target,
+    });
+    expect(restoredHistory.body.thread_follow_reactivated_message_ids).toContain(
+        restored.message.id
+    );
+    await harness.sql`
+        update agent_pending_work
+        set run_id = 'run_dm_thread_target_1', served_at = now(), state = 'served'
+        where server_id = ${serverId}
+          and agent_id = ${agentId}
+          and dedupe_key = ${restored.message.id}
+    `;
+    const reread = await agentGet(minted.runnerToken, '/api/agent/history', {
+        around: restored.message.id,
+        limit: '3',
+        target,
+    });
+    expect(reread.body.thread_follow_reactivated_message_ids).not.toContain(restored.message.id);
+    const alreadyFollowed = await owner.trpc.chat.send.mutate({
+        chatId: dmChatId,
+        content: '@sage this mention should not restore twice.',
+        nonce: 'dm_thread_already_followed_mention',
+        serverId,
+        thread: { anchorMessageId: created.task.messageId },
+    });
+    const alreadyFollowedPending = (await harness.sql`
+        select mentioned, thread_follow_reactivated from agent_pending_work
+        where server_id = ${serverId}
+          and agent_id = ${agentId}
+          and dedupe_key = ${alreadyFollowed.message.id}
+    `) as Array<{ mentioned: boolean; thread_follow_reactivated: boolean }>;
+    expect(alreadyFollowedPending).toEqual([{ mentioned: true, thread_follow_reactivated: false }]);
 });
 
 test('As Task enters the Agent inbox with canonical unassigned task metadata', async () => {
@@ -396,12 +489,12 @@ test('As Task enters the Agent inbox with canonical unassigned task metadata', a
         status: 'todo',
     });
     const pending = (await harness.sql`
-        select dedupe_key, pierced from agent_pending_work
+        select dedupe_key from agent_pending_work
         where server_id = ${serverId}
           and agent_id = ${agentId}
           and dedupe_key = ${created.task.messageId}
-    `) as Array<{ dedupe_key: string; pierced: boolean }>;
-    expect(pending).toEqual([{ dedupe_key: created.task.messageId, pierced: false }]);
+    `) as Array<{ dedupe_key: string }>;
+    expect(pending).toEqual([{ dedupe_key: created.task.messageId }]);
 
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_projection' });
     const history = await agentGet(minted.runnerToken, '/api/agent/history', {
@@ -412,7 +505,89 @@ test('As Task enters the Agent inbox with canonical unassigned task metadata', a
     ).toMatchObject({ number: created.task.number, status: 'todo' });
 });
 
-test('mute and explicit unfollow purge ordinary work while mentions pierce once', async () => {
+test('ordinary Channel delivery preserves per-recipient direct attention', async () => {
+    const peer = await owner.trpc.agent.create.mutate({
+        computerId,
+        displayName: 'Attention Peer',
+        handle: 'attention-peer',
+        modelId: 'gpt-5.6-sol',
+        role: 'member',
+        runtimeId: 'codex',
+        serverId,
+    });
+    const channel = await owner.trpc.chat.createChannel.mutate({
+        agentIds: [agentId, peer.agent.id],
+        name: 'direct-attention-contract',
+        serverId,
+    });
+    const sent = await owner.trpc.chat.send.mutate({
+        chatId: channel.id,
+        content: '@sage please synthesize this; attention-peer should only observe.',
+        nonce: 'ordinary_direct_attention',
+        serverId,
+    });
+
+    const pending = (await harness.sql`
+        select agent_id, content, mentioned
+        from agent_pending_work
+        where server_id = ${serverId} and dedupe_key = ${sent.message.id}
+        order by agent_id
+    `) as Array<{
+        agent_id: string;
+        content: string;
+        mentioned: boolean;
+    }>;
+    expect(pending).toEqual(
+        expect.arrayContaining([
+            {
+                agent_id: agentId,
+                content: '@sage please synthesize this; attention-peer should only observe.',
+                mentioned: true,
+            },
+            {
+                agent_id: peer.agent.id,
+                content: '@sage please synthesize this; attention-peer should only observe.',
+                mentioned: false,
+            },
+        ])
+    );
+    expect(pending).toHaveLength(2);
+
+    const sageRunner = await mintRunner({ chatId: channel.id, runId: 'run_direct_attention_sage' });
+    const peerRunner = await mintRunner({
+        agentId: peer.agent.id,
+        chatId: channel.id,
+        runId: 'run_direct_attention_peer',
+    });
+    const [sageInbox, peerInbox] = await Promise.all([
+        agentGet(sageRunner.runnerToken, '/api/agent/inbox', {}),
+        agentGet(peerRunner.runnerToken, '/api/agent/inbox', {}),
+    ]);
+    expect(sageInbox.body.rows?.find((row) => row.chatId === channel.id)?.mentioned).toBe(true);
+    expect(peerInbox.body.rows?.find((row) => row.chatId === channel.id)?.mentioned).toBe(false);
+
+    const richMention = await owner.trpc.chat.send.mutate({
+        chatId: channel.id,
+        content: `[@Sage](agent://${agentId}) please handle the rich-reference follow-up.`,
+        nonce: 'rich_direct_attention',
+        serverId,
+    });
+    const richPending = (await harness.sql`
+        select agent_id, mentioned
+        from agent_pending_work
+        where server_id = ${serverId} and dedupe_key = ${richMention.message.id}
+        order by agent_id
+    `) as Array<{ agent_id: string; mentioned: boolean }>;
+    expect(richPending).toEqual(
+        expect.arrayContaining([
+            { agent_id: agentId, mentioned: true },
+            { agent_id: peer.agent.id, mentioned: false },
+        ])
+    );
+    expect(richPending).toHaveLength(2);
+});
+
+test('mute and explicit unfollow purge ordinary work while preserving exact mentions', async () => {
     const channelId = 'cht_attentioncontract';
     await harness.sql`
         insert into chats (id, server_id, kind, name)
@@ -456,15 +631,15 @@ test('mute and explicit unfollow purge ordinary work while mentions pierce once'
         serverId,
     });
     const mutePending = (await harness.sql`
-        select dedupe_key, pierced from agent_pending_work
+        select dedupe_key, mentioned from agent_pending_work
         where agent_id = ${agentId}
           and chat_id = ${channelId}
           and dedupe_key in (${mentioned.message.id}, (
               select id from chat_messages where nonce = 'attention_ordinary_after_mute'
           ))
         order by dedupe_key
-    `) as Array<{ dedupe_key: string; pierced: boolean }>;
-    expect(mutePending).toEqual([{ dedupe_key: mentioned.message.id, pierced: true }]);
+    `) as Array<{ dedupe_key: string; mentioned: boolean }>;
+    expect(mutePending).toEqual([{ dedupe_key: mentioned.message.id, mentioned: true }]);
 
     const task = await owner.trpc.task.create.mutate({
         chatId: channelId,
@@ -511,11 +686,178 @@ test('mute and explicit unfollow purge ordinary work while mentions pierce once'
           and thread_chat_id = ${task.task.threadChatId}
     `) as Array<{ followed: boolean }>;
     const threadPending = (await harness.sql`
-        select pierced from agent_pending_work
+        select mentioned, thread_follow_reactivated from agent_pending_work
         where agent_id = ${agentId} and dedupe_key = ${threadMention.message.id}
-    `) as Array<{ pierced: boolean }>;
-    expect(explicit).toEqual([{ followed: false }]);
-    expect(threadPending).toEqual([{ pierced: true }]);
+    `) as Array<{ mentioned: boolean; thread_follow_reactivated: boolean }>;
+    expect(explicit).toEqual([{ followed: true }]);
+    expect(threadPending).toEqual([{ mentioned: true, thread_follow_reactivated: true }]);
+
+    const ordinaryAfterMention = await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: 'Ordinary follow-up after restored attention.',
+        nonce: 'attention_thread_after_reactivation',
+        serverId,
+        thread: { anchorMessageId: task.task.messageId },
+    });
+    const ordinaryPending = (await harness.sql`
+        select mentioned, thread_follow_reactivated from agent_pending_work
+        where agent_id = ${agentId} and dedupe_key = ${ordinaryAfterMention.message.id}
+    `) as Array<{ mentioned: boolean; thread_follow_reactivated: boolean }>;
+    expect(ordinaryPending).toEqual([{ mentioned: false, thread_follow_reactivated: false }]);
+});
+
+test('a followed Thread stays active when its parent Channel is muted', async () => {
+    const channel = await owner.trpc.chat.createChannel.mutate({
+        agentIds: [agentId],
+        name: 'followed-thread-parent-mute',
+        serverId,
+    });
+    const task = await owner.trpc.task.create.mutate({
+        chatId: channel.id,
+        content: 'Followed Thread anchor.',
+        nonce: 'followed_thread_parent_mute_anchor',
+        serverId,
+    });
+    await harness.sql`
+        insert into agent_thread_follows (server_id, agent_id, thread_chat_id, followed)
+        values (${serverId}, ${agentId}, ${task.task.threadChatId}, true)
+    `;
+    const beforeMute = await owner.trpc.chat.send.mutate({
+        chatId: channel.id,
+        content: 'Queued before the parent mute.',
+        nonce: 'followed_thread_before_parent_mute',
+        serverId,
+        thread: { anchorMessageId: task.task.messageId },
+    });
+    const minted = await mintRunner({
+        chatId: channel.id,
+        runId: 'run_followed_thread_parent_mute',
+    });
+    await agentPost(minted.runnerToken, '/api/agent/channels/mute', {
+        target: '#followed-thread-parent-mute',
+    });
+    const afterMute = await owner.trpc.chat.send.mutate({
+        chatId: channel.id,
+        content: 'Delivered after the parent mute.',
+        nonce: 'followed_thread_after_parent_mute',
+        serverId,
+        thread: { anchorMessageId: task.task.messageId },
+    });
+
+    const pending = (await harness.sql`
+        select dedupe_key
+        from agent_pending_work
+        where server_id = ${serverId}
+          and agent_id = ${agentId}
+          and dedupe_key in (${beforeMute.message.id}, ${afterMute.message.id})
+        order by dedupe_key
+    `) as Array<{ dedupe_key: string }>;
+    expect(pending.map((row) => row.dedupe_key).sort()).toEqual(
+        [beforeMute.message.id, afterMute.message.id].sort()
+    );
+
+    const target = `#followed-thread-parent-mute:${task.task.messageId.slice(4, 12)}`;
+    await agentPost(minted.runnerToken, '/api/agent/threads/unfollow', { target });
+    const afterUnfollow = (await harness.sql`
+        select count(*)::int as n
+        from agent_pending_work
+        where server_id = ${serverId}
+          and agent_id = ${agentId}
+          and dedupe_key in (${beforeMute.message.id}, ${afterMute.message.id})
+    `) as Array<{ n: number }>;
+    expect(afterUnfollow).toEqual([{ n: 0 }]);
+});
+
+test('history visibility across a muted gap prevents a duplicate freshness hold', async () => {
+    const channel = await owner.trpc.chat.createChannel.mutate({
+        agentIds: [agentId],
+        name: 'muted-history-visibility',
+        serverId,
+    });
+    const minted = await mintRunner({ chatId: channel.id, runId: 'run_muted_history_visibility' });
+    await harness.sql`
+        insert into agent_delivery (
+            agent_id, server_id, active_run_id, active_run_chat_id,
+            active_run_computer_id, active_run_runtime_id, active_run_model_id,
+            accepted_at, dispatched_at
+        ) values (
+            ${agentId}, ${serverId}, 'run_muted_history_visibility', ${channel.id},
+            ${computerId}, 'codex', 'gpt-5.6-sol', now(), now()
+        )
+        on conflict (agent_id) do update set
+            active_run_id = excluded.active_run_id,
+            active_run_chat_id = excluded.active_run_chat_id,
+            active_run_computer_id = excluded.active_run_computer_id,
+            active_run_runtime_id = excluded.active_run_runtime_id,
+            active_run_model_id = excluded.active_run_model_id,
+            accepted_at = excluded.accepted_at,
+            dispatched_at = excluded.dispatched_at
+    `;
+    await agentPost(minted.runnerToken, '/api/agent/channels/mute', {
+        target: '#muted-history-visibility',
+    });
+    const gapOne = await owner.trpc.chat.send.mutate({
+        chatId: channel.id,
+        content: 'Suppressed gap one.',
+        nonce: 'muted_history_gap_1',
+        serverId,
+    });
+    const gapTwo = await owner.trpc.chat.send.mutate({
+        chatId: channel.id,
+        content: 'Suppressed gap two.',
+        nonce: 'muted_history_gap_2',
+        serverId,
+    });
+    const mention = await owner.trpc.chat.send.mutate({
+        chatId: channel.id,
+        content: '@sage inspect the muted gap.',
+        nonce: 'muted_history_mention',
+        serverId,
+    });
+
+    const visible = [gapOne.message, gapTwo.message, mention.message].map((message) => ({
+        chatId: message.chatId,
+        id: message.id,
+        sequence: message.sequence,
+    }));
+    const attested = await attestAgentEvents(
+        connection.db,
+        {
+            agentId,
+            chatId: channel.id,
+            computerId,
+            runId: 'run_muted_history_visibility',
+            runnerId: 'arc_muted_history_visibility',
+            serverId,
+        },
+        visible
+    );
+    expect(attested).toEqual({ accepted: visible.map((message) => message.id) });
+
+    const sent = await agentSend(minted.runnerToken, {
+        content: 'I reviewed the complete muted gap.',
+        nonce: 'muted_history_reply',
+        target: '#muted-history-visibility',
+    });
+    expect(sent).toMatchObject({ body: { state: 'sent' }, status: 200 });
+    expect(
+        await readAgentInboxCursor(connection.db, {
+            agentId,
+            chatId: channel.id,
+            serverId,
+        })
+    ).toMatchObject({ seen: mention.message.sequence });
+    await harness.sql`
+        update agent_delivery
+        set active_run_id = null,
+            active_run_chat_id = null,
+            active_run_computer_id = null,
+            active_run_runtime_id = null,
+            active_run_model_id = null,
+            accepted_at = null,
+            dispatched_at = null
+        where agent_id = ${agentId}
+    `;
 });
 
 test('an ambiguous Channel Thread prefix fails closed', async () => {
@@ -968,10 +1310,12 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         serverId,
         thread: { anchorMessageId: regular.message.id },
     });
-    await advanceServedCursor(connection.db, {
+    await recordExactMessagesServed(connection.db, {
         agentId,
-        chatId: existingThreadReply.message.chatId,
-        sequence: existingThreadReply.message.sequence,
+        messages: [
+            { chatId: existingThreadReply.message.chatId, id: existingThreadReply.message.id },
+        ],
+        runId: 'run_tasks_1',
         serverId,
     });
     const converted = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
@@ -1280,10 +1624,10 @@ test('task status updates wait for newer exact-thread context', async () => {
         status: 409,
     });
 
-    await advanceServedCursor(connection.db, {
+    await recordExactMessagesServed(connection.db, {
         agentId,
-        chatId: correction.message.chatId,
-        sequence: correction.message.sequence,
+        messages: [{ chatId: correction.message.chatId, id: correction.message.id }],
+        runId: 'run_task_freshness',
         serverId,
     });
     const updated = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
@@ -1324,6 +1668,10 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
         insert into channel_agent_participants (server_id, chat_id, agent_id)
         values (${serverId}, ${channelId}, ${peer.agent.id})
     `;
+    await harness.sql`
+        insert into agent_channel_mutes (server_id, agent_id, chat_id)
+        values (${serverId}, ${peer.agent.id}, ${channelId})
+    `;
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_peer_assignment' });
     const body = {
         assignee: '@scout',
@@ -1347,6 +1695,20 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
         status: 200,
     });
     const messageId = String(created.body.tasks[0]?.message.id);
+    const appMessages = await owner.trpc.chat.messages.query({ chatId: channelId, serverId });
+    expect(appMessages.messages).toHaveLength(1);
+    expect(appMessages.messages[0]?.id).toBe(messageId);
+    await expect(
+        owner.trpc.chat.search.query({
+            chatId: channelId,
+            query: 'Assigned scout',
+            serverId,
+        })
+    ).resolves.toEqual([]);
+    const channel = (await owner.trpc.chat.list.query({ serverId })).find(
+        (candidate) => candidate.id === channelId
+    );
+    expect(channel?.unreadCount).toBe(1);
     const replayed = await agentPost(minted.runnerToken, '/api/agent/tasks/create', body);
     expect(replayed.body.tasks[0]?.message.id).toBe(messageId);
     const conflictingReplay = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
@@ -1366,11 +1728,102 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
     `) as Array<{ count: number }>;
     expect(rows).toEqual([{ count: 1 }]);
     const pending = (await harness.sql`
-        select agent_id, pierced
+        select agent_id, dedupe_key, mentioned, source
         from agent_pending_work
-        where server_id = ${serverId} and dedupe_key = ${messageId}
-    `) as Array<{ agent_id: string; pierced: boolean }>;
-    expect(pending).toEqual([{ agent_id: peer.agent.id, pierced: true }]);
+        where server_id = ${serverId}
+          and chat_id = ${channelId}
+        order by created_at, id
+    `) as Array<{ agent_id: string; dedupe_key: string; mentioned: boolean; source: string }>;
+    const receipt = (await harness.sql`
+        select content, id, sequence, system_author
+        from chat_messages
+        where server_id = ${serverId}
+          and chat_id = ${channelId}
+          and nonce = ${`task-assignment:${messageId}`}
+    `) as Array<{ content: string; id: string; sequence: number; system_author: string }>;
+    expect(receipt).toHaveLength(1);
+    expect(receipt[0]).toMatchObject({
+        content: '📌 Assigned @scout to task #1 "Scout the release notes."',
+        system_author: 'task',
+    });
+    expect(pending).toEqual(
+        expect.arrayContaining([
+            {
+                agent_id: peer.agent.id,
+                dedupe_key: messageId,
+                mentioned: false,
+                source: 'agent:sage',
+            },
+            {
+                agent_id: peer.agent.id,
+                dedupe_key: receipt[0]?.id,
+                mentioned: true,
+                source: 'system',
+            },
+        ])
+    );
+    expect(pending).toHaveLength(2);
+    const peerRunner = await mintRunner({
+        agentId: peer.agent.id,
+        chatId: channelId,
+        runId: 'run_task_peer_assignment_events',
+    });
+    await harness.sql`
+        update agent_delivery
+        set active_run_id = 'run_task_peer_assignment_events',
+            active_run_chat_id = ${channelId},
+            active_run_computer_id = ${computerId},
+            active_run_runtime_id = 'codex',
+            active_run_model_id = 'gpt-5.6-sol',
+            accepted_at = now(),
+            dispatched_at = now()
+        where agent_id = ${peer.agent.id}
+    `;
+    const eventsResponse = await fetch(new URL('/api/agent/events', harness.url), {
+        headers: { authorization: `Bearer ${peerRunner.runnerToken}` },
+    });
+    expect(eventsResponse.status).toBe(200);
+    const events = (await eventsResponse.json()) as {
+        messages: Array<{
+            message: {
+                author: { kind: string };
+                content: string;
+                id: string;
+                role: string;
+                sender: { handle: string | null; type: string };
+            };
+            target: string;
+        }>;
+        more: boolean;
+    };
+    expect(events.more).toBe(false);
+    expect(
+        events.messages.map(({ message }) => ({
+            authorKind: message.author.kind,
+            content: message.content,
+            id: message.id,
+            role: message.role,
+            senderHandle: message.sender.handle,
+            senderType: message.sender.type,
+        }))
+    ).toEqual([
+        {
+            authorKind: 'agent',
+            content: 'Scout the release notes.',
+            id: messageId,
+            role: 'assistant',
+            senderHandle: 'sage',
+            senderType: 'agent',
+        },
+        {
+            authorKind: 'system',
+            content: '📌 Assigned @scout to task #1 "Scout the release notes."',
+            id: receipt[0]?.id,
+            role: 'system',
+            senderHandle: 'system',
+            senderType: 'system',
+        },
+    ]);
     const follows = (await harness.sql`
         select followed
         from agent_thread_follows
@@ -2211,7 +2664,9 @@ async function agentGet(token: string, path: string, query: Record<string, strin
             messages?: Array<Record<string, unknown> & { attachments?: unknown; id?: string }>;
             profile?: Record<string, unknown>;
             reminders?: Record<string, unknown>[];
+            rows?: Array<Record<string, unknown> & { chatId?: string; mentioned?: boolean }>;
             tasks?: Record<string, unknown>[];
+            thread_follow_reactivated_message_ids?: string[];
         },
         status: response.status,
     };

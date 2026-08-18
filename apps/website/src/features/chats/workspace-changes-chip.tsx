@@ -2,14 +2,18 @@ import { ArrowRight01Icon, FileEditIcon } from '@hugeicons-pro/core-stroke-round
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
-import { ToolDrawer } from '../sessions/tools/tool-drawer.tsx';
+import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
+import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
 import type { ToolStepRow } from './tool-steps/types.ts';
 
 // Timeline affordance for turn file-change evidence: a compact card under the
 // agent's reply proving the turn really touched files. Opens the same
 // Workspace Changes drawer as the turn-details row.
-export function WorkspaceChangesChip({ chatId, row }: { chatId?: string; row: ToolStepRow }) {
+export function WorkspaceChangesChip({ row }: { chatId?: string; row: ToolStepRow }) {
     const [open, setOpen] = React.useState(false);
+    const context = useTranscriptRenderContextOptional();
+    const agentId = row.actor?.kind === 'agent' ? row.actor.id : null;
+    const actorProfile = context?.resolveActorProfile?.(row.actor);
     const label = row.toolCall.label || 'Changed files';
 
     return (
@@ -37,13 +41,16 @@ export function WorkspaceChangesChip({ chatId, row }: { chatId?: string; row: To
                     strokeWidth={1.7}
                 />
             </button>
-            {chatId ? (
-                <ToolDrawer
-                    activityId={row.id}
-                    chatId={chatId}
-                    isOpen={open}
+            {context?.turnDetails && row.runId ? (
+                <ServerTurnDetailsDrawer
+                    access={context.turnDetails.access}
+                    agentAvatarUrl={actorProfile?.avatarUrl}
+                    agentId={agentId}
+                    agentName={actorProfile?.name ?? 'Agent'}
                     onOpenChange={setOpen}
-                    source="chat"
+                    open={open}
+                    runId={row.runId}
+                    serverId={context.turnDetails.serverId}
                 />
             ) : null}
         </div>

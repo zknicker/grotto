@@ -1,5 +1,6 @@
 import type { TavernAgentMessage } from '@tavern/api';
 import { and, asc, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
+import { listUnservedThreadFollowReactivationIds } from '../agent-delivery/store.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -70,6 +71,11 @@ export async function readAgentHistory(
     if (input.before || !anchor) {
         page.reverse();
     }
+    const threadFollowReactivatedMessageIds = await listUnservedThreadFollowReactivationIds(db, {
+        agentId: runner.agentId,
+        dedupeKeys: page.map((message) => message.id),
+        runId: runner.runId,
+    });
     return {
         has_more: hasMore,
         has_newer: Boolean(input.before),
@@ -77,6 +83,7 @@ export async function readAgentHistory(
         last_read: { after: 0, unread_after: -1 },
         messages: await toAgentMessages(db, runner.serverId, page),
         target: input.target,
+        thread_follow_reactivated_message_ids: threadFollowReactivatedMessageIds,
     };
 }
 

@@ -1,7 +1,9 @@
 import { Chip } from '@heroui/react';
-import type { TaskLabelColor } from '../../lib/trpc.tsx';
+import type { TaskLabel } from '@tavern/api';
 import { cn } from '../../lib/utils.ts';
 import { taskLabelChipClass, taskLabelDotClass } from './label-colors.ts';
+
+type TaskLabelColor = TaskLabel['color'];
 
 // A colored label pill for board rows and pickers. A soft Chip carrying the
 // task-label palette: labels own their nine product colors rather than the

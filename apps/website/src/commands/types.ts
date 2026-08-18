@@ -1,6 +1,4 @@
 import type { IconSvgElement } from '@hugeicons/react';
-import type { ChatListItem } from '../features/chats/chat-list-data.ts';
-import type { CapabilityRequirement, CapabilityView } from '../hooks/connections/use-capability.ts';
 
 export type AppCommandIcon =
     | IconSvgElement
@@ -30,16 +28,6 @@ export interface AppCommandGroup {
     commands: readonly AppCommand[];
     id: string;
     title: string;
-}
-
-export interface AppCommandBuildContext {
-    chats: readonly ChatListItem[];
-    currentChat: ChatListItem | null;
-    devMode: boolean;
-    navigate: (path: string) => void;
-    pathname: string;
-    resolveCapability: (requirement: CapabilityRequirement) => CapabilityView;
-    setDevMode: (devMode: boolean) => void;
 }
 
 export function getCommandSearchText(command: AppCommand) {

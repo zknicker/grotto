@@ -14,12 +14,10 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate --config=drizzle.postgres.config.ts",
     "db:generate:postgres": "drizzle-kit generate --config=drizzle.postgres.config.ts",
-    "db:generate:sqlite": "drizzle-kit generate --config=drizzle.config.ts",
     "db:check": "drizzle-kit check --config=drizzle.postgres.config.ts",
     "db:check:postgres": "drizzle-kit check --config=drizzle.postgres.config.ts",
     "db:migrate": "GROTTO_MIGRATIONS_FOLDER=drizzle/postgres bun src/grotto-server-migrate.ts",
-    "db:migrate:postgres": "GROTTO_MIGRATIONS_FOLDER=drizzle/postgres bun src/grotto-server-migrate.ts",
-    "db:ensure": "bun src/db/ensure-runner.ts"
+    "db:migrate:postgres": "GROTTO_MIGRATIONS_FOLDER=drizzle/postgres bun src/grotto-server-migrate.ts"
   },
   "dependencies": {
     "@ai-sdk/mcp": "2.0.31",

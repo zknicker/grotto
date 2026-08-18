@@ -216,10 +216,11 @@ export async function createTask(
                 chatId: input.chatId,
                 content: input.content,
                 dedupeKey: message.id,
-                pierced: recipient.pierced,
+                mentioned: recipient.mentioned,
                 sequence: message.sequence,
                 serverId: input.serverId,
                 source: 'human',
+                threadFollowReactivated: recipient.threadFollowReactivated,
             });
         }
 

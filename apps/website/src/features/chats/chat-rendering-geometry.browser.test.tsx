@@ -1,11 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { type Browser, chromium, type Page } from '@playwright/test';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpLink } from '@trpc/client';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { trpc } from '../../lib/trpc.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import {
     ChatTranscriptMessageContent,
@@ -285,30 +282,8 @@ test('work disclosure anchoring keeps the header pinned while content expands be
     await page.close();
 });
 
-// Message content resolves live agent appearance through tRPC, so static
-// markup renders need the app query providers; the dead-end link never
-// fetches because static rendering runs no effects.
 function renderChatMarkup(node: ReactNode): string {
-    const queryClient = new QueryClient({
-        defaultOptions: {
-            queries: {
-                retry: false,
-            },
-        },
-    });
-    const client = trpc.createClient({
-        links: [
-            httpLink({
-                url: 'http://127.0.0.1:1/trpc',
-            }),
-        ],
-    });
-
-    return renderToStaticMarkup(
-        <trpc.Provider client={client} queryClient={queryClient}>
-            <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>
-        </trpc.Provider>
-    );
+    return renderToStaticMarkup(node);
 }
 
 async function newGeometryPage(body: string): Promise<Page> {

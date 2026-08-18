@@ -135,6 +135,7 @@ test('serves cached message bodies locally when the Server fetch is unavailable'
     const location = { agentId: 'agt_local', dataRoot, serverId: 'srv_local' };
     const cached = inboxItem('msg_cached', 1);
     cached.message = agentMessage(cached);
+    cached.threadFollowReactivated = true;
     await replacePendingInbox(location, [cached]);
     const proxy = startLoopbackProxy({
         ...location,
@@ -149,7 +150,12 @@ test('serves cached message bodies locally when the Server fetch is unavailable'
         });
         expect(response.status).toBe(200);
         expect(await response.json()).toMatchObject({
-            messages: [{ message: { content: 'msg_cached', id: 'msg_cached' } }],
+            messages: [
+                {
+                    message: { content: 'msg_cached', id: 'msg_cached' },
+                    threadFollowReactivated: true,
+                },
+            ],
         });
         expect(await readPendingInbox(location)).toEqual([]);
         expect(await readRunVisibleMessages(location, 'run_local')).toEqual([
@@ -183,6 +189,46 @@ test('local pulls preserve the canonical more signal beyond the cached window', 
         expect(await first.json()).toMatchObject({ more: true });
         const second = await fetch(`${proxy.url}/api/agent/events`, { headers });
         expect(await second.json()).toMatchObject({ more: true });
+    } finally {
+        proxy.close();
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('local proxy exposes successive message-check pages until the inbox drains', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-pages-'));
+    const location = { agentId: 'agt_pages', dataRoot, serverId: 'srv_pages' };
+    const cached = Array.from({ length: 80 }, (_, index) => {
+        const item = inboxItem(`msg_page_${index}`, index + 1);
+        item.message = agentMessage(item);
+        return item;
+    });
+    await replacePendingInbox(location, cached, cached.length);
+    const proxy = startLoopbackProxy({
+        ...location,
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        runId: 'run_pages',
+        serverOrigin: 'http://127.0.0.1:1',
+    });
+    try {
+        const headers = { authorization: 'Bearer local-token' };
+        const first = await fetch(`${proxy.url}/api/agent/events`, { headers });
+        const second = await fetch(`${proxy.url}/api/agent/events`, { headers });
+        const firstBody = (await first.json()) as {
+            messages: unknown[];
+            more: boolean;
+        };
+        const secondBody = (await second.json()) as {
+            messages: unknown[];
+            more: boolean;
+        };
+
+        expect(firstBody.messages).toHaveLength(40);
+        expect(firstBody.more).toBe(true);
+        expect(secondBody.messages).toHaveLength(40);
+        expect(secondBody.more).toBe(false);
+        expect(await readPendingInbox(location)).toEqual([]);
     } finally {
         proxy.close();
         await rm(dataRoot, { force: true, recursive: true });

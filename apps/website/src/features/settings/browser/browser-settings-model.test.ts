@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { BrowserSettingsOutput } from '../../../lib/trpc.tsx';
+import type { AgentRuntimeBrowserSettings } from '@tavern/api';
 import {
     createDraft,
     hasDraftChanges,
@@ -15,7 +15,7 @@ const savedSettings = {
     skillConflict: null,
     status: null,
     updatedAt: '2026-07-06T20:00:00.000Z',
-} satisfies NonNullable<BrowserSettingsOutput>;
+} satisfies AgentRuntimeBrowserSettings;
 
 describe('Browser settings model', () => {
     test('loads the saved profile name into the editable draft', () => {

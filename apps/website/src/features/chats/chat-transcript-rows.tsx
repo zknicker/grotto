@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { DayDivider } from '../../components/chats/day-divider.tsx';
-import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import { SessionLogHiddenCount } from '../sessions/session-log-hidden-count.tsx';
 import type { TranscriptActor, TranscriptEntry, TranscriptItem } from './chat-transcript-model.ts';
 import { useTranscriptRenderContext } from './chat-transcript-render-context.tsx';
@@ -9,14 +8,15 @@ import {
     type TranscriptRenderRow,
 } from './chat-transcript-row-model.ts';
 import { TranscriptEntryView } from './chat-transcript-turn.tsx';
+import type { TranscriptActiveReply } from './transcript-contract.ts';
 
 interface TranscriptRenderRowProps {
-    activeReplies?: readonly ChatActiveReply[];
+    activeReplies?: readonly TranscriptActiveReply[];
     row: TranscriptRenderRow;
 }
 
 interface TranscriptRenderRowViewProps {
-    activeReply: ChatActiveReply | null;
+    activeReply: TranscriptActiveReply | null;
     row: TranscriptRenderRow;
 }
 

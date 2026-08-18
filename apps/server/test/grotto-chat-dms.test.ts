@@ -19,7 +19,7 @@ const byteFirstUserId = 'usr_Zcollation0001';
 const byteSecondUserId = 'usr_hcollation0002';
 
 beforeAll(async () => {
-    harness = await startGrottoServerHarness();
+    harness = await startGrottoServerHarness({ postgresIcuLocale: 'en-US' });
     owner = await signIn('user_dm_owner');
     outsider = await signIn('user_dm_outsider');
     peer = await signIn('user_dm_peer');

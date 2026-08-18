@@ -1,9 +1,6 @@
-import { Spinner } from '@heroui/react';
 import { ChainOfThought } from '@heroui-pro/react';
 import { ChatTool, type ToolPartState } from '@heroui-pro/react/chat-tool';
 import * as React from 'react';
-import { useChatTool } from '../../hooks/chats/use-chat-tool.ts';
-import { useSessionTool } from '../../hooks/sessions/use-session-tool.ts';
 import { SessionLinkButton } from '../sessions/session-link-button.tsx';
 import { getSessionRelationshipName } from '../sessions/session-relationship.ts';
 import { formatToolDuration, hasErrorStatus } from '../sessions/tools/tool-ui.ts';
@@ -140,36 +137,14 @@ function DrawerStep({ item }: { item: ActivityItem }) {
     return null;
 }
 
-function DrawerToolCall({ chatId, row }: { chatId?: string; row: ToolStepRow }) {
+function DrawerToolCall({ row }: { chatId?: string; row: ToolStepRow }) {
     const [expanded, setExpanded] = React.useState(false);
-    // The row only carries the tool summary; args and result load once the
-    // card is first expanded and stay cached after that.
-    const [inspected, setInspected] = React.useState(false);
-    const chatSource = Boolean(chatId);
-    const sessionSource = !chatSource && Boolean(row.sessionKey && row.toolCall.callId);
-    const chatQuery = useChatTool(
-        { activityId: row.id, chatId: chatId ?? '' },
-        { enabled: inspected && chatSource }
-    );
-    const sessionQuery = useSessionTool(
-        { sessionKey: row.sessionKey ?? '', toolCallId: row.toolCall.callId ?? '' },
-        { enabled: inspected && sessionSource }
-    );
-    const detail = chatSource ? chatQuery.data : sessionSource ? sessionQuery.data : null;
-    const detailPending =
-        inspected && (chatSource ? chatQuery.isPending : sessionSource && sessionQuery.isPending);
     const duration = formatToolDuration(row.startedAt, row.completedAt);
 
     return (
         <ChatTool
             isExpanded={expanded}
-            onExpandedChange={(next) => {
-                setExpanded(next);
-
-                if (next) {
-                    setInspected(true);
-                }
-            }}
+            onExpandedChange={setExpanded}
             state={resolveToolPartState(row)}
             toolName={row.toolCall.name}
         >
@@ -183,17 +158,10 @@ function DrawerToolCall({ chatId, row }: { chatId?: string; row: ToolStepRow }) 
                 ) : null}
             </ChatTool.Trigger>
             <ChatTool.Content>
-                {detailPending ? (
-                    <div className="flex items-center gap-2 p-2 text-muted text-sm">
-                        <Spinner color="current" size="sm" />
-                        Loading tool detail
-                    </div>
-                ) : (
-                    <>
-                        <ChatTool.Args input={detail?.arguments ?? undefined} label="Input" />
-                        <ChatTool.Result label="Result" value={detail?.result ?? undefined} />
-                    </>
-                )}
+                <ChatTool.Result
+                    label="Summary"
+                    value={row.toolCall.summaryParts.join('\n') || undefined}
+                />
                 {hasErrorStatus(row.toolCall.status) ? (
                     <ChatTool.Error errorText={row.toolCall.status ?? 'Failed'} />
                 ) : null}

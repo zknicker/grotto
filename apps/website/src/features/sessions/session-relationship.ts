@@ -1,9 +1,9 @@
-import type { SessionRelationshipOutput } from '../../lib/trpc.tsx';
+import type { TranscriptSessionRelationship } from '../chats/transcript-contract.ts';
 
-export function getSessionRelationshipName(relationship: SessionRelationshipOutput) {
+export function getSessionRelationshipName(relationship: TranscriptSessionRelationship) {
     return relationship.relatedSession.name;
 }
 
-export function formatChannelRelationshipLabel(relationship: SessionRelationshipOutput) {
+export function formatChannelRelationshipLabel(relationship: TranscriptSessionRelationship) {
     return relationship.direction === 'incoming' ? 'Spawned By' : 'Spawned Session';
 }

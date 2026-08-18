@@ -1,5 +1,5 @@
 import type { ChatSearchResult } from '@tavern/api';
-import { and, eq, gte, isNull, ne, sql } from 'drizzle-orm';
+import { and, eq, gte, isNull, ne, or, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -90,6 +90,10 @@ export async function searchChatMessages(
         .where(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),
+                or(
+                    isNull(chatMessagesTable.systemAuthor),
+                    ne(chatMessagesTable.systemAuthor, 'task')
+                ),
                 ne(chatsTable.kind, 'thread'),
                 isNull(chatsTable.deletedAt),
                 input.chatId ? eq(chatMessagesTable.chatId, input.chatId) : undefined,

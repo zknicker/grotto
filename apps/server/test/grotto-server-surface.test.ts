@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { request as sendHttpRequest } from 'node:http';
 import { appProtocolHeaders, appProtocolVersion } from '@tavern/api';
-import { getCurrentSessionToken } from '../src/identity/session-token-store.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
 /**
@@ -75,18 +74,6 @@ function postWithHost(pathname: string, host: string) {
         request.end('{}');
     });
 }
-
-test('never publishes a session token to the shared Runtime transport', async () => {
-    const token = await harness.clerk.mintSessionToken('user_clerk_surface');
-    const response = await fetch(new URL('/trpc/identity.pushSessionToken', harness.url), {
-        body: '{}',
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        method: 'POST',
-    });
-
-    expect(response.status).toBe(404);
-    expect(getCurrentSessionToken()).toBeNull();
-});
 
 test('requires a Clerk session for the Server contract it does expose', async () => {
     const response = await fetch(new URL('/trpc/server.list', harness.url), {

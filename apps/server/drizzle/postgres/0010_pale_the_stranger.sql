@@ -1,0 +1,1 @@
+ALTER TABLE "agent_pending_work" ADD COLUMN "mentioned" boolean DEFAULT false NOT NULL;

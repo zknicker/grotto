@@ -5,7 +5,7 @@ import {
     TerminalIcon,
     ZapIcon,
 } from '@hugeicons-pro/core-duotone-rounded';
-import type { WorkerListOutput } from '../../lib/trpc.tsx';
+import type { TranscriptWorker } from '../chats/transcript-contract.ts';
 
 export const workerKindConfig = {
     acp: {
@@ -37,7 +37,7 @@ export const workerKindConfig = {
         label: 'Delegated',
     },
 } satisfies Record<
-    WorkerListOutput['workers'][number]['kind'],
+    TranscriptWorker['kind'],
     {
         accent: string;
         accentMuted: string;

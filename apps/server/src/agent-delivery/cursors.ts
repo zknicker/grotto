@@ -2,7 +2,7 @@ import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentInboxCursorsTable,
-    agentInboxPiercesTable,
+    agentInboxExactVisibilityTable,
     agentPendingWorkTable,
     agentsTable,
     chatMessagesTable,
@@ -38,46 +38,87 @@ export async function readAgentInboxCursor(
             )
         )
         .limit(1);
-    return {
-        delivered: row?.deliveredUpToSequence ?? 0,
-        generation,
-        seen: row?.seenUpToSequence ?? 0,
-        served: row?.servedUpToSequence ?? 0,
-    };
+    return { generation, seen: row?.seenUpToSequence ?? 0 };
 }
 
-export async function advanceDeliveredCursor(
-    db: GrottoDatabase,
-    input: { agentId: string; chatId: string; sequence: number; serverId: string }
-) {
-    await advanceCursor(db, input, 'delivered');
-}
-
+/** Advances only a verified contiguous model-visible boundary. */
 export async function advanceSeenCursor(
     db: GrottoDatabase,
     input: { agentId: string; chatId: string; sequence: number; serverId: string }
 ) {
-    await advanceCursor(db, input, 'seen');
+    if (!(Number.isInteger(input.sequence) && input.sequence > 0)) {
+        return;
+    }
+    const generation = await readAgentSessionGeneration(db, input.agentId);
+    await db
+        .insert(agentInboxCursorsTable)
+        .values({
+            agentId: input.agentId,
+            chatId: input.chatId,
+            seenUpToSequence: input.sequence,
+            serverId: input.serverId,
+            sessionGeneration: generation,
+        })
+        .onConflictDoUpdate({
+            set: {
+                seenUpToSequence: sql`greatest(${agentInboxCursorsTable.seenUpToSequence}, ${input.sequence})`,
+                updatedAt: new Date(),
+            },
+            target: [
+                agentInboxCursorsTable.serverId,
+                agentInboxCursorsTable.agentId,
+                agentInboxCursorsTable.sessionGeneration,
+                agentInboxCursorsTable.chatId,
+            ],
+        });
 }
 
-export async function advanceServedCursor(
+export async function recordExactMessagesServed(
     db: GrottoDatabase,
-    input: { agentId: string; chatId: string; sequence: number; serverId: string }
+    input: {
+        agentId: string;
+        messages: Array<{ chatId: string; id: string }>;
+        runId: string;
+        serverId: string;
+    }
 ) {
-    await advanceCursor(db, input, 'served');
+    if (input.messages.length === 0) {
+        return;
+    }
+    const generation = await readAgentSessionGeneration(db, input.agentId);
+    const servedAt = new Date();
+    for (const message of input.messages) {
+        await db
+            .insert(agentInboxExactVisibilityTable)
+            .values({
+                agentId: input.agentId,
+                chatId: message.chatId,
+                messageId: message.id,
+                servedAt,
+                servedRunId: input.runId,
+                serverId: input.serverId,
+                sessionGeneration: generation,
+            })
+            .onConflictDoUpdate({
+                set: { servedAt, servedRunId: input.runId },
+                target: [
+                    agentInboxExactVisibilityTable.serverId,
+                    agentInboxExactVisibilityTable.agentId,
+                    agentInboxExactVisibilityTable.sessionGeneration,
+                    agentInboxExactVisibilityTable.chatId,
+                    agentInboxExactVisibilityTable.messageId,
+                ],
+            });
+    }
 }
 
 export async function advanceSeenForRun(
     db: GrottoDatabase,
     input: { agentId: string; runId: string; serverId: string }
 ) {
+    const generation = await readAgentSessionGeneration(db, input.agentId);
     const rows = await db
-        .select({
-            chatId: agentPendingWorkTable.chatId,
-            messageId: chatMessagesTable.id,
-            pierced: agentPendingWorkTable.pierced,
-            sequence: chatMessagesTable.sequence,
-        })
+        .select({ chatId: agentPendingWorkTable.chatId, messageId: chatMessagesTable.id })
         .from(agentPendingWorkTable)
         .innerJoin(
             chatMessagesTable,
@@ -94,24 +135,21 @@ export async function advanceSeenForRun(
                 ne(agentPendingWorkTable.state, 'seen')
             )
         );
-    for (const row of rows) {
-        if (!row.pierced) {
-            await advanceSeenCursor(db, { ...input, ...row });
-        }
-    }
-    const piercedMessageIds = rows.filter((row) => row.pierced).map((row) => row.messageId);
-    if (piercedMessageIds.length > 0) {
-        await db
-            .update(agentInboxPiercesTable)
-            .set({ seenAt: new Date() })
-            .where(
-                and(
-                    eq(agentInboxPiercesTable.serverId, input.serverId),
-                    eq(agentInboxPiercesTable.agentId, input.agentId),
-                    inArray(agentInboxPiercesTable.messageId, piercedMessageIds)
-                )
-            );
-    }
+    await recordExactMessagesServed(db, {
+        ...input,
+        messages: rows.map((row) => ({ chatId: row.chatId, id: row.messageId })),
+    });
+    await db
+        .update(agentInboxExactVisibilityTable)
+        .set({ seenAt: new Date(), settledRunId: input.runId })
+        .where(
+            and(
+                eq(agentInboxExactVisibilityTable.serverId, input.serverId),
+                eq(agentInboxExactVisibilityTable.agentId, input.agentId),
+                eq(agentInboxExactVisibilityTable.sessionGeneration, generation),
+                eq(agentInboxExactVisibilityTable.servedRunId, input.runId)
+            )
+        );
     const messageIds = rows.map((row) => row.messageId);
     if (messageIds.length > 0) {
         await db
@@ -126,13 +164,7 @@ export async function advanceSeenForRun(
     }
 }
 
-/**
- * Settles queued rows the seen cursor already covers, only after model-seen
- * proof. `served` is a hold-decision assist, never consumption authority: a pull
- * followed by a crash must replay from `seen` instead of consuming unseen work.
- * The rows leave the live queue as ledger evidence rather than disappearing. No
- * turn settled them — the cursor subsumed them — so `settled_run_id` stays null.
- */
+/** Retires queued rows covered by a verified contiguous seen boundary. */
 export async function markCursorSubsumedSeen(
     db: GrottoDatabase,
     input: { agentId: string; serverId: string }
@@ -146,7 +178,6 @@ export async function markCursorSubsumedSeen(
           and pending.agent_id = ${input.agentId}
           and pending.state = 'queued'
           and pending.run_id is null
-          and pending.pierced = false
           and message.server_id = pending.server_id
           and message.id = pending.dedupe_key
           and cursor.server_id = pending.server_id
@@ -155,81 +186,4 @@ export async function markCursorSubsumedSeen(
           and cursor.chat_id = pending.chat_id
           and message.sequence <= cursor.seen_up_to_sequence
     `);
-}
-
-export async function recordAgentInboxPierce(
-    db: GrottoDatabase,
-    input: { agentId: string; chatId: string; messageId: string; serverId: string }
-) {
-    const generation = await readAgentSessionGeneration(db, input.agentId);
-    await db
-        .insert(agentInboxPiercesTable)
-        .values({ ...input, sessionGeneration: generation })
-        .onConflictDoNothing();
-}
-
-export async function markAgentInboxPiercesServed(
-    db: GrottoDatabase,
-    input: { agentId: string; messageIds: string[]; serverId: string }
-) {
-    if (input.messageIds.length === 0) {
-        return;
-    }
-    await db
-        .update(agentInboxPiercesTable)
-        .set({ servedAt: new Date() })
-        .where(
-            and(
-                eq(agentInboxPiercesTable.serverId, input.serverId),
-                eq(agentInboxPiercesTable.agentId, input.agentId),
-                inArray(agentInboxPiercesTable.messageId, input.messageIds)
-            )
-        );
-}
-
-async function advanceCursor(
-    db: GrottoDatabase,
-    input: { agentId: string; chatId: string; sequence: number; serverId: string },
-    kind: 'delivered' | 'seen' | 'served'
-) {
-    if (!(Number.isInteger(input.sequence) && input.sequence > 0)) {
-        return;
-    }
-    const generation = await readAgentSessionGeneration(db, input.agentId);
-    const values = {
-        agentId: input.agentId,
-        chatId: input.chatId,
-        deliveredUpToSequence: kind === 'delivered' ? input.sequence : 0,
-        seenUpToSequence: kind === 'seen' ? input.sequence : 0,
-        servedUpToSequence: kind === 'served' ? input.sequence : 0,
-        serverId: input.serverId,
-        sessionGeneration: generation,
-    };
-    const set =
-        kind === 'delivered'
-            ? {
-                  deliveredUpToSequence: sql`greatest(${agentInboxCursorsTable.deliveredUpToSequence}, ${input.sequence})`,
-                  updatedAt: new Date(),
-              }
-            : kind === 'seen'
-              ? {
-                    seenUpToSequence: sql`greatest(${agentInboxCursorsTable.seenUpToSequence}, ${input.sequence})`,
-                    updatedAt: new Date(),
-                }
-              : {
-                    servedUpToSequence: sql`greatest(${agentInboxCursorsTable.servedUpToSequence}, ${input.sequence})`,
-                    updatedAt: new Date(),
-                };
-    await db
-        .insert(agentInboxCursorsTable)
-        .values(values)
-        .onConflictDoUpdate({
-            set,
-            target: [
-                agentInboxCursorsTable.serverId,
-                agentInboxCursorsTable.agentId,
-                agentInboxCursorsTable.sessionGeneration,
-                agentInboxCursorsTable.chatId,
-            ],
-        });
 }

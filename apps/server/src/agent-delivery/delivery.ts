@@ -31,12 +31,7 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
-import {
-    advanceDeliveredCursor,
-    advanceSeenForRun,
-    markCursorSubsumedSeen,
-    recordAgentInboxPierce,
-} from './cursors.ts';
+import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } from './cursors.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { recordSessionRotationReceipts } from './session-rotation.ts';
@@ -68,10 +63,11 @@ export interface EnqueueInput {
     content: string;
     /** Idempotency key; a duplicate delivery of the same message is a no-op. */
     dedupeKey: string;
-    pierced?: boolean;
+    mentioned?: boolean;
     sequence?: number;
     serverId: string;
     source?: string;
+    threadFollowReactivated?: boolean;
 }
 
 /** After how many consecutive failed turns an Agent stops auto-retrying (degraded). */
@@ -114,25 +110,11 @@ export class AgentDelivery {
             chatId: input.chatId,
             content: input.content,
             dedupeKey: input.dedupeKey,
-            pierced: input.pierced,
+            mentioned: input.mentioned,
             serverId: input.serverId,
             source,
+            threadFollowReactivated: input.threadFollowReactivated,
         });
-        if (input.pierced) {
-            await recordAgentInboxPierce(tx, {
-                agentId: input.agentId,
-                chatId: input.chatId,
-                messageId: input.dedupeKey,
-                serverId: input.serverId,
-            });
-        } else if (input.sequence) {
-            await advanceDeliveredCursor(tx, {
-                agentId: input.agentId,
-                chatId: input.chatId,
-                sequence: input.sequence,
-                serverId: input.serverId,
-            });
-        }
         // Fresh work re-enables delivery. Human intent also releases the
         // Agent-authored chain ceiling even when older Agent rows precede it.
         await store.clearDeliveryFailures(tx, input.agentId);
@@ -1172,23 +1154,28 @@ async function attachSummaryVisibility(
         );
     const messageById = new Map(messages.map((message) => [message.id, message]));
     const attachableIds: string[] = [];
+    const visibleMessages: Array<{ chatId: string; id: string }> = [];
     for (const identity of identities) {
         const row = byMessageId.get(identity.id);
         const message = messageById.get(identity.id);
-        if (
-            message?.sequence !== identity.sequence ||
-            message.chatId !== identity.chatId ||
-            !row ||
-            row.chatId !== identity.chatId
-        ) {
+        if (message?.sequence !== identity.sequence || message.chatId !== identity.chatId) {
             continue;
         }
-        attachableIds.push(row.id);
+        visibleMessages.push({ chatId: message.chatId, id: message.id });
+        if (row?.chatId === identity.chatId) {
+            attachableIds.push(row.id);
+        }
     }
     await store.attachQueuedPendingToRun(db, {
         agentId: state.agentId,
         pendingIds: attachableIds,
         runId: state.activeRunId,
+    });
+    await recordExactMessagesServed(db, {
+        agentId: state.agentId,
+        messages: visibleMessages,
+        runId: state.activeRunId,
+        serverId: state.serverId,
     });
 }
 
@@ -1249,7 +1236,8 @@ async function buildInboxItems(
                 ...(apiMessageById.get(row.dedupeKey)
                     ? { message: apiMessageById.get(row.dedupeKey) }
                     : {}),
-                ...(row.pierced ? { mentioned: true } : {}),
+                ...(row.mentioned ? { mentioned: true } : {}),
+                ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
                 ...(senderAgent?.description ? { senderDescription: senderAgent.description } : {}),
                 senderHandle: row.source === 'human' ? 'operator' : (agentHandle ?? row.source),
                 senderType:

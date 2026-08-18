@@ -1,17 +1,13 @@
 import * as React from 'react';
-import type { ActorProfile } from '../../hooks/actors/use-actor.ts';
-import type { ChatLogOutput } from '../../lib/trpc.tsx';
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
+import type { ConversationMessageLayout, TranscriptActor } from './chat-transcript-model.ts';
 import type {
-    ConversationMessageLayout,
-    TranscriptActor,
-    TranscriptRow,
-} from './chat-transcript-model.ts';
+    TranscriptActorProfile,
+    TranscriptMessageRow,
+    TranscriptThreadSummary,
+} from './transcript-contract.ts';
 
-export type TranscriptMessageRow = Extract<TranscriptRow, { kind: 'message' }>;
-export type TranscriptThreadSummary = NonNullable<
-    Extract<NonNullable<ChatLogOutput>['rows'][number], { kind: 'message' }>['thread']
->;
+export type { TranscriptMessageRow } from './transcript-contract.ts';
 
 export function getTranscriptMessageThread(
     row: TranscriptMessageRow
@@ -26,7 +22,6 @@ export interface TranscriptRenderContextValue {
     conversationLayout: ConversationMessageLayout;
     currentSessionKey?: string | null;
     defaultOpenWorkGroups: boolean;
-    disableAgentHoverCard?: boolean;
     flashMessageId: string | null;
     hiddenCount: number;
     onActorClick?: (actor: TranscriptActor) => void;
@@ -42,7 +37,7 @@ export interface TranscriptRenderContextValue {
     renderMessageContent?: (message: TranscriptMessage) => React.ReactNode;
     /** Runs whose final reply is present anywhere in the transcript. */
     repliedRunIds: ReadonlySet<string>;
-    resolveActorProfile?: (actor: TranscriptActor) => ActorProfile | null;
+    resolveActorProfile?: (actor: TranscriptActor) => TranscriptActorProfile | null;
     /**
      * Whether an item mounting now lands at the live edge and should animate
      * in. False for everything present at first render and for older history
@@ -54,7 +49,6 @@ export interface TranscriptRenderContextValue {
         access: 'journal' | 'summary';
         serverId: string;
     };
-    turnEvidenceSource?: 'embedded' | 'runtime';
 }
 
 const TranscriptRenderContext = React.createContext<TranscriptRenderContextValue | null>(null);

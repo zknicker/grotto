@@ -4,36 +4,13 @@ import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useEffect, useMemo, useState } from 'react';
 import type { AppCommand, AppCommandGroup } from '../../commands/types.ts';
 import { getCommandSearchText } from '../../commands/types.ts';
-import { useAppCommands } from '../../commands/use-app-commands.ts';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { GrottoGlyph } from '../../components/grotto-logo.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { useAgentAppearanceLookup } from '../../hooks/agents/use-agent-appearance.ts';
 import { getChannelColorStyle } from './channel-color-options.ts';
 
 export type AgentAvatarLookup = (agentId: string | null | undefined) => string | null;
-
-/**
- * Global command menu (Cmd+K / Ctrl+K). The menu renders modular command
- * groups from `src/commands`; command modules own navigation, feature, and
- * developer action definitions while this component owns only the shell.
- */
-export function CommandMenu() {
-    const commandGroups = useAppCommands();
-    const lookupAppearance = useAgentAppearanceLookup();
-    const lookupAgentAvatarUrl = useMemo<AgentAvatarLookup>(
-        () => (agentId) => lookupAppearance(agentId).avatarUrl,
-        [lookupAppearance]
-    );
-
-    return (
-        <CommandMenuShell
-            commandGroups={commandGroups}
-            lookupAgentAvatarUrl={lookupAgentAvatarUrl}
-        />
-    );
-}
 
 export function CommandMenuShell({
     commandGroups,

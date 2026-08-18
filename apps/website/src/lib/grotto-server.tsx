@@ -17,11 +17,7 @@ import { watchGrottoSession } from './grotto-session-refresh.ts';
 import { queryClientDefaultOptions } from './query-policy.ts';
 import { type ConnectionState, createQueryReconnectHandler } from './query-reconnect-recovery.ts';
 
-/**
- * The App's direct connection to the Grotto Server. It is separate from
- * the pre-WS6 local sidecar client on purpose: a different origin, a different
- * contract, and Clerk identity attached per request and per connection.
- */
+/** The App's authenticated HTTP and WebSocket connection to Grotto Server. */
 export const grottoTrpc = createTRPCReact<GrottoRouter>();
 
 export type GrottoOutputs = inferRouterOutputs<GrottoRouter>;

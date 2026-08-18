@@ -3,17 +3,15 @@ import { parseAgentReferenceTarget } from '@tavern/api/rich-references';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
-import { trpc } from '../../lib/trpc.tsx';
 import { MentionEditor, type MentionEditorHandle } from './mention-editor.tsx';
-import { MentionPicker } from './mention-picker.tsx';
-import type { ActiveMentionQuery, Mention, MentionOption } from './mention-types.ts';
-import { selectVisibleOptions } from './mention-visible-options.ts';
 import {
     buildAgentMentionOption,
     filterMentionOptionsForQuery,
     type MentionAgent,
-    useMentionOptions,
-} from './use-mention-options.ts';
+} from './mention-options.ts';
+import { MentionPicker } from './mention-picker.tsx';
+import type { ActiveMentionQuery, Mention, MentionOption } from './mention-types.ts';
+import { selectVisibleOptions } from './mention-visible-options.ts';
 
 export interface MentionComposerState {
     activeIndex: number;
@@ -29,60 +27,6 @@ export interface MentionComposerState {
     options: MentionOption[];
     prefetchMentionOptions: () => void;
     value: string;
-}
-
-export function useMentionComposer({
-    agentId,
-    agents,
-    content,
-    mentionableAgentIds = [],
-    onTextChange,
-    onSubmit,
-    onMentionsChange,
-}: {
-    agentId: string;
-    agents: MentionAgent[];
-    content: string;
-    mentionableAgentIds?: readonly string[];
-    onTextChange: (content: string) => void;
-    onSubmit?: () => void;
-    onMentionsChange?: (mentions: Mention[]) => void;
-}) {
-    const scaffold = useMentionComposerScaffold({
-        agentId,
-        mentionableAgentIds,
-    });
-    const utils = trpc.useUtils();
-    const mentionOptionsState = useMentionOptions({
-        agentId,
-        agentIds: scaffold.skillScopeAgentIds,
-        agents,
-        mentionableAgentIds,
-        query: scaffold.activeQuery?.query ?? '',
-        trigger: scaffold.activeQuery?.trigger ?? null,
-    });
-    const prefetchMentionOptions = React.useCallback(() => {
-        if (scaffold.skillScopeAgentIds.length === 0) {
-            return;
-        }
-
-        void utils.mention.inventory.prefetch(
-            {
-                agentIds: [...scaffold.skillScopeAgentIds],
-            },
-            queryPolicy.agentRuntimeSnapshot
-        );
-    }, [scaffold.skillScopeAgentIds, utils]);
-
-    return useMentionComposerController({
-        content,
-        mentionOptionsState,
-        onMentionsChange,
-        onSubmit,
-        onTextChange,
-        prefetchMentionOptions,
-        scaffold,
-    });
 }
 
 export function useServerMentionComposer({
@@ -175,7 +119,7 @@ interface MentionComposerScaffold {
     skillScopeAgentIds: string[];
 }
 
-function useMentionComposerScaffold({
+export function useMentionComposerScaffold({
     agentId,
     mentionableAgentIds,
 }: {
@@ -208,7 +152,7 @@ function useMentionComposerScaffold({
     };
 }
 
-function useMentionComposerController({
+export function useMentionComposerController({
     content,
     mentionOptionsState,
     onMentionsChange,

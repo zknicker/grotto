@@ -12,14 +12,14 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useChatMessageSend } from '../../../hooks/servers/use-chat-message-send.ts';
 import { useUploadServerAttachment } from '../../../hooks/servers/use-upload-server-attachment.ts';
-import { buildChatComposerSubmission } from '../../chats/chat-message-composer.tsx';
+import { buildChatComposerSubmission } from '../../chats/chat-composer-submission.ts';
+import { buildAgentMentionOption } from '../../mentions/mention-options.ts';
 import type { Mention } from '../../mentions/mention-types.ts';
 import {
     MentionComposerEditor,
     MentionComposerPicker,
     useServerMentionComposer,
 } from '../../mentions/use-mention-composer.tsx';
-import { buildAgentMentionOption } from '../../mentions/use-mention-options.ts';
 import { ComposerAttachments } from './composer-attachments.tsx';
 import { type ComposerAttachment, useComposerAttachments } from './use-composer-attachments.ts';
 import {

@@ -1,15 +1,11 @@
-import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
-import type { ChatLogOutput, SessionHistoryOutput } from '../../lib/trpc.tsx';
 import { getTranscriptItemKey } from './chat-transcript-item-utils.ts';
+import type {
+    TranscriptActiveReply,
+    TranscriptActor,
+    TranscriptRow,
+} from './transcript-contract.ts';
 
-export type TranscriptRow =
-    | NonNullable<ChatLogOutput>['rows'][number]
-    | SessionHistoryOutput['rows'][number];
-
-export type TranscriptActor = Exclude<
-    Extract<TranscriptRow, { kind: 'message' | 'widget' | 'tool' | 'worker' }>['actor'],
-    undefined
->;
+export type { TranscriptActor, TranscriptRow } from './transcript-contract.ts';
 
 export interface ConversationMessageLayout {
     showAgentIdentity: boolean;
@@ -22,8 +18,8 @@ export interface ConversationMessageLayout {
 // (specs/chat-timeline.md; no turn.* event ever populates one), so these
 // kinds never appear in the pane itself.
 export type TranscriptItem =
-    | { kind: 'activeReply'; reply: ChatActiveReply }
-    | { kind: 'activeStatus'; reply: ChatActiveReply; status: 'thinking' }
+    | { kind: 'activeReply'; reply: TranscriptActiveReply }
+    | { kind: 'activeStatus'; reply: TranscriptActiveReply; status: 'thinking' }
     | { kind: 'row'; row: TranscriptRow };
 
 export interface TranscriptSystemEntry {
@@ -58,7 +54,7 @@ const turnMaxGapMs = 5 * 60 * 1000;
 // presentation adjacency, not turn reconstruction; a message carrying a task
 // or a Thread keeps its own row so its block stays attached to its prose.
 export function buildTranscriptEntries(input: {
-    activeReplies?: readonly ChatActiveReply[];
+    activeReplies?: readonly TranscriptActiveReply[];
     rows: TranscriptRow[];
 }) {
     const items = buildTranscriptItems(input);
@@ -295,7 +291,7 @@ function isLikelyRunId(value: string) {
 }
 
 function buildTranscriptItems(input: {
-    activeReplies?: readonly ChatActiveReply[];
+    activeReplies?: readonly TranscriptActiveReply[];
     rows: TranscriptRow[];
 }) {
     // Once a turn's durable reply is in the rows, its live reply items are
@@ -368,7 +364,7 @@ function isThinkingRow(row: TranscriptRow) {
 function isDuplicateReplyThinkingRow(
     row: TranscriptRow,
     rows: TranscriptRow[],
-    activeReplies: readonly ChatActiveReply[]
+    activeReplies: readonly TranscriptActiveReply[]
 ) {
     if (!isThinkingRow(row)) {
         return false;
@@ -496,8 +492,8 @@ function getActorKey(actor: TranscriptActor) {
  */
 export function findTranscriptEntryActiveReply(
     entry: TranscriptEntry,
-    activeReplies: readonly ChatActiveReply[]
-): ChatActiveReply | null {
+    activeReplies: readonly TranscriptActiveReply[]
+): TranscriptActiveReply | null {
     if (entry.kind !== 'turn' || entry.participant !== 'agent') {
         return null;
     }
@@ -518,7 +514,7 @@ export function findTranscriptEntryActiveReply(
 
 export function transcriptEntryUsesActiveReply(
     entry: TranscriptEntry,
-    activeReply: ChatActiveReply | null
+    activeReply: TranscriptActiveReply | null
 ) {
     if (!activeReply || entry.kind !== 'turn' || entry.participant !== 'agent') {
         return false;

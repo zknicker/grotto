@@ -1,12 +1,10 @@
 import { type WidgetRenderInput, widgetRenderInputSchema } from '@tavern/api/widgets';
-import type { ChatLogOutput } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
 import { WidgetArtifactCard } from './artifact-card.tsx';
+import type { TranscriptWidgetRow } from './transcript-contract.ts';
 import { VisualCard } from './visual-card.tsx';
 
-type WidgetRow = Extract<NonNullable<ChatLogOutput>['rows'][number], { kind: 'widget' }>;
-
-export function AgentWidget({ row }: { row: WidgetRow }) {
+export function AgentWidget({ row }: { row: TranscriptWidgetRow }) {
     const rendered = renderWidget(row);
 
     if (!rendered) {
@@ -21,7 +19,7 @@ export function AgentWidget({ row }: { row: WidgetRow }) {
     return rendered;
 }
 
-function renderWidget(row: WidgetRow) {
+function renderWidget(row: TranscriptWidgetRow) {
     const widget = row.widget;
 
     if (widget.validationError || widget.target !== 'chat.inline') {

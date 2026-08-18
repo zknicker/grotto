@@ -18,9 +18,7 @@ export const agentInboxCursorsTable = pgTable(
     {
         agentId: text('agent_id').notNull(),
         chatId: text('chat_id').notNull(),
-        deliveredUpToSequence: integer('delivered_up_to_sequence').notNull().default(0),
         seenUpToSequence: integer('seen_up_to_sequence').notNull().default(0),
-        servedUpToSequence: integer('served_up_to_sequence').notNull().default(0),
         serverId: text('server_id').notNull(),
         sessionGeneration: integer('session_generation').notNull(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -41,24 +39,24 @@ export const agentInboxCursorsTable = pgTable(
         }).onDelete('cascade'),
         check(
             'agent_inbox_cursors_nonnegative',
-            sql`${table.deliveredUpToSequence} >= 0
-                and ${table.seenUpToSequence} >= 0
-                and ${table.servedUpToSequence} >= 0
+            sql`${table.seenUpToSequence} >= 0
                 and ${table.sessionGeneration} > 0`
         ),
     ]
 );
 
-export const agentInboxPiercesTable = pgTable(
-    'agent_inbox_pierces',
+export const agentInboxExactVisibilityTable = pgTable(
+    'agent_inbox_exact_visibility',
     {
         agentId: text('agent_id').notNull(),
         chatId: text('chat_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         messageId: text('message_id').notNull(),
         seenAt: timestamp('seen_at', { withTimezone: true }),
+        servedRunId: text('served_run_id'),
         serverId: text('server_id').notNull(),
         servedAt: timestamp('served_at', { withTimezone: true }),
+        settledRunId: text('settled_run_id'),
         sessionGeneration: integer('session_generation').notNull(),
     },
     (table) => [
@@ -74,19 +72,19 @@ export const agentInboxPiercesTable = pgTable(
         foreignKey({
             columns: [table.serverId, table.agentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],
-            name: 'agent_inbox_pierces_agent_fk',
+            name: 'agent_inbox_exact_visibility_agent_fk',
         }).onDelete('cascade'),
         foreignKey({
             columns: [table.serverId, table.chatId],
             foreignColumns: [chatsTable.serverId, chatsTable.id],
-            name: 'agent_inbox_pierces_chat_fk',
+            name: 'agent_inbox_exact_visibility_chat_fk',
         }).onDelete('cascade'),
         foreignKey({
             columns: [table.serverId, table.messageId],
             foreignColumns: [chatMessagesTable.serverId, chatMessagesTable.id],
-            name: 'agent_inbox_pierces_message_fk',
+            name: 'agent_inbox_exact_visibility_message_fk',
         }).onDelete('cascade'),
-        check('agent_inbox_pierces_generation', sql`${table.sessionGeneration} > 0`),
+        check('agent_inbox_exact_visibility_generation', sql`${table.sessionGeneration} > 0`),
     ]
 );
 

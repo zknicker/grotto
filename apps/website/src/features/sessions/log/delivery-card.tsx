@@ -1,11 +1,11 @@
-import type { SessionHistoryDeliveryOutput } from '../../../lib/trpc.tsx';
+import type { TranscriptDelivery } from '../../chats/transcript-contract.ts';
 
 export function DeliveryCard({
     currentSessionKey,
     delivery,
 }: {
     currentSessionKey: string;
-    delivery: SessionHistoryDeliveryOutput;
+    delivery: TranscriptDelivery;
 }) {
     const outgoing = delivery.parentSessionKey === currentSessionKey;
     const targetSessionKey = outgoing ? delivery.childSessionKey : delivery.parentSessionKey;

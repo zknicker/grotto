@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { isLocalTimelineMessageMetadata } from '../../../hooks/chats/chat-timeline-messages.ts';
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
+import { isLocalTimelineMessageMetadata } from '../../chats/local-timeline-message.ts';
 import type { ProjectedChatMessageRow } from './chat-message-model.ts';
 import { PendingMessageAttachments, projectPendingChatMessageRows } from './pending-messages.tsx';
 import type { PendingChatMessage } from './use-pending-messages.ts';

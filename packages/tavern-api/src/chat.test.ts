@@ -136,21 +136,21 @@ test('Server message history can preserve a deleted author profile', () => {
     });
 });
 
-test('Server message contracts reject the retired task system author', () => {
-    expect(() =>
+test('Server message contracts preserve private task assignment system messages', () => {
+    expect(
         chatMessageSchema.parse({
             attachments: [],
             author: { kind: 'system', system: 'task' },
             chatId: 'cht_all',
-            content: 'Retired receipt',
+            content: '📌 Assigned @scout to task #3.',
             createdAt: '2026-07-26T12:00:00.000Z',
-            id: 'msg_retired_receipt',
-            nonce: 'retired-receipt',
+            id: 'msg_task_receipt',
+            nonce: 'task-receipt',
             runId: null,
             sequence: 2,
             serverId: 'srv_main',
         })
-    ).toThrow();
+    ).toMatchObject({ author: { kind: 'system', system: 'task' } });
 });
 
 test('Chat sends allow attachment-only messages but reject empty messages', () => {

@@ -9,8 +9,6 @@ import {
     AttachmentMedia,
     AttachmentTitle,
 } from '../../components/chats/attachment.tsx';
-import { useAgentAppearanceLookup } from '../../hooks/agents/use-agent-appearance.ts';
-import type { ChatLogOutput, SessionHistoryOutput } from '../../lib/trpc.tsx';
 import { cn } from '../../lib/utils.ts';
 import {
     applyAgentMentionAppearance,
@@ -21,10 +19,9 @@ import { getMessageDisplay } from '../rows/message-display.ts';
 import type { ChatTextAnimationRange } from './chat-inline-text-animation.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { ChatMessageImage } from './chat-message-image.tsx';
+import type { TranscriptMessage } from './transcript-contract.ts';
 
-export type TranscriptMessage =
-    | Extract<NonNullable<ChatLogOutput>['rows'][number], { kind: 'message' }>['message']
-    | Extract<SessionHistoryOutput['rows'][number], { kind: 'message' }>['message'];
+export type { TranscriptMessage } from './transcript-contract.ts';
 
 type MessageAttachment = NonNullable<TranscriptMessage['attachments']>[number];
 
@@ -45,10 +42,13 @@ export function ChatTranscriptMessageContent({
         messageDisplay.content.length === 0 &&
         message.metadata?.stopReason === 'error';
     const content = contentOverride ?? messageDisplay.content;
-    const lookupAgentAppearance = useAgentAppearanceLookup();
     const mentions = React.useMemo(
-        () => applyAgentMentionAppearance(readMentionsFromMarkdown(content), lookupAgentAppearance),
-        [content, lookupAgentAppearance]
+        () =>
+            applyAgentMentionAppearance(readMentionsFromMarkdown(content), () => ({
+                avatarUrl: null,
+                primaryColor: null,
+            })),
+        [content]
     );
 
     if (isErrorEvent) {

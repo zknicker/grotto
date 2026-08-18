@@ -9,7 +9,6 @@ import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
-import { trpc } from '../../lib/trpc.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { formatTavernResourceLink, type TavernResourceTarget } from './tavern-resource-link.ts';
 
@@ -21,18 +20,14 @@ export function WorkspaceArtifactContent({
 }: {
     agentId: string;
     includeHidden?: boolean;
-    serverId?: string;
+    serverId: string;
     target: Extract<TavernResourceTarget, { kind: 'workspaceFile' }>;
 }) {
-    const localFileQuery = trpc.agent.workspaceReadableFile.useQuery(
-        { agentId, includeHidden, path: target.path },
-        { ...queryPolicy.agentRuntimeSnapshot, enabled: agentId.length > 0 && !serverId }
-    );
     const serverFileQuery = grottoTrpc.agent.workspaceFile.useQuery(
-        { agentId, includeHidden, path: target.path, serverId: serverId ?? '' },
-        { ...queryPolicy.agentRuntimeSnapshot, enabled: agentId.length > 0 && Boolean(serverId) }
+        { agentId, includeHidden, path: target.path, serverId },
+        { ...queryPolicy.computerSnapshot, enabled: agentId.length > 0 }
     );
-    const fileQuery = serverId ? serverFileQuery : localFileQuery;
+    const fileQuery = serverFileQuery;
     const [rawPath, setRawPath] = useState<string | null>(null);
 
     if (!agentId) {

@@ -3,8 +3,9 @@ import type { ReactNode } from 'react';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
-import { ToolDrawer } from '../../sessions/tools/tool-drawer.tsx';
 import { formatToolDuration, hasErrorStatus } from '../../sessions/tools/tool-ui.ts';
+import { useTranscriptRenderContextOptional } from '../chat-transcript-render-context.tsx';
+import { ServerTurnDetailsDrawer } from '../server-turn-details-drawer.tsx';
 import { useToolRowHoverItem } from '../tool-row-hover.ts';
 import type { ToolStepRow } from './types.ts';
 
@@ -13,7 +14,6 @@ const inlineToolTargetMaxLength = 96;
 
 export function ToolTimelineStep({
     animateEnter = false,
-    chatId,
     children,
     icon,
     index,
@@ -31,7 +31,10 @@ export function ToolTimelineStep({
     row: ToolStepRow;
 }) {
     const [isOpen, setIsOpen] = React.useState(false);
-    const sessionKey = row.sessionKey;
+    const context = useTranscriptRenderContextOptional();
+    const agentId = row.actor?.kind === 'agent' ? row.actor.id : null;
+    const actorProfile = context?.resolveActorProfile?.(row.actor);
+    const turnDetails = context?.turnDetails;
     const inspectLabel = `Inspect ${row.toolCall.label || row.toolCall.name || 'tool call'}`;
     const hoverItem = useToolRowHoverItem(index + 1);
 
@@ -63,21 +66,16 @@ export function ToolTimelineStep({
                 </span>
                 <span className="flex min-w-0 flex-1 items-center text-sm leading-5">{label}</span>
             </button>
-            {chatId ? (
-                <ToolDrawer
-                    activityId={row.id}
-                    chatId={chatId}
-                    isOpen={isOpen}
+            {turnDetails && row.runId ? (
+                <ServerTurnDetailsDrawer
+                    access={turnDetails.access}
+                    agentAvatarUrl={actorProfile?.avatarUrl}
+                    agentId={agentId}
+                    agentName={actorProfile?.name ?? 'Agent'}
                     onOpenChange={setIsOpen}
-                    source="chat"
-                />
-            ) : sessionKey && row.toolCall.callId ? (
-                <ToolDrawer
-                    isOpen={isOpen}
-                    onOpenChange={setIsOpen}
-                    sessionKey={sessionKey}
-                    source="session"
-                    toolCallId={row.toolCall.callId}
+                    open={isOpen}
+                    runId={row.runId}
+                    serverId={turnDetails.serverId}
                 />
             ) : null}
             {children ? <div className="ml-7">{children}</div> : null}

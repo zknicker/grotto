@@ -6,9 +6,9 @@ import {
     MessageScrollerProvider,
     MessageScrollerViewport,
 } from '../../components/chats/message-scroller.tsx';
-import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import { ChatScrollPositionMemory } from './chat-scroll-position-memory.tsx';
 import { ChatTranscriptLoadingIndicator } from './chat-transcript-loading-indicator.tsx';
+import type { TranscriptActiveReply } from './transcript-contract.ts';
 
 export function ChatDetailFrame({
     activeReplies,
@@ -27,7 +27,7 @@ export function ChatDetailFrame({
     rowCount,
     timelineContent,
 }: {
-    activeReplies: readonly ChatActiveReply[];
+    activeReplies: readonly TranscriptActiveReply[];
     chatId: string;
     emptyLabel: string;
     error?: unknown;

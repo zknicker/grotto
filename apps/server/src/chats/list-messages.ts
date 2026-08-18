@@ -1,5 +1,5 @@
 import type { ChatMessage } from '@tavern/api';
-import { and, desc, eq, getTableColumns, lt } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, isNull, lt, ne, or } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -33,6 +33,10 @@ export async function listChatMessages(
     const predicates = [
         eq(chatMessagesTable.serverId, input.serverId),
         eq(chatMessagesTable.chatId, input.chatId),
+        // Task assignment receipts are Agent-facing handoff messages. They
+        // remain canonical for Agent delivery but never enter the App Chat
+        // transcript.
+        or(isNull(chatMessagesTable.systemAuthor), ne(chatMessagesTable.systemAuthor, 'task')),
     ];
 
     if (input.beforeSequence !== undefined) {

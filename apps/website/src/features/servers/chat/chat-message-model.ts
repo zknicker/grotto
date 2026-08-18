@@ -1,7 +1,7 @@
 import type { Agent, ChatMessage, ThreadSummary } from '@tavern/api';
-import type { ChatLogOutput } from '../../../lib/trpc.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
+import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
 export function mergeTaskAnchor(
@@ -14,8 +14,7 @@ export function mergeTaskAnchor(
     return [...messages, anchor].sort((left, right) => left.sequence - right.sequence);
 }
 
-export type ProjectedChatRow = NonNullable<ChatLogOutput>['rows'][number];
-export type ProjectedChatMessageRow = Extract<ProjectedChatRow, { kind: 'message' }>;
+export type ProjectedChatMessageRow = TranscriptMessageRow;
 
 /** The directories a message's task fields are resolved against. */
 export interface ChatMessageDirectories {
@@ -42,9 +41,11 @@ export function projectChatMessages(
     const threadsByAnchor = new Map(threads.map((thread) => [thread.anchorMessageId, thread]));
     const directories = chatMessageDirectories(agents, humans);
 
-    return messages.map((message) =>
-        projectChatMessage(message, threadsByAnchor.get(message.id) ?? null, directories)
-    );
+    return messages
+        .filter((message) => message.author.kind !== 'system' || message.author.system !== 'task')
+        .map((message) =>
+            projectChatMessage(message, threadsByAnchor.get(message.id) ?? null, directories)
+        );
 }
 
 export function projectChatMessage(

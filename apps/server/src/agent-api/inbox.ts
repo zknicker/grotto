@@ -1,4 +1,4 @@
-import { advanceServedCursor, markAgentInboxPiercesServed } from '../agent-delivery/cursors.ts';
+import { recordExactMessagesServed } from '../agent-delivery/cursors.ts';
 import {
     attachQueuedPendingToRun,
     listPendingForRun,
@@ -27,6 +27,7 @@ export async function pullAgentEvents(db: GrottoDatabase, runner: ResolvedRunner
         const messages: Array<{
             message: Awaited<ReturnType<typeof resolveAgentMessage>>;
             target: string;
+            threadFollowReactivated?: boolean;
         }> = [];
         // Each resolver issues several queries. Bun's transaction client must not run those
         // compound query sequences concurrently or it can wait on itself indefinitely.
@@ -34,6 +35,7 @@ export async function pullAgentEvents(db: GrottoDatabase, runner: ResolvedRunner
             messages.push({
                 message: await resolveAgentMessage(tx, runner, row.dedupeKey),
                 target: await targetForChat(tx, runner.serverId, row.chatId),
+                ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
             });
         }
         await attachQueuedPendingToRun(tx, {
@@ -46,29 +48,10 @@ export async function pullAgentEvents(db: GrottoDatabase, runner: ResolvedRunner
             pendingIds: selected.map((row) => row.id),
             runId: runner.runId,
         });
-        const servedByChat = new Map<string, number>();
-        const piercedMessageIds: string[] = [];
-        for (const [index, row] of messages.entries()) {
-            if (selected[index]?.pierced) {
-                piercedMessageIds.push(row.message.id);
-                continue;
-            }
-            servedByChat.set(
-                row.message.chat_id,
-                Math.max(servedByChat.get(row.message.chat_id) ?? 0, row.message.sequence)
-            );
-        }
-        for (const [chatId, sequence] of servedByChat) {
-            await advanceServedCursor(tx, {
-                agentId: runner.agentId,
-                chatId,
-                sequence,
-                serverId: runner.serverId,
-            });
-        }
-        await markAgentInboxPiercesServed(tx, {
+        await recordExactMessagesServed(tx, {
             agentId: runner.agentId,
-            messageIds: piercedMessageIds,
+            messages: messages.map((row) => ({ chatId: row.message.chat_id, id: row.message.id })),
+            runId: runner.runId,
             serverId: runner.serverId,
         });
         return { messages, more: pending.length > maxPulledMessages };
@@ -94,15 +77,10 @@ export async function attestAgentEvents(
         ]);
         const selected = [...pending, ...attached].filter((row) => requested.has(row.dedupeKey));
         const messages: Awaited<ReturnType<typeof resolveAgentMessage>>[] = [];
-        // Preserve one query sequence at a time on this transaction-bound client.
-        for (const row of selected) {
-            const message = await resolveAgentMessage(tx, runner, row.dedupeKey);
-            const identity = requested.get(row.dedupeKey);
-            if (
-                !identity ||
-                identity.chatId !== message.chat_id ||
-                identity.sequence !== message.sequence
-            ) {
+        // History and hold results are model-visible even when mute prevented a pending row.
+        for (const identity of requested.values()) {
+            const message = await resolveAgentMessage(tx, runner, identity.id);
+            if (identity.chatId !== message.chat_id || identity.sequence !== message.sequence) {
                 throw new Error('The local inbox receipt has a stale message boundary.');
             }
             messages.push(message);
@@ -117,8 +95,13 @@ export async function attestAgentEvents(
             pendingIds: selected.map((row) => row.id),
             runId: runner.runId,
         });
-        await advanceVisibleCursors(tx, runner, selected, messages);
-        return { accepted: selected.map((row) => row.dedupeKey) };
+        await recordExactMessagesServed(tx, {
+            agentId: runner.agentId,
+            messages: messages.map((message) => ({ chatId: message.chat_id, id: message.id })),
+            runId: runner.runId,
+            serverId: runner.serverId,
+        });
+        return { accepted: messages.map((message) => message.id) };
     });
 }
 
@@ -139,7 +122,7 @@ export async function inspectAgentInbox(db: GrottoDatabase, runner: ResolvedRunn
                 firstShortId: shortId(first.dedupeKey),
                 latestSender: sourceHandle(latest.source),
                 latestShortId: shortId(latest.dedupeKey),
-                mentioned: false,
+                mentioned: messages.some((message) => message.mentioned),
                 pendingCount: messages.length,
                 target,
                 thread: target.includes(':') && !target.startsWith('dm:'),
@@ -155,37 +138,4 @@ function sourceHandle(source: string) {
 
 function shortId(id: string) {
     return id.startsWith('msg_') ? id.slice(4, 12) : id;
-}
-
-async function advanceVisibleCursors(
-    db: GrottoDatabase,
-    runner: ResolvedRunner,
-    rows: Array<{ pierced: boolean }>,
-    messages: Array<{ chat_id: string; id: string; sequence: number }>
-) {
-    const servedByChat = new Map<string, number>();
-    const piercedMessageIds: string[] = [];
-    for (const [index, message] of messages.entries()) {
-        if (rows[index]?.pierced) {
-            piercedMessageIds.push(message.id);
-        } else {
-            servedByChat.set(
-                message.chat_id,
-                Math.max(servedByChat.get(message.chat_id) ?? 0, message.sequence)
-            );
-        }
-    }
-    for (const [chatId, sequence] of servedByChat) {
-        await advanceServedCursor(db, {
-            agentId: runner.agentId,
-            chatId,
-            sequence,
-            serverId: runner.serverId,
-        });
-    }
-    await markAgentInboxPiercesServed(db, {
-        agentId: runner.agentId,
-        messageIds: piercedMessageIds,
-        serverId: runner.serverId,
-    });
 }

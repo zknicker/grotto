@@ -1,3 +1,4 @@
+import { formatThreadFollowRestoration } from '../inbox-format.ts';
 import type { AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
 
@@ -34,14 +35,21 @@ export function formatHistoryLine(message: AgentCliMessage): string {
     return `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${attachmentSuffix(message)}${taskSuffix(message)}`;
 }
 
-export function formatDeliveryEnvelope(target: string, message: AgentCliMessage): string {
+export function formatDeliveryEnvelope(
+    target: string,
+    message: AgentCliMessage,
+    threadFollowReactivated = false
+): string {
     const attributes = [
         `target=${target}`,
         `msg=${shortMessageId(message.id)}`,
         `time=${formatLocalTime(message.created_at)}`,
         `type=${message.sender.type}`,
     ];
-    return `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${attachmentSuffix(message)}${taskSuffix(message)}`;
+    const envelope = `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${attachmentSuffix(message)}${taskSuffix(message)}`;
+    return threadFollowReactivated
+        ? `${formatThreadFollowRestoration(target)}\n${envelope}`
+        : envelope;
 }
 
 export function attachmentSuffix(message: AgentCliMessage): string {

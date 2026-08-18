@@ -17,21 +17,32 @@ export interface PostgresCluster {
     stop(): Promise<void>;
 }
 
+export interface PostgresClusterOptions {
+    /** Pins a language-aware default collation for tests that exercise collation boundaries. */
+    icuLocale?: string;
+}
+
 const clusterUser = 'grotto';
 const clusterDatabase = 'grotto_test';
 const readyTimeoutMs = 20_000;
 const readyPollMs = 50;
 
-export async function startPostgresCluster(): Promise<PostgresCluster> {
+export async function startPostgresCluster(
+    options: PostgresClusterOptions = {}
+): Promise<PostgresCluster> {
     const binaries = resolvePostgresBinaries();
     const root = mkdtempSync(join(tmpdir(), 'grotto-postgres-'));
     const dataDirectory = join(root, 'data');
     const port = reserveLoopbackPort();
 
+    const localeArgs = options.icuLocale
+        ? ['--locale-provider=icu', `--icu-locale=${options.icuLocale}`]
+        : [];
     run(binaries.initdb, [
         '--auth=trust',
         '--encoding=UTF8',
         '--no-sync',
+        ...localeArgs,
         '--username',
         clusterUser,
         '--pgdata',

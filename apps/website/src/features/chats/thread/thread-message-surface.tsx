@@ -1,17 +1,7 @@
-import { Label } from '@heroui/react';
-import { ChatMessage, ContextMenu } from '@heroui-pro/react';
-import {
-    Bookmark01Icon,
-    BubbleChatIcon,
-    Copy01Icon,
-    Task01Icon,
-} from '@hugeicons-pro/core-stroke-rounded';
+import { ChatMessage } from '@heroui-pro/react';
+import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { isLocalTimelineMessageMetadata } from '../../../hooks/chats/chat-timeline-messages.ts';
-import { useTaskConvert } from '../../../hooks/tasks/use-task-mutations.ts';
-import { appRoutes } from '../../../lib/app-routes.ts';
-import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { cn } from '../../../lib/utils.ts';
 import {
     type MessageTask,
@@ -20,15 +10,14 @@ import {
     messageTaskAssigneeLabel,
 } from '../../tasks/message-task-chip.tsx';
 import { formatTaskNumber, taskStatusLabels } from '../../tasks/task-presentation.ts';
-import { TaskStatusMenu } from '../../tasks/task-status-menu.tsx';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import { isActivityBackedMessageRow, isStreamingPostMessageRow } from '../chat-transcript-model.ts';
 import {
-    getTranscriptMessageThread,
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
 } from '../chat-transcript-render-context.tsx';
-import { MessageReactionPills, QuickReactionStrip } from './message-reactions.tsx';
+import { isLocalTimelineMessageMetadata } from '../local-timeline-message.ts';
+import { MessageReactionPills } from './message-reactions.tsx';
 import { ThreadPreviewBlock } from './thread-preview-block.tsx';
 
 export function ThreadMessageSurface({
@@ -38,128 +27,7 @@ export function ThreadMessageSurface({
     children: React.ReactNode;
     row: TranscriptMessageRow;
 }) {
-    const context = useTranscriptRenderContextOptional();
-
-    if (context?.turnEvidenceSource === 'embedded') {
-        return <EmbeddedThreadMessageSurface row={row}>{children}</EmbeddedThreadMessageSurface>;
-    }
-
-    return <RuntimeThreadMessageSurface row={row}>{children}</RuntimeThreadMessageSurface>;
-}
-
-function RuntimeThreadMessageSurface({
-    children,
-    row,
-}: {
-    children: React.ReactNode;
-    row: TranscriptMessageRow;
-}) {
-    const context = useTranscriptRenderContextOptional();
-    const convert = useTaskConvert();
-    const durable = isThreadAnchorRow(row);
-    const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
-    const thread = getTranscriptMessageThread(row);
-    const taskLivesInPreview = Boolean(row.message.task && canOpenThread);
-    const taskAssigneeProfile = resolveTaskAssigneeProfile(row.message.task, context);
-    const taskAssigneeLabel =
-        taskAssigneeProfile?.name ??
-        (row.message.task ? messageTaskAssigneeLabel(row.message.task) : null);
-    const flashing = context?.flashMessageId === row.message.id;
-    const openThread = () => context?.onOpenThread(row);
-    const menuActions: Record<string, () => void> = {
-        'convert-task': () => convert.mutate({ messageId: row.message.id, origin: 'converted' }),
-        'copy-link': () =>
-            void writeClipboardText(
-                context?.chatId
-                    ? `${window.location.origin}${appRoutes.chat(context.chatId)}`
-                    : window.location.href
-            ),
-        'copy-markdown': () => void writeClipboardText(row.message.content),
-        'open-thread': openThread,
-        'unfollow-thread': () => thread && context?.onUnfollowThread(thread.threadChatId),
-    };
-
-    return (
-        <ContextMenu>
-            <ContextMenu.Trigger
-                className={cn(
-                    'group/message-row relative block min-w-0 rounded-lg',
-                    flashing && 'chat-thread-flash'
-                )}
-            >
-                {children}
-                <div className="flex flex-wrap items-center gap-1.5">
-                    {row.message.task && !taskLivesInPreview ? (
-                        <TaskStatusMenu
-                            ariaLabel={`Change status for task ${formatTaskNumber(row.message.task)}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}`}
-                            messageId={row.message.id}
-                            status={row.message.task.status}
-                        >
-                            <MessageTaskChip
-                                assigneeProfile={taskAssigneeProfile}
-                                task={row.message.task}
-                            />
-                        </TaskStatusMenu>
-                    ) : null}
-                    <MessageReactionPills row={row} />
-                </div>
-                {canOpenThread ? (
-                    <ThreadPreviewBlock
-                        headerLeading={
-                            row.message.task && taskLivesInPreview ? (
-                                <TaskStatusMenu
-                                    ariaLabel={`Change status for task ${formatTaskNumber(row.message.task)}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}`}
-                                    messageId={row.message.id}
-                                    status={row.message.task.status}
-                                >
-                                    <MessageTaskChip
-                                        assigneeProfile={taskAssigneeProfile}
-                                        task={row.message.task}
-                                    />
-                                </TaskStatusMenu>
-                            ) : undefined
-                        }
-                        isHeaderLeadingInteractive
-                        row={row}
-                    />
-                ) : null}
-            </ContextMenu.Trigger>
-            <ContextMenu.Popover>
-                <QuickReactionStrip row={row} />
-                <ContextMenu.Menu onAction={(key) => menuActions[String(key)]?.()}>
-                    <ContextMenu.Item id="copy-link" textValue="Copy Link">
-                        <Icon icon={Copy01Icon} />
-                        <Label>Copy Link</Label>
-                    </ContextMenu.Item>
-                    <ContextMenu.Item id="copy-markdown" textValue="Copy Markdown">
-                        <Icon icon={Copy01Icon} />
-                        <Label>Copy Markdown</Label>
-                    </ContextMenu.Item>
-                    {/* Select Message is deliberately omitted; Electron-native selection owns it. */}
-                    <ContextMenu.Separator />
-                    {canOpenThread ? (
-                        <ContextMenu.Item id="open-thread" textValue="Open Thread">
-                            <Icon icon={BubbleChatIcon} />
-                            <Label>Open Thread</Label>
-                        </ContextMenu.Item>
-                    ) : null}
-                    {thread?.followed && canOpenThread ? (
-                        <ContextMenu.Item id="unfollow-thread" textValue="Unfollow Thread">
-                            <Icon icon={Bookmark01Icon} />
-                            <Label>Unfollow Thread</Label>
-                        </ContextMenu.Item>
-                    ) : null}
-                    {/* Save Message ships with the later bookmarks workstream. */}
-                    {canOpenThread && !row.message.task && row.message.senderType !== 'system' ? (
-                        <ContextMenu.Item id="convert-task" textValue="Convert to Task">
-                            <Icon icon={Task01Icon} />
-                            <Label>Convert to Task</Label>
-                        </ContextMenu.Item>
-                    ) : null}
-                </ContextMenu.Menu>
-            </ContextMenu.Popover>
-        </ContextMenu>
-    );
+    return <EmbeddedThreadMessageSurface row={row}>{children}</EmbeddedThreadMessageSurface>;
 }
 
 function EmbeddedThreadMessageSurface({
@@ -296,7 +164,7 @@ export function ThreadMessageActions({
     );
 }
 
-/** Only Runtime-persisted, settled chat messages can anchor actions. */
+/** Only Server-persisted, settled chat messages can anchor actions. */
 export function isThreadAnchorRow(row: TranscriptMessageRow) {
     return (
         row.message.id.startsWith('msg_') &&

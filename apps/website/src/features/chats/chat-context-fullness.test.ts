@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { ChatLogOutput, ModelListOutput } from '../../lib/trpc.tsx';
-import { getChatContextFullness } from './chat-context-fullness.ts';
+import { type ContextWindowModel, getChatContextFullness } from './chat-context-fullness.ts';
+import type { TranscriptRow } from './transcript-contract.ts';
 
-type ChatRows = NonNullable<ChatLogOutput>['rows'];
+type ChatRows = TranscriptRow[];
 
 test('getChatContextFullness reads latest agent usage against model context window', () => {
     const rows = [
@@ -45,7 +45,7 @@ test('getChatContextFullness reads latest agent usage against model context wind
             reasoning: null,
             ref: 'openrouter/gpt-5.5',
         },
-    ] satisfies ModelListOutput['models'];
+    ] satisfies Array<ContextWindowModel & Record<string, unknown>>;
 
     assert.deepEqual(getChatContextFullness({ models, rows }), {
         contextWindow: 200_000,

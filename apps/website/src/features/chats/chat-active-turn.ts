@@ -1,4 +1,3 @@
-import type { ChatActiveReply } from '../../hooks/chats/chat-timeline-state.ts';
 import { formatWorkGroupSummary, isActivityItem } from './chat-transcript-activity-utils.ts';
 import {
     buildTranscriptEntries,
@@ -6,12 +5,13 @@ import {
     type TranscriptRow,
     type TranscriptTurnEntry,
 } from './chat-transcript-model.ts';
+import type { TranscriptActiveReply } from './transcript-contract.ts';
 
 // One in-flight agent turn as a transcript entry — the same grouping the
 // transcript pane uses, so the status row and turn drawer stay consistent
 // with it.
 export function findActiveTurnEntry(input: {
-    activeReplies: readonly ChatActiveReply[];
+    activeReplies: readonly TranscriptActiveReply[];
     rows: TranscriptRow[];
     runId: string;
 }): TranscriptTurnEntry | null {

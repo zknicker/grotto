@@ -1,11 +1,11 @@
-import type { WorkerListOutput } from '../../lib/trpc.tsx';
+import type { TranscriptWorker } from '../chats/transcript-contract.ts';
 
 export type WorkersFilterType = 'all' | 'acp' | 'cli' | 'cron' | 'subagent';
 
 interface FilterWorkersParams {
     filter: WorkersFilterType;
     query: string;
-    workers: WorkerListOutput['workers'];
+    workers: TranscriptWorker[];
 }
 
 export function filterWorkers({ filter, query, workers }: FilterWorkersParams) {

@@ -1,15 +1,8 @@
-import type {
-    ChatLogOutput,
-    SessionHistoryOutput,
-    SessionHistoryToolCallOutput,
-} from '../../lib/trpc.tsx';
+import type { TranscriptMessage, TranscriptToolCall } from '../chats/transcript-contract.ts';
 
-type ThreadMessage =
-    | Extract<NonNullable<ChatLogOutput>['rows'][number], { kind: 'message' }>['message']
-    | Extract<SessionHistoryOutput['rows'][number], { kind: 'message' }>['message'];
-
-interface MessageDisplayInput extends Pick<ThreadMessage, 'content' | 'metadata' | 'senderType'> {
-    toolCall?: SessionHistoryToolCallOutput | null;
+interface MessageDisplayInput
+    extends Pick<TranscriptMessage, 'content' | 'metadata' | 'senderType'> {
+    toolCall?: TranscriptToolCall | null;
 }
 
 function looksLikeSerializedPayload(content: string) {

@@ -7,5 +7,5 @@ export interface BrowserTarget {
 }
 
 export function useBrowserSettings(target: BrowserTarget) {
-    return grottoTrpc.browser.get.useQuery(target, queryPolicy.agentRuntimeSnapshot);
+    return grottoTrpc.browser.get.useQuery(target, queryPolicy.computerSnapshot);
 }

@@ -20,6 +20,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatWritable } from './chat-access.ts';
 
@@ -190,6 +191,14 @@ export async function sendAgentMessage(
                 serverId: input.serverId,
                 threadChatId: input.chatId,
             });
+            if (writtenChat.parentChatId) {
+                await autoFollowThreadMentions(tx, {
+                    content: input.content,
+                    parentChatId: writtenChat.parentChatId,
+                    serverId: input.serverId,
+                    threadChatId: input.chatId,
+                });
+            }
         }
         const recipients = await planAgentMessageRecipients(tx, {
             authorAgentId: input.agentId,
@@ -203,10 +212,11 @@ export async function sendAgentMessage(
                 chatId: input.chatId,
                 content: input.content,
                 dedupeKey: message.id,
-                pierced: recipient.pierced,
+                mentioned: recipient.mentioned,
                 sequence: message.sequence,
                 serverId: input.serverId,
                 source: `agent:${agent.handle}`,
+                threadFollowReactivated: recipient.threadFollowReactivated,
             });
         }
 

@@ -34,19 +34,9 @@ export async function changeAgentChannelMute(
                 .insert(agentChannelMutesTable)
                 .values({ agentId: runner.agentId, chatId, serverId: runner.serverId })
                 .onConflictDoNothing();
-            const threads = await tx
-                .select({ id: chatsTable.id })
-                .from(chatsTable)
-                .where(
-                    and(
-                        eq(chatsTable.serverId, runner.serverId),
-                        eq(chatsTable.parentChatId, chatId),
-                        eq(chatsTable.kind, 'thread')
-                    )
-                );
             await deleteQueuedOrdinaryWork(tx, {
                 agentId: runner.agentId,
-                chatIds: [chatId, ...threads.map((thread) => thread.id)],
+                chatIds: [chatId],
                 serverId: runner.serverId,
             });
         } else {

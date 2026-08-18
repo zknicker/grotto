@@ -1,8 +1,7 @@
 import { Alert, Button } from '@heroui/react';
 import { BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { AgentRuntimeBrowserState } from '@tavern/api';
+import type { AgentRuntimeBrowserSettings, AgentRuntimeBrowserState } from '@tavern/api';
 import type { Dispatch, SetStateAction } from 'react';
-import type { BrowserSettingsOutput } from '../../../lib/trpc.tsx';
 import { type BrowserConfigField, BrowserConfigFields } from './browser-config-fields.tsx';
 import {
     BROWSER_DIALOG_FORM_ID,
@@ -13,7 +12,7 @@ import {
 import { BrowserSection, BrowserSectionStack } from './browser-service-fields.tsx';
 import type { BrowserSettingsDraft } from './browser-settings-model.ts';
 
-type BrowserSettings = NonNullable<BrowserSettingsOutput>;
+type BrowserSettings = AgentRuntimeBrowserSettings;
 
 export function BrowserSettingsDialog({
     canSave,

@@ -2,7 +2,11 @@ import { and, eq, gt, ne, or, sql } from 'drizzle-orm';
 import { readAgentInboxCursor } from '../agent-delivery/cursors.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import {
+    agentInboxExactVisibilityTable,
+    chatMessagesTable,
+    chatsTable,
+} from '../postgres/schema.ts';
 
 export async function hasUnseenTaskThreadContext(
     db: GrottoDatabase,
@@ -19,7 +23,7 @@ export async function hasUnseenTaskThreadContext(
         return false;
     }
     const cursor = await readAgentInboxCursor(db, { ...runner, chatId: threadChatId });
-    const horizon = Math.max(cursor.seen, cursor.served);
+    const horizon = cursor.seen;
     if (thread.latest <= horizon) {
         return false;
     }
@@ -31,6 +35,18 @@ export async function hasUnseenTaskThreadContext(
                 eq(chatMessagesTable.serverId, runner.serverId),
                 eq(chatMessagesTable.chatId, threadChatId),
                 gt(chatMessagesTable.sequence, horizon),
+                sql`not exists (
+                    select 1 from ${agentInboxExactVisibilityTable} exact_visibility
+                    where exact_visibility.server_id = ${runner.serverId}
+                      and exact_visibility.agent_id = ${runner.agentId}
+                      and exact_visibility.session_generation = ${cursor.generation}
+                      and exact_visibility.chat_id = ${threadChatId}
+                      and exact_visibility.message_id = ${chatMessagesTable.id}
+                      and (
+                        exact_visibility.seen_at is not null
+                        or exact_visibility.served_run_id = ${runner.runId}
+                      )
+                )`,
                 or(
                     sql`${chatMessagesTable.authorUserId} is not null`,
                     and(

@@ -48,7 +48,14 @@ export async function autoFollowThreadMentions(
                 threadChatId: input.threadChatId,
                 userId,
             })
-            .onConflictDoNothing();
+            .onConflictDoUpdate({
+                set: { followed: true, updatedAt: sql`now()` },
+                target: [
+                    threadFollowsTable.serverId,
+                    threadFollowsTable.threadChatId,
+                    threadFollowsTable.userId,
+                ],
+            });
     }
 }
 

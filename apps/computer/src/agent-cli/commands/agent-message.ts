@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import {
+    type AgentCliMessage,
     agentHistoryResponseSchema,
     agentMessageCheckResponseSchema,
     agentReactionResponseSchema,
@@ -22,6 +23,7 @@ import {
 import { messageSearchSubcommand } from './agent-message-search.ts';
 
 const HEREDOC_RECIPE = `grotto message send --target "#general" <<'GROTTOMSG'\nBody with "quotes", $vars, \`backticks\`.\nGROTTOMSG`;
+const MAX_MESSAGE_CHECK_ROUNDS = 50;
 
 interface MessageDeps {
     client: AgentApiRequester;
@@ -130,14 +132,29 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
 ];
 
 export async function runCheck(deps: MessageDeps): Promise<number> {
-    const response = await deps.client.request(
-        '/api/agent/events',
-        agentMessageCheckResponseSchema
+    const messages: Array<{
+        message: AgentCliMessage;
+        target: string;
+        threadFollowReactivated?: boolean;
+    }> = [];
+    let more = false;
+    for (let round = 0; round < MAX_MESSAGE_CHECK_ROUNDS; round += 1) {
+        const response = await deps.client.request(
+            '/api/agent/events',
+            agentMessageCheckResponseSchema
+        );
+        messages.push(...response.messages);
+        more = response.more;
+        if (!more) {
+            break;
+        }
+    }
+    const lines = messages.map((row) =>
+        formatDeliveryEnvelope(row.target, row.message, row.threadFollowReactivated)
     );
-    const lines = response.messages.map((row) => formatDeliveryEnvelope(row.target, row.message));
-    const trailer = response.more
+    const trailer = more
         ? 'More messages are pending — run grotto message check again.'
-        : response.messages.length === 0
+        : messages.length === 0
           ? 'No new messages.'
           : 'No more new messages.';
     deps.write(`${[...lines, trailer].join('\n')}\n`);

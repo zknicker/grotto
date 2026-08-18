@@ -46,7 +46,7 @@ export function composeInboxNotice(
             ` · first msg=${shortId(first.id)}`,
             ` · latest sender @${latest.senderHandle}`,
             ` · latest msg=${shortId(latest.id)}`,
-            noticeTag(target, latest),
+            noticeTag(target, ordered),
         ].join('');
     });
     return [
@@ -69,10 +69,19 @@ function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
         ? ` task=#${item.task.number}:${item.task.status}:${taskAssignee(item)}`
         : '';
     const mention = item.mentioned ? ' mentioned=true' : '';
-    return (
+    const envelope =
         `[target=${item.target} msg=${shortId(item.id)} time=${formatLocalTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${mention}] ` +
-        `${sender}: ${item.content}`
-    );
+        `${sender}: ${item.content}`;
+    return item.threadFollowReactivated
+        ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`
+        : envelope;
+}
+
+export function formatThreadFollowRestoration(target: string): string {
+    return [
+        `[Grotto thread follow restored: this @mention re-subscribed you to ordinary replies in ${target}.]`,
+        `To stop those replies again: grotto thread unfollow --target "${target}"`,
+    ].join('\n');
 }
 
 function taskAssignee(item: AgentInboxItem): string {
@@ -98,11 +107,12 @@ function formatLocalTime(timestamp: string, homeTimezone: string): string {
     return `${value('year')}-${value('month')}-${value('day')} ${value('hour')}:${value('minute')}:${value('second')}`;
 }
 
-function noticeTag(target: string, item?: AgentInboxItem): string {
+function noticeTag(target: string, items: AgentInboxItem[]): string {
+    const latest = items.at(-1);
     const tags = [
         target.startsWith('dm:') ? 'dm' : target.includes(':') ? 'thread' : null,
-        item?.task ? `task #${item.task.number}` : null,
-        item?.mentioned ? 'you were mentioned' : null,
+        latest?.task ? `task #${latest.task.number}` : null,
+        items.some((item) => item.mentioned) ? 'you were mentioned' : null,
     ].filter(Boolean);
     return tags.length > 0 ? ` · ${tags.join(' · ')}` : '';
 }

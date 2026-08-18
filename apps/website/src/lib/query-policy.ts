@@ -1,4 +1,4 @@
-import { type DefaultOptions, keepPreviousData } from '@tanstack/react-query';
+import type { DefaultOptions } from '@tanstack/react-query';
 import { shouldRetryQuery } from './query-retry.ts';
 
 const THIRTY_SECONDS_MS = 30_000;
@@ -22,14 +22,9 @@ export const queryPolicy = {
         ...stableQueryPolicy,
         staleTime: FIVE_MINUTES_MS,
     },
-    agentRuntimeSnapshot: {
+    computerSnapshot: {
         ...stableQueryPolicy,
         staleTime: THIRTY_SECONDS_MS,
-    },
-    runtimeModelSnapshot: {
-        ...stableQueryPolicy,
-        placeholderData: keepPreviousData,
-        staleTime: FIVE_MINUTES_MS,
     },
     syncedSnapshot: {
         ...stableQueryPolicy,

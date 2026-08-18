@@ -1,14 +1,14 @@
 import { and, desc, eq, gt, ne, or, sql } from 'drizzle-orm';
 import {
     advanceSeenCursor,
-    advanceServedCursor,
     readAgentInboxCursor,
+    recordExactMessagesServed,
 } from '../agent-delivery/cursors.ts';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
-    agentInboxPiercesTable,
+    agentInboxExactVisibilityTable,
     agentMessageDraftsTable,
     agentsTable,
     chatMessagesTable,
@@ -73,13 +73,7 @@ export async function prepareAgentSend(
     }
     const hold = input.continueAnyway
         ? null
-        : await resolveHold(
-              db,
-              runner,
-              chatId,
-              cursor.generation,
-              Math.max(cursor.seen, cursor.served)
-          );
+        : await resolveHold(db, runner, chatId, cursor.generation, cursor.seen);
     if (!hold) {
         return { kind: 'send' as const, outgoing };
     }
@@ -135,13 +129,16 @@ async function resolveHold(
         eq(chatMessagesTable.chatId, chatId),
         gt(chatMessagesTable.sequence, horizon),
         sql`not exists (
-            select 1 from ${agentInboxPiercesTable} pierce
-            where pierce.server_id = ${runner.serverId}
-              and pierce.agent_id = ${runner.agentId}
-              and pierce.session_generation = ${sessionGeneration}
-              and pierce.chat_id = ${chatId}
-              and pierce.message_id = ${chatMessagesTable.id}
-              and pierce.served_at is not null
+            select 1 from ${agentInboxExactVisibilityTable} exact_visibility
+            where exact_visibility.server_id = ${runner.serverId}
+              and exact_visibility.agent_id = ${runner.agentId}
+              and exact_visibility.session_generation = ${sessionGeneration}
+              and exact_visibility.chat_id = ${chatId}
+              and exact_visibility.message_id = ${chatMessagesTable.id}
+              and (
+                exact_visibility.seen_at is not null
+                or exact_visibility.served_run_id = ${runner.runId}
+              )
         )`,
         or(
             sql`${chatMessagesTable.authorUserId} is not null`,
@@ -164,6 +161,8 @@ async function resolveHold(
             .limit(maxHoldMessages)
     ).reverse();
     if (rows.length === 0) {
+        // This query has proven that every freshness-relevant message through
+        // the current Chat head is either behind the boundary or exactly seen.
         await advanceSeenCursor(db, {
             agentId: runner.agentId,
             chatId,
@@ -172,17 +171,10 @@ async function resolveHold(
         });
         return null;
     }
-    const shownThrough = rows.at(-1)?.sequence ?? horizon;
-    await advanceSeenCursor(db, {
+    await recordExactMessagesServed(db, {
         agentId: runner.agentId,
-        chatId,
-        sequence: shownThrough,
-        serverId: runner.serverId,
-    });
-    await advanceServedCursor(db, {
-        agentId: runner.agentId,
-        chatId,
-        sequence: shownThrough,
+        messages: rows.map((row) => ({ chatId: row.chatId, id: row.id })),
+        runId: runner.runId,
         serverId: runner.serverId,
     });
     return {

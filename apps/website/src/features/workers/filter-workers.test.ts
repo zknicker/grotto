@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import type { WorkerListOutput } from '../../lib/trpc.tsx';
+import type { TranscriptWorker } from '../chats/transcript-contract.ts';
 import { filterWorkers } from './filter-workers.ts';
 
-const workers: WorkerListOutput['workers'] = [
+const workers: TranscriptWorker[] = [
     {
         agentId: 'tiny',
         agentName: 'Tiny',

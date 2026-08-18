@@ -5,7 +5,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { allocateEventCursor } from './allocate-event-cursor.ts';
 
-export type SystemMessageAuthor = 'reminder' | 'session';
+export type SystemMessageAuthor = 'reminder' | 'session' | 'task';
 
 type SystemMessageWriter = Pick<GrottoDatabase, 'insert' | 'update'>;
 
@@ -23,12 +23,16 @@ export async function insertSystemMessage(
         serverId: string;
         systemAuthor: SystemMessageAuthor;
     }
-): Promise<ServerDurableEvent> {
+): Promise<Extract<ServerDurableEvent, { type: 'message.created' }>> {
     const createdAt = input.createdAt ?? new Date();
     const [chat] = await db
         .update(chatsTable)
         .set({
-            lastActivityAt: createdAt,
+            // Assignment receipts are private Agent communication. They
+            // consume Chat sequence space for ordering, but must not move a
+            // human Chat to the top of the App or create a visible activity
+            // cue.
+            ...(input.systemAuthor === 'task' ? {} : { lastActivityAt: createdAt }),
             lastMessageSequence: sql`${chatsTable.lastMessageSequence} + 1`,
         })
         .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))

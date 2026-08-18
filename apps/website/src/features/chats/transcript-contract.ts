@@ -1,0 +1,378 @@
+import type { AgentAvailability, TaskLabel } from '@tavern/api';
+import type { MessageTask } from '../tasks/message-task-chip.tsx';
+
+export type TranscriptActor =
+    | { id: string; kind: 'agent' }
+    | { id: string; kind: 'participant' }
+    | { id: string; kind: 'profile' }
+    | null;
+
+export interface TranscriptActiveReply {
+    agentId: string;
+    completedAt?: string | null;
+    isThinking?: boolean;
+    runId: string;
+    sessionKey: string;
+    startedAt: string;
+    statusSequence?: number | null;
+    text?: string;
+    trigger?: 'evaluation';
+}
+
+interface TranscriptActorProfileBase {
+    avatarUrl: string | null;
+    bio: string | null;
+    id: string;
+    isSelf: boolean;
+    name: string;
+}
+
+export type TranscriptActorProfile =
+    | (TranscriptActorProfileBase & {
+          availability: { kind: 'live'; value: AgentAvailability };
+          deleted: false;
+          kind: 'agent';
+      })
+    | (TranscriptActorProfileBase & {
+          availability: { kind: 'none' };
+          deleted: boolean;
+          kind: 'agent' | 'participant' | 'profile';
+      });
+
+export type TranscriptAttachment =
+    | {
+          dataBase64: string;
+          filename: string;
+          height?: number | null;
+          mediaType: string;
+          sizeBytes: number;
+          type: 'inline';
+          width?: number | null;
+      }
+    | {
+          filename: string;
+          mediaType?: string | null;
+          path: string;
+          sizeBytes?: number | null;
+          type: 'file';
+          uri?: string | null;
+      };
+
+export interface TranscriptMessageMetadata extends Record<string, unknown> {
+    agentModel?: string;
+    model?: string;
+    provider?: string;
+    runtime?: {
+        messagePhase?: string;
+        phase?: string;
+        runId?: string;
+        sessionKey?: string;
+        streaming?: boolean;
+    };
+    stopReason?: string;
+    toolCallId?: string;
+    totalTokens?: number;
+    usage?: unknown;
+}
+
+export interface TranscriptMessageReaction {
+    actors: Array<{ handle: string | null; id: string }>;
+    emoji: string;
+}
+
+export interface TranscriptMessage {
+    actor?: TranscriptActor | null;
+    attachments?: TranscriptAttachment[];
+    content: string;
+    id: string;
+    metadata?: TranscriptMessageMetadata;
+    reactions?: TranscriptMessageReaction[];
+    sender: string;
+    senderType: 'agent' | 'system' | 'user';
+    sourceSessionId?: string | null;
+    sourceSessionKey: string;
+    task?:
+        | (MessageTask & {
+              claimed_at: string | null;
+              created_at: string;
+              labels: TaskLabel[];
+              origin: 'composed' | 'converted';
+              priority: 'none' | 'urgent' | 'high' | 'medium' | 'low';
+              updated_at: string;
+          })
+        | null;
+    tavernAgentId?: string | null;
+    timestamp: string;
+}
+
+export interface TranscriptThreadReplyPreview {
+    authorAgentId: string | null;
+    authorUserId: string | null;
+    content: string;
+    createdAt: string;
+    id: string;
+}
+
+export interface TranscriptThreadSummary {
+    anchorMessageId: string;
+    followed: boolean;
+    latestReplyAt: string | null;
+    recentReplies?: TranscriptThreadReplyPreview[];
+    replyCount: number;
+    threadChatId: string;
+    unreadCount: number;
+}
+
+export interface TranscriptMessageRow {
+    actor: TranscriptActor;
+    connectsToNext: boolean;
+    connectsToPrevious: boolean;
+    id: string;
+    isFirstInGroup: boolean;
+    kind: 'message';
+    message: TranscriptMessage;
+    responseId?: string;
+    runId?: string | null;
+    thread?: TranscriptThreadSummary | null;
+}
+
+export interface TranscriptToolCall {
+    callId: string | null;
+    facts: Array<{ label: string; tone: 'danger' | 'default' | 'success'; value: string }>;
+    label: string | null;
+    model?: { label: string; model: string; provider: string };
+    name: string;
+    status: string | null;
+    summaryParts: string[];
+}
+
+export interface TranscriptSessionRelationship {
+    direction: 'incoming' | 'outgoing';
+    edgeType: 'session_spawns_session';
+    id: string;
+    occurredAt: string;
+    relatedSession: {
+        agentId: string | null;
+        key: string;
+        name: string;
+        platform: string | null;
+        source: string;
+        title: string;
+        type: 'chat' | 'cron' | 'link' | 'portal';
+    };
+    sourceToolCallId: string | null;
+}
+
+export interface TranscriptToolRow {
+    actor: TranscriptActor;
+    clarification?: {
+        answer: string | null;
+        choices: string[];
+        deadlineAt: string | null;
+        disposition: 'answered' | 'skipped' | 'timeout' | null;
+        question: string;
+        requestId: string;
+    } | null;
+    completedAt: string | null;
+    connectsToNext: boolean;
+    connectsToPrevious: boolean;
+    id: string;
+    isFirstInGroup: boolean;
+    kind: 'tool';
+    responseId?: string;
+    runId?: string | null;
+    sessionKey: string | null;
+    spawnedRelationships: TranscriptSessionRelationship[];
+    startedAt: string | null;
+    toolCall: TranscriptToolCall;
+}
+
+export interface TranscriptWorker {
+    agentId: string | null;
+    agentName: string;
+    chatTitle: string | null;
+    childSessionKey: string | null;
+    cleanupAfter: string | null;
+    createdAt: string;
+    deliveryStatus: string | null;
+    description: string | null;
+    detail: string | null;
+    endedAt: string | null;
+    error: string | null;
+    executionMode: 'detached_session' | 'main_session' | 'unknown';
+    id: string;
+    kind: 'acp' | 'cli' | 'cron' | 'subagent';
+    lastEventAt: string | null;
+    notifyPolicy: string | null;
+    parentWorkerId: string | null;
+    progressSummary: string | null;
+    requesterSessionKey: string | null;
+    runId: string | null;
+    sessionKey: string | null;
+    source: string;
+    sourceFlowId: string | null;
+    sourceId: string;
+    startedAt: string | null;
+    status:
+        | 'blocked'
+        | 'cancelled'
+        | 'failed'
+        | 'lost'
+        | 'queued'
+        | 'running'
+        | 'succeeded'
+        | 'timed_out'
+        | 'waiting';
+    syncedAt: string;
+    terminalSummary: string | null;
+    title: string;
+}
+
+export interface TranscriptWorkerRow {
+    actor: TranscriptActor;
+    completedAt: string | null;
+    connectsToNext: boolean;
+    connectsToPrevious: boolean;
+    id: string;
+    isFirstInGroup: boolean;
+    kind: 'worker';
+    responseId?: string;
+    sessionKey: string | null;
+    startedAt: string | null;
+    worker: TranscriptWorker;
+}
+
+export interface TranscriptWidgetRow {
+    actor: TranscriptActor;
+    completedAt: string | null;
+    connectsToNext: boolean;
+    connectsToPrevious: boolean;
+    id: string;
+    isFirstInGroup: boolean;
+    kind: 'widget';
+    responseId?: string;
+    runId?: string | null;
+    sessionKey: string | null;
+    startedAt: string | null;
+    widget: {
+        component: string | null;
+        fallbackText: string;
+        id: string;
+        props?: unknown;
+        target: string | null;
+        validationError: string | null;
+    };
+}
+
+export interface TranscriptDelivery {
+    childSessionKey: string;
+    childSessionName: string;
+    childSessionPlatform: string | null;
+    childSessionSource: string;
+    childSessionTitle: string | null;
+    childSessionType: 'chat' | 'cron' | 'link' | 'portal';
+    deliveredAt: string | null;
+    id: string;
+    messageText: string | null;
+    mode: string | null;
+    parentSessionKey: string;
+    parentSessionName: string;
+    parentSessionPlatform: string | null;
+    parentSessionSource: string;
+    parentSessionTitle: string | null;
+    parentSessionType: 'chat' | 'cron' | 'link' | 'portal';
+    payload?: unknown;
+    sourceMessageId: string | null;
+    status: string | null;
+    targetMessageId: string | null;
+}
+
+export type TranscriptSystemRow =
+    | {
+          accessEvent: {
+              errorCode: string | null;
+              errorMessage: string | null;
+              id: string;
+              occurredAt: string;
+              status: string;
+              targetSessionKey: string | null;
+              toolName: string | null;
+          };
+          id: string;
+          kind: 'system';
+          systemKind: 'accessEvent';
+          timestamp: string;
+      }
+    | {
+          artifact: {
+              artifactType: string;
+              createdAt: string;
+              id: string;
+              mimeType: string | null;
+              path: string | null;
+              payload?: unknown;
+          };
+          id: string;
+          kind: 'system';
+          responseId?: string;
+          systemKind: 'artifact';
+          timestamp: string;
+      }
+    | {
+          delivery: TranscriptDelivery;
+          id: string;
+          kind: 'system';
+          systemKind: 'delivery';
+          timestamp: string | null;
+      }
+    | {
+          id: string;
+          kind: 'system';
+          responseId?: string;
+          runtimeNotice: {
+              agentId: string | null;
+              compactionCount?: number | null;
+              detail: string | null;
+              kind: 'auto_compaction' | 'new_session' | 'status';
+              sessionId: string | null;
+              text: string;
+              title: string;
+          };
+          systemKind: 'runtimeNotice';
+          timestamp: string;
+      }
+    | {
+          id: string;
+          kind: 'system';
+          responseId: string;
+          systemKind: 'turnStatus';
+          timestamp: string;
+          turnStatus: {
+              agentId: string;
+              runId: string;
+              sessionKey: string;
+              status: 'stopped';
+              text: string;
+          };
+      }
+    | {
+          id: string;
+          kind: 'system';
+          responseId?: string;
+          systemKind: 'thinking';
+          thinking: {
+              id: string;
+              messageId: string;
+              sender: string;
+              text: string;
+              timestamp: string;
+          };
+          timestamp: string;
+      };
+
+export type TranscriptRow =
+    | TranscriptMessageRow
+    | TranscriptSystemRow
+    | TranscriptToolRow
+    | TranscriptWidgetRow
+    | TranscriptWorkerRow;

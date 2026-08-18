@@ -1,7 +1,10 @@
-import type { ChatLogOutput, ModelListOutput } from '../../lib/trpc.tsx';
+import type { TranscriptMessageRow, TranscriptRow } from './transcript-contract.ts';
 
-type ChatRows = NonNullable<ChatLogOutput>['rows'];
-type ChatMessageRow = Extract<ChatRows[number], { kind: 'message' }>;
+export interface ContextWindowModel {
+    contextWindow: number | null;
+    modelId: string;
+    provider: string;
+}
 
 export interface ChatContextFullness {
     contextWindow: number;
@@ -10,13 +13,13 @@ export interface ChatContextFullness {
 }
 
 export function getChatContextFullness(input: {
-    models: ModelListOutput['models'];
-    rows: ChatRows;
+    models: readonly ContextWindowModel[];
+    rows: readonly TranscriptRow[];
 }): ChatContextFullness | null {
     const message = [...input.rows]
         .reverse()
         .find(
-            (row): row is ChatMessageRow =>
+            (row): row is TranscriptMessageRow =>
                 row.kind === 'message' && row.message.senderType === 'agent'
         )?.message;
 

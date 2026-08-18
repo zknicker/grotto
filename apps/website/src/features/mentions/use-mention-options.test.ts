@@ -1,13 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import type { MentionInventoryOutput } from '../../lib/trpc.tsx';
 import type { MentionOption } from './mention-types.ts';
 
-type InventoryMentionOption = MentionInventoryOutput['options'][number];
+type InventoryMentionOption = MentionOption;
 
-import {
-    filterMentionOptionsForQuery,
-    selectMentionOptionsForQuery,
-} from './use-mention-options.ts';
+import { filterMentionOptionsForQuery, selectMentionOptionsForQuery } from './mention-options.ts';
 
 describe('filterMentionOptionsForQuery', () => {
     it('does not render stale broad mention results for a narrower app query', () => {

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ServerWebSocket } from 'bun';
+import { getFreePort } from './test-port.ts';
 
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
@@ -32,7 +33,8 @@ test('setup does not probe the superseded one-off approval protocol', async () =
             requests.push(new URL(request.url).pathname);
             return Response.json({ error: 'missing' }, { status: 404 });
         },
-        port: 0,
+        hostname: '127.0.0.1',
+        port: await getFreePort(),
     });
 
     try {
@@ -65,7 +67,8 @@ test('setup resumes an existing attachment without login or migration', async ()
             }
             return new Response('missing', { status: 404 });
         },
-        port: 0,
+        hostname: '127.0.0.1',
+        port: await getFreePort(),
         websocket: {
             message(socket) {
                 sockets.add(socket);
@@ -152,7 +155,8 @@ test('setup adds another Server without replacing the first attachment', async (
             }
             return new Response('missing', { status: 404 });
         },
-        port: 0,
+        hostname: '127.0.0.1',
+        port: await getFreePort(),
         websocket: {
             message(socket) {
                 sockets.add(socket);
@@ -245,7 +249,8 @@ test('setup retries a durable login acknowledgement after attachment persistence
             }
             return new Response('missing', { status: 404 });
         },
-        port: 0,
+        hostname: '127.0.0.1',
+        port: await getFreePort(),
         websocket: {
             message(socket) {
                 sockets.add(socket);

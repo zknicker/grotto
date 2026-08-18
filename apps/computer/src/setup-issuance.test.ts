@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ServerWebSocket } from 'bun';
+import { getFreePort } from './test-port.ts';
 
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
@@ -85,7 +86,8 @@ test('setup falls back to device login, persists pending issuance before attach,
             }
             return new Response('missing', { status: 404 });
         },
-        port: 0,
+        hostname: '127.0.0.1',
+        port: await getFreePort(),
         websocket: {
             message(socket) {
                 sockets.add(socket);
@@ -167,7 +169,8 @@ test('setup retries a crashed issuance with the same pending idempotency key', a
             }
             return new Response('missing', { status: 404 });
         },
-        port: 0,
+        hostname: '127.0.0.1',
+        port: await getFreePort(),
         websocket: {
             message(socket) {
                 sockets.add(socket);

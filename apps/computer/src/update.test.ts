@@ -3,6 +3,7 @@ import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { getFreePort } from './test-port.ts';
 import {
     admitActiveRun,
     readUpdateProgress,
@@ -47,7 +48,7 @@ test('legacy persisted progress gains the stable bootstrap fields', async () => 
 test('a signed update waits without a kill timeout, then installs and restarts', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
     const tarball = Buffer.from('verified computer tarball');
-    const peer = serveArtifact(tarball);
+    const peer = await serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
     const release = signedRelease(peer.url, tarball, keys.privateKey);
     const clearRun = await admitActiveRun(dataRoot, 'run_active');
@@ -91,7 +92,7 @@ test('a signed update waits without a kill timeout, then installs and restarts',
 test('a direct observer sees every phase in order with real byte counts', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
     const tarball = Buffer.from('verified computer tarball');
-    const peer = serveArtifact(tarball);
+    const peer = await serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
     const release = signedRelease(peer.url, tarball, keys.privateKey);
     const observed: ComputerUpdateProgress[] = [];
@@ -188,7 +189,7 @@ test('failed signature verification never touches Computer data or installs', as
 test('a Server-authorized future protocol release upgrades this Computer', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
     const tarball = Buffer.from('future');
-    const peer = serveArtifact(tarball);
+    const peer = await serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
     const release = signedRelease(peer.url, tarball, keys.privateKey);
     release.release.protocolVersion = computerProtocolVersion + 1;
@@ -252,7 +253,7 @@ test('an older protocol release cannot downgrade this Computer', async () => {
 test('one physical Computer runs only one update job', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
     const tarball = Buffer.from('verified computer tarball');
-    const peer = serveArtifact(tarball);
+    const peer = await serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
     const release = signedRelease(peer.url, tarball, keys.privateKey);
     const clearRun = await admitActiveRun(dataRoot, 'run_active');
@@ -291,10 +292,11 @@ test('one physical Computer runs only one update job', async () => {
     }
 });
 
-function serveArtifact(bytes: Buffer) {
+async function serveArtifact(bytes: Buffer) {
     const server = Bun.serve({
         fetch: () => new Response(bytes),
-        port: 0,
+        hostname: '127.0.0.1',
+        port: await getFreePort(),
     });
     return {
         stop: (closeActiveConnections: boolean) => server.stop(closeActiveConnections),

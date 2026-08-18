@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.18 - 2026-08-18
+
+- Grotto for iPhone reaches its first TestFlight build with production sign-in, Server discovery,
+  realtime Channels and Agent DMs, Threads, Tasks, attachments, search, and profile settings.
+- The Grotto App adds native macOS window management, unified search, a denser visual system,
+  richer Agent activity and usage views, and a list-first Tasks experience with Thread dialogs.
+- Agent execution now uses the Raft-aligned global-session architecture, exposes durable turn and
+  delivery evidence, and removes the superseded local-runtime paths.
+- Grotto Computer 1.4.5 adds Grok Build support, verified and pre-warmed harness bridges, shared
+  bridge storage, and clearer startup and stall diagnostics.
+
+### Release surfaces
+
+- Server: Publish v1.8.18
+- App: Publish v1.8.18
+- iOS: Publish v1.0.0 (build 1)
+- Computer: Publish v1.4.5
+
 ## v1.8.17 - 2026-08-11
 
 - Agent inboxes now follow Raft's notice-then-pull model: pending Chat bodies stay durable and

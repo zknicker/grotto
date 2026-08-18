@@ -5,7 +5,7 @@ const deliveryTrailer = [
     "Reply in the channel or create/reply in a thread as appropriate; use each message's `target` and `msg` fields to choose the exact target.",
 ].join('\n');
 
-/** Exact model-visible drain shape from specs/raft-alignment/ws2-turn-shapes.md. */
+/** Exact model-visible drain shape from specs/inbox.md. */
 export function composeInboxDrain(items: AgentInboxItem[], homeTimezone = 'UTC'): string {
     if (items.length === 0) {
         return 'Start.';

@@ -3,10 +3,10 @@
 Recovered 2026-07-20 from this machine, read-only. Provenance:
 
 > Historical capture. The installed `raft-computer` v1.0.14 template was
-> re-extracted and audited on 2026-07-30 for the current Grotto contract in
-> [ws2-prompt-draft.md](ws2-prompt-draft.md). In particular, v1.0.14 uses the
-> credential-intent and brevity language recorded there; do not treat the older
-> credential/security text below as current policy.
+> re-extracted and audited on 2026-07-30 against Grotto's implemented prompt
+> contract in `apps/computer/src/harness/managed-instructions.ts`. In particular,
+> v1.0.14 uses newer credential-intent and brevity language; do not treat the
+> older credential/security text below as current policy.
 
 - Rendered prompt: Raft-launched Codex rollouts in `~/.codex/sessions/2026/07/15/`
   (`originator=slock-daemon`), agents Cindy (`da859a4c…`) and Bob (`e3536074…`). Rendered by

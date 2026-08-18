@@ -27,6 +27,7 @@ module.exports = {
         'electron/preload.cjs',
         'electron/trusted-renderer.cjs',
         'electron/window-routing.cjs',
+        'electron/window-state.cjs',
         'package.json',
         '!node_modules/**',
         `node_modules/{${desktopRuntimeDependencies.join(',')}}/**`,

@@ -1,0 +1,191 @@
+import ClerkKit
+import Foundation
+import GrottoTransport
+import SwiftUI
+
+struct AuthBoundaryView: View {
+    @Environment(Clerk.self) private var clerk
+
+    var body: some View {
+        Group {
+            #if DEBUG
+            if let development = GrottoRuntimeConfiguration.development {
+                DevelopmentAuthBoundaryView(development: development)
+            } else if hasUsableSession(clerk.session) {
+                AuthenticatedGrottoView(clerk: clerk)
+            } else {
+                SignInView()
+            }
+            #else
+            if hasUsableSession(clerk.session) {
+                AuthenticatedGrottoView(clerk: clerk)
+            } else {
+                SignInView()
+            }
+            #endif
+        }
+        .animation(.snappy, value: hasUsableSession(clerk.session))
+    }
+}
+
+#if DEBUG
+private struct DevelopmentAuthBoundaryView: View {
+    @Environment(Clerk.self) private var clerk
+    let development: GrottoRuntimeConfiguration.Development
+
+    @State private var state = DevelopmentAuthState.loading
+
+    var body: some View {
+        Group {
+            switch state {
+            case .loading:
+                ProgressView("Opening Grotto…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .authenticated:
+                AuthenticatedGrottoView(clerk: clerk)
+            case let .failed(message):
+                ContentUnavailableView {
+                    Label("Grotto is unavailable", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(message)
+                } actions: {
+                    Button("Try Again") {
+                        state = .loading
+                        Task { await authenticate() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+        }
+        .background(Color(uiColor: .systemGroupedBackground))
+        .task(id: clerk.isLoaded) {
+            guard clerk.isLoaded else { return }
+            await authenticate()
+        }
+    }
+
+    @MainActor
+    private func authenticate() async {
+        guard clerk.isLoaded else { return }
+
+        do {
+            if hasUsableSession(clerk.session),
+               let token = try? await clerk.auth.getToken(),
+               !token.isEmpty
+            {
+                state = .authenticated
+                return
+            }
+
+            let client = TRPCClient(
+                config: AppConfig(
+                    serverOrigin: development.serverOrigin,
+                    productVersion: Bundle.main.object(
+                        forInfoDictionaryKey: "CFBundleShortVersionString"
+                    ) as? String ?? "0.1.0"
+                ),
+                sessionTokenProvider: StaticSessionTokenProvider(token: nil)
+            )
+            let ticket = try await client.createDevClerkSignInTicket()
+            let signIn = try await clerk.auth.signInWithTicket(ticket.ticket)
+            guard let sessionID = signIn.createdSessionId else {
+                throw DevSignInError.missingSession
+            }
+            try await clerk.auth.setActive(sessionId: sessionID)
+            guard let token = try await clerk.auth.getToken(), !token.isEmpty else {
+                throw DevSignInError.missingToken
+            }
+            state = .authenticated
+        } catch {
+            state = .failed("Local sign-in failed: \(error.localizedDescription)")
+        }
+    }
+}
+
+private enum DevelopmentAuthState: Equatable {
+    case loading
+    case authenticated
+    case failed(String)
+}
+#endif
+
+private struct SignInView: View {
+    @Environment(Clerk.self) private var clerk
+    @State private var isSigningIn = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: 22) {
+            Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                .font(.system(size: 52))
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+
+            VStack(spacing: 6) {
+                Text("Welcome to Grotto")
+                    .font(.title2.weight(.semibold))
+                Text("Sign in to open your team and agents.")
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            Button(action: signIn) {
+                HStack(spacing: 10) {
+                    if isSigningIn { ProgressView().controlSize(.small) }
+                    Image(systemName: "person.crop.circle.badge.checkmark")
+                    Text("Continue with Google")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(isSigningIn)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(32)
+        .frame(maxWidth: 460)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
+    }
+
+    private func signIn() {
+        Task { @MainActor in
+            isSigningIn = true
+            errorMessage = nil
+            defer { isSigningIn = false }
+            do {
+                _ = try await clerk.auth.signInWithOAuth(provider: .google)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+}
+
+private func hasUsableSession(_ session: Session?) -> Bool {
+    guard let session else { return false }
+    return session.status == .active
+        && session.expireAt > Date()
+        && session.abandonAt > Date()
+}
+
+private enum DevSignInError: LocalizedError {
+    case missingSession
+    case missingToken
+
+    var errorDescription: String? {
+        switch self {
+        case .missingSession:
+            "Clerk completed ticket sign-in without creating a session."
+        case .missingToken:
+            "Clerk activated the development session without issuing a token."
+        }
+    }
+}

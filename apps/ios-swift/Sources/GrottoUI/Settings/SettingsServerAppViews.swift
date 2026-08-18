@@ -1,0 +1,276 @@
+import SwiftUI
+
+struct ServerDetailsView: View {
+    let server: SettingsServer
+    let onOpenTasks: () -> Void
+
+    init(server: SettingsServer, onOpenTasks: @escaping () -> Void = {}) {
+        self.server = server
+        self.onOpenTasks = onOpenTasks
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                SettingsSection("Identity") {
+                    SettingsListGroup {
+                        ValueRow("Name", value: server.name, systemImage: "server.rack")
+                        ValueRow("Address", value: "/\(server.slug)", systemImage: "globe")
+                        ValueRow("Your role", value: server.role, systemImage: "person.badge.key", showsDivider: false)
+                    }
+                }
+
+                SettingsSection("People") {
+                    SettingsListGroup {
+                        ValueRow("Agents", value: String(server.agentCount), systemImage: "cpu")
+                        ValueRow("Members", value: String(server.memberCount), systemImage: "person.2", showsDivider: false)
+                    }
+                }
+
+                SettingsSection("Work") {
+                    SettingsListGroup {
+                        DisclosureRow(
+                            "Tasks",
+                            systemImage: "checklist",
+                            showsDivider: false,
+                            action: onOpenTasks
+                        )
+                    }
+                }
+
+                Text("Server identity is shared with every Grotto client.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 28)
+        }
+        .scrollIndicators(.hidden)
+        .background(GrottoPlatformColor.groupedBackground)
+        .navigationTitle("Server")
+        .grottoInlineNavigationTitle()
+    }
+}
+
+struct AppInfoView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                SettingsSection("About") {
+                    SettingsListGroup {
+                        ValueRow("App", value: "Grotto", systemImage: "info.circle")
+                        ValueRow("Platform", value: "iPhone", systemImage: "iphone")
+                        ValueRow("Version", value: "Prototype", systemImage: "curlybraces", showsDivider: false)
+                    }
+                }
+
+                Text("A native client for your Grotto Server and Computers.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 28)
+        }
+        .scrollIndicators(.hidden)
+        .background(GrottoPlatformColor.groupedBackground)
+        .navigationTitle("Grotto for iPhone")
+        .grottoInlineNavigationTitle()
+    }
+}
+
+struct ServerPeopleView: View {
+    let members: [SettingsPerson]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                SettingsSection("Members") {
+                    SettingsListGroup {
+                        if members.isEmpty {
+                            SettingsRow(
+                                title: "No members",
+                                systemImage: "person.2",
+                                showsDivider: false
+                            ) {
+                                EmptyView()
+                            }
+                        } else {
+                            ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
+                                SettingsMemberRow(
+                                    member: member,
+                                    showsDivider: index < members.count - 1
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 28)
+        }
+        .scrollIndicators(.hidden)
+        .background(GrottoPlatformColor.groupedBackground)
+        .navigationTitle("People")
+        .grottoInlineNavigationTitle()
+    }
+}
+
+private struct SettingsMemberRow: View {
+    let member: SettingsPerson
+    let showsDivider: Bool
+
+    private var subtitle: String? {
+        if let email = member.email, email != member.displayName {
+            return email
+        }
+        guard let handle = member.handle, !handle.isEmpty else { return nil }
+        return "@\(handle)"
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                AvatarView(
+                    name: member.displayName,
+                    url: member.avatarURL,
+                    initials: member.initials,
+                    size: 42
+                )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(member.displayName)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 8)
+                Text(member.role)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(minHeight: 76)
+            .padding(.horizontal, 16)
+
+            if showsDivider {
+                Divider().padding(.leading, 72)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(member.displayName), \(member.role)")
+    }
+}
+
+struct ServerComputersView: View {
+    let computers: [SettingsComputer]?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                SettingsSection("Computers") {
+                    SettingsListGroup {
+                        if let computers, !computers.isEmpty {
+                            ForEach(Array(computers.enumerated()), id: \.element.id) { index, computer in
+                                SettingsComputerRow(
+                                    computer: computer,
+                                    showsDivider: index < computers.count - 1
+                                )
+                            }
+                        } else {
+                            SettingsRow(
+                                title: computers == nil ? "Computers unavailable" : "No Computers attached",
+                                subtitle: computers == nil
+                                    ? "Grotto couldn’t load this Server’s Computers."
+                                    : "No Computer has connected to this Server yet.",
+                                systemImage: "desktopcomputer",
+                                showsDivider: false
+                            ) {
+                                EmptyView()
+                            }
+                        }
+                    }
+                }
+
+                if let computers, computers.count > 1 {
+                    Text("Computers are managed by the Grotto Computer app.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 16)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 28)
+        }
+        .scrollIndicators(.hidden)
+        .background(GrottoPlatformColor.groupedBackground)
+        .navigationTitle("Computers")
+        .grottoInlineNavigationTitle()
+    }
+}
+
+private struct SettingsComputerRow: View {
+    let computer: SettingsComputer
+    let showsDivider: Bool
+
+    var body: some View {
+        SettingsRow(
+            title: computer.name,
+            subtitle: "\(computer.health) · \(computer.system)",
+            systemImage: "desktopcomputer",
+            showsDivider: showsDivider
+        ) {
+            Text(computer.version)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+    }
+}
+
+struct SettingsUnavailableView: View {
+    let title: String
+
+    var body: some View {
+        ContentUnavailableView(
+            title,
+            systemImage: "questionmark.circle",
+            description: Text("This settings screen is unavailable.")
+        )
+        .navigationTitle(title)
+        .grottoInlineNavigationTitle()
+    }
+}
+
+#Preview("Server") {
+    NavigationStack {
+        ServerDetailsView(server: SettingsFixtures.server)
+    }
+}
+
+#Preview("App info") {
+    NavigationStack {
+        AppInfoView()
+    }
+}
+
+#Preview("People") {
+    NavigationStack {
+        ServerPeopleView(members: [SettingsFixtures.viewer])
+    }
+}

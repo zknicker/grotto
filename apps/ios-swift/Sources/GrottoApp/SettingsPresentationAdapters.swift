@@ -1,0 +1,154 @@
+import Foundation
+import GrottoModels
+import GrottoUI
+
+extension GrottoStore {
+    var settingsTasksPersistence: TaskListPersistence {
+        let agentNames = Dictionary(
+            agents.map { ($0.id, $0.displayName) },
+            uniquingKeysWith: { current, _ in current }
+        )
+        let memberNames = Dictionary(
+            (members?.members ?? []).map {
+                ($0.userID, $0.displayName ?? $0.handle ?? $0.email ?? "Grotto member")
+            },
+            uniquingKeysWith: { current, _ in current }
+        )
+        return TaskListPersistence(
+            viewerUserID: settingsData?.viewer.id,
+            assigneeLabel: { item in
+                if let agentID = item.task.assigneeAgentID {
+                    return agentNames[agentID] ?? "Deleted agent"
+                }
+                if let userID = item.task.assigneeUserID {
+                    return memberNames[userID] ?? "Grotto member"
+                }
+                return "Unassigned"
+            },
+            load: { [weak self] in
+                guard let self else { throw CancellationError() }
+                return try await self.loadTasks()
+            },
+            updateStatus: { [weak self] item, status in
+                guard let self else { throw CancellationError() }
+                _ = try await self.updateTaskStatus(item.task, status: status)
+                return try await self.loadTasks()
+            },
+            claim: { [weak self] item in
+                guard let self else { throw CancellationError() }
+                _ = try await self.claimTask(item.task)
+                return try await self.loadTasks()
+            },
+            unclaim: { [weak self] item in
+                guard let self else { throw CancellationError() }
+                _ = try await self.unclaimTask(item.task)
+                return try await self.loadTasks()
+            }
+        )
+    }
+
+    var settingsData: SettingsData? {
+        guard let server = activeServer, let directory = members else { return nil }
+        let people = directory.members.map { member in
+            SettingsPerson(
+                id: member.userID,
+                displayName: member.displayName ?? member.email ?? member.handle ?? "Grotto member",
+                handle: member.handle,
+                email: member.email,
+                role: member.role.rawValue.capitalized,
+                joined: member.joinedAt.formatted(date: .abbreviated, time: .omitted),
+                description: member.description ?? "",
+                avatarURL: resolvedAvatarURL(member.avatarURL)
+            )
+        }
+        guard let viewer = people.first(where: { $0.id == directory.viewerUserID }) else { return nil }
+
+        return SettingsData(
+            server: SettingsServer(
+                id: server.id,
+                name: server.displayName,
+                slug: server.slug,
+                role: server.role.rawValue.capitalized,
+                memberCount: directory.members.count,
+                agentCount: agents.count
+            ),
+            viewer: viewer,
+            members: people,
+            agents: agents.map { agent in
+                SettingsAgent(
+                    id: agent.id,
+                    displayName: agent.displayName,
+                    handle: agent.handle,
+                    description: agent.description ?? "",
+                    role: agent.role.rawValue.capitalized,
+                    runtime: agent.effectiveRuntimeID ?? agent.desiredRuntimeID,
+                    model: agent.effectiveModelID ?? agent.desiredModelID,
+                    status: availability(for: agent).rawValue.capitalized,
+                    avatarURL: resolvedAvatarURL(agent.avatarURL),
+                    presence: settingsPresence(availability(for: agent))
+                )
+            },
+            computers: computers?.map(computerPresentation)
+        )
+    }
+
+    private func computerPresentation(_ computer: ComputerSummary) -> SettingsComputer {
+        SettingsComputer(
+            id: computer.id,
+            name: computerLabel(computer),
+            health: computerHealthLabel(computer.health),
+            system: computerSystemLabel(computer),
+            version: "v\(computer.productVersion ?? "—")"
+        )
+    }
+
+    private func computerLabel(_ computer: ComputerSummary) -> String {
+        if let name = computer.name?.nilIfBlank { return name }
+        return "\(operatingSystemLabel(computer.operatingSystem) ?? "") Computer"
+            .trimmingCharacters(in: .whitespaces)
+    }
+
+    private func computerSystemLabel(_ computer: ComputerSummary) -> String {
+        let labels = [
+            operatingSystemLabel(computer.operatingSystem),
+            architectureLabel(computer.architecture),
+        ].compactMap { $0 }
+        return labels.isEmpty ? "Awaiting first report" : labels.joined(separator: " · ")
+    }
+
+    private func computerHealthLabel(_ health: ComputerHealth) -> String {
+        switch health {
+        case .healthy: "Online"
+        case .offline: "Offline"
+        case .updateRequired: "Update required"
+        case .degraded: "Needs attention"
+        }
+    }
+
+    private func operatingSystemLabel(_ value: String?) -> String? {
+        switch value?.lowercased() {
+        case "darwin": "Mac"
+        case "linux": "Linux"
+        case "win32", "windows": "Windows"
+        default: value
+        }
+    }
+
+    private func architectureLabel(_ value: String?) -> String? {
+        switch value?.lowercased() {
+        case "arm64": "Apple Silicon"
+        case "x64", "x86_64": "Intel"
+        default: value
+        }
+    }
+
+    private func settingsPresence(_ availability: AgentAvailability) -> AgentPresence {
+        switch availability {
+        case .idle: .idle
+        case .working: .working
+        case .error: .error
+        case .offline: .offline
+        case .stopped: .stopped
+        }
+    }
+}

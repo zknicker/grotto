@@ -1,0 +1,435 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		026D32C8C8DADD07AD9E0AA1 /* GrottoStoreComputers.swift in Sources */ = {isa = PBXBuildFile; fileRef = F206B3DCFC70B480F60D9707 /* GrottoStoreComputers.swift */; };
+		03178A520FDC48B213C4EFD9 /* GrottoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE522E48E390A40266F3E121 /* GrottoApp.swift */; };
+		25E2A752F581943B2425A241 /* GrottoRuntimeConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAA68EF8CE92D160CACCADFF /* GrottoRuntimeConfiguration.swift */; };
+		2DBD64B83C2D5D4EB9106D30 /* ActivityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7047E22D134A650DB4E129 /* ActivityPresentationAdapters.swift */; };
+		3725FA9F24A5F0D4C7FE69FE /* GrottoStoreTasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC1096F0180E21018179954 /* GrottoStoreTasks.swift */; };
+		4BEFE7459773A86CE9CAC9B2 /* GrottoStoreSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC153273DF887840EEF5E222 /* GrottoStoreSupport.swift */; };
+		51C6683F2CAF54D872297AC5 /* AuthenticatedGrottoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74A1C28304AD057ED6E7A4E1 /* AuthenticatedGrottoView.swift */; };
+		54D1EF0578C20C7348D3D26D /* AuthBoundaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70299D90523698DDA516E851 /* AuthBoundaryView.swift */; };
+		5ECBECE8D1FD98F3BC7E44C5 /* GrottoUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0748A2AF86ACE7B5B00EBB6A /* GrottoUI */; };
+		5FFDA54F6B9596C063956F0F /* GrottoStoreProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEEDD6F107B57EA7A1266C6 /* GrottoStoreProfiles.swift */; };
+		629BBA11FD73F2D48B91AA8D /* SettingsPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376429A0E7D643A4B068D961 /* SettingsPresentationAdapters.swift */; };
+		67BE1CDF64C8C482FAF241EB /* GrottoTransport in Frameworks */ = {isa = PBXBuildFile; productRef = B178ED7492BA5B453C018FFC /* GrottoTransport */; };
+		7B1F6679D8AB2CA79F07D285 /* PresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC829423BC5AEA279F12CEB8 /* PresentationAdapters.swift */; };
+		884264A236B90A9942993708 /* GrottoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18116DB8AC8E2CAC49832EEC /* GrottoStore.swift */; };
+		8A1D6CE80AA296E57C232983 /* GrottoModels in Frameworks */ = {isa = PBXBuildFile; productRef = 04D73AA62497CB535860FC9F /* GrottoModels */; };
+		AD2B00625CA2470F49F1D65C /* GrottoStoreActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 693415FC47007B7270A56BCB /* GrottoStoreActivity.swift */; };
+		B7293BC132A3F842F962AC94 /* GrottoStoreMessaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCC588D17F3F90D1477622EF /* GrottoStoreMessaging.swift */; };
+		BEA9B33A26AB2BD4758E1788 /* UtilityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D421FE0B04D7E39610A26989 /* UtilityPresentationAdapters.swift */; };
+		D82B5A6B9306B3792F3C7B1B /* GrottoStoreUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2389AEB5150BEDF1546392DE /* GrottoStoreUtilities.swift */; };
+		E0E64863D2B24638E641C010 /* GrottoStoreRealtime.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8F5FC9DF30C369C0E780880 /* GrottoStoreRealtime.swift */; };
+		EF0076073426D216D2E87562 /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = EB3B0876E1F16328F43C33BA /* ClerkKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		18116DB8AC8E2CAC49832EEC /* GrottoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStore.swift; sourceTree = "<group>"; };
+		2389AEB5150BEDF1546392DE /* GrottoStoreUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreUtilities.swift; sourceTree = "<group>"; };
+		2FEEDD6F107B57EA7A1266C6 /* GrottoStoreProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreProfiles.swift; sourceTree = "<group>"; };
+		376429A0E7D643A4B068D961 /* SettingsPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPresentationAdapters.swift; sourceTree = "<group>"; };
+		3DCBDC564DDB7D1C15F96F78 /* Grotto.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Grotto.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4A71525ABB1071E9D4A2BA0A /* ios-swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "ios-swift"; path = .; sourceTree = SOURCE_ROOT; };
+		5C7047E22D134A650DB4E129 /* ActivityPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityPresentationAdapters.swift; sourceTree = "<group>"; };
+		693415FC47007B7270A56BCB /* GrottoStoreActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreActivity.swift; sourceTree = "<group>"; };
+		70299D90523698DDA516E851 /* AuthBoundaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthBoundaryView.swift; sourceTree = "<group>"; };
+		74A1C28304AD057ED6E7A4E1 /* AuthenticatedGrottoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatedGrottoView.swift; sourceTree = "<group>"; };
+		BE522E48E390A40266F3E121 /* GrottoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoApp.swift; sourceTree = "<group>"; };
+		C8F5FC9DF30C369C0E780880 /* GrottoStoreRealtime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreRealtime.swift; sourceTree = "<group>"; };
+		D421FE0B04D7E39610A26989 /* UtilityPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilityPresentationAdapters.swift; sourceTree = "<group>"; };
+		DC829423BC5AEA279F12CEB8 /* PresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationAdapters.swift; sourceTree = "<group>"; };
+		EAA68EF8CE92D160CACCADFF /* GrottoRuntimeConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoRuntimeConfiguration.swift; sourceTree = "<group>"; };
+		EC153273DF887840EEF5E222 /* GrottoStoreSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreSupport.swift; sourceTree = "<group>"; };
+		F206B3DCFC70B480F60D9707 /* GrottoStoreComputers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreComputers.swift; sourceTree = "<group>"; };
+		FAC1096F0180E21018179954 /* GrottoStoreTasks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreTasks.swift; sourceTree = "<group>"; };
+		FCC588D17F3F90D1477622EF /* GrottoStoreMessaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreMessaging.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		42A44717ED9DBC4D377E8C36 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8A1D6CE80AA296E57C232983 /* GrottoModels in Frameworks */,
+				67BE1CDF64C8C482FAF241EB /* GrottoTransport in Frameworks */,
+				5ECBECE8D1FD98F3BC7E44C5 /* GrottoUI in Frameworks */,
+				EF0076073426D216D2E87562 /* ClerkKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3FA632814D71972571CA9C4E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3DCBDC564DDB7D1C15F96F78 /* Grotto.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		45AE1B3473A03896D4EC79F0 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				963C1861ACD17EEBD6F0388B /* GrottoApp */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		4AEEB10E677DB439F0F8B652 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				4A71525ABB1071E9D4A2BA0A /* ios-swift */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		963C1861ACD17EEBD6F0388B /* GrottoApp */ = {
+			isa = PBXGroup;
+			children = (
+				5C7047E22D134A650DB4E129 /* ActivityPresentationAdapters.swift */,
+				70299D90523698DDA516E851 /* AuthBoundaryView.swift */,
+				74A1C28304AD057ED6E7A4E1 /* AuthenticatedGrottoView.swift */,
+				BE522E48E390A40266F3E121 /* GrottoApp.swift */,
+				EAA68EF8CE92D160CACCADFF /* GrottoRuntimeConfiguration.swift */,
+				18116DB8AC8E2CAC49832EEC /* GrottoStore.swift */,
+				693415FC47007B7270A56BCB /* GrottoStoreActivity.swift */,
+				F206B3DCFC70B480F60D9707 /* GrottoStoreComputers.swift */,
+				FCC588D17F3F90D1477622EF /* GrottoStoreMessaging.swift */,
+				2FEEDD6F107B57EA7A1266C6 /* GrottoStoreProfiles.swift */,
+				C8F5FC9DF30C369C0E780880 /* GrottoStoreRealtime.swift */,
+				EC153273DF887840EEF5E222 /* GrottoStoreSupport.swift */,
+				FAC1096F0180E21018179954 /* GrottoStoreTasks.swift */,
+				2389AEB5150BEDF1546392DE /* GrottoStoreUtilities.swift */,
+				DC829423BC5AEA279F12CEB8 /* PresentationAdapters.swift */,
+				376429A0E7D643A4B068D961 /* SettingsPresentationAdapters.swift */,
+				D421FE0B04D7E39610A26989 /* UtilityPresentationAdapters.swift */,
+			);
+			path = GrottoApp;
+			sourceTree = "<group>";
+		};
+		C49C606CAC0586A6A8C74341 = {
+			isa = PBXGroup;
+			children = (
+				4AEEB10E677DB439F0F8B652 /* Packages */,
+				45AE1B3473A03896D4EC79F0 /* Sources */,
+				3FA632814D71972571CA9C4E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		68D8ADF2E006E0D55982EDAB /* Grotto */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ACAAAFAE2AE61D73F7672A75 /* Build configuration list for PBXNativeTarget "Grotto" */;
+			buildPhases = (
+				2656A1BAA5EC7F4025077A51 /* Sources */,
+				42A44717ED9DBC4D377E8C36 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Grotto;
+			packageProductDependencies = (
+				04D73AA62497CB535860FC9F /* GrottoModels */,
+				B178ED7492BA5B453C018FFC /* GrottoTransport */,
+				0748A2AF86ACE7B5B00EBB6A /* GrottoUI */,
+				EB3B0876E1F16328F43C33BA /* ClerkKit */,
+			);
+			productName = Grotto;
+			productReference = 3DCBDC564DDB7D1C15F96F78 /* Grotto.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		675038533BFF4435E8F3DCA5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 7E9B7C3A0F4A1BABE324C94E /* Build configuration list for PBXProject "Grotto" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C49C606CAC0586A6A8C74341;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				EE263208F0698F410E23A173 /* XCRemoteSwiftPackageReference "clerk-ios" */,
+				B5AF2E81F1CACED8D54A2F13 /* XCLocalSwiftPackageReference "." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3FA632814D71972571CA9C4E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				68D8ADF2E006E0D55982EDAB /* Grotto */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2656A1BAA5EC7F4025077A51 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2DBD64B83C2D5D4EB9106D30 /* ActivityPresentationAdapters.swift in Sources */,
+				54D1EF0578C20C7348D3D26D /* AuthBoundaryView.swift in Sources */,
+				51C6683F2CAF54D872297AC5 /* AuthenticatedGrottoView.swift in Sources */,
+				03178A520FDC48B213C4EFD9 /* GrottoApp.swift in Sources */,
+				25E2A752F581943B2425A241 /* GrottoRuntimeConfiguration.swift in Sources */,
+				884264A236B90A9942993708 /* GrottoStore.swift in Sources */,
+				AD2B00625CA2470F49F1D65C /* GrottoStoreActivity.swift in Sources */,
+				026D32C8C8DADD07AD9E0AA1 /* GrottoStoreComputers.swift in Sources */,
+				B7293BC132A3F842F962AC94 /* GrottoStoreMessaging.swift in Sources */,
+				5FFDA54F6B9596C063956F0F /* GrottoStoreProfiles.swift in Sources */,
+				E0E64863D2B24638E641C010 /* GrottoStoreRealtime.swift in Sources */,
+				4BEFE7459773A86CE9CAC9B2 /* GrottoStoreSupport.swift in Sources */,
+				3725FA9F24A5F0D4C7FE69FE /* GrottoStoreTasks.swift in Sources */,
+				D82B5A6B9306B3792F3C7B1B /* GrottoStoreUtilities.swift in Sources */,
+				7B1F6679D8AB2CA79F07D285 /* PresentationAdapters.swift in Sources */,
+				629BBA11FD73F2D48B91AA8D /* SettingsPresentationAdapters.swift in Sources */,
+				BEA9B33A26AB2BD4758E1788 /* UtilityPresentationAdapters.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0A4024AF993D49136C6849C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/Grotto.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = build.grotto.ios;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		7A20205CD4F0C40655450006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		7C2378C7EBAEAB2A0164BCBB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/Grotto.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = build.grotto.ios;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A81544124968D02031F95083 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7E9B7C3A0F4A1BABE324C94E /* Build configuration list for PBXProject "Grotto" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A20205CD4F0C40655450006 /* Debug */,
+				A81544124968D02031F95083 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		ACAAAFAE2AE61D73F7672A75 /* Build configuration list for PBXNativeTarget "Grotto" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7C2378C7EBAEAB2A0164BCBB /* Debug */,
+				0A4024AF993D49136C6849C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		B5AF2E81F1CACED8D54A2F13 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		EE263208F0698F410E23A173 /* XCRemoteSwiftPackageReference "clerk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/clerk/clerk-ios";
+			requirement = {
+				kind = exactVersion;
+				version = 1.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		04D73AA62497CB535860FC9F /* GrottoModels */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GrottoModels;
+		};
+		0748A2AF86ACE7B5B00EBB6A /* GrottoUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GrottoUI;
+		};
+		B178ED7492BA5B453C018FFC /* GrottoTransport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GrottoTransport;
+		};
+		EB3B0876E1F16328F43C33BA /* ClerkKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EE263208F0698F410E23A173 /* XCRemoteSwiftPackageReference "clerk-ios" */;
+			productName = ClerkKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 675038533BFF4435E8F3DCA5 /* Project object */;
+}

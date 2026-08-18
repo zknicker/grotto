@@ -1,0 +1,66 @@
+name: Grotto
+
+options:
+  bundleIdPrefix: build.grotto
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  xcodeVersion: "26.0"
+
+packages:
+  GrottoIOS:
+    path: .
+  ClerkKit:
+    url: https://github.com/clerk/clerk-ios
+    exactVersion: 1.2.0
+
+targets:
+  Grotto:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/GrottoApp
+    dependencies:
+      - package: GrottoIOS
+        product: GrottoModels
+      - package: GrottoIOS
+        product: GrottoTransport
+      - package: GrottoIOS
+        product: GrottoUI
+      - package: ClerkKit
+        product: ClerkKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: build.grotto.ios
+        SWIFT_VERSION: "6.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: false
+    info:
+      path: Config/Info.plist
+      properties:
+        CFBundleDisplayName: Grotto
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Editor
+            CFBundleURLSchemes:
+              - grotto
+              - build.grotto.ios
+        UILaunchScreen: {}
+        UIRequiresFullScreen: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    entitlements:
+      path: Config/Grotto.entitlements
+      properties:
+        com.apple.developer.associated-domains:
+          - webcredentials:clerk.grotto.sh
+
+schemes:
+  Grotto:
+    build:
+      targets:
+        Grotto: all
+    run:
+      config: Debug
+    test:
+      config: Debug

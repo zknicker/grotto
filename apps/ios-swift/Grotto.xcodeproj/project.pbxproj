@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01957AA7AC1537FB1A0217AE /* mac-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 18AD969F813C627B3591C65A /* mac-icon.icon */; };
 		026D32C8C8DADD07AD9E0AA1 /* GrottoStoreComputers.swift in Sources */ = {isa = PBXBuildFile; fileRef = F206B3DCFC70B480F60D9707 /* GrottoStoreComputers.swift */; };
 		03178A520FDC48B213C4EFD9 /* GrottoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE522E48E390A40266F3E121 /* GrottoApp.swift */; };
 		25E2A752F581943B2425A241 /* GrottoRuntimeConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAA68EF8CE92D160CACCADFF /* GrottoRuntimeConfiguration.swift */; };
@@ -32,6 +33,7 @@
 
 /* Begin PBXFileReference section */
 		18116DB8AC8E2CAC49832EEC /* GrottoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStore.swift; sourceTree = "<group>"; };
+		18AD969F813C627B3591C65A /* mac-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "mac-icon.icon"; sourceTree = "<group>"; };
 		2389AEB5150BEDF1546392DE /* GrottoStoreUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreUtilities.swift; sourceTree = "<group>"; };
 		2FEEDD6F107B57EA7A1266C6 /* GrottoStoreProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreProfiles.swift; sourceTree = "<group>"; };
 		376429A0E7D643A4B068D961 /* SettingsPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPresentationAdapters.swift; sourceTree = "<group>"; };
@@ -91,6 +93,15 @@
 			name = Packages;
 			sourceTree = "<group>";
 		};
+		8DF6426568470CDE3A2CAC63 /* grotto */ = {
+			isa = PBXGroup;
+			children = (
+				B428541CFCCCF48AC2D705B4 /* assets */,
+			);
+			name = grotto;
+			path = ../..;
+			sourceTree = "<group>";
+		};
 		963C1861ACD17EEBD6F0388B /* GrottoApp */ = {
 			isa = PBXGroup;
 			children = (
@@ -115,9 +126,18 @@
 			path = GrottoApp;
 			sourceTree = "<group>";
 		};
+		B428541CFCCCF48AC2D705B4 /* assets */ = {
+			isa = PBXGroup;
+			children = (
+				18AD969F813C627B3591C65A /* mac-icon.icon */,
+			);
+			path = assets;
+			sourceTree = "<group>";
+		};
 		C49C606CAC0586A6A8C74341 = {
 			isa = PBXGroup;
 			children = (
+				8DF6426568470CDE3A2CAC63 /* grotto */,
 				4AEEB10E677DB439F0F8B652 /* Packages */,
 				45AE1B3473A03896D4EC79F0 /* Sources */,
 				3FA632814D71972571CA9C4E /* Products */,
@@ -132,6 +152,7 @@
 			buildConfigurationList = ACAAAFAE2AE61D73F7672A75 /* Build configuration list for PBXNativeTarget "Grotto" */;
 			buildPhases = (
 				2656A1BAA5EC7F4025077A51 /* Sources */,
+				30F9374F1024505641A18C4E /* Resources */,
 				42A44717ED9DBC4D377E8C36 /* Frameworks */,
 			);
 			buildRules = (
@@ -183,6 +204,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		30F9374F1024505641A18C4E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				01957AA7AC1537FB1A0217AE /* mac-icon.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		2656A1BAA5EC7F4025077A51 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -214,9 +246,10 @@
 		0A4024AF993D49136C6849C1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "mac-icon";
 				CODE_SIGN_ENTITLEMENTS = Config/Grotto.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
@@ -224,6 +257,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = build.grotto.ios;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -297,9 +331,10 @@
 		7C2378C7EBAEAB2A0164BCBB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "mac-icon";
 				CODE_SIGN_ENTITLEMENTS = Config/Grotto.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
@@ -307,6 +342,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = build.grotto.ios;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;

@@ -20,6 +20,8 @@ targets:
     platform: iOS
     sources:
       - path: Sources/GrottoApp
+      - path: ../../assets/mac-icon.icon
+        buildPhase: resources
     dependencies:
       - package: GrottoIOS
         product: GrottoModels
@@ -32,6 +34,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: build.grotto.ios
+        ASSETCATALOG_COMPILER_APPICON_NAME: mac-icon
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: 1.0.0
         SWIFT_VERSION: "6.0"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1"
@@ -40,12 +45,17 @@ targets:
       path: Config/Info.plist
       properties:
         CFBundleDisplayName: Grotto
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleURLTypes:
           - CFBundleTypeRole: Editor
             CFBundleURLSchemes:
               - grotto
               - build.grotto.ios
         UILaunchScreen: {}
+        ITSAppUsesNonExemptEncryption: false
+        NSCameraUsageDescription: Take photos to attach to Grotto messages.
+        NSPhotoLibraryUsageDescription: Choose photos to attach to Grotto messages.
         UIRequiresFullScreen: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

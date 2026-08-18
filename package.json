@@ -26,6 +26,7 @@
     "release:publish": "node scripts/release/publish-release.mjs",
     "setup:worktree": "node scripts/setup-worktree.mjs",
     "computer:release": "node scripts/release/publish-computer.mjs",
+    "ios:release": "node scripts/release/publish-ios.mjs",
     "test:app": "bun run --filter @tavern/website test:app",
     "test:app:debug": "bun run --filter @tavern/website test:app:debug",
     "test:app:headed": "bun run --filter @tavern/website test:app:headed",

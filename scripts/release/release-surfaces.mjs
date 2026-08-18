@@ -3,6 +3,7 @@ import { isSemver } from './release-utils.mjs';
 const surfaceLabels = {
     server: 'Server',
     app: 'App',
+    ios: 'iOS',
     computer: 'Computer',
 };
 const surfaceKeys = Object.keys(surfaceLabels);
@@ -34,6 +35,7 @@ export function assertReleaseSurfaceDecision(value, options = {}) {
         if (
             value.surfaces.server.action !== 'unchanged' ||
             value.surfaces.app.action !== 'unchanged' ||
+            value.surfaces.ios.action !== 'unchanged' ||
             value.surfaces.computer.action !== 'publish'
         ) {
             throw new Error(
@@ -77,7 +79,9 @@ export function formatReleaseSurfaceDecision(value) {
             const surface = value.surfaces[key];
             const action = capitalize(surface.action);
             const version = surface.version ? ` v${surface.version}` : '';
-            return `- ${surfaceLabels[key]}: ${action}${version}`;
+            const build =
+                key === 'ios' && surface.buildNumber ? ` (build ${surface.buildNumber})` : '';
+            return `- ${surfaceLabels[key]}: ${action}${version}${build}`;
         }),
     ].join('\n');
 }
@@ -94,6 +98,7 @@ export function resetReleaseSurfaceDecision(targetVersion) {
                 key,
                 {
                     action: key === 'server' ? 'publish' : 'undecided',
+                    ...(key === 'ios' ? { buildNumber: null } : {}),
                     version: key === 'server' ? targetVersion : null,
                 },
             ])
@@ -102,7 +107,10 @@ export function resetReleaseSurfaceDecision(targetVersion) {
 }
 
 function assertSurface(value, key, allowUndecided) {
-    assertExactObject(value, ['action', 'version']);
+    assertExactObject(
+        value,
+        key === 'ios' ? ['action', 'buildNumber', 'version'] : ['action', 'version']
+    );
     const actions = allowUndecided ? ['undecided'] : ['publish', 'unchanged'];
     if (!actions.includes(value.action)) {
         throw new Error(`${surfaceLabels[key]} has no explicit publish/unchanged decision`);
@@ -113,6 +121,18 @@ function assertSurface(value, key, allowUndecided) {
     if (value.action !== 'publish' && value.version !== null) {
         throw new Error(`${surfaceLabels[key]} ${value.action} decision cannot have a version`);
     }
+    if (key === 'ios') {
+        if (value.action === 'publish' && !isBuildNumber(value.buildNumber)) {
+            throw new Error('iOS publish decision requires a positive integer buildNumber');
+        }
+        if (value.action !== 'publish' && value.buildNumber !== null) {
+            throw new Error(`iOS ${value.action} decision cannot have a buildNumber`);
+        }
+    }
+}
+
+function isBuildNumber(value) {
+    return Number.isSafeInteger(value) && value > 0;
 }
 
 function assertExactObject(value, keys) {

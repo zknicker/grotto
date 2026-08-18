@@ -48,13 +48,22 @@ export default defineScenario({
             }
 
             log('waiting for the reminder to fire');
-            // The report lands wherever the reminder is anchored — and if that
-            // anchor is the channel, the Agent may still promote the follow-up
-            // to a task and report in its Thread.
+            const receipt = await kit.awaitMessage(anchorChatId, isReminderFireReceipt, 140_000);
+            expect(receipt, 'the reminder fire receipt').toBeTruthy();
+
+            const earlyReports = (await readAgentReplies(kit, anchorChatId, worker.id)).filter(
+                (message) =>
+                    message.content.includes(`READY-${token}`) &&
+                    Date.parse(message.createdAt) < Date.parse(receipt.createdAt)
+            );
+            expect(earlyReports, 'follow-up reports before the reminder fired').toHaveLength(0);
+
             const reported = await kit.awaitAgentReply(
                 anchorChatId,
                 worker.id,
-                (message) => message.content.includes(`READY-${token}`),
+                (message) =>
+                    message.content.includes(`READY-${token}`) &&
+                    Date.parse(message.createdAt) >= Date.parse(receipt.createdAt),
                 200_000
             );
             const report = reported.message;
@@ -65,14 +74,35 @@ export default defineScenario({
             const receipts = messages.filter(isReminderFireReceipt);
             expect(receipts, 'reminder fire receipts in the anchor chat').toHaveLength(1);
             expect(
-                Date.parse(receipts[0].createdAt) <= Date.parse(report.createdAt),
+                Date.parse(receipt.createdAt) <= Date.parse(report.createdAt),
                 'the fire receipt precedes the follow-up report'
             ).toBe(true);
+
+            const reports = (await readAgentReplies(kit, anchorChatId, worker.id)).filter(
+                (message) => message.content.includes(`READY-${token}`)
+            );
+            expect(
+                reports,
+                'follow-up reports across the anchor and its task Threads'
+            ).toHaveLength(1);
         } finally {
             await cancelIfScheduled(kit, reminder);
         }
     },
 });
+
+async function readAgentReplies(kit, chatId, agentId) {
+    const direct = await kit.readMessages(chatId);
+    const tasks = await kit.trpc('task.list', { serverId: kit.serverId });
+    const threads = await Promise.all(
+        tasks
+            .filter((entry) => entry.task.chatId === chatId)
+            .map((entry) => kit.readMessages(entry.task.threadChatId))
+    );
+    return [...direct, ...threads.flat()].filter(
+        (message) => message.author.kind === 'agent' && message.author.agentId === agentId
+    );
+}
 
 /** The Agent may anchor its reminder to the channel itself or to a Thread in it. */
 async function waitForScheduledReminder(kit, agentId, channelId) {

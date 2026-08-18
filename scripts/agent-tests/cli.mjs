@@ -45,7 +45,7 @@ if (options.list) {
 // before anything reaches the dev stack, so a typo costs no live agent time.
 if (scenarios.length === 0) {
     process.stderr.write(
-        options.only
+        options.only.length > 0
             ? `No agent-test scenario name contains ${JSON.stringify(options.only)}.\n  list them with: bun run test:agents --list\n`
             : `No agent-test scenarios found in ${scenariosDirectory}.\n`
     );
@@ -204,19 +204,26 @@ async function loadScenarios() {
 }
 
 function filterScenarios(loaded, only) {
-    return only ? loaded.filter((scenario) => scenario.name.includes(only)) : loaded;
+    return only.length > 0
+        ? loaded.filter((scenario) => only.some((filter) => scenario.name.includes(filter)))
+        : loaded;
 }
 
 /** Unknown args abort: a typo must never quietly become a full live-agent run. */
 function parseArgv(argv) {
-    const parsed = { json: false, lanes: null, list: false, only: null };
+    const parsed = { json: false, lanes: null, list: false, only: [] };
     const rest = [...argv];
     while (rest.length > 0) {
         const arg = rest.shift();
         if (arg === '--json' || arg === '--list') {
             parsed[arg.slice(2)] = true;
         } else if (arg === '--only') {
-            parsed.only = rest.shift() ?? null;
+            const filter = rest.shift();
+            if (!filter || filter.startsWith('--')) {
+                process.stderr.write('--only needs a scenario-name substring.\n');
+                process.exit(2);
+            }
+            parsed.only.push(filter);
         } else if (arg === '--lanes') {
             // Lanes are not clamped: Agents are created per scenario, so the
             // only real ceiling is what the provider and Computer will take.

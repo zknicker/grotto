@@ -363,6 +363,27 @@ describe('cli scenario selection', () => {
         expect(listed.stdout).toContain('task-thread-routing');
     });
 
+    test('combines repeated scenario filters', () => {
+        const listed = runCli([
+            '--list',
+            '--only',
+            'coordinator-synthesizes-from-lanes',
+            '--only',
+            'reminder-schedule-and-fire',
+        ]);
+        expect(listed.status).toBe(0);
+        expect(listed.stdout).toContain('coordinator-synthesizes-from-lanes');
+        expect(listed.stdout).toContain('reminder-schedule-and-fire');
+        expect(listed.stdout).not.toContain('task-thread-routing');
+    });
+
+    test('a missing filter aborts before the live stack', () => {
+        const missing = runCli(['--only']);
+        expect(missing.status).toBe(2);
+        expect(missing.stderr).toContain('--only needs a scenario-name substring');
+        expect(missing.stdout).toBe('');
+    });
+
     // A filter that matches nothing must fail, and must fail before the run
     // reaches the dev stack: a green "0 passed" would read as a passing lane.
     test('a filter that matches nothing exits non-zero', () => {

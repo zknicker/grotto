@@ -79,6 +79,7 @@ export default defineScenario({
         const turn = await settleTurn(coordinator.id, { settleWithin: 300_000 });
         expect(turn.status, 'coordinator turn status').toBe('completed');
         expect(turn.failureKind ?? 'none', 'coordinator turn failure kind').toBe('none');
+        expect(turn.outputProduced, 'coordinator turn produced durable output').toBe(true);
 
         log('checking gates');
         // The synthesis may land in the channel or in a Thread the request was
@@ -87,7 +88,7 @@ export default defineScenario({
             channel.id,
             coordinator.id,
             (message) => message.content.includes(laneA) && message.content.includes(laneB),
-            240_000
+            30_000
         );
 
         const lastReportAt = Math.max(...reports.map((report) => Date.parse(report.createdAt)));

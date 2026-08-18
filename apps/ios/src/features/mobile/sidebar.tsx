@@ -12,11 +12,13 @@ import { ChatNavigation } from './chat-navigation.tsx';
 export function Sidebar({
     activeChat,
     onNavigate,
+    onOpenSettings,
     onSelectChat,
     serverId,
 }: {
     activeChat: string | undefined;
     onNavigate: () => void;
+    onOpenSettings: () => void;
     onSelectChat: (id: string) => void;
     serverId: string;
 }) {
@@ -31,11 +33,12 @@ export function Sidebar({
             : ' ';
     const openSection = (id: string) => {
         onNavigate();
-        if (id === 'settings') {
-            router.push({ pathname: '/settings', params: { server: serverId } });
-            return;
-        }
         router.push({ pathname: '/section/[id]', params: { id } });
+    };
+
+    const openSettings = () => {
+        onNavigate();
+        onOpenSettings();
     };
 
     return (
@@ -45,7 +48,7 @@ export function Sidebar({
                     <Button
                         accessibilityLabel={`Open ${server?.displayName ?? 'Grotto'} settings`}
                         className="h-12 min-h-12 flex-1 justify-start px-4"
-                        onPress={() => openSection('settings')}
+                        onPress={openSettings}
                         size="sm"
                         variant="ghost"
                     >

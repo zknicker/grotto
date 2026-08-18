@@ -2,6 +2,7 @@ import { useChats, useServerList } from '@tavern/app-client';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from 'heroui-native/button';
 import { useThemeColor } from 'heroui-native/hooks';
+import { PortalHost } from 'heroui-native/portal';
 import { Spinner } from 'heroui-native/spinner';
 import { type ReactNode, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -13,6 +14,7 @@ import Animated, {
     useSharedValue,
     withSpring,
 } from 'react-native-reanimated';
+import { SettingsSheet } from '../settings/settings-sheet.tsx';
 import { ChatScreen } from './chat-screen.tsx';
 import { Sidebar } from './sidebar.tsx';
 
@@ -49,6 +51,8 @@ function ServerShell({ serverId }: { serverId: string }) {
     const background = useThemeColor('background');
     const drawerWidth = Math.min(width * 0.77, 330);
     const [isOpen, setIsOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const settingsPortalHost = `settings:${serverId}`;
     const offset = useSharedValue(0);
     const gestureStart = useSharedValue(0);
     const requestedChat = Array.isArray(chatParam) ? chatParam[0] : chatParam;
@@ -107,6 +111,7 @@ function ServerShell({ serverId }: { serverId: string }) {
                 <Sidebar
                     activeChat={activeChatId}
                     onNavigate={() => settleDrawer(false)}
+                    onOpenSettings={() => setIsSettingsOpen(true)}
                     onSelectChat={selectChat}
                     serverId={serverId}
                 />
@@ -129,6 +134,13 @@ function ServerShell({ serverId }: { serverId: string }) {
                     </Animated.View>
                 </Animated.View>
             </GestureDetector>
+            <SettingsSheet
+                hostName={settingsPortalHost}
+                isOpen={isSettingsOpen}
+                onOpenChange={setIsSettingsOpen}
+                serverId={serverId}
+            />
+            <PortalHost name={settingsPortalHost} />
         </View>
     );
 }

@@ -5,3 +5,33 @@
 @theme {
   --field-radius: var(--radius-3xl);
 }
+
+@layer theme {
+  :root {
+    @variant light {
+      --background: #f2f2f7;
+      --foreground: #1c1c1e;
+
+      --surface: #ffffff;
+      --surface-foreground: var(--foreground);
+      --surface-secondary: #e9e9ef;
+      --surface-secondary-foreground: var(--foreground);
+      --surface-tertiary: #d1d1d6;
+      --surface-tertiary-foreground: var(--foreground);
+
+      --overlay: #ffffff;
+      --overlay-foreground: var(--foreground);
+      --muted: #8e8e93;
+      --default: #e9e9ef;
+      --default-foreground: var(--foreground);
+
+      --field-background: var(--surface);
+      --field-foreground: var(--foreground);
+      --border: #d1d1d6;
+      --separator: #c6c6c8;
+
+      --surface-shadow: 0 0 0 0 transparent inset;
+      --field-shadow: 0 0 0 0 transparent inset;
+    }
+  }
+}

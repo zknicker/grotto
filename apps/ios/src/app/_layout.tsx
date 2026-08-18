@@ -8,20 +8,26 @@ import { HeroUINativeProvider } from 'heroui-native/provider';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthBoundary } from '@/features/auth/auth-boundary.tsx';
 import { ServerEventBoundary } from '@/features/mobile/server-event-boundary.tsx';
+import { ThemePreferenceProvider } from '@/features/settings/theme-preference.tsx';
 import { appConfig } from '@/lib/app-config.ts';
 
 export default function RootLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <ClerkProvider publishableKey={appConfig.clerkPublishableKey} tokenCache={tokenCache}>
-                <HeroUINativeProvider>
-                    <AuthBoundary>
-                        <ServerEventBoundary>
-                            <Stack screenOptions={{ headerShown: false }} />
-                        </ServerEventBoundary>
-                    </AuthBoundary>
-                </HeroUINativeProvider>
-            </ClerkProvider>
+            <ThemePreferenceProvider>
+                <ClerkProvider
+                    publishableKey={appConfig.clerkPublishableKey}
+                    tokenCache={tokenCache}
+                >
+                    <HeroUINativeProvider>
+                        <AuthBoundary>
+                            <ServerEventBoundary>
+                                <Stack screenOptions={{ headerShown: false }} />
+                            </ServerEventBoundary>
+                        </AuthBoundary>
+                    </HeroUINativeProvider>
+                </ClerkProvider>
+            </ThemePreferenceProvider>
         </GestureHandlerRootView>
     );
 }

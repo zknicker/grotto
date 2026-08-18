@@ -1,78 +1,102 @@
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import {
+    AtIcon,
+    Calendar03Icon,
+    IdentityCardIcon,
+    Mail01Icon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import type { ServerMember } from '@tavern/api/membership';
 import {
     useMember,
     useMemberAvatarUpdate,
     useMemberProfileUpdate,
     useMembers,
-    useServerList,
 } from '@tavern/app-client';
-import { useLocalSearchParams } from 'expo-router';
 import { Button } from 'heroui-native/button';
-import { ListGroup } from 'heroui-native/list-group';
 import { Spinner } from 'heroui-native/spinner';
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { KeyboardDismissArea } from '../../components/keyboard-dismiss-area.tsx';
+import { SettingsListGroup } from '../../components/settings-list-group.tsx';
 import { SettingsSection } from '../../components/settings-section.tsx';
-import { AppLayout } from '../mobile/app-layout.tsx';
-import { BackHeader } from '../mobile/back-header.tsx';
+import { SettingsValueRow } from '../../components/settings-value-row.tsx';
 import { EntityAvatar } from '../mobile/entity-avatar.tsx';
 import { AvatarUploadButton } from './avatar-upload-button.tsx';
 import { ProfileIdentityForm } from './profile-identity-form.tsx';
+import { SettingsBackHeader } from './settings-screen-header.tsx';
 
-export function ProfileSettingsScreen() {
-    const { server: serverParam } = useLocalSearchParams<{ server?: string | string[] }>();
-    const servers = useServerList();
-    const requestedServerId = singleParam(serverParam);
-    const server =
-        servers.data?.find((candidate) => candidate.id === requestedServerId) ?? servers.data?.[0];
-    const members = useMembers(server?.id);
-    const member = useMember(server?.id, members.data?.viewerUserId);
+export function ProfileSettingsScreen({
+    onBack,
+    onEditDescription,
+    serverId,
+}: {
+    onBack: () => void;
+    onEditDescription: (profile: {
+        description: string;
+        displayName: string;
+        memberId: string;
+    }) => void;
+    serverId: string;
+}) {
+    const members = useMembers(serverId);
+    const member = useMember(serverId, members.data?.viewerUserId);
 
-    if (servers.isError && !servers.data) {
-        return (
-            <ProfileState message="Grotto could not reach the Server." onRetry={servers.refetch} />
-        );
+    if (members.isPending && !members.data) {
+        return <ProfileState onBack={onBack} />;
     }
-    if (servers.isPending || (server && members.isPending && !members.data)) {
-        return <ProfileState />;
-    }
-    if (!(server && members.data?.viewerUserId)) {
-        return <ProfileState message="Your profile is unavailable." />;
+    if (!members.data?.viewerUserId) {
+        return <ProfileState message="Your profile is unavailable." onBack={onBack} />;
     }
 
     return (
-        <AppLayout.Root>
-            <BackHeader title="Profile" />
-            <AppLayout.Content>
-                {member.isPending && !member.data ? (
-                    <View className="flex-1 items-center justify-center">
-                        <Spinner />
-                    </View>
-                ) : member.isError && !member.data ? (
-                    <ProfileBodyState
-                        message="Your profile could not be loaded."
-                        onRetry={member.refetch}
-                    />
-                ) : member.data ? (
-                    <ProfileSettingsContent member={member.data} serverId={server.id} />
-                ) : (
-                    <ProfileBodyState message="Your profile is unavailable." />
-                )}
-            </AppLayout.Content>
-        </AppLayout.Root>
+        <View className="flex-1">
+            <SettingsBackHeader onBack={onBack} title="Profile" />
+            {member.isPending && !member.data ? (
+                <View className="flex-1 items-center justify-center">
+                    <Spinner />
+                </View>
+            ) : member.isError && !member.data ? (
+                <ProfileBodyState
+                    message="Your profile could not be loaded."
+                    onRetry={member.refetch}
+                />
+            ) : member.data ? (
+                <ProfileSettingsContent
+                    member={member.data}
+                    onEditDescription={onEditDescription}
+                    serverId={serverId}
+                />
+            ) : (
+                <ProfileBodyState message="Your profile is unavailable." />
+            )}
+        </View>
     );
 }
 
-function ProfileSettingsContent({ member, serverId }: { member: ServerMember; serverId: string }) {
+function ProfileSettingsContent({
+    member,
+    onEditDescription,
+    serverId,
+}: {
+    member: ServerMember;
+    onEditDescription: (profile: {
+        description: string;
+        displayName: string;
+        memberId: string;
+    }) => void;
+    serverId: string;
+}) {
     const [avatarError, setAvatarError] = useState<string | null>(null);
     const avatar = useMemberAvatarUpdate(serverId, member.userId);
     const profile = useMemberProfileUpdate(serverId, member.userId);
     const displayName = member.displayName ?? member.email ?? 'You';
 
     return (
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <KeyboardDismissArea className="gap-6 px-4 pt-3 pb-10">
+        <BottomSheetScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+        >
+            <KeyboardDismissArea className="gap-6 px-4 pt-3 pb-safe-offset-3">
                 <View className="items-center gap-3 py-2">
                     <EntityAvatar avatarUrl={member.avatarUrl} name={displayName} size={80} />
                     <View className="items-center gap-0.5">
@@ -102,57 +126,66 @@ function ProfileSettingsContent({ member, serverId }: { member: ServerMember; se
 
                 <ProfileIdentityForm
                     description={member.description ?? ''}
-                    descriptionHint="Shown on your Server profile."
                     displayName={displayName}
                     error={profile.error?.message ?? null}
                     isPending={profile.isPending}
-                    key={`${member.displayName}:${member.description}`}
+                    onEditDescription={() =>
+                        onEditDescription({
+                            description: member.description ?? '',
+                            displayName,
+                            memberId: member.userId,
+                        })
+                    }
                     onSave={profile.save}
                 />
 
                 <SettingsSection title="Account">
-                    <ListGroup>
-                        <ProfileValue
+                    <SettingsListGroup>
+                        <SettingsValueRow
+                            icon={AtIcon}
                             label="Handle"
                             value={member.handle ? `@${member.handle}` : '—'}
                         />
-                        <ProfileValue label="Email" value={member.email ?? 'Unavailable'} />
-                        <ProfileValue label="Role" value={capitalize(member.role)} />
-                        <ProfileValue label="Joined" value={formatDate(member.joinedAt)} />
-                    </ListGroup>
+                        <SettingsValueRow
+                            icon={Mail01Icon}
+                            label="Email"
+                            value={member.email ?? 'Unavailable'}
+                        />
+                        <SettingsValueRow
+                            icon={IdentityCardIcon}
+                            label="Role"
+                            value={capitalize(member.role)}
+                        />
+                        <SettingsValueRow
+                            icon={Calendar03Icon}
+                            label="Joined"
+                            value={formatDate(member.joinedAt)}
+                        />
+                    </SettingsListGroup>
                 </SettingsSection>
             </KeyboardDismissArea>
-        </ScrollView>
+        </BottomSheetScrollView>
     );
 }
 
-function ProfileValue({ label, value }: { label: string; value: string }) {
+function ProfileState({
+    message,
+    onBack,
+    onRetry,
+}: {
+    message?: string;
+    onBack: () => void;
+    onRetry?: () => unknown;
+}) {
     return (
-        <ListGroup.Item>
-            <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>{label}</ListGroup.ItemTitle>
-            </ListGroup.ItemContent>
-            <ListGroup.ItemSuffix>
-                <Text className="max-w-52 text-right text-base text-muted" numberOfLines={1}>
-                    {value}
-                </Text>
-            </ListGroup.ItemSuffix>
-        </ListGroup.Item>
-    );
-}
-
-function ProfileState({ message, onRetry }: { message?: string; onRetry?: () => unknown }) {
-    return (
-        <AppLayout.Root>
-            <BackHeader title="Profile" />
-            <AppLayout.Content>
-                {message ? (
-                    <ProfileBodyState message={message} onRetry={onRetry} />
-                ) : (
-                    <ProfileBodyState />
-                )}
-            </AppLayout.Content>
-        </AppLayout.Root>
+        <View className="flex-1">
+            <SettingsBackHeader onBack={onBack} title="Profile" />
+            {message ? (
+                <ProfileBodyState message={message} onRetry={onRetry} />
+            ) : (
+                <ProfileBodyState />
+            )}
+        </View>
     );
 }
 
@@ -167,10 +200,6 @@ function ProfileBodyState({ message, onRetry }: { message?: string; onRetry?: ()
             {onRetry ? <Button onPress={() => void onRetry()}>Try again</Button> : null}
         </View>
     );
-}
-
-function singleParam(value: string | string[] | undefined): string | undefined {
-    return Array.isArray(value) ? value[0] : value;
 }
 
 function capitalize(value: string): string {

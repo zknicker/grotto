@@ -1,201 +1,206 @@
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import {
+    AiBrain01Icon,
+    AtIcon,
+    ComputerTerminal01Icon,
+    IdentityCardIcon,
+    Settings02Icon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import {
     useAgent,
     useAgentAvatarUpdate,
     useAgentProfileUpdate,
     useServerList,
 } from '@tavern/app-client';
-import { useLocalSearchParams } from 'expo-router';
 import { Button } from 'heroui-native/button';
 import { Chip } from 'heroui-native/chip';
-import { ListGroup } from 'heroui-native/list-group';
 import { Spinner } from 'heroui-native/spinner';
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { SettingsListGroup } from '../../components/settings-list-group.tsx';
 import { SettingsSection } from '../../components/settings-section.tsx';
+import { SettingsValueRow } from '../../components/settings-value-row.tsx';
 import { AgentAvatar } from '../mobile/agent-avatar.tsx';
-import { AppLayout } from '../mobile/app-layout.tsx';
 import { getAvailabilityLabel } from '../mobile/avatar-status-badge.tsx';
-import { BackHeader } from '../mobile/back-header.tsx';
 import { toAgentSummary } from '../mobile/mobile-data.ts';
 import { AvatarUploadButton } from './avatar-upload-button.tsx';
 import { ProfileIdentityForm } from './profile-identity-form.tsx';
+import { SettingsBackHeader } from './settings-screen-header.tsx';
 
-export function AgentProfileScreen() {
-    const { id: idParam, server: serverParam } = useLocalSearchParams<{
-        id?: string | string[];
-        server?: string | string[];
-    }>();
-    const agentId = singleParam(idParam);
+export function AgentProfileScreen({
+    agentId,
+    onBack,
+    onEditDescription,
+    serverId,
+}: {
+    agentId: string;
+    onBack: () => void;
+    onEditDescription: (profile: {
+        agentId: string;
+        description: string;
+        displayName: string;
+    }) => void;
+    serverId: string;
+}) {
     const servers = useServerList();
-    const requestedServerId = singleParam(serverParam);
-    const server =
-        servers.data?.find((candidate) => candidate.id === requestedServerId) ?? servers.data?.[0];
-    const serverId = server?.id;
+    const server = servers.data?.find((candidate) => candidate.id === serverId);
     const agent = useAgent(serverId, agentId);
-    const profile = useAgentProfileUpdate(serverId ?? '', agentId ?? '');
-    const avatar = useAgentAvatarUpdate(serverId ?? '', agentId ?? '');
+    const profile = useAgentProfileUpdate(serverId, agentId);
+    const avatar = useAgentAvatarUpdate(serverId, agentId);
     const [avatarError, setAvatarError] = useState<string | null>(null);
     const canEdit = server?.role === 'owner' || server?.role === 'admin';
 
     if (servers.isError && !servers.data) {
         return (
-            <AppLayout.Root>
-                <BackHeader title="Agent profile" />
-                <AppLayout.Content>
-                    <View className="flex-1 items-center justify-center gap-4 px-8">
-                        <Text className="text-center text-base text-muted">
-                            Grotto could not reach the Server.
-                        </Text>
-                        <Button onPress={() => servers.refetch()} size="sm">
-                            Try again
-                        </Button>
-                    </View>
-                </AppLayout.Content>
-            </AppLayout.Root>
+            <View className="flex-1">
+                <SettingsBackHeader onBack={onBack} title="Agent profile" />
+                <View className="flex-1 items-center justify-center gap-4 px-8">
+                    <Text className="text-center text-base text-muted">
+                        Grotto could not reach the Server.
+                    </Text>
+                    <Button onPress={() => servers.refetch()} size="sm">
+                        Try again
+                    </Button>
+                </View>
+            </View>
         );
     }
-    if (!((servers.isPending || serverId) && agentId)) {
+    if (!(servers.isPending || server)) {
         return (
-            <AppLayout.Root>
-                <BackHeader title="Agent profile" />
-                <AppLayout.Content>
-                    <View className="flex-1 items-center justify-center px-8">
-                        <Text className="text-center text-base text-muted">
-                            This Agent profile is unavailable.
-                        </Text>
-                    </View>
-                </AppLayout.Content>
-            </AppLayout.Root>
+            <View className="flex-1">
+                <SettingsBackHeader onBack={onBack} title="Agent profile" />
+                <View className="flex-1 items-center justify-center px-8">
+                    <Text className="text-center text-base text-muted">
+                        This Agent profile is unavailable.
+                    </Text>
+                </View>
+            </View>
         );
     }
 
     return (
-        <AppLayout.Root>
-            <BackHeader title={agent.data?.displayName ?? 'Agent profile'} />
-            <AppLayout.Content>
-                {agent.isPending && !agent.data ? (
-                    <View className="flex-1 items-center justify-center">
-                        <Spinner />
-                    </View>
-                ) : agent.isError && !agent.data ? (
-                    <View className="flex-1 items-center justify-center gap-4 px-8">
-                        <Text className="text-center text-base text-muted">
-                            This Agent profile could not be loaded.
-                        </Text>
-                        <Button onPress={() => agent.refetch()} size="sm">
-                            Try again
-                        </Button>
-                    </View>
-                ) : agent.data ? (
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        <View className="gap-6 px-4 pt-3 pb-10">
-                            <View className="items-center gap-3 px-4 py-3">
-                                <AgentAvatar agent={toAgentSummary(agent.data)} size={80} />
-                                <View className="items-center gap-1">
-                                    <Text className="font-semibold text-2xl text-foreground">
-                                        {agent.data.displayName}
-                                    </Text>
-                                    <Text className="text-base text-muted">
-                                        @{agent.data.handle}
-                                    </Text>
-                                </View>
-                                <Chip color="default" size="sm" variant="soft">
-                                    <Chip.Label>
-                                        {getAvailabilityLabel(agent.data.availability)}
-                                    </Chip.Label>
-                                </Chip>
-                                {agent.data.description ? (
-                                    <Text className="text-center text-base text-foreground/90 leading-6">
-                                        {agent.data.description}
-                                    </Text>
-                                ) : null}
-                                {canEdit ? (
-                                    <AvatarUploadButton
-                                        isPending={avatar.isPending}
-                                        label={`Change ${agent.data.displayName} photo`}
-                                        onError={setAvatarError}
-                                        onSelect={async (image) => {
-                                            await avatar.mutateAsync({
-                                                ...image,
-                                                serverId: serverId ?? '',
-                                                target: { agentId: agent.data.id, kind: 'agent' },
-                                            });
-                                        }}
-                                    />
-                                ) : null}
-                                {(avatarError ?? avatar.error?.message) ? (
-                                    <Text className="text-center text-danger text-sm">
-                                        {avatarError ?? avatar.error?.message}
-                                    </Text>
-                                ) : null}
+        <View className="flex-1">
+            <SettingsBackHeader
+                onBack={onBack}
+                title={agent.data?.displayName ?? 'Agent profile'}
+            />
+            {agent.isPending && !agent.data ? (
+                <View className="flex-1 items-center justify-center">
+                    <Spinner />
+                </View>
+            ) : agent.isError && !agent.data ? (
+                <View className="flex-1 items-center justify-center gap-4 px-8">
+                    <Text className="text-center text-base text-muted">
+                        This Agent profile could not be loaded.
+                    </Text>
+                    <Button onPress={() => agent.refetch()} size="sm">
+                        Try again
+                    </Button>
+                </View>
+            ) : agent.data ? (
+                <BottomSheetScrollView showsVerticalScrollIndicator={false}>
+                    <View className="gap-6 px-4 pt-3 pb-safe-offset-3">
+                        <View className="items-center gap-3 px-4 py-3">
+                            <AgentAvatar agent={toAgentSummary(agent.data)} size={80} />
+                            <View className="items-center gap-1">
+                                <Text className="font-semibold text-2xl text-foreground">
+                                    {agent.data.displayName}
+                                </Text>
+                                <Text className="text-base text-muted">@{agent.data.handle}</Text>
                             </View>
-
+                            <Chip color="default" size="sm" variant="soft">
+                                <Chip.Label>
+                                    {getAvailabilityLabel(agent.data.availability)}
+                                </Chip.Label>
+                            </Chip>
+                            {agent.data.description ? (
+                                <Text className="text-center text-base text-foreground/90 leading-6">
+                                    {agent.data.description}
+                                </Text>
+                            ) : null}
                             {canEdit ? (
-                                <ProfileIdentityForm
-                                    description={agent.data.description ?? ''}
-                                    descriptionHint="Shapes this Agent’s role and personality."
-                                    displayName={agent.data.displayName}
-                                    error={profile.error?.message ?? null}
-                                    isPending={profile.isPending}
-                                    key={`${agent.data.displayName}:${agent.data.description}`}
-                                    onSave={profile.save}
+                                <AvatarUploadButton
+                                    isPending={avatar.isPending}
+                                    label={`Change ${agent.data.displayName} photo`}
+                                    onError={setAvatarError}
+                                    onSelect={async (image) => {
+                                        await avatar.mutateAsync({
+                                            ...image,
+                                            serverId,
+                                            target: { agentId: agent.data.id, kind: 'agent' },
+                                        });
+                                    }}
                                 />
                             ) : null}
-
-                            <SettingsSection title="Details">
-                                <ListGroup>
-                                    <ProfileValue label="Handle" value={`@${agent.data.handle}`} />
-                                    <ProfileValue
-                                        label="Role"
-                                        value={capitalize(agent.data.role)}
-                                    />
-                                </ListGroup>
-                            </SettingsSection>
-
-                            <SettingsSection title="Execution">
-                                <ListGroup>
-                                    <ProfileValue
-                                        label="Runtime"
-                                        value={agent.data.desiredRuntimeId}
-                                    />
-                                    <ProfileValue label="Model" value={agent.data.desiredModelId} />
-                                    <ProfileValue
-                                        label="Configuration"
-                                        value={capitalize(agent.data.status)}
-                                    />
-                                </ListGroup>
-                            </SettingsSection>
+                            {(avatarError ?? avatar.error?.message) ? (
+                                <Text className="text-center text-danger text-sm">
+                                    {avatarError ?? avatar.error?.message}
+                                </Text>
+                            ) : null}
                         </View>
-                    </ScrollView>
-                ) : (
-                    <View className="flex-1 items-center justify-center px-8">
-                        <Text className="text-center text-base text-muted">
-                            This Agent profile is unavailable.
-                        </Text>
+
+                        {canEdit ? (
+                            <ProfileIdentityForm
+                                description={agent.data.description ?? ''}
+                                displayName={agent.data.displayName}
+                                error={profile.error?.message ?? null}
+                                isPending={profile.isPending}
+                                onEditDescription={() =>
+                                    onEditDescription({
+                                        agentId: agent.data.id,
+                                        description: agent.data.description ?? '',
+                                        displayName: agent.data.displayName,
+                                    })
+                                }
+                                onSave={profile.save}
+                            />
+                        ) : null}
+
+                        <SettingsSection title="Details">
+                            <SettingsListGroup>
+                                <SettingsValueRow
+                                    icon={AtIcon}
+                                    label="Handle"
+                                    value={`@${agent.data.handle}`}
+                                />
+                                <SettingsValueRow
+                                    icon={IdentityCardIcon}
+                                    label="Role"
+                                    value={capitalize(agent.data.role)}
+                                />
+                            </SettingsListGroup>
+                        </SettingsSection>
+
+                        <SettingsSection title="Execution">
+                            <SettingsListGroup>
+                                <SettingsValueRow
+                                    icon={ComputerTerminal01Icon}
+                                    label="Runtime"
+                                    value={agent.data.desiredRuntimeId}
+                                />
+                                <SettingsValueRow
+                                    icon={AiBrain01Icon}
+                                    label="Model"
+                                    value={agent.data.desiredModelId}
+                                />
+                                <SettingsValueRow
+                                    icon={Settings02Icon}
+                                    label="Configuration"
+                                    value={capitalize(agent.data.status)}
+                                />
+                            </SettingsListGroup>
+                        </SettingsSection>
                     </View>
-                )}
-            </AppLayout.Content>
-        </AppLayout.Root>
+                </BottomSheetScrollView>
+            ) : (
+                <View className="flex-1 items-center justify-center px-8">
+                    <Text className="text-center text-base text-muted">
+                        This Agent profile is unavailable.
+                    </Text>
+                </View>
+            )}
+        </View>
     );
-}
-
-function ProfileValue({ label, value }: { label: string; value: string }) {
-    return (
-        <ListGroup.Item>
-            <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>{label}</ListGroup.ItemTitle>
-            </ListGroup.ItemContent>
-            <ListGroup.ItemSuffix>
-                <Text className="max-w-52 text-right text-base text-muted" numberOfLines={1}>
-                    {value}
-                </Text>
-            </ListGroup.ItemSuffix>
-        </ListGroup.Item>
-    );
-}
-
-function singleParam(value: string | string[] | undefined): string | undefined {
-    return Array.isArray(value) ? value[0] : value;
 }
 
 function capitalize(value: string): string {

@@ -19,15 +19,15 @@ An Account Holder, Admin, or App Manager completes the account work before the f
 1. Accept any pending agreements in App Store Connect.
 2. In Certificates, Identifiers & Profiles, register the explicit App ID `build.grotto.ios` and
    enable Associated Domains for `webcredentials:clerk.grotto.sh`.
-3. In App Store Connect, create an iOS app named **Grotto** with that bundle ID. Use a stable
-   internal SKU such as `grotto-ios`.
+3. In App Store Connect, create or verify the **Grotto Chat** app record (Apple ID `6802799165`)
+   with that bundle ID and the internal SKU `grotto-ios`.
 4. Add the Apple Developer account in Xcode, or create an App Store Connect API key with permission
    to manage and upload builds. Automatic signing creates or downloads the App Store distribution
    certificate and provisioning profile.
 5. Add TestFlight beta details: description, feedback email, contact information, sign-in/review
    instructions, and what testers should exercise.
-6. Create an internal TestFlight group. External testing comes later; its first build requires
-   TestFlight App Review.
+6. Create or verify the **Grotto Internal** TestFlight group and enable automatic distribution.
+   External testing comes later; its first build requires TestFlight App Review.
 
 The App Store product page also requires a privacy policy URL and age rating before public App
 Review. Screenshots are not required for an internal TestFlight upload, but the eventual App Store
@@ -70,7 +70,7 @@ After Apple finishes processing:
 
 1. Resolve any build warning or export-compliance prompt. The app declares that its ordinary HTTPS
    use does not contain non-exempt encryption.
-2. Add the build to the internal group and provide **What to Test** notes.
+2. Add the build to **Grotto Internal** and provide **What to Test** notes.
 3. Install through TestFlight on a real iPhone and smoke sign-in, Server discovery, Chat send and
    realtime receive, photo attachment, Thread reply, and foreground recovery.
 4. Record the processed build and real-device evidence in the coordinated release handoff.

@@ -121,9 +121,9 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     await page.getByRole('row', { name: 'Search' }).click();
     await page.getByPlaceholder('Search or run a command').fill('First durable');
     await page.getByText('See all results').click();
-    await expect(
-        page.getByRole('row', { exact: true, name: 'First durable human message' })
-    ).toBeVisible();
+    // Results render as ItemCard buttons whose accessible name carries the
+    // channel, author, and time alongside the matched text.
+    await expect(page.getByRole('button', { name: /First durable human message/ })).toBeVisible();
     await openSection(page, 'Chat');
     await openChannel(page, 'all');
 

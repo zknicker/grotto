@@ -193,7 +193,7 @@ test('setup retries a crashed issuance with the same pending idempotency key', a
         const pendingBeforeCrash = JSON.parse(
             await readFile(join(dataRoot, 'pending-attachments', 'hq.json'), 'utf8')
         ) as Record<string, string>;
-        first.kill();
+        first.kill('SIGKILL');
         (releaseFirstResponse as ((response: Response) => void) | null)?.(
             Response.json({ status: 'discarded' })
         );

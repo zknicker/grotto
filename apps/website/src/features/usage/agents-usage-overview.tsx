@@ -35,6 +35,12 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                           .map((agent) => agent.id)
                     : []
                 : undefined,
+            knownAgents: (agents.data ?? []).map((agent) => ({
+                agentAvatarUrl: agent.avatarUrl,
+                agentHandle: agent.handle,
+                agentId: agent.id,
+                agentName: agent.displayName,
+            })),
             runtimeId,
         }),
         [agents.data, computerId, requestedComputerId, runtimeId]

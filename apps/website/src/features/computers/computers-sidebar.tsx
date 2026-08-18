@@ -31,7 +31,7 @@ export function ComputersSidebar({
     return (
         <ShellSidebarPageContent
             band={
-                <div className="flex w-full items-center justify-between pe-1">
+                <div className="flex w-full items-center justify-between">
                     <Sidebar.GroupLabel>
                         Attached{computers.data ? ` · ${items.length}` : ''}
                     </Sidebar.GroupLabel>

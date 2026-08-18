@@ -1,7 +1,8 @@
 import { Kbd } from '@heroui/react';
 import { Command } from '@heroui-pro/react';
 import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 import type { AppCommand, AppCommandGroup } from '../../commands/types.ts';
 import { getCommandSearchText } from '../../commands/types.ts';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
@@ -9,18 +10,21 @@ import { GrottoGlyph } from '../../components/grotto-logo.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { getChannelColorStyle } from './channel-color-options.ts';
+import { useCommandMenu } from './command-menu-provider.tsx';
 
 export type AgentAvatarLookup = (agentId: string | null | undefined) => string | null;
 
 export function CommandMenuShell({
+    children,
     commandGroups,
     lookupAgentAvatarUrl,
 }: {
+    /** Result groups rendered above the commands, e.g. message matches. */
+    children?: ReactNode;
     commandGroups: AppCommandGroup[];
     lookupAgentAvatarUrl: AgentAvatarLookup;
 }) {
-    const [open, setOpen] = useState(false);
-    const [query, setQuery] = useState('');
+    const { isOpen, query, setOpen, setQuery } = useCommandMenu();
     const commandsById = useMemo(() => {
         const lookup = new Map<string, AppCommand>();
 
@@ -32,17 +36,6 @@ export function CommandMenuShell({
 
         return lookup;
     }, [commandGroups]);
-
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
-                event.preventDefault();
-                setOpen((current) => !current);
-            }
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, []);
 
     const runCommand = (key: string | number) => {
         const command = commandsById.get(String(key));
@@ -57,16 +50,7 @@ export function CommandMenuShell({
 
     return (
         <Command>
-            <Command.Backdrop
-                isOpen={open}
-                onOpenChange={(nextOpen) => {
-                    setOpen(nextOpen);
-
-                    if (!nextOpen) {
-                        setQuery('');
-                    }
-                }}
-            >
+            <Command.Backdrop isOpen={isOpen} onOpenChange={setOpen}>
                 <Command.Container size="lg">
                     <Command.Dialog
                         aria-label="Command menu"
@@ -85,6 +69,7 @@ export function CommandMenuShell({
                             onAction={runCommand}
                             renderEmptyState={() => 'No matching commands.'}
                         >
+                            {children}
                             {commandGroups.map((group) => (
                                 <Command.Group heading={group.title} key={group.id}>
                                     {group.commands.map((command) => (

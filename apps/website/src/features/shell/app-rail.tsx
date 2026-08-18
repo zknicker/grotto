@@ -1,6 +1,7 @@
 import { Sidebar } from '@heroui-pro/react';
 import { ComputerTerminal01Icon, Settings01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useIsDesktopApp } from '../../hooks/shell/use-is-desktop-app.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 import { sidebarHeaderBandClassName } from './section-header.tsx';
@@ -16,6 +17,7 @@ export type AppRailSection = 'chat' | 'computers' | 'members' | 'search' | 'sett
 export function AppRail({
     active,
     canOperate,
+    hasContextualSidebar,
     currentServer,
     onCreateServer,
     onJoinServer,
@@ -26,6 +28,8 @@ export function AppRail({
 }: {
     active: AppRailSection;
     canOperate: boolean;
+    /** Whether a contextual sidebar sits between the rail and the content. */
+    hasContextualSidebar: boolean;
     currentServer: ServerSummary;
     onCreateServer: () => void;
     onJoinServer: () => void;
@@ -34,6 +38,7 @@ export function AppRail({
     onSwitchServer: (slug: string) => void;
     servers: ServerSummary[];
 }) {
+    const isDesktopApp = useIsDesktopApp();
     const items: {
         id: Exclude<AppRailSection, 'settings' | 'computers' | 'search'>;
         label: string;
@@ -49,7 +54,10 @@ export function AppRail({
             collapsible="icon"
             open={false}
             toggleShortcut={false}
-            variant="inset"
+            // The contextual sidebar draws the boundary hairline when it is
+            // present; on sections without one the rail is the last column
+            // before content and owns that edge itself.
+            variant={hasContextualSidebar ? 'inset' : 'sidebar'}
         >
             <Sidebar aria-label="App sections">
                 <Sidebar.Header>
@@ -63,7 +71,9 @@ export function AppRail({
                         />
                     </div>
                 </Sidebar.Header>
-                <Sidebar.Content>
+                {/* Desktop's rail band is taller than the menu's item pitch,
+                    so the avatar would otherwise sit off the item grid. */}
+                <Sidebar.Content className={isDesktopApp ? '-mt-1.5' : undefined}>
                     <Sidebar.Menu
                         aria-label="Sections"
                         onAction={(key) => onSelect(key as AppRailSection)}

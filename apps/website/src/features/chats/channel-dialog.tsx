@@ -1,17 +1,19 @@
 import {
     Alert,
     Button,
+    Checkbox,
+    CheckboxGroup,
     Description,
     FieldError,
     Form,
     Input,
     Label,
     Modal,
+    ScrollShadow,
     SearchField,
     Spinner,
     TextField,
 } from '@heroui/react';
-import { CheckboxButtonGroup } from '@heroui-pro/react';
 import { AlertCircleIcon, HashtagIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
@@ -55,7 +57,7 @@ export function ChannelDialog({
     return (
         <Modal isOpen={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
             <Modal.Backdrop isDismissable>
-                <Modal.Container scroll="outside" size="lg">
+                <Modal.Container>
                     <Modal.Dialog>
                         <Modal.CloseTrigger />
                         {open ? (
@@ -144,11 +146,11 @@ function ChannelDialogForm({
     return (
         <>
             <Modal.Header>
-                <Modal.Icon>
-                    <Icon icon={HashtagIcon} />
+                <Modal.Icon className="bg-default text-foreground">
+                    <Icon className="size-5" icon={HashtagIcon} />
                 </Modal.Icon>
                 <Modal.Heading>{title}</Modal.Heading>
-                <p className="mt-1.5 text-muted text-sm leading-5">
+                <p className="text-muted text-sm leading-5">
                     {showDisplayName
                         ? 'Name the channel and choose its agents.'
                         : 'Choose the agents in this channel.'}
@@ -156,7 +158,7 @@ function ChannelDialogForm({
             </Modal.Header>
             <Modal.Body>
                 <Form
-                    className="flex flex-col gap-5"
+                    className="flex flex-col gap-6"
                     id="channel-dialog-form"
                     onSubmit={handleSubmit}
                 >
@@ -173,7 +175,7 @@ function ChannelDialogForm({
                             {handleIssue ? <FieldError>{handleIssue}</FieldError> : null}
                         </TextField>
                     ) : null}
-                    <AgentButtonGroup
+                    <AgentPicker
                         agents={agents}
                         agentsPending={agentsPending}
                         disabled={isPending}
@@ -209,7 +211,7 @@ function ChannelDialogForm({
     );
 }
 
-function AgentButtonGroup({
+function AgentPicker({
     agents,
     agentsPending,
     disabled,
@@ -230,11 +232,26 @@ function AgentButtonGroup({
     const missingSelection = !agentsPending && agents.length > 0 && selectedAgentIds.length === 0;
 
     return (
-        <div className="flex flex-col gap-2">
+        // CheckboxGroup's own anatomy: Label, Description, the controls, then
+        // FieldError. Keeping Label inside gives the group its accessible name,
+        // and keeping FieldError outside the scroll area means a validation
+        // message cannot scroll out of view behind a long roster.
+        <CheckboxGroup
+            className="gap-1"
+            isDisabled={disabled}
+            isInvalid={missingSelection}
+            onChange={(nextAgentIds) =>
+                onSelectedAgentIdsChange(normalizeChannelAgentIds(nextAgentIds))
+            }
+            value={selectedAgentIds}
+            variant="secondary"
+        >
             <Label>Agents</Label>
+            <Description>A channel keeps at least one Agent.</Description>
             {agents.length > searchableAgentCount ? (
                 <SearchField
                     aria-label="Filter agents"
+                    className="mt-1"
                     onChange={setQuery}
                     value={query}
                     variant="secondary"
@@ -247,39 +264,33 @@ function AgentButtonGroup({
                 </SearchField>
             ) : null}
             {agents.length > 0 ? (
-                <CheckboxButtonGroup
-                    className="w-full grid-cols-3"
-                    isDisabled={disabled}
-                    isInvalid={missingSelection}
-                    layout="grid"
-                    onChange={(nextAgentIds) =>
-                        onSelectedAgentIdsChange(normalizeChannelAgentIds(nextAgentIds))
-                    }
-                    value={selectedAgentIds}
-                    variant="secondary"
-                >
-                    {visibleAgents.map((agent) => (
-                        <CheckboxButtonGroup.Item key={agent.id} value={agent.id}>
-                            <CheckboxButtonGroup.ItemContent className="flex-row items-center gap-2">
-                                <CheckboxButtonGroup.ItemIcon>
+                // Rows, not cards: an Agent is an avatar and a name. Bounded so
+                // the dialog is the same size at 2 Agents and at 200.
+                <ScrollShadow className="mt-1 max-h-56 overflow-y-auto">
+                    <div className="flex flex-col gap-2 **:data-[slot=checkbox]:mt-0">
+                        {visibleAgents.map((agent) => (
+                            <Checkbox key={agent.id} value={agent.id}>
+                                <Checkbox.Content className="items-center gap-3">
+                                    <Checkbox.Control>
+                                        <Checkbox.Indicator />
+                                    </Checkbox.Control>
                                     <EntityAvatar
                                         name={agent.name}
                                         size="sm"
                                         src={agent.avatarUrl}
                                     />
-                                </CheckboxButtonGroup.ItemIcon>
-                                <Label>{agent.name}</Label>
-                            </CheckboxButtonGroup.ItemContent>
-                        </CheckboxButtonGroup.Item>
-                    ))}
-                    <FieldError className="col-span-full">Choose at least one Agent.</FieldError>
-                </CheckboxButtonGroup>
+                                    {agent.name}
+                                </Checkbox.Content>
+                            </Checkbox>
+                        ))}
+                    </div>
+                </ScrollShadow>
             ) : null}
             {!agentsPending && agents.length > 0 && visibleAgents.length === 0 ? (
                 <Description>No agents match.</Description>
             ) : null}
             {agentsPending ? (
-                <div className="flex items-center gap-2 text-muted text-sm">
+                <div className="mt-1 flex items-center gap-2 text-muted text-sm">
                     <Spinner color="current" size="sm" />
                     Loading agents
                 </div>
@@ -287,10 +298,8 @@ function AgentButtonGroup({
             {!agentsPending && agents.length === 0 ? (
                 <Description>No agents available.</Description>
             ) : null}
-            {missingSelection ? null : (
-                <Description>A channel keeps at least one Agent.</Description>
-            )}
-        </div>
+            <FieldError>Choose at least one Agent.</FieldError>
+        </CheckboxGroup>
     );
 }
 

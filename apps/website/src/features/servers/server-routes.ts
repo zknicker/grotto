@@ -5,8 +5,9 @@ export function serverRoute(slug: string) {
     return `${serversRoute}/${slug}`;
 }
 
-export function serverSearchRoute(slug: string) {
-    return `${serverRoute(slug)}/search`;
+export function serverSearchRoute(slug: string, query?: string) {
+    const route = `${serverRoute(slug)}/search`;
+    return query ? `${route}?q=${encodeURIComponent(query)}` : route;
 }
 
 export function serverChatRoute(slug: string, chatId: string) {

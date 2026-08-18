@@ -5,7 +5,9 @@ import { useDevMode } from '../../components/dev-mode-provider.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
+import { serverChatRoute, serverSearchRoute } from '../servers/server-routes.ts';
 import { type AgentAvatarLookup, CommandMenuShell } from './command-menu.tsx';
+import { CommandMenuMessageResults } from './command-menu-messages.tsx';
 
 export function CommandMenu({ server }: { server: ServerSummary }) {
     const { pathname } = useLocation();
@@ -42,9 +44,12 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
     }, [agentItems]);
 
     return (
-        <CommandMenuShell
-            commandGroups={commandGroups}
-            lookupAgentAvatarUrl={lookupAgentAvatarUrl}
-        />
+        <CommandMenuShell commandGroups={commandGroups} lookupAgentAvatarUrl={lookupAgentAvatarUrl}>
+            <CommandMenuMessageResults
+                onOpenChat={(chatId) => navigate(serverChatRoute(server.slug, chatId))}
+                onSeeAll={(query) => navigate(serverSearchRoute(server.slug, query))}
+                serverId={server.id}
+            />
+        </CommandMenuShell>
     );
 }

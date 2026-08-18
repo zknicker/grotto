@@ -117,12 +117,13 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     await expect(page.getByText('First durable human message', { exact: true })).toBeVisible();
     await expect(page.getByText('Second durable human message', { exact: true })).toBeVisible();
 
-    await page.getByPlaceholder('Search', { exact: true }).click();
-    await page.getByPlaceholder('Search messages').fill('First durable');
-    await page.getByPlaceholder('Search messages').press('Enter');
-    await expect(
-        page.getByRole('row', { exact: true, name: 'First durable human message' })
-    ).toBeVisible();
+    // The sidebar renders as a treegrid, so its search row is a row, not a button.
+    await page.getByRole('row', { name: 'Search' }).click();
+    await page.getByPlaceholder('Search or run a command').fill('First durable');
+    await page.getByText('See all results').click();
+    // Results render as ItemCard buttons whose accessible name carries the
+    // channel, author, and time alongside the matched text.
+    await expect(page.getByRole('button', { name: /First durable human message/ })).toBeVisible();
     await openSection(page, 'Chat');
     await openChannel(page, 'all');
 

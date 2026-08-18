@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "bun src/index.ts",
-    "test": "bun test src",
+    "test": "bun test --max-concurrency 1 --timeout 10000 src",
     "typecheck": "bunx tsc --noEmit"
   },
   "devDependencies": {

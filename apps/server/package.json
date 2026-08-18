@@ -3,9 +3,6 @@
   "private": true,
   "type": "module",
   "packageManager": "bun@1.3.5",
-  "exports": {
-    "./grotto-router": "./src/grotto-api/router.ts"
-  },
   "scripts": {
     "dev": "bun --watch src/grotto-server.ts",
     "bootstrap:grotto": "bun src/grotto-server-bootstrap.ts",

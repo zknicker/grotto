@@ -3,23 +3,18 @@ summary: Ownership, dependency, navigation, and rendering boundaries for the nat
 read_when:
   - changing the iPhone app, mobile navigation, or native rendering architecture
   - deciding whether mobile behavior belongs in shared logic, native UI, or an artifact web canvas
-  - adding a dependency to apps/ios
+  - adding a dependency to apps/ios-swift
 ---
 
 # Grotto for iPhone
 
-`apps/ios` is Grotto's native iPhone client. It is an Expo and React Native application, not a wrapper
-around the website. Expo Router owns native routes and HeroUI Native is the approved component system.
-Android is not a supported target.
+`apps/ios-swift` is Grotto's native iPhone client. It is a SwiftUI application, not a wrapper around
+the website. Android is not a supported target. The app reuses the same production Grotto Server,
+Computer, Clerk instance, and tRPC procedures; it does not add a mobile backend.
 
-## SwiftUI prototype
+## Architecture
 
-`apps/ios-swift` is the active SwiftUI architecture prototype. It does not replace `apps/ios` yet;
-the two clients coexist until the native approach has proved the complete daily Chat and settings
-loops and the product direction is explicitly chosen. The prototype reuses the same production
-Grotto Server, Computer, Clerk instance, and tRPC procedures. It does not add a mobile backend.
-
-The Swift app is split into four focused layers:
+The app is split into four focused layers:
 
 - `GrottoModels` owns small Codable projections of the existing first-party wire contracts.
 - `GrottoTransport` owns authenticated tRPC HTTP operations, SSE subscriptions, app protocol headers,
@@ -30,10 +25,10 @@ The Swift app is split into four focused layers:
   and presentation adapters.
 
 The transport intentionally calls the existing tRPC procedures directly rather than introducing an
-OpenAPI mirror or community Swift tRPC dependency. The prototype uses the official Clerk iOS SDK and
+OpenAPI mirror or community Swift tRPC dependency. The app uses the official Clerk iOS SDK and
 the production-authorized `grotto://sso-callback` OAuth return. Chat history remains canonical Server
 state. Agent lifecycle events project `working`, `reading`, and `sending` to the same yellow working
-presence used by the React clients; `settled` immediately projects the terminal idle, error, or stopped
+presence used by the desktop App; `settled` immediately projects the terminal idle, error, or stopped
 state. The app separately subscribes to semantic Agent activity and presents current plus recent work
 from the existing `agent.activeActivity`, `agent.onActivity`, and `agent.activityHistory` contracts.
 
@@ -51,13 +46,13 @@ ticket procedure. A configured local build never falls back to browser OAuth.
 
 Swift settings use one native sheet with one `NavigationStack`. Focused screens push within that
 sheet, single-line identity values edit inline, and long-form values use a dedicated editor. All
-profile values and avatars originate from Server records; the prototype must not create mobile-only
-identity state. The Swift prototype also reads Computers through the existing `computer.list`
+profile values and avatars originate from Server records; the app must not create mobile-only identity
+state. The app also reads Computers through the existing `computer.list`
 contract; an unavailable or role-denied Computer snapshot does not block the rest of Settings.
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
 
-The Swift prototype deploys to iOS 18 and progressively adopts iOS 26 Liquid Glass for functional
+The app deploys to iOS 18 and progressively adopts iOS 26 Liquid Glass for functional
 chrome. System navigation and sheet controls inherit the platform treatment; custom menu, search,
 and composer controls use native glass only on iOS 26 and retain an opaque semantic fallback on older
 systems. Transcript rows, Thread previews, Task metadata, sidebars, and settings groups stay opaque.
@@ -108,27 +103,18 @@ the native Quick Look surface. The client enforces the Server's 50 MiB limit bef
 
 Grotto Server remains the canonical owner of collaboration state. Grotto Computer does not know whether
 a request came from desktop or iPhone. The iPhone app owns only presentation state, settings, optimistic
-UI, and its React Query cache. When connectivity is lost, persistent UI renders only server data already
-present in that cache.
+UI, and its in-memory Store cache. When connectivity is lost, persistent UI renders only server data
+already present in that cache.
 
-Shared API contracts, query options, view models, and capability hooks should live in platform-neutral
-packages or modules. React DOM and React Native rendering diverge at their component boundary; shared
-hooks must not return DOM or native elements.
+Shared wire contracts and model projections belong in `GrottoModels`; authenticated operations,
+realtime delivery, and recovery belong in `GrottoTransport`. `GrottoUI` receives narrow models and
+closures from `GrottoApp` rather than owning Server transport or inventing mobile-only records.
 
-`@tavern/app-client` owns the shared typed tRPC client, authenticated HTTP and WebSocket transports,
-React Query policy, durable Chat event catch-up primitives, Agent lifecycle cache projection, and
-focused Server, Chat, message, Agent, and member hooks. Each product surface owns its platform
-lifecycle: the iPhone app reconnects after foregrounding and mounts one durable Chat event cursor plus
-one volatile Agent lifecycle listener per active Server. Lifecycle events project every active phase to
-`Agent.availability = working`; only the terminal `settled` event clears it. Reconnect refetches the
-durable Agent list, whose active-run state restores the same availability. Native feature leaves call
-the focused hooks and project platform view models instead of receiving one screen-wide fetched graph.
-
-The native Chat timeline uses cursor-based infinite queries. Durable event listeners invalidate the
-exact active Chat cache, while reconnect catch-up replays missed Server events before live delivery
-continues. Optimistic sends remain app-local and are keyed by the client nonce. A pending row retires
-only after the canonical Server message arrives; a failed send restores its content to the composer for
-an explicit retry. Optimistic rows never patch durable history.
+The Chat timeline uses cursor-based pages. Reconnect catch-up walks missed Server events before live
+delivery continues, and loaded affected Chat pages are refetched in sequence order. Optimistic sends
+remain app-local and are keyed by the client nonce. A pending row retires only after the canonical
+Server message arrives; a failed send restores its content to the composer for an explicit retry.
+Optimistic rows never patch durable history.
 
 The open native Chat and Thread surfaces acknowledge the latest loaded message sequence through
 `chat.markRead`. Identical Server/Chat/sequence acknowledgements are deduplicated in memory, and a
@@ -148,84 +134,25 @@ the mounted parent timeline and scroll position. Task metadata renders on its ca
 the native timeline does not invent a second task receipt row.
 
 Clerk owns native authentication. The production instance uses Google as its only sign-in strategy, so
-Grotto starts Clerk's direct Google SSO flow from a native HeroUI action instead of routing through the
+Grotto starts Clerk's direct Google SSO flow from a native SwiftUI action instead of routing through the
 hosted Account Portal. The provider browser returns through the production-authorized
-`grotto://sso-callback` product URL. Grotto intentionally excludes Clerk's native UI/client bridge from
-Expo autolinking; the JavaScript SSO flow does not use that second native session owner. `ClerkProvider`
-persists its JS session through Expo
-SecureStore, while the authenticated Grotto provider reads a fresh Clerk token for every request and
-keys the QueryClient to the active user id. A user change therefore discards the previous user's
-in-memory Server cache.
-React Query keeps successful Server snapshots visible through background transport failures. The native
-cache is currently process-memory only; cold-start offline access needs an explicit secure auth bootstrap
-contract before persisted query data can be enabled safely.
+`grotto://sso-callback` product URL. `GrottoTransport` asks the native Clerk session for a fresh token
+for every request, while `GrottoStore` keeps the active user's in-memory Server snapshots. A user
+change therefore discards the previous user's cache. Cold-start offline access needs an explicit secure
+auth bootstrap contract before persisted query data can be enabled safely.
 
-## Rendering boundary
+## Native surface
 
-The app shell, navigation, chat timeline, composer, threads, settings, and artifact controls are native.
-An interactive artifact may use an isolated web canvas inside its native route when the artifact runtime
-requires browser APIs. That canvas receives a narrow serialized contract and does not own authentication,
-navigation, server queries, or durable app state.
+The app shell, navigation, chat timeline, composer, threads, settings, and artifact controls are native
+SwiftUI. An interactive artifact may use an isolated web canvas inside its native route when the artifact
+runtime requires browser APIs. That canvas receives a narrow serialized contract and does not own
+authentication, navigation, Server queries, or durable app state.
 
-## Native shell
+Settings stay inside one native sheet and `NavigationStack`. The Settings hub reads lightweight Server,
+Agent, member, and Computer projections; profile screens own focused identity mutations; and long-form
+values use dedicated editors. Appearance is app-local presentation state and never creates or updates
+Server state. Desktop-only operational surfaces remain out of the iPhone information architecture until
+a concrete mobile workflow needs them.
 
-`AppShell` owns the persistent chat drawer and its gesture state, and projects the selected Chat from
-the current route. `AppLayout` owns the shared screen geometry: safe-area handling, keyboard avoidance,
-header, content, and footer slots. Screens compose those static slots directly; the layout has no data
-context or route knowledge. Expo Router owns Chat selection so navigation and restoration do not depend
-on a mounted component's local state. Drawer openness and gesture progress remain volatile shell state.
-
-Native settings live in one shell-owned HeroUI BottomSheet. A small sheet-local stack owns volatile
-push/pop history and animates between the Settings hub, human and Agent profiles, and focused editors;
-those destinations do not create nested sheets or Expo routes. Closing Settings resets that local
-history. The sheet's scroll viewport reaches the device bottom; each scrollable screen or fixed editor
-owns its safe-area content inset so the home indicator does not become a blank footer outside scrolling.
-The hub reads lightweight Server, Agent, and member lists, while human and Agent profiles read
-focused detail snapshots at their screen leaves. Their existing Server-backed identity and avatar
-mutations live in focused shared App-client hooks and refresh the matching detail plus directory caches.
-Native image selection center-crops and downsizes to the shared avatar contract before upload; the
-iPhone app never stores a second identity record. Settings compose stock HeroUI Native grouped lists
-and controls. Profile pages keep short identity values such as names editable inline and push long-form
-values such as descriptions into a focused editor within the same Settings sheet.
-The mobile settings subset includes human and Agent profiles, read-only Server identity, Tasks,
-People, Computers, Appearance, and app information. Tasks is a lens over Server-owned promoted
-messages and opens the existing canonical Task Thread route; it is not a second task store.
-Appearance is app-local presentation state: the iPhone
-client persists its `system`, `light`, or `dark` preference in Expo SecureStore and applies it through
-Uniwind. It never creates or updates Server state.
-Desktop-only operational surfaces such as model inventory, Skills, MCP connections,
-Browser supervision, and destructive administration stay out of the iPhone information architecture
-until a concrete mobile workflow needs them.
-
-`apps/ios/src/components` owns reusable native presentation composed on top of HeroUI Native. These
-components expose explicit compound slots and stable interaction behavior; feature code keeps its
-drafts, mutations, validation, and product copy at the assembly site. `SettingsField`,
-`SettingsDisclosureRow`, `SettingsListGroup`, and `SettingsSection` own the shared label inset, HeroUI
-separators, typography, inline controls, and labeled ingress rows. `SheetStack` owns the reusable
-sideways screen transition
-and `TextEditorScreen` owns the
-borderless multiline input, HeroUI bottom-sheet keyboard handlers, delayed focus, and confirmation
-control. A Profile or future settings feature composes its title, error, and save mutation at the
-assembly site. Do not clone that behavior inside feature folders or add product-mode boolean props to
-shared components.
-
-`apps/ios/src/global.css` owns iPhone-only HeroUI semantic theme overrides. The light theme uses a
-cool iOS grouped-background palette with white, shadow-free persistent surfaces and fields;
-overlays retain their shadow so sheets and dialogs still communicate depth. Keep palette and elevation
-changes at this token boundary rather than restyling individual HeroUI components. These native tokens
-do not affect the website or Electron app theme.
-
-## Dependencies
-
-HeroUI Native is the only general UI component library. Discuss and approve any additional UI library
-before adding it. Native infrastructure dependencies required by Expo, Expo Router, or HeroUI Native are
-allowed when they implement platform capability rather than a second visual system.
-
-HugeIcons Pro Rounded is the approved native icon family. Use Solid Rounded for primary content and
-action icons. Use Stroke Rounded for settings value rows and small disclosure arrows, where the lighter
-visual weight suits dense secondary information.
-`AppIcon` bridges both sets to HeroUI semantic colors so icons and their surrounding HeroUI controls share
-one theme-aware foreground. Import individual icons so Metro can tree-shake unused assets.
-
-The generated `apps/ios/ios` directory is ignored. After app configuration or native dependency changes,
-regenerate it with `bunx expo prebuild --platform ios --clean` and prove the result in an iPhone Simulator.
+The Swift client uses Apple platform frameworks for photos, camera, files, and Quick Look, plus the
+official Clerk iOS SDK. It does not carry a second web or JavaScript UI system.

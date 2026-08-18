@@ -31,7 +31,6 @@ public struct UpdateHumanProfileInput: Codable, Equatable, Sendable {
         try container.encode(displayName, forKey: .displayName)
     }
 }
-
 /// Input for `agent.updateProfile`.
 public struct UpdateAgentProfileInput: Codable, Equatable, Sendable {
     public let agentID: String
@@ -187,4 +186,3 @@ public struct Avatar: Codable, Equatable, Sendable {
         case avatarURL = "avatarUrl"
     }
 }
-

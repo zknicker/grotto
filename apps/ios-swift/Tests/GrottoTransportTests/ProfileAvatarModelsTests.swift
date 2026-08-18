@@ -64,4 +64,3 @@ final class ProfileAvatarModelsTests: XCTestCase {
         return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 }
-

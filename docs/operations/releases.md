@@ -1,5 +1,5 @@
 ---
-summary: Coordinated release workflow for Server, App, and Computer, including signing, publishing, prerequisite ordering, and promotion.
+summary: Coordinated release workflow for Server, App, iOS, and Computer, including signing, publishing, prerequisite ordering, and promotion.
 read_when:
   - cutting, signing, notarizing, or publishing a Grotto release
   - deciding whether a Grotto release needs a Computer release
@@ -9,13 +9,14 @@ read_when:
 
 # Releases
 
-Every release starts with one Grotto release decision across Server, App, and
+Every release starts with one Grotto release decision across Server, App, iOS, and
 Computer. A surface may remain
 unchanged, but the release notes must say so. Independently versioned artifacts
 are prerequisites in one ordered release train, not isolated release projects.
 
-Server and App share the main Grotto release version. Computer is independently
-versioned and must be published first when a Server change requires a newer protocol.
+Server and App share the main Grotto release version. iOS and Computer are independently
+versioned. Computer must be published first when a Server change requires a newer protocol;
+an iOS build marked for publication must reach App Store Connect before Server promotion.
 
 ## Agent Release Decision
 
@@ -25,6 +26,7 @@ Before every release, inspect the changed files and record every surface:
 | --- | --- |
 | Server | Grotto App React UI, hosted API, persistence, or Server behavior changes |
 | App | The Electron shell, preload bridge, or native desktop artifact changes |
+| iOS | The native iPhone app or its release metadata, entitlements, dependencies, or assets change |
 | Computer | Computer execution, lifecycle, local CLI, updater, embedded managed CLI, bootstrap or ordinary protocol, or a required shared Computer dependency changes |
 
 `release:bump` resets `release-surfaces.json`. Set every surface to `publish`
@@ -32,7 +34,7 @@ with its version or `unchanged`, then copy the exact block from
 `release:collect-changelog-context` into the new changelog entry.
 `release:check` and production publishers reject missing or inconsistent
 decisions. For a Computer-only repair, leave `targetVersion` null, publish the
-Computer version, mark Server and App unchanged, and record
+Computer version, mark Server, App, and iOS unchanged, and record
 the generated surface block in the current changelog entry.
 
 If Server raises its required Computer protocol, publish and publicly verify
@@ -55,18 +57,20 @@ Released **vX.Y.Z** 🚀
 
 When no installed surface requires an update:
 
-✅ All changes were deployed to the Grotto Server. No Grotto App or
+✅ All changes were deployed to the Grotto Server. No Grotto App, Grotto iOS, or
 Grotto Computer updates are required.
 
 When updates are required, list only those actionable updates:
 
 - 🖥️ **Grotto App**: Update to `vX.Y.Z` using `exact action`.
+- 📱 **Grotto iOS**: Install `vX.Y.Z (build N)` from TestFlight.
 - 💻 **Grotto Computer**: Update to `vX.Y.Z` using `exact command or UI action`.
 
 ### Release versions
 
 - Grotto Server: `vX.Y.Z`
 - Grotto App: `vX.Y.Z`
+- Grotto iOS: `vX.Y.Z (build N)`
 - Grotto Computer: `vX.Y.Z`
 
 ### Release details
@@ -82,7 +86,7 @@ When updates are required, list only those actionable updates:
 
 Put required updates immediately after the release outcome and before the version
 inventory. Do not enumerate unchanged surfaces in that section; use the single green-check
-sentence when no installed surface needs action. Every handoff must then list all three
+sentence when no installed surface needs action. Every handoff must then list all four
 currently versioned surfaces and their actual deployed or published versions. For an unchanged
 surface, resolve the latest published artifact version rather than copying the current Server
 package version or the release target. Keep emoji limited to the semantic markers shown above
@@ -235,6 +239,28 @@ The pre-publisher 1.0.0 development install is a one-time clean transition, not
 a Computer release lane. Run the new standalone installer and setup command; it
 reuses `~/.grotto` state. Do not publish an npm compatibility bridge.
 
+## iOS Release Flow
+
+The native iPhone app has independent SemVer and a monotonically increasing positive integer build
+number. Its App Store identity is `build.grotto.ios`. A TestFlight upload is a published iOS
+surface; inviting testers is the separate promotion step.
+
+Use the one-time account and app-record setup in [iOS TestFlight](ios-testflight.md) before the
+first upload. For every release marked iOS **publish**:
+
+1. Choose the iOS version and next unused build number, and record both in
+   `release-surfaces.json`.
+2. Run `bun run ios:release <version> --build-number <number> --dry-run`.
+3. Run `bun run ios:release <version> --build-number <number>` from macOS with signing and App
+   Store Connect access configured.
+4. Wait for Apple processing and resolve any export-compliance prompt.
+5. Add the processed build to the internal TestFlight group and complete a real-device smoke.
+6. Only then promote the coordinated Server release.
+
+If an upload reaches Apple but the release train later stops, do not reuse its build number. Keep
+that build in App Store Connect or expire it, increment the build number, update the release
+decision and changelog block, and upload again.
+
 ## Release Artifact Inventory
 
 App builds compile `assets/mac-icon.icon` with Xcode `actool` before Electron
@@ -246,6 +272,8 @@ Grotto releases publish these production artifacts:
 
 * `Grotto.app` (`build.grotto.desktop`) is the installed Grotto App. App release files use the
   `Grotto_<version>_<arch>` prefix.
+* `build.grotto.ios` is uploaded to App Store Connect and promoted through TestFlight. The iOS
+  version and build number are recorded in the coordinated release decision.
 * `grotto-server-<version>+git.<short-sha>-aarch64-apple-darwin.tar.gz`
   contains Server and Grotto App. Its sidecar travels with it as a
   GitHub Release asset.
@@ -269,6 +297,11 @@ Required release environment:
 * `APPLE_PASSWORD` is accepted as a compatibility alias for
   `APPLE_APP_SPECIFIC_PASSWORD`
 * `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+
+iOS releases additionally require `IOS_DEVELOPMENT_TEAM` (or the existing `APPLE_TEAM_ID`) and
+an Apple Developer account configured in Xcode. For unattended signing and upload, set the full
+App Store Connect API key set: `APPLE_API_KEY_PATH`, `APPLE_API_KEY_ID`, and
+`APPLE_API_ISSUER`.
 
 Computer releases additionally require
 `GROTTO_COMPUTER_RELEASE_PRIVATE_KEY`, the Ed25519 private release key used to

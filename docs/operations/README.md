@@ -12,4 +12,5 @@ read_when:
 | Local stack | [Development](development.md) |
 | Verification lanes | [Testing](testing.md) |
 | Release process | [Releases](releases.md) |
+| iOS and TestFlight | [iOS TestFlight](ios-testflight.md) |
 | Hosted Server deployment | [Grotto Server Deployment](grotto-server-deploy.md) |

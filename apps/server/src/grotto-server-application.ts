@@ -70,6 +70,17 @@ export interface GrottoServerApplication {
     listen(port: number): Promise<void>;
 }
 
+/**
+ * tRPC batches every procedure name into one path segment, so the App's opening
+ * batch runs past Fastify's 100-character `maxParamLength` default and 404s
+ * instead of routing — intermittently leaving whole destinations without data.
+ */
+export const grottoFastifyOptions = {
+    bodyLimit: 12 * 1024 * 1024,
+    logger: false,
+    maxParamLength: 5000,
+} as const;
+
 export async function createGrottoServerApplication(
     options: GrottoServerApplicationOptions
 ): Promise<GrottoServerApplication> {
@@ -109,10 +120,7 @@ export async function createGrottoServerApplication(
         const isAllowedOrigin = (origin: string | undefined) =>
             isAllowedAppOrigin(origin, options.appOrigin);
 
-        app = Fastify({
-            bodyLimit: 12 * 1024 * 1024,
-            logger: false,
-        });
+        app = Fastify(grottoFastifyOptions);
 
         await app.register(cors, {
             credentials: true,

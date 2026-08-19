@@ -16,7 +16,7 @@ export function ProviderMark({
         return (
             <Icon
                 aria-hidden="true"
-                className={cn('size-5 shrink-0 text-white', className)}
+                className={cn('size-5 shrink-0', className)}
                 icon={Atom01Icon}
             />
         );
@@ -26,7 +26,7 @@ export function ProviderMark({
     return (
         <svg
             aria-hidden="true"
-            className={cn('size-5 shrink-0 fill-white', className)}
+            className={cn('size-5 shrink-0 fill-current', className)}
             viewBox={path.viewBox}
         >
             {path.elements}
@@ -34,7 +34,10 @@ export function ProviderMark({
     );
 }
 
-// Provider glyphs use theSVG; Pi uses HugeIcons. All share one monochrome contract.
+// Provider glyphs are bare SVG; Pi uses HugeIcons. All share one monochrome
+// contract and inherit their surface's text color — hardcoding white rendered
+// them invisible on any light surface. Call sites that place a mark on a dark or
+// tinted tile pass their own fill.
 const providerPaths: Record<
     Exclude<ProviderMarkId, 'pi'>,
     { elements: ReactNode; viewBox: string }

@@ -35,11 +35,15 @@ export function computerUpdateView(input: {
     return {
         canCheck: connected && !busy,
         canUpdate: connected && input.phase === 'available' && !busy,
-        label: input.isChecking
-            ? phaseLabels.checking
-            : input.phase === 'idle' && input.targetVersion
-              ? 'Up to date'
-              : phaseLabels[input.phase],
+        // An offline Computer can neither check nor install, so the card has no
+        // control to show. Say why rather than rendering an empty action slot.
+        label: connected
+            ? input.isChecking
+                ? phaseLabels.checking
+                : input.phase === 'idle' && input.targetVersion
+                  ? 'Up to date'
+                  : phaseLabels[input.phase]
+            : 'Unavailable while offline',
         needsLocalRecovery:
             input.health === 'update-required' ||
             (input.health === 'offline' && input.phase !== 'restarting'),

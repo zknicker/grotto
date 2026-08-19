@@ -44,6 +44,16 @@ test('keeps signed update available in update-required and disables ordinary off
     });
 });
 
+test('an offline Computer explains itself instead of leaving the card silent', () => {
+    // Offline disables both controls, so the label is the only thing the card can
+    // render; it previously fell through to an empty action slot.
+    expect(computerUpdateView({ health: 'offline', phase: 'idle' })).toMatchObject({
+        canCheck: false,
+        canUpdate: false,
+        label: 'Unavailable while offline',
+    });
+});
+
 test('shows checking immediately while a Settings mutation is pending', () => {
     expect(
         computerUpdateView({ health: 'healthy', isChecking: true, phase: 'idle' })

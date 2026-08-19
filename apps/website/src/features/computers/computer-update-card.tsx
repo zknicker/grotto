@@ -1,4 +1,4 @@
-import { Button, Label, ProgressBar } from '@heroui/react';
+import { Button, Label, ProgressBar, Tooltip } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
 import { computerUpdateView } from './computer-update-model.ts';
@@ -46,49 +46,65 @@ export function ComputerUpdateCard({
                     Check for and install the latest production release.
                 </ItemCard.Description>
             </ItemCard.Content>
-            {isUpdateActive || showCheck || showUpdate ? (
-                <ItemCard.Action>
-                    {isUpdateActive ? (
-                        <ProgressBar
-                            aria-label={view.label}
-                            className="w-64 max-w-full"
-                            isIndeterminate={determinateValue === null}
-                            size="sm"
-                            value={determinateValue ?? 0}
-                        >
-                            <Label>{view.label}</Label>
-                            {determinateValue === null ? null : <ProgressBar.Output />}
-                            <ProgressBar.Track>
-                                <ProgressBar.Fill />
-                            </ProgressBar.Track>
-                        </ProgressBar>
-                    ) : (
-                        <div className="flex items-center gap-2">
-                            {showCheck ? (
-                                <Button
-                                    isDisabled={!view.canCheck}
-                                    isPending={isChecking || computer.updatePhase === 'checking'}
-                                    onPress={onCheck}
-                                    size="sm"
-                                    variant="secondary"
-                                >
-                                    Check
-                                </Button>
-                            ) : null}
-                            {showUpdate ? (
-                                <Button
-                                    isDisabled={!view.canUpdate}
-                                    isPending={isStarting}
-                                    onPress={onUpdate}
-                                    size="sm"
-                                >
-                                    {updateButtonLabel(computer.updateTargetVersion)}
-                                </Button>
-                            ) : null}
-                        </div>
-                    )}
-                </ItemCard.Action>
-            ) : null}
+            <ItemCard.Action>
+                {isUpdateActive ? (
+                    <ProgressBar
+                        aria-label={view.label}
+                        className="w-64 max-w-full"
+                        isIndeterminate={determinateValue === null}
+                        size="sm"
+                        value={determinateValue ?? 0}
+                    >
+                        <Label>{view.label}</Label>
+                        {determinateValue === null ? null : <ProgressBar.Output />}
+                        <ProgressBar.Track>
+                            <ProgressBar.Fill />
+                        </ProgressBar.Track>
+                    </ProgressBar>
+                ) : (
+                    <div className="flex items-center gap-2">
+                        {/* An unreachable Computer still shows its control, disabled
+                            and named for the reason, rather than an empty slot. */}
+                        {view.canCheck || showCheck ? (
+                            <Button
+                                isDisabled={!view.canCheck}
+                                isPending={isChecking || computer.updatePhase === 'checking'}
+                                onPress={onCheck}
+                                size="sm"
+                                variant="secondary"
+                            >
+                                Check
+                            </Button>
+                        ) : (
+                            <Tooltip delay={0}>
+                                <Tooltip.Trigger aria-label={view.label}>
+                                    <span className="inline-flex cursor-not-allowed">
+                                        <Button isDisabled size="sm" variant="secondary">
+                                            Offline
+                                        </Button>
+                                    </span>
+                                </Tooltip.Trigger>
+                                <Tooltip.Content showArrow>
+                                    <Tooltip.Arrow />
+                                    <p className="max-w-xs">
+                                        Reconnect this Computer to check for updates.
+                                    </p>
+                                </Tooltip.Content>
+                            </Tooltip>
+                        )}
+                        {showUpdate ? (
+                            <Button
+                                isDisabled={!view.canUpdate}
+                                isPending={isStarting}
+                                onPress={onUpdate}
+                                size="sm"
+                            >
+                                {updateButtonLabel(computer.updateTargetVersion)}
+                            </Button>
+                        ) : null}
+                    </div>
+                )}
+            </ItemCard.Action>
         </ItemCard>
     );
 }

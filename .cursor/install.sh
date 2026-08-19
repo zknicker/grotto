@@ -17,8 +17,21 @@ sudo ln -sf "${BUN_INSTALL}/bin/bunx" /usr/local/bin/bunx
 
 echo "==> Ensuring PostgreSQL 16 is installed (required by the dev stack)"
 if [ ! -x /usr/lib/postgresql/16/bin/postgres ]; then
-    sudo DEBIAN_FRONTEND=noninteractive apt-get update
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-16 postgresql-client-16
+    # Retry apt to tolerate transient mirror/CDN errors (e.g. sporadic 400s).
+    for attempt in 1 2 3; do
+        sudo DEBIAN_FRONTEND=noninteractive apt-get update || true
+        if sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            -o Acquire::Retries=5 --fix-missing \
+            postgresql-16 postgresql-client-16; then
+            break
+        fi
+        echo "apt-get install attempt ${attempt} failed; retrying in 5s..."
+        sleep 5
+    done
+    if [ ! -x /usr/lib/postgresql/16/bin/postgres ]; then
+        echo "PostgreSQL 16 installation failed after retries." >&2
+        exit 1
+    fi
 fi
 
 echo "==> Installing project dependencies and HeroUI Pro artifacts"

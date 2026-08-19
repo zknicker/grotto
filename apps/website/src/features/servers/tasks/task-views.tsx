@@ -43,11 +43,7 @@ export function TaskBoard({ onOpenTask, tasks }: TaskViewProps) {
                             >
                                 {(task) => (
                                     <Kanban.Card id={task.id} textValue={task.title}>
-                                        <TaskSummary
-                                            assigneeLabel={task.assigneeLabel}
-                                            onOpen={onOpenTask}
-                                            task={task}
-                                        />
+                                        <TaskSummary onOpen={onOpenTask} task={task} />
                                         <TaskActions task={task} />
                                     </Kanban.Card>
                                 )}
@@ -194,15 +190,12 @@ function rowAriaLabel(task: TaskItem, assigneeLabel: string) {
 
 // The task's own open affordance. Board cards and list rows both carry inline
 // controls, so opening stays on an explicit button rather than a row action.
-function TaskSummary({
-    assigneeLabel,
-    onOpen,
-    task,
-}: {
-    assigneeLabel: string;
-    onOpen: (task: TaskItem) => void;
-    task: TaskItem;
-}) {
+/**
+ * The board card's read-only face. Priority and assignee are deliberately absent:
+ * the editable controls below the summary already carry them, and printing them
+ * twice made the card read like a debug dump.
+ */
+function TaskSummary({ onOpen, task }: { onOpen: (task: TaskItem) => void; task: TaskItem }) {
     return (
         <button
             aria-label={`Open task #${task.number} ${task.title}`}
@@ -218,10 +211,6 @@ function TaskSummary({
                 {task.labels.map((label) => (
                     <LabelChip color={label.color} key={label.id} name={label.name} />
                 ))}
-                {task.priority === 'none' ? null : (
-                    <span className="text-muted text-sm">{taskPriorityLabels[task.priority]}</span>
-                )}
-                <span className="text-muted text-sm">{assigneeLabel}</span>
                 <span className="text-muted text-xs">
                     <RelativeTime value={task.updatedAt} />
                 </span>

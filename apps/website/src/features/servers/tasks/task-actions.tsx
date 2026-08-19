@@ -18,6 +18,9 @@ export function TaskActions({ task }: { task: TaskItem }) {
             <TaskMetadata task={task} />
             <TaskAssignee task={task} />
             {action === 'claim' || action === 'claim-reservation' ? (
+                // Both branches run the same claim mutation; whether the task was
+                // already reserved for the viewer is internal bookkeeping, so the
+                // button says what it does rather than naming the record.
                 <Button
                     isPending={claim.isPending}
                     onPress={() =>
@@ -30,7 +33,7 @@ export function TaskActions({ task }: { task: TaskItem }) {
                     size="sm"
                     variant="secondary"
                 >
-                    {action === 'claim' ? 'Claim' : 'Claim Reservation'}
+                    Claim
                 </Button>
             ) : action === 'unclaim' ? (
                 <Button

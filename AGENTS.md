@@ -215,6 +215,8 @@ The Cloud Agent environment is repository-managed via `.cursor/environment.json`
 - The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against the checked-in dev Clerk
  instance; the first Server boot seeds a demo Server (agents Blippy and Tiny, `#all`/`#product`
  channels, starter messages). No manual login is required in dev.
-- `bun run dev` renders a live TUI. Find the real website port with `dev-port`; Grotto Server
- listens on the website port plus three. See `docs/operations/development.md` for stack details and
- `docs/operations/testing.md` for lint/test/build lanes (`bun run lint`, `bun run typecheck`).
+- `bun run dev` renders a live TUI whose "Services" banner prints the resolved Server, Computer, and
+ Website URLs (ports are derived per worktree, e.g. website `43444` / Server `43447`; Server is the
+ website port plus three). Read those URLs from the banner rather than assuming `3100`/`8090`. See
+ `docs/operations/development.md` for stack details and `docs/operations/testing.md` for
+ lint/test/build lanes (`bun run lint`, `bun run typecheck`).

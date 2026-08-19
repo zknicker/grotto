@@ -24,7 +24,10 @@ export function TokenUsageChart({
                         data={view.chartData.map((point) => ({ ...point, empty: 0 }))}
                         height={220}
                     >
-                        <BarChart.Grid vertical={false} />
+                        {/* The placeholder domain tops out at 1, a value that means
+                            nothing here; syncing to the axis ticks keeps the baseline
+                            and drops the gridline floating above it. */}
+                        <BarChart.Grid syncWithTicks vertical={false} />
                         <BarChart.XAxis
                             dataKey="date"
                             tickFormatter={(value: string) => formatChartDate(value)}

@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.19 - 2026-08-19
+
+- Grotto for iPhone gains unified chrome, finger-tracking sidebar gestures, and Server-wide search
+  across Channels, Agent DMs, and Threads.
+- Grotto App pages now share one consistent content column and rhythm, with clearer empty states,
+  focused Computer details, and comparable token usage meters.
+- Computer updates keep reporting their in-flight state through a disconnect, and offline Computers
+  now explain unavailable details instead of showing empty space.
+- The Server now accepts long batched tRPC request paths without Fastify rejecting them at the
+  default parameter-length limit.
+
+### Release surfaces
+
+- Server: Publish v1.8.19
+- App: Unchanged
+- iOS: Publish v1.0.1 (build 2)
+- Computer: Unchanged
+
 ## v1.8.18 - 2026-08-18
 
 - Grotto for iPhone reaches its first TestFlight build with production sign-in, Server discovery,

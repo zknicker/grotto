@@ -1,22 +1,22 @@
 {
-  "targetVersion": "1.8.18",
+  "targetVersion": "1.8.19",
   "surfaces": {
     "server": {
       "action": "publish",
-      "version": "1.8.18"
+      "version": "1.8.19"
     },
     "app": {
-      "action": "publish",
-      "version": "1.8.18"
+      "action": "unchanged",
+      "version": null
     },
     "ios": {
       "action": "publish",
-      "buildNumber": 1,
-      "version": "1.0.0"
+      "buildNumber": 2,
+      "version": "1.0.1"
     },
     "computer": {
-      "action": "publish",
-      "version": "1.4.5"
+      "action": "unchanged",
+      "version": null
     }
   }
 }

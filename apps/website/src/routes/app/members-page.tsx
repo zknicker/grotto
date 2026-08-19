@@ -1,4 +1,8 @@
+import { Button } from '@heroui/react';
+import { EmptyState } from '@heroui-pro/react';
+import { UserQuestion01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
+import { Icon } from '../../components/ui/icon.tsx';
 import { AgentLoading } from '../../features/members/agent-profile/agent-loading.tsx';
 import { AgentProfilePage } from '../../features/members/agent-profile/agent-profile.tsx';
 import { isAgentTab } from '../../features/members/agent-profile/agent-tabs.ts';
@@ -47,7 +51,30 @@ export function AgentPage() {
         );
     }
     if (!agent.data) {
-        return <p className="m-auto text-muted text-sm">Agent unavailable</p>;
+        return (
+            <div className="m-auto p-6">
+                <EmptyState>
+                    <EmptyState.Header>
+                        <EmptyState.Media variant="icon">
+                            <Icon aria-hidden="true" icon={UserQuestion01Icon} />
+                        </EmptyState.Media>
+                        <EmptyState.Title>Agent unavailable</EmptyState.Title>
+                        <EmptyState.Description>
+                            This Agent may have been removed, or the link points somewhere that no
+                            longer exists.
+                        </EmptyState.Description>
+                    </EmptyState.Header>
+                    <EmptyState.Content>
+                        <Button
+                            onPress={() => navigate(membersRoute(server.slug))}
+                            variant="secondary"
+                        >
+                            Back to Members
+                        </Button>
+                    </EmptyState.Content>
+                </EmptyState>
+            </div>
+        );
     }
 
     return (

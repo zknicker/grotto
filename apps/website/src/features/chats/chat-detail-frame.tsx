@@ -13,7 +13,7 @@ import type { TranscriptActiveReply } from './transcript-contract.ts';
 export function ChatDetailFrame({
     activeReplies,
     chatId,
-    emptyLabel,
+    empty,
     error,
     body,
     fetchOlderHistory,
@@ -29,7 +29,7 @@ export function ChatDetailFrame({
 }: {
     activeReplies: readonly TranscriptActiveReply[];
     chatId: string;
-    emptyLabel: string;
+    empty: React.ReactNode;
     error?: unknown;
     body?: React.ReactNode;
     fetchOlderHistory?: () => void;
@@ -95,9 +95,13 @@ export function ChatDetailFrame({
                                     ) : hasTimelineContent ? (
                                         timelineContent(contentRef)
                                     ) : (
-                                        <MessageScrollerContent className="w-full">
-                                            <div className="px-2 py-4 text-muted text-sm">
-                                                {emptyLabel}
+                                        // Sized to the scroller's own content box
+                                        // rather than viewport math, so the state
+                                        // centers on the visible transcript without
+                                        // outgrowing the padding already reserved.
+                                        <MessageScrollerContent className="h-full w-full">
+                                            <div className="flex h-full items-center justify-center">
+                                                {empty}
                                             </div>
                                         </MessageScrollerContent>
                                     )}

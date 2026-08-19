@@ -1,6 +1,9 @@
+import { EmptyState } from '@heroui-pro/react';
+import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { Chat, ChatMessage, ThreadSummary } from '@tavern/api';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
@@ -255,7 +258,21 @@ export function ChatView({
                     ) : undefined
                 }
                 chatId={chat.id}
-                emptyLabel="No messages yet."
+                empty={
+                    <EmptyState>
+                        <EmptyState.Header>
+                            <EmptyState.Media variant="icon">
+                                <Icon aria-hidden="true" icon={Message01Icon} />
+                            </EmptyState.Media>
+                            <EmptyState.Title>No messages yet</EmptyState.Title>
+                            <EmptyState.Description>
+                                {chat.kind === 'channel'
+                                    ? `Start the conversation in #${chatName}.`
+                                    : `Send the first message to ${chatName}.`}
+                            </EmptyState.Description>
+                        </EmptyState.Header>
+                    </EmptyState>
+                }
                 error={messages.error}
                 footer={
                     viewTab === 'chat' ? (

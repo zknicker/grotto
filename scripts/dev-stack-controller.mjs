@@ -4,6 +4,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import {
     hasGrottoSchema,
+    postgresLocaleEnvironment,
     prepareDevPostgres,
     reserveDevPostgresPort,
     stopStaleDevPostgres,
@@ -292,7 +293,7 @@ export class DevStackController extends EventEmitter {
         startDesktopPrebuild();
         const postgres = prepareDevPostgres(devStackEnvironment, await reserveDevPostgresPort());
         const postgresChild = this.spawnProcess('postgres', postgres.executable, postgres.args, {
-            env: startupUiEnv,
+            env: { ...startupUiEnv, ...postgresLocaleEnvironment() },
         });
         await waitForDevPostgres(postgres, postgresChild);
         this.update((snapshot) => {

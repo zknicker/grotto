@@ -40,6 +40,19 @@ export function stopStaleDevPostgres(environment, options = {}) {
     return 1;
 }
 
+/**
+ * PostgreSQL 16 on macOS aborts at startup with "postmaster became
+ * multithreaded during startup" when it inherits no locale, which is what a
+ * non-interactive shell such as an agent's or a CI runner's provides. Supply a
+ * valid one when the environment omits it.
+ */
+export function postgresLocaleEnvironment(environment = process.env) {
+    if (environment.LC_ALL || environment.LANG) {
+        return {};
+    }
+    return { LANG: 'C', LC_ALL: 'C' };
+}
+
 export function prepareDevPostgres(environment, port) {
     const binaries = resolvePostgresBinaries();
     const dataRoot = environment.GROTTO_POSTGRES_DATA_ROOT;

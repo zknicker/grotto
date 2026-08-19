@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { stopStaleDevPostgres } from './dev-postgres.mjs';
+import { postgresLocaleEnvironment, stopStaleDevPostgres } from './dev-postgres.mjs';
 
 test('stopStaleDevPostgres stops the postmaster for the managed data root', () => {
     const calls = [];
@@ -64,4 +64,13 @@ test('stopStaleDevPostgres leaves a dead postmaster lock for PostgreSQL recovery
 
     assert.equal(cleanupCount, 0);
     assert.deepEqual(calls, [['--pgdata', '/managed/postgres', 'status']]);
+});
+
+test('postgresLocaleEnvironment supplies a locale when the shell has none', () => {
+    assert.deepEqual(postgresLocaleEnvironment({}), { LANG: 'C', LC_ALL: 'C' });
+});
+
+test('postgresLocaleEnvironment keeps an existing locale', () => {
+    assert.deepEqual(postgresLocaleEnvironment({ LANG: 'en_US.UTF-8' }), {});
+    assert.deepEqual(postgresLocaleEnvironment({ LC_ALL: 'en_US.UTF-8' }), {});
 });

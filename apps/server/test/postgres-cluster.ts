@@ -2,6 +2,7 @@ import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { postgresLocaleEnvironment } from '../../../scripts/dev-postgres.mjs';
 
 /**
  * Runs a throwaway PostgreSQL cluster so Server tests exercise real
@@ -201,15 +202,13 @@ function resolvePostgresBinaries(): PostgresBinaries {
 }
 
 /**
- * PostgreSQL 16 on macOS aborts at startup when the environment carries no
- * usable locale: its locale lookup goes multithreaded and the postmaster exits
- * with "postmaster became multithreaded during startup". Inheriting a bare
- * shell is enough to trigger it, which leaves the whole lane unrunnable, so the
- * cluster pins a deterministic locale unless the caller set one deliberately.
- * Collation-sensitive tests pin their own through `icuLocale`.
+ * PostgreSQL 16 on macOS aborts at startup when it inherits no locale, which is
+ * what a non-interactive shell provides — without this the whole lane is
+ * unrunnable. The rule lives with the development cluster's; collation-sensitive
+ * tests pin their own ordering through `icuLocale`.
  */
 function clusterEnvironment(): NodeJS.ProcessEnv {
-    return process.env.LC_ALL ? process.env : { ...process.env, LC_ALL: 'C' };
+    return { ...process.env, ...postgresLocaleEnvironment() };
 }
 
 function run(command: string, args: string[]) {

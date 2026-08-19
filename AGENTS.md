@@ -194,3 +194,27 @@ Use the default five-label triage vocabulary in Linear. See `docs/agents/triage-
 ### Domain docs
 
 Single-context repo: use root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
+
+## Cursor Cloud specific instructions
+
+The Cloud Agent environment is repository-managed via `.cursor/environment.json` and
+`.cursor/install.sh`. The install step provisions Bun `1.3.5` and PostgreSQL 16, then runs
+`bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download). The full stack
+(`bun run dev`) auto-starts in the `dev-stack` terminal.
+
+- Secrets have two kinds and both are needed. `HUGEICONS_LICENSE_KEY` and `HEROUI_AUTH_TOKEN`
+ must be **build secrets** because they are consumed during the `install` step (the
+ `@hugeicons-pro` registry 401s without the license key, and the HeroUI Pro download needs the
+ auth token). `CLERK_SECRET_KEY` and `DEV_CLERK_SIGN_IN_USER_ID` are **runtime secrets** used only
+ when Grotto Server runs; without them the app's automatic dev sign-in fails and product surfaces
+ stay unreachable.
+- On Linux, `scripts/dev-postgres.mjs` only auto-discovers Homebrew PostgreSQL paths, so the
+ `dev-stack` terminal sets `GROTTO_POSTGRES_BIN=/usr/lib/postgresql/16/bin`. Keep that in any manual
+ `bun run dev` invocation. Do not start a system PostgreSQL service; the dev stack owns its own
+ cluster under `~/.tavern/dev/<worktree-id>/postgres`.
+- The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against the checked-in dev Clerk
+ instance; the first Server boot seeds a demo Server (agents Blippy and Tiny, `#all`/`#product`
+ channels, starter messages). No manual login is required in dev.
+- `bun run dev` renders a live TUI. Find the real website port with `dev-port`; Grotto Server
+ listens on the website port plus three. See `docs/operations/development.md` for stack details and
+ `docs/operations/testing.md` for lint/test/build lanes (`bun run lint`, `bun run typecheck`).

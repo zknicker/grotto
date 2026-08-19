@@ -44,6 +44,18 @@ test('keeps signed update available in update-required and disables ordinary off
     });
 });
 
+test('an in-flight update keeps reporting its phase after the Computer drops', () => {
+    // Restarting disconnects the Computer by design, so the offline label must
+    // not swallow the progress the operator is watching.
+    expect(computerUpdateView({ health: 'offline', phase: 'restarting' })).toMatchObject({
+        label: 'Restarting Grotto Computer',
+        needsLocalRecovery: false,
+    });
+    expect(computerUpdateView({ health: 'offline', phase: 'downloading' }).label).toBe(
+        'Downloading Grotto Computer'
+    );
+});
+
 test('an offline Computer explains itself instead of leaving the card silent', () => {
     // Offline disables both controls, so the label is the only thing the card can
     // render; it previously fell through to an empty action slot.

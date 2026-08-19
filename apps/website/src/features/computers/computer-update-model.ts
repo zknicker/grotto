@@ -14,6 +14,15 @@ const phaseLabels = {
     'waiting-for-agents': 'Waiting for active Agents…',
 } as const satisfies Record<ComputerUpdatePhase, string>;
 
+const updateInFlightPhases: ComputerUpdatePhase[] = [
+    'requested',
+    'downloading',
+    'verifying',
+    'installing',
+    'waiting-for-agents',
+    'restarting',
+];
+
 export function computerUpdateView(input: {
     health: 'degraded' | 'healthy' | 'offline' | 'update-required';
     isChecking?: boolean;
@@ -21,29 +30,23 @@ export function computerUpdateView(input: {
     targetVersion?: string | null;
 }) {
     const connected = input.health !== 'offline';
-    const busy =
-        input.isChecking ||
-        [
-            'checking',
-            'requested',
-            'downloading',
-            'verifying',
-            'installing',
-            'waiting-for-agents',
-            'restarting',
-        ].includes(input.phase);
+    const updateInFlight = updateInFlightPhases.includes(input.phase);
+    const busy = input.isChecking || input.phase === 'checking' || updateInFlight;
     return {
         canCheck: connected && !busy,
         canUpdate: connected && input.phase === 'available' && !busy,
-        // An offline Computer can neither check nor install, so the card has no
-        // control to show. Say why rather than rendering an empty action slot.
-        label: connected
-            ? input.isChecking
-                ? phaseLabels.checking
-                : input.phase === 'idle' && input.targetVersion
-                  ? 'Up to date'
-                  : phaseLabels[input.phase]
-            : 'Unavailable while offline',
+        // An idle offline Computer can neither check nor install, so the card has
+        // no control to show and says why instead of rendering an empty slot. An
+        // update already in flight keeps reporting its phase: restarting drops the
+        // connection by design, and the progress must survive that.
+        label:
+            connected || updateInFlight
+                ? input.isChecking
+                    ? phaseLabels.checking
+                    : input.phase === 'idle' && input.targetVersion
+                      ? 'Up to date'
+                      : phaseLabels[input.phase]
+                : 'Unavailable while offline',
         needsLocalRecovery:
             input.health === 'update-required' ||
             (input.health === 'offline' && input.phase !== 'restarting'),

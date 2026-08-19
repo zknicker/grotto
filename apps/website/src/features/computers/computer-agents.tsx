@@ -43,7 +43,7 @@ export function ComputerAgents({
     const rows = computerAgentRows(items, computer.reportedInventory);
 
     return (
-        <section className="py-5">
+        <section>
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>

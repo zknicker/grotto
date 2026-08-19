@@ -1,14 +1,18 @@
-import { Button } from '@heroui/react';
+import { Button, Chip, Description, Dropdown, Label } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
-import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { ComputerIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { SectionHeader } from '../shell/section-header.tsx';
+import { PageTopbar } from '../shell/shell-topbar.tsx';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
 import { ComputerDetail } from './computer-detail.tsx';
 import { resolveComputerPageState } from './computer-page-state.ts';
+import { computerRemovalDescription, useComputerRemovalAvailability } from './computer-removal.ts';
 import { ComputerRemoveDialog } from './computer-remove-dialog.tsx';
+import { computerHealthColor, computerHealthLabel, computerLabel } from './presentation.ts';
 
 export function ComputerPage({ serverId, serverSlug }: { serverId: string; serverSlug: string }) {
     const computers = useComputers(serverId);
@@ -20,8 +24,44 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
         requestedId: searchParams.get('computer'),
     });
 
+    // Which Computer you are reading is content identity, so it belongs in the
+    // shell band the way a chat's name does; the rail only says "Computers".
+    const selected =
+        state.status === 'ready'
+            ? computers.data?.find((item) => item.id === state.computerId)
+            : undefined;
+
     return (
         <div className="flex h-full min-h-0 w-full">
+            {selected ? (
+                <PageTopbar>
+                    <SectionHeader
+                        meta={
+                            <span className="flex shrink-0 items-center gap-2">
+                                <Chip
+                                    color={computerHealthColor(selected.health)}
+                                    size="sm"
+                                    variant="soft"
+                                >
+                                    {computerHealthLabel(selected.health)}
+                                </Chip>
+                                {selected.productVersion ? (
+                                    <span className="font-mono text-muted text-xs tabular-nums">
+                                        v{selected.productVersion}
+                                    </span>
+                                ) : null}
+                            </span>
+                        }
+                        title={computerLabel(selected)}
+                    >
+                        <ComputerBandMenu
+                            computerId={selected.id}
+                            onRemove={() => setRemovingId(selected.id)}
+                            serverId={serverId}
+                        />
+                    </SectionHeader>
+                </PageTopbar>
+            ) : null}
             <main className="min-w-0 flex-1 overflow-y-auto">
                 {computers.error && !computers.data ? (
                     <ComputerUnavailable />
@@ -47,6 +87,54 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
                 />
             ) : null}
         </div>
+    );
+}
+
+/**
+ * Page-level actions for the Computer in view. Removal is destructive, so it sits
+ * behind an overflow menu rather than as a bare button in the band; the update
+ * card keeps its own check and install controls, which belong to that card's state.
+ */
+function ComputerBandMenu({
+    computerId,
+    onRemove,
+    serverId,
+}: {
+    computerId: string;
+    onRemove: () => void;
+    serverId: string;
+}) {
+    const availability = useComputerRemovalAvailability(serverId, computerId);
+    const canRemove = availability.status === 'ready';
+
+    return (
+        <Dropdown>
+            <Button aria-label="Computer actions" size="sm" variant="ghost">
+                <Icon aria-hidden="true" icon={MoreHorizontalIcon} />
+            </Button>
+            <Dropdown.Popover placement="bottom end">
+                <Dropdown.Menu>
+                    {canRemove ? (
+                        <Dropdown.Item
+                            id="remove"
+                            onAction={onRemove}
+                            textValue="Remove Computer"
+                            variant="danger"
+                        >
+                            <Label>Remove Computer</Label>
+                        </Dropdown.Item>
+                    ) : (
+                        // A disabled menu item takes no pointer events, so a tooltip
+                        // here would never fire and the reason would be unreachable.
+                        // The blocking reason rides in the item itself instead.
+                        <Dropdown.Item id="remove" isDisabled textValue="Remove Computer">
+                            <Label>Remove Computer</Label>
+                            <Description>{computerRemovalDescription(availability)}</Description>
+                        </Dropdown.Item>
+                    )}
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
     );
 }
 

@@ -1,7 +1,7 @@
-import { Button, Card, Chip, Label, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
+import { Button, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
+import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import type { ComputerRuntimeId, UsageOverview } from '@tavern/api';
-import type { ReactNode } from 'react';
-import { ProviderMark, type ProviderMarkId } from '../../components/provider-mark.tsx';
+import { ProviderMark } from '../../components/provider-mark.tsx';
 import { formatTimestamp } from '../../lib/format.ts';
 import {
     type DisplayPlanWindow,
@@ -11,6 +11,21 @@ import {
     usageColor,
 } from './runtime-plan-windows.ts';
 
+interface RuntimeUsageRow {
+    fiveHourWindow: DisplayPlanWindow | null;
+    id: ComputerRuntimeId;
+    status: string;
+    title: string;
+    window: DisplayPlanWindow | null;
+}
+
+/**
+ * Runtimes render through the same DataGrid as Agents on this Computer, so the
+ * two tables on the page share one header, surface, and row treatment instead of
+ * reading as unrelated widgets. The grid carries detected runtimes only;
+ * undetected ones are named in the section header, since they have no limit and
+ * no reset to put in a row.
+ */
 export function DetectedRuntimeUsage({
     detectedRuntimeIds,
     onViewPiUsage,
@@ -22,29 +37,23 @@ export function DetectedRuntimeUsage({
     piAgentCount: number | null;
     usage: UsageOverview;
 }) {
-    const detectedRuntimeSet = new Set(detectedRuntimeIds);
+    const detected = new Set(detectedRuntimeIds);
+    const rows = runtimeOrder
+        .filter((id) => detected.has(id))
+        .map((id) => buildRuntimeRow(id, usage, piAgentCount));
+
+    if (rows.length === 0) {
+        return <p className="text-muted text-sm">No runtimes detected.</p>;
+    }
 
     return (
-        <div className="@container">
-            {detectedRuntimeIds.length > 0 ? (
-                <div className="grid auto-rows-fr @xl:grid-cols-2 grid-cols-1 gap-3">
-                    {detectedRuntimeSet.has('codex') ? (
-                        <CodexUsageCard state={usage.codex} />
-                    ) : null}
-                    {detectedRuntimeSet.has('claude-code') ? (
-                        <ClaudeUsageCard planState={usage.claude} />
-                    ) : null}
-                    {detectedRuntimeSet.has('grok-build') ? (
-                        <GrokUsageCard planState={usage.grok} />
-                    ) : null}
-                    {detectedRuntimeSet.has('pi') ? (
-                        <PiUsageCard agentCount={piAgentCount} onViewUsage={onViewPiUsage} />
-                    ) : null}
-                </div>
-            ) : (
-                <p className="text-muted text-sm">No runtimes detected.</p>
-            )}
-        </div>
+        <DataGrid
+            aria-label="Runtimes on this Computer"
+            columns={runtimeColumns(onViewPiUsage)}
+            contentClassName="min-w-160"
+            data={rows}
+            getRowId={(item) => item.id}
+        />
     );
 }
 
@@ -53,194 +62,220 @@ export function DetectedRuntimeUsageSkeleton({
 }: {
     detectedRuntimeIds: ComputerRuntimeId[];
 }) {
-    return (
-        <div className="@container">
-            {detectedRuntimeIds.length > 0 ? (
-                <div className="grid auto-rows-fr @xl:grid-cols-2 grid-cols-1 gap-3">
-                    {detectedRuntimeIds.map((runtimeId) => (
-                        <Skeleton className="h-36 w-full rounded-xl" key={runtimeId} />
-                    ))}
-                </div>
-            ) : (
-                <p className="text-muted text-sm">No runtimes detected.</p>
-            )}
-        </div>
-    );
-}
-
-function CodexUsageCard({ state }: { state: UsageOverview['codex'] }) {
-    const weeklyWindow =
-        state.status === 'ok'
-            ? selectFirstWindow(
-                  state.snapshot.windows,
-                  ['current-week', 'current-session'],
-                  'Weekly Limit'
-              )
-            : null;
-    return (
-        <ProviderCapacityCard provider="codex" title="Codex">
-            <PlanUsage
-                emptyMessage="Plan limits unavailable"
-                windows={weeklyWindow ? [weeklyWindow] : []}
-            />
-        </ProviderCapacityCard>
-    );
-}
-
-function ClaudeUsageCard({ planState }: { planState: UsageOverview['claude'] }) {
-    const fiveHourWindow =
-        planState.status === 'ok'
-            ? selectWindow(planState.snapshot.windows, 'current-session', '5h')
-            : null;
-    const windows =
-        planState.status === 'ok'
-            ? selectWindows(planState.snapshot.windows, [
-                  ['current-week-all-models', 'Weekly Limit'],
-              ])
-            : [];
-    return (
-        <ProviderCapacityCard
-            provider="claude-code"
-            secondary={fiveHourWindow ? <FiveHourUsageChip window={fiveHourWindow} /> : null}
-            title="Claude Code"
-        >
-            <PlanUsage emptyMessage="Plan limits unavailable" windows={windows} />
-        </ProviderCapacityCard>
-    );
-}
-
-function GrokUsageCard({ planState }: { planState: UsageOverview['grok'] }) {
-    const windows =
-        planState.status === 'ok'
-            ? planState.snapshot.windows
-                  .filter((window) => window.label === 'Weekly Limit')
-                  .map((window) => ({ ...window, label: window.label }))
-            : [];
-    return (
-        <ProviderCapacityCard provider="grok-build" title="Grok Build">
-            <PlanUsage emptyMessage="Weekly limit unavailable" windows={windows} />
-        </ProviderCapacityCard>
-    );
-}
-
-function PiUsageCard({
-    agentCount,
-    onViewUsage,
-}: {
-    agentCount: number | null;
-    onViewUsage?: () => void;
-}) {
-    return (
-        <ProviderCapacityCard provider="pi" title="Pi">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-                <div className="grid gap-1">
-                    <p className="font-medium text-sm">API-backed runtime</p>
-                    <p className="text-muted text-xs">
-                        {agentCount === null
-                            ? 'Usage tracked automatically'
-                            : agentCount === 0
-                              ? 'Ready · No Agents using Pi'
-                              : `${agentCount} ${agentCount === 1 ? 'Agent' : 'Agents'} · Usage tracked automatically`}
-                    </p>
-                </div>
-                {onViewUsage ? (
-                    <Button onPress={onViewUsage} size="sm" variant="secondary">
-                        View usage
-                    </Button>
-                ) : null}
-            </div>
-        </ProviderCapacityCard>
-    );
-}
-
-function ProviderCapacityCard({
-    children,
-    provider,
-    secondary,
-    title,
-}: {
-    children: ReactNode;
-    provider: ProviderMarkId;
-    secondary?: ReactNode;
-    title: string;
-}) {
-    return (
-        <Card className="h-full">
-            <Card.Header className="flex-row items-start gap-3">
-                <Card.Title className={secondary ? 'min-w-0 pe-20 text-base' : 'min-w-0 text-base'}>
-                    <span className="flex min-w-0 items-center gap-2">
-                        <ProviderMark provider={provider} />
-                        <span className="truncate">{title}</span>
-                    </span>
-                </Card.Title>
-                {secondary ? <div className="absolute end-4 top-4">{secondary}</div> : null}
-            </Card.Header>
-            <Card.Content className="justify-end">{children}</Card.Content>
-        </Card>
-    );
-}
-
-function FiveHourUsageChip({ window }: { window: DisplayPlanWindow }) {
-    const resetCopy = window.resetsAt
-        ? ` Resets ${formatTimestamp(window.resetsAt)}.`
-        : ' Reset time unavailable.';
-    return (
-        <Tooltip delay={300}>
-            <Tooltip.Trigger
-                aria-label={`5-hour limit, ${window.usedPercent}% used.`}
-                className="flex"
-            >
-                <Chip
-                    className="shrink-0 tabular-nums"
-                    color={usageColor(window.usedPercent)}
-                    size="sm"
-                    variant="soft"
-                >
-                    5h · {Math.round(window.usedPercent)}%
-                </Chip>
-            </Tooltip.Trigger>
-            <Tooltip.Content placement="top" showArrow>
-                <Tooltip.Arrow />
-                <p>
-                    5-hour window. {Math.round(window.usedPercent)}% used.{resetCopy}
-                </p>
-            </Tooltip.Content>
-        </Tooltip>
-    );
-}
-
-function PlanUsage({
-    emptyMessage,
-    windows,
-}: {
-    emptyMessage: string;
-    windows: DisplayPlanWindow[];
-}) {
-    if (windows.length === 0) {
-        return <p className="text-muted text-sm">{emptyMessage}</p>;
+    if (detectedRuntimeIds.length === 0) {
+        return <p className="text-muted text-sm">No runtimes detected.</p>;
     }
+
     return (
-        <div className="grid gap-4">
-            {windows.map((window) => (
-                <div className="grid gap-1" key={window.id}>
-                    <ProgressBar
-                        aria-label={window.label}
-                        color={window.usedPercent >= 90 ? 'danger' : 'accent'}
-                        value={window.usedPercent}
-                    >
-                        <Label>{window.label}</Label>
-                        <ProgressBar.Output />
-                        <ProgressBar.Track>
-                            <ProgressBar.Fill />
-                        </ProgressBar.Track>
-                    </ProgressBar>
-                    {window.resetsAt ? (
-                        <p className="text-muted text-xs">
-                            Resets {formatTimestamp(window.resetsAt)}
-                        </p>
-                    ) : null}
-                </div>
+        <div aria-busy="true" className="grid gap-2">
+            <span className="sr-only">Loading runtime usage</span>
+            {detectedRuntimeIds.map((runtimeId) => (
+                <Skeleton className="h-11 w-full rounded-xl" key={runtimeId} />
             ))}
         </div>
     );
 }
+
+function runtimeColumns(onViewPiUsage?: () => void): DataGridColumn<RuntimeUsageRow>[] {
+    return [
+        {
+            cell: (item) => (
+                <div className="flex min-w-0 items-center gap-3">
+                    <ProviderMark className="size-5 shrink-0 text-muted" provider={item.id} />
+                    <p className="truncate font-medium text-base">{item.title}</p>
+                </div>
+            ),
+            header: 'Runtime',
+            headerClassName: 'text-sm',
+            id: 'runtime',
+            isRowHeader: true,
+            minWidth: 180,
+        },
+        {
+            cell: (item) =>
+                item.window ? (
+                    <UsageMeter label={`${item.title} ${item.window.label}`} window={item.window} />
+                ) : (
+                    <span className="truncate text-muted text-sm">{item.status}</span>
+                ),
+            header: 'Weekly limit',
+            headerClassName: 'text-sm',
+            id: 'limit',
+            minWidth: 240,
+        },
+        {
+            // The burst window gets its own track. Inline beside the weekly meter
+            // it stole width from one row's bar, which made the bars stop being
+            // comparable.
+            cell: (item) =>
+                item.fiveHourWindow ? (
+                    <Tooltip delay={300}>
+                        <Tooltip.Trigger
+                            aria-label={`5-hour limit, ${Math.round(item.fiveHourWindow.usedPercent)}% used.`}
+                            className="flex w-full min-w-0"
+                        >
+                            <UsageMeter
+                                label={`${item.title} 5-hour limit`}
+                                window={item.fiveHourWindow}
+                            />
+                        </Tooltip.Trigger>
+                        <Tooltip.Content showArrow>
+                            <Tooltip.Arrow />
+                            <p className="max-w-xs">{burstResetCopy(item.fiveHourWindow)}</p>
+                        </Tooltip.Content>
+                    </Tooltip>
+                ) : (
+                    <UnsupportedMeter />
+                ),
+            header: '5h limit',
+            headerClassName: 'text-sm',
+            id: 'burst',
+            minWidth: 190,
+        },
+        {
+            align: 'end',
+            cell: (item) => {
+                if (item.window?.resetsAt) {
+                    return (
+                        <span className="text-muted text-sm">
+                            Resets {formatTimestamp(item.window.resetsAt)}
+                        </span>
+                    );
+                }
+                return item.id === 'pi' && onViewPiUsage ? (
+                    <Button className="-my-1" onPress={onViewPiUsage} size="sm" variant="ghost">
+                        View usage
+                    </Button>
+                ) : null;
+            },
+            header: 'Resets',
+            headerClassName: 'text-sm',
+            id: 'resets',
+            minWidth: 150,
+        },
+    ];
+}
+
+function UsageMeter({ label, window }: { label: string; window: DisplayPlanWindow }) {
+    return (
+        <div className="flex w-full min-w-0 items-center gap-3">
+            <ProgressBar
+                aria-label={label}
+                className="min-w-12 flex-1"
+                // The bar used its own inline threshold while the shared helper
+                // defines a warning tier at 75%, so a 75% week looked as calm as a
+                // 7% one. One scale for every meter.
+                color={usageColor(window.usedPercent)}
+                value={window.usedPercent}
+            >
+                <ProgressBar.Track>
+                    <ProgressBar.Fill />
+                </ProgressBar.Track>
+            </ProgressBar>
+            <span className="w-10 shrink-0 text-right font-medium text-sm tabular-nums">
+                {Math.round(window.usedPercent)}%
+            </span>
+        </div>
+    );
+}
+
+/**
+ * A runtime with no burst window keeps the meter's geometry so the column still
+ * reads as one row of bars, but renders an inert track rather than a zero-value
+ * ProgressBar — a 0% bar would announce "0%" and imply a limit that does not
+ * exist. The track class comes from the design system, so it tracks the theme.
+ */
+function UnsupportedMeter() {
+    return (
+        <div className="flex min-w-0 items-center gap-3">
+            <div aria-hidden="true" className="progress-bar__track min-w-12 flex-1 opacity-40" />
+            <span className="w-10 shrink-0 text-right text-muted text-sm">—</span>
+            <span className="sr-only">No 5-hour limit</span>
+        </div>
+    );
+}
+
+function buildRuntimeRow(
+    id: ComputerRuntimeId,
+    usage: UsageOverview,
+    piAgentCount: number | null
+): RuntimeUsageRow {
+    const title = runtimeLabels[id];
+
+    if (id === 'codex') {
+        return {
+            fiveHourWindow: null,
+            id,
+            status: 'Plan limits unavailable',
+            title,
+            window:
+                usage.codex.status === 'ok'
+                    ? selectFirstWindow(
+                          usage.codex.snapshot.windows,
+                          ['current-week', 'current-session'],
+                          'Weekly Limit'
+                      )
+                    : null,
+        };
+    }
+
+    if (id === 'claude-code') {
+        return {
+            fiveHourWindow:
+                usage.claude.status === 'ok'
+                    ? selectWindow(usage.claude.snapshot.windows, 'current-session', '5h')
+                    : null,
+            id,
+            status: 'Plan limits unavailable',
+            title,
+            window:
+                usage.claude.status === 'ok'
+                    ? (selectWindows(usage.claude.snapshot.windows, [
+                          ['current-week-all-models', 'Weekly Limit'],
+                      ])[0] ?? null)
+                    : null,
+        };
+    }
+
+    if (id === 'grok-build') {
+        return {
+            fiveHourWindow: null,
+            id,
+            status: 'Weekly limit unavailable',
+            title,
+            window:
+                usage.grok.status === 'ok'
+                    ? (usage.grok.snapshot.windows.find(
+                          (candidate) => candidate.label === 'Weekly Limit'
+                      ) ?? null)
+                    : null,
+        };
+    }
+
+    return { fiveHourWindow: null, id, status: piAgentSummary(piAgentCount), title, window: null };
+}
+
+function burstResetCopy(window: DisplayPlanWindow) {
+    const used = `Rolling 5-hour limit, ${Math.round(window.usedPercent)}% used.`;
+    return window.resetsAt
+        ? `${used} Resets ${formatTimestamp(window.resetsAt)}.`
+        : `${used} Reset time unavailable.`;
+}
+
+function piAgentSummary(agentCount: number | null) {
+    if (agentCount === null) {
+        return 'API-backed · Usage tracked automatically';
+    }
+    return agentCount === 0
+        ? 'API-backed · No Agents using Pi'
+        : `API-backed · ${agentCount} ${agentCount === 1 ? 'Agent' : 'Agents'}`;
+}
+
+const runtimeOrder: ComputerRuntimeId[] = ['codex', 'claude-code', 'grok-build', 'pi'];
+
+const runtimeLabels: Record<ComputerRuntimeId, string> = {
+    'claude-code': 'Claude Code',
+    codex: 'Codex',
+    'grok-build': 'Grok Build',
+    pi: 'Pi',
+};

@@ -202,12 +202,23 @@ test('renders only detected runtime cards without token details', () => {
     expect(markup).not.toContain('Codex');
     expect(markup).not.toContain('Pi');
     expect(markup).toContain('Weekly Limit');
-    expect(markup).toContain('5h · 11%');
-    expect(markup).toContain('absolute end-4 top-4');
+    // The burst window has its own column, so the chip carries only its value
+    // and the meter column keeps one bar width across every row.
+    expect(markup).toContain('5h limit');
+    expect(markup).toContain('>11%<');
     expect(markup).toContain('tooltip__trigger flex');
-    expect(markup.match(/card__title/g)).toHaveLength(2);
-    expect(markup.match(/chip--soft/g)).toHaveLength(1);
-    expect(markup).toContain('auto-rows-fr');
+    // Runtimes render through the same DataGrid as the Agents table on this
+    // page, so both share one header, surface, and row treatment.
+    expect(markup).toContain('data-slot="data-grid"');
+    expect(markup).toContain('Weekly limit');
+    expect(markup).toContain('Resets');
+    // A weekly meter per runtime, plus a burst meter only where the runtime has
+    // a 5-hour window; the runtime without one gets an inert track instead of a
+    // zero-value bar that would announce "0%".
+    expect(markup.match(/role="progressbar"/g)).toHaveLength(3);
+    expect(markup).toContain('No 5-hour limit');
+    expect(markup).toContain('5-hour limit, 11% used.');
+    expect(markup).not.toContain('auto-rows-fr');
     expect(markup).not.toContain('30-day processed tokens');
     expect(markup).not.toContain('claude-opus-4-1');
     expect(markup).not.toContain('grok-code-fast-1');
@@ -244,8 +255,7 @@ test('represents Pi as a detected runtime with a filtered Agent usage link', () 
     );
 
     expect(markup).toContain('Pi');
-    expect(markup).toContain('API-backed runtime');
-    expect(markup).toContain('2 Agents · Usage tracked automatically');
+    expect(markup).toContain('API-backed · 2 Agents');
     expect(markup).toContain('View usage');
     expect(markup).not.toContain('OpenRouter');
 });

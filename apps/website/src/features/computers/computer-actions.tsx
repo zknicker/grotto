@@ -2,19 +2,17 @@ import { Button, Separator, Tooltip } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import { useState } from 'react';
-import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import {
+    type ComputerRemovalAvailability,
+    computerRemovalDescription,
+    useComputerRemovalAvailability,
+} from './computer-removal.ts';
 import { ComputerUpdateControls } from './computer-update-controls.tsx';
 import {
     ComputerUpdatePreviewMenu,
     type ComputerUpdatePreviewState,
 } from './computer-update-preview.tsx';
-
-type ComputerRemovalAvailability =
-    | { status: 'checking' }
-    | { status: 'error' }
-    | { agentNames: string[]; status: 'blocked' }
-    | { status: 'ready' };
 
 export function ComputerActions({
     computerId,
@@ -27,8 +25,8 @@ export function ComputerActions({
     serverId: string;
     serverSlug: string;
 }) {
-    const agents = useAgents(serverId);
     const computers = useComputers(serverId);
+    const removalAvailability = useComputerRemovalAvailability(serverId, computerId);
     const [updatePreviewState, setUpdatePreviewState] =
         useState<ComputerUpdatePreviewState>('live');
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
@@ -37,21 +35,8 @@ export function ComputerActions({
         return null;
     }
 
-    const assignedAgents = (agents.data ?? []).filter((agent) => agent.computerId === computerId);
-    let removalAvailability: ComputerRemovalAvailability;
-    if (agents.data === undefined) {
-        removalAvailability = agents.error ? { status: 'error' } : { status: 'checking' };
-    } else if (assignedAgents.length > 0) {
-        removalAvailability = {
-            agentNames: assignedAgents.map((agent) => agent.displayName),
-            status: 'blocked',
-        };
-    } else {
-        removalAvailability = { status: 'ready' };
-    }
-
     return (
-        <section className="grid gap-8 py-5">
+        <section className="grid gap-8">
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header className="flex items-center justify-between">
                     <ItemCardGroup.Title>Computer Management</ItemCardGroup.Title>
@@ -148,20 +133,4 @@ export function ComputerRemovalAction({
             </ItemCard.Action>
         </ItemCard>
     );
-}
-
-function computerRemovalDescription(availability: ComputerRemovalAvailability) {
-    if (availability.status === 'ready') {
-        return 'This immediately revokes this Computer’s credential.';
-    }
-    if (availability.status === 'checking') {
-        return 'Checking for assigned Agents…';
-    }
-    if (availability.status === 'error') {
-        return 'Assigned Agents could not be verified. Try again.';
-    }
-    if (availability.agentNames.length === 1) {
-        return `Delete ${availability.agentNames[0]} before removing this Computer.`;
-    }
-    return `Delete all ${availability.agentNames.length} assigned Agents before removing this Computer.`;
 }

@@ -18,15 +18,16 @@ import {
 const ranges: TokenUsageRange[] = [7, 30, 90];
 
 export function AgentsTokenUsage({
+    days,
     emptyMessage,
     scope,
     usage,
 }: {
+    days: TokenUsageRange;
     emptyMessage?: string;
     scope?: TokenUsageScope;
     usage: TokenUsageOverview;
 }) {
-    const [days, setDays] = useState<TokenUsageRange>(30);
     const [selectedAgentId, setSelectedAgentId] = useState<null | string>(null);
     const view = useMemo(
         () => buildTokenUsageView(usage, days, selectedAgentId, new Date(), scope),
@@ -34,7 +35,7 @@ export function AgentsTokenUsage({
     );
 
     return (
-        <UsageDashboard days={days} emptyMessage={emptyMessage} onRangeChange={setDays} view={view}>
+        <UsageDashboard emptyMessage={emptyMessage} view={view}>
             {view.agents.length > 0 ? (
                 <AgentUsageKpis
                     agents={view.agents}
@@ -58,7 +59,7 @@ export function AgentTokenUsage({
 
     return (
         <UsageDashboard
-            days={days}
+            controls={<TokenUsageRangePicker days={days} onChange={setDays} />}
             heading={
                 <div>
                     <h2 className="font-semibold text-lg">Usage</h2>
@@ -67,7 +68,6 @@ export function AgentTokenUsage({
                     </p>
                 </div>
             }
-            onRangeChange={setDays}
             view={view}
         />
     );
@@ -75,25 +75,27 @@ export function AgentTokenUsage({
 
 function UsageDashboard({
     children,
-    days,
+    controls,
     emptyMessage,
     heading,
-    onRangeChange,
     view,
 }: {
     children?: ReactNode;
-    days: TokenUsageRange;
+    controls?: ReactNode;
     emptyMessage?: string;
     heading?: ReactNode;
-    onRangeChange: (days: TokenUsageRange) => void;
     view: TokenUsageView;
 }) {
     return (
-        <div className="grid gap-4">
-            <div className="flex flex-wrap items-end justify-end gap-3 px-1.5">
-                {heading ? <div className="me-auto">{heading}</div> : null}
-                <RangePicker days={days} onChange={onRangeChange} />
-            </div>
+        <div className="grid gap-8">
+            {/* Surfaces that host the range picker in the shell band pass neither
+                slot, so the row collapses instead of floating a lone control. */}
+            {heading || controls ? (
+                <div className="flex flex-wrap items-end justify-end gap-3 px-1.5">
+                    {heading ? <div className="me-auto">{heading}</div> : null}
+                    {controls}
+                </div>
+            ) : null}
             {children}
             <TokenUsageChart emptyMessage={emptyMessage} view={view} />
             <TokenTotalKpis totals={view.totals} />
@@ -102,7 +104,7 @@ function UsageDashboard({
     );
 }
 
-function RangePicker({
+export function TokenUsageRangePicker({
     days,
     onChange,
 }: {

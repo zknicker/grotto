@@ -75,3 +75,31 @@ extension View {
         #endif
     }
 }
+
+extension View {
+    /// Hides the system navigation bar on a screen that supplies its own ``ChromeHeader``.
+    @ViewBuilder
+    func grottoHiddenNavigationBar() -> some View {
+        #if os(iOS)
+        toolbar(.hidden, for: .navigationBar)
+        #else
+        self
+        #endif
+    }
+}
+
+/// The veil painted over the Chat canvas while the sidebar drawer is open.
+///
+/// Light mode fades the canvas toward the background and reads its edge from the
+/// canvas shadow. Dark mode cannot: a darker veil would erase the edge between a
+/// black canvas and a black sidebar, so the canvas lifts to an elevated surface
+/// instead.
+enum GrottoDrawerVeil {
+    static func color(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? .white : GrottoPlatformColor.background
+    }
+
+    static func opacity(for scheme: ColorScheme, progress: CGFloat) -> Double {
+        Double(progress) * (scheme == .dark ? 0.11 : 0.55)
+    }
+}

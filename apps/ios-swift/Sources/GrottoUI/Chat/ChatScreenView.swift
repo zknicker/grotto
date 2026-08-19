@@ -93,7 +93,9 @@ public struct ChatScreenView: View {
     }
 
     private var header: some View {
-        ZStack {
+        ChromeHeader {
+            GlassChromeButton(.sidebar, label: "Open navigation", action: onOpenSidebar)
+        } center: {
             Button(action: onOpenChatDetails) {
                 HStack(spacing: 7) {
                     chatIdentity
@@ -105,29 +107,9 @@ public struct ChatScreenView: View {
                 .frame(maxWidth: 220)
             }
             .buttonStyle(.plain)
-
-            HStack {
-                GlassChromeButton(
-                    action: onOpenSidebar
-                ) {
-                    SidebarMenuGlyph()
-                }
-                .accessibilityLabel("Open navigation")
-
-                Spacer()
-
-                GlassChromeButton(
-                    action: onOpenSearch
-                ) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 19, weight: .medium))
-                        .foregroundStyle(GrottoPlatformColor.label)
-                }
-                .accessibilityLabel("Search messages")
-            }
+        } trailing: {
+            GlassChromeButton(.symbol("magnifyingglass"), label: "Search messages", action: onOpenSearch)
         }
-        .padding(.horizontal, 16)
-        .frame(height: 56)
     }
 
     @ViewBuilder
@@ -140,16 +122,6 @@ public struct ChatScreenView: View {
         }
     }
 
-}
-
-private struct SidebarMenuGlyph: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Capsule().fill(GrottoPlatformColor.label).frame(width: 21, height: 2.5)
-            Capsule().fill(GrottoPlatformColor.label).frame(width: 14, height: 2.5)
-        }
-        .accessibilityHidden(true)
-    }
 }
 
 private extension ChatKind {

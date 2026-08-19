@@ -195,11 +195,7 @@ struct AuthenticatedGrottoView: View {
     }
 
     private var preferredColorScheme: ColorScheme? {
-        switch AppearancePreference(rawValue: appearanceRawValue) ?? .system {
-        case .system: nil
-        case .light: .light
-        case .dark: .dark
-        }
+        (AppearancePreference(rawValue: appearanceRawValue) ?? .system).colorScheme
     }
 
     private func openThread(_ chat: ChatPresentation, _ anchor: MessagePresentation) {

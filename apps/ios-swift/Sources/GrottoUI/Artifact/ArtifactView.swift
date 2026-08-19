@@ -37,11 +37,7 @@ public struct ArtifactView<CanvasContent: View>: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            GlassChromeButton(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-            }
-            .accessibilityLabel("Back")
+            GlassChromeButton(.symbol("chevron.left"), label: "Back", action: onBack)
 
             Text(artifact.displayTitle)
                 .font(.headline)

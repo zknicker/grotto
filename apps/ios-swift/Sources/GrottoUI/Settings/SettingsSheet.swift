@@ -24,6 +24,15 @@ public enum AppearancePreference: String, CaseIterable, Hashable, Sendable {
         case .dark: "Dark"
         }
     }
+
+    /// The scheme to force, or `nil` to follow the system.
+    public var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
 }
 
 public struct SettingsSheet: View {
@@ -51,28 +60,31 @@ public struct SettingsSheet: View {
 
     public var body: some View {
         NavigationStack(path: $path) {
-            SettingsHubView(
-                data: data,
-                appearance: $appearance,
-                onNavigate: { path.append($0) }
-            )
-            .navigationTitle("Settings")
-            .grottoInlineNavigationTitle()
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    GlassChromeButton(action: { dismiss() }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 17, weight: .medium))
-                    }
-                    .padding(.trailing, 4)
-                    .accessibilityLabel("Close settings")
+            VStack(spacing: 0) {
+                ChromeHeader(center: {
+                    Text("Settings").font(.headline)
+                }) {
+                    GlassChromeButton(.symbol("xmark"), label: "Close settings") { dismiss() }
                 }
+                .padding(.top, 6)
+
+                SettingsHubView(
+                    data: data,
+                    appearance: $appearance,
+                    onNavigate: { path.append($0) }
+                )
             }
+            .background(GrottoPlatformColor.groupedBackground)
+            .grottoHiddenNavigationBar()
             .navigationDestination(for: SettingsRoute.self) { route in
                 destination(for: route)
             }
         }
         .tint(.blue)
+        // The Appearance picker lives in this sheet, so the sheet has to honor
+        // the choice immediately; a presented sheet does not pick up a scheme
+        // change made behind it.
+        .preferredColorScheme(appearance.colorScheme)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationBackground(GrottoPlatformColor.groupedBackground)

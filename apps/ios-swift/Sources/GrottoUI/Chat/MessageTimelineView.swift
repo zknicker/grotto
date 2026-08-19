@@ -113,16 +113,12 @@ public struct MessageTimelineView: View {
                 }
 
                 if !isNearBottom {
-                    GlassChromeButton {
+                    GlassChromeButton(.symbol("arrow.down"), label: "Scroll to latest message") {
                         guard let latestMessageID = messages.last?.id else { return }
                         withAnimation(.easeOut(duration: 0.2)) {
                             proxy.scrollTo(latestMessageID, anchor: .bottom)
                         }
-                    } label: {
-                        Image(systemName: "arrow.down")
-                            .font(.system(size: 16, weight: .semibold))
                     }
-                    .accessibilityLabel("Scroll to latest message")
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .padding(.bottom, 10)
                 }

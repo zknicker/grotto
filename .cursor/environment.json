@@ -1,0 +1,10 @@
+{
+  "name": "Grotto",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "dev-stack",
+      "command": "GROTTO_POSTGRES_BIN=/usr/lib/postgresql/16/bin bun run dev"
+    }
+  ]
+}

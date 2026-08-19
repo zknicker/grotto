@@ -1,6 +1,7 @@
 import { Button, Card, Chip } from '@heroui/react';
 import type React from 'react';
 import { cn } from '../../../lib/utils.ts';
+import { PageColumn, type PageColumnWidth } from '../../shell/page-column.tsx';
 
 /**
  * Settings composition layer on stock HeroUI: page column, header, Title Case
@@ -9,8 +10,12 @@ import { cn } from '../../../lib/utils.ts';
  * system.
  */
 
-export function SettingsPage({ className, ...props }: React.ComponentProps<'div'>) {
-    return <div className={cn('mx-auto grid w-full max-w-3xl gap-8 pb-2', className)} {...props} />;
+/** Settings' name for the shared page column; the rhythm lives in PageColumn. */
+export function SettingsPage({
+    width = 'default',
+    ...props
+}: React.ComponentProps<'div'> & { width?: PageColumnWidth }) {
+    return <PageColumn width={width} {...props} />;
 }
 
 export function SettingsPageHeader({

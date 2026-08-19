@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { useLayoutContext } from '../../shell/use-layout-context.ts';
 import { SettingsLayout } from './page.tsx';
+import { SettingsPage } from './settings-page.tsx';
 
 describe('SettingsLayout', () => {
     test('forwards the app layout context to settings child routes', () => {
@@ -11,10 +12,15 @@ describe('SettingsLayout', () => {
         expect(markup).toContain('settings context available');
     });
 
-    test('pads normal settings routes', () => {
+    test('pads normal settings routes through the shared page column', () => {
         const markup = renderSettingsRoute();
 
-        expect(markup).toContain('pt-12');
+        // The frame owns scrolling only; the gutter, width, and section rhythm
+        // belong to PageColumn so every destination shares one rhythm.
+        expect(markup).toContain('px-6');
+        expect(markup).toContain('pt-8');
+        expect(markup).toContain('gap-8');
+        expect(markup).toContain('max-w-3xl');
     });
 });
 
@@ -39,5 +45,9 @@ function AppLayoutProbe() {
 function SettingsChildProbe() {
     const context = useLayoutContext();
 
-    return <span>{context ? 'settings context available' : 'missing context'}</span>;
+    return (
+        <SettingsPage>
+            <span>{context ? 'settings context available' : 'missing context'}</span>
+        </SettingsPage>
+    );
 }

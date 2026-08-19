@@ -41,7 +41,9 @@ export function SettingsContentFrame({
                 className={
                     isFullContentRoute
                         ? 'h-full min-h-0 w-full flex-1'
-                        : 'mx-auto w-full max-w-5xl px-12 pt-12 pb-16'
+                        : // PageColumn owns the gutter, width, and rhythm; the frame
+                          // only owns scrolling.
+                          'w-full'
                 }
             >
                 {children}

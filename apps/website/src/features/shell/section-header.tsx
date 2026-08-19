@@ -23,7 +23,7 @@ export const sidebarHeaderBandClassName = `-mt-4 -mb-2 flex ${bandHeightClassNam
 export function SectionBar({ children }: { children?: ReactNode }) {
     return (
         <header
-            className={`flex ${bandHeightClassName} shrink-0 items-center border-separator border-b px-4 has-[[data-shell-topbar-seam=hidden]]:border-b-transparent`}
+            className={`flex ${bandHeightClassName} shrink-0 items-center border-separator border-b px-6 has-[[data-shell-topbar-seam=hidden]]:border-b-transparent`}
         >
             {children}
         </header>

@@ -103,6 +103,21 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   open and close motion.
 * The shell renders one `ShellTopbar`. Pages compose its content through
   `PageTopbar` and `SectionHeader`. Embedded surfaces use `SectionBar`.
+* Routed destinations render their content inside one `PageColumn`, which owns
+  the page gutter, max width, and the rhythm between sections. It encodes
+  HeroUI's page idiom (`mx-auto flex w-full flex-col gap-8` plus page padding)
+  against the generated `--spacing` token, so a design-system change rescales
+  every page together. Pick width through the `width` variant
+  (`default`, `wide`, `full`) rather than a call-site `max-w-[…]` override.
+* Spacing has one owner per axis. HeroUI modules — `Widget`, `ItemCardGroup`,
+  `Card`, `KPI` — already carry their own header and content padding, so drop
+  them straight into the column instead of wrapping them in padded `<section>`
+  elements. Adding padding to both a parent and its child is what drove page
+  rhythm to 15px on one destination and 40px on another.
+* `SectionBar`'s horizontal padding matches `PageColumn`'s so a band title and
+  the content beneath it share one left edge. Change them together.
+* Chat is deliberately exempt from `PageColumn`: it is a full-height surface
+  with its own scroll and composer geometry, not a document column.
 * Chat side panes portal into the shell-level side-pane slot so their header
   sits beside the chat topbar and their body spans the full app content height.
   Pane state and content remain owned by the active chat. Every pane kind uses

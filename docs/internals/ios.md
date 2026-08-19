@@ -58,6 +58,30 @@ and composer controls use native glass only on iOS 26 and retain an opaque seman
 systems. Transcript rows, Thread previews, Task metadata, sidebars, and settings groups stay opaque.
 Glass is a navigation hierarchy, not a general content-card material.
 
+Every floating chrome control is one control. `GlassChromeButton` owns the 44-point circle, the
+19-point medium glyph, and the glass or material treatment, and `ChromeHeader` owns the 56-point
+chrome row that positions leading, centered, and trailing chrome. Call sites choose a glyph and a
+label; they do not restyle the control or set their own geometry. The sidebar and the Chat canvas
+both open with that same row, so a chrome button in either pane lands on one centerline. A fixed-size chrome circle must not
+be placed in a system navigation bar, which compresses it into an ellipse: a screen that wants the
+chrome circle supplies its own `ChromeHeader` and hides the navigation bar, as the Settings sheet
+root does. Pushed screens keep the standard navigation bar with its system back button and text
+actions.
+
+Dark mode cannot use the canvas shadow to separate an open drawer from the sidebar, because a black
+canvas over a black sidebar has no edge. The veil painted over the slid-aside canvas therefore
+reverses by scheme: light mode fades the canvas toward the background and reads its edge from the
+shadow, while dark mode lifts the canvas to an elevated surface so the sidebar stays the recessed
+plane. `GrottoDrawerVeil` owns that rule.
+
+The sidebar drawer tracks the finger. A horizontal drag anywhere on the Chat canvas attaches the
+canvas to the finger, moves it one to one inside its travel, and stops at both ends because nothing
+sits behind the canvas past either edge; `DrawerInteraction` owns that math and its release decision,
+so a flick settles the drawer by velocity and a slow drag settles it by position. The drag uses a UIKit pan recognizer so it can claim
+only horizontal movement, cancel an in-flight vertical timeline scroll once it begins, and leave
+horizontally scrollable content such as staged attachments alone. There is no edge-only hit zone and
+no all-or-nothing open.
+
 An anchor message owns one recessed Thread ingress. On iPhone it shows the Server-projected reply and
 unread counts plus only the latest recent reply; this is a presentation reduction of the same Thread
 summary used by the desktop App. A Task uses that same ingress with its number, status disc, and
@@ -78,9 +102,12 @@ the walk completes, so events arriving during recovery are not missed. A cold st
 from `chat.eventHead` after refreshing the Server snapshot;
 cursor state is intentionally process-memory only for this prototype.
 
-Utility navigation stays on the same Server contracts and Store cache. The header search sheet calls
-`chat.search` across the active Server and resolves each result against the canonical chat directory;
-the sidebar search remains a local chat-name filter. Archived channels load through
+Utility navigation stays on the same Server contracts and Store cache. One search surface serves the
+active Server, reachable from the Chat header and from the sidebar's own chrome button. Like the
+desktop command menu, it unifies in the UI rather than in the API: chats match locally against the
+Store's chat directory and appear immediately, while messages resolve through `chat.search` behind a
+debounce and each result is resolved against the canonical chat directory. A Server search failure
+degrades the message section alone and leaves chat matches usable. Archived channels load through
 `chat.listArchived` and restore through `chat.unarchiveChannel`, while channel creation uses the live
 Agent directory and `chat.createChannel`. These sheets receive narrow async closures from `GrottoApp`
 so `GrottoUI` remains independent of tRPC and does not invent mobile-only ids or records.

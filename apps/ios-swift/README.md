@@ -18,6 +18,14 @@ add an OpenAPI generator or a community tRPC client. `GrottoTransport` sends
 the existing app protocol headers and performs typed tRPC HTTP operations and
 SSE subscriptions directly.
 
+## Run in Simulator
+
+A Debug build signs in automatically against a local Grotto Server, so Simulator
+needs no browser OAuth. See
+[Grotto For iPhone In Simulator](../../docs/operations/development.md#grotto-for-iphone-in-simulator)
+for the stack, build, install, and launch commands. Release builds always use the
+production Server and its Google sign-in.
+
 ## Local checks
 
 Run the complete package test suite from this directory:

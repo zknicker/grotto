@@ -3,6 +3,7 @@ summary: Local development workflow for Server, Computer, app startup, and verif
 read_when:
   - running Grotto locally or changing the managed development stack
   - changing local stack startup, ports, or developer verification
+  - running or verifying the iPhone app in Simulator against a local Server
 ---
 
 # Development
@@ -129,6 +130,54 @@ rerun the same setup command if the CLI stopped. Its persisted idempotency key
 recovers the issued Computer instead of creating another. `logout` revokes only
 the human management session and stops the service; it preserves every Server
 attachment and Agent workspace for an explicit later `start`.
+
+## Grotto For iPhone In Simulator
+
+The iPhone app signs in automatically against a local Server, the same way the
+website does in development. It never needs browser OAuth or hand-entered
+credentials.
+
+Start the stack, then build, install, and launch the app with the development
+environment:
+
+```bash
+bun run dev
+```
+
+```bash
+cd apps/ios-swift && xcodegen generate --spec project.yml
+```
+
+```bash
+xcrun simctl boot "iPhone 17 Pro"; xcrun simctl bootstatus "iPhone 17 Pro"
+```
+
+```bash
+xcodebuild -project apps/ios-swift/Grotto.xcodeproj -scheme Grotto -destination 'name=iPhone 17 Pro' -derivedDataPath build/ios build
+```
+
+```bash
+xcrun simctl install booted build/ios/Build/Products/Debug-iphonesimulator/Grotto.app
+```
+
+```bash
+SIMCTL_CHILD_GROTTO_DEV_SERVER_ORIGIN="http://localhost:$(($(dev-port) + 3))" SIMCTL_CHILD_GROTTO_CLERK_PUBLISHABLE_KEY="$(grep VITE_CLERK_PUBLISHABLE_KEY apps/website/.env.development | cut -d= -f2)" xcrun simctl launch booted build.grotto.ios
+```
+
+`SIMCTL_CHILD_` prefixes pass an environment variable through to the launched
+app. Grotto Server listens on the fourth port of the worktree's group, which is
+`dev-port` plus three; the development Clerk publishable key is the checked-in
+one the website already uses. A Debug build accepts a development origin only on
+`localhost`, `127.0.0.1`, or `::1`, requests the localhost-only
+`dev.createClerkSignInToken` ticket, activates it through Clerk's native SDK, and
+calls `server.developmentBootstrap` before loading the Server list. It caches the
+last validated configuration, so a later plain `xcrun simctl launch booted
+build.grotto.ios` reuses the same development Server and Clerk instance without
+the environment. Release builds carry no development path and always use the
+production Server.
+
+Launching without those variables on a fresh install leaves the app on
+production sign-in, which needs a real Google account and cannot be automated.
 
 ## Claude Code Previews
 

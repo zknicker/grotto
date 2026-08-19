@@ -65,8 +65,14 @@ export async function startPostgresCluster(
             '-c',
             'full_page_writes=off',
         ],
-        { stdio: 'ignore' }
+        // stderr is buffered rather than discarded: a postmaster that dies during
+        // startup reports why on stderr, and dropping it leaves only an exit code.
+        { env: clusterEnvironment(), stdio: ['ignore', 'ignore', 'pipe'] }
     );
+    let startupErrors = '';
+    server.stderr?.on('data', (chunk) => {
+        startupErrors += String(chunk);
+    });
 
     // SIGINT is PostgreSQL's fast shutdown: it releases the cluster's System V
     // shared-memory segment, which SIGKILL leaks — and macOS allows only 32
@@ -105,7 +111,7 @@ export async function startPostgresCluster(
     process.once('exit', stopAtProcessExit);
 
     try {
-        await waitForReadyCluster(binaries, port, server);
+        await waitForReadyCluster(binaries, port, server, () => startupErrors);
         run(binaries.createdb, [
             '--host',
             '127.0.0.1',
@@ -133,13 +139,21 @@ interface PostgresBinaries {
     postgres: string;
 }
 
-async function waitForReadyCluster(binaries: PostgresBinaries, port: number, server: ChildProcess) {
+async function waitForReadyCluster(
+    binaries: PostgresBinaries,
+    port: number,
+    server: ChildProcess,
+    readStartupErrors: () => string
+) {
     const deadline = Date.now() + readyTimeoutMs;
 
     while (Date.now() < deadline) {
         if (server.exitCode !== null) {
+            const reported = readStartupErrors().trim();
             throw new Error(
-                `The PostgreSQL test cluster exited with code ${server.exitCode} before accepting connections.`
+                `The PostgreSQL test cluster exited with code ${server.exitCode} before accepting connections.${
+                    reported ? `\n${reported}` : ''
+                }`
             );
         }
 
@@ -156,7 +170,10 @@ async function waitForReadyCluster(binaries: PostgresBinaries, port: number, ser
         await Bun.sleep(readyPollMs);
     }
 
-    throw new Error('The PostgreSQL test cluster did not accept connections in time.');
+    const reported = readStartupErrors().trim();
+    throw new Error(
+        `The PostgreSQL test cluster did not accept connections in time.${reported ? `\n${reported}` : ''}`
+    );
 }
 
 function resolvePostgresBinaries(): PostgresBinaries {
@@ -183,8 +200,20 @@ function resolvePostgresBinaries(): PostgresBinaries {
     );
 }
 
+/**
+ * PostgreSQL 16 on macOS aborts at startup when the environment carries no
+ * usable locale: its locale lookup goes multithreaded and the postmaster exits
+ * with "postmaster became multithreaded during startup". Inheriting a bare
+ * shell is enough to trigger it, which leaves the whole lane unrunnable, so the
+ * cluster pins a deterministic locale unless the caller set one deliberately.
+ * Collation-sensitive tests pin their own through `icuLocale`.
+ */
+function clusterEnvironment(): NodeJS.ProcessEnv {
+    return process.env.LC_ALL ? process.env : { ...process.env, LC_ALL: 'C' };
+}
+
 function run(command: string, args: string[]) {
-    const result = spawnSync(command, args, { encoding: 'utf8' });
+    const result = spawnSync(command, args, { encoding: 'utf8', env: clusterEnvironment() });
 
     if (result.status !== 0) {
         throw new Error(

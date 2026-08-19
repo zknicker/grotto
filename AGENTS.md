@@ -208,10 +208,13 @@ The Cloud Agent environment is repository-managed via `.cursor/environment.json`
  auth token). `CLERK_SECRET_KEY` and `DEV_CLERK_SIGN_IN_USER_ID` are **runtime secrets** used only
  when Grotto Server runs; without them the app's automatic dev sign-in fails and product surfaces
  stay unreachable.
-- On Linux, `scripts/dev-postgres.mjs` only auto-discovers Homebrew PostgreSQL paths, so the
- `dev-stack` terminal sets `GROTTO_POSTGRES_BIN=/usr/lib/postgresql/16/bin`. Keep that in any manual
- `bun run dev` invocation. Do not start a system PostgreSQL service; the dev stack owns its own
- cluster under `~/.tavern/dev/<worktree-id>/postgres`.
+- PostgreSQL 16 lives at `/usr/lib/postgresql/16/bin`, and `.cursor/install.sh` symlinks its
+ binaries into `/usr/local/bin` so every PostgreSQL-backed lane finds them on `PATH`
+ (`bun run test:app`, `apps/server` tests, evals, and the dev stack). `scripts/dev-postgres.mjs` and
+ the server test harness otherwise only auto-discover Homebrew paths on Linux; if you run PostgreSQL
+ 16 from a non-standard location, set `GROTTO_POSTGRES_BIN` to its bin directory (the `dev-stack`
+ terminal already exports it explicitly). Do not start a system PostgreSQL service; each lane owns a
+ throwaway/worktree-isolated cluster.
 - The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against the checked-in dev Clerk
  instance; the first Server boot seeds a demo Server (agents Blippy and Tiny, `#all`/`#product`
  channels, starter messages). No manual login is required in dev.

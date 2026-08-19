@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-/// A presentation-only search result. The App adapter resolves the Server's
+/// A presentation-only message result. The App adapter resolves the Server's
 /// message author and chat ids into this display-ready shape before handing it
 /// to the view.
 public struct MessageSearchResultPresentation: Identifiable, Hashable, Sendable {
@@ -47,42 +47,69 @@ public enum MessageSearchChatKind: Hashable, Sendable {
     }
 }
 
-/// Native message search. Search work is injected so the view stays independent
-/// from tRPC, authentication, and the App's cache policy.
-public struct ServerMessageSearchView: View {
+/// Chat-name matching for the search surface.
+enum ServerSearch {
+    /// Chats whose name matches the query, with prefix matches first.
+    static func matchingChats(_ chats: [ChatPresentation], query: String) -> [ChatPresentation] {
+        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !term.isEmpty else { return [] }
+
+        let matches = chats.filter {
+            $0.title.range(of: term, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+        }
+        return matches.sorted { lhs, rhs in
+            hasPrefix(lhs, term) && !hasPrefix(rhs, term)
+        }
+    }
+
+    private static func hasPrefix(_ chat: ChatPresentation, _ term: String) -> Bool {
+        chat.title.range(
+            of: term,
+            options: [.caseInsensitive, .diacriticInsensitive, .anchored]
+        ) != nil
+    }
+}
+
+/// One search surface for the active Server: chats resolve locally from the
+/// Store cache while messages resolve through the Server. Search work is
+/// injected so the view stays independent from tRPC, authentication, and the
+/// App's cache policy.
+struct ServerSearchView: View {
     @Environment(\.dismiss) private var dismiss
 
-    private let search: @Sendable (String) async throws -> [MessageSearchResultPresentation]
-    private let onSelectResult: (MessageSearchResultPresentation) -> Void
+    private let chats: [ChatPresentation]
+    private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
+    private let onSelectChat: (ChatPresentation) -> Void
+    private let onSelectMessage: (MessageSearchResultPresentation) -> Void
 
-    @State private var query: String
+    @State private var query = ""
     @State private var results: [MessageSearchResultPresentation] = []
     @State private var hasSearched = false
     @State private var isSearching = false
     @State private var searchError: String?
     @State private var retryToken = 0
 
-    public init(
-        initialQuery: String = "",
-        search: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation],
-        onSelectResult: @escaping (MessageSearchResultPresentation) -> Void
+    init(
+        chats: [ChatPresentation],
+        searchMessages: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation],
+        onSelectChat: @escaping (ChatPresentation) -> Void,
+        onSelectMessage: @escaping (MessageSearchResultPresentation) -> Void
     ) {
-        self.search = search
-        self.onSelectResult = onSelectResult
-        _query = State(initialValue: initialQuery)
+        self.chats = chats
+        self.searchMessages = searchMessages
+        self.onSelectChat = onSelectChat
+        self.onSelectMessage = onSelectMessage
     }
 
-    public var body: some View {
+    var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Search messages")
+                .navigationTitle("Search")
                 .grottoInlineNavigationTitle()
-                .searchable(text: $query, prompt: "Search messages")
+                .searchable(text: $query, prompt: "Channels, Agents, and messages")
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") {
-                            dismiss()
-                        }
+                        Button("Done") { dismiss() }
                     }
                 }
         }
@@ -94,72 +121,82 @@ public struct ServerMessageSearchView: View {
         .presentationBackground(GrottoPlatformColor.groupedBackground)
     }
 
+    private var chatMatches: [ChatPresentation] {
+        ServerSearch.matchingChats(chats, query: query)
+    }
+
     @ViewBuilder
     private var content: some View {
-        if results.isEmpty, let searchError {
+        if results.isEmpty, chatMatches.isEmpty, let searchError {
             ContentUnavailableView {
                 Label("Search unavailable", systemImage: "exclamationmark.triangle")
             } description: {
                 Text(searchError)
             } actions: {
-                Button("Try again") {
-                    retryToken += 1
-                }
-                .buttonStyle(.borderedProminent)
+                Button("Try again") { retryToken += 1 }
+                    .buttonStyle(.borderedProminent)
             }
-        } else if results.isEmpty {
+        } else if results.isEmpty, chatMatches.isEmpty {
             ZStack(alignment: .top) {
                 if hasSearched {
                     ContentUnavailableView(
-                        "No messages found",
+                        "No matches",
                         systemImage: "text.magnifyingglass",
-                        description: Text("Try a different phrase or search term.")
+                        description: Text("Try a channel, an Agent name, or a different phrase.")
                     )
-                } else {
+                } else if query.isEmpty {
                     ContentUnavailableView(
                         "Search Grotto",
                         systemImage: "magnifyingglass",
-                        description: Text("Search messages across your channels and Agent DMs.")
+                        description: Text("Find a channel or Agent, or a message anyone has sent.")
                     )
                 }
                 searchProgress
             }
         } else {
             ZStack(alignment: .top) {
-                List(results) { result in
-                    Button {
-                        onSelectResult(result)
-                    } label: {
-                        MessageSearchResultRow(result: result)
-                    }
-                    .buttonStyle(.plain)
-                    .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
-                    .listRowSeparator(.hidden)
-                }
-                .listStyle(.plain)
+                resultList
                 searchProgress
                 if let searchError {
-                    HStack(spacing: 8) {
-                        Label("Search unavailable", systemImage: "exclamationmark.triangle")
-                            .lineLimit(1)
-                        Spacer(minLength: 4)
-                        Button("Retry") {
-                            retryToken += 1
-                        }
-                        .font(.caption.weight(.semibold))
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.regularMaterial, in: .capsule)
-                    .padding(.top, 10)
-                    .padding(.horizontal, 16)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Search unavailable: \(searchError)")
+                    searchErrorBanner(searchError)
                 }
             }
         }
+    }
+
+    private var resultList: some View {
+        List {
+            if !chatMatches.isEmpty {
+                Section("Chats") {
+                    ForEach(chatMatches) { chat in
+                        Button {
+                            onSelectChat(chat)
+                        } label: {
+                            ChatSearchResultRow(chat: chat)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(.init(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .listRowSeparator(.hidden)
+                    }
+                }
+            }
+
+            if !results.isEmpty {
+                Section("Messages") {
+                    ForEach(results) { result in
+                        Button {
+                            onSelectMessage(result)
+                        } label: {
+                            MessageSearchResultRow(result: result)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowSeparator(.hidden)
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
     }
 
     @ViewBuilder
@@ -174,6 +211,25 @@ public struct ServerMessageSearchView: View {
         }
     }
 
+    private func searchErrorBanner(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            Label("Messages unavailable", systemImage: "exclamationmark.triangle")
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Button("Retry") { retryToken += 1 }
+                .font(.caption.weight(.semibold))
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: .capsule)
+        .padding(.top, 10)
+        .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Messages unavailable: \(message)")
+    }
+
     private func runSearch(for rawQuery: String) async {
         let term = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !term.isEmpty else {
@@ -184,9 +240,9 @@ public struct ServerMessageSearchView: View {
             return
         }
 
-        // Keep the current result set on screen while the user is still
-        // composing a new query. Only show progress after the debounce, so
-        // keyboard input never causes a full-screen loading flash.
+        // Chat matches are already on screen. Keep the current message results
+        // while the user is still composing, and only show progress after the
+        // debounce, so keyboard input never causes a full-screen loading flash.
         isSearching = false
         hasSearched = false
         searchError = nil
@@ -194,7 +250,7 @@ public struct ServerMessageSearchView: View {
             try await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled else { return }
             isSearching = true
-            let results = try await search(term)
+            let results = try await searchMessages(term)
             guard !Task.isCancelled else { return }
             self.results = results
             hasSearched = true
@@ -208,6 +264,41 @@ public struct ServerMessageSearchView: View {
             isSearching = false
             searchError = error.localizedDescription
         }
+    }
+}
+
+private struct ChatSearchResultRow: View {
+    let chat: ChatPresentation
+
+    var body: some View {
+        HStack(spacing: 12) {
+            switch chat.kind {
+            case .channel:
+                Image(systemName: "number")
+                    .font(.title3)
+                    .frame(width: 36, height: 36)
+            case .directMessage(let agent):
+                AvatarView(name: agent.name, url: agent.avatarURL, presence: agent.presence, size: 36)
+            }
+
+            Text(chat.title)
+                .font(.body)
+                .fontWeight(chat.unreadCount > 0 ? .semibold : .regular)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            if chat.unreadCount > 0 {
+                Text("Unread")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(chat.unreadCount > 0 ? "\(chat.title), unread" : chat.title)
     }
 }
 
@@ -256,7 +347,7 @@ private struct MessageSearchResultRow: View {
     }
 }
 
-private enum MessageSearchPreviewFixtures {
+private enum ServerSearchPreviewFixtures {
     static let results = [
         MessageSearchResultPresentation(
             id: "search-1",
@@ -274,31 +365,28 @@ private enum MessageSearchPreviewFixtures {
             content: "Let's keep the native shell focused on the daily chat loop.",
             createdAt: .now.addingTimeInterval(-3_600)
         ),
-        MessageSearchResultPresentation(
-            id: "search-3",
-            authorName: "Cove",
-            chatID: "chat-cove",
-            chatKind: .directMessage,
-            chatName: "Cove",
-            content: "I am online and ready to help.",
-            createdAt: .now.addingTimeInterval(-7_200)
-        ),
     ]
 }
 
 #Preview("Search results") {
-    ServerMessageSearchView(search: { _ in MessageSearchPreviewFixtures.results }) { _ in }
-}
-
-#Preview("Search empty") {
-    ServerMessageSearchView(search: { _ in [] }) { _ in }
+    ServerSearchView(
+        chats: ChatFixtures.chats,
+        searchMessages: { _ in ServerSearchPreviewFixtures.results },
+        onSelectChat: { _ in },
+        onSelectMessage: { _ in }
+    )
 }
 
 #Preview("Search error") {
-    ServerMessageSearchView(search: { _ in
-        struct PreviewError: LocalizedError {
-            var errorDescription: String? { "The Server could not be reached." }
-        }
-        throw PreviewError()
-    }) { _ in }
+    ServerSearchView(
+        chats: ChatFixtures.chats,
+        searchMessages: { _ in
+            struct PreviewError: LocalizedError {
+                var errorDescription: String? { "The Server could not be reached." }
+            }
+            throw PreviewError()
+        },
+        onSelectChat: { _ in },
+        onSelectMessage: { _ in }
+    )
 }

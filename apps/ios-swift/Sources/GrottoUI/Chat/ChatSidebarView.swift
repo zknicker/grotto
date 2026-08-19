@@ -6,12 +6,12 @@ public struct ChatSidebarView: View {
     private let selectedChatID: String?
     private let onSelectChat: (ChatPresentation) -> Void
     private let onOpenSettings: () -> Void
+    private let onOpenSearch: () -> Void
     private let onOpenArchived: () -> Void
     private let onOpenNewChannel: () -> Void
 
     @State private var channelsExpanded = true
     @State private var directMessagesExpanded = true
-    @State private var searchPresented = false
 
     public init(
         server: ServerPresentation,
@@ -19,6 +19,7 @@ public struct ChatSidebarView: View {
         selectedChatID: String?,
         onSelectChat: @escaping (ChatPresentation) -> Void,
         onOpenSettings: @escaping () -> Void,
+        onOpenSearch: @escaping () -> Void = {},
         onOpenArchived: @escaping () -> Void = {},
         onOpenNewChannel: @escaping () -> Void = {}
     ) {
@@ -27,38 +28,32 @@ public struct ChatSidebarView: View {
         self.selectedChatID = selectedChatID
         self.onSelectChat = onSelectChat
         self.onOpenSettings = onOpenSettings
+        self.onOpenSearch = onOpenSearch
         self.onOpenArchived = onOpenArchived
         self.onOpenNewChannel = onOpenNewChannel
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Button(action: onOpenSettings) {
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 5) {
-                        Text(server.name).font(.title3.weight(.semibold))
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.semibold))
+            ChromeHeader(inset: 20, leading: {
+                Button(action: onOpenSettings) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 5) {
+                            Text(server.name).font(.title3.weight(.semibold))
+                            Image(systemName: "chevron.right")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        Text(serverCounts)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
-                    Text(serverCounts)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                searchPresented = true
-            } label: {
-                Label("Search", systemImage: "magnifyingglass")
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .frame(height: 44)
-                    .background(.quaternary, in: .capsule)
+                }
+                .buttonStyle(.plain)
+            }) {
+                GlassChromeButton(.symbol("magnifyingglass"), label: "Search", action: onOpenSearch)
             }
-            .buttonStyle(.plain)
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 5) {
@@ -88,16 +83,9 @@ public struct ChatSidebarView: View {
                 }
             }
             .scrollIndicators(.hidden)
+            .padding(.horizontal, 20)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 18)
         .background(GrottoPlatformColor.background)
-        .sheet(isPresented: $searchPresented) {
-            ChatSearchView(chats: chats) { chat in
-                searchPresented = false
-                onSelectChat(chat)
-            }
-        }
     }
 
     private var channels: [ChatPresentation] {

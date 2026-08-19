@@ -27,7 +27,8 @@ public struct GrottoShellView<SettingsContent: View>: View {
     @State private var settingsPresented = false
     @State private var activeChatSheet: ChatSheet?
     @State private var pendingCreatedChatID: String?
-    @GestureState private var dragOffset: CGFloat = 0
+    @State private var dragTranslation: CGFloat?
+    @Environment(\.colorScheme) private var colorScheme
 
     public init(
         server: ServerPresentation,
@@ -87,10 +88,12 @@ public struct GrottoShellView<SettingsContent: View>: View {
                     selectedChatID: selectedChat?.id,
                     onSelectChat: selectChat,
                     onOpenSettings: openSettings,
+                    onOpenSearch: { activeChatSheet = .search },
                     onOpenArchived: { activeChatSheet = .archived },
                     onOpenNewChannel: { activeChatSheet = .newChannel }
                 )
                 .frame(width: drawerWidth)
+                .offset(x: -(1 - drawerProgress(drawerWidth: drawerWidth)) * drawerWidth * 0.22)
                 .mask(alignment: .leading) {
                     Rectangle().frame(width: canvasOffset(drawerWidth: drawerWidth))
                 }
@@ -102,7 +105,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
                         chat: selectedChat,
                         messages: messagesForChat(selectedChat),
                         isConnected: isConnected,
-                        onOpenSidebar: { withAnimation(.snappy) { drawerPresented.toggle() } },
+                        onOpenSidebar: { setDrawer(open: !drawerPresented) },
                         onOpenChatDetails: { activeChatSheet = .details(selectedChat) },
                         onOpenSearch: { activeChatSheet = .search },
                         onOpenThread: { onOpenThread(selectedChat, $0) },
@@ -113,20 +116,30 @@ public struct GrottoShellView<SettingsContent: View>: View {
                         onLoadOlderMessages: { await onLoadOlderMessages(selectedChat) },
                         contentInsets: proxy.safeAreaInsets
                     )
-                    .clipShape(.rect(cornerRadius: drawerPresented ? 38 : 0))
-                    .ignoresSafeArea()
-                    .shadow(color: .black.opacity(drawerPresented ? 0.13 : 0), radius: 20, x: -6)
                     .overlay {
-                        if drawerPresented {
-                            GrottoPlatformColor.background.opacity(0.55)
+                        let progress = drawerProgress(drawerWidth: drawerWidth)
+                        if progress > 0 {
+                            GrottoDrawerVeil.color(for: colorScheme)
+                                .opacity(GrottoDrawerVeil.opacity(for: colorScheme, progress: progress))
                                 .contentShape(.rect)
-                                .onTapGesture { withAnimation(.snappy) { drawerPresented = false } }
-                                .gesture(drawerGesture(drawerWidth: drawerWidth))
+                                .allowsHitTesting(drawerPresented)
+                                .onTapGesture { setDrawer(open: false) }
                         }
                     }
+                    // The veil is shaped and expanded with the canvas it covers,
+                    // so it carries the same corners and the same full height.
+                    .clipShape(.rect(cornerRadius: canvasCornerRadius(drawerWidth: drawerWidth)))
+                    .ignoresSafeArea()
+                    .shadow(
+                        color: .black.opacity(0.13 * drawerProgress(drawerWidth: drawerWidth)),
+                        radius: 20,
+                        x: -6
+                    )
                     .offset(x: canvasOffset(drawerWidth: drawerWidth))
                     .zIndex(2)
-                    .gesture(drawerGesture(drawerWidth: drawerWidth))
+                    .drawerPan(isOpen: drawerPresented) { pan in
+                        handleDrawerPan(pan, drawerWidth: drawerWidth)
+                    }
                 }
             }
             .background(GrottoPlatformColor.background)
@@ -135,9 +148,15 @@ public struct GrottoShellView<SettingsContent: View>: View {
         .sheet(item: $activeChatSheet) { sheet in
             switch sheet {
             case .search:
-                ServerMessageSearchView(search: searchMessages) { result in
-                    selectSearchResult(result)
-                }
+                ServerSearchView(
+                    chats: chats,
+                    searchMessages: searchMessages,
+                    onSelectChat: { chat in
+                        activeChatSheet = nil
+                        selectChat(chat)
+                    },
+                    onSelectMessage: selectSearchResult
+                )
             case .archived:
                 ArchivedChannelsView(
                     load: loadArchivedChannels,
@@ -178,33 +197,61 @@ public struct GrottoShellView<SettingsContent: View>: View {
     }
 
     private func canvasOffset(drawerWidth: CGFloat) -> CGFloat {
-        let base = drawerPresented ? drawerWidth : 0
-        return min(drawerWidth, max(0, base + dragOffset))
+        guard let dragTranslation else { return drawerPresented ? drawerWidth : 0 }
+        return DrawerInteraction.offset(
+            isOpen: drawerPresented,
+            translation: dragTranslation,
+            width: drawerWidth
+        )
     }
 
-    private func drawerGesture(drawerWidth: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 12)
-            .updating($dragOffset) { value, state, _ in
-                guard isValidDrawerDrag(value) else { return }
-                state = value.translation.width
-            }
-            .onEnded { value in
-                guard isValidDrawerDrag(value) else { return }
-                let projected = (drawerPresented ? drawerWidth : 0) + value.predictedEndTranslation.width
-                withAnimation(.snappy) { drawerPresented = projected > drawerWidth * 0.45 }
-            }
+    private func canvasCornerRadius(drawerWidth: CGFloat) -> CGFloat {
+        38 * drawerProgress(drawerWidth: drawerWidth)
     }
 
-    private func isValidDrawerDrag(_ value: DragGesture.Value) -> Bool {
-        guard abs(value.translation.width) > abs(value.translation.height) else { return false }
-        if drawerPresented { return value.translation.width < 0 }
-        return value.startLocation.x <= 24 && value.translation.width > 0
+    private func drawerProgress(drawerWidth: CGFloat) -> CGFloat {
+        guard drawerWidth > 0 else { return 0 }
+        return min(1, max(0, canvasOffset(drawerWidth: drawerWidth) / drawerWidth))
+    }
+
+    private func handleDrawerPan(_ pan: DrawerPan, drawerWidth: CGFloat) {
+        switch pan {
+        case .changed(let translation):
+            dragTranslation = translation
+        case .ended(let translation, let velocity):
+            let offset = DrawerInteraction.offset(
+                isOpen: drawerPresented,
+                translation: translation,
+                width: drawerWidth
+            )
+            let opens = DrawerInteraction.settlesOpen(
+                offset: offset,
+                velocity: velocity,
+                width: drawerWidth
+            )
+            let settleVelocity = DrawerInteraction.settleVelocity(
+                velocity: velocity,
+                offset: offset,
+                target: opens ? drawerWidth : 0
+            )
+            withAnimation(.interpolatingSpring(duration: 0.38, bounce: 0.06, initialVelocity: settleVelocity)) {
+                dragTranslation = nil
+                drawerPresented = opens
+            }
+        }
+    }
+
+    private func setDrawer(open: Bool) {
+        withAnimation(.interpolatingSpring(duration: 0.38, bounce: 0.06)) {
+            dragTranslation = nil
+            drawerPresented = open
+        }
     }
 
     private func selectChat(_ chat: ChatPresentation) {
         selectedChatID = chat.id
         onSelectChat(chat)
-        withAnimation(.snappy) { drawerPresented = false }
+        setDrawer(open: false)
     }
 
     private func selectSearchResult(_ result: MessageSearchResultPresentation) {
@@ -226,7 +273,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
     }
 
     private func openSettings() {
-        withAnimation(.snappy) { drawerPresented = false }
+        setDrawer(open: false)
         settingsPresented = true
     }
 

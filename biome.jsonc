@@ -6,6 +6,7 @@
     "includes": [
       "!.claude/settings.local.json",
       "!.context",
+      "!apps/ios-swift/**/*.xcassets",
       "!apps/server/dist",
       "!apps/server/drizzle/meta",
       "!apps/website/dist",

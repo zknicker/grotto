@@ -19,6 +19,15 @@
          */
         --background-hover: var(--background-tertiary);
 
+        /*
+         * Filled boxes nested inside a washable row (thread/task preview in
+         * a chat turn). Dark keeps HeroUI's surface stepping; light lifts to
+         * pure --surface (borderless, like the composer shell) because the
+         * light surface scale (93–97 L) collapses into the wash on hover.
+         */
+        --nested-surface: var(--surface-secondary);
+        --nested-surface-hover: var(--surface-tertiary);
+
         --sender-1: var(--color-violet-400);
         --sender-2: var(--color-blue-400);
         --sender-3: var(--color-emerald-400);
@@ -64,6 +73,9 @@
 
     :root[data-theme='light'] {
         --background-hover: var(--background-secondary);
+
+        --nested-surface: var(--surface);
+        --nested-surface-hover: var(--background);
 
         --sender-1: var(--color-violet-700);
         --sender-2: var(--color-blue-700);
@@ -112,4 +124,6 @@
 /* Expose the wash to Tailwind so bg-background-hover works like bg-surface-hover. */
 @theme inline {
     --color-background-hover: var(--background-hover);
+    --color-nested-surface: var(--nested-surface);
+    --color-nested-surface-hover: var(--nested-surface-hover);
 }

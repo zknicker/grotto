@@ -41,7 +41,7 @@ export function ThreadPreviewBlock({
     const label = replyLabel(replyCount);
 
     return (
-        <div className="group/thread relative mt-1.5 flex w-full min-w-0 flex-col gap-1 rounded-lg bg-surface-secondary px-2.5 py-2 hover:bg-surface-tertiary">
+        <div className="group/thread relative mt-1.5 flex w-full min-w-0 flex-col gap-1 rounded-lg bg-nested-surface px-2.5 py-2 hover:bg-nested-surface-hover">
             <button
                 aria-label={replyCount > 0 ? `Open thread, ${label}` : 'Open task thread'}
                 className="absolute inset-0 cursor-[var(--cursor-interactive)] rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"

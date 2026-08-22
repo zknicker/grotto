@@ -13,6 +13,7 @@ public struct MessageAttachmentGroup: View {
     @State private var downloadedPreviewURL: URL?
     @State private var loadingAttachmentID: String?
     @State private var errorMessage: String?
+    @State private var imageTileFailedIDs: Set<String> = []
 
     public init(
         attachments: [MessageAttachmentPresentation],
@@ -53,16 +54,50 @@ public struct MessageAttachmentGroup: View {
     private var attachmentRows: some View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(attachments) { attachment in
-                Button {
-                    open(attachment)
-                } label: {
-                    attachmentRow(attachment)
+                if showsImageTile(attachment) {
+                    Button {
+                        open(attachment)
+                    } label: {
+                        imageTile(attachment)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(loadingAttachmentID != nil)
+                    .accessibilityLabel("Preview \(attachment.filename)")
+                } else {
+                    Button {
+                        open(attachment)
+                    } label: {
+                        attachmentRow(attachment)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isPending || loadingAttachmentID != nil)
+                    .accessibilityLabel(
+                        isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
+                    )
                 }
-                .buttonStyle(.plain)
-                .disabled(isPending || loadingAttachmentID != nil)
-                .accessibilityLabel(
-                    isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
-                )
+            }
+        }
+    }
+
+    /// Sent (non-pending) image attachments render as inline media tiles;
+    /// pending uploads and everything else keep the file row.
+    private func showsImageTile(_ attachment: MessageAttachmentPresentation) -> Bool {
+        attachment.isImage && !isPending && !imageTileFailedIDs.contains(attachment.id)
+    }
+
+    private func imageTile(_ attachment: MessageAttachmentPresentation) -> some View {
+        AttachmentImageTile(
+            attachment: attachment,
+            onOpen: onOpen,
+            onFailure: { imageTileFailedIDs.insert(attachment.id) }
+        )
+        .overlay(alignment: .bottomTrailing) {
+            if loadingAttachmentID == attachment.id {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(6)
+                    .background(.thinMaterial, in: .circle)
+                    .padding(6)
             }
         }
     }

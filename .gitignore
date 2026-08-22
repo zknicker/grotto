@@ -21,3 +21,6 @@ scripts/design-battery/output
 
 # Claude Code preview launch config — generated per checkout by scripts/generate-claude-launch.mjs
 .claude/launch.json
+
+# Xcode derived data written by the documented iOS Simulator build recipe
+/build/

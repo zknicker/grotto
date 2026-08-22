@@ -246,7 +246,11 @@ number. Its App Store identity is `build.grotto.ios`. A TestFlight upload is a p
 surface; inviting testers is the separate promotion step.
 
 Use the one-time account and app-record setup in [iOS TestFlight](ios-testflight.md) before the
-first upload. For every release marked iOS **publish**:
+first upload. The published iOS version and build number always come from explicit `xcodebuild`
+arguments that `bun run ios:release` derives from the `release-surfaces.json` decision, never from
+`Grotto.xcodeproj`/`project.yml`; see [Version and build number](ios-testflight.md#version-and-build-number).
+`project.yml`'s baked-in `MARKETING_VERSION` is a local-build default only, kept in sync with the
+Server/App release version by `release:bump`. For every release marked iOS **publish**:
 
 1. Choose the iOS version and next unused build number, and record both in
    `release-surfaces.json`.

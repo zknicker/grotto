@@ -35,8 +35,12 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: build.grotto.ios
         ASSETCATALOG_COMPILER_APPICON_NAME: mac-icon
+        # Local/dev default only. A real TestFlight upload always overrides both
+        # via explicit xcodebuild args from `bun run ios:release`; see
+        # docs/operations/ios-testflight.md. MARKETING_VERSION mirrors the repo
+        # release version and is kept in sync by `bun run release:bump`.
         CURRENT_PROJECT_VERSION: "1"
-        MARKETING_VERSION: 1.0.0
+        MARKETING_VERSION: 1.8.19
         SWIFT_VERSION: "6.0"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1"

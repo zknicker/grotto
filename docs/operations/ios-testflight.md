@@ -53,6 +53,18 @@ export APPLE_API_ISSUER=<issuer-id>
 Keep the `.p8` key outside the repository. Never commit Apple credentials, certificates, or
 provisioning profiles.
 
+## Version And Build Number
+
+`project.yml` bakes in a local-build default only: `MARKETING_VERSION` mirrors the Server/App
+release version and is kept current by `bun run release:bump`; `CURRENT_PROJECT_VERSION` is a
+fixed dev placeholder. Neither is the published iOS version. `bun run ios:release <version>
+--build-number <number>` (both `--dry-run` and the real upload) always passes
+`MARKETING_VERSION=<version>` and `CURRENT_PROJECT_VERSION=<number>` as `xcodebuild` arguments,
+overriding whatever `project.yml` bakes in. Those explicit arguments, sourced from the operator
+decision recorded in `release-surfaces.json`, are the only source of truth for what ships. There
+is no CI job that builds or uploads iOS; the build number is an operator-chosen integer, not a CI
+run number, and it only ever increases.
+
 ## Publish A Build
 
 Record the independent version and next unused build number in `release-surfaces.json`, then run:

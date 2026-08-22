@@ -9,6 +9,7 @@ import {
     readJson,
     readText,
     updateJson,
+    writeText,
 } from './release-utils.mjs';
 
 const changelogPath = 'CHANGELOG.md';
@@ -122,12 +123,29 @@ async function updateVersionedFiles(targetVersion) {
         packageJson.version = targetVersion;
         return packageJson;
     });
+    await updateIOSLocalDefaultVersion(targetVersion);
+}
+
+const iosProjectSpecPath = 'apps/ios-swift/project.yml';
+
+async function updateIOSLocalDefaultVersion(targetVersion) {
+    const raw = await readText(iosProjectSpecPath);
+    const pattern = /(MARKETING_VERSION: )\d+\.\d+\.\d+/;
+    if (!pattern.test(raw)) {
+        fail(`could not find MARKETING_VERSION in ${iosProjectSpecPath}`);
+    }
+
+    const next = raw.replace(pattern, `$1${targetVersion}`);
+    if (next !== raw) {
+        await writeText(iosProjectSpecPath, next);
+    }
 }
 
 function printSummary({ currentVersion, targetVersion }) {
     console.log(`Bumped release version ${currentVersion} -> ${targetVersion}`);
     console.log('Updated files:');
     console.log('- apps/website/package.json');
+    console.log('- apps/ios-swift/project.yml (local-build MARKETING_VERSION default)');
     console.log('- release-surfaces.json');
     console.log('Next:');
     console.log('- bun install --frozen-lockfile');

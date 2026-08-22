@@ -16,7 +16,9 @@ struct ThreadPreviewCard: View {
                     Spacer(minLength: 8)
 
                     HStack(spacing: 4) {
-                        Text(replyLabel)
+                        if let replyLabel {
+                            Text(replyLabel)
+                        }
                         if let unreadCount = thread?.unreadCount, unreadCount > 0 {
                             Text("· \(unreadCount) new")
                                 .foregroundStyle(.tint)
@@ -44,7 +46,7 @@ struct ThreadPreviewCard: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                         Spacer(minLength: 4)
-                        Text(compactRelativeTime(reply.createdAt))
+                        Text(GrottoCompactRelativeTime.label(for: reply.createdAt))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -60,29 +62,24 @@ struct ThreadPreviewCard: View {
         .padding(.top, 5)
     }
 
-    private var replyLabel: String {
-        guard let thread else { return "Reply in thread" }
+    // A task ingress with no replies yet keeps just the chevron; the row is
+    // still the way in, but "0 replies" is noise next to the task summary.
+    private var replyLabel: String? {
+        guard let thread, thread.replyCount > 0 else {
+            return task == nil ? "Reply in thread" : nil
+        }
         return thread.replyCount == 1 ? "1 reply" : "\(thread.replyCount) replies"
     }
 
     private var accessibilityLabel: String {
         if let task {
-            return "Task number \(task.number), \(task.status.rawValue), \(replyLabel). Open thread"
+            return "Task number \(task.number), \(task.status.rawValue), \(replyLabel ?? "no replies"). Open thread"
         }
-        return "Open thread, \(replyLabel)"
+        return "Open thread, \(replyLabel ?? "no replies")"
     }
 
     private func oneLine(_ value: String) -> String {
         value.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
-    }
-
-    private func compactRelativeTime(_ date: Date, now: Date = .now) -> String {
-        let seconds = max(0, Int(now.timeIntervalSince(date)))
-        if seconds < 60 { return "now" }
-        if seconds < 3_600 { return "\(seconds / 60)m" }
-        if seconds < 86_400 { return "\(seconds / 3_600)h" }
-        if seconds < 604_800 { return "\(seconds / 86_400)d" }
-        return date.formatted(.dateTime.month(.abbreviated).day())
     }
 }
 
@@ -94,10 +91,11 @@ private struct TaskSummary: View {
             Text("Task #\(task.number)")
                 .font(.caption.weight(.semibold))
                 .monospacedDigit()
-            Circle()
-                .fill(statusColor)
-                .frame(width: 10, height: 10)
-                .accessibilityHidden(true)
+            TaskStatusDisc(
+                status: TaskStatusShape(task.status),
+                size: 13,
+                surface: GrottoPlatformColor.inputSurface
+            )
 
             if let assignee = task.assignee {
                 AvatarView(
@@ -111,15 +109,6 @@ private struct TaskSummary: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-        }
-    }
-
-    private var statusColor: Color {
-        switch task.status {
-        case .todo, .closed: .secondary
-        case .inProgress: .blue
-        case .inReview: .orange
-        case .done: .green
         }
     }
 }

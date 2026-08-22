@@ -4,26 +4,32 @@ import GrottoUI
 
 extension GrottoStore {
     var settingsTasksPersistence: TaskListPersistence {
-        let agentNames = Dictionary(
-            agents.map { ($0.id, $0.displayName) },
+        // Snapshot the directories through the same actor projection the Thread
+        // task drawer uses, so a task row and its drawer show one name and one
+        // avatar. Resolution happens here because the seam closure is
+        // synchronous and cannot reach back into the store.
+        let agentAssignees = Dictionary(
+            agents.compactMap { agent in
+                actorPresentation(agentID: agent.id, userID: nil).map { (agent.id, $0) }
+            },
             uniquingKeysWith: { current, _ in current }
         )
-        let memberNames = Dictionary(
-            (members?.members ?? []).map {
-                ($0.userID, $0.displayName ?? $0.handle ?? $0.email ?? "Grotto member")
+        let memberAssignees = Dictionary(
+            (members?.members ?? []).compactMap { member in
+                actorPresentation(agentID: nil, userID: member.userID).map { (member.userID, $0) }
             },
             uniquingKeysWith: { current, _ in current }
         )
         return TaskListPersistence(
             viewerUserID: settingsData?.viewer.id,
-            assigneeLabel: { item in
+            assignee: { item in
                 if let agentID = item.task.assigneeAgentID {
-                    return agentNames[agentID] ?? "Deleted agent"
+                    return agentAssignees[agentID]
                 }
                 if let userID = item.task.assigneeUserID {
-                    return memberNames[userID] ?? "Grotto member"
+                    return memberAssignees[userID]
                 }
-                return "Unassigned"
+                return nil
             },
             load: { [weak self] in
                 guard let self else { throw CancellationError() }
@@ -81,7 +87,7 @@ extension GrottoStore {
                     handle: agent.handle,
                     description: agent.description ?? "",
                     role: agent.role.rawValue.capitalized,
-                    runtime: agent.effectiveRuntimeID ?? agent.desiredRuntimeID,
+                    runtime: settingsRuntimeDisplayName(agent.effectiveRuntimeID ?? agent.desiredRuntimeID),
                     model: agent.effectiveModelID ?? agent.desiredModelID,
                     status: availability(for: agent).rawValue.capitalized,
                     avatarURL: resolvedAvatarURL(agent.avatarURL),
@@ -97,6 +103,7 @@ extension GrottoStore {
             id: computer.id,
             name: computerLabel(computer),
             health: computerHealthLabel(computer.health),
+            isHealthy: computer.health == .healthy,
             system: computerSystemLabel(computer),
             version: "v\(computer.productVersion ?? "—")"
         )

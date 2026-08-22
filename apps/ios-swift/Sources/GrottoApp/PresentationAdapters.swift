@@ -175,7 +175,7 @@ extension GrottoStore {
         )
     }
 
-    private func actorPresentation(
+    func actorPresentation(
         agentID: String?,
         userID: String?
     ) -> MessageAuthorPresentation? {

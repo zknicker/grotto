@@ -7,7 +7,11 @@ import SwiftUI
 /// authoritative task rows. The view does not maintain a second task cache.
 public struct TaskListPersistence: Sendable {
     public let viewerUserID: String?
-    public let assigneeLabel: @Sendable (TaskListItem) -> String
+    /// The task's assignee as the App layer resolved it, or `nil` when the
+    /// actor is unassigned or missing from the agent and member directories.
+    /// Rows derive both the avatar and the assignee label from this, so there
+    /// is no second name to disagree with the Thread task drawer.
+    public let assignee: @Sendable (TaskListItem) -> MessageAuthorPresentation?
     public let load: @Sendable () async throws -> [TaskListItem]
     public let updateStatus: @Sendable (TaskListItem, TaskStatus) async throws -> [TaskListItem]
     public let claim: @Sendable (TaskListItem) async throws -> [TaskListItem]
@@ -15,14 +19,14 @@ public struct TaskListPersistence: Sendable {
 
     public init(
         viewerUserID: String?,
-        assigneeLabel: @escaping @Sendable (TaskListItem) -> String = { _ in "Unassigned" },
+        assignee: @escaping @Sendable (TaskListItem) -> MessageAuthorPresentation? = { _ in nil },
         load: @escaping @Sendable () async throws -> [TaskListItem],
         updateStatus: @escaping @Sendable (TaskListItem, TaskStatus) async throws -> [TaskListItem],
         claim: @escaping @Sendable (TaskListItem) async throws -> [TaskListItem],
         unclaim: @escaping @Sendable (TaskListItem) async throws -> [TaskListItem]
     ) {
         self.viewerUserID = viewerUserID
-        self.assigneeLabel = assigneeLabel
+        self.assignee = assignee
         self.load = load
         self.updateStatus = updateStatus
         self.claim = claim
@@ -33,10 +37,14 @@ public struct TaskListPersistence: Sendable {
 extension TaskListPersistence {
     static let preview = TaskListPersistence(
         viewerUserID: "user_preview",
-        assigneeLabel: { item in
-            item.task.assigneeAgentID == nil && item.task.assigneeUserID == nil
-                ? "Unassigned"
-                : "Cove"
+        assignee: { item in
+            if let agentID = item.task.assigneeAgentID {
+                return MessageAuthorPresentation(id: agentID, name: "Cove", avatarURL: nil)
+            }
+            if let userID = item.task.assigneeUserID {
+                return MessageAuthorPresentation(id: userID, name: "Ada Lovelace", avatarURL: nil)
+            }
+            return nil
         },
         load: { TaskPreviewFixtures.items },
         updateStatus: { _, _ in TaskPreviewFixtures.items },
@@ -45,7 +53,7 @@ extension TaskListPersistence {
     )
 }
 
-/// Server-backed Tasks destination used from Settings → Server.
+/// Server-backed Tasks destination pushed on the root stack from the sidebar.
 ///
 /// Loading, refresh, and mutation errors stay local to this destination while
 /// the App layer owns authorization, tRPC, and cache invalidation. Opening a
@@ -85,7 +93,7 @@ public struct TaskListDestinationView: View {
     private var content: some View {
         switch state {
         case .loading:
-            ProgressView("Loading tasks…")
+            ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case let .loaded(items):
             VStack(spacing: 0) {
@@ -101,7 +109,7 @@ public struct TaskListDestinationView: View {
                 TaskListLensView(
                     items: items,
                     viewerUserID: persistence.viewerUserID,
-                    assigneeLabel: persistence.assigneeLabel,
+                    assignee: persistence.assignee,
                     mutatingIDs: mutatingIDs,
                     actionsDisabled: !mutatingIDs.isEmpty,
                     onOpenTask: onOpenTask,

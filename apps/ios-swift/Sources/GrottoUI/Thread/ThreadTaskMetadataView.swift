@@ -38,10 +38,16 @@ private struct TaskStatusLabel: View {
     let status: TaskStatusPresentation
 
     var body: some View {
-        Label(status.rawValue, systemImage: "circle.fill")
-            .foregroundStyle(status.color)
-            .font(.subheadline.weight(.semibold))
-            .accessibilityLabel(status.rawValue)
+        HStack(spacing: 7) {
+            TaskStatusDisc(
+                status: TaskStatusShape(status),
+                surface: GrottoPlatformColor.background
+            )
+            Text(status.rawValue)
+        }
+        .font(.subheadline.weight(.semibold))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(status.rawValue)
     }
 }
 
@@ -67,18 +73,6 @@ private struct TaskActorLabel: View {
             Text(emptyLabel)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-        }
-    }
-}
-
-private extension TaskStatusPresentation {
-    var color: Color {
-        switch self {
-        case .todo: .orange
-        case .inProgress: .blue
-        case .inReview: .purple
-        case .done: .green
-        case .closed: .secondary
         }
     }
 }

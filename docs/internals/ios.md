@@ -52,6 +52,12 @@ contract; an unavailable or role-denied Computer snapshot does not block the res
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
 
+Sent image attachments render inline as media tiles rather than file rows: the timeline downloads
+through the same authenticated attachment route Quick Look uses, decodes a downsampled ImageIO
+thumbnail sized for the tile, and keeps the result in an in-memory `AttachmentImageCache` keyed by
+attachment id so scrolling and re-renders don't re-download or re-decode. Non-image attachments and
+still-uploading pending rows keep the existing file row.
+
 The app deploys to iOS 18 and progressively adopts iOS 26 Liquid Glass for functional
 chrome. System navigation and sheet controls inherit the platform treatment; custom menu, search,
 and composer controls use native glass only on iOS 26 and retain an opaque semantic fallback on older
@@ -67,6 +73,11 @@ be placed in a system navigation bar, which compresses it into an ellipse: a scr
 chrome circle supplies its own `ChromeHeader` and hides the navigation bar, as the Settings sheet
 root does. Pushed screens keep the standard navigation bar with its system back button and text
 actions.
+
+Dismiss controls follow one vocabulary. A form that creates or edits a draft uses Cancel plus a
+confirming verb (Create, Save); an informational sheet with nothing to confirm uses Done; the
+Settings sheet root uses its glass X because it owns a `ChromeHeader` instead of a navigation bar;
+and a pushed screen uses the system back chevron rather than an explicit control.
 
 Dark mode cannot use the canvas shadow to separate an open drawer from the sidebar, because a black
 canvas over a black sidebar has no edge. The veil painted over the slid-aside canvas therefore
@@ -88,6 +99,13 @@ summary used by the desktop App. A Task uses that same ingress with its number, 
 assignee, including before its first reply. The anchor message remains the task title and is never
 duplicated inside the ingress.
 
+Tasks are Server work, not a settings screen. The sidebar opens the Task list as a push on the root
+navigation stack, and opening a Task row pushes its Thread on top of that list, so Back walks Thread
+→ Task list → Chat canvas. Opening a Task selects the Task's parent Chat and pushes the Thread
+together in one move; splitting those writes would return the popped stack to whichever Chat was
+selected before. A pushed Thread owns the open Chat while it is on screen, and the shell's Chat
+selection resumes ownership when it pops.
+
 Swift optimistic Chat and Thread rows remain app-local and keyed by the client nonce. Thread replies
 use the canonical parent Chat plus anchor-message contract. A failed mutation removes its optimistic
 row and restores the exact draft, while a successful row remains pending until a refreshed Server
@@ -107,10 +125,15 @@ active Server, reachable from the Chat header and from the sidebar's own chrome 
 desktop command menu, it unifies in the UI rather than in the API: chats match locally against the
 Store's chat directory and appear immediately, while messages resolve through `chat.search` behind a
 debounce and each result is resolved against the canonical chat directory. A Server search failure
-degrades the message section alone and leaves chat matches usable. Archived channels load through
-`chat.listArchived` and restore through `chat.unarchiveChannel`, while channel creation uses the live
-Agent directory and `chat.createChannel`. These sheets receive narrow async closures from `GrottoApp`
-so `GrottoUI` remains independent of tRPC and does not invent mobile-only ids or records.
+degrades the message section alone and leaves chat matches usable. Selecting a message result selects
+its Chat, scrolls the loaded page to that message, and highlights it briefly; a result whose Chat has
+left the directory reports a failure alert in the sheet instead of dismissing into an unrelated Chat,
+and a message outside the loaded pages is not chased with a speculative fetch. Archived channels load
+through `chat.listArchived` and restore through `chat.unarchiveChannel`, and a successful restore
+dismisses the sheet and selects the restored channel through the same pending-selection wait a newly
+created channel uses, because both reappear only on the next Server chat list. Channel creation uses
+the live Agent directory and `chat.createChannel`. These sheets receive narrow async closures from
+`GrottoApp` so `GrottoUI` remains independent of tRPC and does not invent mobile-only ids or records.
 
 Swift Chat and Thread composers use the system inline Photos picker and Files importer plus a focused
 AVFoundation camera surface on physical iPhones. Photos and Camera expand from the composer into one
@@ -170,14 +193,20 @@ auth bootstrap contract before persisted query data can be enabled safely.
 
 ## Native surface
 
-The app shell, navigation, chat timeline, composer, threads, settings, and artifact controls are native
-SwiftUI. An interactive artifact may use an isolated web canvas inside its native route when the artifact
-runtime requires browser APIs. That canvas receives a narrow serialized contract and does not own
-authentication, navigation, Server queries, or durable app state.
+The app shell, navigation, chat timeline, composer, and threads are native SwiftUI. An interactive
+artifact may use an isolated web canvas inside a native route when the artifact runtime requires
+browser APIs; that canvas would receive a narrow serialized contract and would not own authentication,
+navigation, Server queries, or durable app state. No artifact route is wired into the current app —
+this remains future work.
 
-Settings stay inside one native sheet and `NavigationStack`. The Settings hub reads lightweight Server,
-Agent, member, and Computer projections; profile screens own focused identity mutations; and long-form
-values use dedicated editors. Appearance is app-local presentation state and never creates or updates
+Settings stay inside one native sheet and `NavigationStack`. Settings is entered from the sidebar's
+floating gear control, pinned bottom-trailing over the scrolling chat list; the sidebar's Server
+header is a plain, non-interactive title. Chat details for an Agent opens the same sheet already
+pushed to that Agent's profile. A deep link seeds the sheet's navigation path, so the hub stays behind the
+pushed screen and the system back button returns to it. The Chat details sheet and the Settings sheet
+are mutually exclusive: details dismisses first and Settings presents from its dismissal. The Settings
+hub reads lightweight Server, Agent, member, and Computer projections; profile screens own focused
+identity mutations; and long-form values use dedicated editors. Appearance is app-local presentation state and never creates or updates
 Server state. Desktop-only operational surfaces remain out of the iPhone information architecture until
 a concrete mobile workflow needs them.
 

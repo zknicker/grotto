@@ -66,6 +66,19 @@ extension View {
         #endif
     }
 
+    /// Sets the gap between list sections for a Linear-like rhythm.
+    ///
+    /// The Tasks list rules its section boundaries, so this only has to keep the
+    /// last row of a group off that rule; Linear's groups sit close to the line.
+    @ViewBuilder
+    func grottoCompactListSections() -> some View {
+        #if os(iOS)
+        listSectionSpacing(10)
+        #else
+        self
+        #endif
+    }
+
     @ViewBuilder
     func grottoWordsAutocapitalization() -> some View {
         #if os(iOS)
@@ -76,7 +89,7 @@ extension View {
     }
 }
 
-extension View {
+public extension View {
     /// Hides the system navigation bar on a screen that supplies its own ``ChromeHeader``.
     @ViewBuilder
     func grottoHiddenNavigationBar() -> some View {

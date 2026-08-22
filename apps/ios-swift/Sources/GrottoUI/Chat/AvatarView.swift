@@ -5,6 +5,7 @@ public struct AvatarView: View {
     private let explicitInitials: String?
     private let url: URL?
     private let presence: AgentPresence?
+    private let presenceAlignment: Alignment
     private let size: CGFloat
 
     public init(
@@ -12,17 +13,19 @@ public struct AvatarView: View {
         url: URL?,
         initials: String? = nil,
         presence: AgentPresence? = nil,
+        presenceAlignment: Alignment = .bottomTrailing,
         size: CGFloat = 36
     ) {
         self.name = name
         explicitInitials = initials
         self.url = url
         self.presence = presence
+        self.presenceAlignment = presenceAlignment
         self.size = size
     }
 
     public var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        ZStack(alignment: presenceAlignment) {
             AsyncImage(url: url) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
@@ -40,13 +43,17 @@ public struct AvatarView: View {
             if let presence {
                 Circle()
                     .fill(presence.color)
-                    .frame(width: size * 0.33, height: size * 0.33)
-                    .overlay { Circle().stroke(.background, lineWidth: 2) }
-                    .offset(x: 1, y: 1)
+                    .frame(width: presenceDotSize, height: presenceDotSize)
+                    .overlay { Circle().stroke(.background, lineWidth: presenceDotSize > 12 ? 3 : 2) }
+                    .offset(x: presenceAlignment == .bottomLeading ? -1 : 1, y: 1)
             }
         }
         .frame(width: size, height: size)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var presenceDotSize: CGFloat {
+        min(size * 0.33, 16)
     }
 
     private var initials: String {

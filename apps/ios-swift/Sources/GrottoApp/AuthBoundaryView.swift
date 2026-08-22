@@ -1,6 +1,7 @@
 import ClerkKit
 import Foundation
 import GrottoTransport
+import GrottoUI
 import SwiftUI
 
 struct AuthBoundaryView: View {
@@ -45,11 +46,16 @@ private struct DevelopmentAuthBoundaryView: View {
                 AuthenticatedGrottoView(clerk: clerk)
             case let .failed(message):
                 ContentUnavailableView {
-                    Label("Grotto is unavailable", systemImage: "exclamationmark.triangle")
+                    Label("Grotto couldn't sign you in.", systemImage: "exclamationmark.triangle")
                 } description: {
-                    Text(message)
+                    VStack(spacing: 4) {
+                        Text("Check your connection and try again.")
+                        Text(message)
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                    }
                 } actions: {
-                    Button("Try Again") {
+                    Button("Try again") {
                         state = .loading
                         Task { await authenticate() }
                     }
@@ -116,15 +122,13 @@ private struct SignInView: View {
 
     var body: some View {
         VStack(spacing: 22) {
-            Image(systemName: "bubble.left.and.text.bubble.right.fill")
-                .font(.system(size: 52))
-                .foregroundStyle(.tint)
-                .accessibilityHidden(true)
+            GrottoBrandMark()
+                .frame(width: 96, height: 96)
 
             VStack(spacing: 6) {
                 Text("Welcome to Grotto")
                     .font(.title2.weight(.semibold))
-                Text("Sign in to open your team and agents.")
+                Text("Sign in to open your team and Agents.")
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }

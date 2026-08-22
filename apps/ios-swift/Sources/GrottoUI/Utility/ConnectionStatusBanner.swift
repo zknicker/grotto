@@ -13,7 +13,7 @@ struct ConnectionStatusBanner: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Reconnecting to Grotto")
+        .accessibilityLabel("Reconnecting to Grotto. Messages will send when you're back online.")
     }
 
     private var content: some View {
@@ -21,13 +21,15 @@ struct ConnectionStatusBanner: View {
             ProgressView()
                 .controlSize(.small)
 
-            Text("Reconnecting…")
+            Text("Reconnecting… messages will send when you're back online.")
                 .font(.callout.weight(.medium))
+                .multilineTextAlignment(.leading)
 
             Spacer(minLength: 0)
         }
         .foregroundStyle(.secondary)
         .padding(.horizontal, 14)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
     }
 }

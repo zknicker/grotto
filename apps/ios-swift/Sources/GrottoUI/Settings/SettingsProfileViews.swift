@@ -2,7 +2,7 @@ import SwiftUI
 
 struct HumanProfileView: View {
     let person: SettingsPerson
-    let onEditDescription: (String, String, String) -> Void
+    let onEditDescription: (String, String) -> Void
     let onSave: (SettingsPerson) async throws -> SettingsPerson
     let onSaveAvatar: @Sendable (AvatarImagePayload) async throws -> Void
     @State private var name: String
@@ -12,7 +12,7 @@ struct HumanProfileView: View {
 
     init(
         person: SettingsPerson,
-        onEditDescription: @escaping (String, String, String) -> Void,
+        onEditDescription: @escaping (String, String) -> Void,
         onSave: @escaping (SettingsPerson) async throws -> SettingsPerson = { $0 },
         onSaveAvatar: @escaping @Sendable (AvatarImagePayload) async throws -> Void = { _ in }
     ) {
@@ -52,7 +52,7 @@ struct HumanProfileView: View {
                             systemImage: "text.alignleft",
                             showsDivider: false,
                             action: {
-                                onEditDescription(person.id, "Description", person.description)
+                                onEditDescription(person.id, "Description")
                             }
                         )
                     }
@@ -82,6 +82,9 @@ struct HumanProfileView: View {
         .background(GrottoPlatformColor.groupedBackground)
         .navigationTitle("Profile")
         .grottoInlineNavigationTitle()
+        #if os(iOS)
+        .toolbarBackground(GrottoPlatformColor.groupedBackground, for: .navigationBar)
+        #endif
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 Button {
@@ -133,7 +136,7 @@ struct HumanProfileView: View {
 
 struct AgentProfileView: View {
     let agent: SettingsAgent
-    let onEditDescription: (String, String, String) -> Void
+    let onEditDescription: (String, String) -> Void
     let onSave: (SettingsAgent) async throws -> SettingsAgent
     let onSaveAvatar: @Sendable (AvatarImagePayload) async throws -> Void
     @State private var name: String
@@ -143,7 +146,7 @@ struct AgentProfileView: View {
 
     init(
         agent: SettingsAgent,
-        onEditDescription: @escaping (String, String, String) -> Void,
+        onEditDescription: @escaping (String, String) -> Void,
         onSave: @escaping (SettingsAgent) async throws -> SettingsAgent = { $0 },
         onSaveAvatar: @escaping @Sendable (AvatarImagePayload) async throws -> Void = { _ in }
     ) {
@@ -184,7 +187,7 @@ struct AgentProfileView: View {
                             systemImage: "text.alignleft",
                             showsDivider: false,
                             action: {
-                                onEditDescription(agent.id, "Description", agent.description)
+                                onEditDescription(agent.id, "Description")
                             }
                         )
                     }
@@ -220,6 +223,9 @@ struct AgentProfileView: View {
         .background(GrottoPlatformColor.groupedBackground)
         .navigationTitle(agent.displayName)
         .grottoInlineNavigationTitle()
+        #if os(iOS)
+        .toolbarBackground(GrottoPlatformColor.groupedBackground, for: .navigationBar)
+        #endif
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 Button {
@@ -273,12 +279,12 @@ struct AgentProfileView: View {
 
 #Preview("Human profile") {
     NavigationStack {
-        HumanProfileView(person: SettingsFixtures.viewer) { _, _, _ in }
+        HumanProfileView(person: SettingsFixtures.viewer) { _, _ in }
     }
 }
 
 #Preview("Agent profile") {
     NavigationStack {
-        AgentProfileView(agent: SettingsFixtures.cove) { _, _, _ in }
+        AgentProfileView(agent: SettingsFixtures.cove) { _, _ in }
     }
 }

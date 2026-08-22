@@ -80,6 +80,7 @@ public struct NewChannelFormView: View {
     @State private var selectedAgentIDs: Set<String> = []
     @State private var isSubmitting = false
     @State private var submitError: String?
+    @FocusState private var isNameFocused: Bool
 
     public init(
         agents: [NewChannelAgentPresentation],
@@ -100,11 +101,15 @@ public struct NewChannelFormView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .submitLabel(.done)
+                        .focused($isNameFocused)
 #else
                     TextField("Channel name", text: $name)
+                        .focused($isNameFocused)
 #endif
 
-                    if let message = nameValidation.message {
+                    // An untouched empty field is not an error; the disabled
+                    // Create button and the footer already explain the rules.
+                    if !name.isEmpty, let message = nameValidation.message {
                         Text(message)
                             .font(.footnote)
                             .foregroundStyle(.red)
@@ -165,6 +170,11 @@ public struct NewChannelFormView: View {
                 Button("OK") { submitError = nil }
             } message: {
                 Text(submitError ?? "Try again.")
+            }
+            .task {
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
+                isNameFocused = true
             }
         }
         .presentationDetents([.large])

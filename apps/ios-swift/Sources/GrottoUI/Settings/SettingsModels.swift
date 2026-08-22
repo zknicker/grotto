@@ -116,19 +116,32 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
     }
 }
 
+/// Maps an execution-runtime slug to its product name for display. Unknown
+/// slugs pass through unchanged so a new runtime never shows as blank.
+public func settingsRuntimeDisplayName(_ slug: String) -> String {
+    switch slug.lowercased() {
+    case "codex": "Codex"
+    case "claude-code", "claude_code": "Claude Code"
+    case "pi": "Pi"
+    default: slug
+    }
+}
+
 /// Native settings projection of the Server-backed `computer.list` result.
 /// Keeping display labels here means SwiftUI does not depend on wire models.
 public struct SettingsComputer: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let health: String
+    public let isHealthy: Bool
     public let system: String
     public let version: String
 
-    public init(id: String, name: String, health: String, system: String, version: String) {
+    public init(id: String, name: String, health: String, isHealthy: Bool, system: String, version: String) {
         self.id = id
         self.name = name
         self.health = health
+        self.isHealthy = isHealthy
         self.system = system
         self.version = version
     }
@@ -257,6 +270,7 @@ public enum SettingsFixtures {
             id: "computer-preview",
             name: "Zach's MacBook Pro",
             health: "Online",
+            isHealthy: true,
             system: "Mac · Apple Silicon",
             version: "v1.0.0"
         ),

@@ -162,16 +162,22 @@ public struct AvatarPhotoPicker: View {
         let processing = isProcessing
 
         PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
-            if processing {
-                ProgressView()
-                    .controlSize(.small)
-            } else {
-                Image(systemName: "camera")
-                    .font(.subheadline.weight(.semibold))
+            Group {
+                if processing {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "camera")
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+            .frame(width: 32, height: 32)
+            .background(GrottoPlatformColor.groupedSurface, in: .circle)
+            .overlay {
+                Circle().stroke(GrottoPlatformColor.groupedBackground, lineWidth: 2)
             }
         }
-        .buttonStyle(.bordered)
-        .buttonBorderShape(.circle)
+        .buttonStyle(.plain)
         .disabled(isProcessing)
         .accessibilityLabel(label)
         .accessibilityHint("Choose a square profile photo")

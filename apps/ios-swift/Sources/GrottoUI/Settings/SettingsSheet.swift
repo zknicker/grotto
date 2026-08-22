@@ -5,11 +5,10 @@ public enum SettingsRoute: Hashable {
     case profile
     case agent(id: String)
     case server
-    case tasks
     case people
     case computers
     case appInfo
-    case description(ownerID: String, title: String, value: String)
+    case description(ownerID: String, title: String)
 }
 
 public enum AppearancePreference: String, CaseIterable, Hashable, Sendable {
@@ -38,23 +37,22 @@ public enum AppearancePreference: String, CaseIterable, Hashable, Sendable {
 public struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     private let persistence: SettingsPersistence
-    private let tasksPersistence: TaskListPersistence?
-    private let onOpenTask: (TaskListItem) -> Void
     @State private var data: SettingsData
-    @State private var path: [SettingsRoute] = []
+    @State private var path: [SettingsRoute]
     @Binding private var appearance: AppearancePreference
 
+    /// - Parameter initialPath: screens the sheet opens already pushed to, so a
+    ///   deep link such as the sidebar's Server header lands on its screen with
+    ///   the hub still behind it.
     public init(
         data: SettingsData = SettingsFixtures.data,
         persistence: SettingsPersistence = .preview,
         appearance: Binding<AppearancePreference> = .constant(.system),
-        tasksPersistence: TaskListPersistence? = nil,
-        onOpenTask: @escaping (TaskListItem) -> Void = { _ in }
+        initialPath: [SettingsRoute] = []
     ) {
         self.persistence = persistence
-        self.tasksPersistence = tasksPersistence
-        self.onOpenTask = onOpenTask
         _data = State(initialValue: data)
+        _path = State(initialValue: initialPath)
         _appearance = appearance
     }
 
@@ -96,8 +94,8 @@ public struct SettingsSheet: View {
         case .profile:
             HumanProfileView(
                 person: data.viewer,
-                onEditDescription: { ownerID, title, value in
-                    path.append(.description(ownerID: ownerID, title: title, value: value))
+                onEditDescription: { ownerID, title in
+                    path.append(.description(ownerID: ownerID, title: title))
                 },
                 onSave: { updated in
                     let saved = try await persistence.saveHumanProfile(
@@ -119,8 +117,8 @@ public struct SettingsSheet: View {
             if let agent = data.agents.first(where: { $0.id == id }) {
                 AgentProfileView(
                     agent: agent,
-                    onEditDescription: { ownerID, title, value in
-                        path.append(.description(ownerID: ownerID, title: title, value: value))
+                    onEditDescription: { ownerID, title in
+                        path.append(.description(ownerID: ownerID, title: title))
                     },
                     onSave: { updated in
                         let saved = try await persistence.saveAgentProfile(
@@ -142,32 +140,17 @@ public struct SettingsSheet: View {
                 SettingsUnavailableView(title: "Agent profile")
             }
         case .server:
-            ServerDetailsView(
-                server: data.server,
-                onOpenTasks: { path.append(.tasks) }
-            )
-        case .tasks:
-            if let tasksPersistence {
-                TaskListDestinationView(
-                    persistence: tasksPersistence,
-                    onOpenTask: { item in
-                        dismiss()
-                        onOpenTask(item)
-                    }
-                )
-            } else {
-                SettingsUnavailableView(title: "Tasks")
-            }
+            ServerDetailsView(server: data.server)
         case .people:
             ServerPeopleView(members: data.members)
         case .computers:
             ServerComputersView(computers: data.computers)
         case .appInfo:
             AppInfoView()
-        case .description(let ownerID, let title, let value):
+        case .description(let ownerID, let title):
             DescriptionEditorView(
                 title: title,
-                value: value,
+                value: currentDescription(ownerID: ownerID),
                 onSave: { updatedValue in
                     try await saveDescription(ownerID: ownerID, value: updatedValue)
                     path.removeLast()
@@ -195,6 +178,15 @@ public struct SettingsSheet: View {
             agents: agents,
             computers: data.computers
         )
+    }
+
+    /// Reads the description live from `data` rather than a route-carried
+    /// snapshot, so the editor always opens with the latest saved value.
+    private func currentDescription(ownerID: String) -> String {
+        if data.viewer.id == ownerID {
+            return data.viewer.description
+        }
+        return data.agents.first(where: { $0.id == ownerID })?.description ?? ""
     }
 
     private func saveDescription(ownerID: String, value: String) async throws {
@@ -244,5 +236,9 @@ public struct SettingsSheet: View {
 }
 
 #Preview("Settings sheet") {
-    SettingsSheet(tasksPersistence: .preview)
+    SettingsSheet()
+}
+
+#Preview("Settings sheet at Server") {
+    SettingsSheet(initialPath: [.server])
 }

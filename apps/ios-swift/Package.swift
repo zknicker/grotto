@@ -29,6 +29,7 @@ let package = Package(
             name: "GrottoUI",
             dependencies: ["GrottoModels"],
             path: "Sources/GrottoUI",
+            resources: [.process("Resources")],
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
         ),
         .testTarget(

@@ -21,35 +21,39 @@ struct DescriptionEditorView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            TextEditor(text: $draft)
-                .font(.body)
-                .foregroundStyle(.primary)
-                .scrollContentBackground(.hidden)
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-                .focused($isFocused)
-                .accessibilityLabel(title)
-
-            if draft.isEmpty && !isFocused {
-                Text("Add a description…")
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $draft)
                     .font(.body)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 17)
-                    .padding(.top, 20)
-                    .allowsHitTesting(false)
+                    .foregroundStyle(.primary)
+                    .scrollContentBackground(.hidden)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .focused($isFocused)
+                    .accessibilityLabel(title)
+
+                if draft.isEmpty {
+                    Text("Add a description…")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 17)
+                        .padding(.top, 18)
+                        .allowsHitTesting(false)
+                }
             }
-        }
-        .background(GrottoPlatformColor.groupedSurface)
-        .overlay(alignment: .bottomLeading) {
+            .background(GrottoPlatformColor.groupedSurface, in: RoundedRectangle(cornerRadius: 22))
+
             if let errorMessage {
                 Text(errorMessage)
                     .font(.footnote)
                     .foregroundStyle(.red)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 14)
+                    .padding(.horizontal, 16)
             }
         }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 16)
+        .background(GrottoPlatformColor.groupedBackground)
         .navigationTitle(title)
         .grottoInlineNavigationTitle()
         .toolbar {

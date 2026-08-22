@@ -67,6 +67,7 @@ struct SettingsHubView: View {
                             value: appearance,
                             systemImage: "sun.max",
                             options: AppearancePreference.allCases.map { ($0, $0.title) },
+                            showsDivider: false,
                             onChange: { appearance = $0 }
                         )
                     }
@@ -76,7 +77,7 @@ struct SettingsHubView: View {
                     SettingsListGroup {
                         DisclosureRow(
                             "Grotto for iPhone",
-                            subtitle: "Native client",
+                            subtitle: AppVersionInfo.current,
                             systemImage: "info.circle",
                             showsDivider: false,
                             action: { onNavigate(.appInfo) }

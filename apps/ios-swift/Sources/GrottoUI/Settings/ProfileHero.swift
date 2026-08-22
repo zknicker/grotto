@@ -11,7 +11,13 @@ struct ProfileHero: View {
     var body: some View {
         VStack(spacing: 8) {
             ZStack(alignment: .bottomTrailing) {
-                AvatarView(name: displayName, url: avatarURL, presence: presence, size: 84)
+                AvatarView(
+                    name: displayName,
+                    url: avatarURL,
+                    presence: presence,
+                    presenceAlignment: .bottomLeading,
+                    size: 84
+                )
                 AvatarPhotoPicker(onImagePicked: onSaveAvatar)
                     .offset(x: 4, y: 4)
             }

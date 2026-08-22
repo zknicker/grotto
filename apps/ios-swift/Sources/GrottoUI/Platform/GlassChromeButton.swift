@@ -18,10 +18,20 @@ struct GlassChromeButton: View {
     private let label: String
     private let action: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     init(_ glyph: Glyph, label: String, action: @escaping () -> Void) {
         self.glyph = glyph
         self.label = label
         self.action = action
+    }
+
+    private var rimColor: Color {
+        colorScheme == .dark ? .white.opacity(0.14) : .white.opacity(0.75)
+    }
+
+    private var shadowColor: Color {
+        .black.opacity(colorScheme == .dark ? 0.40 : 0.10)
     }
 
     @ViewBuilder
@@ -29,9 +39,13 @@ struct GlassChromeButton: View {
         if #available(iOS 26, macOS 26, *) {
             standardButton
                 .glassEffect(.regular.interactive(), in: .circle)
+                .overlay(Circle().strokeBorder(rimColor, lineWidth: 1))
+                .shadow(color: shadowColor, radius: 8, x: 0, y: 2)
         } else {
             standardButton
                 .background(.regularMaterial, in: .circle)
+                .overlay(Circle().strokeBorder(rimColor, lineWidth: 1))
+                .shadow(color: shadowColor, radius: 8, x: 0, y: 2)
         }
     }
 

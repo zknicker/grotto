@@ -2,12 +2,6 @@ import SwiftUI
 
 struct ServerDetailsView: View {
     let server: SettingsServer
-    let onOpenTasks: () -> Void
-
-    init(server: SettingsServer, onOpenTasks: @escaping () -> Void = {}) {
-        self.server = server
-        self.onOpenTasks = onOpenTasks
-    }
 
     var body: some View {
         ScrollView {
@@ -24,17 +18,6 @@ struct ServerDetailsView: View {
                     SettingsListGroup {
                         ValueRow("Agents", value: String(server.agentCount), systemImage: "cpu")
                         ValueRow("Members", value: String(server.memberCount), systemImage: "person.2", showsDivider: false)
-                    }
-                }
-
-                SettingsSection("Work") {
-                    SettingsListGroup {
-                        DisclosureRow(
-                            "Tasks",
-                            systemImage: "checklist",
-                            showsDivider: false,
-                            action: onOpenTasks
-                        )
                     }
                 }
 
@@ -60,13 +43,11 @@ struct AppInfoView: View {
             VStack(alignment: .leading, spacing: 24) {
                 SettingsSection("About") {
                     SettingsListGroup {
-                        ValueRow("App", value: "Grotto", systemImage: "info.circle")
-                        ValueRow("Platform", value: "iPhone", systemImage: "iphone")
-                        ValueRow("Version", value: "Prototype", systemImage: "curlybraces", showsDivider: false)
+                        ValueRow("Version", value: AppVersionInfo.current, systemImage: "info.circle", showsDivider: false)
                     }
                 }
 
-                Text("A native client for your Grotto Server and Computers.")
+                Text("Grotto for iPhone connects to your Grotto Server and Computers.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 16)
@@ -228,18 +209,52 @@ private struct SettingsComputerRow: View {
     let computer: SettingsComputer
     let showsDivider: Bool
 
+    private var subtitle: String {
+        "\(computer.health) · \(computer.system)"
+    }
+
     var body: some View {
-        SettingsRow(
-            title: computer.name,
-            subtitle: "\(computer.health) · \(computer.system)",
-            systemImage: "desktopcomputer",
-            showsDivider: showsDivider
-        ) {
-            Text(computer.version)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                Image(systemName: "desktopcomputer")
+                    .font(.system(size: 19, weight: .medium))
+                    .frame(width: 24)
+                    .foregroundStyle(.primary)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(computer.name)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(computer.isHealthy ? Color.green : Color.secondary)
+                            .frame(width: 8, height: 8)
+                            .accessibilityHidden(true)
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 8)
+                Text(computer.version)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(minHeight: 76)
+            .padding(.horizontal, 16)
+
+            if showsDivider {
+                Divider().padding(.leading, 54)
+            }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(computer.name), \(subtitle)")
     }
 }
 

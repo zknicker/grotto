@@ -187,6 +187,7 @@ public struct PickerRow<Value: Hashable>: View {
     private let value: Value
     private let systemImage: String
     private let options: [(Value, String)]
+    private let showsDivider: Bool
     private let onChange: (Value) -> Void
 
     public init(
@@ -194,12 +195,14 @@ public struct PickerRow<Value: Hashable>: View {
         value: Value,
         systemImage: String,
         options: [(Value, String)],
+        showsDivider: Bool = true,
         onChange: @escaping (Value) -> Void
     ) {
         self.title = title
         self.value = value
         self.systemImage = systemImage
         self.options = options
+        self.showsDivider = showsDivider
         self.onChange = onChange
     }
 
@@ -231,8 +234,10 @@ public struct PickerRow<Value: Hashable>: View {
             .accessibilityLabel("\(title), \(options.first(where: { $0.0 == value })?.1 ?? "Select")")
         }
         .overlay(alignment: .bottom) {
-            Divider()
-                .padding(.leading, 54)
+            if showsDivider {
+                Divider()
+                    .padding(.leading, 54)
+            }
         }
     }
 }

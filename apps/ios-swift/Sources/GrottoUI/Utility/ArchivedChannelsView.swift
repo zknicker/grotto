@@ -20,18 +20,24 @@ public struct ArchivedChannelsView: View {
 
     private let load: @Sendable () async throws -> [ArchivedChannelPresentation]
     private let restore: @Sendable (ArchivedChannelPresentation) async throws -> Void
+    private let onRestored: (ArchivedChannelPresentation) -> Void
 
     @State private var state: LoadState = .loading
     @State private var restoringIDs: Set<String> = []
     @State private var errorMessage: String?
     @State private var reloadToken = 0
 
+    /// - Parameter onRestored: hands the restored channel to the shell, which
+    ///   dismisses this sheet and selects the channel once the Server list
+    ///   carries it again.
     public init(
         load: @escaping @Sendable () async throws -> [ArchivedChannelPresentation],
-        restore: @escaping @Sendable (ArchivedChannelPresentation) async throws -> Void
+        restore: @escaping @Sendable (ArchivedChannelPresentation) async throws -> Void,
+        onRestored: @escaping (ArchivedChannelPresentation) -> Void = { _ in }
     ) {
         self.load = load
         self.restore = restore
+        self.onRestored = onRestored
     }
 
     public var body: some View {
@@ -60,7 +66,7 @@ public struct ArchivedChannelsView: View {
     private var content: some View {
         switch state {
         case .loading:
-            ProgressView("Loading archived channels…")
+            ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case let .loaded(channels):
             if channels.isEmpty {
@@ -133,6 +139,7 @@ public struct ArchivedChannelsView: View {
                 state = .loaded(channels.filter { $0.id != channel.id })
             }
             errorMessage = nil
+            onRestored(channel)
         } catch is CancellationError {
             return
         } catch {

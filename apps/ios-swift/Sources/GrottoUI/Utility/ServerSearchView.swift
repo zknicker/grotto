@@ -38,13 +38,6 @@ public struct MessageSearchResultPresentation: Identifiable, Hashable, Sendable 
 public enum MessageSearchChatKind: Hashable, Sendable {
     case channel
     case directMessage
-
-    fileprivate var systemImage: String {
-        switch self {
-        case .channel: "number"
-        case .directMessage: "bubble.left"
-        }
-    }
 }
 
 /// Chat-name matching for the search surface.
@@ -80,9 +73,12 @@ struct ServerSearchView: View {
     private let chats: [ChatPresentation]
     private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
     private let onSelectChat: (ChatPresentation) -> Void
-    private let onSelectMessage: (MessageSearchResultPresentation) -> Void
+    /// Returns `false` when the result's Chat is no longer in the directory, so
+    /// the sheet can report the failure instead of dismissing into nothing.
+    private let onSelectMessage: (MessageSearchResultPresentation) -> Bool
 
     @State private var query = ""
+    @State private var selectionError: String?
     @State private var results: [MessageSearchResultPresentation] = []
     @State private var hasSearched = false
     @State private var isSearching = false
@@ -93,7 +89,7 @@ struct ServerSearchView: View {
         chats: [ChatPresentation],
         searchMessages: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation],
         onSelectChat: @escaping (ChatPresentation) -> Void,
-        onSelectMessage: @escaping (MessageSearchResultPresentation) -> Void
+        onSelectMessage: @escaping (MessageSearchResultPresentation) -> Bool
     ) {
         self.chats = chats
         self.searchMessages = searchMessages
@@ -107,10 +103,19 @@ struct ServerSearchView: View {
                 .navigationTitle("Search")
                 .grottoInlineNavigationTitle()
                 .searchable(text: $query, prompt: "Channels, Agents, and messages")
+#if os(iOS)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+#endif
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }
                     }
+                }
+                .alert("Couldn’t open that chat", isPresented: hasSelectionError) {
+                    Button("OK") { selectionError = nil }
+                } message: {
+                    Text(selectionError ?? "Try again.")
                 }
         }
         .task(id: "\(query)|\(retryToken)") {
@@ -119,6 +124,13 @@ struct ServerSearchView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationBackground(GrottoPlatformColor.groupedBackground)
+    }
+
+    private var hasSelectionError: Binding<Bool> {
+        Binding(
+            get: { selectionError != nil },
+            set: { if !$0 { selectionError = nil } }
+        )
     }
 
     private var chatMatches: [ChatPresentation] {
@@ -175,8 +187,7 @@ struct ServerSearchView: View {
                             ChatSearchResultRow(chat: chat)
                         }
                         .buttonStyle(.plain)
-                        .listRowInsets(.init(top: 4, leading: 16, bottom: 4, trailing: 16))
-                        .listRowSeparator(.hidden)
+                        .listRowInsets(searchRowInsets)
                     }
                 }
             }
@@ -185,18 +196,26 @@ struct ServerSearchView: View {
                 Section("Messages") {
                     ForEach(results) { result in
                         Button {
-                            onSelectMessage(result)
+                            guard onSelectMessage(result) else {
+                                selectionError = "That message’s chat is no longer in this Server."
+                                return
+                            }
                         } label: {
                             MessageSearchResultRow(result: result)
                         }
                         .buttonStyle(.plain)
-                        .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .listRowSeparator(.hidden)
+                        .listRowInsets(searchRowInsets)
                     }
                 }
             }
         }
-        .listStyle(.plain)
+#if os(iOS)
+        .listStyle(.insetGrouped)
+#else
+        .listStyle(.inset)
+#endif
+        .scrollContentBackground(.hidden)
+        .background(GrottoPlatformColor.groupedBackground)
     }
 
     @ViewBuilder
@@ -267,6 +286,10 @@ struct ServerSearchView: View {
     }
 }
 
+// Chat and message results share one row inset so a single-line chat row and a
+// multi-line message row read as the same list rhythm.
+private let searchRowInsets = EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+
 private struct ChatSearchResultRow: View {
     let chat: ChatPresentation
 
@@ -290,12 +313,13 @@ private struct ChatSearchResultRow: View {
             Spacer(minLength: 8)
 
             if chat.unreadCount > 0 {
-                Text("Unread")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Circle()
+                    .fill(.primary)
+                    .frame(width: 8, height: 8)
+                    .accessibilityHidden(true)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(chat.unreadCount > 0 ? "\(chat.title), unread" : chat.title)
@@ -309,34 +333,27 @@ private struct MessageSearchResultRow: View {
         HStack(alignment: .top, spacing: 12) {
             AvatarView(name: result.authorName, url: result.authorAvatarURL, size: 36)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(result.authorName)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
-                    Text("in")
-                        .font(.caption)
+                        .layoutPriority(1)
+                    Text(chatContextLabel)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Label {
-                        Text(result.chatName)
-                            .lineLimit(1)
-                    } icon: {
-                        Image(systemName: result.chatKind.systemImage)
-                    }
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                        .lineLimit(1)
                     Spacer(minLength: 4)
-                    Text(result.createdAt, format: .dateTime.month(.abbreviated).day().hour().minute())
+                    Text(GrottoCompactRelativeTime.label(for: result.createdAt))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
-                        .lineLimit(1)
                 }
 
                 Text(result.content)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .lineLimit(3)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
                     .multilineTextAlignment(.leading)
             }
         }
@@ -344,6 +361,13 @@ private struct MessageSearchResultRow: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(result.authorName) in \(result.chatName): \(result.content)")
+    }
+
+    private var chatContextLabel: String {
+        switch result.chatKind {
+        case .channel: "in #\(result.chatName)"
+        case .directMessage: "in DM"
+        }
     }
 }
 
@@ -373,7 +397,7 @@ private enum ServerSearchPreviewFixtures {
         chats: ChatFixtures.chats,
         searchMessages: { _ in ServerSearchPreviewFixtures.results },
         onSelectChat: { _ in },
-        onSelectMessage: { _ in }
+        onSelectMessage: { _ in true }
     )
 }
 
@@ -387,6 +411,6 @@ private enum ServerSearchPreviewFixtures {
             throw PreviewError()
         },
         onSelectChat: { _ in },
-        onSelectMessage: { _ in }
+        onSelectMessage: { _ in true }
     )
 }

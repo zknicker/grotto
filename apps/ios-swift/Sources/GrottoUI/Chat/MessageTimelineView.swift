@@ -9,7 +9,9 @@ public struct MessageTimelineView: View {
     private let onLoadOlderMessages: (() async -> Bool)?
     private let onTapTimeline: () -> Void
 
+    @Binding private var scrollTargetMessageID: String?
     @State private var preservedTopMessageID: String?
+    @State private var highlightedMessageID: String?
     @State private var isNearBottom = true
 
     public init(
@@ -22,8 +24,10 @@ public struct MessageTimelineView: View {
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
         onLoadOlderMessages: (() async -> Bool)? = nil,
-        onTapTimeline: @escaping () -> Void = {}
+        onTapTimeline: @escaping () -> Void = {},
+        scrollTargetMessageID: Binding<String?> = .constant(nil)
     ) {
+        _scrollTargetMessageID = scrollTargetMessageID
         self.messages = messages
         self.onOpenThread = onOpenThread
         self.onOpenAttachment = onOpenAttachment
@@ -102,6 +106,14 @@ public struct MessageTimelineView: View {
                         proxy.scrollTo(latestMessageID, anchor: .bottom)
                     }
                 }
+                .onChange(of: scrollTargetMessageID, initial: true) { _, _ in
+                    revealScrollTarget(using: proxy)
+                }
+                .onChange(of: messages.map(\.id)) { _, _ in
+                    // A search can select a Chat whose page is still loading, so
+                    // the pending request is re-resolved when messages arrive.
+                    revealScrollTarget(using: proxy)
+                }
                 .onChange(of: messages.first?.id) { _, _ in
                     guard let preservedTopMessageID else { return }
                     self.preservedTopMessageID = nil
@@ -123,6 +135,33 @@ public struct MessageTimelineView: View {
                     .padding(.bottom, 10)
                 }
             }
+        }
+        .task(id: highlightedMessageID) {
+            guard highlightedMessageID != nil else { return }
+            try? await Task.sleep(for: .milliseconds(1_500))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.45)) { highlightedMessageID = nil }
+        }
+    }
+
+    private func revealScrollTarget(using proxy: ScrollViewProxy) {
+        guard let scrollTargetMessageID else { return }
+
+        switch MessageTimelineScrollTarget.resolve(
+            target: scrollTargetMessageID,
+            messageIDs: messages.map(\.id)
+        ) {
+        case .waiting:
+            return
+        case .unavailable:
+            // Paging older history to find an off-page message is out of scope.
+            self.scrollTargetMessageID = nil
+        case .reveal(let messageID):
+            self.scrollTargetMessageID = nil
+            withAnimation(.easeInOut(duration: 0.25)) {
+                proxy.scrollTo(messageID, anchor: .center)
+            }
+            highlightedMessageID = messageID
         }
     }
 
@@ -188,6 +227,15 @@ public struct MessageTimelineView: View {
                 }
             }
         }
+        // The tint is drawn behind the row without changing its layout, so a
+        // revealed message keeps the timeline's ordinary rhythm.
+        .background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(GrottoPlatformColor.inputSurface)
+                .opacity(highlightedMessageID == message.id ? 1 : 0)
+                .padding(.horizontal, -8)
+                .padding(.vertical, -5)
+        }
         .contextMenu {
             if !message.isPending {
                 Button {
@@ -210,6 +258,24 @@ public struct MessageTimelineView: View {
             && message.createdAt.timeIntervalSince(previous.createdAt) < 5 * 60
     }
 
+}
+
+/// Resolves a request to reveal one message against the loaded page.
+enum MessageTimelineScrollTarget {
+    enum Resolution: Equatable {
+        /// No page is loaded yet; keep the request until messages arrive.
+        case waiting
+        case reveal(String)
+        /// The loaded page does not contain the message; drop the request.
+        case unavailable
+    }
+
+    static func resolve(target: String, messageIDs: [String]) -> Resolution {
+        if messageIDs.isEmpty {
+            return .waiting
+        }
+        return messageIDs.contains(target) ? .reveal(target) : .unavailable
+    }
 }
 
 enum MessageTimelineScrollPosition {

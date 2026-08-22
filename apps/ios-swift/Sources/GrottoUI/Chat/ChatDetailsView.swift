@@ -10,61 +10,46 @@ public struct ChatDetailsView: View {
 
     private let chat: ChatPresentation
     private let server: ServerPresentation
-    private let isConnected: Bool
     private let currentActivity: AgentActivityPresentation?
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
+    private let onOpenAgentProfile: (String) -> Void
     @State private var historyState = ActivityHistoryState.idle
 
+    /// - Parameter onOpenAgentProfile: hands the Agent id to the shell, which
+    ///   dismisses this sheet and opens Settings on that Agent's profile.
     public init(
         chat: ChatPresentation,
         server: ServerPresentation,
-        isConnected: Bool,
         currentActivity: AgentActivityPresentation? = nil,
-        loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] }
+        loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] },
+        onOpenAgentProfile: @escaping (String) -> Void = { _ in }
     ) {
         self.chat = chat
         self.server = server
-        self.isConnected = isConnected
         self.currentActivity = currentActivity
         self.loadAgentActivity = loadAgentActivity
+        self.onOpenAgentProfile = onOpenAgentProfile
     }
 
     public var body: some View {
         NavigationStack {
             List {
                 Section {
-                    identityRow
+                    hero
                 }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
 
                 if case .directMessage(let agent) = chat.kind {
                     activitySections(agent: agent)
                 }
-
-                Section("Chat") {
-                    detailRow(
-                        title: "Server",
-                        value: server.name,
-                        systemImage: "server.rack"
-                    )
-                    detailRow(
-                        title: "Connection",
-                        value: isConnected ? "Connected" : "Offline",
-                        systemImage: isConnected ? "checkmark.circle" : "wifi.slash"
-                    )
-                    detailRow(
-                        title: "Unread",
-                        value: chat.unreadCount == 0 ? "None" : "\(chat.unreadCount)",
-                        systemImage: "circle.fill"
-                    )
-                }
-
             }
 #if os(iOS)
             .listStyle(.insetGrouped)
 #else
             .listStyle(.inset)
 #endif
-            .navigationTitle(navigationTitle)
+            .navigationTitle("")
             .grottoInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -72,36 +57,14 @@ public struct ChatDetailsView: View {
                 }
             }
         }
-        .tint(.blue)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationBackground(GrottoPlatformColor.groupedBackground)
         .task(id: agentID) { await loadHistory() }
     }
 
-    private var navigationTitle: String {
-        switch chat.kind {
-        case .channel: "Chat details"
-        case .directMessage: "Agent activity"
-        }
-    }
-
     @ViewBuilder
     private func activitySections(agent: AgentPresentation) -> some View {
-        Section("Now") {
-            HStack(spacing: 12) {
-                Circle()
-                    .fill(agent.presence.activityColor)
-                    .frame(width: 10, height: 10)
-                Text(currentActivity?.title ?? agent.presence.title)
-                Spacer(minLength: 12)
-                if currentActivity != nil {
-                    ProgressView().controlSize(.small)
-                }
-            }
-            .accessibilityElement(children: .combine)
-        }
-
         Section("Recent activity") {
             switch historyState {
             case .idle, .loading:
@@ -137,6 +100,23 @@ public struct ChatDetailsView: View {
                 }
             }
         }
+
+        Section {
+            Button { onOpenAgentProfile(agent.id) } label: {
+                HStack(spacing: 12) {
+                    Label("View profile", systemImage: "person.crop.circle")
+                        .foregroundStyle(.primary)
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("View \(agent.name)'s profile")
+        }
     }
 
     private var agentID: String? {
@@ -156,21 +136,42 @@ public struct ChatDetailsView: View {
         }
     }
 
-    private var identityRow: some View {
-        HStack(spacing: 14) {
+    private var hero: some View {
+        VStack(spacing: 12) {
             chatIdentity
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(spacing: 4) {
                 Text(chat.title)
-                    .font(.headline)
-                Text(chat.kind.subtitle)
+                    .font(.title2.weight(.semibold))
+                statusLine
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 12)
+        .padding(.bottom, 4)
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var statusLine: some View {
+        switch chat.kind {
+        case .channel:
+            Text("Channel · \(server.name)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        case .directMessage(let agent):
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(agent.presence.activityColor)
+                    .frame(width: 8, height: 8)
+                Text(currentActivity?.title ?? agent.presence.title)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                if currentActivity != nil {
+                    ProgressView().controlSize(.mini)
+                }
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(.vertical, 6)
     }
 
     @ViewBuilder
@@ -178,8 +179,9 @@ public struct ChatDetailsView: View {
         switch chat.kind {
         case .channel:
             Image(systemName: "number")
-                .font(.title2.weight(.medium))
-                .frame(width: 42, height: 42)
+                .font(.system(size: 30, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 72, height: 72)
                 .background(.quaternary, in: .circle)
                 .accessibilityHidden(true)
         case .directMessage(let agent):
@@ -187,26 +189,9 @@ public struct ChatDetailsView: View {
                 name: agent.name,
                 url: agent.avatarURL,
                 presence: agent.presence,
-                size: 42
+                size: 72
             )
         }
-    }
-
-    private func detailRow(
-        title: String,
-        value: String,
-        systemImage: String
-    ) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .foregroundStyle(.secondary)
-                .frame(width: 22)
-            Text(title)
-            Spacer(minLength: 12)
-            Text(value)
-                .foregroundStyle(.secondary)
-        }
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -235,17 +220,6 @@ private extension AgentActivityState {
     }
 }
 
-private extension ChatKind {
-    var subtitle: String {
-        switch self {
-        case .channel:
-            "Channel"
-        case .directMessage(let agent):
-            "Direct message with \(agent.name)"
-        }
-    }
-}
-
 private extension AgentPresence {
     var activityColor: Color {
         switch self {
@@ -269,15 +243,13 @@ private extension AgentPresence {
 #Preview("Channel details") {
     ChatDetailsView(
         chat: ChatFixtures.chats[1],
-        server: ChatFixtures.server,
-        isConnected: true
+        server: ChatFixtures.server
     )
 }
 
 #Preview("Agent details") {
     ChatDetailsView(
         chat: ChatFixtures.chats[3],
-        server: ChatFixtures.server,
-        isConnected: false
+        server: ChatFixtures.server
     )
 }

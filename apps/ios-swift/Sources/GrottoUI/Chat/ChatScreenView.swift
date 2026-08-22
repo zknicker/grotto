@@ -15,6 +15,7 @@ public struct ChatScreenView: View {
     private let onLoadOlderMessages: () async -> Bool
     private let contentInsets: EdgeInsets
 
+    @Binding private var scrollTargetMessageID: String?
     @State private var draft = ""
     @State private var composerInteraction = ComposerInteraction()
     @FocusState private var isComposerFocused: Bool
@@ -36,8 +37,10 @@ public struct ChatScreenView: View {
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
         onLoadOlderMessages: @escaping () async -> Bool = { false },
-        contentInsets: EdgeInsets = EdgeInsets()
+        contentInsets: EdgeInsets = EdgeInsets(),
+        scrollTargetMessageID: Binding<String?> = .constant(nil)
     ) {
+        _scrollTargetMessageID = scrollTargetMessageID
         self.chat = chat
         self.messages = messages
         self.isConnected = isConnected
@@ -65,7 +68,8 @@ public struct ChatScreenView: View {
                         hasOlderMessages: hasOlderMessages,
                         isLoadingOlderMessages: isLoadingOlderMessages,
                         onLoadOlderMessages: onLoadOlderMessages,
-                        onTapTimeline: { isComposerFocused = false }
+                        onTapTimeline: { isComposerFocused = false },
+                        scrollTargetMessageID: $scrollTargetMessageID
                     )
                     MessageComposerView(
                         text: $draft,

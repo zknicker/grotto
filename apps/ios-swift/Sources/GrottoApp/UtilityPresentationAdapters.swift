@@ -82,7 +82,7 @@ extension GrottoStore {
         case .dm:
             let name = chat.peerAgentID.flatMap { agentID in
                 agents.first { $0.id == agentID }?.displayName
-            } ?? chat.peerAgentDisplayName ?? "Direct message"
+            } ?? chat.peerAgentDisplayName ?? "DM"
             return (name, .directMessage)
         }
     }

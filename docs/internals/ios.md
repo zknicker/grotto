@@ -52,6 +52,21 @@ contract; an unavailable or role-denied Computer snapshot does not block the res
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
 
+Channel appearance is Server state the iPhone app only renders. A channel's `icon` and `color` reach
+`ChatSummary` unchanged, and `ChannelIconBox` draws the chosen glyph in its tinted box everywhere a
+channel glyph appears: the sidebar, the chat header, the chat details hero, chat search results, and
+the archived list. There is no appearance editor on iPhone. The color presets live in
+`ChannelColorPalette` and mirror the App's `channel-color-options.ts`, which stays the source of
+truth; a channel stores the preset id, so an unknown id renders the muted default rather than an
+invented tint. The glyph geometry is a bundled JSON resource,
+`Sources/GrottoUI/Resources/channel-icons.json`, regenerated with
+`bun apps/ios-swift/scripts/generate-channel-icon-paths.ts`. That script reads the icon *names* back
+out of the App's generated catalog rather than re-curating, so the two clients cannot drift apart;
+it converts hugeicons' SVG elements into path data, and `SVGPathData` parses that into a SwiftUI
+`Path` normalized from the 24x24 viewBox. `ChannelIconCatalog` decodes the resource once off the
+main actor and caches each glyph's parsed `Path` on first use. Until it lands — and for any name the
+catalog does not carry — the box renders the hash, so the glyph never changes size or position.
+
 Sent image attachments render inline as media tiles rather than file rows: the timeline downloads
 through the same authenticated attachment route Quick Look uses, decodes a downsampled ImageIO
 thumbnail sized for the tile, and keeps the result in an in-memory `AttachmentImageCache` keyed by

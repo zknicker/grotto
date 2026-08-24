@@ -38,6 +38,7 @@ export function ChatComposer({
     placeholder,
     serverId,
     thread,
+    variant = 'primary',
 }: {
     chatId: string;
     chatName: string;
@@ -51,6 +52,12 @@ export function ChatComposer({
     placeholder?: string;
     serverId: string;
     thread?: { anchorMessageId: string };
+    /**
+     * The shell's surface styling. The primary shell is tinted for the page
+     * background; on a surface (a modal dialog) it would match its host
+     * exactly, so those callers pass `secondary`.
+     */
+    variant?: 'primary' | 'secondary';
 }) {
     const agents = useAgents(serverId);
     const agentList = agents.data ?? emptyAgents;
@@ -187,6 +194,7 @@ export function ChatComposer({
                     void handleSubmit();
                 }}
                 value={draft}
+                variant={variant}
             >
                 <PromptInput.Shell onMouseDown={handleShellMouseDown}>
                     <PromptInput.Content>

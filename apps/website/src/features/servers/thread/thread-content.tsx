@@ -27,6 +27,8 @@ export function ThreadContent({
     active,
     anchor,
     chat,
+    composerVariant = 'primary',
+    headerTitle,
     initialThreadChatId,
     onClose,
     onOpenArtifact,
@@ -40,6 +42,13 @@ export function ThreadContent({
     active: boolean;
     anchor: ChatMessage;
     chat: Chat;
+    /** `secondary` when the host is a surface (the task dialog). */
+    composerVariant?: 'primary' | 'secondary';
+    /**
+     * Overrides the derived "Thread — <chat>" title. The task dialog names the
+     * task it opened, since that is the identity the reader came for.
+     */
+    headerTitle?: string;
     initialThreadChatId?: string;
     onClose: () => void;
     onOpenArtifact: (target: TavernResourceTarget) => void;
@@ -74,6 +83,8 @@ export function ThreadContent({
         onOpenArtifact,
         pendingMessages: pendingReplies,
         serverId: chat.serverId,
+        // The metadata panel above the anchor already states the task.
+        taskChipHidden: Boolean(anchor.task),
         turnDetailsAccess,
         viewerUserId,
     });
@@ -101,7 +112,7 @@ export function ThreadContent({
             <ThreadPanelHeader
                 followed={summary?.followed ?? true}
                 followPending={follow.isPending}
-                header={titles.header}
+                header={headerTitle ?? titles.header}
                 onBack={onClose}
                 onClose={onClose}
                 onFollowChange={(next) => {
@@ -124,6 +135,7 @@ export function ThreadContent({
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
                     {anchor.task ? (
                         <TaskThreadMetadata
+                            chat={chat}
                             chatId={chat.id}
                             fallbackTask={anchor.task}
                             messageId={anchor.id}
@@ -180,6 +192,7 @@ export function ThreadContent({
                     placeholder="Add a reply…"
                     serverId={chat.serverId}
                     thread={{ anchorMessageId: anchor.id }}
+                    variant={composerVariant}
                 />
             )}
         </div>

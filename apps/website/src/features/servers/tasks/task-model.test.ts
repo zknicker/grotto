@@ -210,8 +210,8 @@ test('offers writable Channels and DMs as task creation work surfaces', () => {
         )
     ).toEqual([
         { id: 'chat_channel', label: '#all' },
-        { id: 'chat_dm', label: 'Direct · Human r_peer' },
-        { id: 'chat_agent_dm', label: 'Direct · Cove' },
+        { id: 'chat_dm', label: 'DM · Human r_peer' },
+        { id: 'chat_agent_dm', label: 'DM · Cove' },
     ]);
 });
 
@@ -226,7 +226,7 @@ test('identifies a DM task by its peer', () => {
             },
             humans
         ).chatLabel
-    ).toBe('Direct · Human r_peer');
+    ).toBe('DM · Human r_peer');
 });
 
 function agent(): Agent {

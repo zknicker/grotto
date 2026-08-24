@@ -32,6 +32,7 @@ test('Thread targets preserve non-canonical opaque anchor ids', () => {
             humans
         )
     ).toEqual({
+        context: '#all',
         header: 'Thread — #all',
         target: '#all:msg_opaque-base64',
     });

@@ -29,7 +29,9 @@ export function MessageTaskChip({
 
     return (
         <span
-            className="inline-flex min-w-0 max-w-full items-center gap-1.5 font-semibold text-muted"
+            // Annotation scale, matching the author line — without an explicit
+            // size it inherits the message container and outgrows the body text.
+            className="inline-flex min-w-0 max-w-full items-center gap-1.5 font-semibold text-muted text-sm"
             data-testid="message-task-badge"
         >
             <span className="shrink-0 tabular-nums">Task {formatTaskNumber(task)}</span>

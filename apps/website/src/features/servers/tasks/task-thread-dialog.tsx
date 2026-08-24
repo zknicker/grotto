@@ -12,7 +12,7 @@ import { useTaskView } from './task-view.ts';
  * Raft-style task peek: opening a task from the Board or List lenses shows
  * its Thread work surface in a dialog over the tasks page instead of
  * navigating into the parent Chat. `?task=<messageId>` owns the open task, so
- * deep links and Back work. "View in channel" (and artifact opens, which are
+ * deep links and Back work. "View in chat" (and artifact opens, which are
  * chat-scoped) still navigate to the parent Chat.
  */
 export function TaskThreadDialog() {
@@ -57,12 +57,17 @@ export function TaskThreadDialog() {
             <Modal.Container placement="center" size="lg">
                 <Modal.Dialog
                     aria-label={`Task #${item.task.number} thread`}
-                    className="flex h-[85vh] max-w-3xl flex-col overflow-hidden p-0"
+                    // A fixed height: the transcript scrolls inside it, so the
+                    // dialog does not resize as replies load or arrive. Capped
+                    // in rem so it stays proportionate on tall displays.
+                    className="flex h-[min(85vh,44rem)] max-w-3xl flex-col overflow-hidden p-0"
                 >
                     <ThreadContent
                         active
                         anchor={anchor}
                         chat={chat}
+                        composerVariant="secondary"
+                        headerTitle={`Task #${item.task.number}`}
                         initialThreadChatId={item.task.threadChatId}
                         key={anchor.id}
                         onClose={closeTask}

@@ -41,6 +41,7 @@ function EmbeddedThreadMessageSurface({
     const durable = isThreadAnchorRow(row);
     const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
     const taskLivesInPreview = Boolean(row.message.task && canOpenThread);
+    const taskChipHidden = Boolean(context?.taskChipHidden);
     const taskAssigneeProfile = resolveTaskAssigneeProfile(row.message.task, context);
     const flashing = context?.flashMessageId === row.message.id;
     const openThread = () => context?.onOpenThread(row);
@@ -58,7 +59,7 @@ function EmbeddedThreadMessageSurface({
         >
             {children}
             <div className="flex flex-wrap items-center gap-1.5">
-                {row.message.task && !taskLivesInPreview ? (
+                {row.message.task && !(taskLivesInPreview || taskChipHidden) ? (
                     canOpenThread ? (
                         <ThreadTaskChipButton
                             ariaLabel={`Task ${formatTaskNumber(row.message.task)} — ${taskStatusLabels[row.message.task.status]}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}. Open thread`}
@@ -77,7 +78,7 @@ function EmbeddedThreadMessageSurface({
             {canOpenThread ? (
                 <ThreadPreviewBlock
                     headerLeading={
-                        row.message.task && taskLivesInPreview ? (
+                        row.message.task && taskLivesInPreview && !taskChipHidden ? (
                             <MessageTaskChip
                                 assigneeProfile={taskAssigneeProfile}
                                 task={row.message.task}

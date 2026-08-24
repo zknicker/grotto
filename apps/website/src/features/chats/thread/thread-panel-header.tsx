@@ -1,8 +1,16 @@
-import { Button, Tooltip } from '@heroui/react';
-import { ArrowLeft01Icon, Cancel01Icon, FileViewIcon } from '@hugeicons-pro/core-stroke-rounded';
-import * as React from 'react';
+import { Button, Dropdown, Label, Tooltip, toast } from '@heroui/react';
+import {
+    ArrowDown01Icon,
+    ArrowLeft01Icon,
+    ArrowUpRight01Icon,
+    Cancel01Icon,
+    Copy01Icon,
+    Notification01Icon,
+    NotificationOff01Icon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
+import { bandHeightClassName } from '../../shell/section-header.tsx';
 
 export function ThreadPanelHeader({
     followed,
@@ -27,10 +35,10 @@ export function ThreadPanelHeader({
     takeover: boolean;
     threadExists: boolean;
 }) {
-    const [copied, setCopied] = React.useState(false);
-
     return (
-        <header className="flex h-12 shrink-0 items-center gap-3 border-separator border-b px-4">
+        <header
+            className={`flex ${bandHeightClassName} shrink-0 items-center gap-3 border-separator border-b px-5`}
+        >
             {takeover ? (
                 <Tooltip>
                     <Button
@@ -45,61 +53,88 @@ export function ThreadPanelHeader({
                     <Tooltip.Content>Back to chat</Tooltip.Content>
                 </Tooltip>
             ) : null}
-            <div className="flex min-w-0 flex-1 items-baseline gap-2">
-                <h2 className="min-w-0 truncate font-semibold text-sm">{header}</h2>
-                {target ? (
-                    <button
-                        className="min-w-0 shrink truncate text-left text-muted text-sm hover:text-foreground"
-                        onClick={async () => {
-                            try {
-                                await writeClipboardText(target);
-                                setCopied(true);
-                                window.setTimeout(() => setCopied(false), 1600);
-                            } catch {
-                                setCopied(false);
-                            }
-                        }}
-                        title={copied ? 'Copied thread target' : 'Copy thread target'}
-                        type="button"
+            {/* The name is the menu, mirroring the chat topbar: one control
+                on the leading edge, and the trailing edge keeps only close. */}
+            <div className="flex min-w-0 flex-1 items-center">
+                <Dropdown>
+                    <Button
+                        aria-label={`${header} — thread actions`}
+                        className="-ms-2 min-w-0 gap-2 px-2"
+                        size="sm"
+                        variant="ghost"
                     >
-                        {target}
-                    </button>
-                ) : null}
+                        <span className="truncate font-semibold text-sm">{header}</span>
+                        <Icon
+                            aria-hidden="true"
+                            className="text-muted"
+                            icon={ArrowDown01Icon}
+                            size={15}
+                        />
+                    </Button>
+                    <Dropdown.Popover placement="bottom start">
+                        <Dropdown.Menu
+                            onAction={(key) => {
+                                if (key === 'view') {
+                                    onViewInChannel();
+                                    return;
+                                }
+                                if (key === 'follow') {
+                                    onFollowChange(!followed);
+                                    return;
+                                }
+                                if (key === 'copy' && target) {
+                                    writeClipboardText(target)
+                                        .then(() => toast.success('Reference copied'))
+                                        .catch(() =>
+                                            toast.danger('Could not copy the thread reference')
+                                        );
+                                }
+                            }}
+                        >
+                            <Dropdown.Item id="view" textValue="View in chat">
+                                <Icon icon={ArrowUpRight01Icon} size={16} />
+                                <Label>View in chat</Label>
+                            </Dropdown.Item>
+                            <Dropdown.Item
+                                id="copy"
+                                isDisabled={!target}
+                                textValue="Copy reference"
+                            >
+                                <Icon icon={Copy01Icon} size={16} />
+                                <Label>Copy reference</Label>
+                            </Dropdown.Item>
+                            {/* Following is automatic on participation, so this
+                                is the escape hatch: its replies stop counting
+                                toward the parent chat's unread badge. */}
+                            <Dropdown.Item
+                                id="follow"
+                                isDisabled={!threadExists || followPending}
+                                textValue={followed ? 'Stop following thread' : 'Follow thread'}
+                            >
+                                <Icon
+                                    icon={followed ? NotificationOff01Icon : Notification01Icon}
+                                    size={16}
+                                />
+                                <Label>
+                                    {followed ? 'Stop following thread' : 'Follow thread'}
+                                </Label>
+                            </Dropdown.Item>
+                        </Dropdown.Menu>
+                    </Dropdown.Popover>
+                </Dropdown>
             </div>
-            <div className="flex shrink-0 items-center gap-1">
+            <Tooltip>
                 <Button
-                    isDisabled={!threadExists || followPending}
-                    onPress={() => onFollowChange(!followed)}
+                    aria-label="Close thread"
+                    isIconOnly
+                    onPress={onClose}
                     size="sm"
-                    variant={followed ? 'secondary' : 'ghost'}
+                    variant="ghost"
                 >
-                    {followed ? 'Following' : 'Follow'}
+                    <Icon aria-hidden="true" icon={Cancel01Icon} size={18} />
                 </Button>
-                <Tooltip>
-                    <Button
-                        aria-label="View in channel"
-                        isIconOnly
-                        onPress={onViewInChannel}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        <Icon aria-hidden="true" icon={FileViewIcon} size={18} />
-                    </Button>
-                    <Tooltip.Content>View in channel</Tooltip.Content>
-                </Tooltip>
-                <Tooltip>
-                    <Button
-                        aria-label="Close thread"
-                        isIconOnly
-                        onPress={onClose}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        <Icon aria-hidden="true" icon={Cancel01Icon} size={18} />
-                    </Button>
-                    <Tooltip.Content>Close thread</Tooltip.Content>
-                </Tooltip>
-            </div>
+                <Tooltip.Content>Close thread</Tooltip.Content>
+            </Tooltip>
         </header>
     );
 }

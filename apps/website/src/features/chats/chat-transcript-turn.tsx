@@ -6,7 +6,7 @@ import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { requestChatComposerMention } from '../../commands/chat-composer-mention.ts';
 import { RelativeTime } from '../../components/time/relative-time.tsx';
-import { getEntityInitials } from '../../components/ui/entity-avatar.tsx';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { openAgentProfilePane } from '../../hooks/pane/use-agent-profile-pane.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
@@ -267,8 +267,16 @@ function getActiveReplyText(items: TranscriptItem[]) {
     return '';
 }
 
-// Agents and people share one identity mark: the uploaded square image when
-// there is one, initials otherwise.
+/**
+ * Agents and people share one identity mark: the uploaded square image when
+ * there is one, initials otherwise.
+ *
+ * EntityAvatar rather than `ChatMessage.Avatar`, which takes no size and
+ * hardcodes HeroUI's `md` preset. `md` rounds at `--radius * 3` while `sm` —
+ * what the live-Agent path renders at 32px — rounds at `* 2`, so the two sat
+ * side by side in the same column with visibly different corners at any
+ * radius. One component and one preset is what actually keeps them identical.
+ */
 function TurnAvatar({
     avatarUrl,
     deleted = false,
@@ -279,11 +287,11 @@ function TurnAvatar({
     name: string;
 }) {
     return (
-        <ChatMessage.Avatar
-            alt={`${name} avatar`}
+        <EntityAvatar
             className={cn(transcriptTurnGeometry.avatar, deleted && 'opacity-50 grayscale')}
-            fallback={getEntityInitials(name)}
-            src={avatarUrl ?? undefined}
+            name={name}
+            size={32}
+            src={avatarUrl}
         />
     );
 }

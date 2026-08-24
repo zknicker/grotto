@@ -8,10 +8,10 @@ interface VersionedTask {
 export function taskAssignmentInput(
     serverId: string,
     task: VersionedTask,
-    assigneeUserId: string | null
+    assignee: GrottoInputs['task']['assign']['assignee']
 ): GrottoInputs['task']['assign'] {
     return {
-        assigneeUserId,
+        assignee,
         expectedVersion: task.version,
         messageId: task.id,
         serverId,

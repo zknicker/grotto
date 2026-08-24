@@ -8,12 +8,14 @@ export function threadTitles(chat: Chat, anchorMessageId: string, humans: HumanD
     if (chat.kind === 'dm') {
         const peer = chat.peerAgentDisplayName ?? humans.name(chat.peerUserId);
         return {
+            context: `@${peer}`,
             header: `Thread — ${peer}`,
             target: `dm:@${peer}:${anchorReference}`,
         };
     }
 
     return {
+        context: `#${chat.name}`,
         header: `Thread — #${chat.name}`,
         target: `#${chat.name}:${anchorReference}`,
     };

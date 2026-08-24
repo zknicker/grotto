@@ -24,3 +24,11 @@ configured OAuth client and previously approved authorization-server origins.
 Each Agent profile shows one switch per connected MCP server. Turning it on grants that Agent all
 tools exposed by the connection. The tool names are read-only context, not individual permission
 controls.
+
+Each connection shows the MCP server's own icon when one can be resolved, and a tinted monogram
+otherwise. Grotto Server resolves and stores the image during discovery, so the settings page makes
+no third-party image requests. See [Connections API](../api/connections.md#connection-icons).
+
+A connection's detail dialog leads with the server's name, its connection status, and the server's
+own description of itself when it offers one. Long tool and Agent lists scroll inside the dialog so
+its identity and its management actions stay reachable.

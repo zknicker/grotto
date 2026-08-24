@@ -109,6 +109,31 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   against the generated `--spacing` token, so a design-system change rescales
   every page together. Pick width through the `width` variant
   (`default`, `wide`, `full`) rather than a call-site `max-w-[…]` override.
+* Two shapes mean a HeroUI component is being replaced rather than composed:
+  a layout element dropped straight into a compound header or footer, and a
+  `className` that cancels a component's own padding or gap. Both typecheck and
+  both produce real visual bugs — a `Form` wrapped around `Drawer.Header`/`Body`/
+  `Footer` unpinned the footer; a flex row inside `Modal.Header` stranded the
+  icon, because that header stacks Icon over Heading over one muted line; and
+  `<Card className="gap-0 p-0">` is how a whole parallel settings row kit began.
+  The first shape is enforced by the Biome plugins in `apps/website/lint/`, the
+  second by `lib/heroui-composition-contract.test.ts`. Neither sees a `className`
+  built through `cn()` or a variable, so read the component's anatomy before
+  reaching for a wrapper.
+* Settings-style surfaces compose stock Pro parts, not a local row kit. A
+  section is `ItemCardGroup variant="transparent"` with `Header`/`Title`; a row
+  is `ItemCard` with `Content`/`Title`/`Description`/`Action`, separated by
+  `Separator`; tabular data is `DataGrid` with a typed column array. The
+  Computer overview (`features/computers/`) is the worked reference for all
+  three. `ItemCard.Action` is intrinsic-width, so a row never declares a
+  trailing-column width; a wide control carries its own measure.
+  `features/settings/layout/settings-text.tsx` holds the only two roles
+  `ItemCard` has no slot for — a read-only value and a row's action error.
+* Controls sit at the altitude they act on. A page-level action goes in the
+  shell band through `PageTopbar` + `SectionHeader` with no title; a control
+  scoped to one section rides in that section's `ItemCardGroup.Header`; a
+  control acting on one row lives in that row's `ItemCard.Action`.
+  `SettingsPageHeader` carries identity only and takes no action slot.
 * Spacing has one owner per axis. HeroUI modules — `Widget`, `ItemCardGroup`,
   `Card`, `KPI` — already carry their own header and content padding, so drop
   them straight into the column instead of wrapping them in padded `<section>`

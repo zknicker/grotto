@@ -384,12 +384,44 @@ Use HeroUI's default rounded shape language and Tailwind radius utilities. Custo
 
 | Token | Raw value | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| `radius` | `8px` |  | `--radius` | Prefer Tailwind radius utilities like `rounded-lg`, `rounded-xl`, and `rounded-2xl`. | Global corner radius basis for surfaces, buttons, and container shapes. |
-| `field radius` | `12px` |  | `--field-radius` | Prefer HeroUI field components so this radius is applied automatically. | Corner radius basis for inputs, selects, text areas, and other form controls. |
+| `radius` | `4px` |  | `--radius` | Prefer Tailwind radius utilities like `rounded-lg`, `rounded-xl`, and `rounded-2xl`. | Global corner radius basis for surfaces, buttons, and container shapes. |
+| `field radius` | `6px` | `radius x 1.5` | `--field-radius` | Prefer HeroUI field components so this radius is applied automatically. | Corner radius basis for inputs, selects, text areas, and other form controls. |
+
+### Radius tiers
+
+Every radius derives from `--radius`; the utilities compile to `calc(var(--radius) * n)`,
+so changing that one token reshapes the product. Match the tier a component belongs to
+rather than picking a step that looks right at today's value — a step chosen by eye at
+one radius drifts the moment the token moves.
+
+| Tier | Step | Where HeroUI uses it |
+| --- | --- | --- |
+| Overlay and section shells | `min(32px, ×3)` | Card, Popover, Modal, Dropdown, Toast, Alert, Accordion, Select/ComboBox popovers. Product surfaces use the `.card-shell` class, which carries the cap. |
+| Grouped/secondary shells | `×2.5` | Tabs list, Table, date and color pickers. |
+| Interactive pill controls | `×3` | Button, ToggleButton, Pagination, Tab item, Toolbar. Reads as a pill only because ×3 exceeds half the control's height and the browser clamps it; it squares up as `--radius` drops. |
+| Items and chips | `×2` | `menu-item`, `list-box-item`, Chip, Avatar `sm`. |
+| Small adornments | `×1.5` and below | Tooltip (`×1.5` — *not* the shell tier), CloseButton, Tag, Switch; Kbd and Radio `×1`, Checkbox `×0.75`, Skeleton `×0.5`. |
+| Fields | `--field-radius`, defaulting to `×1.5` | Every input-family control via `rounded-field`. Decouple form controls by setting `--field-radius`, not by overriding call sites. |
+
+Two rules that are easy to get wrong:
+
+- **Pair the radius to the box.** HeroUI pairs each component's box with a radius step. If
+  you force a box — an exact pixel avatar, an icon container — derive the radius too, or the
+  corner stays fixed while the box changes and the shape drifts. `identityMarkRadius()` in
+  `components/ui/entity-avatar.tsx` does this for identity marks. Note it deliberately
+  normalizes where HeroUI itself is inconsistent (Avatar `md` is 40px at ×3, off the ratio
+  its siblings share).
+- **Some things opt out.** A status dot is a dot at every radius: `.badge:empty` — and only
+  the empty case, which is HeroUI's own definition of a dot — is pinned to a full radius in
+  the component-overrides block of `styles/default-theme.css`. A Badge carrying a count or a
+  label keeps the scale. HeroUI has no dot shape, and its badge sizes carry non-monotonic
+  steps against a `--spacing`-derived box, so the dot drifted between regions.
 
 ## Components
 - **Buttons:** Use HeroUI Button semantic variants. Primary actions use `variant="primary"`; alternatives use `secondary`, `tertiary`, `outline`, or `ghost`; destructive actions use `danger` or `danger-soft`.
-- **Cards and surfaces:** Use HeroUI Card, Surface, overlays, and `bg-surface` tokens. Do not add extra custom shadows to components that already include surface elevation.
+- **Cards and surfaces:** Use HeroUI Card, Surface, overlays, and `bg-surface` tokens. Do not add extra custom shadows to components that already include surface elevation. For surfaces nested inside a turn, drawer, or pane — where Card's padding and shadow fight the layout — use `InlineCard` or the `.card-shell` class so the shell step stays in one place. Component
+  overrides like these live in the `@layer components` block of `default-theme.css`, which is
+  the shape HeroUI's own theme exports take — variables and BEM overrides in one file.
 - **Forms:** Use HeroUI field components so `--field-background`, `--field-border`, `--field-foreground`, `--field-radius`, and field widths resolve consistently.
 - **Status:** Use semantic status tokens for actual meaning: success for positive outcomes, warning for caution, danger for destructive or critical states.
 - **Charts:** Use `--chart-1` through `--chart-5` for multi-series charts; `--chart-3` aligns to the accent baseline.

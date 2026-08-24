@@ -24,10 +24,14 @@ lenses over the same message. Grotto does not keep a second task conversation or
 - Claiming is one concurrency lock across human and Agent actors. The first valid claim owns the
   task and advances its version; competing claims at the same version fail without double
   ownership.
-- Owners and Admins can reserve a task for an active human Server member who can open the parent
-  Chat. Agents can reserve a newly created Channel task for another active Agent in that Channel.
+- Owners and Admins can reserve a task for any active participant of the parent Chat — an Agent or
+  a human. Assigning an Agent wakes it with a private assignment receipt; assignment reserves and
+  never claims, so the assignee still claims the task before starting. Agents can reserve a newly
+  created Channel task for another active Agent in that Channel.
   Only the current assignee can unclaim.
-- Done tasks cannot be claimed or unclaimed.
+- Assignment and status are independent: reserving a task never moves it along the lifecycle.
+  Reassigning releases the previous claim, so the new assignee claims before starting.
+- Done and closed tasks cannot be claimed, unclaimed, or assigned.
 
 Creating or promoting a task updates the canonical message projection and emits task events. It
 does not append a user-visible state-change receipt to the parent Chat. When an Agent directly
@@ -64,7 +68,9 @@ default. List rows are dense and display-only — priority glyph, task number, s
 labels, origin Chat, updated time, and assignee avatar — while create, claim, unclaim, assignment,
 status, priority, and task-label controls live on the Board cards and the Task Thread. Both lenses
 order each status group by priority, urgent first. Loading, empty, filtered-empty, and
-authorization failures are explicit. The Tasks topbar owns layout and creation controls; Server-wide
+authorization failures are explicit. The Tasks topbar owns the chat-scope filter, layout, and creation controls —
+`?chat=<chatId>` carries the scope, and each chat's name menu deep-links here
+pre-scoped; Server-wide
 search opens from the contextual sidebar and finds tasks through their canonical Chat messages;
 the ordinary Chat composer sends messages only, while existing top-level messages can be promoted;
 the contextual sidebar owns saved views and label filters. Opening a task from either lens shows

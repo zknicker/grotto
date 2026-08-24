@@ -26,10 +26,11 @@ someone else fails closed. Board, list, priority, label, and filter views are
 lenses over task-messages — never a second store. Task state changes do not
 create receipt messages.
 
-Peer-Agent assignment is the one private handoff exception: the canonical task
-message remains the durable Chat work item, and the assigned Agent also
-receives a Server-authored task assignment system message through its inbox.
-The assignment receipt is not part of the App Chat transcript or human unread
+Direct assignment to an Agent is the one private handoff exception, whether a
+peer Agent or an Owner or Admin makes it: the canonical task message remains
+the durable Chat work item, and the assigned Agent also receives a
+Server-authored task assignment system message through its inbox. The
+assignment receipt is not part of the App Chat transcript or human unread
 count.
 
 ## Consequences

@@ -82,7 +82,7 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   by the known Clerk user id rather than clearing a shared cache after render.
 * Keep primary Server destinations code-split, but share their cached module
   loaders between router navigation and preloading. The persistent shell warms
-  them while idle; rail hover warms the destination before selection.
+  them while idle; sidebar-row hover warms the destination before selection.
 * Treat empty synced database results as valid rendered states.
 * Keep `/s/*` on the Grotto Server route tree. It may mount Server hooks and
   Computer-backed capability surfaces, but it must not invent direct execution
@@ -91,11 +91,15 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 ## Shell
 
 * `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
-  `ShellSidebar`. Sections compose `ShellSidebarPage` slots; route state
-  selects one slot without replacing the sidebar root. Search is a full-width
-  destination and does not show contextual navigation.
+  `ShellSidebar` — there is no icon rail. The sidebar leads with the server
+  identity row (server switcher plus the settings entry), then Search and
+  Tasks rows, then chat navigation; the footer stays reserved for the live
+  agent activity strip. Sections compose `ShellSidebarPage` slots; route state
+  selects one slot without replacing the sidebar root, and non-chat pages
+  render a shared back-to-chat row. The sidebar is persistent — every routed
+  destination, search included, keeps it mounted.
   Returning to Chat resolves the remembered valid Chat directly instead of
-  rendering the Server entry redirect between rail destinations.
+  rendering the Server entry redirect between section destinations.
 * `ShellSidebar` mounts only the active page descriptor. Left-sidebar changes
   are navigation, not disclosure, so they are instant and inactive page controls
   never enter the accessibility tree. Routes that add or remove the contextual

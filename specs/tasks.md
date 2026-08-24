@@ -29,9 +29,12 @@ to the assigned Agent's inbox and filtered from App Chat history/search and huma
 - Claim is self-only. Task writes lock the Server before membership, Chat, and task rows. The
   first valid claimant wins; a second claimant cannot acquire ownership at the same version.
 - Only the current assignee can unclaim.
-- Server Owners and Admins can reserve or clear human assignment. A human assignee must have
-  active Server membership and parent-Chat access. An Agent can create a new Channel task reserved
-  for another active Agent in that Channel; the recipient must claim it before working.
+- Server Owners and Admins can reserve or clear assignment for an Agent or a human. A human
+  assignee must have active Server membership and parent-Chat access; an Agent assignee must be
+  active and already participate in the parent Chat. Assigning an Agent writes a private
+  assignment receipt and wakes it. An Agent can also create a new Channel task reserved for
+  another active Agent in that Channel. In every case the recipient must claim before working,
+  and a finished task cannot be assigned.
 - Members can create task-label catalog entries. Owners and Admins can rename, recolor, or delete
   catalog entries.
 - Revoked Server membership, lost parent-Chat access, cross-Server ids, and stale versions fail

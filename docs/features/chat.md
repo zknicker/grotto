@@ -46,21 +46,22 @@ and [Agent Inbox](../../specs/inbox.md).
   turns — delivery to agents is planner-owned (see
   [Agent Inbox](../../specs/inbox.md)).
 * **Channels and DMs.** Channels and direct messages are durable chat rooms in
-  the sidebar. Each Grotto channel and DM has Chat and Files tabs; Files
-  lists attachments from its messages. Channels render with a hash or chosen catalog icon and
-  optional channel color. Opening a Server restores that Server's last visited
-  Chat when it still exists, then falls back to `#all` or the first available
-  Chat.
-  Opening a chat shows a room topbar with the chat name. On channels the name is
-  a dropdown of channel actions. Editing a channel is three separate decisions,
-  each with its own dialog: Rename channel, Icon & color, and Agents, which
-  carries the participant count. Archive and delete follow them for a regular
-  channel. Users create channels in one New channel dialog that names the
-  channel, picks its icon and color from a trigger inside the name field, and
-  chooses its agent participants.
+  the sidebar. Every chat's name is a dropdown menu offering its chat-scoped
+  surfaces: View tasks opens the Tasks page filtered to the chat, and Files
+  opens a side pane listing attachments from its messages. Channels render with
+  a hash or chosen catalog icon and optional channel color. Opening a Server
+  restores that Server's last visited Chat when it still exists, then falls back
+  to `#all` or the first available Chat.
+  Opening a chat shows a room topbar with the chat name. On channels the name's
+  dropdown also carries channel actions. Editing a channel is three separate
+  decisions, each with its own dialog: Rename channel, Icon & color, and Agents,
+  which carries the participant count. Archive and delete follow them for a
+  regular channel. Users create channels in one New channel dialog that names
+  the channel, picks its icon and color from a trigger inside the name field,
+  and chooses its agent participants.
   Archive channel is an Owner/Admin action for a regular channel. It hides the
-  channel from the active sidebar without deleting history. The sidebar's
-  Archived entry opens the archived channel view (`/s/:slug/archived`), where
+  channel from the active sidebar without deleting history. The Server menu's
+  Archived chats entry opens the archived channel view (`/s/:slug/archived`), where
   a channel can be reopened or restored. An open archived channel shows an
   Archived badge and a restore bar in place of the composer. Its history,
   search results, deep link, and child Threads remain readable, but new

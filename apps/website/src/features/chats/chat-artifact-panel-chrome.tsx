@@ -1,5 +1,10 @@
 import { Button, Dropdown, Label, ScrollShadow, Separator } from '@heroui/react';
-import { Cancel01Icon, Copy01Icon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
+import {
+    Cancel01Icon,
+    File01Icon,
+    Link01Icon,
+    MoreHorizontalIcon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { ArtifactPanelSourceMenu } from './chat-artifact-panel-source-menu.tsx';
@@ -86,11 +91,12 @@ function ArtifactOptionsMenu({ target }: { target: TavernResourceTarget }) {
                     }}
                 >
                     <Dropdown.Item id="copy-link" textValue="Copy link">
-                        <Icon icon={Copy01Icon} />
+                        <Icon icon={Link01Icon} size={16} />
                         <Label>Copy link</Label>
                     </Dropdown.Item>
                     <Separator />
                     <Dropdown.Item id="copy-path" textValue="Copy path">
+                        <Icon icon={File01Icon} size={16} />
                         <Label>Copy path</Label>
                     </Dropdown.Item>
                 </Dropdown.Menu>

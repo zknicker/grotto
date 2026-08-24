@@ -49,8 +49,9 @@ export function humanRoute(slug: string, userId: string) {
     return `${membersRoute(slug)}/humans/${encodeURIComponent(userId)}`;
 }
 
+/** Computers live as a Settings section; the legacy /computers path redirects here. */
 export function serverComputersRoute(slug: string) {
-    return `${serverRoute(slug)}/computers`;
+    return `${serverSettingsRoute(slug)}/computers`;
 }
 
 export function serverSettingsRoute(slug: string) {

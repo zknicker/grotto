@@ -42,6 +42,8 @@ interface ChatTranscriptInput {
     onStartDm?: (userId: string) => void;
     pendingMessages?: readonly PendingChatMessage[];
     serverId: string;
+    /** Hides per-message task chips when a metadata panel already states them. */
+    taskChipHidden?: boolean;
     threads?: readonly ThreadSummary[];
     turnDetailsAccess?: 'journal' | 'summary';
     viewerUserId?: string;
@@ -96,6 +98,7 @@ export function useChatTranscript({
     onStartDm,
     pendingMessages = emptyPendingMessages,
     serverId,
+    taskChipHidden,
     threads = emptyChatThreads,
     turnDetailsAccess = 'summary',
     viewerUserId,
@@ -243,6 +246,7 @@ export function useChatTranscript({
                 repliedRunIds: new Set<string>(),
                 resolveActorProfile,
                 shouldAnimateItemEnter: () => false,
+                taskChipHidden,
                 threadActionsEnabled: Boolean(onOpenThread),
             }) satisfies TranscriptRenderContextValue,
         [
@@ -256,6 +260,7 @@ export function useChatTranscript({
             renderMessageAttachments,
             resolveActorProfile,
             serverId,
+            taskChipHidden,
             turnDetailsAccess,
         ]
     );

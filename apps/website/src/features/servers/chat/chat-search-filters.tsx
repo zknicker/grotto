@@ -205,5 +205,5 @@ export function searchChatLabel(chat: Chat): string {
         return `#${chat.name ?? 'channel'}`;
     }
 
-    return chat.peerAgentDisplayName ?? 'Direct message';
+    return chat.peerAgentDisplayName ?? 'DM';
 }

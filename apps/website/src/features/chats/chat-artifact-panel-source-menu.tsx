@@ -27,7 +27,7 @@ export function ArtifactPanelSourceMenu({
                     <Dropdown.Section>
                         <Header>Open from</Header>
                         <Dropdown.Item id="workspace" isDisabled={!agentId} textValue="Workspace">
-                            <Icon icon={FileSearchIcon} />
+                            <Icon icon={FileSearchIcon} size={16} />
                             <div className="flex min-w-0 flex-col">
                                 <Label>Workspace</Label>
                                 <Description>

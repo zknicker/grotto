@@ -1,6 +1,11 @@
 import { Button, Chip, Dropdown, Label, Tooltip, toast } from '@heroui/react';
 import {
+    ArchiveIcon,
+    ArchiveRestoreIcon,
     ArrowDown01Icon,
+    Attachment01Icon,
+    CheckListIcon,
+    Delete02Icon,
     SidebarRightIcon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
@@ -21,27 +26,24 @@ import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
 import { ChannelRenameDialog } from '../../chats/channel-rename-dialog.tsx';
-import { ChatViewSwitcher, type ChatViewTab } from '../../chats/chat-view-tabs.tsx';
 import { availabilityLabel } from '../../members/agent-avatar.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
-import { serverRoute } from '../server-routes.ts';
+import { serverRoute, tasksRoute } from '../server-routes.ts';
 
 export function ChatTopbar({
     artifactVisible,
     chat,
     chatName,
+    onOpenFiles,
     onToggleArtifacts,
-    onViewTabChange,
     server,
-    viewTab,
 }: {
     artifactVisible: boolean;
     chat: Chat;
     chatName: string;
+    onOpenFiles: () => void;
     onToggleArtifacts: () => void;
-    onViewTabChange: (tab: ChatViewTab) => void;
     server: ServerDetail;
-    viewTab: ChatViewTab;
 }) {
     const agents = useAgents(chat.serverId);
     const peerAgent =
@@ -50,19 +52,22 @@ export function ChatTopbar({
             : null;
 
     return (
-        // The chat's name and the views of it are one unit on the leading edge:
-        // adjacency is what says the tabs belong to this chat. The switcher
-        // rides in `meta` so it stays glued to the name instead of being pushed
-        // right with the actions.
         <SectionHeader
             leading={
                 chat.kind === 'channel' ? (
-                    <ChannelActions chat={chat} chatName={chatName} server={server} />
+                    <ChannelActions
+                        chat={chat}
+                        chatName={chatName}
+                        onOpenFiles={onOpenFiles}
+                        server={server}
+                    />
                 ) : (
-                    <EntityAvatar
-                        name={peerAgent?.displayName ?? chatName}
-                        size="sm"
-                        src={peerAgent?.avatarUrl ?? null}
+                    <DmActions
+                        chat={chat}
+                        chatName={chatName}
+                        onOpenFiles={onOpenFiles}
+                        peerAgent={peerAgent}
+                        server={server}
                     />
                 )
             }
@@ -80,13 +85,10 @@ export function ChatTopbar({
                     ) : null}
                 </>
             }
-            title={chat.kind === 'dm' ? chatName : undefined}
         >
-            {/* A channel's name lives inside the actions trigger, so the page
-                would otherwise have no heading at all. DMs get theirs from the
-                title slot above. */}
-            {chat.kind === 'channel' ? <h1 className="sr-only">{chatName}</h1> : null}
-            <ChatViewSwitcher onValueChange={onViewTabChange} value={viewTab} />
+            {/* Both chat kinds carry their name inside the actions trigger, so
+                the page needs an explicit heading for assistive tech. */}
+            <h1 className="sr-only">{chatName}</h1>
             <Tooltip>
                 <Button
                     aria-label={artifactVisible ? 'Hide artifacts' : 'Show artifacts'}
@@ -113,13 +115,87 @@ function DmAgentStatus({ agent }: { agent: Agent }) {
 // small dialog instead of one dialog that asks for everything at once.
 type ChannelEditDialog = 'agents' | 'appearance' | 'rename';
 
-function ChannelActions({
+/** The chat-scoped surfaces every chat menu offers: its tasks and its files. */
+function ChatSurfaceItems() {
+    return (
+        <>
+            <Dropdown.Item id="tasks" textValue="View tasks">
+                <Icon icon={CheckListIcon} size={16} />
+                <Label>View tasks</Label>
+            </Dropdown.Item>
+            <Dropdown.Item id="files" textValue="Files">
+                <Icon icon={Attachment01Icon} size={16} />
+                <Label>Files</Label>
+            </Dropdown.Item>
+        </>
+    );
+}
+
+function DmActions({
     chat,
     chatName,
+    onOpenFiles,
+    peerAgent,
     server,
 }: {
     chat: Chat;
     chatName: string;
+    onOpenFiles: () => void;
+    peerAgent: Agent | null;
+    server: ServerDetail;
+}) {
+    const navigate = useNavigate();
+
+    return (
+        <Dropdown>
+            <Button
+                aria-label={`${chatName} — chat actions`}
+                // Mirrors the channel trigger: pill-local padding plus the
+                // negative margin that keeps the avatar on the band gutter.
+                className="-ms-2 min-w-0 gap-2 px-2"
+                size="sm"
+                variant="ghost"
+            >
+                <EntityAvatar
+                    name={peerAgent?.displayName ?? chatName}
+                    // Sidebar-row scale: the band is chrome, so its identity
+                    // mark stays smaller than the transcript's avatars below.
+                    size={24}
+                    src={peerAgent?.avatarUrl ?? null}
+                />
+                <span className="truncate font-semibold text-sm">{chatName}</span>
+                <Icon aria-hidden="true" className="text-muted" icon={ArrowDown01Icon} size={15} />
+            </Button>
+            <Dropdown.Popover placement="bottom start">
+                <Dropdown.Menu
+                    onAction={(key) => {
+                        if (key === 'tasks') {
+                            navigate(
+                                `${tasksRoute(server.slug)}?chat=${encodeURIComponent(chat.id)}`
+                            );
+                            return;
+                        }
+                        if (key === 'files') {
+                            onOpenFiles();
+                        }
+                    }}
+                >
+                    <ChatSurfaceItems />
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
+    );
+}
+
+function ChannelActions({
+    chat,
+    chatName,
+    onOpenFiles,
+    server,
+}: {
+    chat: Chat;
+    chatName: string;
+    onOpenFiles: () => void;
     server: ServerDetail;
 }) {
     const navigate = useNavigate();
@@ -141,6 +217,14 @@ function ChannelActions({
     const canManage = server.role === 'owner' || server.role === 'admin';
     const lifecyclePending = archive.isPending || unarchive.isPending || deleteChannel.isPending;
     const runLifecycleAction = (key: React.Key) => {
+        if (key === 'tasks') {
+            navigate(`${tasksRoute(server.slug)}?chat=${encodeURIComponent(chat.id)}`);
+            return;
+        }
+        if (key === 'files') {
+            onOpenFiles();
+            return;
+        }
         if (key === 'rename' || key === 'appearance' || key === 'agents') {
             setEditDialog(key);
             return;
@@ -210,12 +294,17 @@ function ChannelActions({
                                 {count}
                             </span>
                         </Dropdown.Item>
+                        <ChatSurfaceItems />
                         {chat.isAll || !canManage ? null : (
                             <Dropdown.Item
                                 id={chat.archivedAt ? 'restore' : 'archive'}
                                 isDisabled={lifecyclePending}
                                 textValue={chat.archivedAt ? 'Restore channel' : 'Archive channel'}
                             >
+                                <Icon
+                                    icon={chat.archivedAt ? ArchiveRestoreIcon : ArchiveIcon}
+                                    size={16}
+                                />
                                 <Label>
                                     {chat.archivedAt ? 'Restore channel' : 'Archive channel'}
                                 </Label>
@@ -228,6 +317,7 @@ function ChannelActions({
                                 textValue="Delete channel"
                                 variant="danger"
                             >
+                                <Icon icon={Delete02Icon} size={16} />
                                 <Label>Delete channel</Label>
                             </Dropdown.Item>
                         )}

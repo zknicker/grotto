@@ -14,23 +14,20 @@ import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
-import type { ChatViewTab } from '../../chats/chat-view-tabs.tsx';
-import { SectionBar, SectionHeader } from '../../shell/section-header.tsx';
 import { ShellSidePane } from '../../shell/shell-side-pane.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
 import { AgentProfilePanel } from '../agent-profile-panel.tsx';
-import { TaskContent } from '../tasks/task-content.tsx';
-import { TaskControls } from '../tasks/task-controls.tsx';
 import { ThreadPanel } from '../thread/thread-panel.tsx';
 import { ChatAgentComposition, hasAgentComposition } from './agent-composition.tsx';
 import { ArchivedChannelBar } from './archived-channel-bar.tsx';
 import { ChatComposer } from './chat-composer.tsx';
-import { ChatFiles } from './chat-files.tsx';
+import { ChatFilesPanel } from './chat-files.tsx';
 import { mergeTaskAnchor } from './chat-message-model.ts';
 import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
 import { useChatArtifactPanel } from './use-artifact-panel.ts';
+import { useChatFilesPane } from './use-chat-files-pane.ts';
 import { usePendingChatMessages } from './use-pending-messages.ts';
 
 export function ChatView({
@@ -48,7 +45,7 @@ export function ChatView({
     onOpenChat: (chatId: string) => void;
     server: ServerDetail;
 }) {
-    const [viewTab, setViewTab] = React.useState<ChatViewTab>('chat');
+    const filesPane = useChatFilesPane(chat.id);
     const [searchParams, setSearchParams] = useSearchParams();
     const agentLifecycles = useAgentLifecycle();
     const artifactState = useChatArtifactPanel(chat.id);
@@ -94,7 +91,7 @@ export function ChatView({
             ? (chat.name ?? 'channel')
             : chat.peerAgentId
               ? (chat.peerAgentDisplayName ?? 'Agent')
-              : `Direct · ${humans.name(chat.peerUserId)}`;
+              : `DM · ${humans.name(chat.peerUserId)}`;
     useWindowTitle(chat.kind === 'channel' ? `#${chatName}` : chatName);
     const threadSummary =
         messages.data?.threads.find(
@@ -213,12 +210,19 @@ export function ChatView({
                 takeover={threadTakeover}
             />
             <AgentProfilePanel chatId={chat.id} server={server} takeover={threadTakeover} />
+            <ChatFilesPanel
+                messages={messages.data?.messages}
+                onClose={filesPane.close}
+                open={filesPane.visible}
+                takeover={threadTakeover}
+            />
             {threadPanel}
         </>
     );
     const sidePanelTakeover = Boolean(
         threadTakeover &&
             ((activeSidePane === 'artifact' && artifactState.visible) ||
+                (activeSidePane === 'files' && filesPane.visible) ||
                 activeSidePane === 'profile' ||
                 (activeSidePane === 'thread' && threadPanel))
     );
@@ -234,29 +238,14 @@ export function ChatView({
                     artifactVisible={artifactState.visible}
                     chat={chat}
                     chatName={chatName}
+                    onOpenFiles={filesPane.open}
                     onToggleArtifacts={artifactState.toggleVisible}
-                    onViewTabChange={setViewTab}
                     server={server}
-                    viewTab={viewTab}
                 />
             </PageTopbar>
             <ShellSidePane takeover={sidePanelTakeover}>{sidePanel}</ShellSidePane>
             <ChatDetailFrame
                 activeReplies={[]}
-                body={
-                    viewTab === 'tasks' ? (
-                        <section aria-label="Chat tasks" className="flex min-h-0 flex-1 flex-col">
-                            <SectionBar>
-                                <SectionHeader title="Tasks">
-                                    <TaskControls chatId={chat.id} />
-                                </SectionHeader>
-                            </SectionBar>
-                            <TaskContent chatId={chat.id} onOpenTask={() => setViewTab('chat')} />
-                        </section>
-                    ) : viewTab === 'files' ? (
-                        <ChatFiles messages={messages.data?.messages} />
-                    ) : undefined
-                }
                 chatId={chat.id}
                 empty={
                     <EmptyState>
@@ -275,35 +264,33 @@ export function ChatView({
                 }
                 error={messages.error}
                 footer={
-                    viewTab === 'chat' ? (
-                        <>
-                            {ensureDm.error && !peerRetired ? (
-                                <p className="px-9 text-danger text-sm">{ensureDm.error.message}</p>
-                            ) : null}
-                            <span className="sr-only" data-testid="read-state">
-                                {read.data ? `Read through ${read.data.sequence}` : ''}
-                            </span>
-                            {chat.archivedAt ? (
-                                <ArchivedChannelBar
-                                    canManage={server.role === 'owner' || server.role === 'admin'}
-                                    chat={chat}
-                                />
-                            ) : peerRetired ? (
-                                <p className="mx-auto w-full max-w-none px-9 pb-4 text-muted text-sm">
-                                    {chatName} has been retired. You can read this conversation, but
-                                    you can’t send new messages.
-                                </p>
-                            ) : (
-                                <ChatComposer
-                                    chatId={chat.id}
-                                    chatName={chatName}
-                                    pendingChatId={chat.id}
-                                    placeholder="Let's go on an adventure..."
-                                    serverId={chat.serverId}
-                                />
-                            )}
-                        </>
-                    ) : null
+                    <>
+                        {ensureDm.error && !peerRetired ? (
+                            <p className="px-9 text-danger text-sm">{ensureDm.error.message}</p>
+                        ) : null}
+                        <span className="sr-only" data-testid="read-state">
+                            {read.data ? `Read through ${read.data.sequence}` : ''}
+                        </span>
+                        {chat.archivedAt ? (
+                            <ArchivedChannelBar
+                                canManage={server.role === 'owner' || server.role === 'admin'}
+                                chat={chat}
+                            />
+                        ) : peerRetired ? (
+                            <p className="mx-auto w-full max-w-none px-9 pb-4 text-muted text-sm">
+                                {chatName} has been retired. You can read this conversation, but you
+                                can’t send new messages.
+                            </p>
+                        ) : (
+                            <ChatComposer
+                                chatId={chat.id}
+                                chatName={chatName}
+                                pendingChatId={chat.id}
+                                placeholder="Let's go on an adventure..."
+                                serverId={chat.serverId}
+                            />
+                        )}
+                    </>
                 }
                 hasTransientTimelineContent={
                     hasAgentComposition(chat.id, agentLifecycles) || pendingMessages.length > 0

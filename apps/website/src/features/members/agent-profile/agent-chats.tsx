@@ -55,7 +55,7 @@ export function AgentChats({ agent, server }: { agent: Agent; server: ServerDeta
                                     />
                                 )}
                                 <span className="truncate font-medium text-foreground text-sm">
-                                    {chat.name ?? `Direct · @${agent.handle}`}
+                                    {chat.name ?? `DM · @${agent.handle}`}
                                 </span>
                             </button>
                         </React.Fragment>

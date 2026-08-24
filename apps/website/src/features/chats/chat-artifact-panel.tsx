@@ -2,6 +2,7 @@ import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopTabPane } from '../../hooks/desktop/use-desktop-window-commands.ts';
+import { bandHeightClassName } from '../shell/section-header.tsx';
 import { ArtifactPanelChrome } from './chat-artifact-panel-chrome.tsx';
 import type { ChatArtifactPanelState } from './chat-artifact-panel-state.ts';
 import { WorkspaceBrowserContent } from './chat-artifact-workspace-content.tsx';
@@ -86,7 +87,7 @@ function ArtifactPanelBody({
             style={width ? { width } : undefined}
         >
             <header
-                className="relative z-40 flex h-12 shrink-0 items-center border-separator border-b bg-background"
+                className={`relative z-40 flex ${bandHeightClassName} shrink-0 items-center border-separator border-b bg-background`}
                 data-window-drag-region=""
             >
                 <ArtifactPanelChrome

@@ -9,6 +9,8 @@ const agent = {
 } as Agent;
 const chats = [
     {
+        color: 'violet',
+        icon: 'RocketIcon',
         id: 'cht_all',
         isAll: true,
         kind: 'channel',
@@ -16,6 +18,8 @@ const chats = [
         peerAgentId: null,
     },
     {
+        color: null,
+        icon: null,
         id: 'cht_cove',
         isAll: false,
         kind: 'dm',
@@ -55,6 +59,25 @@ describe('Server command groups', () => {
 
         groups.find((group) => group.id === 'direct-messages')?.commands[0]?.run();
         expect(navigated).toEqual(['/s/dev/chats/cht_cove']);
+    });
+
+    test("carries a channel's chosen icon and color into its command", () => {
+        const groups = buildCommandGroups({
+            agents: [agent],
+            chats,
+            devMode: false,
+            navigate: () => undefined,
+            pathname: '/s/dev',
+            role: 'owner',
+            serverSlug: 'dev',
+            setDevMode: () => undefined,
+        });
+
+        expect(groups.find((group) => group.id === 'channels')?.commands[0]?.icon).toEqual({
+            color: 'violet',
+            icon: 'RocketIcon',
+            kind: 'channel',
+        });
     });
 
     test('recognizes Server Chat routes and omits operator commands for members', () => {

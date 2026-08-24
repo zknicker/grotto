@@ -1,9 +1,9 @@
 import { Chip, Separator } from '@heroui/react';
-import { HashtagIcon } from '@hugeicons-pro/core-solid-rounded';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentChats } from '../../../hooks/members/use-agent-chats.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
@@ -41,11 +41,19 @@ export function AgentChats({ agent, server }: { agent: Agent; server: ServerDeta
                                 onClick={() => navigate(serverChatRoute(server.slug, chat.id))}
                                 type="button"
                             >
-                                <Icon
-                                    aria-hidden="true"
-                                    className="size-4 shrink-0 text-muted"
-                                    icon={chat.kind === 'channel' ? HashtagIcon : BubbleChatIcon}
-                                />
+                                {chat.kind === 'channel' ? (
+                                    <ChannelIconBox
+                                        color={chat.color}
+                                        icon={chat.icon}
+                                        size="inline"
+                                    />
+                                ) : (
+                                    <Icon
+                                        aria-hidden="true"
+                                        className="size-4 shrink-0 text-muted"
+                                        icon={BubbleChatIcon}
+                                    />
+                                )}
                                 <span className="truncate font-medium text-foreground text-sm">
                                     {chat.name ?? `Direct · @${agent.handle}`}
                                 </span>

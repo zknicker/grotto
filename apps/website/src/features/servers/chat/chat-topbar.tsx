@@ -16,10 +16,11 @@ import {
     useChannelDelete,
     useChannelUnarchive,
 } from '../../../hooks/servers/use-channel-lifecycle.ts';
-import { useChannelUpdate } from '../../../hooks/servers/use-channel-update.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
-import { ChannelDialog } from '../../chats/channel-dialog.tsx';
+import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
+import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
+import { ChannelRenameDialog } from '../../chats/channel-rename-dialog.tsx';
 import { ChatViewSwitcher, type ChatViewTab } from '../../chats/chat-view-tabs.tsx';
 import { availabilityLabel } from '../../members/agent-avatar.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
@@ -56,12 +57,7 @@ export function ChatTopbar({
         <SectionHeader
             leading={
                 chat.kind === 'channel' ? (
-                    <ChannelActions
-                        agents={agents.data ?? []}
-                        chat={chat}
-                        chatName={chatName}
-                        server={server}
-                    />
+                    <ChannelActions chat={chat} chatName={chatName} server={server} />
                 ) : (
                     <EntityAvatar
                         name={peerAgent?.displayName ?? chatName}
@@ -113,23 +109,24 @@ function DmAgentStatus({ agent }: { agent: Agent }) {
     return availabilityLabel(agent.availability);
 }
 
+// Editing a channel is three separate decisions, so each one gets its own
+// small dialog instead of one dialog that asks for everything at once.
+type ChannelEditDialog = 'agents' | 'appearance' | 'rename';
+
 function ChannelActions({
-    agents,
     chat,
     chatName,
     server,
 }: {
-    agents: Agent[];
     chat: Chat;
     chatName: string;
     server: ServerDetail;
 }) {
     const navigate = useNavigate();
-    const updateChannel = useChannelUpdate();
     const archive = useChannelArchive();
     const unarchive = useChannelUnarchive();
     const deleteChannel = useChannelDelete();
-    const [editing, setEditing] = React.useState(false);
+    const [editDialog, setEditDialog] = React.useState<ChannelEditDialog | null>(null);
     const [confirmingDelete, setConfirmingDelete] = React.useState(false);
     const count =
         chat.kind === 'channel'
@@ -144,9 +141,8 @@ function ChannelActions({
     const canManage = server.role === 'owner' || server.role === 'admin';
     const lifecyclePending = archive.isPending || unarchive.isPending || deleteChannel.isPending;
     const runLifecycleAction = (key: React.Key) => {
-        if (key === 'edit') {
-            updateChannel.reset();
-            setEditing(true);
+        if (key === 'rename' || key === 'appearance' || key === 'agents') {
+            setEditDialog(key);
             return;
         }
         if (key === 'delete') {
@@ -163,6 +159,8 @@ function ChannelActions({
             );
     };
 
+    const closeEditDialog = () => setEditDialog(null);
+
     return (
         <>
             <Dropdown>
@@ -176,7 +174,7 @@ function ChannelActions({
                     size="sm"
                     variant="ghost"
                 >
-                    <ChannelIconBox size="topbar" />
+                    <ChannelIconBox color={chat.color} icon={chat.icon} size="topbar" />
                     <span className="truncate font-semibold text-sm">{chatName}</span>
                     <Icon
                         aria-hidden="true"
@@ -188,11 +186,25 @@ function ChannelActions({
                 <Dropdown.Popover placement="bottom start">
                     <Dropdown.Menu onAction={runLifecycleAction}>
                         <Dropdown.Item
-                            id="edit"
+                            id="rename"
                             isDisabled={Boolean(chat.archivedAt)}
-                            textValue="Channel participants"
+                            textValue="Rename channel"
                         >
-                            <Label>Channel participants</Label>
+                            <Label>Rename channel</Label>
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                            id="appearance"
+                            isDisabled={Boolean(chat.archivedAt)}
+                            textValue="Icon and color"
+                        >
+                            <Label>Icon &amp; color</Label>
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                            id="agents"
+                            isDisabled={Boolean(chat.archivedAt)}
+                            textValue="Agents"
+                        >
+                            <Label>Agents</Label>
                             <span className="ms-auto flex shrink-0 items-center gap-1 text-muted text-xs tabular-nums">
                                 <Icon aria-hidden="true" icon={UserMultiple02Icon} size={14} />
                                 {count}
@@ -222,31 +234,17 @@ function ChannelActions({
                     </Dropdown.Menu>
                 </Dropdown.Popover>
             </Dropdown>
-            <ChannelDialog
-                agents={agents.map((agent) => ({
-                    avatarUrl: agent.avatarUrl,
-                    id: agent.id,
-                    name: agent.displayName,
-                }))}
-                agentsPending={false}
-                errorMessage={updateChannel.error?.message ?? null}
-                initialAgentIds={chat.participantAgentIds}
-                initialDisplayName={chat.name ?? ''}
-                isPending={updateChannel.isPending}
-                onClose={() => setEditing(false)}
-                onSubmit={async ({ agentIds, displayName }) => {
-                    await updateChannel.mutateAsync({
-                        agentIds,
-                        chatId: chat.id,
-                        name: displayName,
-                        serverId: chat.serverId,
-                    });
-                    setEditing(false);
-                }}
-                open={editing}
-                submitLabel="Save"
-                title="Edit channel"
-            />
+            {/* Each edit dialog mounts on demand, so its draft starts from the
+                channel as it is right now. */}
+            {editDialog === 'rename' ? (
+                <ChannelRenameDialog chat={chat} onClose={closeEditDialog} />
+            ) : null}
+            {editDialog === 'appearance' ? (
+                <ChannelAppearanceDialog chat={chat} onClose={closeEditDialog} />
+            ) : null}
+            {editDialog === 'agents' ? (
+                <ChannelAgentsDialog chat={chat} onClose={closeEditDialog} />
+            ) : null}
             {confirmingDelete ? (
                 <DeleteDialog
                     confirmation={chat.name ?? ''}

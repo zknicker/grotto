@@ -4,7 +4,8 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
-import { type ChannelAgentOption, ChannelDialog } from '../chats/channel-dialog.tsx';
+import type { ChannelAgentOption } from '../chats/channel-agent-picker.tsx';
+import { ChannelCreateDialog } from '../chats/channel-create-dialog.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
 import { ChatNavigation } from './chat-navigation.tsx';
 
@@ -43,29 +44,27 @@ export function AppSidebar({
                 selectedChatId={selectedChatId}
                 slug={slug}
             />
-            <ChannelDialog
+            <ChannelCreateDialog
                 agents={channelAgents}
                 agentsPending={agents.isPending}
                 errorMessage={createChannel.error?.message ?? null}
-                initialAgentIds={[]}
-                initialDisplayName=""
                 isPending={createChannel.isPending}
                 onClose={() => {
                     createChannel.reset();
                     setCreatingChannel(false);
                 }}
-                onSubmit={async ({ agentIds, displayName }) => {
+                onSubmit={async ({ agentIds, color, icon, name }) => {
                     const channel = await createChannel.mutateAsync({
                         agentIds,
-                        name: displayName,
+                        color,
+                        icon,
+                        name,
                         serverId: currentServer.id,
                     });
                     setCreatingChannel(false);
                     navigate(serverChatRoute(slug, channel.id));
                 }}
                 open={creatingChannel}
-                submitLabel="Create"
-                title="New channel"
             />
         </>
     );

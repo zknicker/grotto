@@ -124,7 +124,9 @@ test('offers writable Channels and DMs as task creation work surfaces', () => {
                 {
                     archivedAt: null,
                     archivedByUserId: null,
+                    color: null,
                     createdAt: '2026-07-26T12:00:00.000Z',
+                    icon: null,
                     id: 'chat_channel',
                     isAll: true,
                     kind: 'channel',
@@ -143,7 +145,9 @@ test('offers writable Channels and DMs as task creation work surfaces', () => {
                 {
                     archivedAt: null,
                     archivedByUserId: null,
+                    color: null,
                     createdAt: '2026-07-26T12:00:00.000Z',
+                    icon: null,
                     id: 'chat_dm',
                     isAll: false,
                     kind: 'dm',
@@ -162,7 +166,9 @@ test('offers writable Channels and DMs as task creation work surfaces', () => {
                 {
                     archivedAt: null,
                     archivedByUserId: null,
+                    color: null,
                     createdAt: '2026-07-26T12:00:00.000Z',
+                    icon: null,
                     id: 'chat_agent_dm',
                     isAll: false,
                     kind: 'dm',
@@ -181,7 +187,9 @@ test('offers writable Channels and DMs as task creation work surfaces', () => {
                 {
                     archivedAt: null,
                     archivedByUserId: null,
+                    color: null,
                     createdAt: '2026-07-26T12:00:00.000Z',
+                    icon: null,
                     id: 'chat_retired_agent_dm',
                     isAll: false,
                     kind: 'dm',

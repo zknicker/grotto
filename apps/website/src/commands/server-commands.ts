@@ -120,7 +120,7 @@ function buildChatGroups(context: CommandContext): AppCommandGroup[] {
         return {
             icon:
                 chat.kind === 'channel'
-                    ? { color: null, kind: 'channel' }
+                    ? { color: chat.color, icon: chat.icon, kind: 'channel' }
                     : {
                           agentId: chat.peerAgentId,
                           fallbackLabel: title,

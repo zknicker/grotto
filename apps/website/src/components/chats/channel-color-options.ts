@@ -91,9 +91,13 @@ export function getChannelColorStyle(
     };
 }
 
+/**
+ * Channels store a preset id (`violet`), not a hex value, so a design-system
+ * palette change restyles every channel that already picked that preset.
+ */
 export function getChannelColorTheme(color: string): ChannelColorTheme {
-    const normalized = color.toLowerCase();
-    const option = channelColorOptions.find((entry) => entry.value === normalized);
+    const normalized = color.trim().toLowerCase();
+    const option = channelColorOptions.find((entry) => entry.id === normalized);
 
     return option
         ? { darkValue: option.darkValue, lightValue: option.lightValue }

@@ -9,7 +9,6 @@ import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { GrottoGlyph } from '../../components/grotto-logo.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { getChannelColorStyle } from './channel-color-options.ts';
 import { useCommandMenu } from './command-menu-provider.tsx';
 
 export type AgentAvatarLookup = (agentId: string | null | undefined) => string | null;
@@ -136,7 +135,7 @@ function CommandMenuIcon({
     if (typeof command.icon === 'object' && 'kind' in command.icon) {
         if (command.icon.kind === 'channel') {
             return (
-                <ChannelIconBox size="inline" style={getChannelColorStyle(command.icon.color)} />
+                <ChannelIconBox color={command.icon.color} icon={command.icon.icon} size="inline" />
             );
         }
 

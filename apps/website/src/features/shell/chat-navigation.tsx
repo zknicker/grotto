@@ -3,9 +3,10 @@ import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import { ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { Agent, Chat } from '@tavern/api';
-import type React from 'react';
+import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
+import { loadChannelIconCatalog } from '../../components/chats/channel-icon-catalog.ts';
 import { Icon } from '../../components/ui/icon.tsx';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverArchivedChatsRoute, serverChatRoute } from '../servers/server-routes.ts';
@@ -25,6 +26,13 @@ export function ChatNavigation({
     slug: string;
 }) {
     const location = useLocation();
+    // Channel glyphs live in a lazily imported catalog. Warm it as soon as the
+    // chat list mounts so rows and the picker have it before they need it.
+    React.useEffect(() => {
+        // The hash fallback already covers a failed load; this warm-up just
+        // needs to kick the retryable import off.
+        loadChannelIconCatalog().catch(() => undefined);
+    }, []);
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
     const channels = chats.filter((chat) => chat.kind === 'channel');
     const directMessages = chats.filter((chat) => chat.kind === 'dm' && !chat.peerAgentRetired);
@@ -117,7 +125,7 @@ function ChatGroup({
                             textValue={name}
                         >
                             <Sidebar.MenuIcon>
-                                <ChatIcon agent={agent} />
+                                <ChatIcon agent={agent} chat={chat} />
                             </Sidebar.MenuIcon>
                             <Sidebar.MenuItemContent>
                                 <Sidebar.MenuLabel>{name}</Sidebar.MenuLabel>
@@ -134,9 +142,9 @@ function ChatGroup({
     );
 }
 
-function ChatIcon({ agent }: { agent: Agent | null }) {
+function ChatIcon({ agent, chat }: { agent: Agent | null; chat: Chat }) {
     if (!agent) {
-        return <ChannelIconBox size="sidebar" />;
+        return <ChannelIconBox color={chat.color} icon={chat.icon} size="sidebar" />;
     }
 
     return <AgentAvatar agent={agent} size={24} />;

@@ -10,7 +10,9 @@ test('Thread targets preserve non-canonical opaque anchor ids', () => {
             {
                 archivedAt: null,
                 archivedByUserId: null,
+                color: null,
                 createdAt: '2026-07-26T12:00:00.000Z',
+                icon: null,
                 id: 'cht_parent',
                 isAll: true,
                 kind: 'channel',

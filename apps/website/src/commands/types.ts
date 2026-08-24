@@ -5,6 +5,7 @@ export type AppCommandIcon =
     | 'tavern'
     | {
           color: string | null;
+          icon: string | null;
           kind: 'channel';
       }
     | {

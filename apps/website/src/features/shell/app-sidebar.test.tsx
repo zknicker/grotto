@@ -64,6 +64,29 @@ test('renders each DM from its own Agent availability', () => {
     expect(markup).toContain('title="Online"');
 });
 
+test('paints a channel row with its chosen color', () => {
+    const markup = renderToStaticMarkup(
+        <MemoryRouter>
+            <Sidebar.Provider>
+                <ShellSidebar activePage="server">
+                    <ShellSidebarPage ariaLabel="Server" value="server">
+                        <ChatNavigation
+                            agents={[]}
+                            chats={[channel()]}
+                            onCreateChannel={() => undefined}
+                            selectedChatId={undefined}
+                            slug="tavern"
+                        />
+                    </ShellSidebarPage>
+                </ShellSidebar>
+            </Sidebar.Provider>
+        </MemoryRouter>
+    );
+
+    expect(markup).toContain('--channel-color-light:#7c3aed');
+    expect(markup).toContain('--channel-color-dark:#a78bfa');
+});
+
 function agent(overrides: Pick<Agent, 'availability' | 'displayName' | 'id'>): Agent {
     return {
         availability: overrides.availability,
@@ -93,7 +116,9 @@ function dm(id: string, peer: Agent): Chat {
     return {
         archivedAt: null,
         archivedByUserId: null,
+        color: null,
         createdAt: '2026-07-29T12:00:00.000Z',
+        icon: null,
         id,
         isAll: false,
         kind: 'dm',
@@ -115,7 +140,9 @@ function retiredDm(): Chat {
     return {
         archivedAt: null,
         archivedByUserId: null,
+        color: null,
         createdAt: '2026-07-29T12:00:00.000Z',
+        icon: null,
         id: 'chat_fen',
         isAll: false,
         kind: 'dm',
@@ -127,6 +154,30 @@ function retiredDm(): Chat {
         peerAgentDisplayName: 'Fen',
         peerAgentId: 'agt_fen0000000000000',
         peerAgentRetired: true,
+        peerUserId: null,
+        serverId: 'server_one',
+        unreadCount: 0,
+    };
+}
+
+function channel(): Chat {
+    return {
+        archivedAt: null,
+        archivedByUserId: null,
+        color: 'violet',
+        createdAt: '2026-07-29T12:00:00.000Z',
+        icon: 'RocketIcon',
+        id: 'chat_planning',
+        isAll: false,
+        kind: 'channel',
+        lastActivityAt: null,
+        lastMessageSequence: 0,
+        name: 'planning',
+        participantAgentIds: [],
+        participantUserIds: ['user_one'],
+        peerAgentDisplayName: null,
+        peerAgentId: null,
+        peerAgentRetired: false,
         peerUserId: null,
         serverId: 'server_one',
         unreadCount: 0,
